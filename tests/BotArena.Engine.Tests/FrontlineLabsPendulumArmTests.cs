@@ -21,7 +21,11 @@ public sealed class FrontlineLabsPendulumArmTests
         FrontlineLabsClassDefinition.Striker,
     ];
 
-    /// <summary>The four pre-registered phase-1 factor levels.</summary>
+    /// <summary>
+    /// The pre-registered factor levels: phase 1's four (DECISIONS #158/#160)
+    /// plus phase 1b's <c>keel</c>, which composes every built counterweight
+    /// (DECISIONS #166).
+    /// </summary>
     public static TheoryData<FrontlineLabsPendulumArm, int, int, string>
         PhaseOneLevels() =>
         new()
@@ -40,6 +44,15 @@ public sealed class FrontlineLabsPendulumArmTests
                 15,
                 18,
                 "frontline-labs-1-experiment-ratchet-contest"
+            },
+            {
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay,
+                15,
+                18,
+                "frontline-labs-1-experiment-keel"
             },
             {
                 FrontlineLabsPendulumArm.None,
@@ -266,6 +279,10 @@ public sealed class FrontlineLabsPendulumArmTests
             FrontlineLabsPendulumArm.StickyFrontline
                 | FrontlineLabsPendulumArm.ForwardRally
                 | FrontlineLabsPendulumArm.ContestMajority,
+            FrontlineLabsPendulumArm.StickyFrontline
+                | FrontlineLabsPendulumArm.ForwardRally
+                | FrontlineLabsPendulumArm.ContestMajority
+                | FrontlineLabsPendulumArm.EnemySoleDecay,
         ];
         ActorMovementFacingCoupling[] couplings =
         [
@@ -335,7 +352,138 @@ public sealed class FrontlineLabsPendulumArmTests
             }
         }
 
-        Assert.Equal(54, rulesetIds.Count);
+        Assert.Equal(72, rulesetIds.Count);
+    }
+
+    /// <summary>
+    /// Phase 1b (DECISIONS #166) is ratchet-contest plus enemy-sole-decay, so
+    /// it must select all four typed policies at once and be a ruleset of its
+    /// own — the same bytes as ratchet-contest under a new name would make the
+    /// one-factor delta unmeasurable.
+    /// </summary>
+    [Fact]
+    public void TheKeelLevelIsRatchetContestPlusEnemySoleDecay()
+    {
+        ActorResolvedMatchDefinition ratchetContest =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority);
+        ActorResolvedMatchDefinition keel =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay);
+
+        Assert.Equal(
+            FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks,
+            Capture(keel).RedeployPolicy);
+        Assert.Equal(
+            FrontlineLabsDefinition.RatchetHoldTicksDefault,
+            Capture(keel).RatchetHoldTicks);
+        Assert.Equal(
+            ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn,
+            keel.Rules.Lifecycle.AutomaticReturnPlacement);
+        Assert.Equal(
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral,
+            Capture(keel).ControlPolicy);
+        // The one factor the winning level never carried.
+        Assert.Equal(
+            FrontlineCaptureDefinition.DecayClockKind
+                .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly,
+            Capture(keel).DecayClock);
+        Assert.Equal(
+            FrontlineCaptureDefinition.DecayClockKind
+                .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl,
+            Capture(ratchetContest).DecayClock);
+
+        Assert.NotEqual(
+            ratchetContest.Rules.RulesetId,
+            keel.Rules.RulesetId);
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(ratchetContest.Rules),
+            ActorContractFingerprint.ComputeRules(keel.Rules));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(ratchetContest),
+            ActorContractFingerprint.ComputeMatch(keel));
+        // The map is held constant, so the delta is the decay clock alone.
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(ratchetContest.Map),
+            ActorContractFingerprint.ComputeMap(keel.Map));
+    }
+
+    /// <summary>
+    /// The registered token exists for exactly one reason: the budget is 64
+    /// canonical characters and per-factor spelling overruns it in the worst
+    /// class cell — an unregistered combination there still says so out loud.
+    /// Pin the worst keel cell literally.
+    /// </summary>
+    [Fact]
+    public void TheKeelTokenFitsTheWorstClassCellPerFactorSpellingDoesNot()
+    {
+        ActorResolvedMatchDefinition worst =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay,
+                (FrontlineLabsClassDefinition.Fabricator,
+                    FrontlineLabsClassDefinition.Fabricator),
+                movementCoupling: ActorMovementFacingCoupling.FacingLocked);
+
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-fabricator-keel-facing-locked",
+            worst.Rules.RulesetId);
+        Assert.True(
+            worst.Rules.RulesetId.Length <= 64,
+            $"{worst.Rules.RulesetId} needs {worst.Rules.RulesetId.Length} "
+            + "canonical characters");
+
+        // Unregistered combinations still spell themselves out, and the same
+        // cell overflows on three of the four factors — which is why the
+        // fourth needed a registered name rather than one more token.
+        Assert.Contains(
+            "register the combination under a shorter token",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsDefinition.CreatePendulumExperiment(
+                    FrontlineLabsPendulumArm.StickyFrontline
+                        | FrontlineLabsPendulumArm.ForwardRally
+                        | FrontlineLabsPendulumArm.EnemySoleDecay,
+                    (FrontlineLabsClassDefinition.Fabricator,
+                        FrontlineLabsClassDefinition.Fabricator),
+                    movementCoupling:
+                        ActorMovementFacingCoupling.FacingLocked)).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <c>ratchet-contest</c> shortens to <c>contest</c> beside a class pair;
+    /// <c>keel</c> is already short enough to be one token everywhere, and the
+    /// composed cell drops the <c>-experiment-classes-</c> segment exactly as
+    /// every other composed arm does.
+    /// </summary>
+    [Fact]
+    public void TheKeelTokenIsTheSameComposedAndUncomposed()
+    {
+        ActorResolvedMatchDefinition pair =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay,
+                (FrontlineLabsClassDefinition.Bulwark,
+                    FrontlineLabsClassDefinition.Striker));
+
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-keel",
+            pair.Rules.RulesetId);
+        Assert.Equal(
+            $"{FrontlineLabsDefinition.MapId}-classes",
+            pair.Map.Id);
     }
 
     [Theory]

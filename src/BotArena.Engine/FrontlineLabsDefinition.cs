@@ -627,8 +627,11 @@ public static class FrontlineLabsDefinition
     }
 
     /// <summary>
-    /// The registered phase-1 levels get their pre-registration names; any
-    /// other combination joins its per-factor tokens in the declared order.
+    /// The registered levels get their pre-registration names; any other
+    /// combination joins its per-factor tokens in the declared order. The
+    /// name is a property of the combination, not of how it was spelled, so
+    /// a registered level and its explicit per-factor spelling are the same
+    /// content-identified ruleset.
     /// </summary>
     private static string PendulumToken(
         FrontlineLabsPendulumArm pendulum,
@@ -642,6 +645,15 @@ public static class FrontlineLabsDefinition
                 | FrontlineLabsPendulumArm.ForwardRally
                 | FrontlineLabsPendulumArm.ContestMajority =>
                 composed ? "contest" : "ratchet-contest",
+            // Phase 1b (DECISIONS #166): every built counterweight at once.
+            // The keel is what stops a hull swinging, which is the whole
+            // claim of the level — and four characters keep the worst class
+            // cell (`fabricator-vs-fabricator` plus `facing-locked`) inside
+            // the 64-character canonical budget at 60, where the per-factor
+            // spelling of the same four needs 83. One token in both
+            // positions: a registered name that changed under composition
+            // would make the spelled and named forms diverge for no gain.
+            AllPendulumArms => "keel",
             _ => string.Join(
                 "-",
                 new[]

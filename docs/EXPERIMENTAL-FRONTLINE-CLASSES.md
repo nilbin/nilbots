@@ -120,6 +120,15 @@ resolved contract:
 | `enemy-sole-decay` | `capture.decayClock` | empty and contested ticks stop eroding progress; only an enemy standing alone on the objective does |
 | `ratchet` | sticky-frontline + forward-rally | the registered structural level |
 | `ratchet-contest` | ratchet + contest-majority | the registered structural level with contest cost |
+| `keel` | ratchet-contest + enemy-sole-decay | every counterweight at once — the registered phase-1b level |
+
+Any other ablation is spelled with comma-separated single-factor tokens.
+A level is identified by *what it composes*, never by how you typed it:
+`--pendulum keel` and
+`--pendulum sticky-frontline,forward-rally,contest-majority,enemy-sole-decay`
+are the same ruleset with the same fingerprint, and it is the short
+registered token that appears in the ID either way — the spelled-out form
+does not fit the 64-character canonical budget beside a class pair.
 
 `--capture-threshold` and `--prime-respawn-ticks` are the numbers-only
 level and compose the same way. None of these arms changes the observation

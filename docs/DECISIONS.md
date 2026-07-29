@@ -3412,6 +3412,88 @@ levels while being the one built counterweight the registered levels
 never included. Same gates, unchanged thresholds — a failed gate is
 answered with a stronger dose, never a softer bar.
 
+## 167. Classes get real skins: internal defaults plus six approved purchase packs
+
+The class-skins branch (Codex; integration notes in
+`HANDOVER-CODEX-NOTES.md`) lands the visual identities the class system
+has been renting from catalog stand-ins. The **class defaults are
+internal form presentation, not account cosmetics** — Trident Wasp +
+Trident Spark (striker), Aegis Tortoise + Rebound Diamond (bulwark),
+Lattice Loom + Lattice Rivet (fabricator) — and rendering them never
+depends on ownership. The owner approved the remaining six concept
+pairs as live purchase packs, which **supersedes the historical
+invariant that Aureate Warden is the only chassis manifest carrying a
+recommended projectile**; that prose is reconciled here rather than on
+the branch, which deliberately minted no number. Known gap, explicitly
+deferred: alternate manifests expose a presentation-only `classId`,
+but account appearance persistence has no class-compatibility
+enforcement — purchased looks remain globally equipable until the
+class-first-class branch supplies the end-to-end policy. No schema was
+added. Art sources and the generation pipeline live under
+`art/class-look-concepts/` with `scripts/build-class-look-concepts.py`.
+
+## 168. Phase-1b verdict: keel is the best dose and capture economics is exhausted
+
+`frontline-pendulum-wave-3b-v1` (162/162 mains, 108/108 sealed-seed
+holdout, ratchet-contest as replication anchor, keel differing by
+exactly enemy-sole-decay) delivers the counterweights' best result and
+a diagnosis worth more than a pass. Keel clears the displacement-
+efficiency gate on both seed sets (0.457 / 0.429 vs the 0.40 bar — the
+first H1 sub-gate ever passed), drives draws to 3.7% / 0.0%, cuts the
+reversal rate to 0.40, and drops cap share to 0.46-0.50. The anchor
+reproduced its phase-1 values. But **P(leader extends) has plateaued
+at ~0.47-0.48 across three escalating doses** (0.36 control → 0.47
+ratchet-contest → 0.47 keel, twice replicated), and the wasted-sole
+share did not move (0.53-0.56) — enemy-sole-decay relocated erosion
+into the opponent's sole windows rather than eliminating it, a
+measured null on the mechanism it was added for. With all four
+capture-economy counterweights active and the metric unresponsive,
+**the remaining mean reversion is not capture economics.** The
+never-tried levers from the #158 diagnosis are S4 (overtime/
+escalation in place of the flat 500-tick cap — not yet built) and S5
+(map geometry: the two-corridor funnel). H2's transit spread holds at
+6-8 (halved, not flat); H1 overall therefore still fails and phase 2
+does not start on a passed gate.
+
+The balance signal inside the miss: under keel, bulwark-vs-fabricator
+sits at exactly 0.00 on both seed sets and bulwark-vs-striker at
+−0.17/−0.50 — the counterweights alone nearly balanced two legs of
+the class triangle. The outlier is striker-vs-fabricator at −1.00 on
+every seed set, which is precisely the cell the adopted phase-2 kit
+targets (five slots; the volley softening prediction). Owner fork,
+explicitly not decided here: build S4 and run phase-1c before phase 2,
+or adopt keel as the phase-2 pendulum baseline — displacement passed,
+draws zero, caps down 22 points from control — and carry overtime as a
+parallel arm inside phase 2. Gates stay unmoved either way.
+
+## 169. Keel is the phase-2 baseline; the schema window executes with the observability mini-bump
+
+Owner ruling on #168's fork: proceed to phase 2 on the keel baseline —
+displacement gate passed twice, draws at zero, cap share down 22
+points — rather than chasing the 0.35 cap bar first. S4
+(overtime/escalation) is parked as registered follow-up debt, not
+abandoned: the leader-extends plateau says the remaining reversion
+lives in the flat cap or the map, and either returns to the bench if
+phase 2's pacing gates demand it. Phase 2's design consequence: the
+movement factor is dropped (all cells keel + facing-locked; #159
+demoted preserve-facing to a coupling-measurement control, and phase 2
+measures the kit, not the coupling — a deliberate deviation from the
+original 48-cell design, disclosed here). The factorial is skill-kit
+(off/on) × bend-envelope (striker-only/universal) × six class pairs =
+24 cells, with kit-off/striker-only anchoring as a keel replication.
+
+The batched SDK-bump window between phases executes now, scoped to the
+measured consensus: the ratchet-hold observability fields (five
+authors, two waves — the hold's owner and remaining ticks become
+readable instead of inferred) and the ObservedProjectile
+timing/damage fields (the wave-2 "should I eat this?" forensics).
+Typed classId and cosmetic class-compatibility enforcement stay with
+the Codex class-first-class branch (not started at this window; class
+remains readable via form prefixes, so nothing in phase 2 blocks on
+it). Composite arm identities for the phase-2 cells get the keel
+treatment — registered short tokens, since even keel+bend overflows
+the worst class cell by one character.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

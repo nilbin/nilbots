@@ -757,11 +757,13 @@ public static class FrontlineLabsExperimentCommand
     }
 
     /// <summary>
-    /// Reads the pre-registered pendulum level (DECISIONS #158). Omitting the
-    /// option — or naming <c>control</c> explicitly — selects today's measured
-    /// baseline and adds no ruleset suffix. <c>ratchet</c> and
-    /// <c>ratchet-contest</c> are the registered composite levels; the four
-    /// single-factor tokens may also be combined with commas for an ablation.
+    /// Reads the pre-registered pendulum level (DECISIONS #158/#166). Omitting
+    /// the option — or naming <c>control</c> explicitly — selects today's
+    /// measured baseline and adds no ruleset suffix. <c>ratchet</c>,
+    /// <c>ratchet-contest</c>, and <c>keel</c> (every counterweight at once)
+    /// are the registered composite levels; the four single-factor tokens may
+    /// also be combined with commas for an ablation, and a comma spelling that
+    /// lands on a registered combination is that same ruleset.
     /// </summary>
     private static FrontlineLabsPendulumArm OptionalPendulumArm(
         IReadOnlyDictionary<string, string> options)
@@ -802,6 +804,11 @@ public static class FrontlineLabsExperimentCommand
                     FrontlineLabsPendulumArm.StickyFrontline
                     | FrontlineLabsPendulumArm.ForwardRally
                     | FrontlineLabsPendulumArm.ContestMajority,
+                "keel" =>
+                    FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay,
                 "sticky-frontline" =>
                     FrontlineLabsPendulumArm.StickyFrontline,
                 "forward-rally" => FrontlineLabsPendulumArm.ForwardRally,
@@ -811,7 +818,7 @@ public static class FrontlineLabsExperimentCommand
                     FrontlineLabsPendulumArm.EnemySoleDecay,
                 _ => throw new InvalidOperationException(
                     $"Unknown --pendulum arm '{token}' (use control, "
-                    + "ratchet, ratchet-contest, sticky-frontline, "
+                    + "ratchet, ratchet-contest, keel, sticky-frontline, "
                     + "forward-rally, contest-majority, or "
                     + "enemy-sole-decay)."),
             };

@@ -488,6 +488,77 @@ public sealed class FrontlineLabsExperimentCommandTests
             numbersCell.GetProperty("rulesetId").GetString());
     }
 
+    /// <summary>
+    /// Phase 1b (DECISIONS #166) is one registered token for every built
+    /// counterweight. It is a level of its own, it fits the worst class cell,
+    /// and — because a level is identified by what it composes rather than by
+    /// how it was typed — naming its four factors one by one on a short class
+    /// pair, where the spelled form still fits, resolves to that same ruleset.
+    /// </summary>
+    [Fact]
+    public void PendulumKeel_IsTheRegisteredEveryCounterweightLevel()
+    {
+        JsonElement ratchetContest = PrintedContract(
+            ["--print-candidate-contract", "--pendulum", "ratchet-contest"]);
+        JsonElement keel = PrintedContract(
+            ["--print-candidate-contract", "--pendulum", "keel"]);
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-keel",
+            keel.GetProperty("rulesetId").GetString());
+        Assert.NotEqual(
+            ratchetContest.GetProperty("rulesFingerprint").GetString(),
+            keel.GetProperty("rulesFingerprint").GetString());
+        Assert.Equal(
+            ratchetContest.GetProperty("mapFingerprint").GetString(),
+            keel.GetProperty("mapFingerprint").GetString());
+
+        // The cell the short token exists for: per-factor, the same four
+        // would need 83 of the 64 canonical characters here.
+        JsonElement worst = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "keel",
+                "--classes",
+                "fabricator-vs-fabricator",
+                "--movement",
+                "facing-locked",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-fabricator-keel-facing-locked",
+            worst.GetProperty("rulesetId").GetString());
+
+        // Same combination, spelled instead of named, on a pair short enough
+        // that both spellings fit: one ruleset, one fingerprint.
+        JsonElement named = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "keel",
+                "--classes",
+                "bulwark-vs-striker",
+            ]);
+        JsonElement spelled = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "sticky-frontline,forward-rally,contest-majority,"
+                + "enemy-sole-decay",
+                "--classes",
+                "bulwark-vs-striker",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-keel",
+            named.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            named.GetProperty("rulesetId").GetString(),
+            spelled.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            named.GetProperty("matchContractFingerprint").GetString(),
+            spelled.GetProperty("matchContractFingerprint").GetString());
+    }
+
     [Fact]
     public void PendulumArms_RejectUnknownTokensAndIncompatibleArms()
     {

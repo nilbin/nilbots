@@ -239,7 +239,7 @@ static int CommandHelp(string command)
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
                    [--classes <class>-vs-<class>]
                    [--movement preserve-facing|move-sets-facing|facing-locked]
-                   [--pendulum control|ratchet|ratchet-contest|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
+                   [--pendulum control|ratchet|ratchet-contest|keel|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
                    [--skills none|kit|volley|shell|five-slots]
                    [--bend striker-only|universal]
                    [--prime-respawn-ticks <positive-n>]
@@ -304,9 +304,12 @@ static int CommandHelp(string command)
             objective weight create pressure, so a lone body no longer nulls a
             committed force for free. enemy-sole-decay stops empty and
             contested ticks from destroying capture progress. ratchet is
-            sticky-frontline plus forward-rally, and ratchet-contest adds
-            contest-majority; those two are the registered factor levels, and
-            comma-separated tokens compose any other ablation.
+            sticky-frontline plus forward-rally, ratchet-contest adds
+            contest-majority, and keel adds enemy-sole-decay on top of that —
+            every counterweight at once; those three are the registered factor
+            levels, and comma-separated tokens compose any other ablation. A
+            comma spelling that lands on a registered combination resolves to
+            that same ruleset.
             --skills adds the pre-registered class-skill kit on top of a class
             pair. Each skill belongs to exactly one class, so a cell carries
             only the skills whose owning class is in it and kit is shorthand
