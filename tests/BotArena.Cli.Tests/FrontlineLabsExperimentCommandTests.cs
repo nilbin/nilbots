@@ -677,7 +677,7 @@ public sealed class FrontlineLabsExperimentCommandTests
         // FIVE SLOTS has no owner in this cell, so `kit` and the explicit
         // subset are the same content-identified arm.
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-fan-parry",
+            "frontline-labs-1-bulwark-vs-striker-cast-break",
             kit.GetProperty("rulesetId").GetString());
         Assert.Equal(
             subset.GetProperty("rulesetId").GetString(),
@@ -691,6 +691,105 @@ public sealed class FrontlineLabsExperimentCommandTests
         Assert.Equal(
             FrontlineLabsDefinition.TopologyProfileId,
             kit.GetProperty("topologyProfileId").GetString());
+    }
+
+    /// <summary>
+    /// The curve grammar is a rules-wide factor rather than a class
+    /// capability, so it gets its own flag, its own token, and the same
+    /// inert-default discipline: naming the baseline explicitly must leave an
+    /// existing arm byte for byte what it was.
+    /// </summary>
+    [Fact]
+    public void BendArm_IsItsOwnFactorAndLeavesTheBaselineUntouched()
+    {
+        JsonElement plain = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "contest-majority",
+            ]);
+        JsonElement baseline = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "contest-majority",
+                "--bend",
+                "striker-only",
+            ]);
+        JsonElement universal = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "contest-majority",
+                "--bend",
+                "universal",
+            ]);
+
+        Assert.Equal(
+            plain.GetProperty("rulesetId").GetString(),
+            baseline.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            baseline.GetProperty("matchContractFingerprint").GetString());
+        Assert.Equal(
+            $"{plain.GetProperty("rulesetId").GetString()}-bend",
+            universal.GetProperty("rulesetId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("rulesFingerprint").GetString(),
+            universal.GetProperty("rulesFingerprint").GetString());
+        // A grammar change moves guns, never bodies.
+        Assert.Equal(
+            plain.GetProperty("topologyProfileId").GetString(),
+            universal.GetProperty("topologyProfileId").GetString());
+    }
+
+    [Fact]
+    public void BendArm_ComposesWithTheSkillKitAndNeedsAClassPair()
+    {
+        JsonElement kit = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "ratchet-contest",
+                "--skills",
+                "kit",
+                "--bend",
+                "universal",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-contest-cast-break-bend",
+            kit.GetProperty("rulesetId").GetString());
+
+        Assert.Contains(
+            "needs a class pair",
+            Assert.Throws<InvalidOperationException>(() =>
+                PrintedContract(
+                    [
+                        "--print-candidate-contract",
+                        "--bend",
+                        "universal",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "striker-only or universal",
+            Assert.Throws<InvalidOperationException>(() =>
+                PrintedContract(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--bend",
+                        "everyone",
+                    ])).Message,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -730,7 +829,7 @@ public sealed class FrontlineLabsExperimentCommandTests
     public void SkillArms_ComposeWithMovementAndPendulumAndRejectOrphans()
     {
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-fan-parry-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-cast-break-facing-locked",
             PrintedContract(
                 [
                     "--print-candidate-contract",
@@ -742,7 +841,7 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "facing-locked",
                 ]).GetProperty("rulesetId").GetString());
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-ratchet-parry",
+            "frontline-labs-1-bulwark-vs-striker-ratchet-break",
             PrintedContract(
                 [
                     "--print-candidate-contract",

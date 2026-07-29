@@ -139,6 +139,82 @@ public class DocDriftTests
             _ = GameRules.Resolve(name); // must not throw; KnownNames and Resolve move together
     }
 
+    /// <summary>The class-skill brief is the only document an agent-arena author gets for
+    /// the kit, so its mechanical lists have to be the engine's. Every stance form ID and
+    /// every arm token is derived here rather than typed, which is what caught the arm
+    /// rename: changing a token without updating the brief now fails the build.</summary>
+    [Fact]
+    public void ClassSkillsBrief_NamesEveryStanceFormAndArmToken()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        foreach (var entry in FrontlineLabsClassDefinition.All)
+        {
+            if (entry.Skill is not (FrontlineLabsSkillKit.StrikerVolley
+                or FrontlineLabsSkillKit.BulwarkAegisShell))
+                continue;
+            foreach (string formId in new[] { entry.PrimeStanceFormId, entry.ChildStanceFormId })
+                Assert.True(brief.Contains(formId, StringComparison.Ordinal),
+                    $"The class-skills brief never names the stance form '{formId}'.");
+        }
+
+        // The arm identities the brief quotes must be the ones the engine mints.
+        foreach (string armId in new[]
+                 {
+                     FrontlineLabsDefinition.CreatePendulumExperiment(
+                         FrontlineLabsPendulumArm.None,
+                         (FrontlineLabsClassDefinition.Bulwark, FrontlineLabsClassDefinition.Striker),
+                         skills: FrontlineLabsSkillKit.StrikerVolley
+                             | FrontlineLabsSkillKit.BulwarkAegisShell).Rules.RulesetId,
+                 })
+            Assert.True(brief.Contains(armId, StringComparison.Ordinal),
+                $"The class-skills brief quotes no arm identity matching '{armId}'.");
+    }
+
+    /// <summary>The automatic return is a rule players plan against, so the brief must state
+    /// its canonical spellings — the counters, the reason code, and both budgets — in the
+    /// exact strings the contract and replay carry.</summary>
+    [Fact]
+    public void ClassSkillsBrief_StatesTheAutomaticReturnContractVerbatim()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        var counters = Enum.GetValues<ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind>();
+        foreach (var counter in counters)
+        {
+            string id = ActorContractCanonicalIds.Id(counter);
+            Assert.True(brief.Contains(id, StringComparison.Ordinal),
+                $"The class-skills brief never names the automatic-return counter '{id}'.");
+        }
+        Assert.Contains("automaticReturn", brief, StringComparison.Ordinal);
+        Assert.Contains("automatic-threshold-return", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            $"threshold **{FrontlineLabsDefinition.VolleyCastBudget}**", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            $"threshold **{FrontlineLabsDefinition.ShieldBreakBudget}**", brief, StringComparison.Ordinal);
+    }
+
+    /// <summary>The bend envelope varies by class, and a stale number here would teach every
+    /// author to submit programs the engine rejects.</summary>
+    [Fact]
+    public void ClassSkillsBrief_QuotesEachClassBendDepth()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        foreach (var entry in FrontlineLabsClassDefinition.All)
+            Assert.True(
+                brief.Contains($"1–{entry.MobileMaxBendAfterTiles}", StringComparison.Ordinal)
+                || brief.Contains($"1-{entry.MobileMaxBendAfterTiles}", StringComparison.Ordinal),
+                $"The class-skills brief never states {entry.Id}'s bend depth "
+                + $"(1-{entry.MobileMaxBendAfterTiles} tiles).");
+    }
+
+    [Fact]
+    public void CliHelp_ListsEveryBendEnvelopeAndSkillArm()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[] { "striker-only", "universal" })
+            Assert.True(help.Contains(token, StringComparison.Ordinal),
+                $"CLI help does not mention --bend '{token}'.");
+    }
+
     [Fact]
     public void SdkProjectVersion_MatchesToolchainVersion()
     {
