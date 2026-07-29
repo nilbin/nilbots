@@ -62,6 +62,13 @@ art/themes/<theme-id>/
 art/bot-looks/<look-id>/
   raster-reference.png
 
+art/class-models/
+  README.md                       # 3D trial status and budget record
+  concept-targets/
+    README.md
+    striker-oblique-target-v1.png
+    striker-model-sheet-v1.png
+
 web/src/assets/themes/control-room/
   theme.json
   floor-metal.png
@@ -90,23 +97,34 @@ art/themes/<staged-theme-id>/runtime/
 web/src/assets/bot-looks/<look-id>/
   look.json
   sprite.png | sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/assets/projectile-looks/<look-id>/
   look.json
   sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/assets/class-looks/<form-look-id>/
   look.json
   sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/assets/class-projectile-looks/<form-projectile-id>/
   look.json
   sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/render/
   arenaThemes.ts     data loader and legacy fallbacks
   drawArena.ts       layered replay-driven rendering and effects
   interpolate.ts     authoritative state interpolation
+
+web/src/render3d/
+  lookModel.ts       renderer-only GLB discovery, loading, and fallback
 ```
 
 `art/themes` holds production sources and derived PBR maps; it is not bundled
@@ -259,8 +277,8 @@ that override and move the package under `web/src/assets/themes` only when a
 map intentionally ships the theme.
 Do not raise that budget merely to make a build pass: inspect the output and
 compare the relevant theme-scoped CLI viewer size first. Keep the generated
-source prompt with the change/PR. If a future 3D renderer is adopted, feed
-the checked-in albedo/normal/height/roughness/AO maps to the DCC; do not
+source prompt with the change/PR. A 3D environment companion feeds the
+checked-in albedo/normal/height/roughness/AO maps to the DCC; it does not
 regenerate the material merely to change camera or lighting.
 
 Check the theme on the smallest and largest shipped maps, plus a synthetic
@@ -405,6 +423,73 @@ To create another look:
    health and projectile indicators. Inspect at actual gameplay size and at
    device pixel ratios 1 and 2; a large standalone preview is insufficient.
 
+### WebGL model companion
+
+The sprite is still the canonical look. It serves site cards, Canvas2D,
+mobile, the self-contained CLI viewer, loading, and WebGL failure. A genuine
+3D companion is an additional representation for the hosted WebGL renderer.
+No class GLB is currently approved; all class looks therefore remain on the
+sprite-derived WebGL fallback:
+
+- Author the SVG first and approve its class identity, silhouette, team-accent
+  surfaces, and rule-bearing hardware. Then translate that design into actual
+  hull, armor, recess, joint, vent, and weapon geometry. Extruding the SVG is
+  the compatibility fallback, not the authored-model workflow.
+- Check in an editable `.blend` source plus a deterministic generator/export
+  recipe under `art/`. Runtime packages contain only `model3d.json` and a
+  self-contained `model.glb` beside the look.
+- Models face `+X`, use `+Y` as up, sit on `Y=0`, and are scaled relative to a
+  gameplay tile. They contain no camera, light, floor, trail, or rules data.
+  The manifest declares whether the asset is a whole bot/projectile or a
+  renderer-owned part such as one turret arm.
+- Presentation motion such as Striker's shallow `low-hover` belongs in the
+  canonical `look.json`, not `model3d.json`. The SVG fallback and any future
+  approved GLB must receive the same cue without duplicating metadata.
+- The renderer discovers model manifests only from `render3d`. It caches the
+  downloaded source by URL, shares immutable geometry, and clones nodes and
+  materials per actor because team paint, fog, selection, and hits mutate
+  presentation state. A missing, malformed, or failed model returns to the
+  sprite-derived fallback.
+- `NB_TEAM_ACCENT` (or any future equivalent) carries
+  `extras.nilbotsRole = "team-accent"`. It remains a restrained separate
+  material, so the replay-resolved color and glow can change without tinting
+  authored hull maps. Projectile tint surfaces use
+  `extras.nilbotsRole = "projectile-mask"`.
+- Broad flat colors are not a sufficient translation when the sprite depends
+  on layered values, panel lines, material contrast, or surface wear. In that
+  case use compact embedded base-color, normal, metallic/roughness, and
+  emissive maps. Judge them under arena lighting at the moving gameplay
+  camera; a close turntable cannot prove that texture or micro-geometry
+  survives play.
+- Model packages load on first use and emit as separate hosted assets, so the
+  decision is per-look rather than one catalog-wide bundle. Compare a lean and
+  a richer tier with exact bytes, triangles, material count, atlas dimensions,
+  and first-use transfer. A larger tier earns its cost only through visible
+  gameplay-scale improvement. The theme-scoped CLI outputs must remain
+  byte-identical because they cannot render GLBs.
+
+#### Multiview-AI to human handoff pilot
+
+The next Striker attempt may use a multiview generation service to produce a
+base mesh from the canonical SVG and approved pinned model sheet. This is an
+unproven vertical slice, not a validated replacement for authored modeling:
+
+- Preserve input images, hashes, service/model version, settings, raw outputs,
+  and usage/license terms under `art/`. A provider preview is review evidence,
+  not runtime art.
+- A human modeler or technical artist must correct silhouette and proportions,
+  retopologize, separate functional pieces, repair geometry, build UVs/PBR
+  materials, isolate semantic team paint, and set scale, axes, pivots, and
+  floor/hover placement. The corrected editable source is the candidate.
+- Re-run the same canonical overlay, gameplay-camera, team-color, rule-cue,
+  performance, on-demand transfer, and fallback gates. Multiview consistency
+  does not waive any gate.
+- Finish and assess one Striker end to end before generalizing this route to
+  Bulwark, Fabricator, projectiles, or maps. Until then, describe the route as
+  a trial and the compact procedural-proof record as rejected evidence, not a
+  proven production method. The rejected generated binaries and sources are
+  intentionally not retained.
+
 ## Projectile-look contract
 
 - Genuine SVG with `viewBox="0 0 256 256"`, transparent and facing East/right.
@@ -459,6 +544,12 @@ To create another projectile look:
 5. Compare the self-contained viewer size before and after. A growing catalog
    eventually requires per-replay asset packaging rather than bundling every
    cosmetic into every viewer.
+
+A projectile can use the same optional WebGL companion contract after its SVG
+mask is approved. Its model is one readable head volume, not a baked trail,
+glow pool, speed, range, or hitbox. Renderer tint remains authoritative; PBR
+detail may shape grooves and reflections but cannot replace the semantic
+projectile-mask material.
 
 ## Animation contract
 
@@ -537,6 +628,34 @@ Large generated atlases tend to drift in perspective and create mismatched
 edges. Normalize, validate, and pack assets only after each source passes at
 gameplay scale.
 
+## 3D arena environment companions
+
+Environment geometry follows the same two-stage rule: approve the 2D
+theme/map package first, then add an optional WebGL representation. No 3D map
+package ships yet. Frontline is the first pilot because its camera, cover,
+objective strip, class silhouettes, and projectile grammar exercise the
+contract before it is generalized to other arenas.
+
+- Build an instanced modular kit for floor, perimeter, interior cover,
+  corners, junctions, and explicitly tagged props. Reuse the approved theme's
+  material maps and keep gameplay topology in the map contract, not mesh
+  names.
+- Walls may gain chamfers, recesses, profiles, damage, and less rectangular
+  silhouettes, but the occupied tile and cover edge must remain immediately
+  legible. Decorative overhangs cannot imply an opening, changed collision,
+  sight line, spawn pad, or traversal route.
+- Solid geometry belongs on blocked tiles. Walkable cells retain only
+  rule-honest flat or clearly non-blocking detail. Objective treatment cannot
+  obscure capture ownership or pressure.
+- Measure the environment's first-load transfer and GPU cost independently
+  from on-demand bot looks. Prefer instancing and a small shared atlas over
+  unique wall meshes or textures per cell; add LOD only after the actual
+  Frontline camera demonstrates a benefit.
+- Review every wall topology with both teams, all three default class bodies,
+  projectiles, fog, health, objective effects, camera motion, and the Canvas
+  fallback. “Less square” succeeds only when it also preserves or improves
+  gameplay reading.
+
 ## Release checklist
 
 1. `npm run build` produces the hashed hosted `dist/` build and one
@@ -549,5 +668,9 @@ gameplay scale.
 4. Replay theme, bot-look, and projectile-look IDs round-trip and are included
    in replay hashes for new matches; map presentation round-trips; legacy null
    fields remain omitted.
-5. Generate local review viewers first. Publish through the private
+5. Every GLB passes header, coordinate-bound, semantic-material, source-hash,
+   and size-budget validation. Review it in a real replay at gameplay scale.
+   Verify the hosted build emits models separately and compare every
+   theme-scoped CLI viewer against the pre-change size.
+6. Generate local review viewers first. Publish through the private
    replay-highlights workflow only when the visual iteration is approved.

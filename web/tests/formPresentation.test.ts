@@ -323,6 +323,30 @@ test('a class replay renders its classes and its teams apart', () => {
   );
 });
 
+test('the Striker visibly low-hovers while remaining on the ground gameplay layer', () => {
+  const actors = buildActors(asClassArms(frontline));
+  const bulwarkBody = partOf(
+    chassisOf(actors.group, 'frontline:0:unit:1'),
+    'mobile',
+  );
+  const strikerBody = partOf(
+    chassisOf(actors.group, 'frontline:1:unit:1'),
+    'mobile',
+  );
+
+  actors.update(2.5, null, false);
+  assert.ok(
+    strikerBody.position.y > 0.05,
+    `the fighter-like chassis has a visible air gap (${strikerBody.position.y})`,
+  );
+  assert.ok(
+    strikerBody.position.y - bulwarkBody.position.y > 0.04,
+    'low-hover is a Striker presentation cue, not a lift applied to every class',
+  );
+
+  actors.dispose();
+});
+
 test('authored presentation and distinct participant accents are left alone', () => {
   // A duel where each bot chose its own look and colour: nothing here may be overridden.
   assert.equal(unitLook(duel, 'duel:0:unit:0').id, 'vanguard');

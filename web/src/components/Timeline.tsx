@@ -47,7 +47,7 @@ const LANE_HEIGHT = 14; // h-3.5
 const LANE_GAP = 4; //    gap-1
 
 /** Marks are ordered by how much they matter, which is also how they stack visually. */
-type MarkKind = 'fired' | 'hit' | 'lost' | 'form';
+type MarkKind = 'fired' | 'hit' | 'deflected' | 'lost' | 'form';
 
 interface Mark {
   key: string;
@@ -136,6 +136,11 @@ export default function Timeline({
           isDisqualificationEvent(event.type)
         ) {
           add(event, tick, event.targetActor?.unitKey, 'lost');
+        } else if (event.type === 'projectile-deflected') {
+          // A guard changed the shot's ownership and direction without taking damage.
+          // Put the mark on the defender's lane; drawing it as a hit would say the exact
+          // opposite of what happened.
+          add(event, tick, event.targetActor?.unitKey, 'deflected');
         } else if (event.type === 'damage') {
           add(event, tick, event.targetActor?.unitKey, 'hit');
         } else if (
@@ -222,11 +227,15 @@ export default function Timeline({
                   aria-hidden
                   className={clsx(
                     'absolute top-1/2 -translate-x-1/2 -translate-y-1/2',
-                    'player-accent-fill runtime-position',
+                    'runtime-position',
+                    mark.kind === 'deflected'
+                      ? 'player-accent-border size-2.5 rotate-45 border-2'
+                      : 'player-accent-fill',
                     // A shot is a hairline, a hit taken is a notch, a loss is a block:
                     // weight tracks consequence, so a lane reads at a glance.
                     mark.kind === 'fired' && 'h-2 w-[1.5px] opacity-75',
                     mark.kind === 'hit' && 'h-[11px] w-[5px] rounded-[2px]',
+                    mark.kind === 'deflected' && 'rounded-[1px]',
                     mark.kind === 'lost' && 'size-2.5 rounded-[2.5px]',
                     mark.kind === 'form' &&
                       'h-2 w-2 rotate-45 rounded-[1px] opacity-80',

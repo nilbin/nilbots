@@ -1,0 +1,308 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { chassisModel } from './chassisModel';
+
+/**
+ * The small, renderer-only contract beside an authored GLB.
+ *
+ * Sprite manifests remain the source of presentation identity. This companion only says
+ * whether the WebGL renderer can replace that sprite's derived extrusion with a genuine
+ * model, and which special-purpose form the model contains.
+ */
+export interface LookModelSpec {
+  version: 1;
+  id: string;
+  file: 'model.glb';
+  kind: 'bot' | 'projectile';
+  part: 'whole' | 'turret-arm';
+  facing: '+x';
+  up: '+y';
+  skillHardware?: 'volley' | 'aegis';
+}
+
+export interface ModelledLook {
+  id: string;
+  imageUrl: string;
+}
+
+interface RegisteredModel {
+  spec: LookModelSpec;
+  url: string;
+}
+
+type AssetKind = LookModelSpec['kind'];
+
+/*
+ * Keep these imports in render3d. The hosted viewer loads this tree only after WebGL is
+ * chosen, while the CLI build replaces the render3d entry with a Canvas-only stub. Moving
+ * the GLB URLs into the shared appearance registry would make every self-contained CLI
+ * replay carry models it cannot render.
+ */
+const botModelSpecs = import.meta.glob<unknown>(
+  '../assets/bot-looks/*/model3d.json',
+  { eager: true, import: 'default' },
+);
+const botModelUrls = import.meta.glob<string>(
+  '../assets/bot-looks/*/model.glb',
+  { eager: true, import: 'default', query: '?url' },
+);
+const classModelSpecs = import.meta.glob<unknown>(
+  '../assets/class-looks/*/model3d.json',
+  { eager: true, import: 'default' },
+);
+const classModelUrls = import.meta.glob<string>(
+  '../assets/class-looks/*/model.glb',
+  { eager: true, import: 'default', query: '?url' },
+);
+const projectileModelSpecs = import.meta.glob<unknown>(
+  '../assets/projectile-looks/*/model3d.json',
+  { eager: true, import: 'default' },
+);
+const projectileModelUrls = import.meta.glob<string>(
+  '../assets/projectile-looks/*/model.glb',
+  { eager: true, import: 'default', query: '?url' },
+);
+const classProjectileModelSpecs = import.meta.glob<unknown>(
+  '../assets/class-projectile-looks/*/model3d.json',
+  { eager: true, import: 'default' },
+);
+const classProjectileModelUrls = import.meta.glob<string>(
+  '../assets/class-projectile-looks/*/model.glb',
+  { eager: true, import: 'default', query: '?url' },
+);
+
+const models = registerModels([
+  [botModelSpecs, botModelUrls, 'bot'],
+  [classModelSpecs, classModelUrls, 'bot'],
+  [projectileModelSpecs, projectileModelUrls, 'projectile'],
+  [classProjectileModelSpecs, classProjectileModelUrls, 'projectile'],
+]);
+
+const loader = new GLTFLoader();
+const rawModels = new Map<string, Promise<THREE.Group | null>>();
+
+/** Return renderer metadata synchronously without starting a model download. */
+export function modelSpec(id: string): LookModelSpec | null {
+  return models.get(id)?.spec ?? null;
+}
+
+/**
+ * Resolve one look to an independently paintable model.
+ *
+ * Geometry remains shared with the URL-level raw cache; scene nodes and materials do not.
+ * Fog, hit flashes, selection and team paint all mutate materials per actor, so returning
+ * a cached material would let one bot dim every other bot wearing the same chassis.
+ *
+ * A missing, unreadable or malformed GLB falls back to the existing sprite extrusion.
+ * The SVG therefore remains the canonical asset for Canvas/mobile/site use and the safe
+ * rendering floor for WebGL.
+ */
+export async function lookModel(
+  look: ModelledLook,
+  paint?: THREE.Color,
+  sector?: 'front',
+  teamAccent?: THREE.Color,
+): Promise<THREE.Group | null> {
+  const registered = models.get(look.id);
+  if (!registered)
+    return fallbackModel(look.imageUrl, paint, sector, teamAccent);
+
+  const raw = await rawModel(registered.url);
+  if (!raw)
+    return fallbackModel(look.imageUrl, paint, sector, teamAccent);
+
+  try {
+    return instantiate(raw, paint, teamAccent);
+  } catch {
+    return fallbackModel(look.imageUrl, paint, sector, teamAccent);
+  }
+}
+
+async function fallbackModel(
+  url: string,
+  paint?: THREE.Color,
+  sector?: 'front',
+  teamAccent?: THREE.Color,
+): Promise<THREE.Group | null> {
+  const fallback = await chassisModel(url, paint, sector, teamAccent);
+  if (!fallback) return null;
+  try {
+    // chassisModel owns its URL-level parse cache just like rawModel. Clone here too, so
+    // callers can treat both paths identically and never reparent or repaint cached state.
+    return instantiate(fallback, paint, teamAccent);
+  } catch {
+    return null;
+  }
+}
+
+function rawModel(url: string): Promise<THREE.Group | null> {
+  const existing = rawModels.get(url);
+  if (existing) return existing;
+
+  const loaded = loader
+    .loadAsync(url)
+    .then(({ scene }) => {
+      let hasMesh = false;
+      scene.traverse((node) => {
+        if ((node as THREE.Mesh).isMesh) hasMesh = true;
+      });
+      return hasMesh ? scene : null;
+    })
+    .catch(() => null);
+  rawModels.set(url, loaded);
+  return loaded;
+}
+
+function instantiate(
+  source: THREE.Group,
+  paint?: THREE.Color,
+  teamAccent?: THREE.Color,
+): THREE.Group {
+  // Object3D.clone(true) recursively clones transforms and nodes while leaving BufferGeometry
+  // shared. That is the intended split: vertices are immutable and expensive, materials
+  // carry actor-local state.
+  const instance = source.clone(true);
+  const materials = new Map<THREE.Material, THREE.Material>();
+
+  instance.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.material = Array.isArray(mesh.material)
+      ? mesh.material.map((material) =>
+          instanceMaterial(material, materials, paint, teamAccent),
+        )
+      : instanceMaterial(mesh.material, materials, paint, teamAccent);
+  });
+
+  return instance;
+}
+
+function instanceMaterial(
+  source: THREE.Material,
+  materials: Map<THREE.Material, THREE.Material>,
+  paint?: THREE.Color,
+  teamAccent?: THREE.Color,
+): THREE.Material {
+  const existing = materials.get(source);
+  if (existing) return existing;
+
+  const material = source.clone();
+  materials.set(source, material);
+  if (!(material instanceof THREE.MeshStandardMaterial)) return material;
+
+  if (paint) {
+    // Passing paint means "projectile", matching chassisModel and Canvas2D's source-in
+    // treatment: every authored surface becomes the owner's energy colour.
+    material.color.copy(paint);
+    material.emissive.copy(paint);
+    material.emissiveIntensity = 1.8;
+    material.roughness = 0.35;
+    material.metalness = 0.1;
+  } else if (
+    teamAccent &&
+    source.userData.nilbotsRole === 'team-accent'
+  ) {
+    material.color.copy(teamAccent);
+    material.emissive.copy(teamAccent);
+    material.emissiveIntensity = Math.max(material.emissiveIntensity, 1.2);
+  }
+
+  return material;
+}
+
+function registerModels(
+  collections: readonly [
+    Record<string, unknown>,
+    Record<string, string>,
+    AssetKind,
+  ][],
+): Map<string, RegisteredModel> {
+  const result = new Map<string, RegisteredModel>();
+  for (const [specs, urls, expectedKind] of collections) {
+    for (const [path, input] of Object.entries(specs)) {
+      const directory = path.slice(0, path.lastIndexOf('/'));
+      const directoryId = directory.slice(directory.lastIndexOf('/') + 1);
+      const spec = validateSpec(input, path, directoryId, expectedKind);
+      const url = urls[`${directory}/${spec.file}`];
+      if (!url)
+        throw new Error(
+          `3D look '${spec.id}' references missing '${spec.file}'.`,
+        );
+      if (result.has(spec.id))
+        throw new Error(`Duplicate 3D look ID '${spec.id}'.`);
+      result.set(spec.id, { spec, url });
+    }
+  }
+  return result;
+}
+
+function validateSpec(
+  input: unknown,
+  path: string,
+  directoryId: string,
+  expectedKind: AssetKind,
+): LookModelSpec {
+  if (!isRecord(input))
+    throw new Error(`3D look manifest '${path}' must be an object.`);
+
+  const version = input.version;
+  const id = input.id;
+  const file = input.file;
+  const kind = input.kind;
+  const part = input.part;
+  const facing = input.facing;
+  const up = input.up;
+  const skillHardware = input.skillHardware;
+
+  if (version !== 1)
+    throw new Error(`3D look manifest '${path}' has unsupported version.`);
+  if (
+    typeof id !== 'string' ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) ||
+    id !== directoryId
+  )
+    throw new Error(`3D look manifest '${path}' has an invalid ID.`);
+  if (file !== 'model.glb')
+    throw new Error(`3D look '${id}' must reference 'model.glb'.`);
+  if (kind !== expectedKind)
+    throw new Error(
+      `3D look '${id}' must declare kind '${expectedKind}'.`,
+    );
+  if (part !== 'whole' && part !== 'turret-arm')
+    throw new Error(`3D look '${id}' has unknown part '${String(part)}'.`);
+  if (facing !== '+x')
+    throw new Error(`3D look '${id}' must face '+x'.`);
+  if (up !== '+y')
+    throw new Error(`3D look '${id}' must use '+y' as up.`);
+  if (
+    skillHardware !== undefined &&
+    skillHardware !== 'volley' &&
+    skillHardware !== 'aegis'
+  )
+    throw new Error(
+      `3D look '${id}' has unknown skill hardware '${String(skillHardware)}'.`,
+    );
+  if (kind === 'projectile' && part !== 'whole')
+    throw new Error(`3D projectile '${id}' must be a whole model.`);
+  if (kind === 'projectile' && skillHardware !== undefined)
+    throw new Error(`3D projectile '${id}' cannot declare skill hardware.`);
+  if (part === 'turret-arm' && skillHardware !== undefined)
+    throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
+
+  return {
+    version,
+    id,
+    file,
+    kind: expectedKind,
+    part,
+    facing,
+    up,
+    ...(skillHardware === undefined ? {} : { skillHardware }),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}

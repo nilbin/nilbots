@@ -2,6 +2,7 @@ import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
 
 export type BotLookClassId = 'striker' | 'bulwark' | 'fabricator';
+export type BotLocomotionCue = 'low-hover';
 
 export interface BotLook {
   id: string;
@@ -14,6 +15,11 @@ export interface BotLook {
    * intended family to frontend consumers without parsing the look ID.
    */
   classId: BotLookClassId | null;
+  /**
+   * Presentation-only motion language. This moves the rendered body, never the
+   * authoritative actor position or gameplay layer.
+   */
+  locomotionCue: BotLocomotionCue | null;
   image: HTMLImageElement | null;
   imageUrl: string;
   /** Raw SVG only when the asset carries semantic team-accent surfaces. */
@@ -98,6 +104,7 @@ interface BotLookManifest {
   suggestedAccent: string;
   defaultProjectile?: string;
   classId?: BotLookClassId;
+  locomotionCue?: BotLocomotionCue;
   scale: number;
 }
 
@@ -373,6 +380,14 @@ function buildLooks(
       throw new Error(
         `Bot look '${manifest.id}' has unknown class '${manifest.classId}'.`,
       );
+    if (
+      manifest.locomotionCue !== undefined &&
+      manifest.locomotionCue !== 'low-hover'
+    )
+      throw new Error(
+        `Bot look '${manifest.id}' has unknown locomotion cue ` +
+          `'${String(manifest.locomotionCue)}'.`,
+      );
     if (result.has(manifest.id))
       throw new Error(`Duplicate bot look ID '${manifest.id}'.`);
     result.set(manifest.id, {
@@ -381,6 +396,7 @@ function buildLooks(
       suggestedAccent: manifest.suggestedAccent,
       defaultProjectileLookId: manifest.defaultProjectile,
       classId: manifest.classId ?? null,
+      locomotionCue: manifest.locomotionCue ?? null,
       image: loadImage(imageUrl),
       imageUrl,
       teamAccentSvg,

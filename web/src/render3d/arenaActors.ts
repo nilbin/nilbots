@@ -29,20 +29,23 @@ import {
   maxHealthForActor,
   replayMaxHealth,
 } from '../replayMetadata';
-import { chassisModel } from './chassisModel';
+import { lookModel, modelSpec } from './lookModel';
 import { CAMERA_PITCH } from './arenaScene';
 
 /**
  * The things that move.
  *
- * A **bot is a solid**, extruded from its own sprite by `chassisModel` — so a Vanguard has
- * a Vanguard's silhouette from any angle, casts a Vanguard-shaped shadow, and reads as a
- * machine standing on the floor.
+ * A **bot is a solid**. Authored GLBs give modeled class looks genuine hull, armor and
+ * hardware depth; looks without one retain the sprite-derived extrusion fallback. Either
+ * path casts a look-shaped shadow and reads as a machine occupying the ground
+ * layer. A look may explicitly request a shallow hover cue; that lifts only its
+ * rendered body, not its authoritative position or collision footprint.
  *
- * **A projectile is a rig**: the same extruded silhouette, painted in the owner's accent
- * because the flat renderer paints it too, plus a tracer stretched out behind and a pool of
- * its own light on the floor below. It hovers, banks through its turns and wobbles, so a
- * bolt reads as a thing in the air rather than a mark sliding across the ground.
+ * **A projectile is a rig**: a genuine model where one exists or the same extruded fallback,
+ * painted in the owner's accent because the flat renderer paints it too, plus a tracer
+ * stretched out behind and a pool of its own light on the floor below. It hovers, banks
+ * through its turns and wobbles, so a bolt reads as a thing in the air rather than a mark
+ * sliding across the ground.
  *
  * Everything else here is what the arena needs to *say*: which bot is being followed, how
  * much health each has left, and which of them can be seen from where.
@@ -157,6 +160,9 @@ const IDLE_SWAY = 0.05;
 const IDLE_RISE = 0.022;
 const IDLE_ROLL = 0.055;
 const IDLE_YAW = 0.05;
+/** A look-authored low hover is presentation, never a movement-layer change. */
+const LOW_HOVER_HEIGHT = 0.075;
+const LOW_HOVER_BOB = 0.014;
 
 /**
  * How hard a bot drifts through a corner.
@@ -224,6 +230,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const emplacedLook = unitEmplacedLook(replay, unit.unitKey, defaultFormId);
     const stanceForm = stanceFormForUnit(replay, unit.unitKey, defaultFormId);
     const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
+    const stancePresentation = stanceLook ?? look;
+    const stanceHardware = modelSpec(stancePresentation.id)?.skillHardware;
+    const mobileLowHover = look.locomotionCue === 'low-hover';
+    const stanceLowHover =
+      stancePresentation.locomotionCue === 'low-hover';
     const accentValue = unitAccent(replay, unit.unitKey, defaultFormId);
     const accent = new THREE.Color(accentValue);
     const size = Math.max(0.82, look.scale * 0.9);
@@ -326,8 +337,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // the unit's own chassis otherwise. A class form that has no artwork of its own gets
     // an emplacement that is unmistakably an emplacement; a legacy `turret` form keeps the
     // silhouette it has always had.
-    void chassisModel(
-      (emplacedLook ?? look).imageUrl,
+    const turretLook = emplacedLook ?? look;
+    const genuineTurretArm =
+      modelSpec(turretLook.id)?.part === 'turret-arm';
+    void lookModel(
+      turretLook,
       undefined,
       'front',
       accent,
@@ -335,24 +349,23 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (!live || !model) return;
       for (let arm = 0; arm < TURRET_ARMS; arm++) {
         const spoke = new THREE.Group();
-        const section = model.clone();
+        // The loader gave this actor an independent material set. Its four arms may share
+        // those materials because they fade, flash and highlight as one machine, while
+        // their scene nodes remain independent for the deployment fan.
+        const section = model.clone(true);
         section.scale.setScalar(size);
-        // Tipped nose-up inside its spoke, seated on the floor and pulled back onto the
-        // axis it turns about, so it spins in place rather than orbiting.
-        section.rotation.z = Math.PI / 2;
-        section.position.set(TURRET_SHIFT * size, TURRET_LIFT * size, 0);
-        section.traverse((node) => {
-          const mesh = node as THREE.Mesh;
-          if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-          mesh.material = mesh.material.clone();
-          fading.push({ material: mesh.material, base: 1 });
-          tintable(mesh.material as THREE.MeshStandardMaterial);
-          disposables.push(mesh.material);
-        });
+        if (!genuineTurretArm) {
+          // SVG fallback sections lie flat as chassis lids. Tip the cropped nose upright,
+          // seat it on the floor, and pull it back onto the axis it turns about. A genuine
+          // turret-arm GLB is authored in its deployed orientation already.
+          section.rotation.z = Math.PI / 2;
+          section.position.set(TURRET_SHIFT * size, TURRET_LIFT * size, 0);
+        }
         spoke.add(section);
         turret.add(spoke);
         spokes.push(spoke);
       }
+      registerModelMaterials(turret);
     });
     chassis.add(turret);
 
@@ -498,35 +511,55 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     tintable(lidMaterial);
     tintable(noseMaterial);
 
+    /**
+     * Enrol the loader-owned material set in this actor's presentation state.
+     *
+     * `lookModel` clones scene nodes and materials per call while keeping geometry shared.
+     * That is already the ownership boundary fog/highlight need, so cloning again here
+     * would only multiply GPU materials. Turret arms deliberately share one actor-local
+     * set; the Set keeps that repeated scene from registering or disposing it four times.
+     */
+    const registerModelMaterials = (solid: THREE.Object3D) => {
+      const seen = new Set<THREE.Material>();
+      solid.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        for (const material of materials) {
+          if (seen.has(material)) continue;
+          seen.add(material);
+          fading.push({ material, base: 1 });
+          if (material instanceof THREE.MeshStandardMaterial)
+            tintable(material);
+          disposables.push(material);
+        }
+      });
+      // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
+      repaint();
+    };
+
     // The stance hardware. Built here rather than beside the empty group above because it
     // enrols in `fading` and `tinting`, and both of those are declared with the rest of
     // the bot's paint — a stance still has to ghost under fog and light up when followed.
     if (stanceForm !== null) {
-      // The stance's own silhouette, extruded from the stance look exactly as the mobile
-      // body is from the chassis look. A form change swaps the machine, not its paint.
-      void chassisModel(
-        (stanceLook ?? look).imageUrl,
+      // The stance's own model (or SVG-derived fallback). A form change swaps the machine,
+      // not its paint.
+      void lookModel(
+        stancePresentation,
         undefined,
         undefined,
         accent,
       ).then((model) => {
         if (!live || !model) return;
-        const solid = model.clone();
-        solid.scale.setScalar(size * 0.94);
-        solid.traverse((node) => {
-          const mesh = node as THREE.Mesh;
-          if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-          mesh.material = mesh.material.clone();
-          fading.push({ material: mesh.material, base: 1 });
-          tintable(mesh.material as THREE.MeshStandardMaterial);
-          disposables.push(mesh.material);
-          repaint();
-        });
-        stance.add(solid);
+        model.scale.setScalar(size * 0.94);
+        registerModelMaterials(model);
+        stance.add(model);
       });
     }
 
-    if (stanceForm?.kind === 'volley') {
+    if (stanceForm?.kind === 'volley' && stanceHardware !== 'volley') {
       // Three barrels on three hinges, at the exact headings the profile fires. Local −Y
       // rotation is the screen-space fan angle: the chassis is turned by `-pose.angle`,
       // so world (x, z) and screen (x, y) are the same plane in the same order.
@@ -560,34 +593,36 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     if (stanceForm?.kind === 'aegis') {
       // A standing curved plate across the guarded quadrant. Open-ended, so it is a wall
       // rather than a tube, and it stops hard at ±45° — the edge is the counter-play.
-      const plateGeometry = new THREE.CylinderGeometry(
-        size * PLATE_RADIUS,
-        size * PLATE_RADIUS,
-        size * PLATE_HEIGHT,
-        20,
-        1,
-        true,
-        // Cylinder theta runs from +Z; the guarded quadrant is centred on +X.
-        Math.PI / 2 - STANCE_HALF_ANGLE,
-        STANCE_HALF_ANGLE * 2,
-      );
-      const plateMaterial = new THREE.MeshStandardMaterial({
-        color: accent.clone().multiplyScalar(0.5),
-        emissive: accent,
-        emissiveIntensity: 0.9,
-        roughness: 0.3,
-        metalness: 0.65,
-        side: THREE.DoubleSide,
-      });
-      disposables.push(plateGeometry, plateMaterial);
-      fading.push({ material: plateMaterial, base: 1 });
-      tintable(plateMaterial);
-      const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
-      plateMesh.userData.cue = 'aegis-plate';
-      plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
-      plateMesh.castShadow = true;
-      stance.add(plateMesh);
-      plate = plateMesh;
+      if (stanceHardware !== 'aegis') {
+        const plateGeometry = new THREE.CylinderGeometry(
+          size * PLATE_RADIUS,
+          size * PLATE_RADIUS,
+          size * PLATE_HEIGHT,
+          20,
+          1,
+          true,
+          // Cylinder theta runs from +Z; the guarded quadrant is centred on +X.
+          Math.PI / 2 - STANCE_HALF_ANGLE,
+          STANCE_HALF_ANGLE * 2,
+        );
+        const plateMaterial = new THREE.MeshStandardMaterial({
+          color: accent.clone().multiplyScalar(0.5),
+          emissive: accent,
+          emissiveIntensity: 0.9,
+          roughness: 0.3,
+          metalness: 0.65,
+          side: THREE.DoubleSide,
+        });
+        disposables.push(plateGeometry, plateMaterial);
+        fading.push({ material: plateMaterial, base: 1 });
+        tintable(plateMaterial);
+        const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
+        plateMesh.userData.cue = 'aegis-plate';
+        plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
+        plateMesh.castShadow = true;
+        stance.add(plateMesh);
+        plate = plateMesh;
+      }
 
       // And the same quadrant on the floor, because from a raised camera an upright plate
       // foreshortens and the *extent* of the guard is what a flanker is judging.
@@ -620,42 +655,22 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       guardArc = arcMesh;
     }
 
-    // Swap the box for the real thing once the sprite has been parsed and triangulated.
+    // Swap the box for the genuine model or SVG-derived fallback once it is ready.
     //
     // The box is a placeholder, not the design. It is here because the model arrives over a
     // fetch and a first frame with nothing on the floor is worse than a first frame with a
     // block on it — but a block is what a chassis looks like when this step is missing,
     // which is exactly how it shipped once.
-    void chassisModel(
-      look.imageUrl,
+    void lookModel(
+      look,
       undefined,
       undefined,
       accent,
     ).then((model) => {
       if (!live || !model) return;
-      // Cloned because the parse is cached per look, and a mirror match would otherwise
-      // have both bots claiming one Group — three.js reparents rather than shares, so the
-      // second bot would silently steal the first one's body. The clone shares geometry,
-      // which is the expensive half and the point of caching in the first place.
-      const solid = model.clone();
-      solid.scale.setScalar(size);
-      // The materials, though, have to be this bot's own. Fog ghosts a bot by dropping its
-      // opacity, and the cached ones are shared with the other bot wearing the same look
-      // and with every replay opened after this one — so fading through them would dim both
-      // bots at once and leave them dim for the rest of the session.
-      solid.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-        mesh.material = mesh.material.clone();
-        fading.push({ material: mesh.material, base: 1 });
-        tintable(mesh.material as THREE.MeshStandardMaterial);
-        disposables.push(mesh.material);
-        // A model that lands mid-highlight or mid-flash has to arrive wearing it, not
-        // plain — `repaint` is over the whole registry, so this is simply running it again
-        // now that the registry has grown.
-        repaint();
-      });
-      body.add(solid);
+      model.scale.setScalar(size);
+      registerModelMaterials(model);
+      body.add(model);
       body.remove(hull);
       body.remove(lid);
     });
@@ -780,6 +795,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       unitKey: unit.unitKey,
       size,
       motionPhase: phaseForIdentity(unit.unitKey),
+      mobileLowHover,
+      stanceLowHover,
       chassis,
       body,
       turret,
@@ -977,8 +994,24 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       sparkMaterial,
     };
 
-    void chassisModel(look.imageUrl, accent).then((model) => {
+    void lookModel(look, accent).then((model) => {
       if (!live || !model) return;
+      // `lookModel` returns actor-owned materials while sharing the cached geometry.
+      // Every rig in this arsenal may share that one painted set, but the set still has
+      // to be released when this replay closes.
+      const seen = new Set<THREE.Material>();
+      model.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        for (const material of materials) {
+          if (seen.has(material)) continue;
+          seen.add(material);
+          disposables.push(material);
+        }
+      });
       arsenal.model = model;
       // Rigs already built are retrofitted; ones built later pick it up on creation.
       for (const rig of arsenal.rigs) dressHead(arsenal, rig.head);
@@ -1387,6 +1420,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const kick = firing
         ? Math.sin(shotProgress * Math.PI) * 0.14
         : 0;
+      const hover =
+        (LOW_HOVER_HEIGHT + rise * LOW_HOVER_BOB) *
+        (1 - collapse) *
+        emerge;
 
       bot.chassis.rotation.z = collapse * 0.5;
       bot.chassis.rotation.x = collapse * 0.22;
@@ -1405,7 +1442,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
       bot.body.position.y =
         TURRET_LIFT * bot.size * tipping +
-        idle * rise * IDLE_RISE;
+        (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE);
+      bot.stance.position.y = bot.stanceLowHover ? hover : 0;
       bot.body.rotation.y =
         -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
       bot.body.rotation.x =

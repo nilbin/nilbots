@@ -109,6 +109,13 @@ export default function Controls({
           took a hit
         </span>
         <span className="inline-flex items-center gap-1.5">
+          <i
+            aria-hidden
+            className="block size-2 rotate-45 rounded-[1px] border-2 border-arena-dim"
+          />
+          deflected
+        </span>
+        <span className="inline-flex items-center gap-1.5">
           <i aria-hidden className="block size-2.5 rounded-[2px] bg-arena-hot" />
           destroyed
         </span>
