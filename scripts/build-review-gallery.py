@@ -17,9 +17,11 @@ modes:
   Three.js by design).
 
 ``--review-panel`` appends the outcome-blind rating panel to every page
-(five methodology dimensions, tick notes, free notes; autosaved to
-localStorage) and gives the index per-sample progress plus an
-"export review notes JSON" button producing the decision-record artifact.
+(two 1-5 scores — fun to watch, easy to follow — plus free notes;
+autosaved to localStorage) and gives the index per-sample progress plus a
+"Copy review JSON" button that copies the decision-record artifact to the
+clipboard and shows it in a selectable box (clipboard needs a secure
+context, so the box is the fallback on plain-http LAN).
 The index shows pairing and map but never outcomes; keep it that way.
 
 Example:
@@ -62,15 +64,12 @@ PANEL_TEMPLATE = """
 <div id=brv class=min><h4 onclick="document.getElementById('brv').classList.toggle('min')">
 &#9998; Review __SID__ <span class=done id=brvdone></span></h4><div class=body>
 <div id=brvrows></div>
-<input id=brvticks placeholder="confusing/dull tick ranges (e.g. 120-180)">
-<textarea id=brvnotes rows=3 placeholder="notes"></textarea>
+<textarea id=brvnotes rows=3 placeholder="notes — dull/confusing stretches (ticks if handy)"></textarea>
 </div></div>
 <script>
 (function(){
 var SID="__SID__",KEY="nilbots-blind-review::"+SID,
-DIMS=[["legibility","Legibility"],["tension","Sustained tension"],
-["counteraction","Counter-action"],["repetition","Repetition/downtime"],
-["ending","Earned ending"]];
+DIMS=[["fun","Fun to watch"],["clarity","Easy to follow"]];
 var data=JSON.parse(localStorage.getItem(KEY)||"{}");
 var rows=document.getElementById("brvrows");
 DIMS.forEach(function(d){
@@ -84,14 +83,13 @@ DIMS.forEach(function(d){
    b.classList.add("on")};
   div.appendChild(b)})(v);
  rows.appendChild(div)});
-var ticks=document.getElementById("brvticks"),notes=document.getElementById("brvnotes");
-ticks.value=data.ticks||"";notes.value=data.notes||"";
-ticks.oninput=function(){data.ticks=ticks.value;save()};
+var notes=document.getElementById("brvnotes");
+notes.value=data.notes||"";
 notes.oninput=function(){data.notes=notes.value;save()};
 function save(){data.updated=new Date().toISOString();
  localStorage.setItem(KEY,JSON.stringify(data));badge()}
 function badge(){var n=DIMS.filter(function(d){return data[d[0]]}).length;
- document.getElementById("brvdone").textContent=n?n+"/5":""}
+ document.getElementById("brvdone").textContent=n?n+"/"+DIMS.length:""}
 badge();
 })();
 </script>
@@ -188,13 +186,16 @@ def build(args: argparse.Namespace) -> None:
     review_block = ""
     if args.review_panel:
         review_block = f"""
-<button onclick="exportNotes()">Export review notes JSON</button>
+<button onclick="exportNotes()">Copy review JSON</button>
+<textarea id=exported rows=8 readonly
+ style="display:none;width:100%;box-sizing:border-box;margin-top:.5rem;
+ background:#141d3d;color:#dbe7ff;border:1px solid #33477e;border-radius:.5rem;
+ font:12px ui-monospace,monospace"></textarea>
 <script>
 function refresh(){{document.querySelectorAll('em.prog').forEach(function(el){{
  var d=JSON.parse(localStorage.getItem('nilbots-blind-review::'+el.dataset.sid)||'{{}}');
- var n=['legibility','tension','counteraction','repetition','ending']
-   .filter(function(k){{return d[k]}}).length;
- el.textContent=n?(n===5?'\\u2713':n+'/5'):'';}})}}
+ var n=['fun','clarity'].filter(function(k){{return d[k]}}).length;
+ el.textContent=n?(n===2?'\\u2713':n+'/2'):'';}})}}
 function exportNotes(){{
  var out={{exported:new Date().toISOString(),
    protocol:'outcome-blind-review-v1',samples:{{}}}};
@@ -202,10 +203,11 @@ function exportNotes(){{
   var sid='sample-'+String(i).padStart(2,'0');
   var d=localStorage.getItem('nilbots-blind-review::'+sid);
   if(d)out.samples[sid]=JSON.parse(d);}}
- var a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],
-   {{type:'application/json'}}));
- a.download='blind-review-notes.json';a.click();}}
+ var text=JSON.stringify(out,null,2);
+ var box=document.getElementById('exported');
+ box.style.display='block';box.value=text;box.focus();box.select();
+ if(navigator.clipboard&&navigator.clipboard.writeText)
+  navigator.clipboard.writeText(text);}}
 refresh();window.addEventListener('pageshow',refresh);
 </script>"""
     (output / "index.html").write_text(f"""<!doctype html>
@@ -225,9 +227,9 @@ refresh();window.addEventListener('pageshow',refresh);
    background:#1a2a55;color:#dbe7ff;cursor:pointer;font:inherit}}
 </style>
 <h1>{html.escape(args.title)}</h1>
-<p>Outcome-blind review: outcomes are hidden. Watch at normal speed; rate
-legibility, tension, visible counter-action, repetition, and whether the
-ending felt earned.</p>
+<p>Outcome-blind review: outcomes are hidden. Watch at normal speed and give
+two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy to follow
+&mdash; plus any notes.</p>
 <ul>{items}</ul>{review_block}
 """, encoding="utf-8")
     mode = ("hosted (serve it — file:// will not load modules)"
