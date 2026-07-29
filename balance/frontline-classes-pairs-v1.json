@@ -6,7 +6,7 @@
   "hypothesis": "The complete canonical class-pair product (DECISIONS #153) executes through the Lab with shared private random streams, per-team chassis identity, verified mirrors, and an explicitly non-voting population; this two-bot smoke validates the classes pipeline, not class balance.",
   "ablationRegistry": {
     "path": "frontline-ablation-debt-v1.json",
-    "sha256": "57740b6491d9ed981048421f4247de6142c169c88e0b4cfa2e582f0cfa2642aa"
+    "sha256": "1758a472c56c41478401c3cbb3efe2069519570b1dd77c8fc9c436d00cf568fa"
   },
   "studyBlocks": [
     {

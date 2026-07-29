@@ -2875,6 +2875,32 @@ class information is already derivable from the contract and replays, so
 no authored population requires re-authoring when the typed field lands —
 retained sources rebuild and requalify mechanically.
 
+## 155. Facing-decoupled movement was never decided and is reopened as a candidate
+
+Schema 3 declares movement as one absolute cardinal tile without changing
+facing. That choice — functionally universal strafe — carries no numbered
+decision, no measurement, and no reference to the duel-game record that
+convicted the same mechanic: #49 held strafe for oscillation-dodging and
++80% game length, and the 0.5 record calls it the dodge-everything
+regression 0.5 removed. Every generation-3 analysis layer (the exact duel
+enumeration's mobile-choice language, the evade probes, the class slate's
+kinematics discipline) subsequently built on the undocumented choice as a
+given. The wave-1 class factorial's dominant standoff-kiting doctrine and
+its 500-tick draws are consistent with the original conviction, and the
+product owner independently rejected the visual result on review.
+
+Disposition: the current model stays the measured baseline; facing-coupled
+movement enters the pipeline as pre-registered typed arms rather than a
+hot rules change. The first candidate is move-sets-facing (a step turns
+the body to the movement direction; rotate remains free aim), which kills
+backpedal-kiting while preserving one-action dodges at an aim cost; full
+tank movement (forward-only plus turns) is the deeper cut requiring a
+complete exact-analysis and probe recomputation. Registered as ablation
+debt `movement-facing-coupling`, required before the internal pilot's
+first movement-touching verdict. Contract-driven bots survive any arm
+through the movement legality mask. The blind-review verdict on standoff
+watchability decides the arm's priority.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
