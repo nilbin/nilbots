@@ -5,11 +5,11 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import {
-  participantForUnit,
   teamName,
   unitName,
   visualIndexForUnit,
 } from '../replayParticipants';
+import { unitAccent, unitLook } from '../render/unitPresentation';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
@@ -220,8 +220,8 @@ export default function Viewer({
     ? replay.units.find((unit) => unit.teamId === winnerTeam.teamId) ??
       null
     : null;
-  const winnerParticipant = winnerUnit
-    ? participantForUnit(replay, winnerUnit.unitKey)
+  const winnerAccent = winnerUnit
+    ? unitAccent(replay, winnerUnit.unitKey)
     : null;
   const transport = isLive ? (
     <div className="panel pad val flex min-w-0 items-center gap-2.5">
@@ -285,9 +285,13 @@ export default function Viewer({
                 {unitKeys.slice(0, 3).map((unitKey) => (
                   <IdentityChip
                     key={unitKey}
-                    lookId={participantForUnit(replay, unitKey)?.lookId}
+                    // Resolved the way the arena resolves it: under a class arm
+                    // every participant carries the same default look and accent,
+                    // and the form catalog is the only thing that tells the two
+                    // machines apart.
+                    lookId={unitLook(replay, unitKey).id}
                     visualIndex={visualIndexForUnit(replay, unitKey)}
-                    accent={participantForUnit(replay, unitKey)?.accent}
+                    accent={unitAccent(replay, unitKey)}
                     name={unitName(replay, unitKey)}
                     nameClassName="text-[14px]"
                     size={22}
@@ -453,15 +457,13 @@ export default function Viewer({
                     <>
                       <span
                         className={
-                          winnerParticipant?.accent
-                            ? 'player-accent-text'
-                            : undefined
+                          winnerAccent ? 'player-accent-text' : undefined
                         }
                         style={
-                          winnerParticipant?.accent
+                          winnerAccent
                             ? styleVariables({
                                 '--player-accent': playerAccent(
-                                  winnerParticipant.accent,
+                                  winnerAccent,
                                   'panel',
                                 ),
                               })

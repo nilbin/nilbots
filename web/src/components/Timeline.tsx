@@ -6,9 +6,14 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { participantForUnit } from '../replayParticipants';
+import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+} from '../replayModel';
 import type { PlaybackState } from '../playback';
 import { playerAccent } from '../presentation/playerAccent';
+import { unitAccent } from '../render/unitPresentation';
 import { styleVariables } from '../presentation/styleVariables';
 
 /**
@@ -70,12 +75,13 @@ export default function Timeline({
   const lastTick = Math.max(1, playback.tickCount - 1);
 
   const { lanes, marks, moments } = useMemo(() => {
-    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string => {
-      const accent = unitKey
-        ? participantForUnit(replay, unitKey)?.accent
-        : null;
-      return accent ? playerAccent(accent, 'panel') : 'currentColor';
-    };
+    // Through `unitAccent`, not `participant.accent`: a generation-3 class match
+    // gives every participant the same default colour, and two lanes of marks in
+    // one hue is the same as no lanes at all.
+    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string =>
+      unitKey === undefined
+        ? 'currentColor'
+        : playerAccent(unitAccent(replay, unitKey), 'panel');
     const teamOf = (unitKey: ReplayStableUnitKey | undefined): number | null =>
       replay.units.find((unit) => unit.unitKey === unitKey)?.teamId ?? null;
 
@@ -119,23 +125,24 @@ export default function Timeline({
           matchMoments.push({ key: event.eventId, tick });
           continue;
         }
-        switch (event.type) {
-          case 'shot':
-            add(event, tick, event.sourceActor?.unitKey, 'fired');
-            break;
-          case 'damage':
-            add(event, tick, event.targetActor?.unitKey, 'hit');
-            break;
-          case 'destroyed':
-          case 'disqualified':
-            add(event, tick, event.targetActor?.unitKey, 'lost');
-            break;
-          case 'form-changed':
-          case 'fabricated':
-            add(event, tick, event.sourceActor?.unitKey, 'form');
-            break;
-          default:
-            break;
+        // Firing, dying and being disqualified each arrive in two spellings —
+        // a duel says `shot`/`destroyed`/`disqualified` where a generic
+        // replay-v3 match says `attack`/`destruction`/`participant-disqualified`.
+        // Matched on the literals alone, every generation-3 timeline is blank.
+        if (isAttackEvent(event.type)) {
+          add(event, tick, event.sourceActor?.unitKey, 'fired');
+        } else if (
+          isDestructionEvent(event.type) ||
+          isDisqualificationEvent(event.type)
+        ) {
+          add(event, tick, event.targetActor?.unitKey, 'lost');
+        } else if (event.type === 'damage') {
+          add(event, tick, event.targetActor?.unitKey, 'hit');
+        } else if (
+          event.type === 'form-changed' ||
+          event.type === 'fabricated'
+        ) {
+          add(event, tick, event.sourceActor?.unitKey, 'form');
         }
       }
     }
