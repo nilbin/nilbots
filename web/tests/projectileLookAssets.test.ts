@@ -33,7 +33,11 @@ test('projectile looks are genuine East-facing SVG packages', () => {
     ids.sort(),
     [
       'arc-spark',
+      'bulwark-gate-slug',
+      'bulwark-mirror-wedge',
       'cinder-disc',
+      'fabricator-copy-bit',
+      'fabricator-rivet-punch',
       'gravity-knot',
       'helix-dart',
       'ion-orb',
@@ -42,6 +46,8 @@ test('projectile looks are genuine East-facing SVG packages', () => {
       'pulse-bolt',
       'razor-shard',
       'regent-lance',
+      'striker-arc-cutter',
+      'striker-vector-fork',
       'talon',
     ],
   );

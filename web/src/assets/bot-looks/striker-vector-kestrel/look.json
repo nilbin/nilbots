@@ -1,0 +1,9 @@
+{
+  "id": "striker-vector-kestrel",
+  "label": "Vector Kestrel",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#22d3ee",
+  "classId": "striker",
+  "defaultProjectile": "striker-vector-fork",
+  "scale": 1.28
+}

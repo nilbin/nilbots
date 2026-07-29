@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "bundles": [
+    {
+      "packId": "striker-vector-kestrel",
+      "classId": "striker",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "striker-vector-kestrel",
+        "source": "striker/vector-kestrel/source.png"
+      },
+      "projectile": {
+        "id": "striker-vector-fork",
+        "source": "projectiles/striker/vector-fork.svg"
+      }
+    },
+    {
+      "packId": "striker-arc-viper",
+      "classId": "striker",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "striker-arc-viper",
+        "source": "striker/arc-viper/source.png"
+      },
+      "projectile": {
+        "id": "striker-arc-cutter",
+        "source": "projectiles/striker/arc-cutter.svg"
+      }
+    },
+    {
+      "packId": "striker-trident-wasp",
+      "classId": "striker",
+      "classDefault": true,
+      "availability": "internal-default",
+      "chassis": {
+        "id": "trident-wasp",
+        "source": "striker/trident-wasp/source.png"
+      },
+      "projectile": {
+        "id": "trident-spark",
+        "source": "projectiles/striker/trident-spark.svg"
+      }
+    },
+    {
+      "packId": "bulwark-gatehouse",
+      "classId": "bulwark",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "bulwark-gatehouse",
+        "source": "bulwark/gatehouse/source.png"
+      },
+      "projectile": {
+        "id": "bulwark-gate-slug",
+        "source": "projectiles/bulwark/gate-slug.svg"
+      }
+    },
+    {
+      "packId": "bulwark-aegis-tortoise",
+      "classId": "bulwark",
+      "classDefault": true,
+      "availability": "internal-default",
+      "chassis": {
+        "id": "aegis-tortoise",
+        "source": "bulwark/aegis-tortoise/source.png"
+      },
+      "projectile": {
+        "id": "rebound-diamond",
+        "source": "projectiles/bulwark/rebound-diamond.svg"
+      }
+    },
+    {
+      "packId": "bulwark-mirror-bastion",
+      "classId": "bulwark",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "bulwark-mirror-bastion",
+        "source": "bulwark/mirror-bastion/source.png"
+      },
+      "projectile": {
+        "id": "bulwark-mirror-wedge",
+        "source": "projectiles/bulwark/mirror-wedge.svg"
+      }
+    },
+    {
+      "packId": "fabricator-copyforge",
+      "classId": "fabricator",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "fabricator-copyforge",
+        "source": "fabricator/copyforge/source.png"
+      },
+      "projectile": {
+        "id": "fabricator-copy-bit",
+        "source": "projectiles/fabricator/copy-bit.svg"
+      }
+    },
+    {
+      "packId": "fabricator-lattice-loom",
+      "classId": "fabricator",
+      "classDefault": true,
+      "availability": "internal-default",
+      "chassis": {
+        "id": "lattice-loom",
+        "source": "fabricator/lattice-loom/source.png"
+      },
+      "projectile": {
+        "id": "lattice-rivet",
+        "source": "projectiles/fabricator/lattice-rivet.svg"
+      }
+    },
+    {
+      "packId": "fabricator-rivet-mantis",
+      "classId": "fabricator",
+      "classDefault": false,
+      "availability": "live-store",
+      "chassis": {
+        "id": "fabricator-rivet-mantis",
+        "source": "fabricator/rivet-mantis/source.png"
+      },
+      "projectile": {
+        "id": "fabricator-rivet-punch",
+        "source": "projectiles/fabricator/rivet-punch.svg"
+      }
+    }
+  ]
+}

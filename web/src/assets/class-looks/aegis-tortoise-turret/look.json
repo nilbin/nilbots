@@ -1,0 +1,9 @@
+{
+  "id": "aegis-tortoise-turret",
+  "label": "Aegis Tortoise Turret",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#60a5fa",
+  "defaultProjectile": "rebound-diamond",
+  "classId": "bulwark",
+  "scale": 1.08
+}

@@ -1,12 +1,23 @@
 import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
+
+export type BotLookClassId = 'striker' | 'bulwark' | 'fabricator';
+
 export interface BotLook {
   id: string;
   label: string;
   suggestedAccent: string;
   defaultProjectileLookId?: string;
+  /**
+   * Presentation-only compatibility metadata. The account/API contract does not enforce
+   * this yet; class-owned defaults and future class cosmetics can still expose their
+   * intended family to frontend consumers without parsing the look ID.
+   */
+  classId: BotLookClassId | null;
   image: HTMLImageElement | null;
   imageUrl: string;
+  /** Raw SVG only when the asset carries semantic team-accent surfaces. */
+  teamAccentSvg: string | null;
   scale: number;
 }
 
@@ -86,6 +97,7 @@ interface BotLookManifest {
   sprite: string;
   suggestedAccent: string;
   defaultProjectile?: string;
+  classId?: BotLookClassId;
   scale: number;
 }
 
@@ -121,6 +133,22 @@ const lookImages = import.meta.glob<string>(
   ['../assets/bot-looks/*/*.png', '../assets/bot-looks/*/*.svg'],
   { eager: true, import: 'default', query: '?url' },
 );
+const lookSvgSources = import.meta.glob<string>(
+  '../assets/bot-looks/*/*.svg',
+  { eager: true, import: 'default', query: '?raw' },
+);
+const classLookManifests = import.meta.glob<BotLookManifest>(
+  '../assets/class-looks/*/look.json',
+  { eager: true, import: 'default' },
+);
+const classLookImages = import.meta.glob<string>(
+  '../assets/class-looks/*/*.svg',
+  { eager: true, import: 'default', query: '?url' },
+);
+const classLookSvgSources = import.meta.glob<string>(
+  '../assets/class-looks/*/*.svg',
+  { eager: true, import: 'default', query: '?raw' },
+);
 const projectileLookManifests = import.meta.glob<ProjectileLookManifest>(
   '../assets/projectile-looks/*/look.json',
   { eager: true, import: 'default' },
@@ -129,10 +157,35 @@ const projectileLookImages = import.meta.glob<string>(
   '../assets/projectile-looks/*/*.svg',
   { eager: true, import: 'default', query: '?url' },
 );
+const classProjectileLookManifests = import.meta.glob<ProjectileLookManifest>(
+  '../assets/class-projectile-looks/*/look.json',
+  { eager: true, import: 'default' },
+);
+const classProjectileLookImages = import.meta.glob<string>(
+  '../assets/class-projectile-looks/*/*.svg',
+  { eager: true, import: 'default', query: '?url' },
+);
 
+const classIds = new Set<BotLookClassId>([
+  'striker',
+  'bulwark',
+  'fabricator',
+]);
 const themes = buildThemes();
-const looks = buildLooks();
-const projectileLooks = buildProjectileLooks();
+const looks = buildLooks(lookManifests, lookImages, lookSvgSources);
+const classLooks = buildLooks(
+  classLookManifests,
+  classLookImages,
+  classLookSvgSources,
+);
+const projectileLooks = buildProjectileLooks(
+  projectileLookManifests,
+  projectileLookImages,
+);
+const classProjectileLooks = buildProjectileLooks(
+  classProjectileLookManifests,
+  classProjectileLookImages,
+);
 validateDefaultProjectiles();
 /**
  * Which theme stands in when a replay names one this build does not have.
@@ -172,6 +225,21 @@ export function botLook(lookId?: string, legacySlot = 0): BotLook {
   );
 }
 
+/**
+ * A form-authored look may name a player cosmetic or a class-owned presentation asset.
+ * Class defaults are kept out of `botLookOptions`, so they render without becoming
+ * globally equippable cosmetics while the account contract has no class compatibility.
+ */
+export function presentationBotLook(
+  lookId?: string,
+  legacySlot = 0,
+): BotLook {
+  return (
+    (lookId ? classLooks.get(lookId) : undefined) ??
+    botLook(lookId, legacySlot)
+  );
+}
+
 export function botLookOptions(): readonly BotLook[] {
   return [...looks.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
@@ -180,6 +248,16 @@ export function projectileLook(lookId?: string): ProjectileLook {
   return (
     (lookId ? projectileLooks.get(lookId) : undefined) ??
     requireEntry(projectileLooks, defaultProjectileLookId, 'projectile look')
+  );
+}
+
+/** Class-owned projectile masks are renderable but are not appearance-editor options. */
+export function presentationProjectileLook(
+  lookId?: string,
+): ProjectileLook {
+  return (
+    (lookId ? classProjectileLooks.get(lookId) : undefined) ??
+    projectileLook(lookId)
   );
 }
 
@@ -273,15 +351,28 @@ function buildThemes(): Map<string, ArenaTheme> {
   return result;
 }
 
-function buildLooks(): Map<string, BotLook> {
+function buildLooks(
+  manifests: Record<string, BotLookManifest>,
+  images: Record<string, string>,
+  svgSources: Record<string, string> = {},
+): Map<string, BotLook> {
   const result = new Map<string, BotLook>();
-  for (const [manifestPath, manifest] of Object.entries(lookManifests)) {
+  for (const [manifestPath, manifest] of Object.entries(manifests)) {
     const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/'));
     const imageUrl = requireAsset(
-      lookImages,
+      images,
       `${directory}/${manifest.sprite}`,
       manifest.id,
     );
+    const source = svgSources[`${directory}/${manifest.sprite}`] ?? null;
+    const teamAccentSvg =
+      source?.includes('data-team-accent="true"') === true
+        ? source
+        : null;
+    if (manifest.classId !== undefined && !classIds.has(manifest.classId))
+      throw new Error(
+        `Bot look '${manifest.id}' has unknown class '${manifest.classId}'.`,
+      );
     if (result.has(manifest.id))
       throw new Error(`Duplicate bot look ID '${manifest.id}'.`);
     result.set(manifest.id, {
@@ -289,8 +380,10 @@ function buildLooks(): Map<string, BotLook> {
       label: manifest.label,
       suggestedAccent: manifest.suggestedAccent,
       defaultProjectileLookId: manifest.defaultProjectile,
+      classId: manifest.classId ?? null,
       image: loadImage(imageUrl),
       imageUrl,
+      teamAccentSvg,
       scale: manifest.scale,
     });
   }
@@ -298,24 +391,32 @@ function buildLooks(): Map<string, BotLook> {
 }
 
 function validateDefaultProjectiles(): void {
-  for (const look of looks.values()) {
-    if (
-      look.defaultProjectileLookId &&
-      !projectileLooks.has(look.defaultProjectileLookId)
-    )
-      throw new Error(
-        `Bot look '${look.id}' references missing default projectile ` +
-          `'${look.defaultProjectileLookId}'.`,
-      );
+  for (const [collection, projectiles] of [
+    [looks, projectileLooks],
+    [classLooks, classProjectileLooks],
+  ] as const) {
+    for (const look of collection.values()) {
+      if (
+        look.defaultProjectileLookId &&
+        !projectiles.has(look.defaultProjectileLookId)
+      )
+        throw new Error(
+          `Bot look '${look.id}' references missing default projectile ` +
+            `'${look.defaultProjectileLookId}'.`,
+        );
+    }
   }
 }
 
-function buildProjectileLooks(): Map<string, ProjectileLook> {
+function buildProjectileLooks(
+  manifests: Record<string, ProjectileLookManifest>,
+  images: Record<string, string>,
+): Map<string, ProjectileLook> {
   const result = new Map<string, ProjectileLook>();
-  for (const [manifestPath, manifest] of Object.entries(projectileLookManifests)) {
+  for (const [manifestPath, manifest] of Object.entries(manifests)) {
     const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/'));
     const imageUrl = requireAsset(
-      projectileLookImages,
+      images,
       `${directory}/${manifest.sprite}`,
       manifest.id,
     );
@@ -330,6 +431,64 @@ function buildProjectileLooks(): Map<string, ProjectileLook> {
     });
   }
   return result;
+}
+
+const accentedBotImages = new Map<string, HTMLImageElement>();
+const maxAccentedBotImages = 48;
+
+/**
+ * The sprite source for one bot/team pairing.
+ *
+ * Only elements explicitly tagged `data-team-accent="true"` are substituted. Authored
+ * armor, energy and material colours remain untouched, so team identity is a small
+ * semantic surface rather than a chassis-wide wash.
+ */
+export function teamAccentedBotImage(
+  look: BotLook,
+  accent: string,
+): HTMLImageElement | null {
+  if (!look.teamAccentSvg || typeof Image === 'undefined')
+    return look.image;
+  const source = applyTeamAccentToSvg(look.teamAccentSvg, accent);
+  if (source === look.teamAccentSvg) return look.image;
+
+  const key = `${look.id}:${accent.toLowerCase()}`;
+  const cached = accentedBotImages.get(key);
+  if (cached) {
+    accentedBotImages.delete(key);
+    accentedBotImages.set(key, cached);
+    return cached;
+  }
+
+  const image = new Image();
+  image.decoding = 'async';
+  trackDecode(image);
+  image.src =
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+  accentedBotImages.set(key, image);
+  if (accentedBotImages.size > maxAccentedBotImages) {
+    const oldest = accentedBotImages.keys().next().value;
+    if (oldest !== undefined) accentedBotImages.delete(oldest);
+  }
+  return image;
+}
+
+/**
+ * Pure substitution used by the image loader and pinned independently in tests.
+ * A strict colour grammar prevents replay-authored strings from becoming SVG markup.
+ */
+export function applyTeamAccentToSvg(
+  source: string,
+  accent: string,
+): string {
+  if (!/^#[0-9a-f]{6}$/i.test(accent)) return source;
+  return source.replace(
+    /<[^>]+\bdata-team-accent="true"[^>]*>/gi,
+    (element) =>
+      element
+        .replace(/\bfill="(?!none\b)[^"]*"/gi, `fill="${accent}"`)
+        .replace(/\bstroke="(?!none\b)[^"]*"/gi, `stroke="${accent}"`),
+  );
 }
 
 function requireAsset(

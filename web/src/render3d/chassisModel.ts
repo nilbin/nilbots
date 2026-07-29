@@ -15,7 +15,9 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
  * artist adjusts one — and the first cosmetic pack sold would put them out of date.
  *
  * The paths keep their own fill colours, so a Vanguard is still blue-grey and an Aureate
- * Warden is still gold without anything here knowing which is which.
+ * Warden is still gold without anything here knowing which is which. A chassis may tag a
+ * small filled surface `data-team-accent="true"`; that one semantic layer takes the
+ * owner's colour while every untagged armor layer remains authored.
  */
 
 /** How tall a chassis stands, as a fraction of how wide it is. */
@@ -32,12 +34,10 @@ const cache = new Map<string, Promise<THREE.Group | null>>();
  * Cached by URL because both bots may share a look, a replay may be reopened, and parsing
  * plus triangulating a few hundred path segments is not something to repeat per match.
  *
- * **The owner's accent is deliberately not an input.** The flat renderer draws these
- * sprites untinted — accent reaches the screen as health pips, the facing cone, the
- * selection ring and the pool of light on the floor, never as a wash over the chassis — so
- * a model that took one would not be the same bot in a different renderer. It was tried:
- * a trace of accent as emission, which on hull greys this dark is not a trace but the
- * entire colour, and every chassis arrived as a solid lozenge of team colour.
+ * The owner's accent is deliberately separate from `paint`. `paint` replaces the whole
+ * silhouette for white-alpha projectiles. `teamAccent` replaces only direct SVG elements
+ * explicitly tagged `data-team-accent="true"`, which keeps the class/cosmetic material
+ * identity while putting the same small team-colour surfaces on both renderers.
  *
  * `paint` is the exception, and projectiles are why: the flat renderer *does* recolour a
  * bolt, wholesale, keeping only its silhouette. Passing it here says "this is a bolt", and
@@ -47,12 +47,15 @@ export function chassisModel(
   url: string,
   paint?: THREE.Color,
   sector?: 'front',
+  teamAccent?: THREE.Color,
 ): Promise<THREE.Group | null> {
-  const key = `${url}|${paint ? paint.getHexString() : ''}|${sector ?? 'whole'}`;
+  const key =
+    `${url}|${paint ? paint.getHexString() : ''}|${sector ?? 'whole'}|` +
+    `${teamAccent ? teamAccent.getHexString() : ''}`;
   const existing = cache.get(key);
   if (existing) return existing;
 
-  const built = load(url, paint, sector).catch(() => null);
+  const built = load(url, paint, sector, teamAccent).catch(() => null);
   cache.set(key, built);
   return built;
 }
@@ -61,6 +64,7 @@ async function load(
   url: string,
   paint?: THREE.Color,
   sector?: 'front',
+  teamAccent?: THREE.Color,
 ): Promise<THREE.Group | null> {
   const response = await fetch(url);
   if (!response.ok) return null;
@@ -82,17 +86,35 @@ async function load(
   // drawn in — the two SVGs here are 512-unit, but nothing should depend on that.
   const paints = gradientPaints(markup);
   const layers = parsed.paths.length;
-  const cutouts: { shape: THREE.Shape; fill: string; colour: THREE.Color; rise: number }[] = [];
+  const cutouts: {
+    shape: THREE.Shape;
+    fill: string;
+    colour: THREE.Color;
+    rise: number;
+    teamAccent: boolean;
+  }[] = [];
   for (const [index, path] of parsed.paths.entries()) {
     // Fill colour comes from the SVG itself, so the model is coloured by the same source
     // the sprite is. A path with no fill is a stroke-only decoration and has no volume.
-    const fill = (path.userData as { style?: { fill?: string } } | undefined)?.style?.fill;
+    const metadata = path.userData as
+      | { node?: Element; style?: { fill?: string } }
+      | undefined;
+    const fill = metadata?.style?.fill;
     if (!fill || fill === 'none') continue;
     const colour = resolveFill(fill, paints);
     if (!colour) continue;
+    const semanticTeamAccent =
+      metadata?.node?.getAttribute('data-team-accent') === 'true';
 
     const rise = 0.45 + 0.55 * ((index + 1) / layers);
-    for (const shape of path.toShapes()) cutouts.push({ shape, fill, colour, rise });
+    for (const shape of path.toShapes())
+      cutouts.push({
+        shape,
+        fill,
+        colour,
+        rise,
+        teamAccent: semanticTeamAccent,
+      });
   }
   if (cutouts.length === 0) return null;
 
@@ -151,9 +173,19 @@ async function load(
     });
 
   const palette = new Map<string, THREE.MeshStandardMaterial>();
-  const materialFor = (fill: string, colour: THREE.Color) => {
+  const materialFor = (
+    fill: string,
+    colour: THREE.Color,
+    semanticTeamAccent: boolean,
+  ) => {
     if (painted) return painted;
-    const existing = palette.get(fill);
+    const resolvedColour =
+      semanticTeamAccent && teamAccent ? teamAccent : colour;
+    const key =
+      semanticTeamAccent && teamAccent
+        ? `team:${teamAccent.getHexString()}`
+        : fill;
+    const existing = palette.get(key);
     if (existing) return existing;
     // A layer lights itself in proportion to how bright it was drawn. Every one of these
     // sprites is a dark hull carrying a few vivid trim colours — the Vanguard's cyan
@@ -161,20 +193,29 @@ async function load(
     // a canvas draws them at full strength with no lighting model at all. Under real
     // lights they would just be pale paint. Squaring the luminance keeps the hull greys
     // matte and lets only the trim glow, which is the distinction the artist drew.
-    const glow = luminance(colour) ** 2;
+    const glow =
+      semanticTeamAccent && teamAccent
+        ? 0.85
+        : luminance(resolvedColour) ** 2;
     const material = new THREE.MeshStandardMaterial({
-      color: colour,
+      color: resolvedColour,
       roughness: 0.42,
       metalness: 0.62,
-      emissive: colour,
+      emissive: resolvedColour,
       emissiveIntensity: glow * 1.4,
     });
-    palette.set(fill, material);
+    palette.set(key, material);
     return material;
   };
 
   const group = new THREE.Group();
-  for (const { shape, fill, colour, rise } of cutouts) {
+  for (const {
+    shape,
+    fill,
+    colour,
+    rise,
+    teamAccent: semanticTeamAccent,
+  } of cutouts) {
     // Every layer starts at the floor and rises to its own height, so a shape is a solid
     // standing on the base rather than a slab floating over a gap.
     const geometry = new THREE.ExtrudeGeometry(shape, {
@@ -186,7 +227,10 @@ async function load(
       bevelSize: bevel,
       bevelSegments: 1,
     });
-    const mesh = new THREE.Mesh(geometry, materialFor(fill, colour));
+    const mesh = new THREE.Mesh(
+      geometry,
+      materialFor(fill, colour, semanticTeamAccent),
+    );
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);

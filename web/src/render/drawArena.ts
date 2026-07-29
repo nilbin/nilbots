@@ -9,13 +9,15 @@ import type {
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import {
   arenaTheme,
-  projectileLook,
+  presentationProjectileLook,
+  teamAccentedBotImage,
   type ProjectileLook,
 } from './arenaThemes';
 import {
   stanceKindForForm,
   unitAccent,
   unitLook,
+  unitProjectileLook,
   type StanceKind,
 } from './unitPresentation';
 import {
@@ -885,12 +887,9 @@ export function drawArena(
     accent: string,
     alpha: number,
   ): void {
-    const look = projectileLook(
-      ownerUnitKey
-        ? (participantForUnit(replay, ownerUnitKey)?.projectileLookId ??
-          undefined)
-        : undefined,
-    );
+    const look = ownerUnitKey
+      ? unitProjectileLook(replay, ownerUnitKey)
+      : presentationProjectileLook();
     const sprite = tintedProjectileSprite(look, accent);
     const size = tile * look.scale;
 
@@ -1358,11 +1357,12 @@ export function drawArena(
     }
 
     ctx.translate(-recoil, 0);
-    if (look.image?.complete && look.image.naturalWidth > 0) {
+    const image = teamAccentedBotImage(look, accent);
+    if (image?.complete && image.naturalWidth > 0) {
       const size = tile * look.scale;
       if (damaged && shotProgress() > 0.55)
         ctx.filter = `brightness(${1.45 + (1 - shotProgress()) * 0.8}) saturate(0.65)`;
-      ctx.drawImage(look.image, -size / 2, -size / 2, size, size);
+      ctx.drawImage(image, -size / 2, -size / 2, size, size);
       ctx.filter = 'none';
     } else {
       drawFallbackChassis(participant?.name ?? '', radius, accent, destroyed);

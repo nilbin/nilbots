@@ -3,7 +3,13 @@ import {
   participantForUnit,
   visualIndexForUnit,
 } from '../replayParticipants';
-import { botLook, presentationAccent, type BotLook } from './arenaThemes';
+import {
+  presentationAccent,
+  presentationBotLook,
+  presentationProjectileLook,
+  type BotLook,
+  type ProjectileLook,
+} from './arenaThemes';
 
 /**
  * Which artwork and which colour a stable unit wears, resolved in one place.
@@ -13,18 +19,18 @@ import { botLook, presentationAccent, type BotLook } from './arenaThemes';
  * That was fine while a replay's presentation came entirely from the submitting bot, and
  * it stopped being fine with generation-3 class arms: those replays carry
  * `header.presentation === null`, every participant arrives with the same default
- * `lookId` and the same accent, and the form catalog — striker/bulwark/fabricator, each
- * with its own turret — is the only thing in the document that distinguishes one machine
- * from another. Rendered from participant data alone, a bulwark, a striker and both teams
- * are the same picture.
+ * `lookId` and the same accent, and the form catalog — striker/bulwark/fabricator plus
+ * their class-owned forms — is the only thing in the document that distinguishes one
+ * machine from another. Rendered from participant data alone, a bulwark, a striker and
+ * both teams are the same picture.
  *
  * So resolution is layered, and every layer is data the replay actually carries:
  *
  * 1. **Authored per-form presentation** (`replay.forms[].lookId`, from the replay
- *    header's presentation section) always wins. When proper per-class art ships it
- *    lands here and everything below stops being reachable.
- * 2. **The class-form fallback below** — deterministic from the form ID, and clearly
- *    marked as a stand-in.
+ *    header's presentation section) always wins. Once current class contracts author
+ *    these IDs, the compatibility mapping below stops being reachable.
+ * 2. **The class-form presentation below** — deterministic from the form ID for the Labs
+ *    replays that predate authored presentation metadata.
  * 3. **The submitting participant's own look**, which is what shipped duels use.
  * 4. The legacy slot look, for replay-v1 documents that predate look IDs.
  *
@@ -34,42 +40,53 @@ import { botLook, presentationAccent, type BotLook } from './arenaThemes';
  */
 
 /**
- * **Fallback art. Not a catalog, not a cosmetic, and not the eventual answer.**
+ * Real class-owned presentation, separate from player cosmetics.
  *
- * Generation-3 class rulesets name their forms `<family>-<role>` and
- * `<family>-<role>-turret`. None of those families has artwork yet, so every one of them
- * resolves to the same default chassis and a match between two classes is unreadable.
- * Mapping the family onto looks the catalog already ships is the smallest honest fix:
- * nothing is invented, nothing is baked into the replay, and the moment a replay carries
- * real per-form presentation this table is skipped entirely.
+ * The current Labs replay writer carries no per-form presentation block, so this is the
+ * compatibility bridge from its exact form IDs to the selected class identities. The
+ * assets live in the internal class roots: they can render without appearing in the
+ * appearance editor or becoming equippable on an unrelated class. A future replay that
+ * authors form presentation still wins at layer one above.
  *
- * The picks are about silhouette, not flavour. `needle` is a thin dart and reads as a
- * fast skirmisher; `aureate-warden` is broad and heavy; `mantis` carries forward limbs
- * and reads as a builder. The emplaced picks are the two radially symmetric chassis in
- * the library — a shape with no front, which is exactly what an objective-weight-zero
- * turret that sees and fires in every direction is.
- *
- * `stance` is the third shape a class-skill arm can put a life in, and the picks follow
- * the same rule. `rift-runner` is a swept rack of blades — a fan, which is what the
- * volley gun fires; `mossback` is a blunt plated carapace, which is what a shell is.
- * Neither is the eventual answer any more than the other two are; both exist so a
- * transformation is a transformation on screen and not a ring around an unchanged bot.
- * A family with no stance skill has no entry, and nothing ever asks it for one.
+ * Prime and child bodies deliberately share one chassis per class. Fabrication creates a
+ * separate identical Lattice Loom; it never grows a child on the source body. Only
+ * Bulwark owns an emplacement. The two directional stances are distinct third bodies:
+ * Trident Wasp Volley carries the three launch lanes, and Aegis Tortoise Shell ends its
+ * physical guard at the protected quadrant's exact ±45° edges.
  */
-const CLASS_FORM_LOOK_FALLBACK: ReadonlyMap<
+const CLASS_FORM_PRESENTATION: ReadonlyMap<
   string,
   {
     readonly mobile: string;
-    readonly emplaced: string;
+    readonly projectile: string;
+    readonly emplaced?: string;
     readonly stance?: string;
   }
 > = new Map([
-  ['striker', { mobile: 'needle', emplaced: 'orbiter', stance: 'rift-runner' }],
+  [
+    'striker',
+    {
+      mobile: 'trident-wasp',
+      projectile: 'trident-spark',
+      stance: 'trident-wasp-volley',
+    },
+  ],
   [
     'bulwark',
-    { mobile: 'aureate-warden', emplaced: 'bulwark', stance: 'mossback' },
+    {
+      mobile: 'aegis-tortoise',
+      projectile: 'rebound-diamond',
+      emplaced: 'aegis-tortoise-turret',
+      stance: 'aegis-tortoise-shell',
+    },
   ],
-  ['fabricator', { mobile: 'mantis', emplaced: 'orbiter' }],
+  [
+    'fabricator',
+    {
+      mobile: 'lattice-loom',
+      projectile: 'lattice-rivet',
+    },
+  ],
 ]);
 
 /**
@@ -116,7 +133,7 @@ export function classFamilyForForm(
 ): string | null {
   if (!formId) return null;
   const family = formId.split('-', 1)[0];
-  return CLASS_FORM_LOOK_FALLBACK.has(family) ? family : null;
+  return CLASS_FORM_PRESENTATION.has(family) ? family : null;
 }
 
 /** Is this form ID one of the emplaced (turret) variants of a class family? */
@@ -139,41 +156,48 @@ export function stanceKindForForm(
   return null;
 }
 
-/** The stand-in look for a class form, turret and stance variants included, or null. */
+/** The class-owned look for a class form, turret and stance variants included, or null. */
 export function fallbackLookIdForForm(
   formId: string | null | undefined,
 ): string | null {
   const family = classFamilyForForm(formId);
   if (family === null) return null;
-  const looks = CLASS_FORM_LOOK_FALLBACK.get(family)!;
+  const looks = CLASS_FORM_PRESENTATION.get(family)!;
   if (stanceKindForForm(formId) !== null)
-    return looks.stance ?? looks.emplaced;
-  return isEmplacedFormId(formId) ? looks.emplaced : looks.mobile;
+    return looks.stance ?? looks.mobile;
+  return isEmplacedFormId(formId)
+    ? (looks.emplaced ?? looks.mobile)
+    : looks.mobile;
 }
 
-/**
- * The stand-in look for a class family's emplaced form, whichever form was asked about.
- *
- * The 2.5D renderer builds a unit's turret once, from a form it may not be wearing yet,
- * so it needs the emplaced look of the family rather than of the current form.
- */
+/** The class family's emplaced look, whichever form was asked about. */
 export function fallbackEmplacedLookIdForForm(
   formId: string | null | undefined,
 ): string | null {
   const family = classFamilyForForm(formId);
   return family === null
     ? null
-    : CLASS_FORM_LOOK_FALLBACK.get(family)!.emplaced;
+    : (CLASS_FORM_PRESENTATION.get(family)!.emplaced ?? null);
 }
 
-/** The stand-in look for a class family's stance form, or null when it has no stance. */
+/** The class family's stance look, or null when it has no stance. */
 export function fallbackStanceLookIdForForm(
   formId: string | null | undefined,
 ): string | null {
   const family = classFamilyForForm(formId);
   return family === null
     ? null
-    : (CLASS_FORM_LOOK_FALLBACK.get(family)!.stance ?? null);
+    : (CLASS_FORM_PRESENTATION.get(family)!.stance ?? null);
+}
+
+/** The paired class-owned projectile, or null for a non-class form. */
+export function fallbackProjectileLookIdForForm(
+  formId: string | null | undefined,
+): string | null {
+  const family = classFamilyForForm(formId);
+  return family === null
+    ? null
+    : CLASS_FORM_PRESENTATION.get(family)!.projectile;
 }
 
 /** The look ID the replay itself authored for a form, when it authored one. */
@@ -184,6 +208,18 @@ function authoredLookIdForForm(
   if (!formId) return null;
   return (
     replay.forms.find((form) => form.formId === formId)?.lookId ?? null
+  );
+}
+
+/** The projectile ID the replay itself authored for a form, when it authored one. */
+function authoredProjectileLookIdForForm(
+  replay: ReplayModel,
+  formId: string | null | undefined,
+): string | null {
+  if (!formId) return null;
+  return (
+    replay.forms.find((form) => form.formId === formId)
+      ?.projectileLookId ?? null
   );
 }
 
@@ -221,7 +257,10 @@ export function unitLook(
     fallbackLookIdForForm(effectiveFormId) ??
     participant?.lookId ??
     undefined;
-  return botLook(resolved, visualIndexForUnit(replay, unitKey));
+  return presentationBotLook(
+    resolved,
+    visualIndexForUnit(replay, unitKey),
+  );
 }
 
 /** The look a unit's emplaced (turret) form wears, or null when it has no class family. */
@@ -232,18 +271,19 @@ export function unitEmplacedLook(
 ): BotLook | null {
   const effectiveFormId =
     formId ?? defaultFormIdForUnit(replay, unitKey);
-  const family = classFamilyForForm(effectiveFormId);
-  if (family === null) return null;
+  if (classFamilyForForm(effectiveFormId) === null) return null;
   const emplacedFormId = isEmplacedFormId(effectiveFormId)
     ? effectiveFormId
     : `${effectiveFormId}-turret`;
   const resolved =
     authoredLookIdForForm(replay, emplacedFormId) ??
-    fallbackEmplacedLookIdForForm(effectiveFormId) ??
-    undefined;
-  return resolved === undefined
+    fallbackEmplacedLookIdForForm(effectiveFormId);
+  return resolved === null
     ? null
-    : botLook(resolved, visualIndexForUnit(replay, unitKey));
+    : presentationBotLook(
+        resolved,
+        visualIndexForUnit(replay, unitKey),
+      );
 }
 
 /**
@@ -286,7 +326,33 @@ export function unitStanceLook(
     fallbackStanceLookIdForForm(stance.formId);
   return resolved === null
     ? null
-    : botLook(resolved, visualIndexForUnit(replay, unitKey));
+    : presentationBotLook(
+        resolved,
+        visualIndexForUnit(replay, unitKey),
+      );
+}
+
+/**
+ * The projectile a unit fires.
+ *
+ * An authored per-form projectile is exact replay data and wins. The class-owned pair is
+ * next for old class replays whose presentation block is absent. Everywhere else the
+ * participant's snapshotted cosmetic remains the fallback, preserving Duel playback.
+ */
+export function unitProjectileLook(
+  replay: ReplayModel,
+  unitKey: ReplayStableUnitKey,
+  formId?: string | null,
+): ProjectileLook {
+  const effectiveFormId =
+    formId ?? defaultFormIdForUnit(replay, unitKey);
+  const participant = participantForUnit(replay, unitKey);
+  const resolved =
+    authoredProjectileLookIdForForm(replay, effectiveFormId) ??
+    fallbackProjectileLookIdForForm(effectiveFormId) ??
+    participant?.projectileLookId ??
+    undefined;
+  return presentationProjectileLook(resolved);
 }
 
 const teamAccentCache = new WeakMap<

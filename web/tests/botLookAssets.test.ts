@@ -26,24 +26,13 @@ test('every bot-look manifest references a supported local sprite', () => {
 });
 
 test('shipped vector looks contain no embedded raster image', () => {
-  for (const id of [
-    'aureate-warden',
-    'bulwark',
-    'glass-manta',
-    'helio-kite',
-    'lancer',
-    'mantis',
-    'mossback',
-    'needle',
-    'orbiter',
-    'rift-runner',
-    'scrap-jackal',
-    'vanguard',
-  ]) {
+  for (const directory of readdirSync(looksRoot, { withFileTypes: true })) {
+    if (!directory.isDirectory()) continue;
+    const id = directory.name;
     const manifest = JSON.parse(
       readFileSync(join(looksRoot, id, 'look.json'), 'utf8'),
     ) as { sprite: string };
-    assert.equal(manifest.sprite, 'sprite.svg');
+    if (manifest.sprite !== 'sprite.svg') continue;
     const source = readFileSync(join(looksRoot, id, manifest.sprite), 'utf8');
     assert.match(source, /viewBox="0 0 512 512"/);
     assert.doesNotMatch(source, /<image\b/i);
@@ -66,11 +55,53 @@ test('every recommended projectile companion resolves to a real package', () => 
       ),
     );
   }
-  // DECISIONS #106: chassis and projectile releases are not one-to-one, and
-  // Aureate Warden is the single explicit exception from #103. Pinning the whole
-  // set rather than just checking that declared companions resolve is what stops
-  // a new look from quietly becoming a second exception.
-  assert.deepEqual([...companions].sort(), [['aureate-warden', 'regent-lance']]);
+  // The Warden's earned pair and the six approved class store packs are the
+  // complete recommendation set. Pinning it stops an unrelated chassis from
+  // silently changing a player's independently selected projectile.
+  assert.deepEqual([...companions].sort(), [
+    ['aureate-warden', 'regent-lance'],
+    ['bulwark-gatehouse', 'bulwark-gate-slug'],
+    ['bulwark-mirror-bastion', 'bulwark-mirror-wedge'],
+    ['fabricator-copyforge', 'fabricator-copy-bit'],
+    ['fabricator-rivet-mantis', 'fabricator-rivet-punch'],
+    ['striker-arc-viper', 'striker-arc-cutter'],
+    ['striker-vector-kestrel', 'striker-vector-fork'],
+  ]);
+});
+
+test('alternate class skins declare their class and direct team surfaces', () => {
+  for (const [id, classId] of [
+    ['bulwark-gatehouse', 'bulwark'],
+    ['bulwark-mirror-bastion', 'bulwark'],
+    ['fabricator-copyforge', 'fabricator'],
+    ['fabricator-rivet-mantis', 'fabricator'],
+    ['striker-arc-viper', 'striker'],
+    ['striker-vector-kestrel', 'striker'],
+  ]) {
+    const manifest = JSON.parse(
+      readFileSync(join(looksRoot, id, 'look.json'), 'utf8'),
+    ) as { classId?: string; sprite: string };
+    assert.equal(manifest.classId, classId);
+
+    const source = readFileSync(join(looksRoot, id, manifest.sprite), 'utf8');
+    const tagged = [
+      ...source.matchAll(
+        /<([a-z]+)\b[^>]*data-team-accent="true"[^>]*>/gi,
+      ),
+    ];
+    assert.ok(
+      tagged.length >= 3,
+      `${id} needs several team-readable chassis surfaces.`,
+    );
+    for (const [element, elementName] of tagged) {
+      assert.notEqual(
+        elementName.toLowerCase(),
+        'g',
+        `${id} must tag direct shapes, not an inherited group.`,
+      );
+      assert.match(element, /\b(?:fill|stroke)="(?!none\b)[^"]+"/i);
+    }
+  }
 });
 
 test('replaced raster looks retain references outside the runtime bundle', () => {

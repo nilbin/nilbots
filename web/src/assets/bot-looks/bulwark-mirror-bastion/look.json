@@ -1,0 +1,9 @@
+{
+  "id": "bulwark-mirror-bastion",
+  "label": "Mirror Bastion",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#60a5fa",
+  "classId": "bulwark",
+  "defaultProjectile": "bulwark-mirror-wedge",
+  "scale": 1.22
+}

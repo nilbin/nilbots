@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aegis Tortoise omnidirectional turret">
+  <defs>
+    <linearGradient id="att-navy" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#3a4a70"/>
+      <stop offset=".45" stop-color="#1c2948"/>
+      <stop offset="1" stop-color="#0b1326"/>
+    </linearGradient>
+    <linearGradient id="att-bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d4b27b"/>
+      <stop offset=".45" stop-color="#947043"/>
+      <stop offset="1" stop-color="#49321d"/>
+    </linearGradient>
+    <radialGradient id="att-core">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".28" stop-color="#9bd7ff"/>
+      <stop offset=".65" stop-color="#2c82c9"/>
+      <stop offset="1" stop-color="#102746"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M62 193 154 154 193 62 256 43 319 62 358 154 450 193 469 256 450 319 358 358 319 450 256 469 193 450 154 358 62 319 43 256Z"
+    fill="#070b13" stroke="#050810" stroke-width="15" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <path d="m71 200 91-32 34 45-16 43 16 43-34 45-91-32-14-56Z"
+      fill="url(#att-navy)" stroke="#5a698e" stroke-width="6"/>
+    <path d="m200 71 32 91 45 34 43-16 45 16 34-34-32-91-56-14Z"
+      fill="url(#att-navy)" stroke="#5a698e" stroke-width="6"/>
+    <path d="m441 200-91-32-34 45 16 43-16 43 34 45 91-32 14-56Z"
+      fill="#172441" stroke="#3e4e73" stroke-width="6"/>
+    <path d="m200 441 32-91 45-34 43 16 45-16 34 34-32 91-56 14Z"
+      fill="#14203b" stroke="#38496d" stroke-width="6"/>
+
+    <path d="m64 230 105-16 43 42-43 42-105-16-13-26Z"
+      fill="url(#att-bronze)" stroke="#aa8656" stroke-width="5"/>
+    <path d="m230 64 16 105 42 43 42-43-16-105-26-13Z"
+      fill="url(#att-bronze)" stroke="#aa8656" stroke-width="5"/>
+    <path d="m448 230-105-16-43 42 43 42 105-16 13-26Z"
+      fill="#765836" stroke="#523b25" stroke-width="5"/>
+    <path d="m230 448 16-105 42-43 42 43-16 105-26 13Z"
+      fill="#705433" stroke="#4e3924" stroke-width="5"/>
+
+    <path data-team-accent="true" d="m77 238 72-10 25 28-25 28-72-10-9-18Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m238 77 10 72 28 25 28-25-10-72-18-9Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m435 238-72-10-25 28 25 28 72-10 9-18Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m238 435 10-72 28-25 28 25-10 72-18 9Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+
+    <circle cx="256" cy="256" r="112" fill="#0a1120" stroke="#715a39" stroke-width="10"/>
+    <path d="M256 151 330 182 361 256 330 330 256 361 182 330 151 256 182 182Z"
+      fill="url(#att-navy)" stroke="#7180a0" stroke-width="7"/>
+    <circle cx="256" cy="256" r="68" fill="#121c32" stroke="#9b7443" stroke-width="9"/>
+    <circle cx="256" cy="256" r="37" fill="#0b1427" stroke="#4ba3e2" stroke-width="7"/>
+    <circle cx="256" cy="256" r="22" fill="url(#att-core)" stroke="#d9f2ff" stroke-width="3"/>
+  </g>
+</svg>

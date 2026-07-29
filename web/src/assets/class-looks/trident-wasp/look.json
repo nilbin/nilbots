@@ -1,0 +1,9 @@
+{
+  "id": "trident-wasp",
+  "label": "Trident Wasp",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#f59e0b",
+  "defaultProjectile": "trident-spark",
+  "classId": "striker",
+  "scale": 1.18
+}

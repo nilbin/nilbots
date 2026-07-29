@@ -1,0 +1,9 @@
+{
+  "id": "fabricator-rivet-mantis",
+  "label": "Rivet Mantis",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#fbbf24",
+  "classId": "fabricator",
+  "defaultProjectile": "fabricator-rivet-punch",
+  "scale": 1.2
+}

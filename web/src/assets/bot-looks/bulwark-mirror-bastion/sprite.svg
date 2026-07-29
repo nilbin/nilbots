@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mirror Bastion bulwark chassis facing east">
+  <defs>
+    <linearGradient id="mb-dark" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#515d67"/>
+      <stop offset=".45" stop-color="#27323a"/>
+      <stop offset="1" stop-color="#11191e"/>
+    </linearGradient>
+    <linearGradient id="mb-mirror-top" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f1f5f9"/>
+      <stop offset=".34" stop-color="#aebdca"/>
+      <stop offset=".68" stop-color="#647786"/>
+      <stop offset="1" stop-color="#d8e0e7"/>
+    </linearGradient>
+    <linearGradient id="mb-mirror-bottom" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#98a8b5"/>
+      <stop offset=".48" stop-color="#e7edf2"/>
+      <stop offset="1" stop-color="#5d7180"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Two mirror slabs form a heavy chevron around the protected core. -->
+  <path d="M72 256 116 170l58-34 54 22 48-20 134 68 52 50-52 50-134 68-48-20-54 22-58-34Z"
+    fill="#080d11" stroke="#070a0d" stroke-width="18" stroke-linejoin="round"/>
+  <path d="m84 256 40-76 52-31 52 22 48-20 126 64 42 41-42 41-126 64-48-20-52 22-52-31Z"
+    fill="url(#mb-dark)" stroke="#707c85" stroke-width="5"/>
+
+  <path d="m242 178 48-18 116 60 38 36-140-18-68-28Z"
+    fill="url(#mb-mirror-top)" stroke="#667985" stroke-width="6" stroke-linejoin="round"/>
+  <path d="m242 334 48 18 116-60 38-36-140 18-68 28Z"
+    fill="url(#mb-mirror-bottom)" stroke="#4f626f" stroke-width="6" stroke-linejoin="round"/>
+  <path d="m296 178 92 48 24 20-105-16-49-20Z" fill="#d5dde4" opacity=".78"/>
+  <path d="m296 334 92-48 24-20-105 16-49 20Z" fill="#7e919f" opacity=".78"/>
+
+  <!-- Rear stabilizers keep the defensive body readable in all rotations. -->
+  <g fill="#313c44" stroke="#6e7981" stroke-width="5">
+    <path d="m114 184 48-55 31 14-21 76Z"/>
+    <path d="m114 328 48 55 31-14-21-76Z"/>
+    <path d="m92 224-38-24-11 18 42 38Z"/>
+    <path d="m92 288-38 24-11-18 42-38Z"/>
+  </g>
+  <path d="M90 230h116l38 26-38 26H90l-22-26Z" fill="#202a31" stroke="#7b858c" stroke-width="5"/>
+  <path d="M116 242h78l22 14-22 14h-78l-14-14Z" fill="#11191e"/>
+
+  <path d="m356 242 66 8 24 6-24 6-66 8 12-14Z" fill="#12191d" stroke="#70808a" stroke-width="4"/>
+  <path data-team-accent="true" d="m369 249 58 7-58 7 7-7Z" fill="#60a5fa"/>
+
+  <circle cx="222" cy="256" r="70" fill="#11191e" stroke="#75828b" stroke-width="8"/>
+  <circle cx="222" cy="256" r="51" fill="#28343c" stroke="#0c1317" stroke-width="8"/>
+  <circle data-team-accent="true" cx="222" cy="256" r="36" fill="#60a5fa"/>
+  <circle cx="222" cy="256" r="25" fill="#0e1921" stroke="#bfdbfe" stroke-width="5"/>
+  <circle data-team-accent="true" cx="222" cy="256" r="13" fill="#dbeafe"/>
+
+  <!-- Narrow team-lit seams, not the reflective armor itself, carry allegiance. -->
+  <path data-team-accent="true" d="m278 184 88 46 18 9-98-30-34-17Z" fill="#60a5fa"/>
+  <path data-team-accent="true" d="m278 328 88-46 18-9-98 30-34 17Z" fill="#60a5fa"/>
+  <path data-team-accent="true" d="M108 247h76l14 9-14 9h-76Z" fill="#93c5fd"/>
+  <g fill="#aab4bb">
+    <circle cx="158" cy="157" r="4"/>
+    <circle cx="158" cy="355" r="4"/>
+    <circle cx="286" cy="156" r="4"/>
+    <circle cx="286" cy="356" r="4"/>
+  </g>
+</svg>
