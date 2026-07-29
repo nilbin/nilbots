@@ -443,6 +443,71 @@ def build_plan(
     return plan
 
 
+def build_class_bound_plan(
+    entrants: list[dict[str, Any]],
+    seeds: list[int],
+    team_zero_class: str,
+    team_one_class: str,
+    *,
+    include_self_play: bool = False,
+) -> list[dict[str, Any]]:
+    """Schedule a class-bound candidate cell.
+
+    A classed entrant only ever plays its declared chassis. Mirror cells
+    (both teams one class) keep ordinary mirrored cross-play within that
+    class. Cross-class cells pair the two class rosters Cartesian and run
+    each pairing once per seed: the bots cannot swap chassis, so there is
+    no mirrored assignment and side fairness rests on the declared map
+    symmetry — rows carry ``classBound`` so the analyzer accounts for the
+    missing mirror instead of flagging it incomplete.
+    """
+    team_zero = [
+        entrant
+        for entrant in entrants
+        if entrant.get("classId") == team_zero_class
+    ]
+    team_one = [
+        entrant
+        for entrant in entrants
+        if entrant.get("classId") == team_one_class
+    ]
+    if not team_zero or not team_one:
+        raise ValueError(
+            "class-bound cell has no eligible entrants for "
+            f"'{team_zero_class}' vs '{team_one_class}'"
+        )
+    if team_zero_class == team_one_class:
+        return build_plan(
+            team_zero,
+            seeds,
+            include_self_play=include_self_play,
+        )
+
+    plan = []
+    sequence = 0
+    for first in team_zero:
+        for second in team_one:
+            for seed in seeds:
+                sequence += 1
+                plan.append(
+                    {
+                        "id": (
+                            f"{sequence:03}--{first['id']}"
+                            f"-vs-{second['id']}--s{seed}"
+                        ),
+                        "seed": seed,
+                        "bot": first["id"],
+                        "opponent": second["id"],
+                        "teamAssignments": {
+                            "0": first["id"],
+                            "1": second["id"],
+                        },
+                        "classBound": True,
+                    }
+                )
+    return plan
+
+
 def _copy_entrant(entrant: dict[str, Any], destination: Path) -> Path:
     shutil.copytree(
         entrant["rootPath"],

@@ -31,6 +31,10 @@ EVALUATOR_SCRIPT = ROOT / "scripts" / "labs-replay-eval.py"
 REPORT_SCHEMA_VERSION = 3
 TWO_TEAM_ZERO_SUM_PROFILE = "two-team-zero-sum-v1"
 ANALYSIS_UNIT = "mirrored-entrant-pair-seed-v1"
+# Class-bound cells cannot mirror cross-class pairings (a classed entrant
+# only ever plays its declared chassis); mirror cells still mirror, and
+# cross-class side fairness rests on the declared map reflection symmetry.
+CLASS_BOUND_ANALYSIS_UNIT = "class-bound-mirrored-where-possible-v1"
 EVIDENCE_LAYERS = {
     "contract-validity",
     "static-map-analysis",
@@ -187,8 +191,14 @@ def _normalize_study_design(value: Any) -> dict[str, Any]:
         value.get("decisionProfileId"),
         "studyDesign.decisionProfileId",
     )
-    if value.get("analysisUnit") != ANALYSIS_UNIT:
-        raise ValueError(f"studyDesign.analysisUnit must be {ANALYSIS_UNIT}")
+    if value.get("analysisUnit") not in (
+        ANALYSIS_UNIT,
+        CLASS_BOUND_ANALYSIS_UNIT,
+    ):
+        raise ValueError(
+            "studyDesign.analysisUnit must be "
+            f"{ANALYSIS_UNIT} or {CLASS_BOUND_ANALYSIS_UNIT}"
+        )
     confidence = value.get("confidenceLevel")
     if (
         not isinstance(confidence, (int, float))
@@ -650,12 +660,19 @@ def _normalize_entrant(
         "sourceTreeSha256",
         "qualification",
     }
-    if set(raw) != required:
+    # classId is optional: a classed entrant only ever plays its declared
+    # chassis, and class-pair cells bind teams from it (DECISIONS #154).
+    if set(raw) != required and set(raw) != required | {"classId"}:
         raise ValueError(
             f"{population_id}: entrant fields must be exactly "
-            f"{', '.join(sorted(required))}"
+            f"{', '.join(sorted(required))} (plus optional classId)"
         )
     entrant_id = _slug(raw.get("id"), f"{population_id} entrant id")
+    class_id = (
+        _slug(raw["classId"], f"{population_id}/{entrant_id}.classId")
+        if "classId" in raw
+        else None
+    )
     if not isinstance(raw["name"], str) or not raw["name"].strip():
         raise ValueError(f"{population_id}/{entrant_id}: name is required")
     authoring_lineage_id = _slug(
@@ -835,6 +852,7 @@ def _normalize_entrant(
     return {
         **raw,
         "id": entrant_id,
+        "classId": class_id,
         "authoringLineageId": authoring_lineage_id,
         "doctrineId": doctrine_id,
         "authoringBudgetId": authoring_budget_id,
@@ -1190,13 +1208,41 @@ def build_plan(
     for block in spec["studyBlocks"]:
         for candidate_id in block["candidateIds"]:
             candidate = candidates[candidate_id]
+            class_pair = candidate.get("factors", {}).get("class-pair")
             for population_id in block["populationIds"]:
                 population = populations[population_id]
-                matches = COHORT.build_plan(
-                    population["entrants"],
-                    spec["pairedSeeds"],
-                    include_self_play=block["includeSelfPlay"],
-                )
+                if class_pair is not None:
+                    classed = [
+                        entrant
+                        for entrant in population["entrants"]
+                        if entrant.get("classId") is not None
+                    ]
+                    if classed:
+                        team_zero_class, _, team_one_class = (
+                            class_pair.partition("-vs-")
+                        )
+                        matches = COHORT.build_class_bound_plan(
+                            classed,
+                            spec["pairedSeeds"],
+                            team_zero_class,
+                            team_one_class,
+                            include_self_play=block["includeSelfPlay"],
+                        )
+                    else:
+                        # A class-agnostic population (infrastructure smoke)
+                        # exercises class cells with ordinary mirrored
+                        # cross-play: every entrant plays both chassis.
+                        matches = COHORT.build_plan(
+                            population["entrants"],
+                            spec["pairedSeeds"],
+                            include_self_play=block["includeSelfPlay"],
+                        )
+                else:
+                    matches = COHORT.build_plan(
+                        population["entrants"],
+                        spec["pairedSeeds"],
+                        include_self_play=block["includeSelfPlay"],
+                    )
                 for match in matches:
                     plan.append(
                         {
@@ -1767,6 +1813,7 @@ def _result_row(
         },
         "seed": plan["seed"],
         "teamAssignments": plan["teamAssignments"],
+        "classBound": bool(plan.get("classBound")),
         "status": execution["status"],
         "replay": replay.relative_to(report_root).as_posix()
             if replay.exists()
@@ -2082,6 +2129,9 @@ def _paired_assignment_sensitivity(rows: list[dict[str, Any]]) -> float | None:
     for row in rows:
         if row["status"] != "verified":
             continue
+        if row.get("classBound"):
+            # Cross-class rows have no mirrored assignment to compare.
+            continue
         pair = tuple(sorted(row["teamAssignments"].values()))
         grouped[(pair[0], pair[1], row["seed"])].append(row)
     comparable = [
@@ -2118,6 +2168,16 @@ def _mirrored_units(
 
     units = []
     for (first, second, seed), pair_rows in sorted(grouped.items()):
+        if all(row.get("classBound") for row in pair_rows):
+            # Class-bound cross-class rows cannot mirror: the bots cannot
+            # swap chassis, so one verified row is one complete unit and
+            # side fairness rests on the declared map symmetry.
+            for row in sorted(
+                pair_rows,
+                key=lambda entry: entry["teamAssignments"]["0"],
+            ):
+                units.append(_single_row_unit(first, second, row))
+            continue
         by_team_zero = {
             row["teamAssignments"]["0"]: row
             for row in pair_rows
@@ -2174,13 +2234,54 @@ def _mirrored_units(
     return units
 
 
+def _single_row_unit(
+    first: str,
+    second: str,
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    metrics: dict[str, float] = {}
+    for metric, value in sorted(
+        row.get("metricObservation", {}).items()
+    ):
+        if isinstance(value, (int, float)):
+            metrics[metric] = float(value)
+    if row.get("draw"):
+        metrics["team0Payoff"] = 0.0
+    elif row.get("winnerTeamId") == 0:
+        metrics["team0Payoff"] = 1.0
+    else:
+        metrics["team0Payoff"] = -1.0
+    return {
+        "pair": f"{first}:{second}",
+        "seed": row["seed"],
+        "trajectorySignature": row.get(
+            "trajectoryFingerprint",
+            _canonical_sha256(
+                {
+                    "seed": row["seed"],
+                    "teamAssignments": row["teamAssignments"],
+                    "winnerTeamId": row.get("winnerTeamId"),
+                    "durationTicks": row.get("durationTicks"),
+                }
+            ),
+        ),
+        "metrics": metrics,
+        "classBound": True,
+    }
+
+
 def _sampling_evidence(
     rows: list[dict[str, Any]],
     population: dict[str, Any],
     study_design: dict[str, Any],
 ) -> dict[str, Any]:
     valid = [row for row in rows if row.get("status") == "verified"]
-    expected_units = len(valid) // 2
+    class_bound_valid = sum(
+        1 for row in valid if row.get("classBound")
+    )
+    expected_units = (
+        class_bound_valid + (len(valid) - class_bound_valid) // 2
+    )
     units = _mirrored_units(valid)
     signatures_by_pair: dict[str, set[str]] = defaultdict(set)
     seeds_by_pair: dict[str, set[int]] = defaultdict(set)
@@ -2424,7 +2525,21 @@ def _cell_report(
         population,
         payoff_matrix,
     )
+    class_bound_rows = sum(1 for row in valid if row.get("classBound"))
     report = {
+        "sideBinding": (
+            {
+                "classBound": True,
+                "crossClassRows": class_bound_rows,
+                "sideFairnessBasis": (
+                    "cross-class pairings cannot mirror; side fairness "
+                    "rests on the declared map reflection symmetry, and "
+                    "the static symmetry report is not yet implemented"
+                ),
+            }
+            if class_bound_rows
+            else {"classBound": False}
+        ),
         "studyBlockId": (
             study_block["id"] if study_block is not None else "unspecified"
         ),
