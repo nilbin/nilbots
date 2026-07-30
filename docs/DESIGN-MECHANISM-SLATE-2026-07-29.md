@@ -175,6 +175,35 @@ DASH. Dead: barricade (dominated), surge (treadmill accelerant),
 lance-as-line (free dodge), energy (#47/#48). Split stays parked for
 a future swarm class.
 
+## Owner roadmap notes (2026-07-30, after watching the wave-5 deck games)
+
+- **Reclaim economics factorial (owner: "2x on the recapture is a bit
+  excessive... something we can play around with later in factorials").**
+  Today a reclaim erodes the standing claim at the build rate and then
+  builds from zero — up to 2x a virgin capture, plus the 40-tick ratchet
+  hold, plus contested-freeze. Candidate single-lever arms when this
+  runs: an erode-rate multiplier (erosion faster than building), a
+  partial-credit flip (claim flips at zero with starting progress), a
+  shorter hold, and the plain gain/decay numbers. Keel's measured wins
+  (#168/#169) are the do-no-harm anchors.
+- **Side objective (roadmap consideration)** — a second, lesser
+  objective to open the map and add an allocation decision. Adjacent to
+  the benched "dual-live frontline" slate item (the first real
+  allocation problem; observation-tensor impact was its gate) — a SIDE
+  objective that feeds score or a buff without moving the frontline may
+  deliver most of the depth at a fraction of the schema cost, and the
+  map-as-tuning-surface direction (#176) makes its placement tunable
+  level design. Needs a design pass before any build.
+- **More skills, dump-then-tune (standing pattern per #173/#174):** new
+  skills ship into the game for variety/fun first and get tuned after —
+  never gated on pre-adoption A/Bs. Ready on the bench when the owner
+  pulls the trigger: SUPPRESSION BARRAGE / CHARGE / DASH (pre-registered
+  fallbacks), the higher-power tier behind the public-cooldown
+  capability (drafted below, still the prerequisite build), and the
+  open design question the wave-5 discovery raised (#178 README:
+  should a gunless stance freeze the mobile gun's cooldown?) which any
+  new stance skill inherits.
+
 ## Drafted for the post-phase-2 tuning pass (owner direction, 2026-07-30)
 
 - **RESOLVED (#172): `wane` adopted** — four slots at 60/180/300 with a
