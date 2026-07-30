@@ -511,9 +511,12 @@ unproven vertical slice, not a validated replacement for authored modeling:
   accent. It owns the shared trail, glow, muzzle treatment, fog visibility,
   impact effects, terminal effects, and interpolation over authoritative
   traversal paths.
-- Exact replay-v2/v3 projectile causality distinguishes a damaging hit, a
-  deflection, and a non-damaging wall/range terminal. Never infer a hit from a
-  shared tile in replay-v1: those documents retain the generic legacy finish.
+- Exact replay-v2/v3 projectile IDs distinguish a damaging hit, a deflection,
+  and a non-damaging wall/range terminal. Exact per-projectile events win, but
+  a death tick containing damage or deflection with a null projectile ID is
+  ambiguous for every otherwise-unmatched projectile and retains the generic
+  legacy finish. Never infer a hit from a shared tile in replay-v1: those
+  documents also retain the generic legacy finish.
 - Projectile appearance belongs to the bot beside accent and chassis. The CLI
   reads `appearance.projectile`; the server stores it on the bot and snapshots
   it into match participants and replays. Historical playback never consults

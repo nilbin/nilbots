@@ -353,6 +353,12 @@ export function spentBoltsAt(
       )
       .map((event) => event.projectileId!),
   );
+  const hasUnattributedTerminal = deathTick.events.some(
+    (event) =>
+      (event.type === 'damage' ||
+        event.type === 'projectile-deflected') &&
+      event.projectileId === null,
+  );
 
   const spent: SpentBolt[] = [];
   for (const [id, candidate] of candidates) {
@@ -364,12 +370,12 @@ export function spentBoltsAt(
       y: candidate.position.y,
       heading: candidate.heading,
       resolution:
-        replay.sourceVersion === 1
-          ? 'legacy'
-          : deflected.has(id)
-            ? 'deflected'
-            : hit.has(id)
-              ? 'hit'
+        deflected.has(id)
+          ? 'deflected'
+          : hit.has(id)
+            ? 'hit'
+            : replay.sourceVersion === 1 || hasUnattributedTerminal
+              ? 'legacy'
               : 'miss',
       age: fraction,
     });

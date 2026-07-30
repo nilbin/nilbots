@@ -73,6 +73,52 @@ test('projectile terminals use exact replay causality without legacy inference',
   }
 });
 
+test('unattributed v2 combat terminals preserve the conservative legacy finish', () => {
+  for (const type of ['damage', 'projectile-deflected'] as const) {
+    const { replay, projectileId } = withProjectileTerminal('miss');
+    const death = replay.ticks[10]!;
+    const template = replay.ticks
+      .flatMap((tick) => tick.events)
+      .find((event) => event.sourceActor !== null);
+    assert.ok(template);
+    death.events.push({
+      ...template,
+      eventId: `presentation-test-unattributed-${type}`,
+      tick: death.tick,
+      ordinal: death.events.length,
+      type,
+      projectileId: null,
+    });
+
+    const spent = spentBoltsAt(replay, 11.4).find(
+      (bolt) => bolt.id === projectileId,
+    );
+    assert.ok(spent);
+    assert.equal(spent.resolution, 'legacy');
+  }
+
+  const exact = withProjectileTerminal('hit');
+  const death = exact.replay.ticks[10]!;
+  const template = death.events.find(
+    (event) =>
+      event.type === 'damage' &&
+      event.projectileId === exact.projectileId,
+  );
+  assert.ok(template);
+  death.events.push({
+    ...template,
+    eventId: 'presentation-test-unattributed-beside-exact',
+    ordinal: death.events.length,
+    type: 'projectile-deflected',
+    projectileId: null,
+  });
+  const spent = spentBoltsAt(exact.replay, 11.4).find(
+    (bolt) => bolt.id === exact.projectileId,
+  );
+  assert.ok(spent);
+  assert.equal(spent.resolution, 'hit');
+});
+
 test('WebGL gives exact hits and misses different projectile-owned finishes', () => {
   const hit = withProjectileTerminal('hit');
   const hitOverlays = buildOverlays(hit.replay);
