@@ -4061,6 +4061,47 @@ printing identity not contract, movement-blocked naming no blocker)
 plus a new inconsistency: two authors observed DIFFERENT
 `allowedFormIds` shapes for a cooldown-held route.
 
+## 185. TeamRandom: coordinated unpredictability (SDK 0.10.9 / CLI 0.9.26)
+
+Owner ruling ("go for team random if you can find a decent way to do
+it"). The decent way: a team root seed derived host-side in its own
+SplitMix64 domain, delivered as a trailing tagged runtime-start field,
+with the stream RE-DERIVED PER TICK from (team seed, tick) — never
+advanced across ticks — so every life on a team draws identical values
+at the same tick, a life born mid-match agrees on its FIRST tick, and
+private `context.Random` use cannot desync the shared plan. Teams
+cannot derive each other's stream; replays record and re-derive the
+seed (C# validator refuses forged/team-swapped documents; TS mirror
+bounds-checks). The scaffold's `OrderedDirections` — the wave-6 trap
+that invalidated an author's sweeps — now draws from TeamRandom with an
+explicit per-life override. Replay-v3 documents grow a trailing
+LifeStart key (old documents still verify; new hashes move — the
+accepted #169-style consequence). Wave 8's coordination story: teams
+can finally flip a coin the enemy cannot predict and all three bodies
+see the same coin.
+
+## 186. Side objective, take two: muster ships dormant; SCRAP is the direction
+
+The owner picked MUSTER from the side-objective memo, then pivoted on
+seeing what it does: keel's forward rally already IS
+respawn-at-the-front, so gating it on a flag is thinner than the memo
+sold ("we already have respawn at previous capture"); buff effects were
+rejected next ("do better — can we involve RTS aspects? Not
+necessarily a hold-the-zone"), landing on two directives: real RTS
+macro, and "the side lanes of the map need to matter". The
+secondary-control capability + muster arm shipped anyway, DORMANT
+(`--side-objective muster`, identities ensign/banner/pennant, new map
+generation frontline-labs-02-muster with the alcoves opened into
+through-passages, latch factors pre-registered, RELAY the family
+control arm) — the flagless game is byte-identical, and any future
+site-based effect is an enum value away. The live direction is SCRAP:
+a battlefield economy (mirror-scheduled veins in the dead side lanes +
+wreckage drops at death sites + team bank + telegraphed tiered
+upgrades via an invest action), deep-design memo commissioned with the
+owner's constraints as hard requirements (side lanes must measurably
+matter; upgrades must not re-open the #184 triangle; body count stays
+the fabricator's monopoly). Wave 8 is held until the SCRAP ruling.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
