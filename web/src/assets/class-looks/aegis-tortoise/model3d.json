@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "aegis-tortoise",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "animation": {
+    "idleClip": "Aegis_Idle",
+    "movingClip": "Aegis_Walk"
+  }
+}

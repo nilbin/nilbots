@@ -34,6 +34,11 @@ import {
   lookModel,
   modelSpec,
 } from './lookModel';
+import {
+  releaseLookAnimation,
+  seekLookAnimation,
+  type LookMotion,
+} from './lookAnimation';
 import { CAMERA_PITCH } from './arenaScene';
 
 /**
@@ -689,6 +694,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // fetch and a first frame with nothing on the floor is worse than a first frame with a
     // block on it — but a block is what a chassis looks like when this step is missing,
     // which is exactly how it shipped once.
+    let mobileModel: THREE.Group | null = null;
     void lookModel(
       look,
       undefined,
@@ -703,7 +709,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         lid,
         facingMarker: nose,
       });
+      mobileModel = model;
+      disposables.push({
+        dispose: () => releaseLookAnimation(model),
+      });
     });
+    const seekMobileMotion = (
+      motion: LookMotion,
+      phase: number,
+    ) =>
+      mobileModel === null
+        ? false
+        : seekLookAnimation(mobileModel, motion, phase);
 
     // Following a bot lights *the bot*, not a ring drawn near it.
     //
@@ -850,6 +867,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       lostPip,
       fading,
       fade,
+      seekMobileMotion,
     };
   });
   /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
@@ -1257,6 +1275,28 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         replay.forms.find((candidate) => candidate.formId === pose.formId) ??
         null;
       const stationary = form?.canMove === false;
+      const openingActor = opening?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const closingActor = closing?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const moving =
+        !stationary &&
+        openingActor !== undefined &&
+        closingActor !== undefined &&
+        (openingActor.position.x !== closingActor.position.x ||
+          openingActor.position.y !== closingActor.position.y);
+      // A complete walk cycle spans exactly one authoritative movement tick.
+      // Idle is intentionally slower and identity-offset, but remains an
+      // absolute function of replay time so pause and scrub never accumulate
+      // renderer-frame deltas.
+      bot.seekMobileMotion(
+        moving ? 'moving' : 'idle',
+        moving
+          ? fraction
+          : time * 0.5 + bot.motionPhase / (Math.PI * 2),
+      );
 
       bot.chassis.visible = pose.status === 'active' || dying;
       bot.chassis.userData.actorKey = pose.actorKey;

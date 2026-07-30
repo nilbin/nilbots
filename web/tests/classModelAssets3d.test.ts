@@ -19,6 +19,9 @@ const strikerModelPath = join(
 const fabricatorModelPath = join(
   classLooksPath,
   'lattice-loom',
+const aegisModelPath = join(
+  classLooksPath,
+  'aegis-tortoise',
   'model.glb',
 );
 
@@ -32,7 +35,11 @@ interface GlbDocument {
     min?: number[];
     type?: string;
   }[];
-  animations?: unknown[];
+  animations?: {
+    name?: string;
+    channels?: unknown[];
+    samplers?: unknown[];
+  }[];
   bufferViews?: {
     buffer?: number;
     byteLength?: number;
@@ -64,6 +71,7 @@ interface GlbDocument {
       mode?: number;
     }[];
   }[];
+  skins?: { joints?: number[] }[];
 }
 
 interface ParsedGlb {
@@ -303,5 +311,26 @@ test('the Fabricator GLB stays lean and exposes exactly four team-panel quadrant
   assert.deepEqual(
     document.extensions?.KHR_lights_punctual?.lights ?? [],
     [],
+  );
+});
+
+test('the approved Aegis GLB carries its exact rig clips and renderer-owned team surface', () => {
+  const document = readGlbDocument(aegisModelPath);
+  assert.deepEqual(
+    document.animations?.map((animation) => animation.name),
+    ['Aegis_Idle', 'Aegis_Walk'],
+  );
+  for (const animation of document.animations ?? []) {
+    assert.equal(animation.channels?.length, 45);
+    assert.equal(animation.samplers?.length, 45);
+  }
+  assert.equal(document.skins?.length, 1);
+  assert.equal(document.skins?.[0].joints?.length, 15);
+  assert.equal(
+    document.materials?.filter(
+      (material) =>
+        material.extras?.nilbotsRole === 'team-accent',
+    ).length,
+    1,
   );
 });

@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { chassisModel } from './chassisModel';
+import {
+  bindLookAnimation,
+  type LookAnimationSpec,
+  validateLookAnimationSpec,
+} from './lookAnimation';
 
 /**
  * The small, renderer-only contract beside an authored GLB.
@@ -18,6 +24,7 @@ export interface LookModelSpec {
   facing: '+x';
   up: '+y';
   skillHardware?: 'volley' | 'aegis';
+  animation?: LookAnimationSpec;
 }
 
 export interface ModelledLook {
@@ -34,6 +41,11 @@ type AssetKind = LookModelSpec['kind'];
 type LookModelSource = 'gltf' | 'fallback';
 
 const MODEL_SOURCE_KEY = 'nilbotsModelSource';
+
+interface LoadedModel {
+  scene: THREE.Group;
+  animations: readonly THREE.AnimationClip[];
+}
 
 /*
  * Keep these imports in render3d. The hosted viewer loads this tree only after WebGL is
@@ -82,7 +94,7 @@ const models = registerModels([
 ]);
 
 const loader = new GLTFLoader();
-const rawModels = new Map<string, Promise<THREE.Group | null>>();
+const rawModels = new Map<string, Promise<LoadedModel | null>>();
 
 /** Return renderer metadata synchronously without starting a model download. */
 export function modelSpec(id: string): LookModelSpec | null {
@@ -120,7 +132,13 @@ export async function lookModel(
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
   try {
-    const model = instantiate(raw, paint, teamAccent);
+    const model = instantiate(
+      raw.scene,
+      paint,
+      teamAccent,
+      raw.animations,
+      registered.spec.animation,
+    );
     markModelSource(model, 'gltf');
     return model;
   } catch {
@@ -154,18 +172,18 @@ function markModelSource(
   model.userData[MODEL_SOURCE_KEY] = source;
 }
 
-function rawModel(url: string): Promise<THREE.Group | null> {
+function rawModel(url: string): Promise<LoadedModel | null> {
   const existing = rawModels.get(url);
   if (existing) return existing;
 
   const loaded = loader
     .loadAsync(url)
-    .then(({ scene }) => {
+    .then(({ scene, animations }) => {
       let hasMesh = false;
       scene.traverse((node) => {
         if ((node as THREE.Mesh).isMesh) hasMesh = true;
       });
-      return hasMesh ? scene : null;
+      return hasMesh ? { scene, animations } : null;
     })
     .catch(() => null);
   rawModels.set(url, loaded);
@@ -176,11 +194,14 @@ function instantiate(
   source: THREE.Group,
   paint?: THREE.Color,
   teamAccent?: THREE.Color,
+  animations: readonly THREE.AnimationClip[] = [],
+  animationSpec?: LookAnimationSpec,
 ): THREE.Group {
-  // Object3D.clone(true) recursively clones transforms and nodes while leaving BufferGeometry
-  // shared. That is the intended split: vertices are immutable and expensive, materials
-  // carry actor-local state.
-  const instance = source.clone(true);
+  // SkeletonUtils repairs the bone bindings that Object3D.clone(true) cannot
+  // preserve. Static looks follow the same path so adding a rig does not create
+  // a second representation cache. Geometry remains shared; actor-local
+  // materials and animation state do not.
+  const instance = cloneSkeleton(source) as THREE.Group;
   const materials = new Map<THREE.Material, THREE.Material>();
 
   instance.traverse((node) => {
@@ -194,6 +215,12 @@ function instantiate(
         )
       : instanceMaterial(mesh.material, materials, paint, teamAccent);
   });
+
+  if (
+    animationSpec &&
+    !bindLookAnimation(instance, animations, animationSpec)
+  )
+    throw new Error('Authored look model is missing its declared animation clips.');
 
   return instance;
 }
@@ -274,6 +301,10 @@ function validateSpec(
   const facing = input.facing;
   const up = input.up;
   const skillHardware = input.skillHardware;
+  const animation = validateLookAnimationSpec(
+    input.animation,
+    `3D look '${String(id)}'`,
+  );
 
   if (version !== 1)
     throw new Error(`3D look manifest '${path}' has unsupported version.`);
@@ -309,6 +340,10 @@ function validateSpec(
     throw new Error(`3D projectile '${id}' cannot declare skill hardware.`);
   if (part === 'turret-arm' && skillHardware !== undefined)
     throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
+  if (animation !== undefined && (kind !== 'bot' || part !== 'whole'))
+    throw new Error(
+      `Only a whole 3D bot '${id}' can declare locomotion animation.`,
+    );
 
   return {
     version,
@@ -319,6 +354,7 @@ function validateSpec(
     facing,
     up,
     ...(skillHardware === undefined ? {} : { skillHardware }),
+    ...(animation === undefined ? {} : { animation }),
   };
 }
 
