@@ -459,7 +459,9 @@ public static class FrontlineLabsExperimentCommand
                        seed))
             {
                 result = session.Run();
-                replay = GenericActorReplayDocument.Create(session);
+                replay = GenericActorReplayDocument.Create(
+                    session,
+                    FrontlineLabsReplayPresentation.Create(definition));
             }
 
             string outDir = OutputDirectory(

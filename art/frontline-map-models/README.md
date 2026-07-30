@@ -68,11 +68,12 @@ The current recommended direction is V4:
 V4 is the selected visual direction for the pilot, not approval to ship a
 generated arena wholesale.
 
-This branch now contains four independent proofs/audits plus one contained
-runtime foundation:
+This branch now contains four independent proofs/audits plus a contained V4
+runtime interpretation:
 
 - a topology-driven procedural wall/floor proof and its promoted
-  outline-derived wall substrate;
+  outline-derived wall substrate, tapered upper profiles, and deterministic
+  sparse service detail;
 - a presentation-only renderer prototype for authored spawn pads and
   stateful Frontline capture fields, reviewed in Fable's unchanged 58-degree
   camera.
@@ -81,12 +82,17 @@ runtime foundation:
 - a read-only camera-scale audit that keeps normal action follow distinct from
   explicit whole-arena Fit.
 
-The map, collision, replay schema, and camera remain unchanged. The runtime
-now consumes the existing `WallLayout` to build continuous family solids with
-the approved Ember perimeter/cover height and radius profiles. It also
-applies the measured `0.14462` open-floor relief needed by the live Striker.
-No authored whole-map mesh, provider mesh, prop kit, or camera change was
-promoted.
+The map, collision, replay-v3 schema, and camera contract remain unchanged.
+The runtime now consumes the existing `WallLayout` to build continuous family
+solids with Ember perimeter/cover height, radius, and inset upper profiles. A
+stable family/coordinate/mask hash places restrained panels, recessed vents,
+and clamps inside those profiles. Existing Ember wall normal and roughness
+sources are baked into a 303,654-byte WebGL-only PBR package; the canonical
+Canvas/site/CLI assets remain untouched. The floor keeps the canonical Ember
+albedo with a dry `0.95` roughness, `0.16` metalness, and deliberately shallow
+`0.045` albedo-as-bump response. It also applies the measured `0.14462`
+open-floor relief needed by the live Striker. No authored whole-map mesh,
+provider mesh, prop kit, or camera change was promoted.
 
 The isolated perimeter-straight Meshy task succeeded for 30 credits. It
 demonstrated genuine depth, coherent PBR maps, and repeatable ends, but drifted
@@ -96,18 +102,31 @@ pilot stopped at **1 call / 30 credits**. The exact request, hashes, metrics,
 review board, verdict, and remaining budget are recorded under
 `provider-runs/` and in `MESHY-PLAN.md`.
 
-Runtime changes are limited to the flat state-derived spawn/capture overlays
-and the topology-derived wall substrate/profile contract.
+Generation-3 Frontline replay writers now provide a separate non-gameplay
+presentation descriptor. Hosted execution and all Frontline CLI/sandbox
+commands write `ember-forge`, `perimeter`, `cover`, and per-form chassis and
+projectile IDs into the native replay header. That metadata changes the replay
+hash but never the rules, map, or match fingerprints.
+
+Runtime changes are limited to the state-derived spawn/capture overlays,
+topology-derived wall profiles/details, renderer-only material response, and
+explicit replay presentation.
 `CLEARANCE-AUDIT.md` proves the renderer-only wall relief without changing
 gameplay authority. `CAMERA-SCALE-AUDIT.md` recommends an 18-tile maximum
 normal-follow span once a semantic action anchor exists, while preserving
 Fable's explicit full-arena Fit.
 
-`review/runtime/frontline-runtime-walls-before-after-v1.png` is the exact full
-map-pilot runtime A/B: the same Frontline fixture, Ember presentation, tick
-zero, 1600×1000 viewport, whole-arena frame, and unchanged 58-degree camera.
-The left side is the rebased Fable plus class-model baseline before both map
-pilot commits; the right side includes the state-derived spawn/capture
-overlays and topology-kit walls. Reproduce it with
-`scripts/render-frontline-runtime-wall-comparison.mjs` after supplying those
-two review builds through `BASELINE_DIST` and `CANDIDATE_DIST`.
+`review/runtime/frontline-runtime-v4-concept-autofit-v2.png` is the final
+concept/legacy/new A/B. `review/runtime/frontline-runtime-v4-gameplay-views-v2.png`
+adds the full 23×15 arena, the real supported eight-tile gameplay frame, and
+forced Canvas fallback. Both use a fresh, complete, hash-verified native
+replay-v3 at tick 6 with two active Fabricators and two projectiles; its own
+header carries Ember/perimeter/cover/form presentation. No review-time replay
+or presentation mutation is involved. Exact source hashes, build identities,
+capture metrics, and the sanitized reproduction command are in
+`review/runtime/frontline-runtime-v4-review-v2.json`.
+
+`V4-RUNTIME-GAP.md` records which approved concept properties transferred and
+which remain honest follow-ups. Reproduce the boards with
+`scripts/render-frontline-runtime-wall-comparison.mjs`; `REPLAY_PATH`,
+`BASELINE_DIST`, and `CANDIDATE_DIST` may point at equivalent verified inputs.
