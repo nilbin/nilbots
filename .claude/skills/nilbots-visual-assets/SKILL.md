@@ -6,8 +6,7 @@ description: Create, revise, bake, and validate nilbots arena themes, bot looks,
 # Nilbots Visual Assets
 
 Preserve ASCII gameplay semantics while improving presentation. Read
-`docs/ARENA-VISUALS.md` completely before changing assets, then inspect the
-owning map JSON, theme manifest, or bot-look manifest.
+`docs/ARENA-VISUALS.md` completely before changing assets, then inspect the owning map JSON, theme manifest, or bot-look manifest.
 
 ## Arena theme workflow
 
@@ -75,13 +74,26 @@ concept pass.
    the rules do not provide. If inferred depth introduces load-bearing feet,
    legs, or another locomotion cue, concept approval must also pin its rig and
    movement animation; never ship a walking silhouette that merely slides.
-   The Aegis Tortoise target uses heavy short four-leg steps with a level
-   carapace: all four anchors plant/compress and the body lowers into its
-   Shell/Turret stance. Do not infer an equivalent gait for another class.
+   The initial three class families use presentation-only hover rather than
+   walking rigs: Striker skims higher and responds quickly, Fabricator
+   levitates calmly and level, and Bulwark stays in a very low, heavy hover
+   with a tight shadow and slow settle. Bulwark's corner modules are
+   hover/lock pods, not feet; they telescope into planted anchors only during
+   the authoritative Shell or Tower transition. Those planted forms do not
+   bob or bank.
 5. Map the approved 2D material regions onto the model before adding wear or
    micro-detail. Preserve the dominant light/dark/value grouping, authored
-   accent placement, and class-readable color ratios. Keep the semantic team
-   material separate and texture-free unless its mask is explicitly authored.
+   accent placement, and class-readable color ratios. A sibling class's
+   material language is not a shared default: preserve Striker's approved warm
+   graphite/bronze and Fabricator's approved pale ceramic/copper, then require
+   an independently approved fortress-like language for Bulwark rather than
+   borrowing either family. Keep the semantic team material separate and
+   texture-free unless its mask is explicitly authored. Team identity is
+   restrained emitted light, not broad armor paint: neutral/class-authored
+   materials should remain at least 90% of the visible body, while a few
+   chunky team emitters and the renderer-owned floor glow must still survive
+   the smallest reviewed gameplay frame. Hairline inlays that project below
+   one pixel do not pass.
 6. Review a fixed contact sheet containing the canonical 2D image, top-view
    overlay, untextured blockout, textured gameplay camera, and at least one
    non-team-color turntable angle. Also review the model in a real replay at
@@ -95,6 +107,55 @@ concept pass.
 7. Require every named anchor and forbidden cue to pass independently. Record
    deliberate deviations in the fidelity brief with the approval reason; do
    not average a missing identity anchor into a general quality score.
+
+### Rigid form and stance animation
+
+Generated surface quality and mechanically valid motion are separate stages.
+For a bot that changes stance or form, prefer one approved mobile base plus
+small rigid form kits over unrelated whole-model replacements.
+
+1. Design the complete family before generating a production mesh. The concept
+   must show where every moving plate, pod, barrel, mast, vane, rail, hinge,
+   socket, and stowed kit part exists in the mobile form. A final frame may not
+   invent geometry that no preceding frame contains.
+2. Build an untextured Blender kinematic blockout before texture cleanup.
+   Name every rigid object and record its parent, pivot, permitted axis/range,
+   stowed transform, and deployed transform. Add the hidden back faces, hinge
+   barrels, rail cavities, and sockets that an image-to-3D service cannot infer
+   from exterior views.
+3. Use rigid object or bone transforms for hard-surface machinery. Do not use
+   skin deformation, shape keys, crossfades, or vertex-by-vertex morphs to turn
+   one fused shell into another object. A reverse transition either samples the
+   same clip backward or has endpoints proven transform-identical to the
+   forward clip.
+4. For Bulwark, keep the moving set deliberately small: four hover/lock pods
+   telescope into anchors; the mobile muzzle retracts; a compact set of
+   traceable physical plates forms the East-facing `-45°..+45°` Shell guard;
+   and a separately stowed central crown may rise and unfold exactly eight
+   equal radial weapon vanes for the non-facing Tower. The Shell leaves the
+   other three quadrants visibly open. The Tower has no privileged nose and
+   each vane may recoil independently.
+5. Start new game-model trials with Meshy Smart Topology T2 or a later
+   equivalent that offers explicit face-count control and native parts. Treat
+   every generated segment only as a candidate mechanical mesh. Accept it when
+   its boundary follows the approved seam and it has enough closed geometry to
+   rotate without exposing a hole. Run a high-detail Standard result only
+   after a measured Smart failure that could benefit from a visual or texture
+   donor; do not pay for both by default.
+6. Meshy's programmatic Rigging and Animation APIs are not the custom
+   hard-surface animator. They currently rig standard textured humanoid bipeds
+   and apply a preset action-library ID to that rig; do not submit a Nilbots
+   chassis expecting a custom Mobile/Shell/Tower clip. Author those clips in
+   Blender.
+7. Export only semantic clips whose timing can be sampled from replay truth:
+   hover idle/move/settle, deploy/hold/retract for each form, and localized
+   recoil where applicable. Record action names, frame ranges, endpoint
+   transforms, and export hashes. No clip may free-run as gameplay state or
+   finish a form change before the authoritative replay event.
+8. Review the actual keyframes, not only a rendered video. Validate named
+   objects, pivots, clip presence/duration, forward/reverse endpoints, no
+   interpenetration at sampled frames, retained UV/material assignment, and
+   the 58-degree gameplay read before adding polish.
 
 ### Multiview-AI base-mesh vertical slice
 
@@ -130,6 +191,13 @@ review, and optimization remain separate required stages.
    roughly 2.5 MB / 75k-triangle / 1K-map lean tier visually comparable to a
    roughly 6.3 MB / 150k-triangle / 2K-map rich tier at the 58-degree gameplay
    camera; treat those as evidence from one look, not universal budgets.
+   When rigid animation or part editing is required, start with one controlled
+   same-input Smart Topology T2 candidate at an explicit face target. T2
+   deliberately emits triangles and ignores remesh/topology flags; do not ask
+   it for quads. Add DCC retopology or a separate measured fallback only if the
+   approved motion actually needs it. Cleaner topology or native segmentation
+   does not overrule silhouette, depth, material, UV, or seam-boundary
+   failures.
 5. Put an unapproved derivative through the manifest-driven lazy loader only
    in a review worktree. Exercise movement, every heading, hover/contact,
    shadow, damage, multiple instances, fog, and fallback in a real replay.
@@ -170,100 +238,25 @@ review, and optimization remain separate required stages.
    deterministic or human rework was required, and compare quality, time,
    triangles, materials, textures, and first-use bytes with the fallback.
 
-#### Meshy 6 pilot recipe
+#### Meshy game-model provider recipe
 
-The measured provider trial uses Meshy 6 Multi-Image to 3D. This pins a
-reproducible experiment, not a provider endorsement or an approved production
-method.
-
-1. Keep the API credential out of the repository, shell profiles, command
-   history, screenshots, logs, and generated provenance. On the Nilbots macOS
-   workstation it lives in Login Keychain under service
-   `nilbots.meshy.api` and the current login account. Read it inside the
-   calling process with `/usr/bin/security`; never print the returned value.
-   Other environments inject `MESHY_API_KEY` from their secret manager rather
-   than adding an `.env` file.
-2. Check `GET https://api.meshy.ai/openapi/v1/balance` before a paid request
-   and record only the numeric balance. Re-check Meshy's official pricing and
-   parameter documentation when the experiment is run; provider contracts can
-   change independently of this repository.
-3. Upload one object per task as four separate, owner-approved images. Do not
-   upload a contact sheet as one image, and never mix a bot, projectile,
-   detached weapon, or scenery in the same multi-image task. Prefer square
-   lossless inputs at least 1040 pixels on the shortest side, with consistent
-   framing and object scale, a flat neutral or transparent background, diffuse
-   lighting, no cast shadow, and no clipped geometry. For Striker use a strict
-   top, strict side, front three-quarter, and rear three-quarter view. The top
-   view is derived from the approved 3D concept and must pass a same-scale
-   overlay against the canonical 2D planform before upload.
-4. Keep geometry requirements visible and mutually consistent in the source
-   images. Meshy's `texture_prompt` describes surface appearance; prohibitions
-   such as “no landing gear” or “thin hull” in that field are not a documented
-   geometry control.
-5. The recoverable-master proof uses `ai_model: "meshy-6"`,
-   `should_texture: true`, `enable_pbr: true`,
-   `texture_resolution: "4k"`, `should_remesh: false`,
-   `remove_lighting: true`,
-   `pose_mode: ""`, and `target_formats: ["glb"]`. Do not enable Smart
-   Topology, Auto Split, pose control, remesh, or 8K for this proof. The first
-   goal is maximum recoverable form/material evidence, including emission;
-   optimization happens after approval.
-6. Set `image_enhancement: true` for noisy, low-resolution, photographed,
-   shadowed, or otherwise unreconciled inputs, matching Meshy's general
-   guidance. Default it to `false` for already-clean, approved, exact-detail
-   multiview inputs; use a recorded same-input A/B when uncertain. The clean
-   Striker v2 A/B was decisive: enhancement ON collapsed the planform to
-   `62.38%` canonical IoU while OFF preserved it at `95.67%`. Do not transfer
-   that result to noisy sources, and do not mix source changes into the A/B.
-7. Keep the texture prompt descriptive and prohibitive, not redesigning:
-   preserve the approved graphite, weathered bronze, panel seams, vents,
-   sharply bounded cyan team inlays, and amber core/engine emission; add no
-   text, logos, labels, decals, or baked lighting. Validate geometry exclusions
-   from the views rather than relying on this prompt.
-8. Record the task ID, image filenames and SHA-256 hashes, sanitized request
-   settings, numeric balance before/after, `consumed_credits`, sanitized task
-   JSON, provider/model version, license terms, and downloaded artifacts under
-   `art/class-models/provider-runs/meshy/<look-id>/<task-id>/`. Strip signed
-   URL queries and input data URIs from the recorded response. Never record the
-   Authorization header.
-9. Download every output immediately. Meshy's non-Enterprise API retention is
-   short and must not be treated as storage. Keep raw provider output
-   art-side; only a corrected, reviewed derivative may enter a runtime look.
-10. A default projectile is a second, separately charged task after its bot
-   proof passes. Its input shows only the projectile head; Nilbots continues
-   to own trail, glow pool, travel, impact, hitbox, and team tint.
+Before any paid Meshy task or any production use of a Meshy result, read
+[`references/meshy-game-model-pipeline.md`](references/meshy-game-model-pipeline.md)
+completely. It pins the Smart-first geometry gate, web-app/API multi-view
+difference, credit boundary, texture stage, runtime optimization, animation
+ownership, provenance, credential handling, and projectile variant. The short
+rule is: approve clean views, buy geometry before texture, reject silhouette or
+part-boundary failures while cheap, prove required rigid pivots in Blender,
+texture only an accepted mesh, and optimize the corrected result for gameplay
+rather than shipping provider output directly.
 
 #### Fused team-accent extraction
 
-Use this only when a reviewed generated mesh has one fused material but clean,
-bounded team-color paint. It is an offline authoring step, not a runtime
-shader.
-
-1. Preserve the source model and lossless provider base-color/emission maps.
-   Align the maps on an exact common grid; do not classify a resized JPEG or a
-   screenshot. Build a candidate from both color and emission, require a
-   stronger two-channel seed in every kept component, grow only a few
-   deterministic pixels inside the loose base-color candidate, close
-   one-pixel holes, and prune small unseeded components. Hue alone admits
-   reflections and weathering.
-2. Classify faces from several strictly interior UV samples, never only
-   vertices or edge midpoints. The validated Striker recipe uses seven
-   Dunavant interior samples and a conservative five-of-seven vote. Record the
-   threshold configuration, selected faces, selected surface area, boundary
-   histogram, estimated purity/coverage, and exact mask/model hashes. Treat its
-   numeric cyan thresholds as Striker evidence, not a universal palette rule.
-3. Partition the original index stream into hull and accent primitives while
-   sharing untouched position, normal, and UV accessors. The triangle multiset,
-   scene graph, transforms, facing, and geometry-buffer hashes must remain
-   exact.
-4. Remove classified color/emission pixels from lossless hull maps. Give the
-   accent material neutral white base/emission factors, no fixed base or
-   emission texture, the original normal and metallic/roughness textures, and
-   `extras.nilbotsRole = "team-accent"` on both primitive and material.
-5. Require a deterministic rerun hash, structural validation, close top and
-   gameplay-oblique renders in at least two team colors, and real-replay proof.
-   The renderer supplies tint, emissive response, and the floor glow; do not
-   bake bloom or one team's color into the asset.
+When a reviewed generated mesh has one fused material but clean bounded
+team-color paint, read
+[`references/team-accent-extraction.md`](references/team-accent-extraction.md)
+completely and use its deterministic offline partition procedure. Never solve
+this with a runtime hue-key shader.
 
 ## Bot-look workflow
 
@@ -295,10 +288,13 @@ shader.
    deterministic generator or export recipe under `art/`.
 8. Put `model.glb` and `model3d.json` beside the runtime look only after the
    model passes the gameplay review. The GLB contract is `+X` facing, `+Y` up,
-   floor at `Y=0`, tile-relative scale, no camera, no light, and no animation
-   unless a later renderer contract explicitly owns it. Discovery stays
-   manifest-driven inside `render3d`; never add the model to the shared
-   appearance registry or a hand-written TypeScript catalog.
+   floor at `Y=0`, tile-relative scale, no camera, no light, and no autonomous
+   animation. An animated companion may contain only named semantic clips
+   supported by the renderer contract; the renderer samples them from replay
+   time and explicit events rather than letting the asset advance gameplay
+   state. Discovery stays manifest-driven inside `render3d`; never add the
+   model to the shared appearance registry or a hand-written TypeScript
+   catalog.
    Presentation motion cues such as `low-hover` belong in the canonical
    `look.json`, not the model companion, so SVG fallback and an approved GLB
    behave identically.
@@ -380,13 +376,17 @@ unreviewed second map.
 4. Keep gameplay topology in the map contract and presentation in the
    companion package. The renderer resolves pieces from explicit wall
    families/tags; it must not infer rules from mesh names or pixels.
-5. Keep a shared world language with the approved class concepts: graphite and
-   bronze construction, restrained amber machinery, layered armor, recessed
-   vents, and swept/chamfered profiles. Preserve visual hierarchy rather than
-   matching finish one-for-one. Environments are rougher, more matte,
-   coarser-detail, lower-contrast, and less saturated; bots and projectiles are
-   cleaner, sharper, finer-detail hero assets with stronger controlled
-   emission. Team cyan/red belongs to actors, not neutral architecture.
+5. Keep a shared world language with the approved class concepts: blackened
+   structural metal, restrained warm machinery, layered armor, recessed vents,
+   and swept/chamfered profiles. Do not copy any one class's hero palette into
+   the whole environment—warm graphite/bronze belongs to Striker, pale
+   ceramic/copper to Fabricator, and Bulwark receives its own separately
+   approved fortress identity.
+   Preserve visual hierarchy rather than matching finish one-for-one.
+   Environments are rougher, more matte, coarser-detail, lower-contrast, and
+   less saturated; bots and projectiles are cleaner, sharper, finer-detail
+   hero assets with stronger controlled emission. Team colors belong to
+   renderer-owned actor/zone light, not neutral architecture.
 6. Keep the floor a continuous theme material whose seams, wear, channels, and
    localized transitions never imply collision. Do not turn each walkable tile
    into a separate raised mesh or bake the current layout into one floor model.
