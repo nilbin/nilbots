@@ -123,21 +123,98 @@ public sealed class FrontlineLabsStanceGroundTests
     }
 
     [Fact]
-    public void AStanceGroundArmRefusesACellWithoutAStance()
+    public void AGroundArmIsInertOmittedWhereNothingItTouchesExists()
     {
-        ArgumentException refusal = Assert.Throws<ArgumentException>(() =>
+        // The skills rule: no stance and no anchor in a fabricator mirror,
+        // so free/open change no bytes and no identity there.
+        ActorResolvedMatchDefinition plain =
             FrontlineLabsDefinition.CreatePendulumExperiment(
                 Keel,
                 (FrontlineLabsClassDefinition.Fabricator,
                     FrontlineLabsClassDefinition.Fabricator),
                 movementCoupling: ActorMovementFacingCoupling.FacingLocked,
                 skills: WholeKit,
+                bendEnvelope: FrontlineLabsBendEnvelopeArm.Universal);
+        foreach (FrontlineLabsStanceGroundArm ground in new[]
+                 {
+                     FrontlineLabsStanceGroundArm.Free,
+                     FrontlineLabsStanceGroundArm.Open,
+                 })
+        {
+            ActorResolvedMatchDefinition inert =
+                FrontlineLabsDefinition.CreatePendulumExperiment(
+                    Keel,
+                    (FrontlineLabsClassDefinition.Fabricator,
+                        FrontlineLabsClassDefinition.Fabricator),
+                    movementCoupling: ActorMovementFacingCoupling.FacingLocked,
+                    skills: WholeKit,
+                    bendEnvelope: FrontlineLabsBendEnvelopeArm.Universal,
+                    stanceGround: ground);
+            Assert.Equal(plain.Rules.RulesetId, inert.Rules.RulesetId);
+            Assert.Equal(
+                ActorContractFingerprint.ComputeMatch(plain),
+                ActorContractFingerprint.ComputeMatch(inert));
+        }
+    }
+
+    [Fact]
+    public void OpenMakesTheTurretACycleWithRatioFlooredHealth()
+    {
+        ActorResolvedMatchDefinition open =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                Keel,
+                BulwarkFabricator,
+                movementCoupling: ActorMovementFacingCoupling.FacingLocked,
+                skills: WholeKit,
                 bendEnvelope: FrontlineLabsBendEnvelopeArm.Universal,
-                stanceGround: FrontlineLabsStanceGroundArm.Free));
-        Assert.Contains("VOLLEY", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains(
-            "AEGIS SHELL",
-            refusal.Message,
-            StringComparison.Ordinal);
+                stanceGround: FrontlineLabsStanceGroundArm.Open);
+        ActorResolvedMatchDefinition strict =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                Keel,
+                BulwarkFabricator,
+                movementCoupling: ActorMovementFacingCoupling.FacingLocked,
+                skills: WholeKit,
+                bendEnvelope: FrontlineLabsBendEnvelopeArm.Universal);
+
+        ActorSameLifeTransitionDefinition Route(
+            ActorResolvedMatchDefinition definition,
+            string id) =>
+            definition.Rules.SameLifeTransitions
+                .Single(route => route.TransitionId == id);
+
+        foreach (string anchor in new[]
+                 {
+                     "anchor-bulwark-prime",
+                     "anchor-bulwark-child",
+                 })
+        {
+            // Placement free, no entry heal, ratio-floored health.
+            Assert.Empty(Route(open, anchor).Placement.ForbiddenTileTags);
+            Assert.Equal(
+                ActorSameLifeHealthDefinition.HealthPolicyKind
+                    .PreserveRatioFloorMinimumOne,
+                Route(open, anchor).Health.Policy);
+            Assert.Equal(0, Route(open, anchor).Health.FlatHealthGain);
+            // The strict game keeps the historical heal-on-anchor.
+            Assert.Equal(
+                ActorSameLifeHealthDefinition.HealthPolicyKind
+                    .AddFlatCappedToTargetMaximum,
+                Route(strict, anchor).Health.Policy);
+        }
+        foreach (string mobilize in new[]
+                 {
+                     "mobilize-bulwark-prime",
+                     "mobilize-bulwark-child",
+                 })
+        {
+            // Unlimited cycling, ratio both directions (preserve-capped on
+            // the way down would be a hidden heal).
+            Assert.False(Route(open, mobilize).IrreversibleForLife);
+            Assert.True(Route(strict, mobilize).IrreversibleForLife);
+            Assert.Equal(
+                ActorSameLifeHealthDefinition.HealthPolicyKind
+                    .PreserveRatioFloorMinimumOne,
+                Route(open, mobilize).Health.Policy);
+        }
     }
 }

@@ -25,7 +25,22 @@ public enum FrontlineLabsStanceGroundArm
     /// Volley and shell entry routes drop the forbidden tag kind: a stance
     /// can rise on objective tiles and in the corridor. Weight-1 stances
     /// holding ground they protect, and the fan castable where the
-    /// multi-body traffic is.
+    /// multi-body traffic is. Turret anchors stay gated.
     /// </summary>
     Free,
+
+    /// <summary>
+    /// The owner's starting point for the open game (#176): every
+    /// transform placement is free — stances AND turret anchors may rise
+    /// anywhere (a turret on a point still scores nothing: the weight-zero
+    /// bargain is its price) — and the turret becomes a true cycle:
+    /// anchor⇄mobilize unlimited per life, with health mapped
+    /// proportionally (floored, minimum one) in BOTH directions and no
+    /// entry heal. Full health cycles losslessly (4/4 ⇄ 7/7), partial
+    /// health pays the floor each round trip — the anti-flicker tax — and
+    /// windups stay the commitment price. When placement restrictions
+    /// return they come back as per-skill granular tile classes, never
+    /// one umbrella tag (owner direction, recorded in the slate).
+    /// </summary>
+    Open,
 }

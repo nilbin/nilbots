@@ -140,9 +140,20 @@ public static class ToolchainInfo
     /// rig + aim and `crew` = the tuned game rig + aim + wane): the ±1-sector initial launch offset returns to every
     /// class's mobile gun (DECISIONS #173 — the one-bend grammar had
     /// dropped it by conflation). Existing rulesets stay byte-identical.
+    /// 0.9.21 is a replay-viewer revision plus the open game: the follow
+    /// camera centres the action instead of sliding the frame back inside
+    /// the map, and playback holds a screen wake lock (DECISIONS #175).
+    /// The same version registers `--stance-ground open` and the `deck`
+    /// composite (DECISIONS #176): every transform placement is free —
+    /// turret anchors included — and the turret becomes a true cycle
+    /// (anchor⇄mobilize unlimited per life, health mapped by the existing
+    /// PreserveRatioFloorMinimumOne policy in both directions, entry heal
+    /// removed). A ground arm is inert-omitted where nothing it touches
+    /// exists, so one flag set serves every pair. Existing rulesets stay
+    /// byte-identical.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.20";
+    public const string CliVersion = "0.9.21";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

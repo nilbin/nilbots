@@ -519,18 +519,24 @@ public static class FrontlineLabsDefinition
                 + "includes five-slots.",
                 nameof(fiveSlots));
         }
-        if (stanceGround != FrontlineLabsStanceGroundArm.Strict
-            && !effectiveSkills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
-            && !effectiveSkills.HasFlag(
-                FrontlineLabsSkillKit.BulwarkAegisShell))
+        // A ground arm is inert where nothing it touches exists — the
+        // skills rule: it changes no contract bytes there, so it changes
+        // no identity either. Free touches only the skill stances; Open
+        // also touches the turret anchor routes.
+        bool touchesStances =
+            effectiveSkills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
+            || effectiveSkills.HasFlag(FrontlineLabsSkillKit.BulwarkAegisShell);
+        bool touchesAnchors = classes is { } anchorPair
+            && (anchorPair.TeamZero.MayAnchor || anchorPair.TeamOne.MayAnchor);
+        FrontlineLabsStanceGroundArm effectiveGround = stanceGround switch
         {
-            throw new ArgumentException(
-                "A stance-ground arm frees the VOLLEY and AEGIS SHELL entry "
-                + "placements, so it needs a skill stance active in the "
-                + "cell: pass a class pair containing the striker or the "
-                + "bulwark and a skill selection that includes its stance.",
-                nameof(stanceGround));
-        }
+            FrontlineLabsStanceGroundArm.Free when !touchesStances =>
+                FrontlineLabsStanceGroundArm.Strict,
+            FrontlineLabsStanceGroundArm.Open
+                when !touchesStances && !touchesAnchors =>
+                FrontlineLabsStanceGroundArm.Strict,
+            _ => stanceGround,
+        };
 
         return CreateResolved(
             PendulumRulesetId(
@@ -542,7 +548,7 @@ public static class FrontlineLabsDefinition
                 effectiveSkills,
                 bendEnvelope,
                 fiveSlots,
-                stanceGround,
+                effectiveGround,
                 aim),
             captureThreshold,
             captureGainSchedule: null,
@@ -560,7 +566,7 @@ public static class FrontlineLabsDefinition
             primeRespawnTicks: primeRespawnTicks,
             skills: effectiveSkills,
             bendEnvelope: bendEnvelope,
-            stanceGround: stanceGround,
+            stanceGround: effectiveGround,
             aim: aim);
     }
 
@@ -748,9 +754,12 @@ public static class FrontlineLabsDefinition
                 .. FiveSlotToken(fiveSlots) is { Length: > 0 } variant
                     ? new[] { variant }
                     : [],
-                .. stanceGround == FrontlineLabsStanceGroundArm.Free
-                    ? new[] { "free" }
-                    : [],
+                .. stanceGround switch
+                {
+                    FrontlineLabsStanceGroundArm.Free => new[] { "free" },
+                    FrontlineLabsStanceGroundArm.Open => new[] { "open" },
+                    _ => [],
+                },
             ];
         // The aim grammar is an arm-level factor (it rides the gun, not a
         // skill), so its token lands right after the arm tokens. Two
@@ -767,6 +776,16 @@ public static class FrontlineLabsDefinition
                 && stanceGround == FrontlineLabsStanceGroundArm.Strict)
             {
                 arms = ["crew"];
+                tuning = [];
+            }
+            else if (arms is ["rig"]
+                && fiveSlots == FrontlineLabsFiveSlotVariant.Wane
+                && stanceGround == FrontlineLabsStanceGroundArm.Open)
+            {
+                // The whole open game (crew + open ground + the turret
+                // cycle, owner ruling #176): the fabricator mirror cannot
+                // spell the factors inside the budget.
+                arms = ["deck"];
                 tuning = [];
             }
             else
@@ -1991,23 +2010,27 @@ public static class FrontlineLabsDefinition
                     $"anchor-{entry.Id}-prime",
                     entry.PrimeFormId,
                     entry.PrimeTurretFormId,
-                    entry.PrimeAnchorWindupTicks));
+                    entry.PrimeAnchorWindupTicks,
+                    stanceGround));
             sameLifeTransitions.Add(
                 AnchorRoute(
                     $"anchor-{entry.Id}-child",
                     entry.ChildFormId,
                     entry.ChildTurretFormId,
-                    entry.ChildAnchorWindupTicks));
+                    entry.ChildAnchorWindupTicks,
+                    stanceGround));
             sameLifeTransitions.Add(
                 MobilizeRoute(
                     $"mobilize-{entry.Id}-prime",
                     entry.PrimeTurretFormId,
-                    entry.PrimeFormId));
+                    entry.PrimeFormId,
+                    stanceGround));
             sameLifeTransitions.Add(
                 MobilizeRoute(
                     $"mobilize-{entry.Id}-child",
                     entry.ChildTurretFormId,
-                    entry.ChildFormId));
+                    entry.ChildFormId,
+                    stanceGround));
         }
         if (distinct.Any(entry => entry.MayAnchor))
         {
@@ -2039,7 +2062,9 @@ public static class FrontlineLabsDefinition
         string transitionId,
         string sourceFormId,
         string turretFormId,
-        int windupTicks) =>
+        int windupTicks,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict) =>
         new(
             transitionId,
             "transform",
@@ -2051,10 +2076,19 @@ public static class FrontlineLabsDefinition
                 windupTicks),
             ActorSameLifeTransitionDefinition.MemoryContinuityKind
                 .PreservePrivateMemory,
-            new ActorSameLifeHealthDefinition(
-                ActorSameLifeHealthDefinition.HealthPolicyKind
-                    .AddFlatCappedToTargetMaximum,
-                flatHealthGain: 2),
+            // Under the open game the turret is a cycle, so the entry heal
+            // dies (a healing entry on a repeatable route is a repair loop)
+            // and health maps proportionally instead — full stays full,
+            // partial pays the floor.
+            stanceGround == FrontlineLabsStanceGroundArm.Open
+                ? new ActorSameLifeHealthDefinition(
+                    ActorSameLifeHealthDefinition.HealthPolicyKind
+                        .PreserveRatioFloorMinimumOne,
+                    flatHealthGain: 0)
+                : new ActorSameLifeHealthDefinition(
+                    ActorSameLifeHealthDefinition.HealthPolicyKind
+                        .AddFlatCappedToTargetMaximum,
+                    flatHealthGain: 2),
             ActorSameLifeCombatStateDefinition.PreserveWithoutRefillV1,
             new ActorSameLifePlacementDefinition(
                 ActorSameLifePlacementDefinition
@@ -2063,10 +2097,13 @@ public static class FrontlineLabsDefinition
                     .LegalityEvaluationKind.QueueAndCompletionTileTags,
                 requiredTileTags: [],
                 forbiddenTileTags:
-                [
-                    ActorMapTileTagDefinition.TileTagKind
-                        .TransitionPlacementForbidden,
-                ],
+                    stanceGround == FrontlineLabsStanceGroundArm.Open
+                        ? []
+                        :
+                        [
+                            ActorMapTileTagDefinition.TileTagKind
+                                .TransitionPlacementForbidden,
+                        ],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
             irreversibleForLife: false);
@@ -2122,7 +2159,8 @@ public static class FrontlineLabsDefinition
                 // SKILL stances only; turret anchor routes keep it (the
                 // weight-zero fortress-on-point question stays closed).
                 forbiddenTileTags:
-                    stanceGround == FrontlineLabsStanceGroundArm.Free
+                    stanceGround is FrontlineLabsStanceGroundArm.Free
+                        or FrontlineLabsStanceGroundArm.Open
                         ? []
                         :
                         [
@@ -2216,7 +2254,9 @@ public static class FrontlineLabsDefinition
     private static ActorFormTransitionDefinition MobilizeRoute(
         string transitionId,
         string turretFormId,
-        string returnFormId) =>
+        string returnFormId,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict) =>
         new(
             transitionId,
             MobilizeActionId,
@@ -2227,10 +2267,18 @@ public static class FrontlineLabsDefinition
                     .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate),
             ActorSameLifeTransitionDefinition.MemoryContinuityKind
                 .PreservePrivateMemory,
-            new ActorSameLifeHealthDefinition(
-                ActorSameLifeHealthDefinition.HealthPolicyKind
-                    .PreserveCurrentCappedToTargetMaximum,
-                flatHealthGain: 0),
+            // The ratio policy must hold in BOTH directions of a cycle:
+            // preserve-capped on the way down would turn 5/7 into a full
+            // 4/4 — a hidden heal every mobilize.
+            stanceGround == FrontlineLabsStanceGroundArm.Open
+                ? new ActorSameLifeHealthDefinition(
+                    ActorSameLifeHealthDefinition.HealthPolicyKind
+                        .PreserveRatioFloorMinimumOne,
+                    flatHealthGain: 0)
+                : new ActorSameLifeHealthDefinition(
+                    ActorSameLifeHealthDefinition.HealthPolicyKind
+                        .PreserveCurrentCappedToTargetMaximum,
+                    flatHealthGain: 0),
             ActorSameLifeCombatStateDefinition.PreserveWithoutRefillV1,
             new ActorSameLifePlacementDefinition(
                 ActorSameLifePlacementDefinition
@@ -2241,7 +2289,8 @@ public static class FrontlineLabsDefinition
                 forbiddenTileTags: [],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
-            irreversibleForLife: true);
+            irreversibleForLife:
+                stanceGround != FrontlineLabsStanceGroundArm.Open);
 
     private static ActorProjectileDefinition ClassProjectile(
         int maxTravelTiles) =>

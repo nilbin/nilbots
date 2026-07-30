@@ -243,7 +243,7 @@ static int CommandHelp(string command)
                    [--skills none|kit|volley|shell|five-slots]
                    [--bend striker-only|universal]
                    [--five-slots full|trim|boom|drag|moor|wane]
-                   [--stance-ground strict|free]
+                   [--stance-ground strict|free|open]
                    [--aim straight|offset]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
@@ -347,8 +347,14 @@ static int CommandHelp(string command)
             --stance-ground free drops the transition-placement-forbidden
             tag kind from the VOLLEY and AEGIS SHELL entry routes, so a
             skill stance can rise on objective tiles and in the central
-            corridor; turret anchor routes keep the tag. Needs a skill
-            stance in the cell. wane + free is registered as `berth`.
+            corridor; turret anchor routes keep the tag. open goes further
+            (DECISIONS #176): EVERY transform placement is free — turret
+            anchors included — and the turret becomes a true cycle:
+            anchor/mobilize unlimited per life, health mapped proportionally
+            (floored, minimum one) in both directions, no entry heal. A
+            ground arm is inert where nothing it touches exists, so the
+            same flags work on every pair. wane + free is registered as
+            `berth`; the whole open game (aim + wane + open) as `deck`.
             --aim offset restores the ±1-sector (45°) initial launch offset
             on every class's mobile gun (DECISIONS #173) — the one-bend
             grammar had dropped it by conflation, never by ruling. Specials

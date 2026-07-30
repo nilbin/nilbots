@@ -244,18 +244,11 @@ public static class FrontlineLabsExperimentCommand
                 + "carry it: pass a class pair containing the fabricator and "
                 + "a --skills selection that includes five-slots.");
         }
+        // Inert-omitted where nothing it touches exists (the skills rule):
+        // the engine downgrades a ground arm that changes no bytes, so one
+        // uniform flag set works across every pair of a wave.
         FrontlineLabsStanceGroundArm stanceGround =
             OptionalStanceGround(options);
-        if (stanceGround != FrontlineLabsStanceGroundArm.Strict
-            && !skills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
-            && !skills.HasFlag(FrontlineLabsSkillKit.BulwarkAegisShell))
-        {
-            throw new InvalidOperationException(
-                "--stance-ground frees the VOLLEY and AEGIS SHELL entry "
-                + "placements, so the cell must carry a skill stance: pass "
-                + "a class pair containing the striker or the bulwark and a "
-                + "--skills selection that includes its stance.");
-        }
         FrontlineLabsAimArm aim = OptionalAimArm(options);
         if (aim != FrontlineLabsAimArm.Straight && classPair is null)
         {
@@ -773,9 +766,10 @@ public static class FrontlineLabsExperimentCommand
         {
             "strict" => FrontlineLabsStanceGroundArm.Strict,
             "free" => FrontlineLabsStanceGroundArm.Free,
+            "open" => FrontlineLabsStanceGroundArm.Open,
             _ => throw new InvalidOperationException(
-                $"Unknown --stance-ground arm '{value}' (use strict or "
-                + "free)."),
+                $"Unknown --stance-ground arm '{value}' (use strict, free, "
+                + "or open)."),
         };
     }
 

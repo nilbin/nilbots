@@ -404,3 +404,21 @@ tag. Read your entry route's `placement` from the contract — under this
 arm its `forbiddenTileTags` is empty, and stance legality on a tile you
 hold means the shell can guard the point it is capturing. `wane` + `free`
 is registered as the composite identity `berth`.
+
+`--stance-ground open` (DECISIONS #176) goes further — the open game:
+
+- EVERY transform placement is free, turret anchors included. A turret
+  on an objective still scores nothing (objective weight zero) — the
+  bargain is the price of fortifying a point.
+- **The turret is a true cycle**: `anchor` ⇄ `mobilize` unlimited per
+  life (`irreversibleForLife` is false on the mobilize routes — read
+  it, don't assume the old once-per-life rule). Health maps by
+  `preserve-ratio-floor-minimum-one` in BOTH directions with no entry
+  heal: full cycles losslessly (4/4 ⇄ 7/7), partial health pays the
+  floor each round trip, and a transform never kills (minimum one).
+- A ground arm is inert-omitted where nothing it touches exists (a
+  fabricator mirror), so the same flag set works on every pair.
+
+The whole open game — keel + kit + universal bend + `wane` + `aim` +
+`open` — is registered as the composite identity **`deck`** (`sail-open`
+spells itself where no fabricator is in the cell).
