@@ -164,7 +164,9 @@ public sealed class GenericActorMatchExecutor(
                 configurations,
                 unchecked((ulong)match.Seed));
             result = session.Run();
-            replay = GenericActorReplayDocument.Create(session);
+            replay = GenericActorReplayDocument.Create(
+                session,
+                expected.ReplayPresentation);
             // The session now owns and disposes every factory.
             factories.Clear();
         }

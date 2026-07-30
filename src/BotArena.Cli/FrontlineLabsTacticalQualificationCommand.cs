@@ -476,7 +476,9 @@ internal static class FrontlineLabsTacticalQualificationCommand
                    seed))
         {
             result = session.Run();
-            replay = GenericActorReplayDocument.Create(session);
+            replay = GenericActorReplayDocument.Create(
+                session,
+                FrontlineLabsReplayPresentation.Create(definition));
         }
         bool contractValid = GenericActorReplayDocument.VerifyHash(
             replay.CanonicalJson,

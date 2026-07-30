@@ -88,6 +88,10 @@ concept pass.
    normal zoom, with both team colors and a tight ground shadow. Use one pinned
    replay/time/viewport/camera for every before/after; label a comparison
    approximate when any of those differ.
+   Alternate forms/skins have a hard family gate: the same pinned 58° rig and
+   one-tile frame beside the parent mobile; matching value, material/PBR,
+   detail, edge wear, and fixed emission; only semantic team-mask differences.
+   Reject an attractive isolated render that reads as another chassis.
 7. Require every named anchor and forbidden cue to pass independently. Record
    deliberate deviations in the fidelity brief with the approval reason; do
    not average a missing identity anchor into a general quality score.
@@ -441,6 +445,35 @@ unreviewed second map.
    generation when the deterministic topology proof is the stronger route,
    retain the provider result as an art-side donor/benchmark, and never spend
    the remainder merely because it was budgeted.
+16. Treat the approved whole-arena concept as direction, never as a runtime
+   crop, UV source, or tile-layout authority. Audit its transferable properties
+   explicitly—value hierarchy, material finish, wall profile, recesses,
+   service detail, lighting temperature—and record which remain absent from
+   the deterministic runtime. Do not call a concept match exact while source
+   materials or profiles are still missing.
+17. Express reusable 3D environment treatment as declarative theme data:
+   profile height/inset/chamfer, deterministic sparse detail cadence, material
+   maps and scalars, and lighting/floor response. Geometry placement may hash
+   only stable wall-family/tile/topology inputs; no random source, replay ID,
+   or current map layout may become art authority. Keep detail inside the
+   narrowest reviewed profile and collision-clearance envelope.
+18. Generation-3 replays require explicit presentation metadata for every map
+   theme/wall family and authored form look/projectile look. Route that
+   descriptor separately from `ActorMapDefinition` and the gameplay contract:
+   presentation changes the canonical replay hash, never rules, map, or match
+   fingerprints. Hosted execution and every Frontline CLI/sandbox writer must
+   supply the same descriptor; reject a native Frontline proof whose header
+   presentation is null or silently falls back to Control Room.
+19. Keep true normal/roughness and other environment-only material maps inside
+   the lazy WebGL renderer tree. The canonical floor/theme sources remain the
+   Canvas2D, site, mobile, loading, and CLI fallback; verify the map bytes do
+   not enter single-file CLI artifacts. When an albedo is reused as bump,
+   review a deliberately shallow scale—baked lighting, rust, and wear are not
+   physical height.
+20. Approve with a fresh hash-verified native replay whose own header carries
+   presentation. Pin replay, tick, viewport, camera, and renderer for A/B;
+   include bots/projectiles, whole arena, minimum span, and Canvas fallback.
+   Injected, hash-invalid, toy-layout, or fallback-theme boards cannot approve.
 
 ## Validation
 
@@ -463,6 +496,5 @@ renderer-only assets stayed out. Treat a normal-mapped primitive without
 tangents as a portability decision: generate tangents for portable assets or
 record and test the target renderer's derivative tangent-space support rather
 than ignoring the validator warning.
-When engine, replay, map, or submission contracts changed, also run
-`bash scripts/test.sh`. Record new durable presentation choices in
-`docs/DECISIONS.md`.
+When contracts change, run `bash scripts/test.sh`; record choices in the
+owning doc, never a numbered DECISIONS entry on a branch.

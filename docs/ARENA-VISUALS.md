@@ -40,10 +40,19 @@ Each `maps/*.json` document names its standalone presentation package:
 }
 ```
 
-The engine copies the theme and presentation object to replay header `themeId`
-and `presentation`. The viewer resolves those IDs against theme manifests; it
-never switches on `mapId`. Legacy maps and replays without the optional fields
-fall back to the Control Room defaults.
+The engine copies the theme and presentation object into replay presentation
+metadata. Generation-3 generic-actor contracts deliberately keep
+`ActorMapDefinition` gameplay-only, so their replay writers receive a separate
+presentation descriptor containing theme, wall families, and per-form
+chassis/projectile IDs. That descriptor changes the replay hash but never the
+rules, map, or match fingerprints. Hosted execution and every Frontline
+CLI/sandbox writer must supply it explicitly.
+
+The viewer resolves those IDs against theme manifests; it never switches on
+`mapId`. Legacy maps and replays without the optional fields fall back to the
+Control Room defaults. That fallback is compatibility only: a native
+Frontline review with null presentation has failed its handoff and cannot
+approve a theme.
 
 ## File layout
 
@@ -88,6 +97,9 @@ web/src/assets/themes/<theme-id>/
   theme.json
   floor-*.png | floor-*.webp
   wall-*.webp
+  pbr/                              # optional lazy WebGL-only material maps
+    wall-*-normal.webp
+    wall-*-roughness.webp
 
 art/themes/<staged-theme-id>/runtime/
   theme.json
@@ -125,6 +137,9 @@ web/src/render/
 
 web/src/render3d/
   lookModel.ts       renderer-only GLB discovery, loading, and fallback
+  arenaScene.ts      topology-derived environment geometry/materials
+  wallDetails.ts     deterministic profile-contained service detail
+  themeMaterialAssets.ts  lazy environment-only PBR discovery
 ```
 
 `art/themes` holds production sources and derived PBR maps; it is not bundled
@@ -633,15 +648,18 @@ gameplay scale.
 
 Environment geometry follows the same two-stage rule: approve the 2D
 theme/map package first, then add an optional WebGL representation. Frontline
-ships the first topology-derived procedural wall substrate; no authored
-modular environment GLB package ships yet. It is the first pilot because its
-camera, cover, objective strip, class silhouettes, and projectile grammar
-exercise the contract before it is generalized to other arenas.
+ships the first topology-derived procedural environment: continuous family
+solids, inset upper profiles, profile-contained deterministic service detail,
+and lazy wall normal/roughness maps. No authored modular environment GLB
+package or whole-map mesh ships. It is the first pilot because its camera,
+cover, objective strip, class silhouettes, and projectile grammar exercise
+the contract before it is generalized to other arenas.
 
-- Build an instanced modular kit for floor, perimeter, interior cover,
-  corners, junctions, and explicitly tagged props. Reuse the approved theme's
-  material maps and keep gameplay topology in the map contract, not mesh
-  names.
+- Start from `WallLayout`: trace continuous family solids, then layer
+  manifest-owned upper-profile and material settings. Place optional panels,
+  vents, and clamps from a stable family/coordinate/mask/side hash and keep
+  them inside the narrowest reviewed profile. A future authored module kit may
+  replace individual layers only after it preserves the same data authority.
 - Walls may gain chamfers, recesses, profiles, damage, and less rectangular
   silhouettes, but the occupied tile and cover edge must remain immediately
   legible. Decorative overhangs cannot imply an opening, changed collision,
@@ -655,6 +673,14 @@ exercise the contract before it is generalized to other arenas.
 - Solid geometry belongs on blocked tiles. Walkable cells retain only
   rule-honest flat or clearly non-blocking detail. Objective treatment cannot
   obscure capture ownership or pressure.
+- The whole-arena concept approves material hierarchy, profile language, and
+  lighting direction only. It is never cropped into runtime, sampled as a
+  floor, or treated as layout authority. Record transferred and still-missing
+  properties instead of claiming an exact match.
+- Keep environment-only PBR maps under the lazy WebGL import tree. Canvas2D,
+  site, mobile, loading, and the single-file CLI continue to use the canonical
+  theme assets. An albedo reused as bump requires a shallow reviewed scale so
+  baked highlights and wear do not become false geometry.
 - Measure the environment's first-load transfer and GPU cost independently
   from on-demand bot looks. Prefer instancing and a small shared atlas over
   unique wall meshes or textures per cell; add LOD only after the actual
@@ -663,6 +689,11 @@ exercise the contract before it is generalized to other arenas.
   projectiles, fog, health, objective effects, camera motion, and the Canvas
   fallback. “Less square” succeeds only when it also preserves or improves
   gameplay reading.
+- Final evidence uses one fresh hash-verified native replay for the
+  same-frame legacy/new A/B. Pin tick, viewport, camera, auto-fit, supported
+  minimum span, and renderer; include a whole-arena overlay check and forced
+  Canvas fallback. A harness-injected theme or fallback-theme board is useful
+  diagnosis, not approval.
 
 ## Release checklist
 

@@ -44,6 +44,26 @@ export interface WallFamily {
   geometry3d: {
     height: number;
     cornerRadius: number;
+    upperProfile: {
+      height: number;
+      inset: number;
+      chamfer: number;
+    } | null;
+    details: {
+      panelEvery: number;
+      ventEvery: number;
+      clampEvery: number;
+      panelColor: string;
+      clampColor: string;
+      ventColor: string;
+    } | null;
+  };
+  material3d: {
+    normalMap: string | null;
+    roughnessMap: string | null;
+    normalScale: number;
+    roughness: number;
+    metalness: number;
   };
 }
 
@@ -53,6 +73,21 @@ export interface ArenaTheme {
   floorTexture: HTMLImageElement | null;
   zoneTexture: HTMLImageElement | null;
   zoneTextureScale: number;
+  environment3d: {
+    lighting: {
+      keyColor: string;
+      keyIntensity: number;
+      ambientColor: string;
+      ambientIntensity: number;
+      fillColor: string;
+      fillIntensity: number;
+    };
+    floor: {
+      bumpScale: number;
+      roughness: number;
+      metalness: number;
+    };
+  };
   walls: {
     defaults: {
       boundary: string;
@@ -78,6 +113,10 @@ export interface ArenaTheme {
 interface ThemeManifest {
   id: string;
   label: string;
+  environment3d?: {
+    lighting?: Partial<ArenaTheme['environment3d']['lighting']>;
+    floor?: Partial<ArenaTheme['environment3d']['floor']>;
+  };
   textures: {
     floor: string;
     zone?: {
@@ -98,6 +137,26 @@ interface ThemeManifest {
         geometry3d?: {
           height: number;
           cornerRadius: number;
+          upperProfile?: {
+            height: number;
+            inset: number;
+            chamfer: number;
+          };
+          details?: {
+            panelEvery: number;
+            ventEvery: number;
+            clampEvery: number;
+            panelColor: string;
+            clampColor: string;
+            ventColor: string;
+          };
+        };
+        material3d?: {
+          normalMap?: string;
+          roughnessMap?: string;
+          normalScale?: number;
+          roughness?: number;
+          metalness?: number;
         };
       }
     >;
@@ -317,6 +376,11 @@ function buildThemes(): Map<string, ArenaTheme> {
           manifest.id,
           familyId,
         ),
+        material3d: wallMaterial3d(
+          family.material3d,
+          manifest.id,
+          familyId,
+        ),
         get materialTexture() {
           return materialTexture();
         },
@@ -360,6 +424,10 @@ function buildThemes(): Map<string, ArenaTheme> {
         0.5,
         manifest.textures.zone?.scaleTiles ?? 4,
       ),
+      environment3d: environment3d(
+        manifest.environment3d,
+        manifest.id,
+      ),
       walls: {
         defaults: manifest.walls.defaults,
         atlas: manifest.walls.atlas,
@@ -372,7 +440,25 @@ function buildThemes(): Map<string, ArenaTheme> {
 }
 
 function wallGeometry3d(
-  candidate: { height: number; cornerRadius: number } | undefined,
+  candidate:
+    | {
+        height: number;
+        cornerRadius: number;
+        upperProfile?: {
+          height: number;
+          inset: number;
+          chamfer: number;
+        };
+        details?: {
+          panelEvery: number;
+          ventEvery: number;
+          clampEvery: number;
+          panelColor: string;
+          clampColor: string;
+          ventColor: string;
+        };
+      }
+    | undefined,
   themeId: string,
   familyId: string,
 ): WallFamily['geometry3d'] {
@@ -389,7 +475,106 @@ function wallGeometry3d(
     throw new Error(
       `Theme '${themeId}' wall family '${familyId}' has invalid 3D geometry.`,
     );
-  return { height, cornerRadius };
+  const upperProfile = candidate?.upperProfile ?? null;
+  if (
+    upperProfile !== null &&
+    (!finiteRange(upperProfile.height, 0.04, height - 0.05) ||
+      !finiteRange(upperProfile.inset, 0, 0.12) ||
+      !finiteRange(upperProfile.chamfer, 0.005, 0.08) ||
+      upperProfile.inset + upperProfile.chamfer > 0.16)
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid upper profile.`,
+    );
+  const details = candidate?.details ?? null;
+  if (
+    details !== null &&
+    (![details.panelEvery, details.ventEvery, details.clampEvery].every(
+      (value) => Number.isInteger(value) && value >= 1 && value <= 64,
+    ) ||
+      !validHex(details.panelColor) ||
+      !validHex(details.clampColor) ||
+      !validHex(details.ventColor))
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid 3D details.`,
+    );
+  return { height, cornerRadius, upperProfile, details };
+}
+
+function wallMaterial3d(
+  candidate: ThemeManifest['walls']['families'][string]['material3d'],
+  themeId: string,
+  familyId: string,
+): WallFamily['material3d'] {
+  const result = {
+    normalMap: candidate?.normalMap ?? null,
+    roughnessMap: candidate?.roughnessMap ?? null,
+    normalScale: candidate?.normalScale ?? 1,
+    roughness: candidate?.roughness ?? 0.88,
+    metalness: candidate?.metalness ?? 0.2,
+  };
+  if (
+    (result.normalMap !== null && !validAssetPath(result.normalMap)) ||
+    (result.roughnessMap !== null &&
+      !validAssetPath(result.roughnessMap)) ||
+    !finiteRange(result.normalScale, 0, 4) ||
+    !finiteRange(result.roughness, 0, 1) ||
+    !finiteRange(result.metalness, 0, 1)
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid 3D material.`,
+    );
+  return result;
+}
+
+function environment3d(
+  candidate: ThemeManifest['environment3d'],
+  themeId: string,
+): ArenaTheme['environment3d'] {
+  const lighting = {
+    keyColor: candidate?.lighting?.keyColor ?? '#e8f1ff',
+    keyIntensity: candidate?.lighting?.keyIntensity ?? 4.4,
+    ambientColor: candidate?.lighting?.ambientColor ?? '#6f8bb0',
+    ambientIntensity: candidate?.lighting?.ambientIntensity ?? 2.4,
+    fillColor: candidate?.lighting?.fillColor ?? '#4d7099',
+    fillIntensity: candidate?.lighting?.fillIntensity ?? 1.5,
+  };
+  const floor = {
+    bumpScale: candidate?.floor?.bumpScale ?? 1.6,
+    roughness: candidate?.floor?.roughness ?? 0.86,
+    metalness: candidate?.floor?.metalness ?? 0.12,
+  };
+  if (
+    !validHex(lighting.keyColor) ||
+    !validHex(lighting.ambientColor) ||
+    !validHex(lighting.fillColor) ||
+    !finiteRange(lighting.keyIntensity, 0, 12) ||
+    !finiteRange(lighting.ambientIntensity, 0, 12) ||
+    !finiteRange(lighting.fillIntensity, 0, 12) ||
+    !finiteRange(floor.bumpScale, 0, 4) ||
+    !finiteRange(floor.roughness, 0, 1) ||
+    !finiteRange(floor.metalness, 0, 1)
+  )
+    throw new Error(`Theme '${themeId}' has invalid 3D environment values.`);
+  return { lighting, floor };
+}
+
+function finiteRange(value: number, minimum: number, maximum: number): boolean {
+  return Number.isFinite(value) && value >= minimum && value <= maximum;
+}
+
+function validHex(value: string): boolean {
+  return /^#[0-9a-f]{6}$/i.test(value);
+}
+
+function validAssetPath(value: string): boolean {
+  return (
+    value.length > 0 &&
+    !value.startsWith('/') &&
+    !value.includes('\\') &&
+    value.split('/').every((segment) => segment !== '' && segment !== '..')
+  );
 }
 
 function buildLooks(
