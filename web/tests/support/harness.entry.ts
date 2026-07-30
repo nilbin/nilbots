@@ -66,6 +66,12 @@ export {
   lookModel,
   modelSpec,
 } from '../../src/render3d/lookModel';
+export {
+  bindLookAnimation,
+  releaseLookAnimation,
+  seekLookAnimation,
+  validateLookAnimationSpec,
+} from '../../src/render3d/lookAnimation';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {
   arenaModeParticipantsReady,
