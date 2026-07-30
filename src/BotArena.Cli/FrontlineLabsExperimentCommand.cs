@@ -43,6 +43,7 @@ public static class FrontlineLabsExperimentCommand
             "bend",
             "five-slots",
             "stance-ground",
+            "aim",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -255,6 +256,14 @@ public static class FrontlineLabsExperimentCommand
                 + "a class pair containing the striker or the bulwark and a "
                 + "--skills selection that includes its stance.");
         }
+        FrontlineLabsAimArm aim = OptionalAimArm(options);
+        if (aim != FrontlineLabsAimArm.Straight && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--aim hands the ±45° launch offsets to class chassis, so "
+                + "it needs a class pair: pass --classes <a>-vs-<b> or run "
+                + "two class-declaring projects.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
@@ -298,7 +307,8 @@ public static class FrontlineLabsExperimentCommand
                 skills,
                 bendEnvelope,
                 fiveSlots,
-                stanceGround);
+                stanceGround,
+                aim);
         }
         else if (captureThreshold is int threshold)
         {
@@ -724,6 +734,26 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --bend '{value}' "
                 + "(use striker-only or universal)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered aim arm (DECISIONS #173). Omitting the option —
+    /// or naming <c>straight</c> — keeps today's facing-only launch and
+    /// adds no ruleset suffix. <c>offset</c> restores the ±1-sector (45°)
+    /// initial aim on every class's mobile gun.
+    /// </summary>
+    private static FrontlineLabsAimArm OptionalAimArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("aim", out string? value))
+            return FrontlineLabsAimArm.Straight;
+        return value.ToLowerInvariant() switch
+        {
+            "straight" => FrontlineLabsAimArm.Straight,
+            "offset" => FrontlineLabsAimArm.Offset,
+            _ => throw new InvalidOperationException(
+                $"Unknown --aim arm '{value}' (use straight or offset)."),
         };
     }
 

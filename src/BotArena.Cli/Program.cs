@@ -244,6 +244,7 @@ static int CommandHelp(string command)
                    [--bend striker-only|universal]
                    [--five-slots full|trim|boom|drag|moor|wane]
                    [--stance-ground strict|free]
+                   [--aim straight|offset]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -348,6 +349,11 @@ static int CommandHelp(string command)
             skill stance can rise on objective tiles and in the central
             corridor; turret anchor routes keep the tag. Needs a skill
             stance in the cell. wane + free is registered as `berth`.
+            --aim offset restores the ±1-sector (45°) initial launch offset
+            on every class's mobile gun (DECISIONS #173) — the one-bend
+            grammar had dropped it by conflation, never by ruling. Specials
+            are untouched. Needs a class pair. rig + aim is registered as
+            `sail`, so the tuned candidate game spells `sail-wane`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

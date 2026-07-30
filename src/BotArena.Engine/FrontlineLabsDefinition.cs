@@ -387,8 +387,23 @@ public static class FrontlineLabsDefinition
         FrontlineLabsFiveSlotVariant fiveSlots =
             FrontlineLabsFiveSlotVariant.Full,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict)
+            FrontlineLabsStanceGroundArm.Strict,
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
     {
+        if (!Enum.IsDefined(aim))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(aim),
+                aim,
+                "Unknown Frontline Labs aim arm.");
+        }
+        if (aim != FrontlineLabsAimArm.Straight && classes is null)
+        {
+            throw new ArgumentException(
+                "The aim grammar is handed to class chassis, so an aim arm "
+                + "has no meaning without a class pair; pass one.",
+                nameof(aim));
+        }
         if (!Enum.IsDefined(stanceGround))
         {
             throw new ArgumentOutOfRangeException(
@@ -527,7 +542,8 @@ public static class FrontlineLabsDefinition
                 effectiveSkills,
                 bendEnvelope,
                 fiveSlots,
-                stanceGround),
+                stanceGround,
+                aim),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -544,7 +560,8 @@ public static class FrontlineLabsDefinition
             primeRespawnTicks: primeRespawnTicks,
             skills: effectiveSkills,
             bendEnvelope: bendEnvelope,
-            stanceGround: stanceGround);
+            stanceGround: stanceGround,
+            aim: aim);
     }
 
     /// <summary>
@@ -713,7 +730,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsFiveSlotVariant fiveSlots =
             FrontlineLabsFiveSlotVariant.Full,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict)
+            FrontlineLabsStanceGroundArm.Strict,
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -734,9 +752,21 @@ public static class FrontlineLabsDefinition
                     ? new[] { "free" }
                     : [],
             ];
+        // The aim grammar is an arm-level factor (it rides the gun, not a
+        // skill), so its token lands right after the arm tokens. `rig` +
+        // aim is registered as one token — `sail` — because spelling both
+        // beside `wane` overflows the bulwark-vs-fabricator cell.
+        string[] arms =
+            ArmTokens(pendulum, skills, bendEnvelope, classes, composed);
+        if (aim == FrontlineLabsAimArm.Offset)
+        {
+            arms = arms is ["rig"]
+                ? ["sail"]
+                : [.. arms, "aim"];
+        }
         string[] tokens =
         [
-            .. ArmTokens(pendulum, skills, bendEnvelope, classes, composed),
+            .. arms,
             .. tuning,
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
@@ -1035,7 +1065,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsBendEnvelopeArm bendEnvelope =
             FrontlineLabsBendEnvelopeArm.StrikerOnly,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict)
+            FrontlineLabsStanceGroundArm.Strict,
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1053,7 +1084,8 @@ public static class FrontlineLabsDefinition
             primeRespawnTicks,
             skills,
             bendEnvelope,
-            stanceGround);
+            stanceGround,
+            aim);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1139,7 +1171,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSkillKit skills,
         FrontlineLabsBendEnvelopeArm bendEnvelope,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict)
+            FrontlineLabsStanceGroundArm.Strict,
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1157,7 +1190,8 @@ public static class FrontlineLabsDefinition
                 primeRespawnTicks,
                 skills,
                 bendEnvelope,
-                stanceGround);
+                stanceGround,
+                aim);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1580,7 +1614,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSkillKit skills,
         FrontlineLabsBendEnvelopeArm bendEnvelope,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict)
+            FrontlineLabsStanceGroundArm.Strict,
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -1720,7 +1755,8 @@ public static class FrontlineLabsDefinition
                     ShotProgram(
                         enabled: Bends(entry),
                         oneBendOnly: true,
-                        maxBendAfterTiles: entry.MobileMaxBendAfterTiles)));
+                        maxBendAfterTiles: entry.MobileMaxBendAfterTiles,
+                        aimOffsets: aim == FrontlineLabsAimArm.Offset)));
             bool mayTransform = entry.MayAnchor || HasStance(entry);
             string[] primeActions =
             [
@@ -2242,14 +2278,21 @@ public static class FrontlineLabsDefinition
     private static ActorShotProgramDefinition ShotProgram(
         bool enabled,
         bool oneBendOnly,
-        int maxBendAfterTiles = DeepestBendAfterTiles) =>
+        int maxBendAfterTiles = DeepestBendAfterTiles,
+        bool aimOffsets = false) =>
         new(
             enabled,
             headingSectors: 8,
             ActorShotHeadingModel.EightWayClockwiseModuloV1,
             bendStepSectors: 1,
-            minInitialAimSteps: enabled && !oneBendOnly ? -1 : 0,
-            maxInitialAimSteps: enabled && !oneBendOnly ? 1 : 0,
+            // The historical rich program carried offsets; the one-bend
+            // grammar dropped them by conflation, never by ruling. The aim
+            // arm (DECISIONS #173) restores them independently of the bend
+            // count rule.
+            minInitialAimSteps:
+                enabled && (aimOffsets || !oneBendOnly) ? -1 : 0,
+            maxInitialAimSteps:
+                enabled && (aimOffsets || !oneBendOnly) ? 1 : 0,
             new ActorAimOnlyShotProgramDefinition(0, 0, 1, 0),
             allowedCurvedBendDirections: [-1, 1],
             minBendAfterTiles: 1,

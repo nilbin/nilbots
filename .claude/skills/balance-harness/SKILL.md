@@ -284,7 +284,31 @@ override decision with the rationale and new future threshold, and update all
 policy/docs surfaces. Safety, faults, deterministic verification, and replay
 integrity remain hard gates and cannot be waived this way.
 
-## 6. Pinning a version
+## 6. Reporting to the owner (owner ruling, 2026-07-30)
+
+Every result presented to the owner uses this structure, in this order,
+with the labels literally present. No exceptions for "obvious" cases —
+the owner asked for this after a report that buried the ask.
+
+1. **`DECISION NEEDED:`** — first, or the explicit line
+   `DECISION NEEDED: none`. One sentence per decision, phrased as the
+   choice itself (not the analysis), with the default named if there is
+   one. Never mix a decision into a findings paragraph.
+2. **`RESULT:`** — what happened, in plain words, before any numbers:
+   which arm won/lost/was adopted and what it means for the game. One
+   short paragraph.
+3. **`EVIDENCE:`** — the numbers table or gate list, compressed.
+   Spell out codenames on first use in every report (the owner does not
+   carry arm tokens like `wane` between sessions); prefer "4 slots +
+   slower rebuild (`wane`)" over the bare token.
+4. **`NEXT:`** — what runs next without input, if anything.
+
+Additional standing rules: entertainment/depth rulings from the owner
+outrank measured product gates (record the override per §5, don't
+re-litigate); anything ambiguous in an owner message gets one clarifying
+question BEFORE hours of work, not after.
+
+## 7. Pinning a version
 
 Winner: add `GameRules.V0_X`, point `GameRules.Current` + 
 `BotArenaVersions.GameRulesVersion` at it, update the site rules card +

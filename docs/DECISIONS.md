@@ -3677,6 +3677,40 @@ live; the shell-break budget question shifts from "does it fire" to
 turret-cycling/cooldown capability work stays parked where #171 left
 it.
 
+## 173. Owner rulings: skills are in the game; the 45° aim comes back; reports get a format
+
+Three owner rulings from the post-#172 review (the owner watched the
+phase-2 gallery):
+
+1. **The skill kit is in the game — for entertainment and depth, and
+   that is non-negotiable.** Blind fun-rating A/Bs stop gating skill
+   adoption; this is an explicit product-gate override per the
+   balance-harness skill's own rule, recorded here rather than
+   laundered into a pass. Balance and match-health gates remain hard.
+   The measurement program's job is now to make the skills *land well*
+   (tuning, doctrine, presentation), not to decide whether they exist.
+2. **The ±45° initial aim is restored.** The owner spotted in watched
+   games what three factorial rounds did not surface: `oneBendOnly`
+   conflated "one bend per shot" with "no initial aim offset", so
+   since the class arms began no mobile gun could fire diagonally at
+   all (and a diagonally-adjacent enemy was unhittable — wave-4
+   measured the symptom without the cause). That was never a design
+   ruling. Restoration ships as a registered arm and is measured
+   before adoption, with an adopt-unless-it-breaks selection rule
+   (the entertainment ruling flips the default: the arm is adopted
+   unless it pushes a fabricator edge out of band, worsens
+   bulwark-vs-striker, or regresses pacing). Prediction registered in
+   the spec: diagonal aim is flank grammar and should pull the
+   over-band bulwark-vs-striker edge (+0.64) down.
+3. **Owner reports follow a fixed format** — DECISION NEEDED / RESULT
+   / EVIDENCE / NEXT, decisions first, codenames spelled out every
+   time (balance-harness skill §6). Prompted by a report that buried
+   the ask.
+
+Also commissioned outside the lab: a viewer pass on the follow-camera
+auto-fit (action drifting off-center) and a mobile wake-lock so the
+screen stays on during replays.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
