@@ -4015,6 +4015,18 @@ usage, so the chassis is losing, not just the fan; class numbers and
 granular asymmetric tiles remain the levers behind this one, and the
 salvo package prices at wave 7.
 
+Coarse swell read (same cohort/seeds as the tide and surf reads):
+**the first striker movement of the campaign, on stale doctrine** —
+bulwark-vs-striker +1.000 → **+0.852** (vector-edge beats iron-root
+in a seed; arc-light beats march-wall in a seed),
+fabricator-vs-striker +1.000 → **+0.778** (still-water beats
+ledger-fly in two seeds); bulwark-vs-fabricator **+0.333** unchanged
+(inert-omitted, as required). Usage spread from 8 to 11 match-dirs
+with casts — vector-edge, which never entered the stance under surf,
+now casts. Same deterministic bots, same seeds, doctrine unchanged:
+the delta is pure mechanics. Still a stale-doctrine LOWER bound —
+wave 7 prices the package properly.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
