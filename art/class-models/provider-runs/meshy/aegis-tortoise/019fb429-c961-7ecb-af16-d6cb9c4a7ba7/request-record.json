@@ -1,0 +1,65 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb429-c961-7ecb-af16-d6cb9c4a7ba7",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k single-image Bulwark oblique geometry comparison",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 79622,
+      "sha256": "f5db7ae375e9633e9570191c5516f12cae75fe7ca5eaedca95b7551c9fa20b5f",
+      "contentType": "image/png"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 79622,
+      "sha256": "f5db7ae375e9633e9570191c5516f12cae75fe7ca5eaedca95b7551c9fa20b5f",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-model.glb",
+      "bytes": 272988,
+      "sha256": "7de16b95389fe963f85f2a5cac14bf9484d45be55292edefd93d24fad9acc8c5",
+      "contentType": "application/octet-stream"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T17:54:24.979Z",
+  "balanceBefore": 705,
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/03-front-three-quarter.png",
+    "bytes": 1612009,
+    "sha256": "7a027764138846639e6e158a4b4f8e724dcc96e8004961f6a865cd01ce20e8a4",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "2eb48750aa924bc163d4ba84f30501812bf97275f9ada080ea540ca162bbd970",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T17:54:42.120Z",
+  "consumedCredits": 5,
+  "finishedAt": "2026-07-30T17:54:42.129Z",
+  "refundPolicy": null,
+  "balanceAfter": 700,
+  "observedBalanceDelta": 5,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

@@ -1,0 +1,65 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb430-810c-7d48-b13d-b80d3698b7c9",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k simplified low-angle Bulwark geometry gate",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 95271,
+      "sha256": "96d40b8ef3ab7bdc2290115a778fada8fbf9a91e2b8821c8a9e394fee9528dcd",
+      "contentType": "image/png"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 95271,
+      "sha256": "96d40b8ef3ab7bdc2290115a778fada8fbf9a91e2b8821c8a9e394fee9528dcd",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-model.glb",
+      "bytes": 262696,
+      "sha256": "96ebc2a95b526e7dc10493f5a4274c22a654d514321de210d751c4b6d27f38ac",
+      "contentType": "application/octet-stream"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T18:01:45.237Z",
+  "balanceBefore": 695,
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v2-simplified/03-front-three-quarter-simple.png",
+    "bytes": 1923932,
+    "sha256": "e746f600123a878207adf911eb135da9f4f412a2fd3842a51fec0b231c75596d",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "c54bcad1e473d45e953dab01e2d630376ab748feef0370e0d954adbd781bfc8f",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T18:02:02.466Z",
+  "consumedCredits": 5,
+  "finishedAt": "2026-07-30T18:02:02.475Z",
+  "refundPolicy": null,
+  "balanceAfter": 690,
+  "observedBalanceDelta": 5,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

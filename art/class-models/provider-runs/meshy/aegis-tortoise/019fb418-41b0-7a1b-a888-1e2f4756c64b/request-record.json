@@ -1,0 +1,54 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb418-41b0-7a1b-a888-1e2f4756c64b",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 4k single-image Bulwark geometry gate",
+  "submittedAt": "2026-07-30T17:35:16.135Z",
+  "balanceBefore": 710,
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/03-front-three-quarter.png",
+    "bytes": 1612009,
+    "sha256": "7a027764138846639e6e158a4b4f8e724dcc96e8004961f6a865cd01ce20e8a4"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 4000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "status": "SUCCEEDED",
+  "finishedAt": "2026-07-30T17:35:28.985Z",
+  "balanceAfter": 705,
+  "consumedCredits": 5,
+  "assetRetentionNote": "Meshy non-Enterprise API output was downloaded immediately; provider URLs are not storage.",
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 75800,
+      "sha256": "123bce9d515e162c9d1cd96da52d58346fa9ddf93e9dc891a3d280011ffe0a36",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 61508,
+      "sha256": "881d79906dea833eab7278ca8a097bf8327864bfe2833e877512f99343209b70",
+      "contentType": "image/png"
+    },
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 61508,
+      "sha256": "881d79906dea833eab7278ca8a097bf8327864bfe2833e877512f99343209b70",
+      "contentType": "image/png"
+    }
+  ]
+}

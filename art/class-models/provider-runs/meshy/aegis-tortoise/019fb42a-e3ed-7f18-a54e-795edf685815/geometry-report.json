@@ -1,0 +1,57 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 244492,
+    "sha256": "af4dc153e5a939b487fada55f26f1546a83658233dbac85529c6618eafbd80f6"
+  },
+  "providerRequest": {
+    "modelType": "smart-topology",
+    "aiModel": "meshy-t2",
+    "targetPolycount": 15000,
+    "shouldTexture": false,
+    "consumedCredits": 5
+  },
+  "orientationCorrection": {
+    "description": "Rz(180 degrees) after Rx(-90 degrees) in Blender import space",
+    "matrixRows": [
+      [-1, 0, 0, 0],
+      [0, 0, -1, 0],
+      [0, -1, 0, 0],
+      [0, 0, 0, 1]
+    ],
+    "determinant": 1,
+    "deformation": false
+  },
+  "geometry": {
+    "vertices": 7326,
+    "triangles": 12984,
+    "rawIndexedConnectedComponents": 142,
+    "weldedConnectedComponents": 122,
+    "componentsAtLeastOnePercentOfTriangles": 29,
+    "largestComponentTriangleShare": 0.136321627,
+    "normalizedBoundsSpan": [
+      1.000000119,
+      0.994117618,
+      0.230882332
+    ],
+    "heightToPlanform": 0.230882332
+  },
+  "silhouette": {
+    "canonicalTopSha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+    "semanticYawDegrees": 0,
+    "intersectionOverUnion": 0.916503717,
+    "canonicalCoverage": 0.957433862,
+    "candidateInsideCanonical": 0.955434264,
+    "candidateAreaDelta": 0.002092869,
+    "centroidDeltaPixels": [
+      -0.617054219,
+      -0.724350702
+    ]
+  },
+  "audit": {
+    "blenderVersion": "5.2.0 LTS",
+    "verdict": "leading-geometry-pending-grouping-and-pivot-proof",
+    "eligibleForRetexture": false,
+    "eligibleForRuntime": false
+  }
+}

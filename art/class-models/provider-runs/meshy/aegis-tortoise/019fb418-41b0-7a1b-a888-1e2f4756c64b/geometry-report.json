@@ -1,0 +1,51 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 75800,
+    "sha256": "123bce9d515e162c9d1cd96da52d58346fa9ddf93e9dc891a3d280011ffe0a36"
+  },
+  "providerRequest": {
+    "modelType": "smart-topology",
+    "aiModel": "meshy-t2",
+    "targetPolycount": 4000,
+    "shouldTexture": false,
+    "consumedCredits": 5
+  },
+  "geometry": {
+    "meshObjects": 1,
+    "vertices": 2298,
+    "triangles": 3959,
+    "rawIndexedConnectedComponents": 105,
+    "weldedConnectedComponents": 95,
+    "boundaryEdgesAfterWeld": 240,
+    "nonManifoldEdgesAfterWeld": 1,
+    "heightToPlanform": 0.245605469,
+    "boundsSpanDcc": [
+      0.98046875,
+      1.0,
+      0.245605469
+    ],
+    "materials": 0,
+    "uvLayers": 0
+  },
+  "audit": {
+    "blenderVersion": "5.2.0 LTS",
+    "bestUnselectedQuarterTurnTopIoU": 0.817118164,
+    "canonicalTopSha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+    "fixedViews": [
+      "audit/top.png",
+      "audit/side.png",
+      "audit/front-three-quarter.png",
+      "audit/rear-three-quarter.png"
+    ],
+    "verdict": "rejected-geometry",
+    "reasons": [
+      "malformed floating rear fragments",
+      "incoherent underside and rear topology",
+      "fused functional boundaries",
+      "fragmentation does not form usable mechanical parts"
+    ],
+    "eligibleForRetexture": false,
+    "eligibleForRuntime": false
+  }
+}

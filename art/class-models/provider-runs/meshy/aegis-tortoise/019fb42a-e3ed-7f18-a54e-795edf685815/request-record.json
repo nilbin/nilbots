@@ -1,0 +1,65 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k single-image Bulwark strict-top geometry comparison",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 199007,
+      "sha256": "cf6f25941ac4a62d3fe340c280f466bed02aec46391d7732aede1263116b93f9",
+      "contentType": "image/png"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 199007,
+      "sha256": "cf6f25941ac4a62d3fe340c280f466bed02aec46391d7732aede1263116b93f9",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-model.glb",
+      "bytes": 244492,
+      "sha256": "af4dc153e5a939b487fada55f26f1546a83658233dbac85529c6618eafbd80f6",
+      "contentType": "application/octet-stream"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T17:55:37.305Z",
+  "balanceBefore": 700,
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/01-top.png",
+    "bytes": 2110918,
+    "sha256": "c5c3aca95cde3830f2f7538c728dc6f2b5a16b3e5fdb0fde42564212e7d42fc4",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "b079b33c91129a97f79ecc69a8136467c6c05ccf958686aded0608edf44425bf",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T17:55:54.694Z",
+  "consumedCredits": 5,
+  "finishedAt": "2026-07-30T17:55:54.703Z",
+  "refundPolicy": null,
+  "balanceAfter": 695,
+  "observedBalanceDelta": 5,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

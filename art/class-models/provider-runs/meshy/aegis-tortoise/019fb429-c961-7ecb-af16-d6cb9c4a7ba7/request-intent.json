@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T17:54:24.394Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k single-image Bulwark oblique geometry comparison",
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "2eb48750aa924bc163d4ba84f30501812bf97275f9ada080ea540ca162bbd970",
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/03-front-three-quarter.png",
+    "bytes": 1612009,
+    "sha256": "7a027764138846639e6e158a4b4f8e724dcc96e8004961f6a865cd01ce20e8a4",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 705,
+  "submittedAt": "2026-07-30T17:54:24.979Z",
+  "taskId": "019fb429-c961-7ecb-af16-d6cb9c4a7ba7",
+  "finishedAt": "2026-07-30T17:54:42.129Z"
+}

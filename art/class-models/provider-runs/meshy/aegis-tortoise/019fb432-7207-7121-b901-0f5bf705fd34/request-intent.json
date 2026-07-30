@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T18:03:51.911Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k moderate-detail Bulwark geometry gate",
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "5c07b289c58d1983b4713ae28510d31e196557c8ae111e6b1e8238cb7422dda0",
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v2-simplified/03-front-three-quarter-moderate.png",
+    "bytes": 1963976,
+    "sha256": "3b4ca4977a2880c58c234218c29058eb0a4ad42445a041b331e9cec50ab9e6ad",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 690,
+  "submittedAt": "2026-07-30T18:03:52.461Z",
+  "taskId": "019fb432-7207-7121-b901-0f5bf705fd34",
+  "finishedAt": "2026-07-30T18:04:20.200Z"
+}

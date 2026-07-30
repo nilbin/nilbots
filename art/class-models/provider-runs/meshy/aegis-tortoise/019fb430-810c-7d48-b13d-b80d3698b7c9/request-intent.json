@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T18:01:44.665Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k simplified low-angle Bulwark geometry gate",
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "c54bcad1e473d45e953dab01e2d630376ab748feef0370e0d954adbd781bfc8f",
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v2-simplified/03-front-three-quarter-simple.png",
+    "bytes": 1923932,
+    "sha256": "e746f600123a878207adf911eb135da9f4f412a2fd3842a51fec0b231c75596d",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 695,
+  "submittedAt": "2026-07-30T18:01:45.237Z",
+  "taskId": "019fb430-810c-7d48-b13d-b80d3698b7c9",
+  "finishedAt": "2026-07-30T18:02:02.475Z"
+}

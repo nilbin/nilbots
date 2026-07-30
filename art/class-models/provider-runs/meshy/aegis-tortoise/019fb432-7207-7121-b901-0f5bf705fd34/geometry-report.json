@@ -1,0 +1,36 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 246468,
+    "sha256": "21c44de047a206a60823bbadc4cbc2f5faf60f7f68bb2ce878ecc87af5b30b22"
+  },
+  "providerRequest": {
+    "modelType": "smart-topology",
+    "aiModel": "meshy-t2",
+    "targetPolycount": 15000,
+    "shouldTexture": false,
+    "consumedCredits": 5
+  },
+  "geometry": {
+    "vertices": 7403,
+    "triangles": 13072,
+    "weldedConnectedComponents": 345,
+    "componentsAtLeastOnePercentOfTriangles": 11,
+    "largestComponentTriangleShare": 0.026086291,
+    "heightToPlanform": 0.335952878
+  },
+  "silhouette": {
+    "canonicalTopSha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+    "bestUnselectedQuarterTurnYawDegrees": 270,
+    "intersectionOverUnion": 0.813796631,
+    "canonicalCoverage": 0.834991023,
+    "candidateInsideCanonical": 0.969752859,
+    "candidateAreaDelta": -0.138965133
+  },
+  "audit": {
+    "blenderVersion": "5.2.0 LTS",
+    "verdict": "rejected-fragmented-geometry",
+    "eligibleForRetexture": false,
+    "eligibleForRuntime": false
+  }
+}

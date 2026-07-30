@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T17:55:36.762Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k single-image Bulwark strict-top geometry comparison",
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "b079b33c91129a97f79ecc69a8136467c6c05ccf958686aded0608edf44425bf",
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/01-top.png",
+    "bytes": 2110918,
+    "sha256": "c5c3aca95cde3830f2f7538c728dc6f2b5a16b3e5fdb0fde42564212e7d42fc4",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 700,
+  "submittedAt": "2026-07-30T17:55:37.305Z",
+  "taskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "finishedAt": "2026-07-30T17:55:54.703Z"
+}

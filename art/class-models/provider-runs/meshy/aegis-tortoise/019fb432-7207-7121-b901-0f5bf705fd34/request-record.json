@@ -1,0 +1,65 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb432-7207-7121-b901-0f5bf705fd34",
+  "lookId": "aegis-tortoise",
+  "purpose": "Smart T2 15k moderate-detail Bulwark geometry gate",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 79669,
+      "sha256": "15fb6ca3ae52cf4d28ed278a96370ddb5d76576440f9c66b5cad468578edaf7d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 79669,
+      "sha256": "15fb6ca3ae52cf4d28ed278a96370ddb5d76576440f9c66b5cad468578edaf7d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-model.glb",
+      "bytes": 246468,
+      "sha256": "21c44de047a206a60823bbadc4cbc2f5faf60f7f68bb2ce878ecc87af5b30b22",
+      "contentType": "application/octet-stream"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T18:03:52.461Z",
+  "balanceBefore": 690,
+  "input": {
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v2-simplified/03-front-three-quarter-moderate.png",
+    "bytes": 1963976,
+    "sha256": "3b4ca4977a2880c58c234218c29058eb0a4ad42445a041b331e9cec50ab9e6ad",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": false,
+    "target_formats": [
+      "glb"
+    ],
+    "alpha_thumbnail": true
+  },
+  "expectedMaxCredits": 5,
+  "requestFingerprint": "5c07b289c58d1983b4713ae28510d31e196557c8ae111e6b1e8238cb7422dda0",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T18:04:20.192Z",
+  "consumedCredits": 5,
+  "finishedAt": "2026-07-30T18:04:20.200Z",
+  "refundPolicy": null,
+  "balanceAfter": 685,
+  "observedBalanceDelta": 5,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}
