@@ -1037,7 +1037,9 @@ internal static class ReplayV3Projection
             value.DecayTicksElapsed,
             value.ControlResumesAtTick,
             value.HoldOwnerTeamId,
-            value.HoldEndsAtTick);
+            value.HoldEndsAtTick,
+            value.SecondaryOwnerTeamId,
+            value.SecondaryClaimProgress);
 
     private static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>

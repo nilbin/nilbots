@@ -3348,7 +3348,7 @@ public sealed class GenericActorMatchSession : IDisposable
         SlotState slot,
         InitialSpawnDefinition spawn)
     {
-        if (!FrontlineForwardRallyPlacement.IsEnabled(_definition))
+        if (!FrontlineForwardRallyPlacement.MayRallyForward(_definition))
             return spawn.Position;
         if (_mode.State is not GenericActorModeState.Frontline frontline)
             return spawn.Position;
@@ -3367,7 +3367,13 @@ public sealed class GenericActorMatchSession : IDisposable
                         reservation.Descendants.Select(
                             descendant => descendant.Position)),
                 ],
-                ReservedReturnSpawnPositions()));
+                ReservedReturnSpawnPositions()),
+            slot.Assignment,
+            // The owner as it stands when this arrival lands, which is
+            // exactly the owner the boundary before it published — so the
+            // chronology validator re-derives the same tile from the
+            // recorded observation rather than from private state.
+            frontline.Control.SecondaryControl?.OwnerTeamId);
     }
 
     private IEnumerable<Position> ReservedReturnSpawnPositions() =>

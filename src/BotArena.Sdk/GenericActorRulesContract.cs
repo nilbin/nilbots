@@ -243,7 +243,51 @@ public sealed class GenericActorRulesContract
             GameModeKind.Frontline,
             ModeId,
             FrontlineVictory,
-            ScoreCatalog);
+            ScoreCatalog)
+    {
+        /// <summary>
+        /// The declared side objective, or null when this ruleset has none.
+        /// Read it before assuming the map has one: the site regions, the
+        /// latch threshold, and what owning the site does are all contract
+        /// facts, and a ruleset without the block publishes a permanently
+        /// neutral owner.
+        /// </summary>
+        public FrontlineSecondaryControl? SecondaryControl { get; init; }
+    }
+
+    /// <summary>
+    /// A capturable SIDE objective that is not part of the frontline chain.
+    /// Presence is measured in objective weight, exactly like the front, so a
+    /// zero-weight turret cannot hold it. It never pays the score channel.
+    /// </summary>
+    /// <param name="RegionIds">
+    /// The site's map regions, in declared order. More than one region is one
+    /// site with more than one place to stand: presence sums across the union
+    /// and a body on each site from opposing teams is a contest.
+    /// </param>
+    /// <param name="CaptureThresholdTicks">
+    /// Consecutive SOLE-presence ticks one claim needs. Any empty or
+    /// contested tick resets the running claim to zero.
+    /// </param>
+    /// <param name="Ownership">
+    /// Exact latch policy ID. Today's single value latches ownership until
+    /// the other team completes a claim of its own.
+    /// </param>
+    /// <param name="Effect">
+    /// Exact effect policy ID. <c>muster</c> moves the owning team's
+    /// automatic arrivals inside <paramref name="RallyScope"/> to the forward
+    /// rally placement.
+    /// </param>
+    /// <param name="RallyScope">
+    /// Exact rally-scope policy ID. <c>prime-automatic-return-only</c> moves
+    /// the Prime's automatic return and nothing else.
+    /// </param>
+    public sealed record FrontlineSecondaryControl(
+        ImmutableArray<string> RegionIds,
+        int CaptureThresholdTicks,
+        string Ownership,
+        string Effect,
+        string RallyScope);
 
     /// <summary>
     /// Frozen Deathmatch score accounting. Values are exact policy IDs that

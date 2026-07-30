@@ -47,6 +47,13 @@ internal static class GenericFrontlineChronologyEvidence
                 region => region.RegionId,
                 region => region.Tiles.ToImmutableHashSet(),
                 StringComparer.Ordinal);
+        // One site, however many regions declare it.
+        ImmutableHashSet<Position> secondarySiteTiles =
+            gameMode.SecondaryControl is null
+                ? []
+                : gameMode.SecondaryControl.RegionIds
+                    .SelectMany(regionId => regionTiles[regionId])
+                    .ToImmutableHashSet();
 
         ValidateBoundary(
             initialFrame.State,
@@ -96,7 +103,17 @@ internal static class GenericFrontlineChronologyEvidence
                 control = kernel.ApplyJointTick(
                         previous,
                         frame.Tick,
-                        objectiveWeightByTeam)
+                        objectiveWeightByTeam,
+                        // Re-derived from the same recorded bodies as the
+                        // front, so a replay cannot claim a latch the rules
+                        // would not have produced.
+                        secondarySiteTiles.IsEmpty
+                            ? ImmutableDictionary<int, int>.Empty
+                            : ObjectiveWeightAtModePhase(
+                                definition,
+                                frame,
+                                objectiveWeights,
+                                secondarySiteTiles))
                     .State;
                 if (control.WinnerTeamId is not null)
                 {

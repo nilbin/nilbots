@@ -46,6 +46,8 @@ public sealed class FrontlineRatchetHoldReplayV3Tests
                 "controlResumesAtTick",
                 "holdOwnerTeamId",
                 "holdEndsAtTick",
+                "secondaryOwnerTeamId",
+                "secondaryClaimProgress",
             ],
             held.Mode.EnumerateObject()
                 .Select(property => property.Name)

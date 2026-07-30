@@ -1886,6 +1886,17 @@ internal static class ReplayV3Serializer
                     writer,
                     "holdEndsAtTick",
                     frontline.HoldEndsAtTick);
+                // The side objective's two facts, on the same discipline:
+                // an owner that is null this tick (including on every
+                // ruleset that declares no side objective) and a signed
+                // running claim whose sign names the claiming team.
+                WriteNullableNumber(
+                    writer,
+                    "secondaryOwnerTeamId",
+                    frontline.SecondaryOwnerTeamId);
+                writer.WriteNumber(
+                    "secondaryClaimProgress",
+                    frontline.SecondaryClaimProgress);
                 break;
             default:
                 throw new NotSupportedException(
@@ -2846,6 +2857,20 @@ internal static class ReplayV3Serializer
                 throw new ArgumentException(
                     "Embedded Frontline hold duration is carried by exactly the high-water-mark redeploy policy.");
             }
+            // The side objective is inert-omitted too, so its presence is
+            // itself a contract fact: a published owner or claim on a mode
+            // that declares no secondary control is a forged observation.
+            bool secondaryControl = gameMode.TryGetProperty(
+                "secondaryControl",
+                out JsonElement secondary);
+            int secondaryThresholdTicks = secondaryControl
+                ? RequiredInt32(secondary, "captureThresholdTicks")
+                : 0;
+            if (secondaryControl && secondaryThresholdTicks <= 0)
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline secondary-control threshold must be positive.");
+            }
             ImmutableArray<ContractTeamAdvance> teamAdvances =
                 RequiredArray(modeMapBinding, "teamAdvances")
                     .EnumerateArray()
@@ -2924,7 +2949,9 @@ internal static class ReplayV3Serializer
                     redeployPauseTicks,
                     teamAdvances,
                     ratchet,
-                    ratchetHoldTicks));
+                    ratchetHoldTicks,
+                    secondaryControl,
+                    secondaryThresholdTicks));
         }
         if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
         {
@@ -5429,13 +5456,44 @@ internal static class ReplayV3Serializer
             || frontline.HoldEndsAtTick is int holdEnds
                 && (holdEnds <= nextTick
                     || (long)holdEnds - nextTick
-                        > configuration.RatchetHoldTicks);
+                        > configuration.RatchetHoldTicks)
+            // Only a mode that declares a side objective may publish one:
+            // its owner and its claimant must be real scoring teams, they
+            // cannot be the same team (the owner has nothing left to claim),
+            // and a standing claim is strictly below the declared threshold
+            // because reaching it latches ownership on that very tick.
+            || (frontline.SecondaryOwnerTeamId is not null
+                    || frontline.SecondaryClaimProgress != 0)
+                && !configuration.SecondaryControl
+            || frontline.SecondaryOwnerTeamId is int secondaryOwner
+                && !contract.TeamIds.Contains(secondaryOwner)
+            || Math.Abs((long)frontline.SecondaryClaimProgress)
+                >= Math.Max(
+                    configuration.SecondaryCaptureThresholdTicks,
+                    1)
+            || SecondaryClaimant(frontline.SecondaryClaimProgress)
+                is int secondaryClaimant
+                && (!contract.TeamIds.Contains(secondaryClaimant)
+                    || secondaryClaimant == frontline.SecondaryOwnerTeamId);
         if (invalid)
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} Frontline control violates the embedded capture bounds.");
         }
     }
+
+    /// <summary>
+    /// The team a signed side-objective claim belongs to: positive counts for
+    /// team 0 and negative for team 1, the direction the public team-advance
+    /// ordering uses. Zero is no claim at all.
+    /// </summary>
+    private static int? SecondaryClaimant(int claimProgress) =>
+        claimProgress switch
+        {
+            0 => null,
+            > 0 => 0,
+            _ => 1,
+        };
 
     private static void ValidateEventKindAndPayload(
         string kind,
@@ -5875,7 +5933,9 @@ internal static class ReplayV3Serializer
         int RedeployPauseTicks,
         ImmutableArray<ContractTeamAdvance> TeamAdvances,
         bool Ratchet,
-        int RatchetHoldTicks);
+        int RatchetHoldTicks,
+        bool SecondaryControl,
+        int SecondaryCaptureThresholdTicks);
 
     private sealed record ContractTeamAdvance(
         int TeamId,
@@ -6547,7 +6607,9 @@ internal static class ReplayV3Serializer
                             "decayTicksElapsed",
                             "controlResumesAtTick",
                             "holdOwnerTeamId",
-                            "holdEndsAtTick");
+                            "holdEndsAtTick",
+                            "secondaryOwnerTeamId",
+                            "secondaryClaimProgress");
                         return new ReplayV3.ModeState.Frontline(
                             modeId,
                             RequiredInt32(
@@ -6560,7 +6622,11 @@ internal static class ReplayV3Serializer
                                 root,
                                 "controlResumesAtTick"),
                             NullableInt32(root, "holdOwnerTeamId"),
-                            NullableInt32(root, "holdEndsAtTick"));
+                            NullableInt32(root, "holdEndsAtTick"),
+                            NullableInt32(root, "secondaryOwnerTeamId"),
+                            RequiredInt32(
+                                root,
+                                "secondaryClaimProgress"));
                     }
                 default:
                     throw new JsonException(

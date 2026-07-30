@@ -419,7 +419,9 @@ internal static class GenericActorSdkModelMapper
                     mode.DecayTicksElapsed,
                     mode.ControlResumesAtTick,
                     mode.HoldOwnerTeamId,
-                    mode.HoldEndsAtTick),
+                    mode.HoldEndsAtTick,
+                    mode.SecondaryOwnerTeamId,
+                    mode.SecondaryClaimProgress),
             _ => throw UnknownUnion(value),
         };
 

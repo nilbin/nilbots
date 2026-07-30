@@ -1458,7 +1458,7 @@ public sealed record GenericActorMatchChronology
                 profiles)
     {
         var arrivals = new Dictionary<(int TeamId, int UnitId), Position>();
-        if (!FrontlineForwardRallyPlacement.IsEnabled(definition)
+        if (!FrontlineForwardRallyPlacement.MayRallyForward(definition)
             || before.Mode
                 is not GenericActorRuntimeObservation.ModeObservationState
                     .Frontline frontline)
@@ -1530,7 +1530,12 @@ public sealed record GenericActorMatchChronology
                 spawns[assignments[(slot.TeamId, slot.UnitId)]
                     .AssignedRespawnSpawnId!].Position,
                 frontline.ActivePositionIndex,
-                blocked);
+                blocked,
+                assignments[(slot.TeamId, slot.UnitId)],
+                // Re-derived from the RECORDED observation, which is what
+                // makes a forged muster owner unable to buy a forward
+                // arrival: the owner and the arrival tile have to agree.
+                frontline.SecondaryOwnerTeamId);
             arrivals[(slot.TeamId, slot.UnitId)] = arrival;
             blocked.Add(arrival);
         }

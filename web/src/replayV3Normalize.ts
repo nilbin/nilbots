@@ -394,6 +394,10 @@ function validateContract(
             'scoreCatalog',
             'frontlinePositionCount',
             'capture',
+            // Additive trailing optional block with the capture ratchet's
+            // discipline: the engine writes it only for a mode that declares
+            // a side objective, so its presence is itself a contract fact.
+            ...(own(mode, 'secondaryControl') ? ['secondaryControl'] : []),
           ]
         : null;
   if (modeKeys === null) {
@@ -778,6 +782,62 @@ function validateContract(
         `${capturePath}.ratchetHoldTicks`,
         'is carried by exactly the high-water-mark redeploy policy',
       );
+    }
+    if (own(mode, 'secondaryControl')) {
+      const secondaryPath = `${modePath}.secondaryControl`;
+      const secondary = exact(
+        object(mode.secondaryControl, secondaryPath, fail),
+        secondaryPath,
+        [
+          'regionIds',
+          'captureThresholdTicks',
+          'ownership',
+          'effect',
+          'rallyScope',
+        ],
+        fail,
+      );
+      const regionIds = array(
+        secondary.regionIds,
+        `${secondaryPath}.regionIds`,
+        fail,
+      );
+      regionIds.forEach((regionId, index) =>
+        nonEmpty(regionId, `${secondaryPath}.regionIds[${index}]`, fail),
+      );
+      if (
+        regionIds.length === 0 ||
+        new Set(regionIds.map(String)).size !== regionIds.length
+      ) {
+        fail(
+          `${secondaryPath}.regionIds`,
+          'names at least one site region and never repeats one',
+        );
+      }
+      integer(
+        secondary.captureThresholdTicks,
+        `${secondaryPath}.captureThresholdTicks`,
+        fail,
+      );
+      if ((secondary.captureThresholdTicks as number) <= 0) {
+        fail(
+          `${secondaryPath}.captureThresholdTicks`,
+          'must be a positive latch threshold',
+        );
+      }
+      const secondaryArms = {
+        ownership: ['latched-until-recaptured-by-sole-objective-weight'],
+        effect: ['muster'],
+        rallyScope: ['prime-automatic-return-only'],
+      } as const;
+      for (const [key, allowed] of Object.entries(secondaryArms)) {
+        if (!(allowed as readonly string[]).includes(String(secondary[key]))) {
+          fail(
+            `${secondaryPath}.${key}`,
+            `expected one of ${allowed.join(', ')}`,
+          );
+        }
+      }
     }
     if (
       scoreCatalog.length !== 1 ||
@@ -1734,6 +1794,11 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         // fact about this tick, not an omitted field.
         'holdOwnerTeamId',
         'holdEndsAtTick',
+        // The side objective's two facts, on the same discipline: null
+        // owner means neutral (or no side objective declared at all), and a
+        // signed claim whose sign names the claiming team.
+        'secondaryOwnerTeamId',
+        'secondaryClaimProgress',
       ],
       fail,
     );
@@ -1755,6 +1820,13 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         'territory-ratchet hold owner and expiry must be published together',
       );
     }
+    nullable(
+      item.secondaryOwnerTeamId,
+      `${path}.secondaryOwnerTeamId`,
+      integer,
+      fail,
+    );
+    integer(item.secondaryClaimProgress, `${path}.secondaryClaimProgress`, fail);
     return;
   }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
@@ -4274,6 +4346,8 @@ function validateV3Relationships(
       const control = world.mode;
       const mode = contract.rules.gameMode;
       const capture = mode.capture;
+      const secondaryThresholdTicks =
+        mode.secondaryControl?.captureThresholdTicks ?? null;
       const claimantKnown =
         control.claimingTeamId === null ||
         teams.has(control.claimingTeamId);
@@ -4313,7 +4387,24 @@ function validateV3Relationships(
         (control.holdEndsAtTick !== null &&
           (control.holdEndsAtTick <= world.nextTick ||
             control.holdEndsAtTick - world.nextTick >
-              (capture.ratchetHoldTicks ?? 0)));
+              (capture.ratchetHoldTicks ?? 0))) ||
+        // Only a mode that declares a side objective may publish one. Its
+        // owner and its claimant are real scoring teams, they are never the
+        // same team, and a standing claim is strictly below the declared
+        // threshold because reaching it latches ownership that very tick.
+        ((control.secondaryOwnerTeamId !== null ||
+          control.secondaryClaimProgress !== 0) &&
+          secondaryThresholdTicks === null) ||
+        (control.secondaryOwnerTeamId !== null &&
+          !teams.has(control.secondaryOwnerTeamId)) ||
+        Math.abs(control.secondaryClaimProgress) >=
+          Math.max(secondaryThresholdTicks ?? 0, 1) ||
+        (secondaryClaimant(control.secondaryClaimProgress) !== null &&
+          (!teams.has(
+            secondaryClaimant(control.secondaryClaimProgress) as number,
+          ) ||
+            secondaryClaimant(control.secondaryClaimProgress) ===
+              control.secondaryOwnerTeamId));
       if (invalidControl) {
         fail(`${path}.mode`, 'violates frontline control invariants');
       }
@@ -5860,6 +5951,18 @@ function scoreboardFromV3(
   };
 }
 
+/**
+ * The team a signed side-objective claim belongs to: positive counts for team
+ * 0 and negative for team 1, the direction the public team-advance ordering
+ * uses. Zero is no claim at all.
+ */
+function secondaryClaimant(claimProgress: number): number | null {
+  if (claimProgress === 0) {
+    return null;
+  }
+  return claimProgress > 0 ? 0 : 1;
+}
+
 function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
   return mode.kind === 'deathmatch'
     ? { kind: 'deathmatch', modeId: mode.modeId }
@@ -5873,6 +5976,8 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         controlResumesAtTick: mode.controlResumesAtTick,
         holdOwnerTeamId: mode.holdOwnerTeamId,
         holdEndsAtTick: mode.holdEndsAtTick,
+        secondaryOwnerTeamId: mode.secondaryOwnerTeamId,
+        secondaryClaimProgress: mode.secondaryClaimProgress,
       };
 }
 

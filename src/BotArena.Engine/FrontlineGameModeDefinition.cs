@@ -7,11 +7,25 @@ public sealed record FrontlineGameModeDefinition : GameModeDefinition
 {
     public const string Id = "frontline";
 
+    /// <summary>Creates the typed Frontline mode.</summary>
+    /// <param name="victory">Breach victory and timeout ranking.</param>
+    /// <param name="scoreCatalog">Exactly signed territorial progress.</param>
+    /// <param name="frontlinePositionCount">Odd chain length.</param>
+    /// <param name="capture">Capture, decay, and redeploy arithmetic.</param>
+    /// <param name="secondaryControl">
+    /// The optional side-objective capability
+    /// (<c>docs/DESIGN-SIDE-OBJECTIVES-2026-07-30.md</c> §3). Null — the
+    /// historical and default value — means the mode has no side objective at
+    /// all, and the canonical writer then emits no bytes for it, so every
+    /// ruleset authored before this capability existed keeps its exact
+    /// fingerprint.
+    /// </param>
     public FrontlineGameModeDefinition(
         FrontlineVictoryDefinition victory,
         ImmutableArray<ScoreChannelDefinition> scoreCatalog,
         int frontlinePositionCount,
-        FrontlineCaptureDefinition capture)
+        FrontlineCaptureDefinition capture,
+        FrontlineSecondaryControlDefinition? secondaryControl = null)
         : base(Id, victory, scoreCatalog)
     {
         ArgumentNullException.ThrowIfNull(capture);
@@ -50,6 +64,7 @@ public sealed record FrontlineGameModeDefinition : GameModeDefinition
         FrontlinePositionCount = frontlinePositionCount;
         Capture = capture;
         FrontlineVictory = victory;
+        SecondaryControl = secondaryControl;
     }
 
     public override GameModeDefinitionKind Kind =>
@@ -57,4 +72,10 @@ public sealed record FrontlineGameModeDefinition : GameModeDefinition
     public FrontlineVictoryDefinition FrontlineVictory { get; }
     public int FrontlinePositionCount { get; }
     public FrontlineCaptureDefinition Capture { get; }
+
+    /// <summary>
+    /// The declared side objective, or null when the mode has none. Inert
+    /// absence is the historical contract and writes no canonical bytes.
+    /// </summary>
+    public FrontlineSecondaryControlDefinition? SecondaryControl { get; }
 }

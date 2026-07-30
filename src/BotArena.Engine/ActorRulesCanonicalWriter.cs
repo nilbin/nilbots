@@ -160,6 +160,17 @@ internal static class ActorRulesCanonicalWriter
                     frontline.FrontlinePositionCount);
                 writer.WritePropertyName("capture");
                 WriteFrontlineCapture(writer, frontline.Capture);
+                // Trailing inert-default omission, exactly like the capture
+                // ratchet's hold and a form's projectile guard: a mode with
+                // no side objective writes no bytes for one, so every
+                // contract authored before the secondary-control capability
+                // existed — the immutable hosted frontline-labs-1 included —
+                // keeps its exact rules, match, and aggregate fingerprints.
+                if (frontline.SecondaryControl is { } secondaryControl)
+                {
+                    writer.WritePropertyName("secondaryControl");
+                    WriteFrontlineSecondaryControl(writer, secondaryControl);
+                }
                 break;
             default:
                 throw Unsupported(mode);
@@ -234,6 +245,27 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "earlyKillLimitResolution",
             Id(scoring.EarlyKillLimitResolution));
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineSecondaryControl(
+        Utf8JsonWriter writer,
+        FrontlineSecondaryControlDefinition secondaryControl)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("regionIds");
+        writer.WriteStartArray();
+        // Declared order, not sorted: the site regions are a sequence the
+        // contract hands to bots, exactly like the objective chain.
+        foreach (string regionId in secondaryControl.RegionIds)
+            writer.WriteStringValue(regionId);
+        writer.WriteEndArray();
+        writer.WriteNumber(
+            "captureThresholdTicks",
+            secondaryControl.CaptureThresholdTicks);
+        writer.WriteString("ownership", Id(secondaryControl.Ownership));
+        writer.WriteString("effect", Id(secondaryControl.Effect));
+        writer.WriteString("rallyScope", Id(secondaryControl.RallyScope));
         writer.WriteEndObject();
     }
 

@@ -137,6 +137,10 @@ export type ArenaFrontlineResult = {
     holdOwnerTeamId?: number | null;
     /** First tick the live hold stops denying regression; absent on pre-v3 replays. */
     holdEndsAtTick?: number | null;
+    /** Team owning the declared side objective; null while neutral. */
+    secondaryOwnerTeamId?: number | null;
+    /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
+    secondaryClaimProgress?: number;
   };
   scores: {
     teamKey: string;
@@ -230,6 +234,10 @@ export type ArenaModeState =
       holdOwnerTeamId?: number | null;
       /** First tick the live hold stops denying regression; absent on pre-v3 replays. */
       holdEndsAtTick?: number | null;
+      /** Team owning the declared side objective; null while neutral. */
+      secondaryOwnerTeamId?: number | null;
+      /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
+      secondaryClaimProgress?: number;
     }
   | {
       kind: string;

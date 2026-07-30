@@ -2378,6 +2378,16 @@ public sealed record GenericActorContext
             /// First tick on which that hold no longer denies regression, or
             /// <see langword="null"/> when no hold is live.
             /// </param>
+            /// <param name="secondaryOwnerTeamId">
+            /// Team that owns the declared side objective, or
+            /// <see langword="null"/> when it is neutral — including every
+            /// ruleset that declares none.
+            /// </param>
+            /// <param name="secondaryClaimProgress">
+            /// Signed sole-presence ticks accumulated toward the next side
+            /// objective capture: positive for team 0, negative for team 1,
+            /// zero when no claim stands.
+            /// </param>
             public Frontline(
                 string modeId,
                 int activePositionIndex,
@@ -2386,7 +2396,9 @@ public sealed record GenericActorContext
                 int decayTicksElapsed,
                 int controlResumesAtTick,
                 int? holdOwnerTeamId = null,
-                int? holdEndsAtTick = null)
+                int? holdEndsAtTick = null,
+                int? secondaryOwnerTeamId = null,
+                int secondaryClaimProgress = 0)
                 : base(modeId)
             {
                 if (activePositionIndex < 0)
@@ -2416,6 +2428,11 @@ public sealed record GenericActorContext
                         + "expiry together or not at all.",
                         nameof(holdOwnerTeamId));
                 }
+                if (secondaryOwnerTeamId is < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(secondaryOwnerTeamId));
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
@@ -2423,6 +2440,8 @@ public sealed record GenericActorContext
                 ControlResumesAtTick = controlResumesAtTick;
                 HoldOwnerTeamId = holdOwnerTeamId;
                 HoldEndsAtTick = holdEndsAtTick;
+                SecondaryOwnerTeamId = secondaryOwnerTeamId;
+                SecondaryClaimProgress = secondaryClaimProgress;
             }
 
             /// <inheritdoc />
@@ -2454,6 +2473,27 @@ public sealed record GenericActorContext
             /// binds while the observed tick is strictly below it.
             /// </summary>
             public int? HoldEndsAtTick { get; }
+            /// <summary>
+            /// The team that owns the declared side objective, or
+            /// <see langword="null"/> while it is neutral — which includes
+            /// every ruleset that declares no side objective at all. Read the
+            /// site's regions, its latch threshold, and what owning it does
+            /// from
+            /// <c>GenericActorRulesContract.FrontlineGameMode.SecondaryControl</c>;
+            /// this field is only who holds it right now. It is the read that
+            /// says "they are one body light at the front".
+            /// </summary>
+            public int? SecondaryOwnerTeamId { get; }
+            /// <summary>
+            /// The running claim on the side objective as signed
+            /// sole-presence ticks: positive counts for team 0, negative for
+            /// team 1, and zero means no claim stands. Compare its magnitude
+            /// against the contract's declared
+            /// <c>CaptureThresholdTicks</c> to price a contest; any empty or
+            /// contested tick puts it straight back to zero, so walking in
+            /// once is a real denial rather than a pause.
+            /// </summary>
+            public int SecondaryClaimProgress { get; }
         }
     }
 

@@ -198,6 +198,18 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     redeployTickArithmetic:
       'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
   };
+  /**
+   * The declared side objective. Additive and inert-omitted: a mode without
+   * one writes no bytes for it, so every historical ruleset keeps its exact
+   * fingerprint.
+   */
+  secondaryControl?: {
+    regionIds: string[];
+    captureThresholdTicks: number;
+    ownership: 'latched-until-recaptured-by-sole-objective-weight';
+    effect: 'muster';
+    rallyScope: 'prime-automatic-return-only';
+  };
 }
 
 export interface ReplayV3FrontlineCaptureGainPhase
@@ -599,6 +611,10 @@ export type ReplayV3ModeState =
       holdOwnerTeamId: number | null;
       /** First tick the live hold stops denying regression; null when none. */
       holdEndsAtTick: number | null;
+      /** Team that owns the declared side objective; null while neutral. */
+      secondaryOwnerTeamId: number | null;
+      /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
+      secondaryClaimProgress: number;
     };
 
 export interface ReplayV3WorldState {

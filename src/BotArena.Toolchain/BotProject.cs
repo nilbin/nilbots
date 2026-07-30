@@ -204,6 +204,20 @@ public static class ToolchainInfo
     /// `teamRandomSeed` key, so the engine-authored fixtures were regenerated
     /// and a replay written before this version is not interchangeable with
     /// one written after.
+    /// The same version adds the MUSTER side objective
+    /// (`--side-objective muster`, `docs/DESIGN-SIDE-OBJECTIVES-2026-07-30.md`)
+    /// and the shared secondary-control capability underneath it: a
+    /// capturable site off the frontline chain, latched by sole objective
+    /// weight, whose owner's PRIME automatic returns take the forward rally
+    /// placement the keel used to hand both teams for free. It runs on its
+    /// own map generation (`frontline-labs-02-muster`, alcoves widened to two
+    /// approach headings) and publishes exactly two facts, so SDK/Guest
+    /// 0.10.9 also carries `secondaryOwnerTeamId` and
+    /// `secondaryClaimProgress` on the Frontline mode observation. No rules
+    /// bytes move for anyone who does not declare a side objective: the
+    /// `gameMode.secondaryControl` block is inert-omitted, so every existing
+    /// ruleset — the hosted `frontline-labs-1` included — keeps its exact
+    /// fingerprints. Replay-v3 Frontline mode states grow the same two keys.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.26";
@@ -273,6 +287,16 @@ public static class ToolchainInfo
     // they were born or what they drew before, so a randomized plan is a
     // coordinated one. Trailing tagged wire field, every schema version
     // unchanged; an artifact built before this simply never sees TeamRandom.
+    // The same version publishes the side objective the MUSTER arm contests:
+    // ModeObservationState.Frontline carries SecondaryOwnerTeamId (the team
+    // holding it, null while neutral) and SecondaryClaimProgress (signed
+    // sole-presence ticks — positive for team 0, negative for team 1, zero
+    // when no claim stands). Both are trailing tagged wire fields whose
+    // absence is the neutral pair, so the observation schema version stays 2
+    // and a ruleset that declares no side objective spends no bytes on one.
+    // The site's regions, latch threshold, effect, and rally scope are
+    // contract data on GenericActorRulesContract.FrontlineGameMode
+    // .SecondaryControl, which is null unless the mode declares one.
     public const string SdkVersion = "0.10.9";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";

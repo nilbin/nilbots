@@ -547,7 +547,9 @@ public sealed record GenericActorRuntimeObservation(
                 int decayTicksElapsed,
                 int controlResumesAtTick,
                 int? holdOwnerTeamId = null,
-                int? holdEndsAtTick = null)
+                int? holdEndsAtTick = null,
+                int? secondaryOwnerTeamId = null,
+                int secondaryClaimProgress = 0)
                 : base(modeId)
             {
                 if ((holdOwnerTeamId is null) != (holdEndsAtTick is null))
@@ -557,6 +559,14 @@ public sealed record GenericActorRuntimeObservation(
                         + "expiry together or not at all.",
                         nameof(holdOwnerTeamId));
                 }
+                if (secondaryOwnerTeamId is not null
+                    && secondaryOwnerTeamId == SecondaryClaimant(
+                        secondaryClaimProgress))
+                {
+                    throw new ArgumentException(
+                        "A side objective's owner cannot also be claiming it.",
+                        nameof(secondaryClaimProgress));
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
@@ -564,7 +574,21 @@ public sealed record GenericActorRuntimeObservation(
                 ControlResumesAtTick = controlResumesAtTick;
                 HoldOwnerTeamId = holdOwnerTeamId;
                 HoldEndsAtTick = holdEndsAtTick;
+                SecondaryOwnerTeamId = secondaryOwnerTeamId;
+                SecondaryClaimProgress = secondaryClaimProgress;
             }
+
+            /// <summary>
+            /// The team a signed side-objective claim belongs to, or null
+            /// when the claim is zero.
+            /// </summary>
+            public static int? SecondaryClaimant(int claimProgress) =>
+                claimProgress switch
+                {
+                    0 => null,
+                    > 0 => 0,
+                    _ => 1,
+                };
 
             public int ActivePositionIndex { get; }
             public int? ClaimingTeamId { get; }
@@ -593,6 +617,26 @@ public sealed record GenericActorRuntimeObservation(
             /// tick is strictly below it.
             /// </summary>
             public int? HoldEndsAtTick { get; }
+
+            /// <summary>
+            /// The team that owns the declared side objective, or null when
+            /// it is neutral — including every ruleset that declares no side
+            /// objective at all. Published rather than inferred for the
+            /// reason the ratchet hold was: a body that walked off to a side
+            /// site is invisible at range 6, so without this fact "are they
+            /// one body light at the front?" is a guess.
+            /// </summary>
+            public int? SecondaryOwnerTeamId { get; }
+
+            /// <summary>
+            /// The running claim on the side objective as signed
+            /// sole-presence ticks: positive counts for team 0, negative for
+            /// team 1, and zero means no claim stands. Compare its magnitude
+            /// against the contract's declared
+            /// <c>captureThresholdTicks</c> — the threshold is static
+            /// contract data, not an observation fact.
+            /// </summary>
+            public int SecondaryClaimProgress { get; }
         }
     }
 }

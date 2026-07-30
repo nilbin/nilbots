@@ -153,7 +153,10 @@ internal static class GenericActorWireObservationCodec
                         GenericActorWireCodecValues.Int32(payload, 4),
                         GenericActorWireCodecValues.Int32(payload, 5),
                         GenericActorWireCodecValues.OptionalInt32(payload, 6),
-                        GenericActorWireCodecValues.OptionalInt32(payload, 7)),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 7),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 8),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 9)
+                            ?? 0),
                 _ => throw new FormatException(
                     "Unknown generic actor mode discriminator."),
             },
@@ -905,6 +908,19 @@ internal static class GenericActorWireObservationCodec
                     writer,
                     7,
                     frontline.HoldEndsAtTick);
+                // Absent means "the side objective is neutral" and, for the
+                // claim, "no claim stands" — so a ruleset that declares no
+                // side objective spends no wire bytes on one.
+                GenericActorWireCodecValues.OptionalInt32(
+                    writer,
+                    8,
+                    frontline.SecondaryOwnerTeamId);
+                GenericActorWireCodecValues.OptionalInt32(
+                    writer,
+                    9,
+                    frontline.SecondaryClaimProgress == 0
+                        ? null
+                        : frontline.SecondaryClaimProgress);
                 break;
             default:
                 throw new InvalidOperationException(

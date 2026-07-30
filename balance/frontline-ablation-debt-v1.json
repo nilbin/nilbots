@@ -85,6 +85,34 @@
       "currentInterpretation": "The universal-bend arm changes two things at once for a class that gains the grammar: it acquires curved shots AT ALL, and its mobile gun moves from the parameterless shoot-straight action to the payload-bearing shoot action. A change in that class's win rate could be the trajectory option or the action-catalog change a contract-driven bot has to notice.",
       "requiredIsolation": "Depth is already separable \u2014 the striker keeps 1-4 and the gaining classes get 1-2 \u2014 so run a third level that grants the shoot action with an envelope of exactly one legal bend distance, isolating grammar from catalog. Report the share of shots that actually carry a non-zero bend count per class, since the skill-shot forensics measured most bends as too short to read.",
       "requiredBefore": "phase-2-verdict"
+    },
+    {
+      "id": "muster-site-placement",
+      "status": "open",
+      "currentInterpretation": "The MUSTER arm's site placement is one bundled map factor: two 2-tile sites on the centre column, the alcove-shoulder widening at (10,3)/(12,3) and their mirrors that gives each site tile at least two approach headings, and the errand distance that widening also shortens (roughly six steps from the centre objective instead of eleven around the outer lane). It also mints a whole new map generation (frontline-labs-02-muster), so it is not fingerprint-comparable to any frontline-labs-01 arm on topology alone.",
+      "requiredIsolation": "Vary site distance, site tile count, and the shoulder widening as separately fingerprinted map variants at a fixed latch duration and rally scope, and report errand round-trip cost and flank-approach share per variant, before attributing any measured muster effect to 'the flag' rather than to how far away it is or how flankable it is.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "muster-latch-duration",
+      "status": "open",
+      "currentInterpretation": "The 12-tick latch bundles three levers in one number: the sole-presence threshold itself, the reset-on-interruption rule (any empty or contested tick puts a running claim back to zero, which is what makes one body walking in a real denial), and latched-until-recaptured ownership (an owner keeps the site while it is empty AND while the enemy stands on it). A snowball read cannot be attributed to the threshold without separating the reset rule and the latch from it.",
+      "requiredIsolation": "Vary the threshold alone at a fixed site and scope; then run a hold-while-present ownership level and a decays-to-neutral level as separately fingerprinted arms; then run a stall-instead-of-reset claim clock. Report time-to-first-capture, ownership turnover count, and the share of match ticks each team held the flag, since a flag that never changes hands and a flag nobody bothers with produce the same win rate for opposite reasons.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "muster-rally-scope",
+      "status": "open",
+      "currentInterpretation": "MUSTER moves only the Prime's automatic return, and it simultaneously REMOVES the unconditional forward-rally placement the keel hands both teams. So the arm is a scope choice and a baseline change at once: against a keel control it subtracts a free rally and re-sells it, while against a control-pendulum baseline it adds a rally that did not exist. Prime-only scoping is also the deliberate L5 mitigation (a fabricator's fourth body does not use the 18-tick clock), so scope and class-tilt are confounded by construction.",
+      "requiredIsolation": "Run the scope as its own registered level (Prime-only versus every automatic arrival, including companion activations) at a fixed site and latch; and run muster against BOTH baselines - keel-with-unconditional-rally and pendulum-control-without-rally - since the arm's sign flips between them. Read the class edges, not only the pacing gates: a side objective that improves cap share while pushing bulwark-vs-striker further above the band is a failure with good-looking numbers.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "side-objective-family-control-arm",
+      "status": "open",
+      "currentInterpretation": "MUSTER is the first effect of the shared FrontlineSecondaryControlDefinition capability, whose other registered effects (RELAY, BATTERY, KILN, ...) differ only in what owning the site does. Any improvement measured on MUSTER is therefore ambiguous between the EFFECT and the family's shared parts: a contested site existing at all, the map opening that puts it there, and one body's attendance being priced.",
+      "requiredIsolation": "Carry RELAY - the same site, the same latch, the same map, paying a trickle of TerritorialProgress instead - as the designated control arm, and measure it rather than asserting its failure mode. RELAY is the family's L2 hypothesis made falsifiable: because Frontline ranks timeouts on territorial progress alone, a team that takes the relay and refuses to fight should win by clock. If it does, the family's other effects are the reason anything improved; if it does not, the L2 argument that shaped every effect in the memo is wrong and the slate needs rereading.",
+      "requiredBefore": "internal-pilot"
     }
   ]
 }

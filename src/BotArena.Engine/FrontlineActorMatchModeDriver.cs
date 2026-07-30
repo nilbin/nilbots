@@ -18,6 +18,7 @@ internal sealed class FrontlineActorMatchModeDriver
     private readonly FrontlineModeKernel _kernel;
     private readonly ImmutableArray<ImmutableHashSet<Position>>
         _objectiveTiles;
+    private readonly ImmutableHashSet<Position> _secondarySiteTiles;
     private readonly ImmutableDictionary<string, int> _objectiveWeights;
     private FrontlineControlState _control;
 
@@ -49,6 +50,25 @@ internal sealed class FrontlineActorMatchModeDriver
             throw new ArgumentException(
                 "Frontline map binding references an unknown objective region.",
                 nameof(mapBinding),
+                exception);
+        }
+
+        // One site, however many regions declare it: presence sums across the
+        // union, so opposing bodies in two different alcoves contest each
+        // other exactly as two bodies on one tile-set would.
+        try
+        {
+            _secondarySiteTiles = gameMode.SecondaryControl is null
+                ? []
+                : gameMode.SecondaryControl.RegionIds
+                    .SelectMany(regionId => regions[regionId].Tiles)
+                    .ToImmutableHashSet();
+        }
+        catch (KeyNotFoundException exception)
+        {
+            throw new ArgumentException(
+                "Frontline secondary control references an unknown site region.",
+                nameof(gameMode),
                 exception);
         }
 
@@ -95,24 +115,13 @@ internal sealed class FrontlineActorMatchModeDriver
         ImmutableHashSet<Position> activeTiles =
             _objectiveTiles[previousControl.ActivePositionIndex];
         ImmutableDictionary<int, int> objectiveWeightByTeam =
-            world.ActiveLives
-            .Where(life =>
-                _objectiveWeights.TryGetValue(
-                    life.FormId,
-                    out int objectiveWeight)
-                && objectiveWeight > 0
-                && activeTiles.Contains(life.Position))
-            .GroupBy(life => life.ActorId.TeamId)
-            .OrderBy(group => group.Key)
-            .ToImmutableDictionary(
-                group => group.Key,
-                group => group.Sum(life =>
-                    _objectiveWeights[life.FormId]));
+            WeightOn(world, activeTiles);
 
         FrontlineControlStepResult step = _kernel.ApplyJointTick(
             previousControl,
             input.Tick,
-            objectiveWeightByTeam);
+            objectiveWeightByTeam,
+            WeightOn(world, _secondarySiteTiles));
         _control = step.State;
         FrontlineScoreState scores = _kernel.CreateScoreState(_control);
         GenericActorRuntimeObservation.ModeObservationState.Frontline mode =
@@ -195,6 +204,31 @@ internal sealed class FrontlineActorMatchModeDriver
                     .ToImmutableArray()),
             ProjectControl(_control));
     }
+
+    /// <summary>
+    /// Positive objective weight each scoring team currently has standing on
+    /// a tile set, from the post-damage active lives. Zero-weight forms — an
+    /// anchored turret — never appear, which is why fortifying forfeits a
+    /// side site exactly as it forfeits the front.
+    /// </summary>
+    private ImmutableDictionary<int, int> WeightOn(
+        GenericActorModeWorldView world,
+        ImmutableHashSet<Position> tiles) =>
+        tiles.IsEmpty
+            ? ImmutableDictionary<int, int>.Empty
+            : world.ActiveLives
+                .Where(life =>
+                    _objectiveWeights.TryGetValue(
+                        life.FormId,
+                        out int objectiveWeight)
+                    && objectiveWeight > 0
+                    && tiles.Contains(life.Position))
+                .GroupBy(life => life.ActorId.TeamId)
+                .OrderBy(group => group.Key)
+                .ToImmutableDictionary(
+                    group => group.Key,
+                    group => group.Sum(life =>
+                        _objectiveWeights[life.FormId]));
 
     private GenericActorRuntimeObservation.ModeObservationState.Frontline
         ProjectControl(FrontlineControlState control) =>

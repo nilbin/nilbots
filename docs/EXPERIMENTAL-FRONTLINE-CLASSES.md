@@ -489,3 +489,99 @@ is registered as the composite identity `berth`.
 The whole open game — keel + kit + universal bend + `wane` + `aim` +
 `open` — is registered as the composite identity **`deck`** (`sail-open`
 spells itself where no fabricator is in the cell).
+
+## Side objective: MUSTER
+
+`--side-objective muster` puts a second, lesser objective on the map
+(`docs/DESIGN-SIDE-OBJECTIVES-2026-07-30.md`). It is not a second way to
+score — Frontline declares exactly one score channel and ranks timeouts by
+exactly it, so a side point that paid territory would be a way to win a match
+by refusing to fight for the front. MUSTER pays in **respawn geometry**:
+
+- **The site** is two mirror-symmetric 2-tile regions in the map's dead
+  centre-column alcoves, `muster-site-north` and `muster-site-south`. They are
+  one flag with two places to stand: presence is summed across both, so your
+  body in the north alcove and an enemy body in the south alcove **contest
+  each other**. The arm runs on its own map generation,
+  `frontline-labs-02-muster`, because the alcoves are widened to at least two
+  approach headings first — a 1-wide dead end plus an AEGIS SHELL is an
+  unflankable holder, and the shell's published counter-play is that going
+  around it always works.
+- **The latch** is 12 consecutive ticks of **sole** positive objective weight.
+  Any empty or contested tick puts a running claim straight back to **zero**,
+  so walking in once is a real denial, not a pause. Completing the claim
+  latches ownership: the owner keeps the flag while the site is empty and
+  while an enemy stands on it, and loses it only when the other team completes
+  a full claim of its own.
+- **Objective weight, not bodies.** An anchored turret declares weight zero,
+  so it can neither hold the site nor contest one — the turret bargain, again.
+  An AEGIS SHELL (weight 1) can hold it.
+- **The effect**: while your team owns the flag, your **PRIME's** automatic
+  return lands on the forward rally tile — the rear-most free tile of your
+  own-side chain-adjacent objective, measured along your own advance
+  direction, exactly the placement `--pendulum keel` hands out for free.
+  Without the flag it lands on your reserved home spawn. Companion
+  activations, fabricated children, and replicas are untouched, so a
+  four-slot team gains no more from the flag than a three-slot team does.
+- **This arm takes the free rally away.** On `--side-objective muster` the
+  lifecycle placement is the home spawn even under `keel`: the placement the
+  keel gives both teams unconditionally is the thing you are now fighting
+  over. Read `rules.lifecycle.automaticReturnPlacement` — do not assume the
+  pendulum level still implies a rally.
+- **The owner at your respawn tick decides.** A death queued while you held
+  the flag still walks home if the flag was lost before your body lands, and a
+  death queued while you had nothing still rallies forward if you took the
+  flag in the meantime.
+
+### Read the flag, do not infer it
+
+A body that walks off to a side site is invisible — vision is a facing
+quadrant at range 6 — so without a published fact, "are they one body light at
+the front?" is a guess. Two fields on the Frontline mode observation, beside
+the ratchet-hold clocks:
+
+| field | meaning |
+| --- | --- |
+| `secondaryOwnerTeamId` | the team that owns the flag, or **null** while it is neutral |
+| `secondaryClaimProgress` | signed sole-presence ticks on the running claim: **positive counts for team 0, negative for team 1**, zero when no claim stands |
+
+- **Null and zero mean the same thing on a ruleset with no side objective at
+  all**, for the whole match, so a bot reading these never has to branch on
+  whether the mechanic exists.
+- **The sign is the claimant.** `secondaryClaimProgress = -7` means team 1 has
+  held the site alone for seven ticks. There is no separate claiming-team
+  field: the sign carries it, in the same direction the public team-advance
+  ordering uses.
+- **The threshold is contract data, not an observation fact.** Read
+  `rules.gameMode.secondaryControl.captureThresholdTicks` for what the claim
+  is racing toward, `regionIds` for where the site is (resolve them against
+  `map.regions` like any other region), and `effect` / `rallyScope` for what
+  owning it buys. The whole block is **absent** on a ruleset without a side
+  objective — read your contract, don't assume the map has a flag on it.
+- **Ownership and claim changes are ordinary `mode-changed` facts**, carrying
+  the post-change state, exactly like the ratchet hold's lapse. Watch that
+  event to see the flag turn over; nothing new to subscribe to.
+
+Because the claim resets on interruption and the owner does not, the two
+fields answer different questions. `secondaryOwnerTeamId` prices the *front*
+— an owner rejoins the fight in a handful of ticks and you trudge, so push
+before they die rather than after. `secondaryClaimProgress` prices the *site*
+— a claim at 11 of 12 is worth one body's walk to break, and a claim at 1 is
+not.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum keel --skills kit \
+  --bend universal --side-objective muster \
+  --seed 42 --runtime wasm --out /tmp/muster
+```
+
+The arm needs a cell to sit in: a class pair (explicit or manifest-declared)
+or a `--pendulum` level. It is a **real arm on every pair** — unlike
+`--volley salvo` it is never inert-omitted, because it changes the map for
+both teams whatever classes are in the cell. The candidate game plus the flag
+carries a registered identity per shape: `tide` + muster is **`ensign`**,
+`swell` + muster is **`banner`**, and the tuned open game on the ticking clock
+without the fabricator's `wane` (`sail-tick-open`) + muster is **`pennant`**.
+Smaller cells spell their factors and append `muster`.

@@ -31,6 +31,25 @@ internal static class FrontlineControlProjection
                 control.DecayTicksElapsed,
                 control.ControlResumesAtTick,
                 live ? control.RatchetHold!.TeamId : null,
-                live ? control.RatchetHold!.HoldsThroughTick + 1 : null);
+                live ? control.RatchetHold!.HoldsThroughTick + 1 : null,
+                control.SecondaryControl?.OwnerTeamId,
+                SecondaryClaimProgress(control.SecondaryControl));
     }
+
+    /// <summary>
+    /// The side objective's running claim as one signed number: the
+    /// accumulated sole-presence ticks, positive for team 0 and negative for
+    /// team 1 — the same direction the public team-advance ordering uses, so
+    /// the sign names the claimant without spending a second published fact
+    /// on it. Zero means no claim stands, including on every ruleset that
+    /// declares no side objective at all.
+    /// </summary>
+    private static int SecondaryClaimProgress(
+        FrontlineSecondaryControlState? secondary) =>
+        secondary?.ClaimingTeamId switch
+        {
+            null => 0,
+            0 => secondary!.ClaimTicks,
+            _ => -secondary!.ClaimTicks,
+        };
 }

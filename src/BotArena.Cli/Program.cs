@@ -247,6 +247,7 @@ static int CommandHelp(string command)
                    [--aim straight|offset]
                    [--cooldown frozen|ticking]
                    [--volley cast|salvo]
+                   [--side-objective none|muster]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -375,6 +376,27 @@ static int CommandHelp(string command)
             the #181 capability; it survives your death). Needs volley in
             the cell's kit; inert-omitted where no striker is present.
             tide + salvo is registered as `swell`.
+            --side-objective muster adds MUSTER, the rally flag: a capturable
+            site in the two widened alcoves on the map's centre column, held
+            by SOLE objective weight for 12 consecutive ticks (any empty or
+            contested tick puts the claim back to zero) and then latched
+            until the other team completes a claim of its own. While a team
+            owns it, that team's PRIME automatic returns land on the forward
+            rally tile beside the fight; without it they walk from home. It
+            is the ONLY source of a forward rally on this arm — the
+            unconditional placement keel hands both teams is taken away and
+            becomes the thing they fight over — and it is scoped to the
+            Prime, so a fabricator's fourth body gains nothing extra. It
+            never pays territorial progress. Read the owner and the running
+            claim from the mode observation (secondaryOwnerTeamId,
+            secondaryClaimProgress: signed, positive for team 0) and the
+            site's regions, threshold, and effect from the contract's
+            gameMode.secondaryControl. It runs on its own map generation
+            (frontline-labs-02-muster) because the alcoves are widened to two
+            approach headings, so it is a real arm on every pair rather than
+            an inert-omitted one, and it needs a class pair or a --pendulum
+            level to sit in. tide + muster is registered as `ensign`, and
+            swell + muster as `hoist`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

@@ -893,6 +893,18 @@ export type ReplayModeState =
       holdOwnerTeamId?: number | null;
       /** First tick the live hold stops denying regression; null when none. */
       holdEndsAtTick?: number | null;
+      /**
+       * Team that owns the declared side objective, or null while it is
+       * neutral — which includes every ruleset that declares none. Only a
+       * generation-3 contract carries the fact, so it is absent on replays
+       * normalized from older wires.
+       */
+      secondaryOwnerTeamId?: number | null;
+      /**
+       * Running claim on the side objective as signed sole-presence ticks:
+       * positive for team 0, negative for team 1, zero when none stands.
+       */
+      secondaryClaimProgress?: number;
     }
   | {
       kind: string;

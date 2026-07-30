@@ -397,6 +397,88 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void SideObjectiveArm_SelectsTheMusterMapAndNeedsACellToSitIn()
+    {
+        JsonElement plain = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement muster = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--side-objective",
+                "muster",
+            ]);
+
+        // The arm mints its own ruleset, its own map generation, and its own
+        // fingerprints; nothing about the plain pair moves.
+        Assert.Equal(
+            "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+            plain.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-muster",
+            muster.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-01-classes",
+            plain.GetProperty("mapId").GetString());
+        Assert.Equal(
+            "frontline-labs-02-muster-classes",
+            muster.GetProperty("mapId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            muster.GetProperty("matchContractFingerprint").GetString());
+
+        // Naming the baseline explicitly changes nothing at all.
+        Assert.Equal(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--side-objective",
+                    "none",
+                ]).GetProperty("matchContractFingerprint").GetString());
+
+        // It composes with a pendulum level without a class pair...
+        Assert.Equal(
+            "frontline-labs-1-experiment-keel-muster",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--pendulum",
+                    "keel",
+                    "--side-objective",
+                    "muster",
+                ]).GetProperty("rulesetId").GetString());
+
+        // ...but a side objective with no cell to sit in is refused, and an
+        // unknown level names the ones that exist.
+        Assert.Contains(
+            "needs a cell to sit in",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--side-objective",
+                        "muster",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use none or muster",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--side-objective",
+                        "relay",
+                    ])).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PendulumArms_ComposeIntoTheFourPhaseOneFactorLevels()
     {
         JsonElement control = PrintedContract(

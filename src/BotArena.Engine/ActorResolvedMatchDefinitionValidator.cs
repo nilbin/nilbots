@@ -574,6 +574,12 @@ public static class ActorResolvedMatchDefinitionValidator
             }
         }
 
+        ValidateFrontlineSecondaryControl(
+            frontline,
+            objectiveTiles,
+            mapRegions,
+            errors);
+
         if (topology is null)
             return;
 
@@ -589,6 +595,63 @@ public static class ActorResolvedMatchDefinitionValidator
         {
             errors.Add(
                 "Frontline team advances must exactly cover the topology scoring teams.");
+        }
+    }
+
+    /// <summary>
+    /// A declared side objective resolves onto typed Objective regions that
+    /// exist, do not repeat a tile between themselves, and sit OFF the
+    /// frontline chain — a site that was also a chain position would make one
+    /// tile mean two contested things at once.
+    /// </summary>
+    private static void ValidateFrontlineSecondaryControl(
+        FrontlineGameModeDefinition frontline,
+        IReadOnlyDictionary<Position, string> chainTiles,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        List<string> errors)
+    {
+        if (frontline.SecondaryControl is not { } secondaryControl)
+            return;
+
+        var siteTiles = new Dictionary<Position, string>();
+        foreach (string regionId in secondaryControl.RegionIds)
+        {
+            if (!mapRegions.TryGetValue(
+                    regionId,
+                    out ActorMapRegionDefinition? region))
+            {
+                errors.Add(
+                    "Frontline secondary control references unknown site "
+                    + $"region '{regionId}'.");
+                continue;
+            }
+            if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective)
+            {
+                errors.Add(
+                    $"Frontline secondary-control region '{regionId}' must "
+                    + "be an Objective region.");
+                continue;
+            }
+            foreach (Position tile in region.Tiles)
+            {
+                if (chainTiles.ContainsKey(tile))
+                {
+                    errors.Add(
+                        "Frontline secondary-control region "
+                        + $"'{regionId}' overlaps the frontline chain at "
+                        + $"{tile}.");
+                }
+                else if (siteTiles.TryGetValue(tile, out string? existing))
+                {
+                    errors.Add(
+                        $"Frontline secondary-control regions '{existing}' "
+                        + $"and '{regionId}' overlap at {tile}.");
+                }
+                else
+                {
+                    siteTiles.Add(tile, regionId);
+                }
+            }
         }
     }
 

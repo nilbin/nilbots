@@ -47,6 +47,7 @@ public static class FrontlineLabsExperimentCommand
             "aim",
             "cooldown",
             "volley",
+            "side-objective",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -280,11 +281,27 @@ public static class FrontlineLabsExperimentCommand
                 "--volley tunes the VOLLEY skill, so the cell must carry "
                 + "it: pass a --skills selection that includes volley.");
         }
+        // A side objective is a real arm on every cell: it changes the map
+        // for both teams and declares a typed capability, so it is never
+        // inert-omitted the way --volley salvo is in a strikerless cell.
+        FrontlineLabsSideObjectiveArm sideObjective =
+            OptionalSideObjective(options);
+        if (sideObjective != FrontlineLabsSideObjectiveArm.None
+            && classPair is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new InvalidOperationException(
+                "--side-objective adds a contested site to the class game, "
+                + "so it needs a cell to sit in: pass --classes "
+                + "<a>-vs-<b> (or run two class-declaring projects), or "
+                + "compose it with a --pendulum level.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
             || skills != FrontlineLabsSkillKit.None
             || bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly
+            || sideObjective != FrontlineLabsSideObjectiveArm.None
             || (captureThreshold is not null
                 && (classPair is not null || standaloneMovementArm));
         bool duelExperiment = oneBendShots
@@ -326,7 +343,8 @@ public static class FrontlineLabsExperimentCommand
                 stanceGround,
                 aim,
                 cooldownArm,
-                volleyArm);
+                volleyArm,
+                sideObjective);
         }
         else if (captureThreshold is int threshold)
         {
@@ -421,6 +439,12 @@ public static class FrontlineLabsExperimentCommand
                 "Topology profile:  "
                 + FrontlineLabsDefinition.TopologyProfileIdFor(
                     definition.Topology));
+        }
+        if (sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            Console.WriteLine(
+                "Side objective:    muster — the owner's PRIME respawns "
+                + "rally forward; nobody else does");
         }
         if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly)
         {
@@ -808,6 +832,30 @@ public static class FrontlineLabsExperimentCommand
             "salvo" => FrontlineLabsVolleyArm.Salvo,
             _ => throw new InvalidOperationException(
                 $"Unknown --volley arm '{value}' (use cast or salvo)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered side-objective arm
+    /// (<c>docs/DESIGN-SIDE-OBJECTIVES-2026-07-30.md</c>). Omitting the
+    /// option — or naming <c>none</c> — keeps today's map and contract and
+    /// adds no ruleset suffix. <c>muster</c> adds the rally flag: a
+    /// capturable site on the map's centre column whose owner's PRIME
+    /// respawns land beside the fight, and which takes the unconditional
+    /// forward rally away from both teams to pay for it.
+    /// </summary>
+    private static FrontlineLabsSideObjectiveArm OptionalSideObjective(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("side-objective", out string? value))
+            return FrontlineLabsSideObjectiveArm.None;
+        return value.ToLowerInvariant() switch
+        {
+            "none" => FrontlineLabsSideObjectiveArm.None,
+            "muster" => FrontlineLabsSideObjectiveArm.Muster,
+            _ => throw new InvalidOperationException(
+                $"Unknown --side-objective arm '{value}' (use none or "
+                + "muster)."),
         };
     }
 

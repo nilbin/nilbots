@@ -13,6 +13,14 @@ public static class FrontlineLabsDefinition
     public const string PlaylistKey = "frontline-labs";
     public const string RulesetId = "frontline-labs-1";
     public const string MapId = "frontline-labs-01";
+
+    /// <summary>
+    /// The MUSTER arm's own map generation. A side objective is never an
+    /// edit to an existing map: the shipped map goldens stay byte-exact and
+    /// this second generation carries the widened centre-column alcoves and
+    /// the two mirror-symmetric site regions.
+    /// </summary>
+    public const string MusterMapId = "frontline-labs-02-muster";
     public const string MatchFormatId =
         HeadToHeadMatchFormatDefinition.Id;
     public const string TopologyProfileId =
@@ -390,8 +398,17 @@ public static class FrontlineLabsDefinition
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
-        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
+        if (!Enum.IsDefined(sideObjective))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(sideObjective),
+                sideObjective,
+                "Unknown Frontline Labs side objective arm.");
+        }
         if (!Enum.IsDefined(volley))
         {
             throw new ArgumentOutOfRangeException(
@@ -522,6 +539,7 @@ public static class FrontlineLabsDefinition
             && classes is null
             && effectiveSkills == FrontlineLabsSkillKit.None
             && bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
+            && sideObjective == FrontlineLabsSideObjectiveArm.None
             && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
             throw new ArgumentOutOfRangeException(
@@ -581,7 +599,8 @@ public static class FrontlineLabsDefinition
                 effectiveGround,
                 aim,
                 cooldown,
-                effectiveVolley),
+                effectiveVolley,
+                sideObjective),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -601,7 +620,8 @@ public static class FrontlineLabsDefinition
             stanceGround: effectiveGround,
             aim: aim,
             cooldown: cooldown,
-            volley: effectiveVolley);
+            volley: effectiveVolley,
+            sideObjective: sideObjective);
     }
 
     /// <summary>
@@ -744,12 +764,40 @@ public static class FrontlineLabsDefinition
     /// </summary>
     private static ActorLifecycleDefinition
         .ActorAutomaticReturnPlacementKind AutomaticReturnPlacement(
-            FrontlineLabsPendulumArm pendulum) =>
-        pendulum.HasFlag(FrontlineLabsPendulumArm.ForwardRally)
+            FrontlineLabsPendulumArm pendulum,
+            FrontlineLabsSideObjectiveArm sideObjective) =>
+        // MUSTER takes the unconditional rally away from BOTH teams and
+        // hands it back only to whoever holds the flag — the memo's whole
+        // point, that the placement the keel gives away for free becomes the
+        // contested asset. So the lifecycle placement reverts to the home
+        // spawn here even on a rally pendulum, and the secondary control's
+        // effect is the only thing that can move an arrival forward.
+        sideObjective == FrontlineLabsSideObjectiveArm.Muster
+            ? ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims
+        : pendulum.HasFlag(FrontlineLabsPendulumArm.ForwardRally)
             ? ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn
             : ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims;
+
+    /// <summary>
+    /// The declared side objective for one arm, or null for the measured
+    /// baseline. Absence writes no canonical bytes at all, so every arm
+    /// without a side objective keeps its exact historical fingerprints.
+    /// </summary>
+    private static FrontlineSecondaryControlDefinition? SecondaryControl(
+        FrontlineLabsSideObjectiveArm sideObjective) =>
+        sideObjective switch
+        {
+            FrontlineLabsSideObjectiveArm.None => null,
+            FrontlineLabsSideObjectiveArm.Muster =>
+                FrontlineLabsMusterSite.Definition,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(sideObjective),
+                sideObjective,
+                "Unknown Frontline Labs side objective arm."),
+        };
 
     /// <summary>
     /// Content-identified ruleset ID for one factorial cell. A class pair
@@ -773,7 +821,9 @@ public static class FrontlineLabsDefinition
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
-        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -865,6 +915,32 @@ public static class FrontlineLabsDefinition
             };
             if (arms is ["swell"])
                 tuning = [];
+        }
+        if (sideObjective == FrontlineLabsSideObjectiveArm.Muster)
+        {
+            // The flag re-mints the whole game, exactly as `swell` re-minted
+            // `tide` when the fan was re-armed. The worst class cell
+            // (`fabricator-vs-fabricator` beside `facing-locked`) leaves 22
+            // characters for the suffix and `facing-locked` spends 14 of
+            // them, so the candidate game plus `muster` cannot be spelled at
+            // all. Three flags for the three shapes the candidate game takes:
+            // `pennant` is the tuned open game on the ticking clock,
+            // `ensign` adds the fabricator's wane, and `banner` adds the
+            // re-armed fan. Everything smaller spells its factors and
+            // appends `muster`.
+            (string[] Arms, string[] Tuning) flagged =
+                (arms, tuning) switch
+                {
+                    (["swell"], _) => (new[] { "banner" }, []),
+                    (["tide"], _) => (new[] { "ensign" }, []),
+                    (["sail", "tick"], ["open"]) =>
+                        (new[] { "pennant" }, []),
+                    _ => (
+                        [.. arms, FrontlineLabsMusterSite.ArmToken],
+                        tuning),
+                };
+            arms = flagged.Arms;
+            tuning = flagged.Tuning;
         }
         string[] tokens =
         [
@@ -1170,7 +1246,9 @@ public static class FrontlineLabsDefinition
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
-        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1191,12 +1269,14 @@ public static class FrontlineLabsDefinition
             stanceGround,
             aim,
             cooldown,
-            volley);
+            volley,
+            sideObjective);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
             automaticCompanions,
-            classes: classes is not null);
+            classes: classes is not null,
+            sideObjective: sideObjective);
         PublicMatchTopology topology = CreateTopology(classes, skills);
         InitialDeploymentDefinition deployment =
             CreateInitialDeployment(classes);
@@ -1280,7 +1360,9 @@ public static class FrontlineLabsDefinition
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
-        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1301,7 +1383,8 @@ public static class FrontlineLabsDefinition
                 stanceGround,
                 aim,
                 cooldown,
-                volley);
+                volley,
+                sideObjective);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1503,7 +1586,7 @@ public static class FrontlineLabsDefinition
                         automaticReturnFormId:
                             automaticCompanions ? ChildFormId : null),
                 ],
-                AutomaticReturnPlacement(pendulum)),
+                AutomaticReturnPlacement(pendulum, sideObjective)),
             [
                 new ActorFormDefinition(
                     PrimeFormId,
@@ -1604,7 +1687,9 @@ public static class FrontlineLabsDefinition
                         new ActorRelativePositionOffset(1, 0),
                     ],
                     splitWindup),
-                ]);
+                ],
+            cooldown: FrontlineLabsCooldownArm.Frozen,
+            sideObjective: sideObjective);
     }
 
     /// <summary>
@@ -1633,7 +1718,9 @@ public static class FrontlineLabsDefinition
         IEnumerable<ActorReplicationTransitionDefinition>
             replicationTransitions,
         FrontlineLabsCooldownArm cooldown =
-            FrontlineLabsCooldownArm.Frozen) =>
+            FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None) =>
         new(
             rulesetId,
             new ActorRulesLimits(
@@ -1675,7 +1762,8 @@ public static class FrontlineLabsDefinition
                     controlPolicy,
                     DecayClock(pendulum),
                     RedeployPolicy(pendulum),
-                    RatchetHoldTicks(pendulum))),
+                    RatchetHoldTicks(pendulum)),
+                SecondaryControl(sideObjective)),
             lifecycle,
             forms,
             movementProfiles,
@@ -1734,7 +1822,9 @@ public static class FrontlineLabsDefinition
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
-        FrontlineLabsVolleyArm volleyArm = FrontlineLabsVolleyArm.Cast)
+        FrontlineLabsVolleyArm volleyArm = FrontlineLabsVolleyArm.Cast,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -2158,7 +2248,7 @@ public static class FrontlineLabsDefinition
             seedProfileId,
             new ActorLifecycleDefinition(
                 lifecycleProfiles,
-                AutomaticReturnPlacement(pendulum)),
+                AutomaticReturnPlacement(pendulum, sideObjective)),
             forms,
             [movement],
             visions,
@@ -2167,7 +2257,8 @@ public static class FrontlineLabsDefinition
             fabrications,
             sameLifeTransitions,
             replicationTransitions: [],
-            cooldown);
+            cooldown,
+            sideObjective);
     }
 
     private static ActorFormTransitionDefinition AnchorRoute(
@@ -2545,46 +2636,18 @@ public static class FrontlineLabsDefinition
         bool remoteFabrication,
         FrontlineLabsDuelMapArm duelMapArm,
         bool automaticCompanions,
-        bool classes = false) =>
+        bool classes = false,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None) =>
         new(
-            remoteFabrication
-                ? $"{MapId}-remote-fabrication-experiment"
-                : classes
-                    ? duelMapArm switch
-                    {
-                        FrontlineLabsDuelMapArm.Current =>
-                            $"{MapId}-classes",
-                        FrontlineLabsDuelMapArm.ThinFronts =>
-                            $"{MapId}-thin-fronts-classes",
-                        FrontlineLabsDuelMapArm.OuterShoulderBypass =>
-                            $"{MapId}-outer-shoulder-classes",
-                        _ => throw new ArgumentOutOfRangeException(
-                            nameof(duelMapArm),
-                            duelMapArm,
-                            "Unknown Frontline Labs duel map arm."),
-                    }
-                    : (duelMapArm, automaticCompanions) switch
-                    {
-                        (FrontlineLabsDuelMapArm.Current, false) => MapId,
-                        (FrontlineLabsDuelMapArm.ThinFronts, false) =>
-                            $"{MapId}-thin-fronts-experiment",
-                        (FrontlineLabsDuelMapArm
-                            .OuterShoulderBypass, false) =>
-                            $"{MapId}-outer-shoulder-bypass-experiment",
-                        (FrontlineLabsDuelMapArm.Current, true) =>
-                            $"{MapId}-auto-companions",
-                        (FrontlineLabsDuelMapArm.ThinFronts, true) =>
-                            $"{MapId}-thin-fronts-auto-companions",
-                        (FrontlineLabsDuelMapArm
-                            .OuterShoulderBypass, true) =>
-                            $"{MapId}-outer-shoulder-auto-companions",
-                        _ => throw new ArgumentOutOfRangeException(
-                            nameof(duelMapArm),
-                            duelMapArm,
-                            "Unknown Frontline Labs duel map arm."),
-                    },
+            MapIdFor(
+                remoteFabrication,
+                duelMapArm,
+                automaticCompanions,
+                classes,
+                sideObjective),
             version: 1,
-            MapTileRows(duelMapArm),
+            MapTileRows(duelMapArm, sideObjective),
             [
                 Spawn("team-0-prime", 2, 7, Direction.East),
                 Spawn("team-1-prime", 20, 7, Direction.West),
@@ -2605,7 +2668,10 @@ public static class FrontlineLabsDefinition
                         (20, 8),
                         (21, 8),
                     ]),
-                .. RemoteFabricationRegions(remoteFabrication || classes),
+                .. MusterSiteRegions(sideObjective),
+                .. RemoteFabricationRegions(
+                    remoteFabrication || classes,
+                    sideObjective),
             ],
             [
                 new ActorMapTileTagDefinition(
@@ -2632,8 +2698,84 @@ public static class FrontlineLabsDefinition
                     ]),
             ]);
 
+    /// <summary>
+    /// The map identity for one arm combination. A side objective mints its
+    /// own map generation rather than editing an existing one: historical map
+    /// goldens stay byte-exact, and the widened alcoves plus the two site
+    /// regions are a new fingerprint on purpose.
+    /// </summary>
+    private static string MapIdFor(
+        bool remoteFabrication,
+        FrontlineLabsDuelMapArm duelMapArm,
+        bool automaticCompanions,
+        bool classes,
+        FrontlineLabsSideObjectiveArm sideObjective)
+    {
+        string baseId = sideObjective == FrontlineLabsSideObjectiveArm.Muster
+            ? MusterMapId
+            : MapId;
+        return remoteFabrication
+                ? $"{baseId}-remote-fabrication-experiment"
+                : classes
+                    ? duelMapArm switch
+                    {
+                        FrontlineLabsDuelMapArm.Current =>
+                            $"{baseId}-classes",
+                        FrontlineLabsDuelMapArm.ThinFronts =>
+                            $"{baseId}-thin-fronts-classes",
+                        FrontlineLabsDuelMapArm.OuterShoulderBypass =>
+                            $"{baseId}-outer-shoulder-classes",
+                        _ => throw new ArgumentOutOfRangeException(
+                            nameof(duelMapArm),
+                            duelMapArm,
+                            "Unknown Frontline Labs duel map arm."),
+                    }
+                    : (duelMapArm, automaticCompanions) switch
+                    {
+                        (FrontlineLabsDuelMapArm.Current, false) => baseId,
+                        (FrontlineLabsDuelMapArm.ThinFronts, false) =>
+                            $"{baseId}-thin-fronts-experiment",
+                        (FrontlineLabsDuelMapArm
+                            .OuterShoulderBypass, false) =>
+                            $"{baseId}-outer-shoulder-bypass-experiment",
+                        (FrontlineLabsDuelMapArm.Current, true) =>
+                            $"{baseId}-auto-companions",
+                        (FrontlineLabsDuelMapArm.ThinFronts, true) =>
+                            $"{baseId}-thin-fronts-auto-companions",
+                        (FrontlineLabsDuelMapArm
+                            .OuterShoulderBypass, true) =>
+                            $"{baseId}-outer-shoulder-auto-companions",
+                        _ => throw new ArgumentOutOfRangeException(
+                            nameof(duelMapArm),
+                            duelMapArm,
+                            "Unknown Frontline Labs duel map arm."),
+                    };
+    }
+
+    /// <summary>
+    /// The two mirror-symmetric MUSTER sites, or nothing. Both sit on the
+    /// map's centre column, so they are equidistant from the two spawns by
+    /// construction, and they are exact reflections of each other across the
+    /// centre row.
+    /// </summary>
+    private static ImmutableArray<ActorMapRegionDefinition>
+        MusterSiteRegions(FrontlineLabsSideObjectiveArm sideObjective) =>
+        sideObjective == FrontlineLabsSideObjectiveArm.Muster
+            ?
+            [
+                Objective(
+                    FrontlineLabsMusterSite.NorthRegionId,
+                    [.. FrontlineLabsMusterSite.NorthTiles]),
+                Objective(
+                    FrontlineLabsMusterSite.SouthRegionId,
+                    [.. FrontlineLabsMusterSite.SouthTiles]),
+            ]
+            : [];
+
     private static ImmutableArray<string> MapTileRows(
-        FrontlineLabsDuelMapArm duelMapArm)
+        FrontlineLabsDuelMapArm duelMapArm,
+        FrontlineLabsSideObjectiveArm sideObjective =
+            FrontlineLabsSideObjectiveArm.None)
     {
         ImmutableArray<string> rows =
         [
@@ -2653,6 +2795,21 @@ public static class FrontlineLabsDefinition
             "#.....................#",
             "#######################",
         ];
+        if (sideObjective == FrontlineLabsSideObjectiveArm.Muster)
+        {
+            // The MUSTER map opens the two alcove shoulders on rows 3 and 11
+            // ((10,3)/(12,3) and their mirrors), turning each 1-wide
+            // cul-de-sac into a through-passage. That is a design
+            // prerequisite, not a flourish: an AEGIS SHELL parked in a
+            // 1-wide dead end deflects every bolt arriving in its facing
+            // quadrant and its published counter-play — go around it — does
+            // not exist in a corridor. Both rows stay palindromic about the
+            // centre column, so the map keeps the mirror fairness the two
+            // spawns depend on.
+            rows = rows
+                .SetItem(3, "#.....................#")
+                .SetItem(11, "#.....................#");
+        }
         if (duelMapArm != FrontlineLabsDuelMapArm.OuterShoulderBypass)
             return rows;
 
@@ -2709,19 +2866,23 @@ public static class FrontlineLabsDefinition
             ];
 
     private static ImmutableArray<ActorMapRegionDefinition>
-        RemoteFabricationRegions(bool enabled) =>
+        RemoteFabricationRegions(
+            bool enabled,
+            FrontlineLabsSideObjectiveArm sideObjective) =>
         enabled
             ? [
                 Region(
                     RemoteFabricationSourceRegionId,
-                    WalkableMapTiles()),
+                    WalkableMapTiles(sideObjective)),
             ]
             : [];
 
-    private static IReadOnlyList<(int X, int Y)> WalkableMapTiles()
+    private static IReadOnlyList<(int X, int Y)> WalkableMapTiles(
+        FrontlineLabsSideObjectiveArm sideObjective)
     {
         ImmutableArray<string> rows = MapTileRows(
-            FrontlineLabsDuelMapArm.Current);
+            FrontlineLabsDuelMapArm.Current,
+            sideObjective);
         return (
             from y in Enumerable.Range(0, rows.Length)
             from x in Enumerable.Range(0, rows[y].Length)

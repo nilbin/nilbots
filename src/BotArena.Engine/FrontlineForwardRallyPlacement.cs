@@ -17,7 +17,8 @@ internal static class FrontlineForwardRallyPlacement
 {
     /// <summary>
     /// True when this contract derives arrivals from the objective chain
-    /// rather than placing them on the assigned spawn.
+    /// rather than placing them on the assigned spawn — unconditionally, for
+    /// every team, on every automatic arrival.
     /// </summary>
     public static bool IsEnabled(
         ActorResolvedMatchDefinition definition)
@@ -31,21 +32,110 @@ internal static class FrontlineForwardRallyPlacement
     }
 
     /// <summary>
+    /// The declared MUSTER side objective, or null when this contract has
+    /// none. MUSTER takes the same forward-rally derivation the keel hands
+    /// both teams unconditionally and makes it a contested asset: the owner
+    /// rallies forward, everyone else walks home.
+    /// </summary>
+    public static FrontlineSecondaryControlDefinition? Muster(
+        ActorResolvedMatchDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        return definition.Rules.GameMode
+                is FrontlineGameModeDefinition { SecondaryControl: { } control }
+            && control.Effect
+                == FrontlineSecondaryControlDefinition.SecondaryEffectKind
+                    .Muster
+            ? control
+            : null;
+    }
+
+    /// <summary>
+    /// True when any automatic arrival under this contract can land anywhere
+    /// other than its assigned spawn, so callers can skip the derivation
+    /// entirely on the historical contracts.
+    /// </summary>
+    public static bool MayRallyForward(
+        ActorResolvedMatchDefinition definition) =>
+        IsEnabled(definition) || Muster(definition) is not null;
+
+    /// <summary>
+    /// Whether THIS slot's automatic arrival rallies forward on THIS tick.
+    /// A lifecycle-declared forward rally always does. Under MUSTER the
+    /// answer is owner-dependent and scoped: only a slot inside the declared
+    /// rally scope, on the team that owns the site at the arrival's own tick,
+    /// rallies. Deaths queued while the flag was held therefore still walk
+    /// home if the flag was lost before they land — the owner at respawn
+    /// time decides, which is both the simpler rule and the readable one.
+    /// </summary>
+    public static bool RalliesForward(
+        ActorResolvedMatchDefinition definition,
+        ActorUnitSlotLifecycleAssignmentDefinition? assignment,
+        int teamId,
+        int? secondaryOwnerTeamId)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        if (IsEnabled(definition))
+            return true;
+        return Muster(definition) is { } muster
+            && secondaryOwnerTeamId == teamId
+            && InRallyScope(muster, assignment);
+    }
+
+    /// <summary>
+    /// The rally scope, resolved against one slot's lifecycle assignment.
+    /// The Prime is the slot the contract starts the match with — the body
+    /// every class fields from tick zero and the only one whose respawn runs
+    /// the shared automatic-return clock.
+    /// </summary>
+    private static bool InRallyScope(
+        FrontlineSecondaryControlDefinition muster,
+        ActorUnitSlotLifecycleAssignmentDefinition? assignment) =>
+        muster.RallyScope switch
+        {
+            FrontlineSecondaryControlDefinition.SecondaryRallyScopeKind
+                .PrimeAutomaticReturnOnly =>
+                assignment?.InitialAvailability
+                == ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind.ActiveAtTickZero,
+            _ => false,
+        };
+
+    /// <summary>
     /// The tile one automatic arrival takes. Returns
-    /// <paramref name="assignedSpawn"/> whenever the contract does not rally
+    /// <paramref name="assignedSpawn"/> whenever this arrival does not rally
     /// forward, the mode is not Frontline, the own-side chain neighbour does
     /// not exist, or the derived region offers no legal tile.
     /// </summary>
+    /// <param name="definition">The resolved contract.</param>
+    /// <param name="teamId">The arriving slot's scoring team.</param>
+    /// <param name="assignedSpawn">The slot's reserved home tile.</param>
+    /// <param name="activePositionIndex">The live frontline position.</param>
+    /// <param name="blocked">Tiles an arrival may not take.</param>
+    /// <param name="assignment">
+    /// The arriving slot's lifecycle assignment, used only to resolve a
+    /// MUSTER rally scope. Null keeps the historical unconditional
+    /// behaviour, which is what every non-muster caller wants.
+    /// </param>
+    /// <param name="secondaryOwnerTeamId">
+    /// The side objective's owner at this arrival's own tick.
+    /// </param>
     public static Position Resolve(
         ActorResolvedMatchDefinition definition,
         int teamId,
         Position assignedSpawn,
         int activePositionIndex,
-        IReadOnlySet<Position> blocked)
+        IReadOnlySet<Position> blocked,
+        ActorUnitSlotLifecycleAssignmentDefinition? assignment = null,
+        int? secondaryOwnerTeamId = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(blocked);
-        if (!IsEnabled(definition)
+        if (!RalliesForward(
+                definition,
+                assignment,
+                teamId,
+                secondaryOwnerTeamId)
             || definition.ModeMapBinding
                 is not FrontlineActorModeMapBindingDefinition binding)
         {
@@ -77,7 +167,8 @@ internal static class FrontlineForwardRallyPlacement
             definition,
             binding,
             region,
-            activePositionIndex))
+            activePositionIndex,
+            TeamAdvanceOrdered(definition)))
         {
             if (!definition.Map.IsWall(tile) && !blocked.Contains(tile))
                 return tile;
@@ -93,18 +184,28 @@ internal static class FrontlineForwardRallyPlacement
     /// The team-advance placement orders them along the placing team's own
     /// advance axis instead, so the two teams take reflected tiles.
     /// </summary>
+    /// <summary>
+    /// True when arrivals are ordered along the placing team's own advance
+    /// axis rather than in canonical map order. The MUSTER effect always is:
+    /// a contested rally that handed the two mirror-image regions non-mirrored
+    /// tiles would bake a side sweep into the prize itself.
+    /// </summary>
+    private static bool TeamAdvanceOrdered(
+        ActorResolvedMatchDefinition definition) =>
+        definition.Rules.Lifecycle.AutomaticReturnPlacement
+            == ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn
+        || Muster(definition) is not null;
+
     private static IEnumerable<Position> Candidates(
         ActorResolvedMatchDefinition definition,
         FrontlineActorModeMapBindingDefinition binding,
         ActorMapRegionDefinition region,
-        int activePositionIndex)
+        int activePositionIndex,
+        bool teamAdvanceOrdered)
     {
-        if (definition.Rules.Lifecycle.AutomaticReturnPlacement
-            != ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
-                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn)
-        {
+        if (!teamAdvanceOrdered)
             return region.Tiles;
-        }
 
         (bool AlongX, int Sign) advance = AdvanceOrder(
             region,

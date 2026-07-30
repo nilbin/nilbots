@@ -1466,6 +1466,8 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
       controlResumesAtTick: 0,
       holdOwnerTeamId: null,
       holdEndsAtTick: null,
+      secondaryOwnerTeamId: null,
+      secondaryClaimProgress: 0,
     },
     scores: [
       {
@@ -2047,6 +2049,149 @@ test('replay-v3 validates the published ratchet hold against the ratchet contrac
   assert.throws(
     () => decodeReplay(held(() => {}, false)),
     /violates frontline control invariants/,
+  );
+});
+
+test('replay-v3 validates the published side objective against the declared capability', () => {
+  type FrontlineControl = {
+    secondaryOwnerTeamId: number | null;
+    secondaryClaimProgress: number;
+  };
+  // A declared side objective plus one published owner on EVERY boundary,
+  // which is what a real muster history looks like: the tick-start boundary,
+  // the post state, and each actor's frozen copy carry the same two facts, so
+  // the only thing under test is whether the contract could have produced
+  // them.
+  const flagged = (
+    mutate: (control: FrontlineControl) => void,
+    declared = true,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    if (declared) {
+      input.header.contract.rules.gameMode.secondaryControl = {
+        regionIds: ['muster-site-north', 'muster-site-south'],
+        captureThresholdTicks: 12,
+        ownership: 'latched-until-recaptured-by-sole-objective-weight',
+        effect: 'muster',
+        rallyScope: 'prime-automatic-return-only',
+      };
+    }
+    const controls: FrontlineControl[] = [
+      input.initialFrame.state.mode as unknown as FrontlineControl,
+      ...input.ticks.flatMap((tick) => [
+        tick.tickStart.state.mode as unknown as FrontlineControl,
+        tick.postState.mode as unknown as FrontlineControl,
+        ...tick.actorTurns.map(
+          (turn) => turn.observation.mode as unknown as FrontlineControl,
+        ),
+      ]),
+      ...(input.result?.mode.kind === 'frontline'
+        ? [input.result.mode.control as unknown as FrontlineControl]
+        : []),
+    ];
+    for (const control of controls) {
+      control.secondaryOwnerTeamId = 0;
+      control.secondaryClaimProgress = 0;
+      mutate(control);
+    }
+    return input;
+  };
+
+  // The honest shape decodes, and both facts reach the model.
+  const decoded = decodeReplay(flagged(() => {})).replay;
+  const mode = decoded.initialWorld?.mode;
+  assert.equal(mode?.kind, 'frontline');
+  assert.deepEqual(
+    {
+      secondaryOwnerTeamId: (mode as FrontlineControl).secondaryOwnerTeamId,
+      secondaryClaimProgress: (mode as FrontlineControl)
+        .secondaryClaimProgress,
+    },
+    { secondaryOwnerTeamId: 0, secondaryClaimProgress: 0 },
+  );
+
+  // The owner is a real scoring team...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryOwnerTeamId = 7;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...the owner is never also the claimant...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryClaimProgress = 3;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...a standing claim is strictly below the declared threshold, because
+  // reaching it latches ownership on that very tick...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryOwnerTeamId = null;
+          control.secondaryClaimProgress = 12;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...and only a mode that DECLARES a side objective may publish one.
+  assert.throws(
+    () => decodeReplay(flagged(() => {}, false)),
+    /violates frontline control invariants/,
+  );
+
+  // The declaration itself is checked: an empty site, a non-positive latch,
+  // and an unregistered effect are all refused.
+  const declaration = (
+    mutate: (value: Record<string, unknown>) => void,
+  ) => {
+    const input = flagged(() => {});
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    mutate(
+      input.header.contract.rules.gameMode.secondaryControl as unknown as
+        Record<string, unknown>,
+    );
+    return input;
+  };
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.regionIds = [];
+        }),
+      ),
+    /at least one site region/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.captureThresholdTicks = 0;
+        }),
+      ),
+    /positive latch threshold/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.effect = 'relay';
+        }),
+      ),
+    /expected one of muster/,
   );
 });
 

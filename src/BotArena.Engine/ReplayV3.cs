@@ -709,7 +709,9 @@ internal sealed record ReplayV3(
             int DecayTicksElapsed,
             int ControlResumesAtTick,
             int? HoldOwnerTeamId,
-            int? HoldEndsAtTick)
+            int? HoldEndsAtTick,
+            int? SecondaryOwnerTeamId,
+            int SecondaryClaimProgress)
             : ModeState("frontline", Id);
     }
 

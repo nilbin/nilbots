@@ -86,7 +86,15 @@ public sealed class FrontlineModeKernel
             CaptureProgress: 0,
             DecayTicksElapsed: 0,
             ControlResumesAtTick: firstTick,
-            WinnerTeamId: null);
+            WinnerTeamId: null)
+        {
+            // A declared side objective starts neutral and unclaimed; a mode
+            // without one carries no latch at all, so every state it can
+            // reach stays byte-identical to the historical contract.
+            SecondaryControl = _gameMode.SecondaryControl is null
+                ? null
+                : new FrontlineSecondaryControlState(null, null, 0),
+        };
     }
 
     /// <summary>
@@ -117,6 +125,94 @@ public sealed class FrontlineModeKernel
     /// weight currently present for each scoring team.
     /// </summary>
     public FrontlineControlStepResult ApplyJointTick(
+        FrontlineControlState state,
+        int tick,
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam) =>
+        ApplyJointTick(
+            state,
+            tick,
+            objectiveWeightByTeam,
+            ImmutableDictionary<int, int>.Empty);
+
+    /// <summary>
+    /// Applies one post-combat objective update, and — for a mode that
+    /// declares a side objective — one secondary-control latch update from
+    /// the positive objective weight present on the site's tiles.
+    /// <para>
+    /// The two are independent by construction: the side objective keeps
+    /// ticking through the front's redeploy pause, its latch never reads the
+    /// front's control policy (it is a plain SOLE-presence rule whatever the
+    /// front does with surplus weight), and it never touches score. The one
+    /// thing it can change is where an arrival lands, and that is resolved at
+    /// the arrival's own tick from the owner published for it.
+    /// </para>
+    /// </summary>
+    public FrontlineControlStepResult ApplyJointTick(
+        FrontlineControlState state,
+        int tick,
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam,
+        IReadOnlyDictionary<int, int> secondarySiteWeightByTeam)
+    {
+        ArgumentNullException.ThrowIfNull(secondarySiteWeightByTeam);
+        if (secondarySiteWeightByTeam.Any(pair =>
+                !_teamIdSet.Contains(pair.Key) || pair.Value <= 0))
+        {
+            throw new ArgumentException(
+                "Frontline secondary-site weights must be positive and "
+                + "reference only topology teams.",
+                nameof(secondarySiteWeightByTeam));
+        }
+
+        FrontlineControlStepResult result = ApplyPrimaryJointTick(
+            state,
+            tick,
+            objectiveWeightByTeam);
+        FrontlineSecondaryControlState? secondary = ApplySecondaryControl(
+            state.SecondaryControl,
+            secondarySiteWeightByTeam);
+        return secondary == state.SecondaryControl
+            ? result
+            : result with
+            {
+                State = result.State with { SecondaryControl = secondary },
+            };
+    }
+
+    /// <summary>
+    /// One latch update. A team claims the site by standing on it with SOLE
+    /// positive objective weight; any empty or contested tick resets the
+    /// running claim to zero, which is what makes a single body walking in a
+    /// real denial rather than a pause. Reaching the declared threshold
+    /// latches ownership, and ownership then survives everything except the
+    /// other team completing a claim of its own.
+    /// </summary>
+    private FrontlineSecondaryControlState? ApplySecondaryControl(
+        FrontlineSecondaryControlState? state,
+        IReadOnlyDictionary<int, int> siteWeightByTeam)
+    {
+        if (state is null || _gameMode.SecondaryControl is not { } declared)
+            return state;
+
+        int? soleTeamId = siteWeightByTeam.Count == 1
+            ? siteWeightByTeam.Keys.Single()
+            : null;
+        if (soleTeamId is not int teamId || teamId == state.OwnerTeamId)
+        {
+            // Empty, contested, or already the owner's: no claim stands.
+            return state.ClaimingTeamId is null && state.ClaimTicks == 0
+                ? state
+                : state with { ClaimingTeamId = null, ClaimTicks = 0 };
+        }
+
+        int ticks = state.ClaimingTeamId == teamId
+            ? state.ClaimTicks + 1
+            : 1;
+        return ticks >= declared.CaptureThresholdTicks
+            ? new FrontlineSecondaryControlState(teamId, null, 0)
+            : state with { ClaimingTeamId = teamId, ClaimTicks = ticks };
+    }
+
+    private FrontlineControlStepResult ApplyPrimaryJointTick(
         FrontlineControlState state,
         int tick,
         IReadOnlyDictionary<int, int> objectiveWeightByTeam)
@@ -620,8 +716,27 @@ public sealed class FrontlineModeKernel
         bool ratchetPolicy = capture.RedeployPolicy
             == FrontlineCaptureDefinition.RedeployPolicyKind
                 .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks;
+        FrontlineSecondaryControlDefinition? secondaryControl =
+            _gameMode.SecondaryControl;
         bool invalid =
             state.NextTick < 0
+            // The latch exists exactly when the mode declares a side
+            // objective, its owner and claimant are real scoring teams, a
+            // standing claim is strictly below its threshold, and a claimant
+            // and its tick count travel together.
+            || (state.SecondaryControl is null) != (secondaryControl is null)
+            || state.SecondaryControl is { } secondary
+                && (secondary.OwnerTeamId is int owner
+                        && !_teamIdSet.Contains(owner)
+                    || secondary.ClaimingTeamId is int claiming
+                        && !_teamIdSet.Contains(claiming)
+                    || secondary.ClaimTicks < 0
+                    || (secondary.ClaimingTeamId is null)
+                        != (secondary.ClaimTicks == 0)
+                    || secondary.ClaimingTeamId == secondary.OwnerTeamId
+                        && secondary.ClaimingTeamId is not null
+                    || secondary.ClaimTicks
+                        >= secondaryControl!.CaptureThresholdTicks)
             || state.RatchetHold is not null && !ratchetPolicy
             || state.RatchetHold is { } hold
                 && (!_teamIdSet.Contains(hold.TeamId)

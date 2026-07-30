@@ -94,6 +94,15 @@ internal static class ActorContractCanonicalIds
                 .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32 =>
             "checked-int64-capture-tick-plus-one-plus-pause-require-int32",
 
+        FrontlineSecondaryControlDefinition.SecondaryOwnershipKind
+                .LatchedUntilRecapturedBySoleObjectiveWeight =>
+            "latched-until-recaptured-by-sole-objective-weight",
+        FrontlineSecondaryControlDefinition.SecondaryEffectKind.Muster =>
+            "muster",
+        FrontlineSecondaryControlDefinition.SecondaryRallyScopeKind
+                .PrimeAutomaticReturnOnly =>
+            "prime-automatic-return-only",
+
         MatchFormatDefinition.MatchFormatDefinitionKind.HeadToHead =>
             "head-to-head",
         MatchFormatDefinition.MatchFormatDefinitionKind.FreeForAll =>

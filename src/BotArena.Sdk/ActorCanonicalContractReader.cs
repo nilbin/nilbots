@@ -682,14 +682,27 @@ public static class ActorCanonicalContractReader
     private static RulesContract.FrontlineGameMode ReadFrontlineMode(
         JsonElement element)
     {
+        // Additive trailing optional block, exactly like the capture
+        // ratchet's hold: the canonical writer emits it only for a mode that
+        // declares a side objective, so an absent property means "no side
+        // objective" and an explicitly empty one is a second, non-canonical
+        // encoding of the same contract.
+        bool hasSecondaryControl = element.TryGetProperty(
+            "secondaryControl",
+            out JsonElement secondaryControl);
         ExactObject(
             element,
-            "kind",
-            "modeId",
-            "victory",
-            "scoreCatalog",
-            "frontlinePositionCount",
-            "capture");
+            [
+                "kind",
+                "modeId",
+                "victory",
+                "scoreCatalog",
+                "frontlinePositionCount",
+                "capture",
+                .. hasSecondaryControl
+                    ? new[] { "secondaryControl" }
+                    : [],
+            ]);
         RulesContract.Victory victory =
             ReadVictory(Property(element, "victory"));
         if (victory is not RulesContract.FrontlineVictory frontlineVictory)
@@ -702,7 +715,53 @@ public static class ActorCanonicalContractReader
             frontlineVictory,
             Array(Property(element, "scoreCatalog"), ReadScoreChannel),
             Int(element, "frontlinePositionCount"),
-            ReadFrontlineCapture(Property(element, "capture")));
+            ReadFrontlineCapture(Property(element, "capture")))
+        {
+            SecondaryControl = hasSecondaryControl
+                ? ReadFrontlineSecondaryControl(secondaryControl)
+                : null,
+        };
+    }
+
+    private static RulesContract.FrontlineSecondaryControl
+        ReadFrontlineSecondaryControl(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "regionIds",
+            "captureThresholdTicks",
+            "ownership",
+            "effect",
+            "rallyScope");
+        ImmutableArray<string> regionIds =
+            Array(Property(element, "regionIds"), Id);
+        if (regionIds.Length == 0
+            || regionIds.Distinct(StringComparer.Ordinal).Count()
+                != regionIds.Length)
+        {
+            throw new FormatException(
+                "A canonical Frontline secondary control names at least one "
+                + "site region and never repeats one.");
+        }
+        int threshold = Int(element, "captureThresholdTicks");
+        if (threshold <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline secondary-control latch threshold is "
+                + "positive.");
+        }
+        return new RulesContract.FrontlineSecondaryControl(
+            regionIds,
+            threshold,
+            EnumId(
+                element,
+                "ownership",
+                "latched-until-recaptured-by-sole-objective-weight"),
+            EnumId(element, "effect", "muster"),
+            EnumId(
+                element,
+                "rallyScope",
+                "prime-automatic-return-only"));
     }
 
     private static RulesContract.Victory ReadVictory(JsonElement element)
@@ -1921,6 +1980,19 @@ public static class ActorCanonicalContractReader
                         "Frontline mode-map binding is inconsistent.");
                 }
                 ValidateFrontlineCapture(frontline.Capture);
+                // A side objective sits OFF the chain: its sites are typed
+                // Objective regions the front never advances into, so a
+                // region on both lists would make one tile mean two things.
+                if (frontline.SecondaryControl is { } secondary
+                    && secondary.RegionIds.Any(regionId =>
+                        frontlineBinding.OrderedObjectiveRegionIds.Contains(
+                            regionId,
+                            StringComparer.Ordinal)))
+                {
+                    throw new FormatException(
+                        "A Frontline secondary-control site region cannot "
+                        + "also be a frontline chain position.");
+                }
                 break;
 
             default:
