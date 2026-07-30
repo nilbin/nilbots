@@ -1,0 +1,11 @@
+{
+  "name": "MarchWall",
+  "entryType": "MarchWall",
+  "class": "bulwark",
+  "sdkVersion": "0.10.4",
+  "appearance": {
+    "accent": "#b45309",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}
