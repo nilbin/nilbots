@@ -3847,6 +3847,29 @@ Three owner-directed fixes from wave-5 friction, batched under CliVersion
    the reasoning down — with ~20% of any budget being scaffold
    boilerplate. The scaffold-as-SDK-type idea stays on the bench.
 
+## 178. Wave 5 frozen; the coarse deck read says ladder, not cycle
+
+Wave 5 — the first cohort authored FOR the deck game — froze 8/8 T4 on
+first attempts with zero friction kills (cohort README carries the
+converged findings; #177 carries the infrastructure fixes it forced).
+The coarse balance read (fast-iteration mode: mains only, wave-5 vs
+wave-5, one bot-assignment per pairing, 3 seeds with heavy
+deterministic collapse disclosed — 8–12 distinct outcomes per pooled
+18–27) is directional, and its direction is one ladder:
+**bulwark +0.815 over striker, bulwark +0.611 over fabricator,
+fabricator +0.667 over striker.** Every edge above the 0.40 band; the
+old fabricator dominance is gone (both wave-5 bulwarks' doctrine
+out-evolved the swarm); the striker is now the floor of every matchup
+despite the wave's most inventive revisions — vector-edge's sight-band
+inversion beat the wave-4 bulwark 20-0 and still loses to the wave-5
+ones. Match texture is what the campaign wanted: 30+ breaches in 63
+matches, one draw, shells holding points, turret leases, diagonal
+duels. The owner gallery ships from these replays; the next balance
+move is striker-side (candidates already on record: the freed-ground
+bvs pull measured in round 3, the shell/turret pricing questions in
+#176/#177, lethality numbers) and takes the owner's watch impressions
+as input.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
