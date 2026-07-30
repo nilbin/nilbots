@@ -642,6 +642,17 @@ export interface ReplayV3ObservedSelf {
   previousActionResolution: ReplayV3ActionResolution | null;
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
   classId: string | null;
+  /**
+   * Live slot-scoped route cooldowns, ordered by transition ID; the named
+   * same-life route refuses re-entry while the observed tick is strictly
+   * below readyAtTick. Present only while at least one clock is live.
+   */
+  routeCooldowns?: ReplayV3RouteCooldown[];
+}
+
+export interface ReplayV3RouteCooldown {
+  transitionId: string;
+  readyAtTick: number;
 }
 
 export interface ReplayV3ObservedAlly extends ReplayV3ObservedSelf {}

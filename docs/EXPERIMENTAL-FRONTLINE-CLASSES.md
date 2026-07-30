@@ -413,7 +413,7 @@ declares the clock at `rules.tickResolution.cooldownClock`
 The whole open game on the ticking clock is the registered identity
 **`tide`** (`sail-open-tick` where no fabricator is in the cell).
 
-### Route cooldowns (DECISIONS #181 — capability, no skill uses it yet)
+### Route cooldowns (DECISIONS #181)
 
 A same-life route may declare `cooldownTicks` (read it on
 `sameLifeTransitions[]`; absent means none). After the route COMPLETES,
@@ -421,9 +421,40 @@ requesting the same route from the same UNIT SLOT is refused (an
 ordinary Blocked) while `tick < completionTick + cooldownTicks + 1`.
 The clock survives the body — dying and respawning does not reset it —
 and automatic (engine-caused) returns are exempt, so a forced return is
-never trapped by its own clock. No current arm declares one; when the
-first cooldown-bearing skill ships, the remaining ticks become readable
-in observations in the same window.
+never trapped by its own clock.
+
+Every live clock is public: `self.routeCooldowns` (and the same field on
+each ally — allies share their complete gameplay state) lists
+`{ transitionId, readyAtTick }` for every route of that body's unit slot
+currently held shut, ordered by transition ID. The route accepts a
+request again the first tick `tick >= readyAtTick`; the field is absent
+while no clock is live, so contracts declaring no route cooldown look
+exactly as before. Do not infer the window from your own completion
+history — the clock survives your death, and a life born mid-window has
+no history to infer from.
+
+### Volley salvo (DECISIONS #182)
+
+`--volley salvo` re-arms the striker's fan. The aim restoration (#173)
+had cannibalized it: the fan's spread is exactly the mobile gun's three
+aim options, offered one at a time at twice the cadence without giving
+up the step. On this arm the fan is worth the stance again:
+
+- **Every fan bolt deals 2** (the mobile gun stays at 1). A diverging
+  fan still lands at most one bolt on one body, so read this as "a
+  landed volley hits twice as hard", not triple damage.
+- **The fan no longer taxes your gun.** Its profile `cooldownTicks` is
+  the 1-tick floor: launching the volley barely touches the shared
+  body counter, so you re-enter mobile play with your gun essentially
+  ready.
+- **Frequency is priced on the ENTRY, not the shot**: the volley stance
+  entry routes declare `cooldownTicks: 8` — the first consumer of the
+  route-cooldown capability above. One cast per entry is unchanged;
+  the entry clock is what spaces casts, it survives your death, and
+  `self.routeCooldowns` names the exact tick the stance opens again.
+
+The arm is inert-omitted where no striker is in the cell. `tide` +
+salvo is the registered identity **`surf`**.
 
 ### Stance ground (round 3)
 

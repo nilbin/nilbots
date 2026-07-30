@@ -246,6 +246,7 @@ static int CommandHelp(string command)
                    [--stance-ground strict|free|open]
                    [--aim straight|offset]
                    [--cooldown frozen|ticking]
+                   [--volley cast|salvo]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -365,6 +366,13 @@ static int CommandHelp(string command)
             in every form (DECISIONS #180): a gunless stance or windup no
             longer freezes gun recovery. General for all classes. The open
             game on the ticking clock is registered as `tide`.
+            --volley salvo re-arms the striker's fan (DECISIONS #182):
+            every bolt deals 2, the fan stops taxing the mobile gun's
+            shared counter, and its frequency is priced on the stance
+            ENTRY route instead — an 8-tick slot-scoped route cooldown
+            (the first consumer of the #181 capability; it survives your
+            death). Needs volley in the cell's kit; inert-omitted where no
+            striker is present. tide + salvo is registered as `surf`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

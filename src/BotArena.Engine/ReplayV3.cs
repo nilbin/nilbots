@@ -171,7 +171,8 @@ internal sealed record ReplayV3(
         int? Energy,
         ActionResolution? PreviousActionResolution,
         PendingSameLifeTransition? PendingSameLifeTransition,
-        string? ClassId);
+        string? ClassId,
+        ImmutableArray<RouteCooldown> RouteCooldowns = default);
 
     internal sealed record ObservedAlly(
         ActorId ActorId,
@@ -184,7 +185,18 @@ internal sealed record ReplayV3(
         int? Energy,
         ActionResolution? PreviousActionResolution,
         PendingSameLifeTransition? PendingSameLifeTransition,
-        string? ClassId);
+        string? ClassId,
+        ImmutableArray<RouteCooldown> RouteCooldowns = default);
+
+    /// <summary>
+    /// One live slot-scoped route cooldown snapshot (#181/#182): the named
+    /// same-life route refuses requested re-entry while the observed tick is
+    /// strictly below <paramref name="ReadyAtTick"/>. Serialized only while
+    /// live, so contracts declaring no route cooldown never carry the key.
+    /// </summary>
+    internal sealed record RouteCooldown(
+        string TransitionId,
+        int ReadyAtTick);
 
     internal sealed record ObservedEnemy(
         ActorId ActorId,

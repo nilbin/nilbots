@@ -693,6 +693,7 @@ internal static class ReplayV3Serializer
             writer,
             value.PendingSameLifeTransition);
         WriteNullableString(writer, "classId", value.ClassId);
+        WriteRouteCooldowns(writer, value.RouteCooldowns);
         writer.WriteEndObject();
     }
 
@@ -720,6 +721,7 @@ internal static class ReplayV3Serializer
             writer,
             value.PendingSameLifeTransition);
         WriteNullableString(writer, "classId", value.ClassId);
+        WriteRouteCooldowns(writer, value.RouteCooldowns);
         writer.WriteEndObject();
     }
 
@@ -746,6 +748,31 @@ internal static class ReplayV3Serializer
             WriteActorId);
         WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Canonical form for observed route cooldowns (#182): the key exists
+    /// only while at least one clock is live, so every pre-#181 replay and
+    /// every contract declaring no route cooldown serializes byte-exactly
+    /// as before.
+    /// </summary>
+    private static void WriteRouteCooldowns(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.RouteCooldown> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("routeCooldowns");
+        writer.WriteStartArray();
+        foreach (ReplayV3.RouteCooldown cooldown in value)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("transitionId", cooldown.TransitionId);
+            writer.WriteNumber("readyAtTick", cooldown.ReadyAtTick);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WritePendingTransition(
@@ -3896,6 +3923,11 @@ internal static class ReplayV3Serializer
                 $"{context} previous action resolution");
         }
 
+        ValidateRouteCooldowns(
+            observation.Self.RouteCooldowns,
+            observation.Tick,
+            $"{context} self route cooldowns");
+
         RequireCanonicalOrder(
             observation.TeamUnits,
             static (left, right) =>
@@ -3955,6 +3987,11 @@ internal static class ReplayV3Serializer
                     contract,
                     $"{context} ally previous action resolution");
             }
+
+            ValidateRouteCooldowns(
+                ally.RouteCooldowns,
+                observation.Tick,
+                $"{context} ally route cooldowns");
         }
 
         RequireCanonicalOrder(
@@ -4112,6 +4149,37 @@ internal static class ReplayV3Serializer
             observation.ActionLegalities,
             contract,
             context);
+    }
+
+    /// <summary>
+    /// A published route-cooldown list is canonical only while every clock
+    /// is live: a lapsed entry (ready at or before the observed tick) is an
+    /// impossible history, and the canonical writer never emits an empty
+    /// list, so presence implies at least one element.
+    /// </summary>
+    private static void ValidateRouteCooldowns(
+        ImmutableArray<ReplayV3.RouteCooldown> value,
+        int observedTick,
+        string context)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        RequireCanonicalOrder(
+            value,
+            static (left, right) => string.CompareOrdinal(
+                left.TransitionId,
+                right.TransitionId),
+            context);
+        foreach (ReplayV3.RouteCooldown cooldown in value)
+        {
+            ArgumentNullException.ThrowIfNull(cooldown);
+            if (string.IsNullOrEmpty(cooldown.TransitionId)
+                || cooldown.ReadyAtTick <= observedTick)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a lapsed or unnamed route cooldown.");
+            }
+        }
     }
 
     private static bool ObservationClassMatches(

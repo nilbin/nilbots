@@ -46,6 +46,7 @@ public static class FrontlineLabsExperimentCommand
             "stance-ground",
             "aim",
             "cooldown",
+            "volley",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -268,6 +269,14 @@ public static class FrontlineLabsExperimentCommand
                 + "--classes <a>-vs-<b> or run two class-declaring "
                 + "projects.");
         }
+        FrontlineLabsVolleyArm volleyArm = OptionalVolleyArm(options);
+        if (volleyArm != FrontlineLabsVolleyArm.Cast
+            && !skills.HasFlag(FrontlineLabsSkillKit.StrikerVolley))
+        {
+            throw new InvalidOperationException(
+                "--volley tunes the VOLLEY skill, so the cell must carry "
+                + "it: pass a --skills selection that includes volley.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
@@ -313,7 +322,8 @@ public static class FrontlineLabsExperimentCommand
                 fiveSlots,
                 stanceGround,
                 aim,
-                cooldownArm);
+                cooldownArm,
+                volleyArm);
         }
         else if (captureThreshold is int threshold)
         {
@@ -773,6 +783,27 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --cooldown arm '{value}' (use frozen or "
                 + "ticking)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered volley arm (DECISIONS #182). Omitting the
+    /// option — or naming <c>cast</c> — keeps the measured phase-2 fan and
+    /// adds no ruleset suffix. <c>salvo</c> re-arms the fan: every bolt
+    /// deals 2, the fan stops taxing the mobile gun's counter, and its
+    /// frequency moves to an 8-tick cooldown on the stance entry route.
+    /// </summary>
+    private static FrontlineLabsVolleyArm OptionalVolleyArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("volley", out string? value))
+            return FrontlineLabsVolleyArm.Cast;
+        return value.ToLowerInvariant() switch
+        {
+            "cast" => FrontlineLabsVolleyArm.Cast,
+            "salvo" => FrontlineLabsVolleyArm.Salvo,
+            _ => throw new InvalidOperationException(
+                $"Unknown --volley arm '{value}' (use cast or salvo)."),
         };
     }
 

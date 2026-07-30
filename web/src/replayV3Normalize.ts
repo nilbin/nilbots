@@ -1861,6 +1861,7 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
 
 function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
   const self = object(value, path, fail);
+  const hasRouteCooldowns = own(self, 'routeCooldowns');
   const item = exact(
     self,
     path,
@@ -1876,6 +1877,7 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
       'previousActionResolution',
       'pendingSameLifeTransition',
       'classId',
+      ...(hasRouteCooldowns ? ['routeCooldowns'] : []),
     ],
     fail,
   );
@@ -1899,6 +1901,40 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
     fail,
   );
   nullable(item.classId, `${path}.classId`, semanticId, fail);
+  if (hasRouteCooldowns) {
+    // Canonical form: the key exists only while at least one clock is
+    // live, entries are ordered by transition ID, and a published clock
+    // must still bind (a lapsed one is an impossible history).
+    const entries = array(item.routeCooldowns, `${path}.routeCooldowns`, fail);
+    if (entries.length === 0) {
+      fail(`${path}.routeCooldowns`, 'must be omitted when empty');
+    }
+    let previousTransitionId: string | null = null;
+    entries.forEach((entry, index) => {
+      const cooldownPath = `${path}.routeCooldowns[${index}]`;
+      const cooldown = exact(
+        entry,
+        cooldownPath,
+        ['transitionId', 'readyAtTick'],
+        fail,
+      );
+      nonEmpty(cooldown.transitionId, `${cooldownPath}.transitionId`, fail);
+      integer(cooldown.readyAtTick, `${cooldownPath}.readyAtTick`, fail);
+      if (
+        typeof cooldown.transitionId === 'string' &&
+        previousTransitionId !== null &&
+        previousTransitionId >= cooldown.transitionId
+      ) {
+        fail(
+          `${cooldownPath}.transitionId`,
+          'route cooldowns must be strictly ordered by transition id',
+        );
+      }
+      if (typeof cooldown.transitionId === 'string') {
+        previousTransitionId = cooldown.transitionId;
+      }
+    });
+  }
 }
 
 function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {

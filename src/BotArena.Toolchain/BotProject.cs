@@ -177,9 +177,18 @@ public static class ToolchainInfo
     /// #170 consequence. No skill declares a route cooldown yet; the
     /// observation publication of remaining ticks is bound to the first
     /// skill that does.
+    /// 0.9.25 registers the volley salvo (`--volley salvo`, composite
+    /// `surf` = tide + salvo, #182): every fan bolt deals 2, the fan's
+    /// profile counter drops to the 1-tick floor, and the stance entry
+    /// routes carry the first declared route cooldown (8 ticks) — which
+    /// binds the #181 readability law, so it carries SDK/Guest 0.10.8:
+    /// live route-cooldown clocks are published in observations
+    /// (self/ally `routeCooldowns`, trailing tagged wire field, replay-v3
+    /// `routeCooldowns` key present only while live). Cast cells and
+    /// every clockless observation keep their exact bytes.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.24";
+    public const string CliVersion = "0.9.25";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -227,7 +236,15 @@ public static class ToolchainInfo
     // discipline: the canonical classId is emitted only when a ruleset declares
     // classes (#156), the observation fields are trailing tagged additions, and
     // the observation schema version stays 2.
-    public const string SdkVersion = "0.10.7";
+    // 0.10.7: the canonical contract reader accepts the trailing additive
+    // facts tickResolution.cooldownClock (#180) and
+    // sameLifeTransitions[].cooldownTicks (#181).
+    // 0.10.8: live route-cooldown clocks are readable — ObservedSelfState
+    // and ObservedAllyState carry RouteCooldowns ({TransitionId,
+    // ReadyAtTick}, ordered, empty when none are live). Trailing tagged
+    // wire field on the shared self/ally body, so the observation schema
+    // version stays 2 and a clockless observation keeps its exact bytes.
+    public const string SdkVersion = "0.10.8";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";
     // Compiler invocation/container changes that affect artifact bytes without changing

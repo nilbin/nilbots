@@ -219,6 +219,9 @@ public sealed record GenericActorContext
         /// Immutable chassis class, or <see langword="null"/> for a classless
         /// contract.
         /// </param>
+        /// <param name="routeCooldowns">
+        /// Live slot-scoped route cooldowns, or empty when none are live.
+        /// </param>
         public ObservedSelfState(
             ActorIdentity actorId,
             int generation,
@@ -230,7 +233,8 @@ public sealed record GenericActorContext
             int? energy,
             GenericActorActionResolution? previousActionResolution,
             PendingSameLifeTransition? pendingSameLifeTransition,
-            string? classId = null)
+            string? classId = null,
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -256,6 +260,9 @@ public sealed record GenericActorContext
                 : GenericActorDynamicValueRules.SemanticId(
                     classId,
                     nameof(classId));
+            RouteCooldowns = routeCooldowns.IsDefault
+                ? []
+                : routeCooldowns;
         }
 
         /// <summary>Exact body-life identity.</summary>
@@ -288,6 +295,42 @@ public sealed record GenericActorContext
         /// Immutable chassis class, or null for a classless contract.
         /// </summary>
         public string? ClassId { get; }
+
+        /// <summary>
+        /// Every same-life route of this body's stable unit slot currently
+        /// held shut by a declared route cooldown, ordered by transition ID.
+        /// Each entry names the first tick its route accepts a request
+        /// again; the route refuses re-entry while the observed tick is
+        /// strictly below it. The clock is scoped to the unit slot, so it
+        /// survives this life's death. Empty when no route cooldown is live
+        /// — including every contract that declares none.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
+    }
+
+    /// <summary>
+    /// One live slot-scoped route cooldown: the named same-life transition
+    /// refuses requests until the published tick arrives.
+    /// </summary>
+    public sealed record ObservedRouteCooldown
+    {
+        /// <summary>Creates one live route-cooldown clock.</summary>
+        /// <param name="transitionId">Held same-life transition.</param>
+        /// <param name="readyAtTick">First tick the route accepts a request.</param>
+        public ObservedRouteCooldown(string transitionId, int readyAtTick)
+        {
+            TransitionId = GenericActorDynamicValueRules.SemanticId(
+                transitionId,
+                nameof(transitionId));
+            ArgumentOutOfRangeException.ThrowIfNegative(readyAtTick);
+            ReadyAtTick = readyAtTick;
+        }
+
+        /// <summary>Held same-life transition identifier.</summary>
+        public string TransitionId { get; }
+
+        /// <summary>First tick the route accepts a request again.</summary>
+        public int ReadyAtTick { get; }
     }
 
     /// <summary>
@@ -308,6 +351,9 @@ public sealed record GenericActorContext
         /// <param name="previousActionResolution">Allied prior action result, if any.</param>
         /// <param name="pendingSameLifeTransition">Allied transition windup, if any.</param>
         /// <param name="classId">Immutable allied chassis class, if declared.</param>
+        /// <param name="routeCooldowns">
+        /// Live allied slot route cooldowns, or empty when none are live.
+        /// </param>
         public ObservedAllyState(
             ActorIdentity actorId,
             int generation,
@@ -319,7 +365,8 @@ public sealed record GenericActorContext
             int? energy,
             GenericActorActionResolution? previousActionResolution,
             PendingSameLifeTransition? pendingSameLifeTransition,
-            string? classId = null)
+            string? classId = null,
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -345,6 +392,9 @@ public sealed record GenericActorContext
                 : GenericActorDynamicValueRules.SemanticId(
                     classId,
                     nameof(classId));
+            RouteCooldowns = routeCooldowns.IsDefault
+                ? []
+                : routeCooldowns;
         }
 
         /// <summary>Exact allied body-life identity.</summary>
@@ -369,6 +419,13 @@ public sealed record GenericActorContext
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
         /// <summary>Immutable allied chassis class, if declared.</summary>
         public string? ClassId { get; }
+
+        /// <summary>
+        /// Live allied slot route cooldowns, published under the same
+        /// grammar as <see cref="ObservedSelfState.RouteCooldowns"/> —
+        /// allies share their complete gameplay state.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
     }
 
     /// <summary>

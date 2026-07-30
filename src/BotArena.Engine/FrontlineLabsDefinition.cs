@@ -389,8 +389,16 @@ public static class FrontlineLabsDefinition
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
-        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
     {
+        if (!Enum.IsDefined(volley))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(volley),
+                volley,
+                "Unknown Frontline Labs volley arm.");
+        }
         if (!Enum.IsDefined(cooldown))
         {
             throw new ArgumentOutOfRangeException(
@@ -534,6 +542,13 @@ public static class FrontlineLabsDefinition
                 + "includes five-slots.",
                 nameof(fiveSlots));
         }
+        // The salvo tunes the striker's fan, so it is inert-omitted where
+        // no striker is in the cell — the skills rule again.
+        FrontlineLabsVolleyArm effectiveVolley =
+            volley == FrontlineLabsVolleyArm.Salvo
+            && effectiveSkills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
+                ? FrontlineLabsVolleyArm.Salvo
+                : FrontlineLabsVolleyArm.Cast;
         // A ground arm is inert where nothing it touches exists — the
         // skills rule: it changes no contract bytes there, so it changes
         // no identity either. Free touches only the skill stances; Open
@@ -565,7 +580,8 @@ public static class FrontlineLabsDefinition
                 fiveSlots,
                 effectiveGround,
                 aim,
-                cooldown),
+                cooldown,
+                effectiveVolley),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -584,7 +600,8 @@ public static class FrontlineLabsDefinition
             bendEnvelope: bendEnvelope,
             stanceGround: effectiveGround,
             aim: aim,
-            cooldown: cooldown);
+            cooldown: cooldown,
+            volley: effectiveVolley);
     }
 
     /// <summary>
@@ -755,7 +772,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
-        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -823,6 +841,25 @@ public static class FrontlineLabsDefinition
             arms = arms is ["deck"] or ["crew"]
                 ? ["tide"]
                 : [.. arms, "tick"];
+        }
+        if (volley == FrontlineLabsVolleyArm.Salvo)
+        {
+            // `surf` = the whole game with the re-armed fan (#182). The
+            // striker cells cannot spell their factors plus `salvo`
+            // inside the budget, so the full-game spellings collapse:
+            // fabricator-vs-striker resolves tide (wane present) and the
+            // strikerless-wane-free spellings resolve sail-open-tick.
+            arms = arms switch
+            {
+                ["tide"] => ["surf"],
+                ["sail", .. ] when stanceGround
+                        == FrontlineLabsStanceGroundArm.Open
+                    && cooldown == FrontlineLabsCooldownArm.Ticking
+                    => ["surf"],
+                _ => [.. arms, "salvo"],
+            };
+            if (arms is ["surf"])
+                tuning = [];
         }
         string[] tokens =
         [
@@ -1127,7 +1164,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
-        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1147,7 +1185,8 @@ public static class FrontlineLabsDefinition
             bendEnvelope,
             stanceGround,
             aim,
-            cooldown);
+            cooldown,
+            volley);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1235,7 +1274,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
-        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1255,7 +1295,8 @@ public static class FrontlineLabsDefinition
                 bendEnvelope,
                 stanceGround,
                 aim,
-                cooldown);
+                cooldown,
+                volley);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1687,7 +1728,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
         FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
-        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
+        FrontlineLabsVolleyArm volleyArm = FrontlineLabsVolleyArm.Cast)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -1897,12 +1939,21 @@ public static class FrontlineLabsDefinition
                 // slower than the mobile gun. Everything else — projectile
                 // speed, damage, range — is the class's own bolt, so the arm
                 // varies exactly width and tempo.
+                // SALVO (#182): every bolt deals 2, the fan stops taxing
+                // the shared gun counter (floor cadence), and frequency
+                // moves to the entry route's slot-scoped cooldown below.
                 attacks.Add(
                     new ActorAttackProfileDefinition(
                         entry.StanceAttackProfileId,
                         omnidirectionalAim: false,
-                        ClassProjectile(entry.MobileMaxTravelTiles),
-                        entry.VolleyCooldownTicks,
+                        volleyArm == FrontlineLabsVolleyArm.Salvo
+                            ? ClassProjectile(
+                                entry.MobileMaxTravelTiles,
+                                damagePerHit: 2)
+                            : ClassProjectile(entry.MobileMaxTravelTiles),
+                        volleyArm == FrontlineLabsVolleyArm.Salvo
+                            ? 1
+                            : entry.VolleyCooldownTicks,
                         maxEnergy: 0,
                         attackEnergyCost: 0,
                         energyRegenerationIntervalTicks: 0,
@@ -1953,20 +2004,27 @@ public static class FrontlineLabsDefinition
                                     .FacingQuadrantContactsDeflected
                                 : ActorFormProjectileGuardKind.None));
                 }
+                int entryCooldownTicks =
+                    volleyArm == FrontlineLabsVolleyArm.Salvo
+                    && entry.Skill == FrontlineLabsSkillKit.StrikerVolley
+                        ? SalvoEntryCooldownTicks
+                        : 0;
                 sameLifeTransitions.Add(
                     StanceRoute(
                         $"{StanceRouteToken(entry)}-{entry.Id}-prime",
                         entry.PrimeFormId,
                         entry.PrimeStanceFormId,
                         entry.StanceEntryWindupTicks,
-                        stanceGround));
+                        stanceGround,
+                        entryCooldownTicks));
                 sameLifeTransitions.Add(
                     StanceRoute(
                         $"{StanceRouteToken(entry)}-{entry.Id}-child",
                         entry.ChildFormId,
                         entry.ChildStanceFormId,
                         entry.StanceEntryWindupTicks,
-                        stanceGround));
+                        stanceGround,
+                        entryCooldownTicks));
                 ActorAutomaticReturnTriggerDefinition automaticReturn =
                     StanceAutomaticReturn(entry);
                 sameLifeTransitions.Add(
@@ -2168,13 +2226,18 @@ public static class FrontlineLabsDefinition
     /// and a healing entry would turn a reversible cycle into a repair loop.
     /// Reversible for the life, so the cycle really is a cycle.
     /// </summary>
+    /// <summary>The salvo's entry price (#182): slot-scoped, death-proof,
+    /// the first declared consumer of the route-cooldown capability.</summary>
+    private const int SalvoEntryCooldownTicks = 8;
+
     private static ActorFormTransitionDefinition StanceRoute(
         string transitionId,
         string sourceFormId,
         string stanceFormId,
         int windupTicks,
         FrontlineLabsStanceGroundArm stanceGround =
-            FrontlineLabsStanceGroundArm.Strict) =>
+            FrontlineLabsStanceGroundArm.Strict,
+        int cooldownTicks = 0) =>
         new(
             transitionId,
             "transform",
@@ -2211,7 +2274,9 @@ public static class FrontlineLabsDefinition
                         ],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
-            irreversibleForLife: false);
+            irreversibleForLife: false,
+            automaticReturn: null,
+            cooldownTicks: cooldownTicks);
 
     /// <summary>
     /// Leaving a class stance through the parameterless Mobilize. Reversible,
@@ -2335,10 +2400,11 @@ public static class FrontlineLabsDefinition
                 stanceGround != FrontlineLabsStanceGroundArm.Open);
 
     private static ActorProjectileDefinition ClassProjectile(
-        int maxTravelTiles) =>
+        int maxTravelTiles,
+        int damagePerHit = 1) =>
         new(
             ActorProjectileMode.Discrete,
-            damagePerHit: 1,
+            damagePerHit,
             maxTravelTiles,
             ticksPerAdvance: 1,
             tilesPerAdvance: 2,

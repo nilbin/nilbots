@@ -3954,6 +3954,30 @@ observation publication of remaining ticks is bound to the first
 skill that uses it (the readability law binds at first use). The
 `nilbots` symlink beside `botarena` also finally exists.
 
+## 182. The salvo: the volley re-armed as the first route-cooldown consumer
+
+Owner observation ("the volley skill is a bit weak — don't see it used
+a lot") diagnosed, and the "decouple + sharpen" option chosen. The
+diagnosis: the aim restoration (#173) cannibalized the fan — its spread
+is exactly the mobile gun's three aim options, offered one at a time at
+twice the cadence without giving up the step, so the wave-6 cohort's
+near-universal volley DECLINE was priced correctly, not timidly.
+
+`--volley salvo` (inert-omitted without a striker; `tide` + salvo is
+the registered identity **`surf`**): every fan bolt deals 2 (a
+diverging fan lands at most one bolt per body, so per-bolt damage is
+not representable and "sharper center" ships as all-2 with identical
+duel effect); the fan's profile counter drops to the 1-tick floor so
+the stance stops taxing the mobile gun; and frequency moves to the
+stance ENTRY routes as `cooldownTicks: 8` — the first consumer of
+#181. That bound the readability law: live route-cooldown clocks are
+now published (`self`/ally `routeCooldowns` = ordered
+`{transitionId, readyAtTick}`, trailing tagged wire field, replay-v3
+key present only while live, validators reject lapsed or unordered
+clocks; observation schema stays 2). Cast cells stay byte-identical
+(pinned), and the salvo values ship untuned per the dump-then-tune
+doctrine. SDK 0.10.8 / CLI 0.9.25.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

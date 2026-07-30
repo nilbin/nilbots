@@ -98,4 +98,81 @@ public sealed class ActorRouteCooldownTests
         // And the cooldown does not deadlock the cycle: it repeats.
         Assert.True(priced.Length >= 3, "the priced cycle stalled");
     }
+
+    [Fact]
+    public void TheLiveClockIsPublishedAndAlwaysBinds()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture.DefinitionWithSameLifeTransition(
+                new GenericDeathmatchSessionTestFixture.Options
+                {
+                    MaxTicks = 40,
+                },
+                new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                {
+                    DurationTicks = 1,
+                    IrreversibleForLife = false,
+                    IncludeReverseRoute = true,
+                    ReverseDurationTicks = 1,
+                    ForwardCooldownTicks = 6,
+                });
+        var published = new List<(int Tick, int TeamId,
+            ImmutableArray<GenericActorRuntimeObservation
+                .ObservedRouteCooldown> Cooldowns)>();
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (_, observation) =>
+                {
+                    published.Add((
+                        observation.Tick,
+                        observation.Self.ActorId.TeamId,
+                        observation.Self.RouteCooldowns));
+                    return observation.ActionLegalities.Any(legality =>
+                        legality.ActionId == "transform"
+                        && legality.Available)
+                        ? GenericDeathmatchSessionTestFixture.Transform(
+                            observation.Self.FormId == "anchored"
+                                ? "mobile"
+                                : "anchored")
+                        : GenericDeathmatchSessionTestFixture.Wait();
+                });
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            11);
+        session.Run();
+
+        // A published clock always binds: never lapsed, never anonymous.
+        foreach ((int tick, _, var cooldowns) in published)
+        {
+            foreach (GenericActorRuntimeObservation.ObservedRouteCooldown
+                     cooldown in cooldowns)
+            {
+                Assert.Equal("anchor-mobile", cooldown.TransitionId);
+                Assert.True(
+                    cooldown.ReadyAtTick > tick,
+                    $"a lapsed clock ({cooldown.ReadyAtTick}) was "
+                    + $"published at tick {tick}");
+            }
+        }
+        // Readability law (#182): every completion's window is visible to
+        // its own team the very next tick, naming the exact lifting tick.
+        int[] completions = ForwardCompletionTicks(session.Chronology);
+        Assert.True(completions.Length >= 2, "the priced cycle stalled");
+        foreach (int completion in completions.SkipLast(1))
+        {
+            Assert.Contains(
+                published,
+                item => item.Tick == completion + 1
+                    && item.TeamId == 0
+                    && item.Cooldowns.Any(cooldown =>
+                        cooldown.TransitionId == "anchor-mobile"
+                        && cooldown.ReadyAtTick == completion + 7));
+        }
+    }
 }

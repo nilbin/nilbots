@@ -946,6 +946,23 @@ public sealed class GenericActorMatchSession : IDisposable
             out int readyAtTick)
         && Tick < readyAtTick;
 
+    private ImmutableArray<GenericActorRuntimeObservation
+        .ObservedRouteCooldown> LiveRouteCooldowns(int teamId, int unitId) =>
+        [
+            .. _routeReadyAtTick
+                .Where(entry =>
+                    entry.Key.TeamId == teamId
+                    && entry.Key.UnitId == unitId
+                    && Tick < entry.Value)
+                .OrderBy(
+                    entry => entry.Key.TransitionId,
+                    StringComparer.Ordinal)
+                .Select(entry =>
+                    new GenericActorRuntimeObservation.ObservedRouteCooldown(
+                        entry.Key.TransitionId,
+                        entry.Value)),
+        ];
+
     private static void Block(ActionState state)
     {
         state.Outcome =
@@ -2252,6 +2269,9 @@ public sealed class GenericActorMatchSession : IDisposable
                         {
                             ClassId =
                                 _participantClassIds[life.ParticipantId],
+                            RouteCooldowns = LiveRouteCooldowns(
+                                life.ActorId.TeamId,
+                                life.ActorId.UnitId),
                         })
                     .ToImmutableArray()
                 : [];
@@ -2389,6 +2409,9 @@ public sealed class GenericActorMatchSession : IDisposable
                 PendingObservation(observer))
             {
                 ClassId = _participantClassIds[observer.ParticipantId],
+                RouteCooldowns = LiveRouteCooldowns(
+                    observer.ActorId.TeamId,
+                    observer.ActorId.UnitId),
             },
             TeamUnitObservations(observer.ActorId.TeamId),
             _host.ParticipantStatuses,

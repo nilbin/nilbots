@@ -89,7 +89,8 @@ internal static class GenericActorSdkModelMapper
             value.Energy,
             ToSdk(value.PreviousActionResolution),
             ToSdk(value.PendingSameLifeTransition),
-            value.ClassId);
+            value.ClassId,
+            ToSdk(value.RouteCooldowns));
 
     private static Sdk.GenericActorContext.ObservedAllyState ToSdk(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -104,7 +105,19 @@ internal static class GenericActorSdkModelMapper
             value.Energy,
             ToSdk(value.PreviousActionResolution),
             ToSdk(value.PendingSameLifeTransition),
-            value.ClassId);
+            value.ClassId,
+            ToSdk(value.RouteCooldowns));
+
+    private static ImmutableArray<
+        Sdk.GenericActorContext.ObservedRouteCooldown> ToSdk(
+        ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
+            value) =>
+        [
+            .. value.Select(cooldown =>
+                new Sdk.GenericActorContext.ObservedRouteCooldown(
+                    cooldown.TransitionId,
+                    cooldown.ReadyAtTick)),
+        ];
 
     private static Sdk.GenericActorContext.PendingSameLifeTransition? ToSdk(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>

@@ -44,6 +44,24 @@ public sealed record GenericActorRuntimeObservation(
         /// <see cref="FormId"/>.
         /// </summary>
         public string? ClassId { get; init; }
+
+        /// <summary>
+        /// Every same-life route of this body's stable unit slot that is
+        /// currently held shut by a declared route cooldown
+        /// (<see cref="ActorSameLifeTransitionDefinition.CooldownTicks"/>),
+        /// ordered by transition ID. The clock names the tick the
+        /// restriction lifts — the route refuses re-entry while the observed
+        /// tick is strictly below <see
+        /// cref="ObservedRouteCooldown.ReadyAtTick"/>. Slot-scoped like the
+        /// cooldown itself, so it survives this life's death. Empty when no
+        /// route cooldown is live, which is also every contract declaring
+        /// none — the additive inert default.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns
+        {
+            get;
+            init;
+        } = [];
     }
 
     public sealed record ObservedAllyState(
@@ -59,7 +77,27 @@ public sealed record GenericActorRuntimeObservation(
         PendingSameLifeTransition? PendingSameLifeTransition)
     {
         public string? ClassId { get; init; }
+
+        /// <summary>
+        /// The ally slot's live route cooldowns, published under the same
+        /// grammar as <see cref="ObservedSelfState.RouteCooldowns"/> —
+        /// allies share their complete gameplay state.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns
+        {
+            get;
+            init;
+        } = [];
     }
+
+    /// <summary>
+    /// One live slot-scoped route cooldown: the named same-life transition
+    /// refuses re-entry while the observed tick is strictly below
+    /// <paramref name="ReadyAtTick"/>.
+    /// </summary>
+    public sealed record ObservedRouteCooldown(
+        string TransitionId,
+        int ReadyAtTick);
 
     public sealed record PendingSameLifeTransition(
         string TransitionId,

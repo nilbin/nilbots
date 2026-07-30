@@ -325,7 +325,8 @@ internal static class ReplayV3Projection
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
             PendingTransition(value.PendingSameLifeTransition),
-            value.ClassId);
+            value.ClassId,
+            RouteCooldowns(value.RouteCooldowns));
 
     private static ReplayV3.ObservedAlly ObservedAlly(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -342,7 +343,17 @@ internal static class ReplayV3Projection
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
             PendingTransition(value.PendingSameLifeTransition),
-            value.ClassId);
+            value.ClassId,
+            RouteCooldowns(value.RouteCooldowns));
+
+    private static ImmutableArray<ReplayV3.RouteCooldown> RouteCooldowns(
+        ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
+            value) =>
+        [
+            .. value.Select(cooldown => new ReplayV3.RouteCooldown(
+                cooldown.TransitionId,
+                cooldown.ReadyAtTick)),
+        ];
 
     private static ReplayV3.ObservedEnemy ObservedEnemy(
         GenericActorRuntimeObservation.ObservedEnemyState value) =>

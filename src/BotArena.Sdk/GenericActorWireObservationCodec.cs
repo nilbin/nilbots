@@ -176,7 +176,8 @@ internal static class GenericActorWireObservationCodec
             value.Energy,
             value.PreviousActionResolution,
             value.PendingSameLifeTransition,
-            value.ClassId);
+            value.ClassId,
+            value.RouteCooldowns);
         return writer.ToArray();
     }
 
@@ -188,6 +189,7 @@ internal static class GenericActorWireObservationCodec
         byte[]? resolution = reader.Optional(9);
         byte[]? transition = reader.Optional(10);
         byte[]? classId = reader.Optional(11);
+        byte[]? routeCooldowns = reader.Optional(12);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedSelfState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -214,7 +216,8 @@ internal static class GenericActorWireObservationCodec
                         depth + 1),
                 classId is null
                     ? null
-                    : GenericActorWireCodecValues.SemanticId(classId)),
+                    : GenericActorWireCodecValues.SemanticId(classId),
+                DecodeRouteCooldowns(routeCooldowns, depth)),
             "self observation");
     }
 
@@ -234,7 +237,8 @@ internal static class GenericActorWireObservationCodec
             value.Energy,
             value.PreviousActionResolution,
             value.PendingSameLifeTransition,
-            value.ClassId);
+            value.ClassId,
+            value.RouteCooldowns);
         return writer.ToArray();
     }
 
@@ -246,6 +250,7 @@ internal static class GenericActorWireObservationCodec
         byte[]? resolution = reader.Optional(9);
         byte[]? transition = reader.Optional(10);
         byte[]? classId = reader.Optional(11);
+        byte[]? routeCooldowns = reader.Optional(12);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedAllyState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -272,7 +277,8 @@ internal static class GenericActorWireObservationCodec
                         depth + 1),
                 classId is null
                     ? null
-                    : GenericActorWireCodecValues.SemanticId(classId)),
+                    : GenericActorWireCodecValues.SemanticId(classId),
+                DecodeRouteCooldowns(routeCooldowns, depth)),
             "ally observation");
     }
 
@@ -289,7 +295,9 @@ internal static class GenericActorWireObservationCodec
         GenericActorActionResolution? previousActionResolution,
         GenericActorContext.PendingSameLifeTransition?
             pendingSameLifeTransition,
-        string? classId)
+        string? classId,
+        ImmutableArray<GenericActorContext.ObservedRouteCooldown>
+            routeCooldowns)
     {
         writer.Field(
             1,
@@ -319,7 +327,45 @@ internal static class GenericActorWireObservationCodec
             classId is null
                 ? null
                 : GenericActorWireCodecValues.SemanticId(classId));
+        writer.Optional(
+            12,
+            routeCooldowns.IsEmpty
+                ? null
+                : Array(routeCooldowns, EncodeRouteCooldown));
     }
+
+    private static byte[] EncodeRouteCooldown(
+        GenericActorContext.ObservedRouteCooldown value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(
+            1,
+            GenericActorWireCodecValues.SemanticId(value.TransitionId));
+        writer.Field(2, ActorWireValue.Int32(value.ReadyAtTick));
+        return writer.ToArray();
+    }
+
+    private static ImmutableArray<GenericActorContext.ObservedRouteCooldown>
+        DecodeRouteCooldowns(byte[]? bytes, int depth) =>
+        bytes is null
+            ? []
+            : ActorWireValue.Array(
+                bytes,
+                item => GenericActorWireCodecValues.Decode(
+                    () =>
+                    {
+                        var reader = new ActorWireObjectReader(
+                            item,
+                            depth + 1);
+                        return new GenericActorContext
+                            .ObservedRouteCooldown(
+                                GenericActorWireCodecValues.SemanticId(
+                                    reader.Required(1)),
+                                GenericActorWireCodecValues.Int32(
+                                    reader,
+                                    2));
+                    },
+                    "route cooldown"));
 
     private static byte[] EncodePendingTransition(
         GenericActorContext.PendingSameLifeTransition value)
