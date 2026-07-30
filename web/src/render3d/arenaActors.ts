@@ -7,6 +7,10 @@ import type {
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { teamAccentedBotImage } from '../render/arenaThemes';
 import {
+  botLocomotionAt,
+  clampLocomotionRoll,
+} from '../render/botLocomotion';
+import {
   defaultFormIdForUnit,
   stanceFormForUnit,
   stanceKindForForm,
@@ -23,6 +27,7 @@ import {
   headingAngle,
   posesAt,
 } from '../render/interpolate';
+import { projectileFlightMotionAt } from '../render/projectileMotion';
 import { volleyLanes } from '../render/volley';
 import { buildVolleyArrows } from './volleyArrows';
 import {
@@ -194,10 +199,6 @@ const IDLE_SWAY = 0.05;
 const IDLE_RISE = 0.022;
 const IDLE_ROLL = 0.055;
 const IDLE_YAW = 0.05;
-/** A look-authored low hover is presentation, never a movement-layer change. */
-const LOW_HOVER_HEIGHT = 0.075;
-const LOW_HOVER_BOB = 0.014;
-
 /**
  * How hard a bot drifts through a corner.
  *
@@ -290,9 +291,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
     const stancePresentation = stanceLook ?? look;
     const stanceHardware = modelSpec(stancePresentation.id)?.skillHardware;
-    const mobileLowHover = look.locomotionCue === 'low-hover';
-    const stanceLowHover =
-      stancePresentation.locomotionCue === 'low-hover';
+    const mobileLocomotionCue = look.locomotionCue;
+    const stanceLocomotionCue = stancePresentation.locomotionCue;
     const accentValue = unitAccent(replay, unit.unitKey, defaultFormId);
     const accent = new THREE.Color(accentValue);
     const size = Math.max(0.82, look.scale * 0.9);
@@ -912,8 +912,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       unitKey: unit.unitKey,
       size,
       motionPhase: phaseForIdentity(unit.unitKey),
-      mobileLowHover,
-      stanceLowHover,
+      mobileLocomotionCue,
+      stanceLocomotionCue,
       chassis,
       body,
       turret,
@@ -1587,8 +1587,30 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const kick = firing
         ? Math.sin(shotProgress * Math.PI) * 0.14
         : 0;
-      const hover =
-        (LOW_HOVER_HEIGHT + rise * LOW_HOVER_BOB) *
+      const mobileMotion = botLocomotionAt(
+        bot.mobileLocomotionCue,
+        time,
+        bot.motionPhase,
+        boxedIn,
+      );
+      const stanceMotion = botLocomotionAt(
+        bot.stanceLocomotionCue,
+        time,
+        bot.motionPhase,
+        boxedIn,
+      );
+      const mobileGrounding =
+        mobileMotion.settlesWhenPlanted ? 1 - upright : 1;
+      const stanceGrounding =
+        stanceMotion.settlesWhenPlanted ? 1 - upright : 1;
+      const mobileHover =
+        mobileMotion.hover *
+        mobileGrounding *
+        (1 - collapse) *
+        emerge;
+      const stanceHover =
+        stanceMotion.hover *
+        stanceGrounding *
         (1 - collapse) *
         emerge;
 
@@ -1606,15 +1628,22 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
       bot.body.position.x = -kick;
       bot.body.position.z =
-        drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
+        (drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY) *
+        mobileMotion.lateralScale;
       bot.body.position.y =
         TURRET_LIFT * bot.size * tipping +
-        (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE);
-      bot.stance.position.y = bot.stanceLowHover ? hover : 0;
+        (bot.mobileLocomotionCue === null
+          ? idle * rise * IDLE_RISE
+          : mobileHover);
+      bot.stance.position.y =
+        bot.stanceLocomotionCue === null ? 0 : stanceHover;
       bot.body.rotation.y =
-        -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
-      bot.body.rotation.x =
-        drift * DRIFT_LEAN + idle * rise * IDLE_ROLL;
+        (-drift * DRIFT_YAW + idle * sway * IDLE_YAW) *
+        mobileMotion.yawScale;
+      bot.body.rotation.x = clampLocomotionRoll(
+        drift * DRIFT_LEAN + idle * rise * IDLE_ROLL,
+        mobileMotion,
+      );
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
@@ -1671,6 +1700,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (boltHidden(bolt.id, bolt.x, bolt.y)) continue;
       const arsenalIndex =
         arsenalIndexByUnit.get(bolt.ownerActor.unitKey) ?? 0;
+      const flightCue = arsenals[arsenalIndex]?.look.flightCue ?? null;
       const rig = borrow(
         bolt.ownerActor.unitKey,
         flying[arsenalIndex]++,
@@ -1708,14 +1738,24 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const phase = phaseForIdentity(bolt.id);
       const wander =
         1 + (Math.floor(phase * 10_000) % 23) / 46;
+      const flight = projectileFlightMotionAt(
+        flightCue,
+        time,
+        key,
+      );
       rig.head.position.y =
         PROJECTILE_HOVER +
         (Math.sin(time * 9.3 * wander + phase) + Math.sin(time * 5.1 + phase * 2.7) * 0.6) * 0.05;
       // Local −z is across the heading, since the rig is turned to face along +x.
       rig.head.position.z =
         (Math.sin(time * 6.7 * wander + phase * 1.9) + Math.sin(time * 3.9 + phase) * 0.5) * 0.055;
-      rig.head.rotation.x = Math.sin(time * 6.1 * wander + phase) * 0.35;
-      rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.18;
+      rig.head.rotation.x =
+        Math.sin(time * 6.1 * wander + phase) * 0.35 +
+        flight.rotationX;
+      rig.head.rotation.y = flight.rotationY;
+      rig.head.rotation.z =
+        Math.sin(time * 4.7 + phase * 1.7) * 0.18 +
+        flight.rotationZ;
     }
     // Forget bolts that have landed, or the map grows for the length of the replay.
     for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);

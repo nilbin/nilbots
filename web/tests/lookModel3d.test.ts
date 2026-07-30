@@ -4,43 +4,61 @@ import {
   lookModelSource,
   modelSpec,
   presentationBotLook,
+  presentationProjectileLook,
 } from './.harness/harness.entry.js';
 
-test('only the approved Striker mobile body resolves to an authored class GLB', () => {
-  assert.deepEqual(modelSpec('trident-wasp'), {
-    version: 1,
-    id: 'trident-wasp',
-    file: 'model.glb',
-    kind: 'bot',
-    part: 'whole',
-    facing: '+x',
-    up: '+y',
-  });
+test('the three approved mobile bodies and default projectiles resolve to authored GLBs', () => {
+  for (const id of ['trident-wasp', 'aegis-tortoise', 'lattice-loom'])
+    assert.deepEqual(modelSpec(id), {
+      version: 1,
+      id,
+      file: 'model.glb',
+      kind: 'bot',
+      part: 'whole',
+      facing: '+x',
+      up: '+y',
+    });
 
   for (const id of [
-    'trident-wasp-volley',
-    'aegis-tortoise',
-    'aegis-tortoise-shell',
-    'aegis-tortoise-turret',
-    'lattice-loom',
     'trident-spark',
     'rebound-diamond',
     'lattice-rivet',
   ])
+    assert.deepEqual(modelSpec(id), {
+      version: 1,
+      id,
+      file: 'model.glb',
+      kind: 'projectile',
+      part: 'whole',
+      facing: '+x',
+      up: '+y',
+    });
+
+  for (const id of [
+    'trident-wasp-volley',
+    'aegis-tortoise-shell',
+    'aegis-tortoise-turret',
+  ])
     assert.equal(modelSpec(id), null, id);
 });
 
-test('the canonical Striker looks keep low-hover independent of a GLB', () => {
-  assert.equal(
-    presentationBotLook('trident-wasp').locomotionCue,
-    'low-hover',
+test('class motion language stays in look manifests, independent of a GLB', () => {
+  assert.deepEqual(
+    ['trident-wasp', 'aegis-tortoise', 'lattice-loom'].map(
+      (id) => presentationBotLook(id).locomotionCue,
+    ),
+    ['low-hover', 'heavy-hover', 'calm-hover'],
   );
   assert.equal(
     presentationBotLook('trident-wasp-volley').locomotionCue,
     'low-hover',
   );
-  assert.equal(modelSpec('trident-wasp')?.kind, 'bot');
-  assert.equal(modelSpec('trident-wasp-volley'), null);
+  assert.deepEqual(
+    ['trident-spark', 'rebound-diamond', 'lattice-rivet'].map(
+      (id) => presentationProjectileLook(id).flightCue,
+    ),
+    ['axial-spin', 'flat-spin', 'tumble'],
+  );
 });
 
 test('legacy looks without a genuine model remain on the SVG fallback path', () => {
@@ -54,14 +72,10 @@ test('a whole-body GLB cannot serve a turret sector and yields to the sprite', (
   // be cropped to that section; the Striker's `part: 'whole'` mesh cannot, and handing the
   // whole body back put four entire strikers, tipped on their noses, around the unit —
   // a cage of hardware where an emplacement belonged.
-  assert.equal(modelSpec('trident-wasp')?.part, 'whole');
-  assert.equal(lookModelSource('trident-wasp'), 'gltf');
-  assert.equal(lookModelSource('trident-wasp', 'front'), 'fallback');
-
-  // The mobile body is unaffected: no sector is asked for, so the model still wins.
-  assert.equal(lookModelSource('trident-wasp', undefined), 'gltf');
-
-  // And a look with no model at all was always the sprite, sector or not.
-  assert.equal(lookModelSource('lattice-loom'), 'fallback');
-  assert.equal(lookModelSource('lattice-loom', 'front'), 'fallback');
+  for (const id of ['trident-wasp', 'aegis-tortoise', 'lattice-loom']) {
+    assert.equal(modelSpec(id)?.part, 'whole');
+    assert.equal(lookModelSource(id), 'gltf');
+    assert.equal(lookModelSource(id, 'front'), 'fallback');
+    assert.equal(lookModelSource(id, undefined), 'gltf');
+  }
 });

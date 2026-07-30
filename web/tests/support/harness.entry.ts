@@ -38,7 +38,13 @@ export {
 export {
   applyTeamAccentToSvg,
   presentationBotLook,
+  presentationProjectileLook,
 } from '../../src/render/arenaThemes';
+export {
+  botLocomotionAt,
+  clampLocomotionRoll,
+} from '../../src/render/botLocomotion';
+export { projectileFlightMotionAt } from '../../src/render/projectileMotion';
 export {
   volleyArrowOutline,
   volleyLanes,

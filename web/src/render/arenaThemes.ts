@@ -2,7 +2,14 @@ import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
 
 export type BotLookClassId = 'striker' | 'bulwark' | 'fabricator';
-export type BotLocomotionCue = 'low-hover';
+export type BotLocomotionCue =
+  | 'low-hover'
+  | 'heavy-hover'
+  | 'calm-hover';
+export type ProjectileFlightCue =
+  | 'axial-spin'
+  | 'flat-spin'
+  | 'tumble';
 
 export interface BotLook {
   id: string;
@@ -30,6 +37,11 @@ export interface BotLook {
 export interface ProjectileLook {
   id: string;
   label: string;
+  /**
+   * Presentation-only head motion. Travel, heading, timing, hitbox, trail and floor glow
+   * remain renderer-owned and authoritative.
+   */
+  flightCue: ProjectileFlightCue | null;
   image: HTMLImageElement | null;
   imageUrl: string;
   scale: number;
@@ -179,6 +191,7 @@ interface ProjectileLookManifest {
   id: string;
   label: string;
   sprite: string;
+  flightCue?: ProjectileFlightCue;
   scale: number;
 }
 
@@ -601,7 +614,9 @@ function buildLooks(
       );
     if (
       manifest.locomotionCue !== undefined &&
-      manifest.locomotionCue !== 'low-hover'
+      !['low-hover', 'heavy-hover', 'calm-hover'].includes(
+        manifest.locomotionCue,
+      )
     )
       throw new Error(
         `Bot look '${manifest.id}' has unknown locomotion cue ` +
@@ -657,9 +672,18 @@ function buildProjectileLooks(
     );
     if (result.has(manifest.id))
       throw new Error(`Duplicate projectile look ID '${manifest.id}'.`);
+    if (
+      manifest.flightCue !== undefined &&
+      !['axial-spin', 'flat-spin', 'tumble'].includes(manifest.flightCue)
+    )
+      throw new Error(
+        `Projectile look '${manifest.id}' has unknown flight cue ` +
+          `'${String(manifest.flightCue)}'.`,
+      );
     result.set(manifest.id, {
       id: manifest.id,
       label: manifest.label,
+      flightCue: manifest.flightCue ?? null,
       image: loadImage(imageUrl),
       imageUrl,
       scale: manifest.scale,

@@ -323,7 +323,7 @@ test('a class replay renders its classes and its teams apart', () => {
   );
 });
 
-test('the Striker visibly low-hovers while remaining on the ground gameplay layer', () => {
+test('Striker and Bulwark keep distinct hover weight on the ground gameplay layer', () => {
   const actors = buildActors(asClassArms(frontline));
   const bulwarkBody = partOf(
     chassisOf(actors.group, 'frontline:0:unit:1'),
@@ -340,8 +340,12 @@ test('the Striker visibly low-hovers while remaining on the ground gameplay laye
     `the fighter-like chassis has a visible air gap (${strikerBody.position.y})`,
   );
   assert.ok(
-    strikerBody.position.y - bulwarkBody.position.y > 0.04,
-    'low-hover is a Striker presentation cue, not a lift applied to every class',
+    bulwarkBody.position.y > 0.035,
+    `the heavy chassis has a low but real air gap (${bulwarkBody.position.y})`,
+  );
+  assert.ok(
+    strikerBody.position.y - bulwarkBody.position.y > 0.008,
+    'the agile Striker still skims higher than the heavy Bulwark at this replay frame',
   );
 
   actors.dispose();

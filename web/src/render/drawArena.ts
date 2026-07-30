@@ -30,6 +30,7 @@ import {
   adjustAccentForLuminance,
   sampleCanvasLuminance,
 } from './adaptiveAccent';
+import { projectileFlightMotionAt } from './projectileMotion';
 import { maxHealthForActor } from '../replayMetadata';
 import {
   participantForUnit,
@@ -1087,6 +1088,7 @@ export function drawArena(
         ownerActor.unitKey,
         accent,
         0.95 * pulse,
+        `${ownerActor.actorKey}:${projectileId}`,
       );
     }
 
@@ -1099,12 +1101,18 @@ export function drawArena(
     ownerUnitKey: ReplayStableUnitKey | null,
     accent: string,
     alpha: number,
+    stableIdentity: string,
   ): void {
     const look = ownerUnitKey
       ? unitProjectileLook(replay, ownerUnitKey)
       : presentationProjectileLook();
     const sprite = tintedProjectileSprite(look, accent);
     const size = tile * look.scale;
+    const flight = projectileFlightMotionAt(
+      look.flightCue,
+      time,
+      stableIdentity,
+    );
 
     // A contact shadow on the floor beneath the bolt. Small, soft and offset the same way
     // a bot's is, so a projectile reads as travelling *over* the arena rather than being
@@ -1120,7 +1128,8 @@ export function drawArena(
 
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(angle);
+    ctx.rotate(angle + flight.canvasRotation);
+    ctx.scale(flight.canvasScaleX, flight.canvasScaleY);
     ctx.globalAlpha = alpha;
     ctx.shadowColor = accent;
     ctx.shadowBlur = Math.max(4, tile * 0.18);
@@ -1833,7 +1842,7 @@ export function drawArena(
   function drawShots(): void {
     const progress = shotProgress();
     if (progress <= 0) return;
-    for (const event of currentTick?.events ?? []) {
+    for (const [eventIndex, event] of (currentTick?.events ?? []).entries()) {
       if (!isAttackEvent(event.type)) continue;
       const from = eventPoint(event.from);
       const to = eventPoint(event.to);
@@ -1889,6 +1898,7 @@ export function drawArena(
         ownerUnitKey,
         accentAt(authoredAccent, tipX, tipY),
         alpha,
+        `${event.sourceActor?.actorKey ?? 'legacy'}:shot:${tick}:${eventIndex}`,
       );
     }
   }

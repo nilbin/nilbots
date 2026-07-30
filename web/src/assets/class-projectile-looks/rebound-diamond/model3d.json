@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "rebound-diamond",
+  "file": "model.glb",
+  "kind": "projectile",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y"
+}
