@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0",
+  "assetId": "aegis-tortoise-shell",
+  "purpose": "Generate the static high-detail Aegis Tortoise Shell master for Bulwark form segmentation, retopology, semantic team-material isolation, and deterministic deploy/retract rigging.",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-30T08:39:30.592174Z",
+  "balanceBefore": 800,
+  "expectedCredits": 30,
+  "maxCredits": 30,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/01-top.png",
+      "bytes": 1420547,
+      "sha256": "d39111631efa577b5efdfa16811da6a03d4a9aa8714def29ee455cf7681e26e4",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "side",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/02-side.png",
+      "bytes": 504751,
+      "sha256": "98e0fed13fe0edbf613150763df7d1d53700769148a44ab54112d8e5f72c9e3f",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "front-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/03-front-three-quarter.png",
+      "bytes": 1154630,
+      "sha256": "eb7ccfa0e03afca30847c193a63426c19316e63ed7aa45c35cc853586fedbd91",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "rear-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/04-rear-three-quarter.png",
+      "bytes": 798896,
+      "sha256": "4ca9878351ed4ffb6f70ec716b9f56189fbc05cdf8fd0686dc6abea7c8573bfb",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Restrained stylized PBR deployed directional shield robot: matte graphite-navy hard-surface armor, weathered bronze quadrant plate, crisp panel seams, dark gunmetal supports and restrained wear. Preserve the two bounded cyan shield-edge inlays and west-center cyan inlay; keep the cyan reactor as separate class energy. No cyan on rear corner pods, glow spill, text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic."
+  },
+  "sourcePackage": {
+    "manifest": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/manifest.json",
+    "sha256": "7be0046381e50132d80a5ec7b828b5dfd3cd0a8274d631952a6a9926811ce0af",
+    "status": "provider-ready"
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "multiImageApi": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "terms": "https://www.meshy.ai/terms-of-use",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "Meshy output URLs expire; provider output is downloaded immediately and URLs are not storage.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T08:43:52.384372Z",
+  "consumedCreditsObserved": 30,
+  "finishedAt": "2026-07-30T08:44:04.529500Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 770,
+  "consumedCredits": 30,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 51000780,
+      "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 102009,
+      "sha256": "eb4ac1a1ff5b634934189051e3e6439a8b41290ef8960fde06817b4da5220319",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 28696588,
+      "sha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 636928,
+      "sha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1611814,
+      "sha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33028364,
+      "sha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 464514,
+      "sha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5",
+      "contentType": "image/png",
+      "reusedExisting": false
+    }
+  ]
+}
