@@ -637,18 +637,29 @@ export default function Viewer({
           gallery-01 is `frost-relay`, which is nearly white, and a hard-edged dark
           rectangle dropped on it reads as damage. A gradient darkens whatever is
           actually there — and it fades on the same element as the controls, so hidden
-          chrome cannot leave a permanent band across the bottom of the arena. */}
+          chrome cannot leave a permanent band across the bottom of the arena.
+
+          **The scrim never takes a tap; only the controls do.** It is a gradient with
+          48px of transparent lead-in above the panel, drawn full-bleed and — because it
+          carried `pointer-events-auto` — swallowing every touch in the bottom ~130px of
+          the arena. On a desktop-shaped window that band is empty. On a phone held
+          sideways the viewport is ~320-350px tall, and the band lands squarely on the
+          end-of-match card's "Watch again" button and on the lower third of the play
+          button: the first tap revealed the chrome, which turned the scrim's pointer
+          events on, and every tap after that hit a gradient. "Watch again in full screen
+          on my phone doesn't work" was literally that — a decoration eating the control
+          underneath it. Decoration is `pointer-events-none`; the panel opts back in. */}
       {immersive.active && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
           <div
             className={clsx(
-              'bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
-              chromeVisible
-                ? 'visible pointer-events-auto opacity-95'
-                : 'invisible pointer-events-none opacity-0',
+              'pointer-events-none bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
+              chromeVisible ? 'visible opacity-95' : 'invisible opacity-0',
             )}
           >
-            {transport}
+            <div className={chromeVisible ? 'pointer-events-auto' : undefined}>
+              {transport}
+            </div>
           </div>
         </div>
       )}

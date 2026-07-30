@@ -104,6 +104,36 @@ const PLATE_RADIUS = 0.72;
  */
 const DEPLOY_TICKS = 1.5;
 
+/**
+ * A stance entry, on the other hand, is over in the tick it was asked for.
+ *
+ * **The volley is cast on the tick after the stance is entered**, and that single fact is
+ * what the animation has to obey. Borrowing Anchor's 1.5-tick fallback ran the windup half
+ * a tick past the shot: the fan was 60% open and the body still swelling at the instant
+ * three bolts left it, then the pose snapped to full and immediately folded away — the
+ * telegraphed move arrived after the thing it was telegraphing, and the pose the striker
+ * fires from existed for about two frames. One tick lands the fan fully open exactly on the
+ * tick boundary the bolts leave from, and makes the entry and the return meet there
+ * continuously rather than jumping (the two segments used to hand over at 0.67 and 1.0 of
+ * the same channel, which is a visible snap on the busiest frame of the move).
+ */
+const STANCE_TICKS = 1;
+
+/**
+ * The stance handover, and the charge either side of it.
+ *
+ * The mobile body used to be crushed to 58% and swapped, at that size, for a stance body
+ * that appeared at 71% — a 22% size discontinuity in one frame, on top of a model swap, on
+ * top of a squash that read as the machine being stepped on. Both halves now cross at the
+ * *same* size, and it is a size slightly larger than rest: the striker gathers itself, and
+ * the fan comes out of a charged body rather than out of a crushed one.
+ */
+const STANCE_HANDOVER = 0.5;
+const STANCE_CHARGE_SCALE = 1.08;
+/** How much the accent pool flares and spreads under a charging stance, at full charge. */
+const STANCE_POOL_GAIN = 0.55;
+const STANCE_POOL_SPREAD = 0.45;
+
 /** How long the completed windup ring is held, in deploy-lengths, before it fades. */
 const RING_HOLD = 0.25;
 const TURRET_TAKEOVER = 0.6;
@@ -742,9 +772,28 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const highlight = (on: boolean) => {
       if (on === highlighted) return;
       highlighted = on;
-      glowFade.base = on ? SELECTED_POOL : UNSELECTED_POOL;
+      paintPool();
       repaint();
-      fade(lastFactor);
+    };
+
+    /**
+     * The charge under a bot entering a stance: the accent pool flares and spreads.
+     *
+     * The pool is the one place a bot wears its owner's colour in this renderer, which
+     * makes it the honest place to say "this machine is about to do something" — the same
+     * channel the followed bot already brightens, pushed further for a moment. A stance
+     * entry is a fifth of a second, so the cue has to be legible without being a second
+     * light source; brightening what is already there is exactly that.
+     *
+     * Selection and charge compose rather than take turns: a followed striker that stopped
+     * being lit while it wound up would report the wrong thing twice.
+     */
+    let charged = 0;
+    const charge = (amount: number) => {
+      const clamped = Math.max(0, Math.min(amount, 1));
+      if (clamped === charged) return;
+      charged = clamped;
+      paintPool();
     };
     const flash = (strength: number) => {
       const clamped = Math.max(0, Math.min(strength, 1));
@@ -844,6 +893,21 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
     };
 
+    /**
+     * The accent pool's brightness and spread, from every input that owns a piece of it.
+     *
+     * Written once rather than by each caller, because there are two of them now and they
+     * overlap: `highlight` used to assign `glowFade.base` outright, so a charge would have
+     * been erased the moment a bot was followed and vice versa.
+     */
+    const paintPool = () => {
+      glowFade.base =
+        (highlighted ? SELECTED_POOL : UNSELECTED_POOL) *
+        (1 + charged * STANCE_POOL_GAIN);
+      glow.scale.setScalar(1 + charged * STANCE_POOL_SPREAD);
+      fade(lastFactor);
+    };
+
     return {
       unitKey: unit.unitKey,
       size,
@@ -866,6 +930,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       anchorMaterial,
       pad,
       highlight,
+      charge,
       flash,
       pips,
       pipMeshes,
@@ -914,6 +979,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     stationary: boolean;
     shape: FormShape;
     sourceShape: FormShape;
+    /**
+     * Either end of this transition is a stance.
+     *
+     * It decides two things a turret deploy answers differently: how long the animation
+     * runs when the replay does not say (`STANCE_TICKS`, so the fan is out on the tick the
+     * volley leaves), and whether the windup dial appears at all. The dial reports "busy,
+     * and for this much longer" about a Wait-only Anchor; a stance is over in one tick, and
+     * a progress ring that fills and empties inside 200 ms is a flicker, not a reading.
+     */
+    stanceMove: boolean;
   };
   const formTimelines = new Map<ReplayActorLifeKey, FormSegment[]>();
   const stationaryForm = (formId: string | null) =>
@@ -960,14 +1035,25 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         )
       )
         continue;
+      const shape = shapeOfForm(
+        cancelled ? event.fromFormId : event.toFormId,
+      );
+      const sourceShape = shapeOfForm(
+        cancelled ? event.toFormId : event.fromFormId,
+      );
+      const stanceMove = shape === 'stance' || sourceShape === 'stance';
       timeline.push({
         at,
-        span: Math.max(completes - at + 1, DEPLOY_TICKS),
-        stationary,
-        shape: shapeOfForm(cancelled ? event.fromFormId : event.toFormId),
-        sourceShape: shapeOfForm(
-          cancelled ? event.toFormId : event.fromFormId,
+        // A windup the replay describes always wins; the floor only covers the transitions
+        // that begin and end in one tick, and those two kinds of move are not one length.
+        span: Math.max(
+          completes - at + 1,
+          stanceMove ? STANCE_TICKS : DEPLOY_TICKS,
         ),
+        stationary,
+        shape,
+        sourceShape,
+        stanceMove,
       });
       formTimelines.set(key, timeline);
     }
@@ -1246,6 +1332,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.stance.visible = false;
       bot.highlight(false);
       bot.flash(0);
+      // A life destroyed mid-windup would otherwise leave its charge burning on an empty
+      // pad, exactly the way the deploy state used to be left behind.
+      bot.charge(0);
     }
 
     for (const pose of posesAt(replay, time)) {
@@ -1329,27 +1418,45 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const unfolding = emplacing
         ? Math.max(0, (upright - TURRET_TAKEOVER) / (1 - TURRET_TAKEOVER))
         : 0;
-      // A stance takes over halfway through, so the mobile body is seen folding away and
-      // the stance is seen opening rather than one blinking into the other.
+      // A stance takes over halfway through, so the mobile body is seen charging up and the
+      // stance is seen coming out of it rather than one blinking into the other.
       const stanceOut = stancing ? upright : 0;
-      const stanceTakeover = stanceOut > 0.5;
+      const stanceTakeover = stanceOut > STANCE_HANDOVER;
 
       bot.body.visible = unfolding <= 0 && !stanceTakeover;
       bot.turret.visible = unfolding > 0;
       bot.stance.visible = stanceTakeover;
       bot.body.rotation.z = (Math.PI / 2) * tipping;
       bot.body.position.y = TURRET_LIFT * bot.size * tipping;
-      // Folding away and opening out are the same curve either side of the handover, which
-      // is what makes the swap read as one machine changing rather than two objects.
-      const folded = 1 - Math.min(1, stanceOut / 0.5) * 0.42;
-      bot.body.scale.setScalar(stancing ? folded : 1);
-      const opened = Math.max(0, (stanceOut - 0.5) / 0.5);
-      bot.stance.scale.setScalar(0.7 + 0.3 * easeInOut(opened));
+      // Charging up, then coming out — **the two halves cross at the same size**, which is
+      // the whole of what stops the swap reading as a pop. The body swells into the
+      // handover and the stance settles back out of it, so the only thing that changes at
+      // the seam is which machine is being drawn.
+      const gathering = Math.min(1, stanceOut / STANCE_HANDOVER);
+      bot.body.scale.setScalar(
+        stancing
+          ? 1 + (STANCE_CHARGE_SCALE - 1) * easeInOut(gathering)
+          : 1,
+      );
+      const opened = Math.max(
+        0,
+        (stanceOut - STANCE_HANDOVER) / (1 - STANCE_HANDOVER),
+      );
+      bot.stance.scale.setScalar(
+        STANCE_CHARGE_SCALE + (1 - STANCE_CHARGE_SCALE) * easeOut(opened),
+      );
+      // The fan is the statement, so it is the part that snaps: fastest at the start and
+      // fully open before the settle finishes, rather than still swinging when the bolts
+      // leave. It stops exactly at the profile's own headings — an overshoot here would be
+      // a lie about where the volley goes.
       for (const hinge of bot.barrels)
         hinge.rotation.y =
-          -(hinge.userData.fanAngle as number) * easeInOut(opened);
-      if (bot.plate) bot.plate.scale.y = 0.12 + 0.88 * easeInOut(opened);
-      const guardOpacity = 0.42 * (0.35 + 0.65 * easeInOut(opened));
+          -(hinge.userData.fanAngle as number) * easeOut(opened);
+      if (bot.plate) bot.plate.scale.y = 0.12 + 0.88 * easeOut(opened);
+      const guardOpacity = 0.42 * (0.35 + 0.65 * easeOut(opened));
+      // And the machine lights up while it winds: brightest at full extension, which is the
+      // frame the cast leaves on, then released with the return.
+      bot.charge(stanceOut);
       for (const [arm, spoke] of bot.spokes.entries())
         spoke.rotation.y = ((arm * Math.PI * 2) / TURRET_ARMS) * easeInOut(unfolding);
       // It only turns once it is out; something spinning while it unfolds reads as falling
@@ -1389,9 +1496,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Frontline's own fixture is exactly that: `started=9 done=9`, pending never set.
       // Tracked unclamped past completion so the circle reaches full and holds a moment
       // rather than blinking out a hair before it closes.
+      //
+      // A stance is the one transition it stays off for. The dial answers "how much longer
+      // is this bot unable to act", which is a real question about a multi-tick Anchor and
+      // no question at all about a move that is over in a fifth of a second — on the volley
+      // it filled, reset and filled again across three ticks while the actual cast happened
+      // in the middle of it. The charge under the striker carries that moment instead.
       const anchorProgress = deploy ? deployProgress : 0;
       bot.anchorRing.visible =
         deploy !== null &&
+        !deploy.stanceMove &&
         anchorProgress > 0 &&
         anchorProgress < 1 + RING_HOLD &&
         bot.chassis.visible;
@@ -1728,6 +1842,17 @@ function progressRing():
 /** Ease used for anything that starts and stops, matching the flat renderer's motion. */
 function easeInOut(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+}
+
+/**
+ * Ease used for anything that is *released* rather than played: fastest at the start.
+ *
+ * A stance is not a deploy. The fan has to be open before the shot it announces, and an
+ * ease that spends its first third barely moving spends it exactly where the telegraph
+ * needed to be.
+ */
+function easeOut(t: number): number {
+  return 1 - (1 - Math.max(0, Math.min(t, 1))) ** 3;
 }
 
 /** The signed angle to turn through, taking the short way round. */

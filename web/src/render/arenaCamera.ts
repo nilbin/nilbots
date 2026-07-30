@@ -34,16 +34,31 @@ import { posesAt } from './interpolate';
  */
 export const ARENA_MARGIN_TILES = 0.4;
 
-/** How much room is left around the fitted lives, in tiles. */
-const FOCUS_MARGIN_TILES = 2.6;
+/**
+ * How much room is left around the fitted lives, in tiles.
+ *
+ * **Read it as clear floor beyond a body, not as padding**: the fitted points are tile
+ * centres, and a machine is about a tile across, so this leaves a tile of ground past the
+ * outermost life on every side — enough that a step, a spring lag and the deadband's own
+ * slack together cannot walk anyone off the edge of the frame.
+ *
+ * It is deliberately smaller than it looks, because the margin is multiplied by the
+ * viewport before it is seen. A frame is grown to the viewport's shape after this, so on a
+ * 2.16:1 phone in landscape the *horizontal* span is roughly `2 × margin × aspect` — at the
+ * 2.6 this used to be, a lone survivor was framed in eleven tiles of a twenty-three-tile
+ * map and read as a speck with a lot of floor around it. Halving the margin halves the
+ * black, and the fit is still a fit.
+ */
+const FOCUS_MARGIN_TILES = 1.5;
 
 /**
  * The closest the camera may ever get, in tiles across.
  *
  * A single surviving bot fits in about two tiles, and a camera that honours that shows a
- * machine and no arena — no cover, no objective, no idea where the shot came from.
+ * machine and no arena — no cover, no objective, no idea where the shot came from. Six is
+ * about two tiles of context either side of a duel, which is where cover lives.
  */
-const MIN_SPAN_TILES = 8;
+const MIN_SPAN_TILES = 6;
 
 /** A framing of the arena: a centre and the span it shows, both in tiles. */
 export interface ArenaFrame {

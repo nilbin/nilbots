@@ -141,10 +141,10 @@ test('a fit holds every position it was given, with room around them', () => {
   assert.ok(Math.abs(frame.width / frame.height - FRAMING.aspect) < 1e-9);
 });
 
-test('it never gets closer than about eight tiles, and never wider than the arena', () => {
+test('it never gets closer than about six tiles, and never wider than the arena', () => {
   // One surviving machine. Fitting it honestly would show a bot and no arena.
   const alone = focusFrame([{ x: 20, y: 12 }], FRAMING);
-  assert.ok(alone.width >= 8, `min span held (${alone.width})`);
+  assert.ok(alone.width >= 6, `min span held (${alone.width})`);
 
   // Two lives in opposite corners ask for more than the map has, and get the map.
   const everywhere = focusFrame(
@@ -156,6 +156,71 @@ test('it never gets closer than about eight tiles, and never wider than the aren
   );
   const full = fullArenaFrame(FRAMING);
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
+});
+
+test('the fit is close enough to watch on a phone, and still never crops a life', () => {
+  // Reported from a phone: "zoom in more in the fit — margin is way excessive". The fit was
+  // correct about *where* to look and far too generous about how much to show, and the
+  // generosity compounds with the viewport: the frame is grown to the screen's shape, so a
+  // margin of m tiles costs roughly `2 · m · aspect` tiles of width on a 2.17:1 phone. At
+  // the margin this used to carry, a lone survivor on a 23-wide Labs map was framed in
+  // eleven tiles — half the arena for one machine.
+  //
+  // Two numbers, in tension, and both belong in a test rather than in an eye: a ceiling on
+  // how much floor a fit may show, and a floor on how much clear ground is left past the
+  // outermost life so a spring that is still catching up cannot crop anybody.
+  const LABS = { mapWidth: 23, mapHeight: 15 };
+  const landscape = {
+    ...LABS,
+    aspect: PHONE_LANDSCAPE.width / PHONE_LANDSCAPE.height,
+  };
+  const portrait = {
+    ...LABS,
+    aspect: PHONE_PORTRAIT.width / PHONE_PORTRAIT.height,
+  };
+  const arena = { ...LABS, aspect: 16 / 10 };
+
+  const survivor = [{ x: 11.5, y: 7.5 }];
+  const duel = [
+    { x: 10.5, y: 7.5 },
+    { x: 14.5, y: 8.5 },
+  ];
+
+  for (const [what, framing, ceiling] of [
+    ['phone landscape', landscape, 7.5],
+    ['phone portrait', portrait, 6.5],
+    ['arena panel', arena, 6.5],
+  ] as const) {
+    const alone = focusFrame(survivor, framing);
+    assert.ok(
+      alone.width <= ceiling,
+      `${what}: a lone survivor is framed in ${alone.width.toFixed(1)} tiles, over the ${ceiling} the fit is allowed`,
+    );
+    // Both axes: a landscape fit that held the width and showed a sliver of height would
+    // pass a width ceiling and still be unwatchable.
+    assert.ok(
+      alone.height >= 2.8,
+      `${what}: ${alone.height.toFixed(1)} tiles of height is not an arena`,
+    );
+  }
+
+  // And it is still a fit: every life keeps a tile of clear ground past its own body on
+  // every side, at every viewport shape. Tile centres in, so a tile of floor is 1.5.
+  for (const framing of [landscape, portrait, arena]) {
+    for (const points of [survivor, duel]) {
+      const frame = focusFrame(points, framing);
+      for (const point of points) {
+        assert.ok(
+          Math.abs(point.x - frame.x) <= frame.width / 2 - 1.5,
+          `a life is ${(frame.width / 2 - Math.abs(point.x - frame.x)).toFixed(2)} tiles from the edge across`,
+        );
+        assert.ok(
+          Math.abs(point.y - frame.y) <= frame.height / 2 - 1.5,
+          `a life is ${(frame.height / 2 - Math.abs(point.y - frame.y)).toFixed(2)} tiles from the edge down`,
+        );
+      }
+    }
+  }
 });
 
 test('the fit centres the action on a phone, in landscape and in portrait', () => {
@@ -215,9 +280,9 @@ test('a fight in the corner is centred on the fight, and a frame wider than the 
 
   // The one case the action does not decide: an axis the frame already covers whole. Sliding
   // that would push the arena off one side and show background on the other for nothing, so
-  // the arena is centred instead — even bars, nothing cut off. A 12-tall map on a tall
-  // viewport is exactly that: the fit needs 16 tiles of height to hold 8 tiles of map.
-  const tall = { mapWidth: 40, mapHeight: 12, aspect: 0.5 };
+  // the arena is centred instead — even bars, nothing cut off. A short map on a tall viewport
+  // is exactly that: the fit needs twelve tiles of height to hold six tiles of width.
+  const tall = { mapWidth: 40, mapHeight: 8, aspect: 0.5 };
   const covered = focusFrame([{ x: 1.5, y: 1.5 }], tall);
   assert.ok(covered.height >= tall.mapHeight + ARENA_MARGIN_TILES);
   assert.ok(Math.abs(covered.y - tall.mapHeight / 2) < 1e-9, 'the arena is centred');
@@ -283,8 +348,8 @@ test('the action drifting to one side re-aims, even though it never left the fra
   );
   const oneFlankLeft = focusFrame(
     [
-      { x: 19.6, y: 9 },
-      { x: 25.6, y: 15 },
+      { x: 15.5, y: 9 },
+      { x: 29.5, y: 15 },
     ],
     FRAMING,
   );
@@ -380,7 +445,7 @@ test('a gesture takes the camera and only the control gives it back', () => {
 test('manual zoom obeys the same limits the fit does', () => {
   const camera = new ArenaCamera(FRAMING);
   for (let step = 0; step < 40; step++) camera.zoom(1.6, FRAMING);
-  assert.ok(camera.aimed.width >= 8, 'a pinch cannot get closer than the fit can');
+  assert.ok(camera.aimed.width >= 6, 'a pinch cannot get closer than the fit can');
   for (let step = 0; step < 40; step++) camera.zoom(1 / 1.6, FRAMING);
   assert.ok(
     camera.aimed.width <= fullArenaFrame(FRAMING).width + 1e-9,
@@ -489,9 +554,14 @@ test('the camera follows the fight rather than a fixed plan view', () => {
   };
   const full = fullArenaFrame(framing);
   // Both teams are dug in at opposite ends of a fifteen-tile map, so the honest fit for
-  // everybody *is* the whole arena — the camera does not invent a closer shot than the
-  // action supports, which is the failure mode a following camera usually has.
-  assert.deepEqual(focusFrame(focusPointsAt(frontline, 2.4, null), framing), full);
+  // everybody is the whole arena bar the margin — the camera does not invent a closer shot
+  // than the action supports, which is the failure mode a following camera usually has.
+  const everybody = focusFrame(focusPointsAt(frontline, 2.4, null), framing);
+  assert.ok(
+    everybody.width >= full.width * 0.95,
+    `the honest fit for everybody is the arena (${everybody.width} of ${full.width})`,
+  );
+  assert.ok(everybody.width <= full.width + 1e-9);
 
   // Follow one side and it closes right in, because that side's lives are two tiles apart.
   const zero = frontline.units.find((unit) => unit.teamId === 0)!;

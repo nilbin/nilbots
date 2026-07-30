@@ -77,7 +77,7 @@ function visibleUnitKeys(group: THREE.Object3D): ReplayStableUnitKey[] {
 
 function formPart(
   chassis: THREE.Object3D,
-  form: 'mobile' | 'stationary-omnidirectional',
+  form: 'mobile' | 'stationary-omnidirectional' | 'stance-directional',
 ): THREE.Object3D {
   const part = chassis.children.find(
     (child) => child.userData.renderForm === form,
@@ -849,3 +849,143 @@ function captureMaterial(
   assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
   return mesh.material;
 }
+
+/**
+ * A striker's volley, as a replay the renderer can be asked about.
+ *
+ * The Labs replays that carry a real one are twelve megabytes each, and the animation
+ * being pinned is a pure function of two events and a form catalog — so the shape is
+ * borrowed from the engine-authored Frontline fixture rather than a fixture of its own.
+ * Its unit 1 already performs a same-tick form change on tick 9, which is exactly the
+ * shape of a volley entry; pointing it at a stance form instead of a turret, and adding
+ * the automatic return on the tick the bolts leave, reproduces the move a Labs striker
+ * makes. The engine fixture itself is never touched (see `tests/fixtures/README.md`).
+ */
+const VOLLEY_CASTER: ReplayStableUnitKey = 'frontline:0:unit:1';
+const VOLLEY_STANCE_FORM = 'child-mobile-volley-stance';
+/** Entered here, and cast on the next tick — the one-tick windup this exists for. */
+const VOLLEY_ENTER_TICK = 9;
+const VOLLEY_CAST_TICK = 10;
+
+function volleyReplay(): ReplayModel {
+  const model = structuredClone(frontline) as ReplayModel;
+  const mobile = model.forms.find(
+    (form) => form.formId === 'child-mobile',
+  )!;
+  model.forms.push({
+    ...mobile,
+    formId: VOLLEY_STANCE_FORM,
+    canMove: false,
+  });
+
+  let entry: (typeof model.ticks)[number]['events'][number] | null = null;
+  for (const tick of model.ticks) {
+    for (const event of tick.events) {
+      if (
+        event.sourceActor?.unitKey !== VOLLEY_CASTER ||
+        (event.type !== 'form-transition-started' &&
+          event.type !== 'form-changed')
+      ) {
+        continue;
+      }
+      event.toFormId = VOLLEY_STANCE_FORM;
+      if (event.type === 'form-transition-started') entry = event;
+    }
+    // The authoritative form follows the same story, so nothing downstream of the
+    // animation reads a turret where a stance is being drawn.
+    for (const state of [tick.before, tick.after]) {
+      for (const actor of state.actors) {
+        if (actor.unitKey !== VOLLEY_CASTER) continue;
+        if (actor.formId !== 'turret') continue;
+        actor.formId =
+          tick.tick === VOLLEY_ENTER_TICK
+            ? VOLLEY_STANCE_FORM
+            : 'child-mobile';
+      }
+    }
+  }
+  assert.ok(entry, 'the fixture no longer carries a same-tick form change');
+
+  const cast = model.ticks.find(
+    (tick) => tick.tick === VOLLEY_CAST_TICK,
+  )!;
+  cast.events.push({
+    ...structuredClone(entry),
+    eventId: 'synthetic:volley-return',
+    tick: VOLLEY_CAST_TICK,
+    fromFormId: VOLLEY_STANCE_FORM,
+    toFormId: 'child-mobile',
+    formTransitionStartedAtTick: VOLLEY_CAST_TICK,
+    formTransitionCompletesAtTick: VOLLEY_CAST_TICK,
+  });
+  return model;
+}
+
+test('the volley stance is fully out on the tick it fires, and never pops', () => {
+  const actors = buildActors(volleyReplay());
+  const chassis = chassisOf(actors.group, VOLLEY_CASTER);
+  const mobile = formPart(chassis, 'mobile');
+  const stance = formPart(chassis, 'stance-directional');
+  const anchor = chassis.children.find(
+    (child) => child.userData.cue === 'form-transition-pending',
+  );
+  const pool = chassis.children.find(
+    (child) => child.userData.cue === 'accent-pool',
+  );
+  assert.ok(anchor && pool);
+  const hinges = stance.children.filter(
+    (child) => child.userData.fanAngle !== undefined,
+  );
+  assert.equal(hinges.length, 3, 'three launch lanes');
+
+  /** How far the fan has swung, as a share of the heading it fires along. */
+  const fanned = () =>
+    Math.abs(hinges[0]!.rotation.y) /
+    Math.abs(hinges[0]!.userData.fanAngle as number);
+  /** The size of whichever body is actually on screen. */
+  const shownSize = () =>
+    mobile.visible ? mobile.scale.x : stance.scale.x;
+
+  // The reported bug, stated as a number. The entry used to run on Anchor's 1.5-tick
+  // fallback, so at the instant the three bolts left the muzzle the fan was 60% open and
+  // still moving — the telegraph arrived after the thing it announced.
+  actors.update(VOLLEY_CAST_TICK, null, false);
+  assert.equal(stance.visible, true, 'the stance body is what fires');
+  assert.equal(mobile.visible, false);
+  assert.ok(
+    fanned() > 0.99,
+    `the fan is open when the volley leaves (${(fanned() * 100).toFixed(0)}%)`,
+  );
+  assert.ok(
+    Math.abs(hinges[0]!.rotation.y) <=
+      Math.abs(hinges[0]!.userData.fanAngle as number) + 1e-9,
+    'and never past the heading the profile actually fires along',
+  );
+
+  // No pop. The two bodies used to cross at 0.58 and 0.71 — a fifth of the machine's size,
+  // gained in one frame, on top of a model swap. Sampled finely across the whole move,
+  // because a discontinuity is exactly what an eye catches and an end-state assertion does
+  // not.
+  let previous: number | null = null;
+  let worst = 0;
+  let charge = 0;
+  for (let t = VOLLEY_ENTER_TICK; t <= VOLLEY_CAST_TICK + 1; t += 0.02) {
+    actors.update(t, null, false);
+    if (previous !== null) worst = Math.max(worst, Math.abs(shownSize() - previous));
+    previous = shownSize();
+    charge = Math.max(charge, pool.scale.x);
+    assert.equal(
+      anchor.visible,
+      false,
+      `no windup dial on a one-tick stance (t=${t.toFixed(2)})`,
+    );
+  }
+  assert.ok(worst < 0.02, `the body never jumps size (worst step ${worst.toFixed(3)})`);
+
+  // And the striker does light up: the accent pool flares and spreads while it winds.
+  assert.ok(charge > 1.2, `the charge reads (${charge.toFixed(2)}×)`);
+  actors.update(VOLLEY_CAST_TICK + 2, null, false);
+  assert.ok(pool.scale.x < 1.01, 'and is given back once the move is over');
+
+  actors.dispose();
+});
