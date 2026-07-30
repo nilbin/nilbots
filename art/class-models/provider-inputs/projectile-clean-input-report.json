@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "canvasSize": 1254,
+  "objectExtent": 990,
+  "background": "#b8b8b8",
+  "topMethod": "Exact runtime SVG outer silhouette and apertures clip a centered, uniformly scaled focused top texture; deterministic neutral class-family material fills only uncovered mask pixels. Cover-crop may trim texture beyond the authoritative bounds; there is no rotation, reflection, nonuniform scaling, or warp.",
+  "packages": [
+    {
+      "id": "trident-spark",
+      "source": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/chroma-source-sheet.png",
+      "topAuthority": "web/src/assets/class-projectile-looks/trident-spark/sprite.svg",
+      "topTexture": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/top-texture-source.png",
+      "views": [
+        {
+          "role": "top",
+          "file": "01-top.png",
+          "crop": {
+            "left": 0,
+            "top": 200,
+            "width": 775,
+            "height": 485
+          },
+          "foregroundBounds": {
+            "left": 47,
+            "top": 75,
+            "width": 722,
+            "height": 368,
+            "pixels": 131059
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 611,
+          "objectLeft": 132,
+          "objectTop": 322,
+          "textureSourceWidth": 990,
+          "textureSourceHeight": 610,
+          "textureObjectWidth": 990,
+          "textureObjectHeight": 611,
+          "textureObjectLeft": 132,
+          "textureObjectTop": 322,
+          "method": "exact SVG mask with centered uniform-scale cover texture and deterministic neutral gap fill; no warp",
+          "alignment": {
+            "intersectionPixels": 232655,
+            "unionPixels": 233099,
+            "outputPixels": 232809,
+            "authorityPixels": 232945,
+            "silhouetteIou": 0.9980952299237663,
+            "outputCoverage": 0.9987550709394921,
+            "authorityCoverage": 0.9993385135454386
+          }
+        },
+        {
+          "role": "side",
+          "file": "02-side.png",
+          "crop": {
+            "left": 0,
+            "top": 725,
+            "width": 745,
+            "height": 260
+          },
+          "foregroundBounds": {
+            "left": 42,
+            "top": 74,
+            "width": 676,
+            "height": 110,
+            "pixels": 53872
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 161,
+          "objectLeft": 132,
+          "objectTop": 547
+        },
+        {
+          "role": "front-three-quarter",
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 775,
+            "top": 270,
+            "width": 479,
+            "height": 430
+          },
+          "foregroundBounds": {
+            "left": 4,
+            "top": 108,
+            "width": 437,
+            "height": 253,
+            "pixels": 51140
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 573,
+          "objectLeft": 132,
+          "objectTop": 341
+        },
+        {
+          "role": "rear-three-quarter",
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 755,
+            "top": 690,
+            "width": 499,
+            "height": 340
+          },
+          "foregroundBounds": {
+            "left": 25,
+            "top": 61,
+            "width": 430,
+            "height": 196,
+            "pixels": 50951
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 451,
+          "objectLeft": 132,
+          "objectTop": 402
+        }
+      ]
+    },
+    {
+      "id": "rebound-diamond",
+      "source": "art/class-models/provider-inputs/meshy/rebound-diamond/clean-v1/chroma-source-sheet.png",
+      "topAuthority": "web/src/assets/class-projectile-looks/rebound-diamond/sprite.svg",
+      "topTexture": "art/class-models/provider-inputs/meshy/rebound-diamond/clean-v1/chroma-source-sheet.png",
+      "views": [
+        {
+          "role": "top",
+          "file": "01-top.png",
+          "crop": {
+            "left": 0,
+            "top": 60,
+            "width": 955,
+            "height": 520
+          },
+          "foregroundBounds": {
+            "left": 68,
+            "top": 51,
+            "width": 876,
+            "height": 432,
+            "pixels": 222536
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 483,
+          "objectLeft": 132,
+          "objectTop": 386,
+          "textureSourceWidth": 990,
+          "textureSourceHeight": 488,
+          "textureObjectWidth": 990,
+          "textureObjectHeight": 483,
+          "textureObjectLeft": 132,
+          "textureObjectTop": 386,
+          "method": "exact SVG mask with centered uniform-scale cover texture and deterministic neutral gap fill; no warp",
+          "alignment": {
+            "intersectionPixels": 255263,
+            "unionPixels": 255850,
+            "outputPixels": 255609,
+            "authorityPixels": 255504,
+            "silhouetteIou": 0.9977056869259332,
+            "outputCoverage": 0.9990567662345795,
+            "authorityCoverage": 0.9986463700417434
+          }
+        },
+        {
+          "role": "side",
+          "file": "02-side.png",
+          "crop": {
+            "left": 0,
+            "top": 650,
+            "width": 900,
+            "height": 250
+          },
+          "foregroundBounds": {
+            "left": 71,
+            "top": 87,
+            "width": 777,
+            "height": 87,
+            "pixels": 54513
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 111,
+          "objectLeft": 132,
+          "objectTop": 572
+        },
+        {
+          "role": "front-three-quarter",
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 930,
+            "top": 70,
+            "width": 606,
+            "height": 450
+          },
+          "foregroundBounds": {
+            "left": 25,
+            "top": 53,
+            "width": 538,
+            "height": 342,
+            "pixels": 103347
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 629,
+          "objectLeft": 132,
+          "objectTop": 313
+        },
+        {
+          "role": "rear-three-quarter",
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 870,
+            "top": 520,
+            "width": 666,
+            "height": 504
+          },
+          "foregroundBounds": {
+            "left": 50,
+            "top": 70,
+            "width": 537,
+            "height": 336,
+            "pixels": 103807
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 619,
+          "objectLeft": 132,
+          "objectTop": 318
+        }
+      ]
+    },
+    {
+      "id": "lattice-rivet",
+      "source": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/chroma-source-sheet.png",
+      "topAuthority": "web/src/assets/class-projectile-looks/lattice-rivet/sprite.svg",
+      "topTexture": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/top-texture-source.png",
+      "views": [
+        {
+          "role": "top",
+          "file": "01-top.png",
+          "crop": {
+            "left": 0,
+            "top": 120,
+            "width": 805,
+            "height": 500
+          },
+          "foregroundBounds": {
+            "left": 31,
+            "top": 67,
+            "width": 752,
+            "height": 381,
+            "pixels": 160144
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 528,
+          "objectLeft": 132,
+          "objectTop": 363,
+          "textureSourceWidth": 990,
+          "textureSourceHeight": 503,
+          "textureObjectWidth": 990,
+          "textureObjectHeight": 528,
+          "textureObjectLeft": 132,
+          "textureObjectTop": 363,
+          "method": "exact SVG mask with centered uniform-scale cover texture and deterministic neutral gap fill; no warp",
+          "alignment": {
+            "intersectionPixels": 255746,
+            "unionPixels": 256667,
+            "outputPixels": 256033,
+            "authorityPixels": 256380,
+            "silhouetteIou": 0.9964116929718273,
+            "outputCoverage": 0.9975271081987674,
+            "authorityCoverage": 0.9988790507473646
+          }
+        },
+        {
+          "role": "side",
+          "file": "02-side.png",
+          "crop": {
+            "left": 0,
+            "top": 800,
+            "width": 720,
+            "height": 240
+          },
+          "foregroundBounds": {
+            "left": 27,
+            "top": 79,
+            "width": 667,
+            "height": 106,
+            "pixels": 55290
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 157,
+          "objectLeft": 132,
+          "objectTop": 549
+        },
+        {
+          "role": "front-three-quarter",
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 720,
+            "top": 190,
+            "width": 534,
+            "height": 470
+          },
+          "foregroundBounds": {
+            "left": 29,
+            "top": 84,
+            "width": 475,
+            "height": 317,
+            "pixels": 80306
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 661,
+          "objectLeft": 132,
+          "objectTop": 297
+        },
+        {
+          "role": "rear-three-quarter",
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 690,
+            "top": 680,
+            "width": 564,
+            "height": 430
+          },
+          "foregroundBounds": {
+            "left": 44,
+            "top": 79,
+            "width": 485,
+            "height": 302,
+            "pixels": 78534
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 616,
+          "objectLeft": 132,
+          "objectTop": 319
+        }
+      ]
+    }
+  ]
+}
