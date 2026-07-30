@@ -1144,3 +1144,1285 @@ Frontline panel, `mobile/src/components/arena/protocol.ts`, this document, the
 class brief, and `balance/frontline-ablation-debt-v1.json`. `DocDriftTests`
 pins the mechanical mirrors; prose accuracy is on the author. CLI and SDK
 versions bump, and `publish-cli` runs before any deploy.
+
+---
+---
+
+# Part 2 — Strategy lanes
+
+Commissioned after the owner read Part 1: *"You should up front figure out the
+strategy lanes before we decide. And ensure enough depth."* Four questions had
+to be settled before a build decision, and mid-analysis the owner supplied his
+own candidate for the third one plus two riders. This part answers all of it,
+and **it changes Part 1's verdict in one important place**: as specced, SCRAP
+v1 measures null, because harvesting is strictly dominated. §P2.1 proves that
+with the contract's own capture arithmetic, and §P2.4 is the fix.
+
+Everything numeric here is read from the resolved contract rather than
+estimated: `FrontlineLabsDefinition.BuildRules` declares **threshold 15, gain 1
+per sole team tick, decay 1 every 2 ticks, redeploy pause 5, five positions,
+three pushes to breach, maxTicks 500**; the keel level sets
+`controlPolicy = NetPositiveObjectiveWeightDifferenceScalesGain…`
+(contest-majority), `decayClock = EmptyAndContestedTicksPreserveClaimEnemySole…`
+and `ratchetHoldTicks = 40`. Body schedules are
+`FrontlineLabsClassDefinition`: **striker/bulwark 1 body at tick 0, 2 at 120, 3
+at 260; fabricator 1 / 2 at 60 / 3 at 180 (+ a fourth at 300 under `wane`)**.
+Prime respawn is 18; child rebuild 30 (striker/bulwark), 15 native / 22 under
+`wane` (fabricator).
+
+---
+
+## P2.1 The dominance proof — why Part 1 as specced measures null
+
+### The capture arithmetic, exactly
+
+Under contest-majority the controlling team is the one with strictly greater
+objective weight on the active objective, and the gain multiplier is the
+**difference**. Gain per sole team tick is 1. Threshold is 15.
+
+| bodies on the point | net weight | gain/tick | ticks to capture |
+|---|---:|---:|---:|
+| 3 v 0 | 3 | 3 | 5 |
+| 3 v 1 | 2 | 2 | 8 |
+| **3 v 2** | **1** | **1** | **15** |
+| 2 v 2 / 3 v 3 | 0 | — | never (claim preserved, no decay under keel) |
+
+And under keel's decay clock, **empty and contested ticks preserve the claim**;
+only sole enemy superiority erodes it. So a 2-versus-3 deficit does not merely
+slow the attacker — the attacker's 15 ticks **accumulate**, because the two
+defenders can never push the number back down. They can only stall it, and they
+cannot even stall it while outnumbered.
+
+### What one errand costs
+
+Add the redeploy pause and the walk to the next objective (measured: adjacent
+objectives are 7–10 facing-locked ticks apart), and one capture costs the
+attacker **15 + 5 + ~8 = 28 ticks of sustained +1 superiority**.
+
+A home-banking harvest round trip is **32 ticks** (§4.5). An instant-pickup
+round trip from the front is **28**. Either way:
+
+> **Sending one of three bodies to a vein concedes almost exactly one capture.**
+
+### The payoff matrix
+
+Two teams, 3 bodies each, one 60-tick vein window, symmetric:
+
+| | B stays | B harvests |
+|---|---|---|
+| **A stays** | stall, 0 scrap each | A **+1 capture**, B +6 scrap |
+| **A harvests** | A +6 scrap, B **+1 capture** | stall, ~5 scrap each |
+
+A capture is one third of a breach and a 15-point territorial swing. Six scrap
+is three fifths of one tier out of a three-tier ceiling. Against B-stays, A's
+best reply is stay (0 beats −1 capture +6 scrap). Against B-harvests, A's best
+reply is stay (+1 capture beats +5 scrap). **Stay strictly dominates. (Stay,
+Stay) is the unique equilibrium and nobody ever harvests.** That is failure
+mode #3 from §11, proved rather than feared, and it is the owner's worry stated
+exactly: *breach rush wins.*
+
+Published pile state does not rescue it. Full observability makes the deviation
+detectable within a tick, but the "punishment" for the enemy harvesting is that
+you capture — which is the reward, not a punishment. There is no repeated-game
+fix.
+
+### The windows that do exist, and why they are not enough on their own
+
+- **Your own ratchet hold (40 ticks).** After you capture, an enemy capture
+  inside your hold is *spent* — the claim resets and the front does not move
+  (`IsDeniedByRatchetHold`). A 28–32-tick errand fits inside 40 with 8–12 ticks
+  to spare, so during your own hold the errand is genuinely free. This is real,
+  it is published (`holdOwnerTeamId` / `holdEndsAtTick`), and it is the mechanic
+  #169 shipped that nobody has written a bot to exploit.
+- **The enemy is down a body.** A kill buys 18 ticks (prime) or 22–30 (child)
+  of parity.
+
+Both windows are **earned by winning the front**, so on their own they make the
+economy a pure rich-get-richer amplifier: only the team already winning can
+afford to farm. That is not depth; it is a victory tax.
+
+**Conclusion: the economy cannot be fixed by tuning the economy. The front has
+to become a place where a smaller force can hold.** That is question 3, and it
+is a prerequisite rather than a polish item.
+
+---
+
+## P2.2 Significance math — is each tier actually FELT?
+
+A safe upgrade that changes no breakpoint would make the whole arm measure
+null just as surely as a dominated errand. Weapon damage in the contract:
+**every mobile gun and every turret gun deals 1**; **salvo fan bolts deal 2**,
+and a diverging fan lands at most one bolt per body.
+
+### PLATE — bolts-to-kill (the prime, the upgraded body)
+
+| target | HP → T1 → T2 | vs damage-1 gun | vs damage-2 fan bolt |
+|---|---|---|---|
+| striker prime | 3 → 4 → 5 | 3 → **4** → **5** | 2 → 2 → **3** |
+| bulwark prime | 5 → 6 → 7 | 5 → **6** → **7** | 3 → 3 → **4** |
+| fabricator prime | 2 → 3 → 4 | 2 → **3** → **4** | 1 → **2** → 2 |
+
+Every cell in bold is a breakpoint crossed.
+
+- **Against damage-1 guns — which is every gun in the game except the fan —
+  every tier of PLATE moves the bolt count for every class.** At cooldown 2
+  that is +2 ticks of time-to-kill per tier; at cooldown 3, +3. Felt.
+- **Against the fan, PLATE T1 is inert for the striker and bulwark** (2 bolts
+  before, 2 after; 3 before, 3 after) — the coordinator's flag is correct — but
+  **T2 moves both** (2→3, 3→4).
+- **PLATE T1 is the single largest breakpoint in the design for the
+  fabricator**: its 2-HP prime currently dies to **one** fan bolt, and T1 makes
+  it two. One-shot protection on the class sitting at the bottom of the ladder.
+
+Verdict: **both tiers pass.** No re-spec. The tier-by-weapon asymmetry is a
+feature — it is why the fabricator buys PLATE first against a striker and the
+striker does not buy PLATE first against a bulwark.
+
+### EDGE — range breakpoints are matchup-conditional, and that is the point
+
+Base gun travel: striker 8, fabricator 7, bulwark 6.
+
+| buyer | T1 (+1) | T2 (+2) | the breakpoint it crosses |
+|---|---|---|---|
+| striker | 9 | 10 | **T1: out-ranges a mirror striker by 1** — the only strictly-safe firing position that exists against your own class. **T2: covers all 21 columns of a side lane from its centre**, so no carrier can enter the lane out of reach |
+| fabricator | 8 | 9 | **T1: matches the striker's 8** — the fabricator can finally answer at the striker's maximum range. Corrective on the leg where the striker leads (fvs −0.222) |
+| bulwark | 7 | 8 | **T1: out-ranges a mirror bulwark. T2: erases the striker's entire 2-tile standoff**, the bulwark's sharpest counter-buy |
+
+Free-shot arithmetic: closing 2 tiles under facing-locked costs 2–4 ticks
+(steps plus rotations), which at cooldown 2 is 1–2 uncontested shots — **one
+third to one half of a kill, free, per engagement** at T2.
+
+Verdict: **both tiers pass**, though T1's value swings hard by matchup
+(decisive in mirrors, corrective in fabricator-vs-striker, marginal in
+bulwark-vs-striker). A track whose value depends on who you are fighting is
+exactly what a *choosable* track should look like; averaged over matchups it
+would have looked weak, which is why the table is per-matchup.
+
+### OPTIC — against the actual vision shapes
+
+Striker and fabricator see a facing quadrant; the bulwark sees an
+omnidirectional disc at range 4 with proximity 4. The breakpoint that matters
+is **can I see the thing that can shoot me**:
+
+| buyer | vision → T1 → T2 | own gun | shot-from-unseen gap → T1 → T2 |
+|---|---|---|---|
+| striker | 6 → 7 → 8 | 8 | vs enemy striker: 2 → 1 → **0** |
+| bulwark | 4 → 5 → 6 | 6 | vs enemy bulwark: 2 → 1 → **0**; also reaches its own gun's range at T2 |
+| fabricator | 6 → 7 → 8 | 7 | reaches own gun at **T1**; vs enemy striker 2 → 1 → **0** at T2 |
+
+**Every class closes its see-versus-shoot gap to zero at OPTIC T2, and the
+striker and bulwark have the identical 2-tile gap**, so the ladder terminates
+at parity for everyone — which is also why max tier 2 is right and a third tier
+would be worthless by construction.
+
+The area caveat from §5.2 stands and is quantified: an omni disc at 4→6 grows
+observed area 16→36 (+125%) against a quadrant's 36→64 (+78%), so on an area
+reading OPTIC tilts toward the bulwark; on the acquisition reading it is
+identical for striker and bulwark. Registered, not resolved.
+
+Second breakpoint, specific to this arm: a carrier crossing the middle is
+exposed for 22 ticks, and a quadrant watcher at range 6 nets 6 tiles of the
+crossing against 8 at T2 — **a third wider interdiction net**, which is the
+courier-hunting archetype's enabling stat.
+
+Verdict: **both tiers pass.** No re-spec anywhere in the ladder.
+
+### Ladder simplification that falls out of the above
+
+Because tier 2's *effect* is naturally diminishing on two of three tracks and
+inert-against-one-weapon on the third, escalating prices are redundant. Part 1's
+8/16 is replaced by **a flat 10 per tier**, which makes deep (2 in one track)
+and broad (1 in each of three) cost the same 30 at every point in the match,
+removes a tuning knob, and makes volume discounts structurally impossible.
+
+Revised economy constants (superseding §14.1 where they differ):
+
+| constant | Part 1 | **revised** | why |
+|---|---:|---:|---|
+| vein amount | 3 | **6** | the errand must be worth its risk once §P2.4 makes it affordable |
+| wreck amount | 1 | 1 | unchanged — the free front-play channel |
+| assay | 1 | 1 | unchanged |
+| carry capacity | 4 | **6** | one full vein's remainder plus a wreck |
+| vein cadence | 60 (6 events, 120–420) | **80 (4 events: 120, 200, 280, 360)** | one harvester services both veins of a cycle in 64 of the 80 ticks without a greedy double-run; total vein supply drops 36 → 48 while per-trip value doubles |
+| pile lifetime | 60 | **80** | still exactly one cadence, so at most two vein piles exist at once |
+| tier cost | 8 / 16 | **10 flat** | deep = broad = 30 at all times |
+
+Resulting timeline and ceiling:
+
+| archetype | scrap by end | tiers | first tier at |
+|---|---:|---:|---|
+| front-only (wreckage) | ~10 | **1** | ~tick 300 |
+| balanced (wreck + 2 veins) | ~22 | **2** | ~tick 200 |
+| economy-committed (wreck + 6 veins) | ~46, capped | **3** | ~tick 170, capped ~tick 300 |
+
+**Ignore-to-commit delta: 2 tiers = 2 integer stat steps on one body.** §7's
+claim survives the re-tune.
+
+---
+
+## P2.3 The 2v3 problem, and the mechanisms evaluated
+
+The requirement, stated as a number: **two defenders must be able to prevent
+three attackers from converting a 28–32-tick presence deficit into a capture**,
+without making captures impossible when a fight has actually been won.
+
+Four candidates were evaluated. The owner's is the last and it wins.
+
+**(a) Raise the capture threshold while the arm is on.** To make a 32-tick
+errand yield zero captures needs threshold ≈ 34, which more than doubles the
+game's pace-setting number, halves the meaning of every measured pacing gate,
+and does nothing about the underlying asymmetry (3v1 still resolves in 17
+ticks). Rejected: blunt, global, and it re-prices the pendulum without adding a
+decision.
+
+**(b) Cap the pressure multiplier at 1.** Inert for this problem — 3v2 is
+already multiplier 1. Rejected.
+
+**(c) OBJECTIVE KEYSTONE — the granular-tile direction (#176).** One tile per
+objective region grants **+1 objective weight** to whoever stands on it. Derived
+by rule rather than authored: *the region tile with the most adjacent walls,
+ties broken by smallest Chebyshev distance to the map centre (11,7), then
+lowest y, then lowest x* — which yields **(4,8) / (7,6) / (11,8) / (15,6) /
+(18,8)**, an exact mirror set (22−4=18, 22−7=15, 11 self-mirror), each with one
+adjacent wall for cover, and none of them on the open row-7 corridor. Declared
+in the rules, not the map, so the map fingerprint does not move.
+
+Numbers: 2 defenders with the keystone = weight 3 versus 3 attackers = 3 →
+**stall**, so the errand is free. Attackers who take the keystone = 4 versus 2 →
+multiplier 2 → **8 ticks**, so losing the tile is catastrophic. At parity (3v3)
+the keystone holder gains 1/tick, which converts a stalemate-prone front into a
+decisive one — arguably a pacing improvement on its own, and the first new
+capture-economics lever since #168 declared that surface exhausted.
+
+Cost: one field on the capture definition, one branch in `WeightOn`, **zero new
+observation facts** (the tiles are static contract data). **S/M.**
+
+Why it loses anyway: it fixes the arithmetic without changing what the front
+*is*. It produces a one-tile scramble, not a formation; it gives the AEGIS
+SHELL a weight-2 fortress tile (the shell has weight 1 and would double it) on
+the class already at the top of the ladder; and it does nothing for the game's
+oldest complaint that kills do not convert. **Kept as the registered fallback
+`objective-keystone`, to be reached for if (d)'s wave read shows stalls.**
+
+**(d) CAPTURE CHANNEL — the owner's candidate. Adopted.** Full analysis in §P2.4.
+
+---
+
+## P2.4 The capture channel
+
+Owner's words: *"If capturing made you forced to stand still and any damage
+taken instantly reverted the progress it would be easy to hold/poke with 1-2
+bots — which would force the breacher to hunt down the defenders first."*
+Riders: *"It means the team has to defend the capturer"* (confirmed as the
+intended pattern, not a side effect) and *"we would need to speed up capture"*.
+
+This is a **capture-core change**. It re-prices every pacing gate, every class
+edge, and the whole pendulum campaign from #158 onward. That is acceptable under
+dump-then-tune, but it must be said out loud, and it is why the mechanism ships
+as **its own registered arm (`--capture channel`) that composes with
+`--economy scrap`, not as something buried inside the economy.**
+
+### P2.4.1 The two rules, stated precisely
+
+> **Stillness gates GAIN, not DENIAL.** A team's **claim weight** counts only
+> its bodies on the active objective whose position at the end of this tick
+> equals their position at the end of the previous tick. A team's **denial
+> weight** counts all of its bodies on the active objective. Control resolves
+> as today except that the controller's side of the comparison uses claim
+> weight: the team whose claim weight strictly exceeds the opponent's denial
+> weight controls, with multiplier = the difference.
+>
+> **Damage on the point reverts the claim, point for point.** Hostile damage
+> taken by a body of the **claiming** team that is standing **on the active
+> objective region** reduces the claim by the damage amount, floored at zero,
+> clearing the claimant at zero — exactly the existing opposing-erosion rule.
+
+Four consequences worth pinning:
+
+- **Stillness is defined by position, not by decision.** A body that requested
+  a move and was Blocked did not move. A body that rotated, shot, or started a
+  transform did not move. A life created this tick has no previous position and
+  counts as stationary. This is unforgeable, replay-derivable, and it means a
+  channeler can still aim and fight — the mechanic is not sit-still-and-pray.
+- **Damage to a body OFF the objective reverts nothing.** This single scoping
+  choice is what makes the escort pattern the intended play: **a screen absorbs
+  bolts for free.**
+- **Denial does not require stillness**, so a defender may kite inside the
+  objective region and still subtract. Both teams run the same rules; the
+  asymmetry is between the two *jobs*, not between the two teams.
+- **In the everyone-stands-still limit the arithmetic is byte-identical to
+  today's**, which is the compatibility story: the arm is a strict refinement,
+  not a replacement.
+
+### P2.4.2 Stall risk, quantified
+
+The danger is real and has to be modelled: a stationary body cannot dodge, and
+`visibleProjectiles` publishes `tilesPerAdvance`, `ticksPerAdvance`,
+`ticksUntilAdvance` and `damagePerHit`, so an exact arrival tick exists and
+`ArenaBasics.Threat` already computes it. **Against a stationary target, a
+competent poker's hit rate is near 1** subject only to range, heading legality,
+and cooldown.
+
+Poke rates against a channel gaining 1/tick:
+
+| interrupt variant | one striker poker (cd 2) | two pokers | one turret (cd 1) |
+|---|---|---|---|
+| **full reset on any damage** | progress never exceeds 2 → **permanent denial** | denial | denial |
+| **pause M ticks after a hit**, M ≥ cooldown | gain suspended permanently → **denial** | denial | denial |
+| pause M=1 | gain on 1 tick in 2 → half rate | stall | denial |
+| **revert = damage dealt** (adopted) | −0.5/tick vs +1 → **half rate** | −1.0 → stall | −1.0 → stall |
+
+**Full reset is rejected with a number: one poker with a clear heading denies
+the objective for the whole match**, which is the pre-keel mean-reversion
+problem returned in a worse form. **Pause-for-M is rejected** because it denies
+whenever M ≥ the poker's cooldown and is nearly inert below it, and because
+"progress paused" is less legible than "progress lost".
+
+**Revert = damage dealt** is adopted. It needs no new number (the damage amount
+is already authoritative and already published per projectile), it scales
+naturally with the weapon — a salvo fan bolt reverts 2, a turret bolt 1 — and
+it produces exactly the requested gradient: **poke delays, sustained
+area control denies.**
+
+Does it stall the match? The decisive cases, with the paired speed-up from
+§P2.4.3 (threshold 8, gain 1):
+
+| situation | claim vs denial | gain | revert | net | outcome |
+|---|---|---:|---:|---:|---|
+| 3 stationary attackers vs 2 kiting defenders on the point | 3 vs 2 | 1.0 | ~1.2 (2 guns at cd 2–3 on stationary targets) | **−0.2** | capture never completes; attackers take ~1.2 dmg/tick — **2 hold 3** |
+| solo unscreened channeler vs 2 off-point pokers | 1 vs 0 | 1.0 | ~1.2 | **−0.2** | fails, and a 3-HP body dies in ~3 ticks |
+| solo **screened** channeler, screens blocking both live headings | 1 vs 0 | 1.0 | ~0 | **+1.0** | **completes in 8 ticks** |
+| 3 stationary attackers, one defender left alive and kiting | 3 vs 1 | 2.0 | ~0.6 | **+1.4** | **6 ticks** — inside the 18-tick prime respawn |
+| 3 stationary attackers, defenders wiped | 3 vs 0 | 3.0 | 0 | **+3.0** | **3 ticks** — the reward for a wipe |
+| 3 v 3 all stationary | 3 vs 3 | — | — | — | stall, exactly as today |
+
+**Captures follow won fights or won formations, and never follow perfect
+peace.** That is the target property, met.
+
+### P2.4.3 `channel-speed` — one paired factor, not two knobs
+
+The rider is right that each channeling tick is now riskier and must pay more.
+The paired setting is derived from the post-fight window, which is **18 ticks**
+(prime automatic return) — the shortest window an attacker can rely on, and the
+one every class shares:
+
+> **Threshold 15 → 8. Gain per sole stationary team tick stays 1. The
+> multiplier arithmetic is untouched.**
+
+One number moves. It is registered as the single factor **`channel-speed`**
+because threshold and gain are not separable claims about the same thing.
+
+Why 8 and not 10 or 6:
+
+- A **screened solo channeler** completes in 8 ticks; one bolt that gets through
+  makes it 9. Both fit inside 18 with room for the approach. At threshold 10 a
+  single leaked bolt pushes it to 11–12 and a second respawn wave arrives; at 6
+  a screened channel completes before a defender can rotate to a firing heading
+  at all, which deletes the poke counterplay.
+- A **post-single-kill 3v1** completes in 6 ticks, a **post-wipe 3v0** in 3.
+  Fast, watchable, and unambiguously earned.
+- An **unscreened** channel completes never. The screened/unscreened gap is the
+  owner's stated target property and threshold 8 is where it is widest relative
+  to the respawn clock.
+
+Side effect to record: `TerritorialProgress = advance × (index − centre) ×
+threshold`, so dropping the threshold rescales the reported score channel by
+8/15. Nothing about ranking changes; every historical number needs the scale
+factor applied before comparison.
+
+Decay is untouched: keel's clock still preserves the claim on empty and
+contested ticks, and the damage revert is a **separate** erosion path that does
+not consume or reset the decay counter.
+
+### P2.4.4 Skill interactions
+
+**Screening works, for free, because the collision model already does it.**
+`projectilesStopOnFirstEnemyActor: true` means a screening body physically
+absorbs a bolt aimed at its teammate, and
+`AlliedProjectileContactKind.PassThrough` means the screen does **not** block
+its own team's return fire. Escort formation is therefore an existing
+mechanical behaviour that this arm gives a purpose to; it needs no new rule at
+all.
+
+**The AEGIS SHELL becomes the siege tool — and the numbers say depth, not
+dominance.** A shell cannot move, so it is *always* stationary: a perfect
+channeler. It deflects every bolt arriving in its facing quadrant, so frontal
+pokes revert nothing and the poker eats its own bolt back. But the shield
+**breaks on its third deflection** (`ShieldBreakBudget = 3`), and three frontal
+pokes at cooldown 2 arrive over 6 ticks against an 8-tick channel: **a
+solo-channelling shell breaks about two ticks short of completing.** It needs
+one screen, or a second body, or a lull. And the arc is chosen on entry and
+cannot rotate, so **two pokers on two different headings defeat it outright**.
+Add that a shell has no gun, so a channelling shell contributes zero offence
+and the escort must do all the fighting. That is a tight, earned, flankable
+tool — flanking becomes mandatory, which is the shell's published counter-play
+working as designed. Registered as `channel-shell-interaction` with a level in
+which a guarding form contributes no claim weight, because this does hand the
+class at the top of the ladder the best channeler.
+
+**The turret finally has a job.** Objective weight 0 means it contributes
+neither claim nor denial — the turret bargain, unchanged — but its gun is
+cooldown 1, travel 8, eight absolute headings, damage 1, which is **−1 progress
+per tick** against any channeler in line of sight. A single turret with a clear
+heading **denies a solo channel outright** (gain 1, revert 1, net 0) and halves
+a 2-body channel. Against measured turret usage of **0.13%**, this is the first
+mechanic that makes fortifying a correct move, and it prices the bargain
+honestly: you deny the point by permanently forfeiting your presence on it, and
+the attacker's answer is to spend 7 bolts killing it.
+
+**The salvo becomes the premium anti-channel weapon.** The fan is three lanes
+of damage 2, and against *spread* stationary bodies it can land one bolt in each
+lane on three different bodies — **up to 6 progress reverted by one cast**,
+which at threshold 8 is three quarters of a capture erased. It is priced by the
+8-tick entry route cooldown, so one cast per 9 ticks against an 8-tick channel:
+**a single well-timed fan is a full denial, and a mistimed one is nothing.**
+This is a large buff to the class #184 left in band but leaning on one
+lineage's leg, and it is the interaction most likely to walk bulwark-vs-striker
+out the bottom of the band. Registered as `channel-salvo-interrupt`; it is the
+first thing to read in the wave-8a results.
+
+**The hunt, timed.** A defender must be *on* the objective region to deny, and
+those regions are 4 tiles (outer) or 6 (centre) — so **denial pins the defender
+to a small box and makes it huntable.** Three hunters at cooldown 2–3 put ~1.5
+bolts per tick into a box that small; a 3-HP striker dies in 2–4 ticks once
+focused, a 5-HP bulwark in 4–7. **Two defenders take 6–16 ticks to clear**,
+after which the channel takes 3–6. Total ~25–30 ticks per capture including the
+redeploy pause and the walk, against today's ~28. **Pacing survives**; the
+mechanism reshapes *what* a capture costs rather than how long it takes.
+
+**The synergy loop, named.** Defenders that deny must stand on the objective;
+hunted defenders therefore die on the objective; wreckage drops at the death
+tile and is assayed in full with no transport; and the attacker is standing
+still on that exact tile for the next 3–8 ticks anyway. **Kill the screen,
+stand on the corpses, bank the scrap, take the point.** The channel and the
+economy are not two mechanics stapled together — the channel is what makes
+wreckage the front-play income stream, and wreckage is what pays for the plate
+that keeps the next channeler alive.
+
+**TeamRandom's second job.** Who channels and who screens is a common-knowledge
+decision with no communication channel, and it must not be predictable: a
+deterministic rule ("lowest unit ID channels") is common knowledge to the enemy
+too, so the pokers know which body to pre-aim at. `TeamTickRandom` re-derives
+from (team root seed, tick), so all three bodies draw the same value while the
+enemy — holding a different root seed — cannot. Between this and the lane
+assignment of §9, the capability now has two mechanics that need it rather than
+merely permit it.
+
+### P2.4.5 Composition and contract shape
+
+- **contest-majority**: replaced, for this arm, by a new closed policy value.
+  Surplus-weight scaling now applies to *stationary* claim weight against
+  *total* denial weight. In the all-stationary limit the two policies agree
+  exactly.
+- **enemy-sole-decay (keel)**: unchanged and independent. The revert is a
+  separate erosion path; it neither consumes nor resets `DecayTicksElapsed`.
+- **ratchet hold (40)**: unchanged. A capture inside an enemy hold is still
+  spent. Interaction to watch: captures now follow kills, so holds fire in
+  bursts and 40 ticks may be long relative to the new cadence. Registered.
+- **redeploy pause (5)**: unchanged.
+- **`--economy scrap`**: composes, and is the reason to build both — see
+  §P2.4.4's loop and §P2.6's sequencing.
+
+```text
+rules.gameMode.capture
+    threshold : 8                                    // channel-speed factor
+  + controlPolicy :
+      StationaryClaimWeightVersusTotalDenialWeightScalesGain…   // new enum value
+  + claimInterrupt                                   // whole block ABSENT = inert
+      kind                 : DamageToClaimantOnObjectiveRevertsProgress
+      revertPerDamagePoint : 1
+      scope                : ClaimingTeamBodiesOnActiveObjectiveRegion
+```
+
+Additive discipline: the block is absent on every ruleset that does not declare
+it, so the canonical writer emits no bytes and every historical fingerprint is
+byte-exact; the policy is a new value in an existing closed enum, exactly the
+#156 append shape; and `revertPerDamagePoint` / `scope` are single-valued closed
+enums today so that a second interrupt shape is a value rather than a schema
+change.
+
+**Observation cost: zero new facts.** `captureProgress` already publishes the
+claim every tick and a revert is simply that number going down. Damage to your
+own bodies is always visible to you, so you always know why your own claim
+moved; an enemy claim's movement is partial information exactly as it is today.
+A capture-core change that costs nothing in the observation budget is a strong
+argument for taking it before the economy.
+
+**Identity tokens** (≤ 8 characters after the worst-case class pair and
+`facing-locked`): `swell` + channel = **`siege`**; `swell` + channel + scrap =
+**`bastion`**; `tide` + channel + scrap = **`redoubt`**; `swell` + scrap alone
+stays **`forge`**. Smaller cells spell their factors and append `channel` /
+`scrap`.
+
+**Ablation-debt registrations** (additional to §12.6):
+
+| id | bundled interpretation | required isolation |
+|---|---|---|
+| `channel-stillness-rule` | claim-weight-requires-stillness while denial does not is one asymmetry doing two jobs (it slows attackers AND lets defenders kite) | run a both-sides-stillness level and a denial-also-requires-stillness level; report attacker stationary-tick share and defender kite distance |
+| `channel-interrupt-rule` | revert-equals-damage bundles the interrupt's existence, its magnitude, and its per-weapon scaling | run flat revert-1-per-hit and pause-1-tick levels; report progress-reverted per match and per weapon |
+| `channel-speed` | threshold 8 with gain 1 is one paired claim about how much a risky tick must pay | vary threshold alone at fixed gain; report time-from-first-kill-to-capture against the 18-tick respawn window |
+| `channel-shell-interaction` | a guarding form is a perfect channeler that also blanks frontal interrupts, on the class at the top of the ladder | run a level where guarding forms contribute no claim weight; also run `--stance-ground` strict, where the shell cannot rise on objective tiles at all; report flank-approach share |
+| `channel-salvo-interrupt` | the fan reverts up to 6 across three bodies for one 9-tick cast | report progress reverted per fan cast and the bvs edge with and without the salvo in a channel cell |
+| `channel-turret-denial` | a turret with line of sight zeroes a solo channel while forfeiting all objective weight | report turret raise rate and turret-covered objective-tick share; the 0.13% baseline is the comparison |
+| `objective-keystone` | the registered ALTERNATIVE 2v3 mechanism (§P2.3c), +1 weight on one derived tile per region | run it alone against the channel and against the unmodified front; it is the fallback if the channel stalls |
+
+---
+
+## P2.5 Strategy lanes
+
+Roles map cleanly onto the three tracks, which is a good sign that the ladder
+and the front mechanic were designed against each other: **PLATE is the
+channeler's and the screen's stat, EDGE is the poker's and the courier-hunter's,
+OPTIC is the hunter's and the finder's.**
+
+### The archetypes
+
+**A — BREACH RUSH.** All three bodies at the front, permanently; 100% of
+body-ticks on the objective chain. Per capture: hunt the defenders (6–16 ticks)
++ channel (3–8) + redeploy pause (5) + walk to the next objective (7–10) ≈
+**25–40 ticks per capture given you win the fights**, so a clean breach lands
+around tick 200–260 and only if it wins essentially every engagement. Income is
+wreckage only, ~10 scrap, **1 tier**, typically PLATE (keep the hunters alive).
+
+**B — ECON-SPLIT.** Two at the front, one on the lanes from ~tick 104. Harvester
+cost **~396 body-ticks = 26% of a three-body team** (20% at four slots, 16% at
+five). Front runs 2-versus-3, which under the channel nets **−0.2/tick for the
+attacker** — it holds indefinitely while nobody dies. Bank: ~10 wreck + 4–6
+veins ≈ 34–46 → **3 tiers, capped around tick 300**.
+
+**C — DEFEND-AND-POKE.** Three bodies near the objective but deliberately *off*
+it, on clear firing headings. Zero claim weight, zero denial weight, full
+interrupt. Two pokers on two different headings hold a screened channel at
+net ≈ 0. Income: wreckage only, and less of it (you are not standing on the
+corpses), ~6–8 scrap, **0–1 tiers**. **This archetype does not exist without the
+channel** — it is created by it.
+
+**D — COURIER HUNT.** One body (or two in a window) patrolling rows 1 and 13.
+Cost ~26% of team-ticks, same as B. Payoff per interception: up to **8 scrap**
+(a 6-load carrier plus its own wreck) plus a kill plus the enemy's wasted 30
+ticks. Striker-favoured: a 21-tile straight corridor is the best sightline on
+the map, the fan is *worse* there (a fan fired along row 1 loses its northward
+bolt into row 0 immediately, and its southward bolt at six of the twenty-one
+columns where row 2 is wall — 2 of 3 bolts at best, 1 of 3 at those columns), so
+the tool is the mobile gun. **EDGE T2 is the enabler**: range 10 from the lane
+centre covers all 21 columns, so no carrier can enter out of reach.
+
+**E — WRECKAGE FRONT.** Fight where the corpses fall and never leave. This is
+the *floor* strategy and its existence is what makes ignoring the veins viable:
+**~10 scrap, 1 tier, ~tick 300**, versus the economy-committed team's 3. It
+loses the economy war by exactly two integer stat steps.
+
+**F — LATE-ECON SPIKE.** Concede the front from ~120 to ~340, cap the tiers,
+re-contest with an upgraded prime while the enemy's ratchet holds lapse.
+Regaining two captures needs two hunts plus two channels ≈ 60–80 ticks, which
+fits in the remaining ~150. A bet that the channel makes three clean captures
+hard — which it does.
+
+**G — SCREEN-AND-CHANNEL** is the execution layer of A and B rather than a
+separate lane: one body channels, two screen the live headings, TeamRandom
+assigns the roles. It is the skill ceiling and the thing wave-8 doctrine should
+be briefed on.
+
+### The counter-graph
+
+| archetype | tick budget | beats | beaten by | one-line math |
+|---|---|---|---|---|
+| **A** breach rush | 3 bodies × 100% front | B, D, F | **C** | 25–40 ticks per capture *if* it wins fights; 0 captures if it does not |
+| **B** econ-split | 2 front / 1 lane (26%) | **C**, E | A, D | 2 kiting defenders net the attacker −0.2/tick; 3 tiers by ~300 |
+| **C** defend-and-poke | 3 bodies off-point on headings | **A** | B, F | 2 pokers ≈ −1.2/tick against +1.0 gain |
+| **D** courier hunt | 1–2 bodies × lanes | **B**, F | A | one interception ≈ 8 scrap + a kill + 30 wasted enemy ticks |
+| **E** wreckage front | 3 bodies × 100% front | — (the floor) | B, F on tiers | ~10 scrap → 1 tier at ~300 |
+| **F** late-econ spike | 1–2 lane until ~340 | C, a stalled A | a successful A, D | 2 captures back = 60–80 ticks inside the last 150 |
+
+**Cycles:** A → B → C → A (rush beats split, split beats poke, poke beats rush),
+and the four-cycle B → C → A → D → B. Every archetype has at least one
+archetype that beats it.
+
+### Dominant-strategy verdict
+
+**Without the channel: A dominates outright** — §P2.1's payoff matrix proves it
+for B, the same arithmetic kills D and F, and C does not exist because a poked
+attacker captures anyway. The design is not done and would measure null.
+
+**With the channel: no dominant strategy.** A is beaten by C; C is beaten by B;
+B is beaten by A and D; D is beaten by A; F is beaten by A and D; E is the floor
+and is never auto-lost. And the rush is **not over-nerfed** — it still beats
+three of the five other lanes, and it remains the correct punishment for a
+greedy economy, which is the failure the coordinator warned about in the other
+direction.
+
+### Per-matchup build orders (the tracks are bot-choosable, and it shows)
+
+| matchup | the buy, and why |
+|---|---|
+| striker vs bulwark | An **EDGE race**. The bulwark's T2 (6→8) erases the striker's entire 2-tile standoff; the striker's T2 (8→10) restores it. Whoever declines the race fights at parity in the other's preferred band. The striker's alternative is PLATE (3→5 = 5 bolts, survive the closed gap) |
+| striker vs fabricator | The fabricator **must** open PLATE T1: 2→3 HP turns a one-bolt fan kill into a two-bolt one. The striker opens OPTIC (find the prime before it fabricates) or EDGE T1 (9 > 8 in the range duel) |
+| bulwark vs fabricator | The bulwark opens OPTIC — vision 4 is its defining weakness and fabricated children arrive beside the prime, anywhere. The fabricator opens PLATE |
+| any mirror | **EDGE T1 is decisive**: 9 against 8 is the only strictly-safe firing position that exists against your own chassis |
+| any channel-heavy game | PLATE first if you intend to channel or screen; EDGE first if you intend to poke or hunt couriers; OPTIC first if you intend to hunt bodies |
+
+### Depth verdict
+
+By my own standard — *are there at least two archetypes a competent author would
+implement as genuinely different code paths, is there a cycle rather than a
+ladder, and does the matchup change the correct opening?* — the answer is
+**yes, and only with the channel**:
+
+- six archetypes, of which at least four (rush, econ-split, defend-and-poke,
+  courier hunt) are different bots, not different parameters;
+- one three-cycle and one four-cycle, with no dominant lane;
+- a build-order table where the correct first purchase changes in every one of
+  the six class pairs;
+- an execution layer (channel/screen assignment) with a real skill ceiling and a
+  coordination primitive that exists specifically to serve it.
+
+**Worth building.** The honest qualifier: essentially all of that depth is
+downstream of the capture channel, and none of it is downstream of the economy
+alone. That is the sequencing argument in §P2.6.
+
+---
+
+## P2.6 The purchasable ally
+
+### (a) DRONE as a body — assessed against the monopoly
+
+A 1-HP, gunless, objective-weight-0, vision-only unit is the most attractive
+version of "a new ally", and it fails on three specific things rather than on
+vibes.
+
+**It is a body where it matters most.** `projectilesStopOnFirstEnemyActor: true`
+and `actorsBlockActors: true` mean a drone **absorbs an enemy bolt** and
+**denies a tile**. Under the capture channel, a bullet-absorbing body parked on
+the firing heading to your channeler is *the single most valuable object in the
+game* — it is a free screen that costs no combat presence. That is body count
+by another name, aimed precisely at the mechanic the whole design rests on.
+Making it transparent requires a new typed form capability (projectile
+pass-through for enemy bolts), which does not exist and is not a small addition
+to a combat kernel whose invariants are "walls precede actor contact, all
+contacts enter one canonical damage batch".
+
+**It breaks topology identity.** *All dynamic entity creation is bounded by
+predeclared stable unit capacity*, so a purchasable drone needs a predeclared
+slot, and `TopologyProfileIdFor` resolves the profile from per-team slot counts
+and **faults rather than borrowing a neighbouring label**. A three-slot striker
+team with a drone slot reads as `[4,4]`, which is already registered as the
+`trim` four-slot mirror. Every SCRAP cell would need newly registered topology
+profiles, and — worse — would stop being topology-comparable to every non-drone
+arm. §4.2 spent real design effort keeping the *map* fingerprint constant so the
+arm stays comparable; buying a drone throws the same comparability away on
+topology.
+
+There is a fix worth recording, because it makes the v2 version tractable:
+**predeclare the drone slot in every cell of the arm and have the purchase merely
+ready it.** Topology is then constant within the arm whatever anybody buys, and
+only five profiles need registering (3+1 mirror, 4+1 mirror, 5+1 mirror, 5+1 vs
+3+1, 4+1 vs 3+1).
+
+**It is unmeasurable in this wave.** v1 already carries a new mode subsystem,
+three observation facts, a new action family, and — now — a capture-core rewrite.
+If the arm moves a class edge, nobody will be able to say whether it was the
+tiers, the channel, or the drone.
+
+### (b) DRONE as OPTIC tier 2
+
+Rejected on top of (a). It makes one track heterogeneous — tier 1 an integer
+stat step, tier 2 a unit — which breaks the ladder's whole legibility claim
+("every tier is one integer step on one axis"), breaks the flat-price
+equivalence between deep and broad, and makes the OPTIC significance table in
+§P2.2 meaningless because the two tiers are no longer the same kind of thing.
+
+### (c) The ally feeling without a unit
+
+The candidates that reuse existing machinery are weak. A one-shot "clear every
+live route cooldown" reuses #181 entirely and costs one line — but only the
+volley entry declares a cooldown today, so it is inert in four of the six class
+pairs. A one-shot "ready a pending slot" is body count and violates L7
+outright. A one-shot map reveal runs into the same non-actor-observer schema
+wrinkle (`ObservedBy` is `ImmutableArray<ActorIdentity>`) that priced BEACON at
+M/L in the prior memo.
+
+What *is* available at zero cost is **presentation**: name and skin the OPTIC
+track as a deployed sensor package so the purchase reads on screen as fielding
+something, while remaining an integer stat step. That is honest — nothing is
+claimed that is not true — and it is the FOUNDRY ride-along already recommended
+in §13.
+
+### (d) Recommendation — not in v1; registered for v2 with a real spec
+
+**Recommend (d).** The drone is a good idea whose three blockers are all
+structural rather than numeric, and one of them (projectile transparency) is a
+combat-kernel capability that has to exist first. Registered as
+**`scrap-drone-tier-3`**, with the v2 shape pinned now so it is a build rather
+than a redesign:
+
+```text
+prerequisites
+  1. a typed form capability: enemy projectiles pass through this form
+     (otherwise the drone is a free screen and body count is no longer
+     the fabricator's monopoly)
+  2. five registered topology profiles with the drone slot ALWAYS declared,
+     so topology is constant whether or not the drone is bought
+
+shape
+  slot          : one extra predeclared dormant slot per team, always present
+  unlock        : a tier-3 purchase; legal only when a track is already at
+                  tier 2, cost 20 (double a tier), outside the 3-tier cap
+  form          : 1 HP, no attack profile, objective weight 0, movement only,
+                  omnidirectional vision range 5, cannot pick up or carry
+                  scrap (the L1 economy gate applies)
+  lifecycle     : purchase readies the slot; arrival on the team's home pad
+                  after 10 ticks; on destruction the slot returns to dormant
+                  and the purchase is spent — one drone per match
+  observation   : none new. It is an ordinary body in TeamUnits/Allies/Enemies
+  spawn reason  : one additive value on GenericActorRuntimeStart.SpawnReason
+```
+
+That is buildable in a v2 window and it keeps the fabricator's monopoly intact
+by construction, because a body that cannot capture, cannot shoot, cannot
+carry, and cannot be shot is not a body in the sense the monopoly protects.
+
+---
+
+## P2.7 Sequencing, and what wave 8 should actually run
+
+**Sequence, do not bundle.**
+
+- **Wave 8a — `--capture channel` alone** (`siege`), on the current candidate
+  game, with `channel-speed` (threshold 8, gain 1) as its single paired factor.
+  It re-prices the entire pendulum campaign and every class edge, so it must be
+  measured against the pacing gates and the #184 triangle with nothing else
+  moving. Read `channel-salvo-interrupt` first — the fan reverting up to 6 for
+  one 9-tick cast is the most likely way bulwark-vs-striker leaves the band.
+- **Wave 8b — `--economy scrap` on the adopted channel** (`bastion`), with the
+  registered `scrap-flat-control-arm` running beside it so the `invest` action's
+  existence is falsifiable rather than assumed.
+
+The order is forced rather than chosen: §P2.1 proves the economy measures null
+without the channel, and #174's fast-iteration rule explicitly does not extend
+to two unrelated axes at once. It also has a second benefit — the channel may
+improve cap share and leader-extends on its own, in which case the economy's
+case has to be argued against the *new* baseline rather than the old one.
+
+**Deferred, recorded, not proposed:** the owner's *"we may have to make longer
+games — but hold off on that initially"*. No `maxTicks` change appears in any
+spec in this memo. It is registered as the follow-up lever `channel-match-length`
+and it is gated on a specific wave-8a symptom, which must be distinguished from
+its lookalike:
+
+| symptom | reading | response |
+|---|---|---|
+| median match ends at tick 500 with the front **still moving** in the last 100 ticks, and non-zero captures in the final quarter | honest games dying at the wall | `channel-match-length` is the right lever |
+| median match ends at tick 500 with **zero captures after tick ~200** and near-zero destructions | stall by design — the interrupt is denying rather than delaying | `channel-interrupt-rule` / `channel-speed`, never match length |
+
+Two further failure modes join §11 under the channel arm:
+
+| # | failure | wave-read symptom |
+|---|---|---|
+| 8 | **Poke-lock** — the interrupt denies rather than delays | captures per match falls below the keel baseline while destructions per match stays flat; progress-reverted-per-match exceeds progress-gained-per-match |
+| 9 | **Rush over-nerfed** — the channel makes offence impossible rather than expensive | breach completions fall to ~0 and draws return from ~0 toward the pre-keel rate; leader-extends falls below the #168 plateau |
+
+---
+
+## P2.8 Revised build-ready deltas
+
+Everything in §14 stands except where listed here.
+
+**Economy constants** (§14.1): vein amount **6**; vein spawn ticks **120, 200,
+280, 360** (first 120, interval **80**, last 360); pile lifetime **80**; carry
+capacity **6**; every tier costs **10** (flat, no escalation); wreck 1, assay 1,
+max 2 per track and 3 total unchanged.
+
+**New arm** — `--capture channel`, values `none` (default, inert) | `channel`.
+It composes with `--economy scrap` and with every existing arm. Contract shape
+in §P2.4.5. Capture threshold moves **15 → 8** under this arm only.
+
+**Zero additional observation facts** for the channel arm; the economy's three
+from §14.4 are unchanged.
+
+**Identity tokens**: `siege` (swell + channel), `bastion` (swell + channel +
+scrap), `redoubt` (tide + channel + scrap), `forge` / `anvil` / `smelter` for
+the economy alone as in §12.5.
+
+**Not built in v1**: the objective keystone (registered fallback), the drone
+(registered for v2), any change to `maxTicks`.
+
+---
+---
+
+# Part 3 — Owner riders on the capture arm
+
+Four further rulings arrived while Part 2 was being written. Three of them
+change the spec; one confirms a design intent that was already latent and makes
+it explicit. All four are folded in below, and §P3.5 restates the shipping
+numbers.
+
+---
+
+## P3.1 The striker is the premier interrupter — how far does the channel move the triangle on its own?
+
+Owner: *"This would be good for the striker too as it's the best poker
+probably."* Correct, and it is a first-class effect of the arm rather than a
+side benefit. Four separate striker properties all become systemically valuable
+on the same tick the channel ships:
+
+| striker property | what the channel turns it into |
+|---|---|
+| gun travel 8 (longest) | pokes from outside every other class's reach; a bulwark cannot even *see* it (omni vision 4) |
+| cooldown 2 (fastest mobile) | **−0.5 progress per tick** sustained, the best mobile interrupt rate in the game |
+| one private bend after 1–4 tiles (its exclusive verb) | **a bent bolt arrives from a heading the screen is not standing on.** Screening is "block the firing line"; the striker is the only chassis that can choose a different line mid-flight |
+| the salvo fan (3 lanes, damage 2) | up to **6 progress reverted for one cast**, three quarters of a threshold-8 capture, and the game's only anti-stack weapon |
+
+The bend interaction is the one worth dwelling on, because it converts a
+mechanic that has been hard to price into a systemic role: the whole escort
+pattern is geometric, and the striker is the only class whose bolts do not
+travel in the geometry the escort is defending.
+
+### Estimated movement on each leg
+
+Directional estimates, stated as predictions so wave 8a can falsify them:
+
+| leg | today (#184) | predicted under `siege` (channel only) | why |
+|---|---:|---:|---|
+| **bvs** | +0.333 | **+0.05 … +0.20** | the striker gains the poke role outright; the bulwark's answers (shell, turret) are *positional commitments* the striker can decline to attack, while poke is available every tick from safety. **Risk: falls below the 0.15 band floor** |
+| **fvs** | −0.222 | **−0.20 … −0.35** | both gain — the fabricator gets denial bodies and stacking, the striker gets poke and the anti-stack fan. Stays in band but the magnitude grows |
+| **bvf** | +0.333 | **+0.10 … +0.25** | the fabricator's extra body becomes a screen or a denial body, which under the channel is the most valuable marginal body in the game. **Risk: falls below the floor** |
+
+The pattern is that **the bulwark is squeezed from both sides**: the striker
+out-pokes it (range 8 and vision 6 against range 6 and vision 4) and the
+fabricator out-bodies it. Since the bulwark is the current ladder top on both
+its legs, a squeeze is corrective in direction — but two of three legs are
+predicted to move *toward and possibly through* the band floor, which is a real
+over-rotation risk rather than a rhetorical one.
+
+### Feature or risk — the honest answer
+
+**A feature carrying one nameable over-rotation risk, and the risk is the fan,
+not the chassis.**
+
+Feature, because: the striker is the class seven waves failed to fix, #184's
+close is explicitly fragile (*"iron-root's leg is the entire remaining bvs
+payoff"*, *"freshness is asymmetric"*), and the highest-quality fix this
+campaign has produced was #179's — a role the class was already best at, found
+rather than granted. The channel gives the striker a *job* (deny the point from
+outside it) rather than a number, and jobs generalise where numbers do not.
+
+Risk, because: the buff is not one thing. Range, cadence, bend-around-screens
+and fan-as-burst all land on one class simultaneously. That is precisely the
+bundling that made FIVE SLOTS unattributable in #171, and the piece most likely
+to overshoot is the fan, whose 6-progress cast against a threshold-8 capture is
+the single largest number anywhere in this design.
+
+The mitigation is measurement, not a pre-emptive nerf: **the fan is already an
+inert-omittable arm with a pinned historical alternative** (`--volley cast`,
+the entry-2 fan, byte-pinned since #183), so it can be switched off inside a
+channel cell at zero engineering cost.
+
+### Wave-8 read design — attributing channel from scrap
+
+A 2×2 on the two axes, plus a fan sub-control on the channel axis. Every cell
+runs the same wave-8 doctrine cohort so freshness is symmetric (the standing
+caveat from #184).
+
+| cell | `--capture` | `--economy` | what it answers |
+|---|---|---|---|
+| `swell` | off | off | the #184 baseline re-run with wave-8 doctrine — the only honest comparison point |
+| `siege` | **channel** | off | **the channel's effect on the triangle and the pacing gates, isolated.** The primary read |
+| `forge` | off | **scrap** | the economy with the front unchanged — **and the falsification cell for §P2.1**: if harvesting happens here at any material rate, the dominance proof is wrong and the channel is not a prerequisite |
+| `bastion` | **channel** | **scrap** | the shipped package. Interaction term = `bastion − siege − forge + swell` |
+
+Sub-control, striker cells only: `siege` with `--volley cast` against `siege`
+with `--volley salvo`, which separates *"the striker chassis is the best
+poker"* from *"the fan is the best interrupt"*. Registered as
+`channel-salvo-interrupt` (§P2.4.5) and it is the first number to read.
+
+---
+
+## P3.2 Recapture economics — the parked reclaim note, executed
+
+Owner ruling: *"recaptures need to be lowered to like 1-1.25"* — the total cost
+of flipping an enemy-claimed zone should be 1.0–1.25× a fresh capture.
+
+### Today's cost, exactly
+
+The kernel erodes an opposing claim by the controller's gain and, when it
+crosses zero, clears the claim **without starting its own on the same tick**;
+overshoot is discarded (`ApplyControl`, and the architecture's own §4 wording).
+So flipping a fully-built enemy claim at threshold `T` with gain 1 costs
+`(T−1)` erode ticks plus `T` build ticks:
+
+| threshold | flip | fresh | ratio |
+|---:|---:|---:|---:|
+| 15 (today) | 14 + 15 = 29 | 15 | **1.93×** |
+| 8 (channel-speed) | 7 + 8 = 15 | 8 | **1.88×** |
+
+The owner's parked note (*"2x on the recapture is a bit excessive"*) is exactly
+right, and the number is the same before and after the channel-speed change.
+
+### The mechanism options, priced against the 1.0–1.25 band
+
+**(a) Erosion-rate multiplier `N` — erode at N× build speed.** Cost becomes
+`ceil((T−1)/N) + T`, so the ratio is `1 + ceil((T−1)/N)/T`.
+
+| N | flip at T=8 | ratio | flip at T=15 | ratio |
+|---:|---:|---:|---:|---:|
+| 1 (today) | 15 | 1.88× | 29 | 1.93× |
+| 2 | 4 + 8 = 12 | 1.50× | 7 + 15 = 22 | 1.47× |
+| **4** | **2 + 8 = 10** | **1.25×** | 4 + 15 = 19 | 1.27× |
+| 8 | 1 + 8 = 9 | 1.13× | 2 + 15 = 17 | 1.13× |
+
+**N = 4 lands on the owner's stated ceiling exactly at the shipping threshold,
+and the ratio slides down to 1.0× as the enemy's standing claim shrinks** — a
+partial claim of 3 costs 1 erode tick plus 8, i.e. 1.13×; a claim of 1 costs
+1.13×; a claim of 0 is 1.00× by definition. **So a single number puts the whole
+range of recapture costs inside the owner's stated 1.0–1.25 band, at both
+thresholds.**
+
+**(b) Simultaneous erode-and-build.** "Presence decrements their claim AND
+increments yours per tick" reaches exactly 1.0× — but only if both claims are
+stored, because that is what "two numbers moving at once" means. The Frontline
+control state carries **one** `ClaimingTeamId` and **one** `CaptureProgress`,
+and the timeout score is derived from that single pair; a per-team claim model
+changes the state record, the score derivation, the validator invariants, and —
+critically — the published `captureProgress`/`claimingTeamId` pair that every
+existing bot reads. Modelled as a *signed* single accumulator instead, it does
+**not** reach 1.0×: moving from +7 to −8 at any fixed rate costs 15 units
+against a fresh 8, which is the same 1.88× in a different representation.
+**Rejected: it costs an observation break and a state-model rewrite to buy
+0.25× that (a) already delivers for one integer.**
+
+**(c) Better options considered.** Carrying the overshoot at the crossover
+(N=4 with carry gives 1.13×) is attractive but overturns a documented
+architecture invariant — *"opposing gain erodes a claim to zero without starting
+its own claim on the same tick"* — for a quarter of a capture. Registered as the
+alternative level rather than shipped. Decaying an enemy claim while you merely
+stand nearby was rejected as a second presence rule with no read.
+
+**Recommendation: (a) with `N = 4`, no overshoot carry.** One integer, zero
+observation change, the documented invariant preserved, and the owner's band hit
+across every claim state.
+
+### Does eroding also require stillness, and is it interruptible?
+
+**Yes to both, and symmetry is not the main argument — the alternative is
+degenerate.** If erosion were exempt from the channel, a single *kiting* body
+would wipe a fully-built claim in 2 ticks at N=4 while dodging, which makes a
+built claim worth almost nothing and re-opens the mean-reversion problem the
+whole pendulum campaign closed. So the rule generalises rather than forks:
+
+> **The CONTROLLING team is whichever team's stationary claim weight strictly
+> exceeds the other team's total denial weight. Control moves the number —
+> eroding the opponent's claim at `N ×` rate, then building its own at `1 ×`.
+> Hostile damage to a controlling-team body standing on the active objective
+> reverts the controller's WORK on this run by the damage amount, floored at
+> zero work.**
+
+"Work on this run" rather than "the claim" is the precise formulation, and it
+matters: if the interrupt moved the raw claim number it could push an
+opponent's claim *up* past the threshold and complete a capture for the team
+being shot at. Reverting work can never do that — it can only undo what the
+controller has done since it took control, and a full revert restores the
+position exactly as the controller found it.
+
+Consequence, and it is the owner's escort pattern applied to the other
+direction of the pendulum: **taking ground back is also a channel that needs a
+screen.** The bulwark defending captured ground is defending against an
+*erosion* channel, and a turret with line of sight reverts 1 per tick against a
+stationary eroder — which is the class-role read in §P3.4 falling straight out
+of the arithmetic.
+
+### Systemic effect, and whether the ratchet hold needs re-tuning
+
+Cheaper recaptures make the pendulum swingier and produce more lead changes,
+which is the dynamism the owner has asked for since #158. Two interactions to
+check.
+
+**Sticky-frontline / ratchet hold (40 ticks).** More completed enemy captures
+land inside a live hold, and every one of them is *spent* — so the hold becomes
+**more** valuable, not less, and a naive reading says re-tune it downward. The
+careful reading says leave it alone: `RatchetHoldTicksDefault = 40` was
+calibrated against the measured **advance-reversal latency**, not against the
+capture clock — *"respawn 18 plus transit 12"* — and neither respawn nor transit
+changes under any arm in this memo. Forty ticks remains ≈1.33× the
+reinforcement wave.
+
+**Do not pre-emptively re-tune it. Register `channel-ratchet-retune` with an
+explicit diagnostic instead:** spent captures per match (captures denied by a
+live hold). If that count exceeds roughly one per hold on average, the hold is
+absorbing more offence than it was priced to absorb and 25–30 is the next value
+to try; if it stays near today's level, 40 is still correct and the swingier
+pendulum arrived without the hold needing to move.
+
+**Registered factor.** `recapture-cost`, with the owner's stated **1.0–1.25×
+target band** recorded as the acceptance criterion, levels `N ∈ {1, 2, 4, 8}`
+plus the overshoot-carry variant, and the required report being *flip cost as a
+multiple of fresh capture cost, measured from replay rather than derived*, plus
+lead changes per match and time-at-each-position-index.
+
+It ships in the same capture-arm contract shape as the channel — see §P3.5.
+
+---
+
+## P3.3 Stacking: multiple channelers capture faster, with a cap
+
+Owner: *"multiple bots capturing at once should capture faster — so Fab has
+that going for it too."* Confirmed and pinned: **gain scales with net
+stationary objective weight**, which is contest-majority's surplus scaling
+carried over and applied to channeling bodies only. That was already the
+arithmetic in §P2.4.1; what follows is the part that was not settled.
+
+### The emergent tradeoff, named
+
+Every stacked channeler is stationary and therefore interruptible, and every
+stacked channeler is a body that is **not screening**. So the choice each tick
+is:
+
+- **Stack for speed** — N stationary bodies gain N per tick, but present N easy
+  targets and block zero firing lines.
+- **Screen a lone channeler** — 1 per tick, but two teammates standing on the
+  live firing headings absorb the bolts (for free, because damage off the
+  objective reverts nothing).
+
+**Against a broken defence, stack. Against a live one, screen.** It is a read on
+published state — how many enemy bodies are alive, where, and is a fan entry off
+cooldown (`routeCooldowns` publishes exactly that) — which is the right shape
+for a decision that should be made every tick rather than once per match.
+
+**And the fabricator is the class that can do both at once**, which is its
+intended systemic role: four bodies field two channelers plus two screens where
+a three-body team must choose. That is the fourth slot's honest value under this
+arm, and it is larger than its value under any arm measured so far.
+
+### The cap, and why there has to be one
+
+Uncapped, the arithmetic runs away at exactly the wrong end. At threshold 8 a
+post-wipe three-body stack captures in 3 ticks and a five-slot fabricator stack
+in 2 — and, worse, the marginal value of bodies 3, 4 and 5 is *pure channel
+speed*, which is precisely the "extra bodies buy extra tempo" loop that killed
+SURGE and that the five-slot arm was tuned to avoid (*"more bodies, deliberately
+not faster bodies"*).
+
+> **Gain multiplier = min(2, stationaryClaimWeight − opponentDenialWeight).**
+
+Checked against every case that matters:
+
+| situation | net stationary | multiplier | gain | outcome |
+|---|---:|---:|---:|---|
+| solo screened channeler | 1 | 1 | 1.0 | 8 ticks (10 with a leaked bolt) |
+| 2 channelers + 1 screen, defence dead | 3 | **2** | 2.0 | **4 ticks** — stacking pays, exactly as the owner asked |
+| 3 channelers, no screens, 2 live pokers | 3 | 2 | 2.0 − ~0.75 revert | 7 ticks while taking 0.75 dmg/tick — **screening is the better default under fire** |
+| 3 stationary attackers vs 2 kiting defenders | 1 | 1 | 1.0 − ~1.2 | −0.2 → **2 still hold 3** |
+| post-wipe 3 v 0 | 3 | 2 | 2.0 | 4 ticks |
+| fabricator 3 stacked + 1 screen | 3 | 2 | 2.0 | 4 ticks — **identical to 2 stacked + 2 screens** |
+
+The last row is the point: **the cap means the fabricator's third, fourth and
+fifth channeling bodies buy no additional capture speed at all.** They buy
+screens and denial weight, which is a positional advantage that has to be
+played, not an arithmetic one that accrues. Registered as `channel-stack-cap`
+with an uncapped level so the claim is measured.
+
+### Whole-claim revert versus per-body revert
+
+The question rider 4 asks — does one hit on one stacked channeler revert the
+whole claim, or only that body's contribution?
+
+**Per-body revert is degenerate under the cap, and the arithmetic says so
+immediately.** With three channelers and the multiplier capped at 2, hitting one
+body drops claim weight from 3 to 2, which is still capped at 2 — **the hit has
+literally no effect**. Per-body revert makes a stack of three *immune* to
+interruption, which inverts the entire mechanism.
+
+**Whole-claim revert is adopted.** It moves the one number the observation
+already publishes, so a bot reads the interrupt in `captureProgress` with no new
+bookkeeping; it makes screening mandatory rather than optional whenever the
+enemy has a live gun; and it is the variant that does **not** compound the
+fabricator's body advantage. Registered as `channel-stack-interrupt` with the
+per-body level recorded as the rejected alternative and the reason.
+
+### Fabricator dominance check across the whole package
+
+The triangle protection has to hold against stacking, numeric harvesting, and
+upgrade scope **combined**, not one at a time:
+
+| channel | fabricator gain | bounded by |
+|---|---|---|
+| stacking speed | **none beyond 2 bodies** | the `min(2, …)` cap |
+| harvest capacity | can field a full front *and* a harvester | the vein pot is fixed at 48 scrap and one harvester services a cycle — extra bodies buy security, not income (§P2.5 B) |
+| upgrade scope | **none** | prime-only in v1 (§P3.4) |
+| screens and denial weight | **real and intended** | the 2-HP prime is the game's worst channeler and worst screen; children are 3 HP; and the class supplies the most wreckage to its opponent |
+| exposure | — | the fan is the anti-cluster weapon, aimed precisely at the playstyle |
+
+Net: the fabricator's gain from the channel is **positional and playable**
+rather than arithmetic, and it is the largest single reason bvf is predicted to
+fall toward the band floor (§P3.1). That is the number to watch in `siege`.
+
+---
+
+## P3.4 Upgrade scope becomes a registered axis
+
+Owner: *"We could also play around with buffs for ALL team bits vs only
+prime."* Scope is promoted from a fixed constant to a registered tunable axis.
+
+### The amplification, quantified
+
+The right unit is **upgraded-body-ticks per scrap spent** — how much upgraded
+body a tier actually buys. Taking a purchase at tick 200 and a prime uptime of
+~0.71 (18-tick returns, ~8 prime deaths), and expressing each scope as the
+average number of live bodies it covers from purchase to tick 500:
+
+| scope | striker / bulwark (3 slots) | fabricator `wane` (4 slots) | fabricator `full` (5 slots) |
+|---|---:|---:|---:|
+| **(a) prime-only** | 0.71 | 0.71 | 0.71 |
+| **(b) all-bodies** | ~2.2 | ~2.8 | ~3.2 |
+| amplification vs prime-only | **3.1×** | **3.9×** | **4.5×** |
+| **fabricator's edge over a 3-slot class** | 1.00× | **1.27×** | **1.45×** |
+
+So all-bodies scope hands the fabricator **27–45% more upgraded body-tick per
+scrap at the same price**, on top of the harvest capacity and the screening
+value already counted in §P3.3. Prime-only is 1.00× by construction — it is the
+same L5 mitigation MUSTER used with `PrimeAutomaticReturnOnly`, for the same
+reason.
+
+### Does all-bodies need class-aware pricing?
+
+It can have it — Part 1's rule allows exactly this (*effects are never
+class-aware; prices may be class-aware where the effect is asymmetric*) — and
+the correction is computable: the fabricator would pay **13 per tier under
+`wane` and 14–15 under `full`** to restore body-tick parity.
+
+Two reasons not to make that the v1:
+
+1. **It couples the upgrade ladder to the slot count**, so every registered
+   five-slot tuning variant (`full`, `trim`, `boom`, `drag`, `moor`, `wane`)
+   needs its own price column. That is a factor explosion across a family that
+   is already registered and already carries its own ablation debt.
+2. **Prime-only buys the same felt payoff for a quarter of the price and no
+   coupling**, and it produces a *hero unit* — one visibly upgraded body — which
+   is more watchable than a uniformly slightly-better team and easier to read on
+   screen at the moment of purchase.
+
+### (c) Per-track scope — the design favourite, and it is a v2 candidate
+
+The channel analysis produced a third option that is better than either pure
+one, and it deserves to be on the record:
+
+> **PLATE all-bodies; EDGE and OPTIC prime-only.**
+
+The rationale is that the channel gives each track a *role*, and the roles do
+not live on the same bodies. **PLATE is the screen's stat**, and screens are by
+definition the non-prime bodies — a plate that only protects the prime buys
+nothing for the job it exists to do. **EDGE is the poker's and courier-hunter's
+stat** and **OPTIC is the hunter's**, and a single upgraded poker or hunter is a
+coherent hero unit. Under this mix the fabricator amplification applies to one
+track of three, so its class edge is ~1.09–1.15× rather than 1.27–1.45× — small
+enough to accept without any price table at all.
+
+It is not the v1 recommendation only because it adds a per-track scope field and
+because scope should be *priced* before it is *mixed*. It is the first thing to
+try if the registered scope read says all-bodies is better than prime-only.
+
+### Registration
+
+**`scrap-upgrade-scope`** is upgraded from a note to a three-level registered
+axis, with the owner's interest recorded:
+
+| level | shape | note |
+|---|---|---|
+| `prime-only` | v1 recommendation | flat per team by construction; amplification 1.00× |
+| `all-bodies` | owner's interest | needs class-aware pricing (fabricator ×1.3 `wane`, ×1.45 `full`) or an explicit ruling that the amplification is a deliberate fabricator lever |
+| `per-track` | design favourite for v2 | plate all-bodies, edge and optic prime-only; amplification ~1.1× without any price table |
+
+Required report per level: upgraded-body-ticks per scrap by class, tier-vector
+distributions, and — the gate — the three class edges, since this axis is a
+fabricator lever whichever way it is set.
+
+### The class-role read, folded into the strategy lanes
+
+The owner's three systemic roles fall directly out of existing class machinery
+under the channel arm, and §P2.5's archetypes should be read through them:
+
+| class | systemic role | the machinery that makes it true |
+|---|---|---|
+| **bulwark** | **defends captured ground** | the turret reverts 1 per tick against a stationary eroder at travel 8 and cooldown 1 — the best recapture denial in the game — and the shell is a channeler that blanks frontal pokes for three deflections. Both are positional commitments, which is what defending ground is |
+| **fabricator** | **numeric advantage** | screens, harvesters, and denial weight. Its fourth body is worth exactly one screen or one denial body, and under the channel that is the most valuable marginal body in the game — but *not* extra capture speed (§P3.3's cap) |
+| **striker** | **poke and interrupt** | longest gun, fastest cadence, bends that arrive off the screened heading, and a fan that reverts up to 6 in one cast (§P3.1) |
+
+Mapped onto §P2.5: the bulwark is the natural **C — defend-and-poke** and the
+holder in **A** after a capture lands; the fabricator is the natural **B —
+econ-split** and **G — screen-and-channel**; the striker is the natural **C**
+and **D — courier hunt**. Three classes, three lanes, no lane empty — which is
+the strongest single piece of evidence that the depth verdict in §P2.5 is real
+rather than enumerated.
+
+---
+
+## P3.5 Revised capture-arm spec
+
+Supersedes §P2.4.1, §P2.4.3 and §P2.8 where they differ. One arm,
+`--capture channel`, carrying the channel, the stack cap, and the recapture
+multiplier — they ship together because they are one coherent change to how
+ground is taken and kept.
+
+### Rules
+
+1. **Claim weight** counts a team's bodies on the active objective whose
+   position at the end of this tick equals their position at the end of the
+   previous tick. **Denial weight** counts all of a team's bodies on the active
+   objective. A life created this tick counts as stationary. Rotating,
+   shooting, and starting a transform do not break stillness; only a change of
+   tile does.
+2. **Control**: the team whose claim weight strictly exceeds the opponent's
+   denial weight controls. Otherwise no team controls and the claim is
+   preserved (keel's decay clock, unchanged).
+3. **Multiplier** = `min(2, claimWeight − opponentDenialWeight)`.
+4. **Erosion**: while an opposing claim stands, the controller reduces it by
+   `4 × gain × multiplier` per tick. On reaching zero the claim clears and the
+   controller starts no claim on that tick (the documented invariant is
+   preserved).
+5. **Build**: with no opposing claim, the controller adds `gain × multiplier`
+   per tick; reaching the threshold completes the capture, overshoot discarded.
+6. **Interrupt**: hostile damage to a **controlling-team** body standing on the
+   active objective region reverts the controller's **work on this run** by the
+   damage amount, floored at zero work — never past the position the controller
+   found. Damage to bodies off the objective reverts nothing. One hit reverts
+   the whole run, not one body's contribution.
+7. **Threshold 8**, gain 1 (`channel-speed`).
+8. Decay clock, redeploy pause (5), and ratchet hold (40) are unchanged.
+
+### Contract shape
+
+```text
+rules.gameMode.capture
+    threshold : 8                                      // channel-speed
+  + controlPolicy :
+      StationaryClaimWeightVersusTotalDenialWeightScalesGainCapped…   // new enum value
+  + stationaryGainMultiplierCap : 2                    // channel-stack-cap
+  + opposingErosionMultiplier   : 4                    // recapture-cost
+  + claimInterrupt                                     // whole block ABSENT = inert
+      kind                 : DamageToControllerOnObjectiveRevertsWork
+      revertPerDamagePoint : 1
+      scope                : ControllingTeamBodiesOnActiveObjectiveRegion
+      granularity          : WholeRun                  // closed enum; PerBody is the registered alternative
+```
+
+Absent-means-inert throughout; every historical ruleset keeps byte-exact
+fingerprints. **Observation cost remains zero** — `captureProgress` and
+`claimingTeamId` keep their exact published shape and meaning, and every rule
+above moves those same two facts.
+
+### Ablation registrations added by Part 3
+
+| id | interpretation | required isolation |
+|---|---|---|
+| `recapture-cost` | the erosion multiplier sets flip cost as a multiple of fresh capture cost; owner's target band **1.0–1.25×** | levels N ∈ {1, 2, 4, 8} plus the overshoot-carry variant; report flip cost measured from replay, lead changes per match, and time at each position index |
+| `channel-stack-cap` | capping the stationary multiplier at 2 simultaneously honours "more bots capture faster" and denies the fabricator a stacking payoff for bodies 3–5 | run uncapped; report captures per match, mean channelers per capture, and the bvf edge |
+| `channel-stack-interrupt` | whole-run revert makes screening mandatory; per-body revert makes a capped stack immune | run the per-body level; report screen-adjacency share and progress reverted per cast |
+| `channel-ratchet-retune` | the 40-tick hold was priced against the 18+12 reinforcement wave, not the capture clock | **do not pull pre-emptively.** Diagnostic: spent captures per match; if it exceeds ~1 per hold, try 25–30 |
+| `scrap-upgrade-scope` | promoted to a three-level axis (§P3.4) | prime-only / all-bodies (with class-aware pricing) / per-track; report upgraded-body-ticks per scrap by class and all three class edges |
+| `channel-striker-role` | the channel hands the weakest chassis the best defensive role via four stacked properties at once | the `siege` × `--volley cast`/`salvo` sub-control; predictions in §P3.1 are pre-registered and falsifiable |
+
+### Identity tokens
+
+Unchanged from §P2.4.5 — the recapture multiplier and the stack cap are part of
+the same `channel` arm and mint no separate token: `siege` (swell + channel),
+`bastion` (swell + channel + scrap), `redoubt` (tide + channel + scrap), and
+`forge` / `anvil` / `smelter` for the economy alone.
