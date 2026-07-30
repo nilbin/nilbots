@@ -178,8 +178,10 @@ public static class ToolchainInfo
     /// observation publication of remaining ticks is bound to the first
     /// skill that does.
     /// 0.9.25 registers the volley salvo (`--volley salvo`, composite
-    /// `surf` = tide + salvo, #182): every fan bolt deals 2, the fan's
-    /// profile counter drops to the 1-tick floor, and the stance entry
+    /// `swell` = tide + salvo, #182/#183 — the entry-2 first mint `surf`
+    /// re-minted when the entry sharpened to the uniform 1-tick grammar):
+    /// every fan bolt deals 2, the fan's profile counter drops to the
+    /// 1-tick floor, and the stance entry
     /// routes carry the first declared route cooldown (8 ticks) — which
     /// binds the #181 readability law, so it carries SDK/Guest 0.10.8:
     /// live route-cooldown clocks are published in observations
