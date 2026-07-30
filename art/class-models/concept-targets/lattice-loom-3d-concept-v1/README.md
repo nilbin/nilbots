@@ -3,7 +3,9 @@
 - Status: retained and owner-approved as the explored grounded-foot
   inference; superseded by V2 for default locomotion.
 - Provider readiness: **not ready** and never submitted.
-- Geometry and semantic authority:
+- Visual/top-planform authority:
+  `../../../class-look-concepts/fabricator/lattice-loom/concept.png`.
+- Team-inlay/fallback authority:
   `../../../../web/src/assets/class-looks/lattice-loom/sprite.svg`.
 - This version preserves the grounded alternative; it is not permission to
   add feet to the selected default.
