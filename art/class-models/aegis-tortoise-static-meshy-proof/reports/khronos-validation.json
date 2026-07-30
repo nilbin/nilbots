@@ -1,0 +1,573 @@
+{
+  "schemaVersion": 1,
+  "validatorVersion": "2.0.0-dev.3.10",
+  "wallClearanceAuthority": {
+    "environment": "Frontline Ember Forge V4",
+    "renderer": "web/src/render3d/arenaScene.ts",
+    "audit": "art/frontline-map-models/CLEARANCE-AUDIT.md",
+    "finalOpenEdgeInset": 0.14462,
+    "openFloorCentrelineClearance": 0.64462,
+    "reviewSafetyMargin": 0.02
+  },
+  "buildReportReconciliation": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "rich",
+      "bytesMatch": true,
+      "sha256Match": true,
+      "trianglesMatch": true,
+      "verticesMatch": true,
+      "pass": true
+    },
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "lean",
+      "bytesMatch": true,
+      "sha256Match": true,
+      "trianglesMatch": true,
+      "verticesMatch": true,
+      "pass": true
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "rich",
+      "bytesMatch": true,
+      "sha256Match": true,
+      "trianglesMatch": true,
+      "verticesMatch": true,
+      "pass": true
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "lean",
+      "bytesMatch": true,
+      "sha256Match": true,
+      "trianglesMatch": true,
+      "verticesMatch": true,
+      "pass": true
+    }
+  ],
+  "verdict": "pass",
+  "assets": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "rich",
+      "file": {
+        "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/aegis-tortoise-shell-rich.glb",
+        "bytes": 8799168,
+        "sha256": "93c3bd19d58e679f7793d7d9eee15f22e49a77692acd688e61f369c6d594d1d2"
+      },
+      "geometry": {
+        "coordinateSystem": "+Y up; XZ horizontal",
+        "maximumHorizontalVertexRadius": 0.5528291802867403,
+        "shippingLookScale": 1.2,
+        "maximumHorizontalVertexRadiusAfterShippingLookScale": 0.6633950163440884,
+        "primaryWebGlScaleProjection": {
+          "convention": "max(0.82, form look.scale * 0.9); projection for future whole-form wiring, not the current form-switch implementation",
+          "effectiveScale": 1.08,
+          "maximumHorizontalVertexRadius": 0.5970555147096795,
+          "staticVisualMargin": 0.047564485290320424,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true
+        },
+        "emberV4": {
+          "finalOpenEdgeInset": 0.14462,
+          "openFloorCentrelineClearance": 0.64462,
+          "staticVisualMargin": -0.018775016344088402,
+          "reviewSafetyMargin": 0.02,
+          "requiredOpenEdgeInsetForReviewSafety": 0.1833950163440884,
+          "maximumLookScaleForArbitraryYawClear": 1.1660383043920544,
+          "maximumLookScaleForReviewSafety": 1.1298607639995113,
+          "arbitraryYawClear": false,
+          "meetsReviewSafetyMargin": false,
+          "insetAdjustmentRequiredForReviewSafety": 0.03877501634408839
+        }
+      },
+      "verdict": "pass",
+      "structuralChecks": {
+        "one static mesh with hull + team primitives": true,
+        "material and primitive roles agree": true,
+        "team material is neutral and texture-free in color/emission": true,
+        "hull retains base, normal, metallic/roughness, and emission": true,
+        "every primitive carries portable tangents and UVs": true,
+        "static form contains no rig, clip, camera, or light": true,
+        "mesh node is an identity transform": true,
+        "coordinate bounds are +Y-up, floored, and one-tile planform": true,
+        "textures are embedded without runtime-external dependencies": true
+      },
+      "validation": {
+        "uri": "aegis-tortoise-shell-rich.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 0,
+          "numWarnings": 0,
+          "numInfos": 0,
+          "numHints": 0,
+          "messages": [],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Khronos glTF Blender I/O v5.2.39",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 8795744
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 0,
+          "materialCount": 2,
+          "hasMorphTargets": false,
+          "hasSkins": false,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 2,
+          "totalVertexCount": 97222,
+          "totalTriangleCount": 150000,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    },
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "lean",
+      "file": {
+        "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/aegis-tortoise-shell-lean.glb",
+        "bytes": 3816428,
+        "sha256": "25c86e581a8f569cbd730c7209478cb1b88a4a1fc3cc0778a023164a52e912a9"
+      },
+      "geometry": {
+        "coordinateSystem": "+Y up; XZ horizontal",
+        "maximumHorizontalVertexRadius": 0.5527171824561622,
+        "shippingLookScale": 1.2,
+        "maximumHorizontalVertexRadiusAfterShippingLookScale": 0.6632606189473946,
+        "primaryWebGlScaleProjection": {
+          "convention": "max(0.82, form look.scale * 0.9); projection for future whole-form wiring, not the current form-switch implementation",
+          "effectiveScale": 1.08,
+          "maximumHorizontalVertexRadius": 0.5969345570526552,
+          "staticVisualMargin": 0.04768544294734478,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true
+        },
+        "emberV4": {
+          "finalOpenEdgeInset": 0.14462,
+          "openFloorCentrelineClearance": 0.64462,
+          "staticVisualMargin": -0.01864061894739466,
+          "reviewSafetyMargin": 0.02,
+          "requiredOpenEdgeInsetForReviewSafety": 0.18326061894739465,
+          "maximumLookScaleForArbitraryYawClear": 1.1662745803114722,
+          "maximumLookScaleForReviewSafety": 1.1300897092149667,
+          "arbitraryYawClear": false,
+          "meetsReviewSafetyMargin": false,
+          "insetAdjustmentRequiredForReviewSafety": 0.03864061894739465
+        }
+      },
+      "verdict": "pass",
+      "structuralChecks": {
+        "one static mesh with hull + team primitives": true,
+        "material and primitive roles agree": true,
+        "team material is neutral and texture-free in color/emission": true,
+        "hull retains base, normal, metallic/roughness, and emission": true,
+        "every primitive carries portable tangents and UVs": true,
+        "static form contains no rig, clip, camera, or light": true,
+        "mesh node is an identity transform": true,
+        "coordinate bounds are +Y-up, floored, and one-tile planform": true,
+        "textures are embedded without runtime-external dependencies": true
+      },
+      "validation": {
+        "uri": "aegis-tortoise-shell-lean.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 0,
+          "numWarnings": 0,
+          "numInfos": 0,
+          "numHints": 0,
+          "messages": [],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Khronos glTF Blender I/O v5.2.39",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 3813012
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 0,
+          "materialCount": 2,
+          "hasMorphTargets": false,
+          "hasSkins": false,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 2,
+          "totalVertexCount": 56181,
+          "totalTriangleCount": 75000,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "rich",
+      "file": {
+        "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/aegis-tortoise-turret-rich.glb",
+        "bytes": 9120244,
+        "sha256": "77ba482d194a66e3e1e9640b826171b93cddbc42a9453963c4231ceaffbc2592"
+      },
+      "geometry": {
+        "coordinateSystem": "+Y up; XZ horizontal",
+        "maximumHorizontalVertexRadius": 0.5043719881734381,
+        "shippingLookScale": 1.08,
+        "maximumHorizontalVertexRadiusAfterShippingLookScale": 0.5447217472273131,
+        "primaryWebGlScaleProjection": {
+          "convention": "max(0.82, form look.scale * 0.9); projection for future whole-form wiring, not the current form-switch implementation",
+          "effectiveScale": 0.9720000000000001,
+          "maximumHorizontalVertexRadius": 0.49024957250458184,
+          "staticVisualMargin": 0.15437042749541813,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true
+        },
+        "emberV4": {
+          "finalOpenEdgeInset": 0.14462,
+          "openFloorCentrelineClearance": 0.64462,
+          "staticVisualMargin": 0.09989825277268682,
+          "reviewSafetyMargin": 0.02,
+          "requiredOpenEdgeInsetForReviewSafety": 0.06472174722731316,
+          "maximumLookScaleForArbitraryYawClear": 1.2780646330785819,
+          "maximumLookScaleForReviewSafety": 1.2384113603573326,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true,
+          "insetAdjustmentRequiredForReviewSafety": 0
+        }
+      },
+      "verdict": "pass",
+      "structuralChecks": {
+        "one static mesh with hull + team primitives": true,
+        "material and primitive roles agree": true,
+        "team material is neutral and texture-free in color/emission": true,
+        "hull retains base, normal, metallic/roughness, and emission": true,
+        "every primitive carries portable tangents and UVs": true,
+        "static form contains no rig, clip, camera, or light": true,
+        "mesh node is an identity transform": true,
+        "coordinate bounds are +Y-up, floored, and one-tile planform": true,
+        "textures are embedded without runtime-external dependencies": true
+      },
+      "validation": {
+        "uri": "aegis-tortoise-turret-rich.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 0,
+          "numWarnings": 0,
+          "numInfos": 0,
+          "numHints": 0,
+          "messages": [],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Khronos glTF Blender I/O v5.2.39",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 9116816
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 2048,
+                "height": 2048,
+                "format": "rgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 0,
+          "materialCount": 2,
+          "hasMorphTargets": false,
+          "hasSkins": false,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 2,
+          "totalVertexCount": 93036,
+          "totalTriangleCount": 149999,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "lean",
+      "file": {
+        "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/aegis-tortoise-turret-lean.glb",
+        "bytes": 3795480,
+        "sha256": "addcc7b5fc684253a20ebb72fb91f1c78cf69af44c593d9c24e13bf150b90327"
+      },
+      "geometry": {
+        "coordinateSystem": "+Y up; XZ horizontal",
+        "maximumHorizontalVertexRadius": 0.5043560246763181,
+        "shippingLookScale": 1.08,
+        "maximumHorizontalVertexRadiusAfterShippingLookScale": 0.5447045066504236,
+        "primaryWebGlScaleProjection": {
+          "convention": "max(0.82, form look.scale * 0.9); projection for future whole-form wiring, not the current form-switch implementation",
+          "effectiveScale": 0.9720000000000001,
+          "maximumHorizontalVertexRadius": 0.4902340559853813,
+          "staticVisualMargin": 0.1543859440146187,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true
+        },
+        "emberV4": {
+          "finalOpenEdgeInset": 0.14462,
+          "openFloorCentrelineClearance": 0.64462,
+          "staticVisualMargin": 0.09991549334957639,
+          "reviewSafetyMargin": 0.02,
+          "requiredOpenEdgeInsetForReviewSafety": 0.0647045066504236,
+          "maximumLookScaleForArbitraryYawClear": 1.2781050854179832,
+          "maximumLookScaleForReviewSafety": 1.2384505576212042,
+          "arbitraryYawClear": true,
+          "meetsReviewSafetyMargin": true,
+          "insetAdjustmentRequiredForReviewSafety": 0
+        }
+      },
+      "verdict": "pass",
+      "structuralChecks": {
+        "one static mesh with hull + team primitives": true,
+        "material and primitive roles agree": true,
+        "team material is neutral and texture-free in color/emission": true,
+        "hull retains base, normal, metallic/roughness, and emission": true,
+        "every primitive carries portable tangents and UVs": true,
+        "static form contains no rig, clip, camera, or light": true,
+        "mesh node is an identity transform": true,
+        "coordinate bounds are +Y-up, floored, and one-tile planform": true,
+        "textures are embedded without runtime-external dependencies": true
+      },
+      "validation": {
+        "uri": "aegis-tortoise-turret-lean.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 0,
+          "numWarnings": 0,
+          "numInfos": 0,
+          "numHints": 0,
+          "messages": [],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Khronos glTF Blender I/O v5.2.39",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 3792072
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/jpeg",
+              "storage": "buffer-view",
+              "image": {
+                "width": 1024,
+                "height": 1024,
+                "format": "rgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 0,
+          "materialCount": 2,
+          "hasMorphTargets": false,
+          "hasSkins": false,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 2,
+          "totalVertexCount": 53189,
+          "totalTriangleCount": 75000,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    }
+  ]
+}

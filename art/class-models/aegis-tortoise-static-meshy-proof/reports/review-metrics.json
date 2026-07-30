@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "camera": "fixed 58-degree perspective, one-tile planform, identical floor/lights/exposure; no candidate-specific framing",
+  "differenceThreshold": {
+    "channelUnits": 8,
+    "normalized": 0.03137254901960784,
+    "changedPixelDefinition": "At least one RGB channel differs by 8 or more on a native 192 px pixel."
+  },
+  "richVsLeanNative192": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "team": "blue",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.0036509750022694263,
+      "rmse": 0.011911836384048457,
+      "psnr": 38.480425610008325,
+      "maximumChannelDelta": 118,
+      "changedPixelFraction": 0.03662109375,
+      "changedPixels": 1350,
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-blue-rich-vs-lean-192-diff.png"
+    },
+    {
+      "assetId": "aegis-tortoise-shell",
+      "team": "red",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.003781679772603486,
+      "rmse": 0.013121909741323644,
+      "psnr": 37.64005907700938,
+      "maximumChannelDelta": 155,
+      "changedPixelFraction": 0.039984809027777776,
+      "changedPixels": 1474,
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-red-rich-vs-lean-192-diff.png"
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "team": "blue",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.003431620767519971,
+      "rmse": 0.011673653311071078,
+      "psnr": 38.65586417378858,
+      "maximumChannelDelta": 123,
+      "changedPixelFraction": 0.036539713541666664,
+      "changedPixels": 1347,
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-blue-rich-vs-lean-192-diff.png"
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "team": "red",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.0034643856095679013,
+      "rmse": 0.011926454852416652,
+      "psnr": 38.469772630096244,
+      "maximumChannelDelta": 148,
+      "changedPixelFraction": 0.03795030381944445,
+      "changedPixels": 1399,
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-red-rich-vs-lean-192-diff.png"
+    }
+  ],
+  "teamDiffNative192": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "rich",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.002545835319081336,
+      "rmse": 0.022224377864057017,
+      "psnr": 33.06340775135184,
+      "maximumChannelDelta": 112,
+      "changedPixelFraction": 0.016954210069444444,
+      "changedPixels": 625,
+      "bounds": {
+        "left": 30,
+        "top": 49,
+        "right": 151,
+        "bottom": 131,
+        "width": 122,
+        "height": 83
+      },
+      "connectedComponentsAtLeast4Pixels": [
+        220,
+        172,
+        148,
+        14,
+        12,
+        8,
+        7,
+        7,
+        6,
+        5,
+        4,
+        4,
+        4
+      ],
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-rich-team-diff-192.png",
+      "semanticProof": "Only the neutral team-accent material changes between renders; hull/core texture and factors are byte-identical."
+    },
+    {
+      "assetId": "aegis-tortoise-shell",
+      "tier": "lean",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.0027853307121459693,
+      "rmse": 0.023637396107671217,
+      "psnr": 32.52800733953396,
+      "maximumChannelDelta": 110,
+      "changedPixelFraction": 0.018174913194444444,
+      "changedPixels": 670,
+      "bounds": {
+        "left": 43,
+        "top": 49,
+        "right": 160,
+        "bottom": 128,
+        "width": 118,
+        "height": 80
+      },
+      "connectedComponentsAtLeast4Pixels": [
+        229,
+        179,
+        163,
+        20,
+        13,
+        11,
+        10,
+        9,
+        7,
+        7,
+        5,
+        4,
+        4
+      ],
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-lean-team-diff-192.png",
+      "semanticProof": "Only the neutral team-accent material changes between renders; hull/core texture and factors are byte-identical."
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "rich",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.0011199264138525781,
+      "rmse": 0.013449094477526702,
+      "psnr": 37.42613911122736,
+      "maximumChannelDelta": 119,
+      "changedPixelFraction": 0.010579427083333334,
+      "changedPixels": 390,
+      "bounds": {
+        "left": 30,
+        "top": 44,
+        "right": 161,
+        "bottom": 166,
+        "width": 132,
+        "height": 123
+      },
+      "connectedComponentsAtLeast4Pixels": [
+        96,
+        62,
+        58,
+        55,
+        54,
+        14,
+        8,
+        6,
+        5,
+        5,
+        5,
+        4
+      ],
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-rich-team-diff-192.png",
+      "semanticProof": "Only the neutral team-accent material changes between renders; hull/core texture and factors are byte-identical."
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "tier": "lean",
+      "resolution": [
+        192,
+        192
+      ],
+      "mae": 0.001164747583061002,
+      "rmse": 0.013888853846232866,
+      "psnr": 37.1466718437713,
+      "maximumChannelDelta": 126,
+      "changedPixelFraction": 0.010362413194444444,
+      "changedPixels": 382,
+      "bounds": {
+        "left": 31,
+        "top": 44,
+        "right": 168,
+        "bottom": 165,
+        "width": 138,
+        "height": 122
+      },
+      "connectedComponentsAtLeast4Pixels": [
+        93,
+        66,
+        58,
+        52,
+        52,
+        11,
+        7,
+        6,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "diffMask": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-lean-team-diff-192.png",
+      "semanticProof": "Only the neutral team-accent material changes between renders; hull/core texture and factors are byte-identical."
+    }
+  ],
+  "silhouettes": {
+    "results": [
+      {
+        "assetId": "aegis-tortoise-shell",
+        "tier": "rich",
+        "view": "top",
+        "authority": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+        "iou": 0.8489375440244189,
+        "coverage": 0.9026610613038264,
+        "precision": 0.9344856232981031,
+        "dx": -6,
+        "dy": 0,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-rich-top-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-shell",
+        "tier": "rich",
+        "view": "side",
+        "authority": "art/class-models/aegis-tortoise-static-meshy-proof/reference/aegis-tortoise-shell-approved-side.png",
+        "iou": 0.8343307943416758,
+        "coverage": 0.9749231801645887,
+        "precision": 0.8526286526224748,
+        "dx": 0,
+        "dy": -2,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-rich-side-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-shell",
+        "tier": "lean",
+        "view": "top",
+        "authority": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+        "iou": 0.8491735623844014,
+        "coverage": 0.9026432287603262,
+        "precision": 0.934790738475034,
+        "dx": -6,
+        "dy": -1,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-lean-top-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-shell",
+        "tier": "lean",
+        "view": "side",
+        "authority": "art/class-models/aegis-tortoise-static-meshy-proof/reference/aegis-tortoise-shell-approved-side.png",
+        "iou": 0.8343996534039959,
+        "coverage": 0.9749938190937025,
+        "precision": 0.8526465349490873,
+        "dx": 0,
+        "dy": -2,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-shell-lean-side-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-turret",
+        "tier": "rich",
+        "view": "top",
+        "authority": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+        "iou": 0.8411878076625624,
+        "coverage": 0.8504550719841139,
+        "precision": 0.987211563858141,
+        "dx": 0,
+        "dy": 0,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-rich-top-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-turret",
+        "tier": "rich",
+        "view": "side",
+        "authority": "art/class-models/aegis-tortoise-static-meshy-proof/reference/aegis-tortoise-turret-approved-side.png",
+        "iou": 0.8366663707724108,
+        "coverage": 0.9406472768748217,
+        "precision": 0.8832971858516079,
+        "dx": 3,
+        "dy": 2,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-rich-side-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-turret",
+        "tier": "lean",
+        "view": "top",
+        "authority": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+        "iou": 0.8410370564357732,
+        "coverage": 0.8503061393347675,
+        "precision": 0.9872046109510086,
+        "dx": 0,
+        "dy": 0,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-lean-top-overlay.png"
+      },
+      {
+        "assetId": "aegis-tortoise-turret",
+        "tier": "lean",
+        "view": "side",
+        "authority": "art/class-models/aegis-tortoise-static-meshy-proof/reference/aegis-tortoise-turret-approved-side.png",
+        "iou": 0.83707416100996,
+        "coverage": 0.9406045052751639,
+        "precision": 0.8837894680437782,
+        "dx": 3,
+        "dy": 2,
+        "overlay": "art/class-models/aegis-tortoise-static-meshy-proof/review/aegis-tortoise-turret-lean-side-overlay.png"
+      }
+    ],
+    "board": "art/class-models/aegis-tortoise-static-meshy-proof/review/top-side-silhouette-overlays.png"
+  },
+  "tierRecommendation": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "preferredTier": "lean",
+      "richBytes": 8799168,
+      "leanBytes": 3816428,
+      "bytesSaved": 4982740,
+      "byteReductionFraction": 0.5662739931775368,
+      "minimumNative192Psnr": 37.64005907700938,
+      "maximumNative192ChangedPixelFraction": 0.039984809027777776,
+      "rationale": "Prefer lean for lazy runtime delivery: the native 192 px comparison has no material gameplay-readability gain from rich. Retain rich as archival/on-demand review evidence."
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "preferredTier": "lean",
+      "richBytes": 9120244,
+      "leanBytes": 3795480,
+      "bytesSaved": 5324764,
+      "byteReductionFraction": 0.5838400814715045,
+      "minimumNative192Psnr": 38.469772630096244,
+      "maximumNative192ChangedPixelFraction": 0.03795030381944445,
+      "rationale": "Prefer lean for lazy runtime delivery: the native 192 px comparison has no material gameplay-readability gain from rich. Retain rich as archival/on-demand review evidence."
+    }
+  ],
+  "boards": {
+    "fixed58": {
+      "path": "art/class-models/aegis-tortoise-static-meshy-proof/review/fixed-58deg-rich-vs-lean-board.png",
+      "bytes": 1427522,
+      "sha256": "2d9623b76c8a408a492e3e428b47812a04f7a4e90d40f1804f9d59ecffcb8995"
+    },
+    "native192": {
+      "path": "art/class-models/aegis-tortoise-static-meshy-proof/review/fixed-58deg-rich-vs-lean-native-192.png",
+      "bytes": 404338,
+      "sha256": "e0948f13e528a8764e16c40d804b0f4ffffa78539415cdde3a4b7d7b0faf9491"
+    },
+    "teamDiff": {
+      "path": "art/class-models/aegis-tortoise-static-meshy-proof/review/team-diff-mask-board.png",
+      "bytes": 27911,
+      "sha256": "37b6502598008a6445802951fa0bab9e4d4c06fb753e907c88490035a1a84998"
+    },
+    "silhouette": {
+      "path": "art/class-models/aegis-tortoise-static-meshy-proof/review/top-side-silhouette-overlays.png",
+      "bytes": 61469,
+      "sha256": "ed831a3f174a373a47b91a4c599d6f31f132bce3e58cced0df867862289f3093"
+    }
+  }
+}

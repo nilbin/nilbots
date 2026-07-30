@@ -1,0 +1,562 @@
+{
+  "blender": {
+    "expectedVersion": "5.2.0",
+    "script": "art/class-models/aegis-tortoise-static-meshy-proof/build_static_meshy_forms.py",
+    "version": "5.2.0 LTS"
+  },
+  "candidates": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "geometry": {
+        "directDecimationRatio": 0.1902881978185361,
+        "outputTrianglesDcc": 150000,
+        "sourceTriangles": 788278,
+        "targetTriangles": 150000
+      },
+      "model": {
+        "animations": 0,
+        "bytes": 8799168,
+        "cameras": 0,
+        "file": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/aegis-tortoise-shell-rich.glb",
+        "imageMimeTypes": [
+          "image/png",
+          "image/jpeg",
+          "image/jpeg",
+          "image/jpeg"
+        ],
+        "images": 4,
+        "lights": 0,
+        "materialRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "materials": 2,
+        "meshes": 1,
+        "primitiveRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "primitives": 2,
+        "repairedDegenerateTangents": 1,
+        "sha256": "93c3bd19d58e679f7793d7d9eee15f22e49a77692acd688e61f369c6d594d1d2",
+        "skins": 0,
+        "tangentPrimitiveCount": 2,
+        "triangles": 150000,
+        "vertices": 97222
+      },
+      "normalization": {
+        "approvedHeightToPlanform": 0.30816831683168316,
+        "boundsDcc": {
+          "maximum": [
+            0.5,
+            0.37171587347984314,
+            0.3078409731388092
+          ],
+          "minimum": [
+            -0.5,
+            -0.37171587347984314,
+            0.0
+          ],
+          "span": [
+            1.0,
+            0.7434317469596863,
+            0.3078409731388092
+          ]
+        },
+        "dccUp": "+z",
+        "heightOnlyFactor": 1.2060048552932217,
+        "heightToPlanform": 0.3078409731388092,
+        "operation": "fixed inspected yaw; uniform one-tile planform scale; centre/floor translation; measured vertical-only side-profile correction",
+        "planformSpanTiles": 1.0,
+        "sourceFacing": "-x",
+        "sourceUp": "+y",
+        "targetFacing": "+x",
+        "targetUp": "+y",
+        "uniformPlanformScale": 0.5264959264796834
+      },
+      "source": {
+        "bytes": 51000780,
+        "file": "var/model-artifacts/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/raw-model.glb",
+        "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+        "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0"
+      },
+      "teamAccent": {
+        "method": "seven interior UV samples, five-of-seven cyan vote, then explicit top-surface world-space region gate",
+        "regions": {
+          "guard-north": 735,
+          "guard-south": 925,
+          "west-centre": 844
+        },
+        "rejectedCyanFaces": 5946,
+        "selectedAreaFraction": 0.012518449773409797,
+        "selectedFaces": 2504,
+        "selectedSurfaceArea": 0.03943340547320062,
+        "totalFaces": 150000,
+        "totalSurfaceArea": 3.150023060919282
+      },
+      "textures": {
+        "colorGrade": {
+          "bronzeFraction": 0.059407949447631836,
+          "cyanFraction": 0.03734135627746582,
+          "graphiteFraction": 0.9032506942749023
+        },
+        "dimensions": [
+          2048,
+          2048
+        ],
+        "files": {
+          "baseColor": {
+            "bytes": 948794,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/textures/base-color.jpg",
+            "sha256": "05921f395f54b4cda250a1a6517b37abfd4ac425ff70f401cf3d4cd4c4e1f84c"
+          },
+          "emission": {
+            "bytes": 461963,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/textures/emission.png",
+            "sha256": "c941facd8c7dbf7a7906da89044994e44c8baf2357aa063bd7acfe1840449e7b"
+          },
+          "metallicRoughness": {
+            "bytes": 360654,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/textures/metallic-roughness.jpg",
+            "sha256": "7f38c645618bd9a96a02955d12f3f4720deee1a9918cb9ed4a48759656332617"
+          },
+          "normal": {
+            "bytes": 572696,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/rich/textures/normal.jpg",
+            "sha256": "f12895ef1170905fb35b96c26cc05867d7bfe0611ab4be2df9803564c0ab49e1"
+          }
+        },
+        "jpegQuality": 92,
+        "pbrGrade": {
+          "metallicMaximum": 0.7492549419403076,
+          "metallicMean": 0.07480156421661377,
+          "roughnessMaximum": 0.8134117722511292,
+          "roughnessMean": 0.7258044481277466,
+          "roughnessMinimum": 0.5597647428512573
+        }
+      },
+      "tier": "rich",
+      "transformationClass": "deterministic direct-source optimization; no visible-surface rebuild, retopology, articulation, rig, or animation"
+    },
+    {
+      "assetId": "aegis-tortoise-shell",
+      "geometry": {
+        "directDecimationRatio": 0.09514409890926805,
+        "outputTrianglesDcc": 75000,
+        "sourceTriangles": 788278,
+        "targetTriangles": 75000
+      },
+      "model": {
+        "animations": 0,
+        "bytes": 3816428,
+        "cameras": 0,
+        "file": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/aegis-tortoise-shell-lean.glb",
+        "imageMimeTypes": [
+          "image/png",
+          "image/jpeg",
+          "image/jpeg",
+          "image/jpeg"
+        ],
+        "images": 4,
+        "lights": 0,
+        "materialRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "materials": 2,
+        "meshes": 1,
+        "primitiveRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "primitives": 2,
+        "repairedDegenerateTangents": 3,
+        "sha256": "25c86e581a8f569cbd730c7209478cb1b88a4a1fc3cc0778a023164a52e912a9",
+        "skins": 0,
+        "tangentPrimitiveCount": 2,
+        "triangles": 75000,
+        "vertices": 56181
+      },
+      "normalization": {
+        "approvedHeightToPlanform": 0.30816831683168316,
+        "boundsDcc": {
+          "maximum": [
+            0.5,
+            0.37171587347984314,
+            0.3078409731388092
+          ],
+          "minimum": [
+            -0.5,
+            -0.37171587347984314,
+            0.0
+          ],
+          "span": [
+            1.0,
+            0.7434317469596863,
+            0.3078409731388092
+          ]
+        },
+        "dccUp": "+z",
+        "heightOnlyFactor": 1.2060048552932217,
+        "heightToPlanform": 0.3078409731388092,
+        "operation": "fixed inspected yaw; uniform one-tile planform scale; centre/floor translation; measured vertical-only side-profile correction",
+        "planformSpanTiles": 1.0,
+        "sourceFacing": "-x",
+        "sourceUp": "+y",
+        "targetFacing": "+x",
+        "targetUp": "+y",
+        "uniformPlanformScale": 0.5264959264796834
+      },
+      "source": {
+        "bytes": 51000780,
+        "file": "var/model-artifacts/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/raw-model.glb",
+        "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+        "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0"
+      },
+      "teamAccent": {
+        "method": "seven interior UV samples, five-of-seven cyan vote, then explicit top-surface world-space region gate",
+        "regions": {
+          "guard-north": 389,
+          "guard-south": 407,
+          "west-centre": 480
+        },
+        "rejectedCyanFaces": 3042,
+        "selectedAreaFraction": 0.012984077627626501,
+        "selectedFaces": 1276,
+        "selectedSurfaceArea": 0.04094691495578573,
+        "totalFaces": 75000,
+        "totalSurfaceArea": 3.15362524240167
+      },
+      "textures": {
+        "colorGrade": {
+          "bronzeFraction": 0.061287879943847656,
+          "cyanFraction": 0.03753948211669922,
+          "graphiteFraction": 0.9011726379394531
+        },
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "files": {
+          "baseColor": {
+            "bytes": 297221,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/textures/base-color.jpg",
+            "sha256": "3ef9551bc19a30f9d91c02852fb2826474c01c114e6746175ff2dba805af6174"
+          },
+          "emission": {
+            "bytes": 141588,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/textures/emission.png",
+            "sha256": "b956dc015dd2a1c56935f93bdc1d74bd0e9b876e113c688b988d681545a04e03"
+          },
+          "metallicRoughness": {
+            "bytes": 115972,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/textures/metallic-roughness.jpg",
+            "sha256": "70677c66fbf2ff469db54e1a8f9820883fa9ce6301518828912801dee7561de9"
+          },
+          "normal": {
+            "bytes": 111539,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-shell/lean/textures/normal.jpg",
+            "sha256": "02a108b4fe50845aedc1085f4a89506f0314837e76549175bbfe9542d1ad24ff"
+          }
+        },
+        "jpegQuality": 90,
+        "pbrGrade": {
+          "metallicMaximum": 0.7363921999931335,
+          "metallicMean": 0.07479898631572723,
+          "roughnessMaximum": 0.8068235516548157,
+          "roughnessMean": 0.7258291244506836,
+          "roughnessMinimum": 0.5630588531494141
+        }
+      },
+      "tier": "lean",
+      "transformationClass": "deterministic direct-source optimization; no visible-surface rebuild, retopology, articulation, rig, or animation"
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "geometry": {
+        "directDecimationRatio": 0.24813484067982783,
+        "outputTrianglesDcc": 149999,
+        "sourceTriangles": 604506,
+        "targetTriangles": 150000
+      },
+      "model": {
+        "animations": 0,
+        "bytes": 9120244,
+        "cameras": 0,
+        "file": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/aegis-tortoise-turret-rich.glb",
+        "imageMimeTypes": [
+          "image/png",
+          "image/jpeg",
+          "image/jpeg",
+          "image/jpeg"
+        ],
+        "images": 4,
+        "lights": 0,
+        "materialRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "materials": 2,
+        "meshes": 1,
+        "primitiveRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "primitives": 2,
+        "repairedDegenerateTangents": 7,
+        "sha256": "77ba482d194a66e3e1e9640b826171b93cddbc42a9453963c4231ceaffbc2592",
+        "skins": 0,
+        "tangentPrimitiveCount": 2,
+        "triangles": 149999,
+        "vertices": 93036
+      },
+      "normalization": {
+        "approvedHeightToPlanform": 0.26081582200247216,
+        "boundsDcc": {
+          "maximum": [
+            0.5,
+            0.4999552369117737,
+            0.2581557333469391
+          ],
+          "minimum": [
+            -0.5,
+            -0.4999552369117737,
+            8.153549835299145e-09
+          ],
+          "span": [
+            1.0,
+            0.9999104738235474,
+            0.2581557333469391
+          ]
+        },
+        "dccUp": "+z",
+        "heightOnlyFactor": 1.0943509232474864,
+        "heightToPlanform": 0.2581557333469391,
+        "operation": "fixed inspected yaw; uniform one-tile planform scale; centre/floor translation; measured vertical-only side-profile correction",
+        "planformSpanTiles": 1.0,
+        "sourceFacing": "+x",
+        "sourceUp": "+y",
+        "targetFacing": "+x",
+        "targetUp": "+y",
+        "uniformPlanformScale": 0.5264898133048542
+      },
+      "source": {
+        "bytes": 50525092,
+        "file": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/raw-model.glb",
+        "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+        "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6"
+      },
+      "teamAccent": {
+        "method": "seven interior UV samples, five-of-seven cyan vote, then explicit top-surface world-space region gate",
+        "regions": {
+          "east": 337,
+          "north": 288,
+          "south": 287,
+          "west": 312
+        },
+        "rejectedCyanFaces": 3700,
+        "selectedAreaFraction": 0.008800299411508226,
+        "selectedFaces": 1224,
+        "selectedSurfaceArea": 0.017245488486548055,
+        "totalFaces": 149999,
+        "totalSurfaceArea": 1.959647925614438
+      },
+      "textures": {
+        "colorGrade": {
+          "bronzeFraction": 0.19794511795043945,
+          "cyanFraction": 0.03454089164733887,
+          "graphiteFraction": 0.7675139904022217
+        },
+        "dimensions": [
+          2048,
+          2048
+        ],
+        "files": {
+          "baseColor": {
+            "bytes": 1155867,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/textures/base-color.jpg",
+            "sha256": "c4b48d407d9819e97eff5279b6f557caba4f01aacaf1c8b8a8d277f271d373ff"
+          },
+          "emission": {
+            "bytes": 537686,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/textures/emission.png",
+            "sha256": "d63dff68c218043b009d04c3cb1849e714a3dcf468740291e849d0cd3f7432fd"
+          },
+          "metallicRoughness": {
+            "bytes": 446632,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/textures/metallic-roughness.jpg",
+            "sha256": "4e33011a2222c7f485da90ae97842d267e4edd0f3be4a8db91643d2ec7218e84"
+          },
+          "normal": {
+            "bytes": 718254,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/rich/textures/normal.jpg",
+            "sha256": "57ff84b82306807408bc022eb62d69c67ca237b480ad69b1a0a785d706359574"
+          }
+        },
+        "jpegQuality": 92,
+        "pbrGrade": {
+          "metallicMaximum": 0.6752941608428955,
+          "metallicMean": 0.0371696762740612,
+          "roughnessMaximum": 0.8414117693901062,
+          "roughnessMean": 0.7197611331939697,
+          "roughnessMinimum": 0.5778823494911194
+        }
+      },
+      "tier": "rich",
+      "transformationClass": "deterministic direct-source optimization; no visible-surface rebuild, retopology, articulation, rig, or animation"
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "geometry": {
+        "directDecimationRatio": 0.12406824746156365,
+        "outputTrianglesDcc": 75000,
+        "sourceTriangles": 604506,
+        "targetTriangles": 75000
+      },
+      "model": {
+        "animations": 0,
+        "bytes": 3795480,
+        "cameras": 0,
+        "file": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/aegis-tortoise-turret-lean.glb",
+        "imageMimeTypes": [
+          "image/png",
+          "image/jpeg",
+          "image/jpeg",
+          "image/jpeg"
+        ],
+        "images": 4,
+        "lights": 0,
+        "materialRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "materials": 2,
+        "meshes": 1,
+        "primitiveRoles": [
+          "hull",
+          "team-accent"
+        ],
+        "primitives": 2,
+        "repairedDegenerateTangents": 2,
+        "sha256": "addcc7b5fc684253a20ebb72fb91f1c78cf69af44c593d9c24e13bf150b90327",
+        "skins": 0,
+        "tangentPrimitiveCount": 2,
+        "triangles": 75000,
+        "vertices": 53189
+      },
+      "normalization": {
+        "approvedHeightToPlanform": 0.26081582200247216,
+        "boundsDcc": {
+          "maximum": [
+            0.5,
+            0.4999552369117737,
+            0.2581557333469391
+          ],
+          "minimum": [
+            -0.5,
+            -0.4999552369117737,
+            8.153549835299145e-09
+          ],
+          "span": [
+            1.0,
+            0.9999104738235474,
+            0.2581557333469391
+          ]
+        },
+        "dccUp": "+z",
+        "heightOnlyFactor": 1.0943509232474864,
+        "heightToPlanform": 0.2581557333469391,
+        "operation": "fixed inspected yaw; uniform one-tile planform scale; centre/floor translation; measured vertical-only side-profile correction",
+        "planformSpanTiles": 1.0,
+        "sourceFacing": "+x",
+        "sourceUp": "+y",
+        "targetFacing": "+x",
+        "targetUp": "+y",
+        "uniformPlanformScale": 0.5264898133048542
+      },
+      "source": {
+        "bytes": 50525092,
+        "file": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/raw-model.glb",
+        "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+        "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6"
+      },
+      "teamAccent": {
+        "method": "seven interior UV samples, five-of-seven cyan vote, then explicit top-surface world-space region gate",
+        "regions": {
+          "east": 181,
+          "north": 132,
+          "south": 145,
+          "west": 180
+        },
+        "rejectedCyanFaces": 2025,
+        "selectedAreaFraction": 0.008489869901644503,
+        "selectedFaces": 638,
+        "selectedSurfaceArea": 0.016655773073210867,
+        "totalFaces": 75000,
+        "totalSurfaceArea": 1.9618407898081704
+      },
+      "textures": {
+        "colorGrade": {
+          "bronzeFraction": 0.2008047103881836,
+          "cyanFraction": 0.03382396697998047,
+          "graphiteFraction": 0.7653713226318359
+        },
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "files": {
+          "baseColor": {
+            "bytes": 348390,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/textures/base-color.jpg",
+            "sha256": "2099b52fcf73802a819ac48978691fb7493c7a7ada625074d9b6c60e0e7b5d72"
+          },
+          "emission": {
+            "bytes": 163289,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/textures/emission.png",
+            "sha256": "c0af7ca7a945bff8fef2837bcf733fb24fcab1b4c8c7f2fba535dfd34badcc41"
+          },
+          "metallicRoughness": {
+            "bytes": 147771,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/textures/metallic-roughness.jpg",
+            "sha256": "c26dc96ee4e60cdefdf279d13ee25c6669a4155165e0974e1274d88db16e0878"
+          },
+          "normal": {
+            "bytes": 129543,
+            "path": "art/class-models/aegis-tortoise-static-meshy-proof/candidate/aegis-tortoise-turret/lean/textures/normal.jpg",
+            "sha256": "c5b9974fe083c9b38bcff0418df9bd06615a5c97256d30ed48847278328e6698"
+          }
+        },
+        "jpegQuality": 90,
+        "pbrGrade": {
+          "metallicMaximum": 0.6174117922782898,
+          "metallicMean": 0.0371566042304039,
+          "roughnessMaximum": 0.821647047996521,
+          "roughnessMean": 0.7197900414466858,
+          "roughnessMinimum": 0.5795294046401978
+        }
+      },
+      "tier": "lean",
+      "transformationClass": "deterministic direct-source optimization; no visible-surface rebuild, retopology, articulation, rig, or animation"
+    }
+  ],
+  "mobileReference": {
+    "bytes": 6346356,
+    "file": "var/model-artifacts/reference/aegis-tortoise-mobile.glb",
+    "reviewUniformScale": 0.5000000298023242,
+    "sha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66",
+    "sourcePlanformSpan": 1.9999998807907104,
+    "teamAccentMaterialCount": 1
+  },
+  "policy": {
+    "providerCallsMade": 0,
+    "rawMastersPreservedUnmodified": true,
+    "retopologyUsed": false,
+    "rigsOrAnimationsAdded": false,
+    "runtimeWiringAdded": false,
+    "transformEffectOwner": "renderer-owned future energy dissolve/assembly",
+    "visibleSurfaceRebuilt": false
+  },
+  "schemaVersion": 1,
+  "status": "non-shipping-review-proof"
+}
