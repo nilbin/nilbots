@@ -5,10 +5,22 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
+import type {
+  ProjectileLook,
+  ProjectileTerminalCue,
+} from '../render/arenaThemes';
 import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
-import { arrivalsAt, spentBoltsAt } from '../render/interpolate';
+import { arrivalsAt, headingAngle } from '../render/interpolate';
+import {
+  projectileDissipationsAt,
+  projectileTerminalsInTick,
+  type ProjectileTerminal,
+} from '../render/projectileTerminal';
 import { PROJECTILE_HOVER } from './arenaActors';
-import { unitAccent } from '../render/unitPresentation';
+import {
+  unitAccent,
+  unitProjectileLook,
+} from '../render/unitPresentation';
 import {
   createPresenter,
   type TickPresentation,
@@ -30,6 +42,7 @@ const FOG_STRENGTH = 0.82;
 /** How far the camera is thrown by a direct kill, in tiles. */
 const SHAKE_REACH = 0.14;
 
+type VisibleTiles = ReadonlySet<string> | null;
 
 export interface ArenaOverlays {
   group: THREE.Group;
@@ -68,6 +81,12 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const impacts = buildImpacts(replay, disposables);
   group.add(impacts.group);
 
+  const projectileTerminals = buildProjectileTerminalCues(
+    replay,
+    disposables,
+  );
+  group.add(projectileTerminals.group);
+
   const spent = buildSpentBolts(replay, disposables);
   group.add(spent.group);
 
@@ -78,6 +97,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   group.add(arrivals.group);
 
   let painted = '';
+  let visibleTiles: VisibleTiles = null;
 
   const update = (
     time: number,
@@ -100,6 +120,13 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const signature = `${source ? tick : -1}:${selectedUnitKey}`;
     if (signature !== painted) {
       painted = signature;
+      visibleTiles = source
+        ? new Set(
+            source.observation.visibleTiles.map(
+              ({ position }) => tileKey(position),
+            ),
+          )
+        : null;
       fog.paint(
         source?.observation.visibleTiles.map(
           ({ position }) => position,
@@ -110,10 +137,11 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     spawnPads.update(presentation);
     objective.update(presentation, time);
     lifecycle.update(presentation, time);
-    flashes.update(tick, fraction);
-    impacts.update(tick, fraction);
-    spent.update(time);
-    absorptions.update(tick, fraction);
+    flashes.update(tick, fraction, visibleTiles);
+    impacts.update(tick, fraction, visibleTiles);
+    projectileTerminals.update(tick, fraction, visibleTiles);
+    spent.update(time, visibleTiles);
+    absorptions.update(tick, fraction, visibleTiles);
     arrivals.update(time);
   };
 
@@ -132,6 +160,8 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const fraction = Math.max(0, Math.min(time - tick, 1));
     let strength = 0;
     for (const event of replay.ticks[tick]?.events ?? []) {
+      const at = event.to ?? event.from;
+      if (at && !tileIsVisible(at, visibleTiles)) continue;
       if (isDestructionEvent(event.type)) strength = Math.max(strength, 1);
       else if (event.type === 'damage')
         strength = Math.max(strength, 0.45);
@@ -1009,7 +1039,14 @@ function setCaptureArcFraction(
 function buildImpacts(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
-): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+): {
+  group: THREE.Group;
+  update: (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => void;
+} {
   const group = new THREE.Group();
   // Thin relative to its radius, so the expansion reads as a wave rather than a growing disc.
   const geometry = new THREE.RingGeometry(0.78, 1, 40);
@@ -1040,15 +1077,20 @@ function buildImpacts(
   const hot = new THREE.Color('#fff1d0');
   const fatal = new THREE.Color('#ffb057');
 
-  const update = (tick: number, fraction: number) => {
+  const update = (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => {
     let used = 0;
     for (const event of replay.ticks[tick]?.events ?? []) {
       const killing = isDestructionEvent(event.type);
       if (event.type !== 'damage' && !killing) continue;
-      // Where the hit landed. The model records that in `from`, which is what the flat
-      // renderer has always drawn its impact at.
-      const at = event.from;
+      // Replay v2/v3 retain the contact in `to`; legacy v1 carries the same normalized
+      // position in `from`.
+      const at = event.to ?? event.from;
       if (!at) continue;
+      if (!tileIsVisible(at, visibleTiles)) continue;
 
       // Impacts land late in the tick, on the same 0.6 the hit flash and the camera knock
       // use, so the whole reaction to a bolt arriving happens at one instant.
@@ -1060,6 +1102,9 @@ function buildImpacts(
         if (age < 0 || age > 1) continue;
         const mesh = borrow(used++);
         mesh.visible = true;
+        mesh.userData.terminalKind = killing
+          ? 'destruction'
+          : 'damage-hit';
         mesh.position.set(at.x + 0.5, 0.06, at.y + 0.5);
         // Fast at first and slowing, which is what a shockwave does and what a linear
         // expansion conspicuously does not.
@@ -1073,6 +1118,279 @@ function buildImpacts(
   };
 
   return { group, update };
+}
+
+type ProjectileTerminalPresentation =
+  | 'damage-hit'
+  | 'destruction'
+  | 'dissipation';
+
+interface ProjectileTerminalRig {
+  root: THREE.Group;
+  cue: ProjectileTerminalCue;
+  pieces: THREE.Mesh[];
+  ring: THREE.Mesh;
+  material: THREE.MeshBasicMaterial;
+  ringMaterial: THREE.MeshBasicMaterial;
+}
+
+/**
+ * Per-projectile terminal signatures, layered over the common rules-bearing vocabulary.
+ *
+ * The shockwave still means damage and the compact guard treatment still means no damage.
+ * These rigs only answer "which head came apart?" They are built from renderer geometry,
+ * tinted from the replay owner, pooled, and sampled entirely from playhead time.
+ */
+function buildProjectileTerminalCues(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => void;
+} {
+  const group = new THREE.Group();
+  group.userData.kind = 'projectile-terminal-cues';
+
+  const forkGeometry = new THREE.PlaneGeometry(0.68, 0.075);
+  forkGeometry.rotateX(-Math.PI / 2);
+  forkGeometry.translate(0.34, 0, 0);
+  const facetGeometry = new THREE.OctahedronGeometry(0.105, 0);
+  const rivetGeometry = new THREE.OctahedronGeometry(0.073, 0);
+  const forkRingGeometry = new THREE.RingGeometry(0.1, 0.19, 12);
+  forkRingGeometry.rotateX(-Math.PI / 2);
+  const facetRingGeometry = new THREE.RingGeometry(0.38, 0.53, 4);
+  facetRingGeometry.rotateX(-Math.PI / 2);
+  const latticeRingGeometry = new THREE.RingGeometry(0.4, 0.48, 6);
+  latticeRingGeometry.rotateX(-Math.PI / 2);
+  disposables.push(
+    forkGeometry,
+    facetGeometry,
+    rivetGeometry,
+    forkRingGeometry,
+    facetRingGeometry,
+    latticeRingGeometry,
+  );
+
+  const pools = new Map<ProjectileTerminalCue, ProjectileTerminalRig[]>();
+  const createRig = (cue: ProjectileTerminalCue): ProjectileTerminalRig => {
+    const root = new THREE.Group();
+    root.visible = false;
+    root.userData.cue = 'projectile-terminal';
+    root.userData.terminalCue = cue;
+
+    const material = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const ringMaterial = material.clone();
+    const count =
+      cue === 'fork-burst' ? 3 : cue === 'facet-bloom' ? 4 : 6;
+    const pieceGeometry =
+      cue === 'fork-burst'
+        ? forkGeometry
+        : cue === 'facet-bloom'
+          ? facetGeometry
+          : rivetGeometry;
+    const pieces = Array.from({ length: count }, (_, index) => {
+      const piece = new THREE.Mesh(pieceGeometry, material);
+      piece.userData.pieceIndex = index;
+      root.add(piece);
+      return piece;
+    });
+    const ringGeometry =
+      cue === 'fork-burst'
+        ? forkRingGeometry
+        : cue === 'facet-bloom'
+          ? facetRingGeometry
+          : latticeRingGeometry;
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.userData.part = 'terminal-ring';
+    root.add(ring);
+    group.add(root);
+    disposables.push(material, ringMaterial);
+    return { root, cue, pieces, ring, material, ringMaterial };
+  };
+
+  const used = new Map<ProjectileTerminalCue, number>();
+  const borrow = (cue: ProjectileTerminalCue): ProjectileTerminalRig => {
+    const index = used.get(cue) ?? 0;
+    used.set(cue, index + 1);
+    const pool = pools.get(cue) ?? [];
+    if (!pools.has(cue)) pools.set(cue, pool);
+    while (pool.length <= index) pool.push(createRig(cue));
+    return pool[index]!;
+  };
+
+  const show = (
+    terminal: ProjectileTerminal,
+    cue: ProjectileTerminalCue,
+    presentation: ProjectileTerminalPresentation,
+    age: number,
+  ) => {
+    const rig = borrow(cue);
+    const accent = accentForUnit(replay, terminal.ownerActor.unitKey);
+    rig.root.visible = true;
+    rig.root.userData.projectileId = terminal.projectileId;
+    rig.root.userData.terminalKind = presentation;
+    rig.root.userData.terminalTick = terminal.tick;
+    rig.root.position.set(
+      terminal.position.x + 0.5,
+      PROJECTILE_HOVER,
+      terminal.position.y + 0.5,
+    );
+    rig.root.scale.setScalar(1);
+    rig.root.rotation.set(0, -headingAngle[terminal.heading], 0);
+    rig.material.color.set(accent);
+    rig.ringMaterial.color.set(accent);
+    sampleTerminalRig(rig, presentation, age, terminal.projectileId);
+  };
+
+  const update = (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => {
+    used.clear();
+    const contactAge = (fraction - 0.6) / 0.4;
+    if (contactAge >= 0 && contactAge <= 1) {
+      for (const terminal of projectileTerminalsInTick(replay, tick)) {
+        if (
+          (terminal.kind !== 'damage-hit' &&
+            terminal.kind !== 'destruction') ||
+          !tileIsVisible(terminal.position, visibleTiles)
+        )
+          continue;
+        const cue = projectileLookAtTerminal(replay, terminal).terminalCue;
+        if (cue === null) continue;
+        show(terminal, cue, terminal.kind, contactAge);
+      }
+    }
+
+    // Generation 3's typed terminal shares the late contact window. Older replay
+    // generations retain the following-tick fallback encoded by this pure sampler.
+    for (const terminal of projectileDissipationsAt(replay, tick + fraction)) {
+      if (!tileIsVisible(terminal.position, visibleTiles)) continue;
+      const cue = projectileLookAtTerminal(replay, terminal).terminalCue;
+      if (cue === null) continue;
+      show(terminal, cue, 'dissipation', terminal.age);
+    }
+
+    for (const [cue, pool] of pools) {
+      const count = used.get(cue) ?? 0;
+      for (let index = count; index < pool.length; index++)
+        pool[index]!.root.visible = false;
+    }
+  };
+
+  return { group, update };
+}
+
+function sampleTerminalRig(
+  rig: ProjectileTerminalRig,
+  presentation: ProjectileTerminalPresentation,
+  age: number,
+  projectileId: string,
+): void {
+  const progress = 1 - (1 - age) ** 3;
+  const fade = (1 - age) ** 1.45;
+  const destructive = presentation === 'destruction';
+  const dissipating = presentation === 'dissipation';
+  const phase = phaseForProjectile(projectileId);
+  rig.material.opacity =
+    fade * (destructive ? 1 : dissipating ? 0.72 : 0.9);
+  rig.ringMaterial.opacity =
+    fade * (destructive ? 0.95 : dissipating ? 0.56 : 0.76);
+
+  if (rig.cue === 'fork-burst') {
+    const spread = dissipating ? 0.72 : destructive ? 0.64 : 0.48;
+    rig.pieces.forEach((piece, index) => {
+      const offset = index - 1;
+      piece.visible = true;
+      piece.position.set(
+        0,
+        Math.sin(age * Math.PI) * (dissipating ? 0.035 : 0.09),
+        0,
+      );
+      piece.rotation.set(0, offset * spread, offset * age * 0.18);
+      piece.scale.set(
+        (dissipating ? 0.22 : 0.3) +
+          progress * (destructive ? 1.85 : dissipating ? 0.72 : 1.2),
+        1 - progress * 0.38,
+        1,
+      );
+    });
+    rig.ring.position.set(0, -PROJECTILE_HOVER + 0.055, 0);
+    rig.ring.rotation.set(0, dissipating ? -age * 1.2 : age * 0.45, 0);
+    rig.ring.scale.setScalar(
+      0.45 + progress * (destructive ? 3.7 : dissipating ? 1.7 : 2.35),
+    );
+    return;
+  }
+
+  if (rig.cue === 'facet-bloom') {
+    const reach = destructive ? 1.0 : dissipating ? 0.43 : 0.68;
+    rig.pieces.forEach((piece, index) => {
+      const angle = index * (Math.PI / 2) + phase * 0.08;
+      const distance = progress * reach;
+      piece.visible = true;
+      piece.position.set(
+        Math.cos(angle) * distance,
+        Math.sin(age * Math.PI) *
+          (destructive ? 0.34 : dissipating ? 0.12 : 0.23),
+        Math.sin(angle) * distance,
+      );
+      piece.rotation.set(
+        age * Math.PI * (index % 2 === 0 ? 1.2 : -1.2),
+        angle + age * Math.PI * 1.4,
+        Math.PI / 4 + age * Math.PI * 0.8,
+      );
+      piece.scale.setScalar(
+        (destructive ? 1.2 : 1) * (1 - progress * 0.42),
+      );
+    });
+    rig.ring.position.set(0, -PROJECTILE_HOVER + 0.06, 0);
+    rig.ring.rotation.set(0, age * Math.PI * (dissipating ? -0.8 : 1.15), 0);
+    rig.ring.scale.setScalar(
+      dissipating
+        ? 1.05 - progress * 0.38
+        : 0.32 + progress * (destructive ? 2.5 : 1.55),
+    );
+    return;
+  }
+
+  const reach = destructive ? 0.9 : dissipating ? 0.36 : 0.59;
+  rig.pieces.forEach((piece, index) => {
+    const angle = index * (Math.PI / 3) + age * (dissipating ? -0.75 : 0.9);
+    const distance = (dissipating ? 0.42 - progress * 0.12 : progress) * reach;
+    piece.visible = true;
+    piece.position.set(
+      Math.cos(angle) * distance,
+      Math.sin(age * Math.PI) *
+        (destructive ? 0.26 : dissipating ? 0.08 : 0.17),
+      Math.sin(angle) * distance,
+    );
+    piece.rotation.set(age * 2.2, angle, age * 1.6);
+    piece.scale.setScalar(
+      (destructive ? 1.22 : 1) * (1 - progress * 0.32),
+    );
+  });
+  rig.ring.position.set(0, -PROJECTILE_HOVER + 0.058, 0);
+  rig.ring.rotation.set(
+    0,
+    age * Math.PI * (dissipating ? -1.1 : destructive ? 1.8 : 1.35),
+    0,
+  );
+  rig.ring.scale.setScalar(
+    dissipating
+      ? 1.12 - progress * 0.44
+      : 0.38 + progress * (destructive ? 2.45 : 1.55),
+  );
 }
 
 /** Which way a guard was pointing, as a rotation about the vertical axis. */
@@ -1104,7 +1422,14 @@ const GUARD_FACING: Record<string, number> = {
 function buildAbsorptions(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
-): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+): {
+  group: THREE.Group;
+  update: (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => void;
+} {
   const group = new THREE.Group();
   // Exactly the quadrant the guard covers, at the radius the plate stands on.
   const geometry = new THREE.RingGeometry(0.42, 0.94, 24, 1, -Math.PI / 4, Math.PI / 2);
@@ -1115,6 +1440,7 @@ function buildAbsorptions(
 
   const arcs: THREE.Mesh[] = [];
   const sparks: THREE.Mesh[] = [];
+  const absorbed: THREE.Mesh[] = [];
   const borrow = (pool: THREE.Mesh[], shape: THREE.BufferGeometry, index: number, cue: string) => {
     while (pool.length <= index) {
       const material = new THREE.MeshBasicMaterial({
@@ -1135,9 +1461,14 @@ function buildAbsorptions(
 
   const ring = new THREE.Color('#e6f6ff');
 
-  const update = (tick: number, fraction: number) => {
+  const update = (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => {
     let usedArcs = 0;
     let usedSparks = 0;
+    let usedAbsorbed = 0;
     const current = replay.ticks[tick];
     for (const event of current?.events ?? []) {
       if (event.type !== 'projectile-deflected') continue;
@@ -1146,6 +1477,7 @@ function buildAbsorptions(
       const since = (fraction - 0.6) / 0.4;
       if (since < 0 || since > 1) continue;
       const contact = event.to ?? event.from;
+      if (contact && !tileIsVisible(contact, visibleTiles)) continue;
       const guard = event.targetActor;
       const at =
         guard === undefined || guard === null
@@ -1161,6 +1493,8 @@ function buildAbsorptions(
       if (at && event.toFacing !== null) {
         const arc = borrow(arcs, geometry, usedArcs++, 'deflect-arc');
         arc.visible = true;
+        arc.userData.terminalKind = 'deflected';
+        arc.userData.projectileId = event.projectileId;
         arc.position.set(at.x + 0.5, 0.07, at.y + 0.5);
         arc.rotation.y = GUARD_FACING[event.toFacing] ?? 0;
         // It rings; it does not grow. A hair of swell only, so the plate reads as struck
@@ -1185,6 +1519,8 @@ function buildAbsorptions(
         // is an ordinary projectile the pipeline already draws.
         const spark = borrow(sparks, sparkGeometry, usedSparks++, 'deflect-contact');
         spark.visible = true;
+        spark.userData.terminalKind = 'deflected';
+        spark.userData.projectileId = event.projectileId;
         const approach = event.from;
         const hasRun =
           approach && (approach.x !== contact.x || approach.y !== contact.y);
@@ -1212,10 +1548,45 @@ function buildAbsorptions(
         material.opacity = (1 - since) ** 2 * 0.9;
       }
     }
+    for (const terminal of projectileTerminalsInTick(replay, tick)) {
+      if (
+        terminal.kind !== 'guard-absorbed' ||
+        !tileIsVisible(terminal.position, visibleTiles)
+      )
+        continue;
+      const since = (fraction - 0.6) / 0.4;
+      if (since < 0 || since > 1) continue;
+      const mesh = borrow(
+        absorbed,
+        sparkGeometry,
+        usedAbsorbed++,
+        'guard-absorb-contact',
+      );
+      mesh.visible = true;
+      mesh.userData.terminalKind = 'guard-absorbed';
+      mesh.userData.projectileId = terminal.projectileId;
+      mesh.position.set(
+        terminal.position.x + 0.5,
+        PROJECTILE_HOVER,
+        terminal.position.y + 0.5,
+      );
+      // A guarded stop closes inward and stays compact. It cannot be mistaken for the
+      // outward impact wave or the reversed streak of a deflection.
+      mesh.scale.setScalar(2.1 - since * 1.35);
+      const material = mesh.material as THREE.MeshBasicMaterial;
+      material.color.set(
+        terminal.targetActor
+          ? accentForUnit(replay, terminal.targetActor.unitKey)
+          : '#e6f6ff',
+      );
+      material.opacity = (1 - since) ** 1.6 * 0.88;
+    }
     for (let index = usedArcs; index < arcs.length; index++)
       arcs[index].visible = false;
     for (let index = usedSparks; index < sparks.length; index++)
       sparks[index].visible = false;
+    for (let index = usedAbsorbed; index < absorbed.length; index++)
+      absorbed[index].visible = false;
   };
 
   return { group, update };
@@ -1224,7 +1595,14 @@ function buildAbsorptions(
 function buildFlashes(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
-): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+): {
+  group: THREE.Group;
+  update: (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => void;
+} {
   const group = new THREE.Group();
   const geometry = new THREE.PlaneGeometry(1, 1);
   geometry.rotateX(-Math.PI / 2);
@@ -1254,7 +1632,11 @@ function buildFlashes(
     return pool[index];
   };
 
-  const update = (tick: number, fraction: number) => {
+  const update = (
+    tick: number,
+    fraction: number,
+    visibleTiles: VisibleTiles,
+  ) => {
     const events = replay.ticks[tick]?.events ?? [];
     let used = 0;
     for (const event of events) {
@@ -1283,6 +1665,7 @@ function buildFlashes(
               }
             : null;
       if (!flash) continue;
+      if (!tileIsVisible(flash.position, visibleTiles)) continue;
 
       // Bright at the instant it happens and gone by the end of its life, so a shot reads
       // as an event rather than a lamp that switches on for the tick.
@@ -1319,7 +1702,10 @@ function buildFlashes(
 function buildSpentBolts(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
-): { group: THREE.Group; update: (time: number) => void } {
+): {
+  group: THREE.Group;
+  update: (time: number, visibleTiles: VisibleTiles) => void;
+} {
   const group = new THREE.Group();
   const geometry = new THREE.RingGeometry(0.12, 0.34, 24);
   geometry.rotateX(-Math.PI / 2);
@@ -1335,6 +1721,7 @@ function buildSpentBolts(
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData.cue = 'projectile-dissipation';
       mesh.visible = false;
       group.add(mesh);
       pool.push(mesh);
@@ -1343,12 +1730,23 @@ function buildSpentBolts(
     return pool[index];
   };
 
-  const update = (time: number) => {
+  const update = (time: number, visibleTiles: VisibleTiles) => {
     let used = 0;
-    for (const bolt of spentBoltsAt(replay, time)) {
+    for (const bolt of projectileDissipationsAt(replay, time)) {
+      if (!tileIsVisible(bolt.position, visibleTiles)) continue;
+      const look = projectileLookAtTerminal(replay, bolt);
+      // Authored class cues include their own small common dissipation shape. Keep the
+      // historical ring only for looks that did not opt in.
+      if (look.terminalCue !== null) continue;
       const mesh = borrow(used++);
       mesh.visible = true;
-      mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
+      mesh.userData.terminalKind = 'spent';
+      mesh.userData.projectileId = bolt.projectileId;
+      mesh.position.set(
+        bolt.position.x + 0.5,
+        PROJECTILE_HOVER,
+        bolt.position.y + 0.5,
+      );
       mesh.scale.setScalar(0.6 + bolt.age * 2.2);
       const material = mesh.material as THREE.MeshBasicMaterial;
       material.color.set(
@@ -1457,6 +1855,78 @@ function accentForUnit(
   unitKey: ReplayStableUnitKey,
 ): string {
   return unitAccent(replay, unitKey);
+}
+
+function projectileLookAtTerminal(
+  replay: ReplayModel,
+  terminal: ProjectileTerminal,
+): ProjectileLook {
+  let replayCache = projectileTerminalLookCache.get(replay);
+  if (!replayCache) {
+    replayCache = new Map();
+    projectileTerminalLookCache.set(replay, replayCache);
+  }
+  const key = `${terminal.ownerActor.actorKey}:${terminal.projectileId}`;
+  const cached = replayCache.get(key);
+  if (cached) return cached;
+
+  // A bolt retains the look of its exact firing life. That life may have died or changed
+  // form long before contact, so resolving only at the terminal tick would quietly hand it
+  // the replacement life's default projectile. Find the authored launch event first, then
+  // fall back to the first traversal that still names the exact owner.
+  const launchTick =
+    replay.ticks.find((tick) =>
+      tick.events.some(
+        (event) =>
+          isAttackEvent(event.type) &&
+          event.projectileId === terminal.projectileId &&
+          event.sourceActor?.actorKey === terminal.ownerActor.actorKey,
+      ),
+    ) ??
+    replay.ticks.find((tick) =>
+      tick.projectileTraversals.some(
+        (traversal) =>
+          traversal.projectileId === terminal.projectileId &&
+          traversal.ownerActor.actorKey === terminal.ownerActor.actorKey,
+      ),
+    ) ??
+    replay.ticks[terminal.tick];
+  const source = [
+    ...(launchTick?.before.actors ?? []),
+    ...(launchTick?.after.actors ?? []),
+  ].find((actor) => actor.actorKey === terminal.ownerActor.actorKey);
+  const look = unitProjectileLook(
+    replay,
+    terminal.ownerActor.unitKey,
+    source?.formId ?? null,
+  );
+  replayCache.set(key, look);
+  return look;
+}
+
+const projectileTerminalLookCache = new WeakMap<
+  ReplayModel,
+  Map<string, ProjectileLook>
+>();
+
+function tileKey(position: ReplayPosition): string {
+  return `${position.x},${position.y}`;
+}
+
+function tileIsVisible(
+  position: ReplayPosition,
+  visibleTiles: VisibleTiles,
+): boolean {
+  return visibleTiles === null || visibleTiles.has(tileKey(position));
+}
+
+function phaseForProjectile(identity: string): number {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < identity.length; index++) {
+    hash ^= identity.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return ((hash >>> 0) / 0xffff_ffff) * Math.PI * 2;
 }
 
 /** A soft round flare, drawn rather than shipped. */

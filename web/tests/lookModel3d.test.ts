@@ -17,6 +17,18 @@ test('the three approved mobile bodies and default projectiles resolve to author
       part: 'whole',
       facing: '+x',
       up: '+y',
+      ...(id === 'aegis-tortoise'
+        ? {
+            semanticAnimation: {
+              version: 1,
+              stanceDeployClip: 'Shell_Deploy',
+              emplacedDeployClip: 'Tower_Deploy',
+              mobileRecoilClip: 'Mobile_Recoil',
+              stanceRecoilClip: 'Shell_Recoil',
+              emplacedRecoilClip: 'Tower_Recoil',
+            },
+          }
+        : {}),
     });
 
   for (const id of [
@@ -59,6 +71,13 @@ test('class motion language stays in look manifests, independent of a GLB', () =
     ),
     ['axial-spin', 'flat-spin', 'tumble'],
   );
+  assert.deepEqual(
+    ['trident-spark', 'rebound-diamond', 'lattice-rivet'].map(
+      (id) => presentationProjectileLook(id).terminalCue,
+    ),
+    ['fork-burst', 'facet-bloom', 'lattice-unweave'],
+  );
+  assert.equal(presentationProjectileLook('pulse-bolt').terminalCue, null);
 });
 
 test('legacy looks without a genuine model remain on the SVG fallback path', () => {

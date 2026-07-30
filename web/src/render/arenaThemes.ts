@@ -10,6 +10,10 @@ export type ProjectileFlightCue =
   | 'axial-spin'
   | 'flat-spin'
   | 'tumble';
+export type ProjectileTerminalCue =
+  | 'fork-burst'
+  | 'facet-bloom'
+  | 'lattice-unweave';
 
 export interface BotLook {
   id: string;
@@ -42,6 +46,12 @@ export interface ProjectileLook {
    * remain renderer-owned and authoritative.
    */
   flightCue: ProjectileFlightCue | null;
+  /**
+   * Presentation-only signature layered over the renderer's authoritative contact or
+   * dissipation treatment. The replay still decides whether the projectile damaged,
+   * destroyed, was guarded/deflected, or expired harmlessly.
+   */
+  terminalCue: ProjectileTerminalCue | null;
   image: HTMLImageElement | null;
   imageUrl: string;
   scale: number;
@@ -192,6 +202,7 @@ interface ProjectileLookManifest {
   label: string;
   sprite: string;
   flightCue?: ProjectileFlightCue;
+  terminalCue?: ProjectileTerminalCue;
   scale: number;
 }
 
@@ -680,10 +691,21 @@ function buildProjectileLooks(
         `Projectile look '${manifest.id}' has unknown flight cue ` +
           `'${String(manifest.flightCue)}'.`,
       );
+    if (
+      manifest.terminalCue !== undefined &&
+      !['fork-burst', 'facet-bloom', 'lattice-unweave'].includes(
+        manifest.terminalCue,
+      )
+    )
+      throw new Error(
+        `Projectile look '${manifest.id}' has unknown terminal cue ` +
+          `'${String(manifest.terminalCue)}'.`,
+      );
     result.set(manifest.id, {
       id: manifest.id,
       label: manifest.label,
       flightCue: manifest.flightCue ?? null,
+      terminalCue: manifest.terminalCue ?? null,
       image: loadImage(imageUrl),
       imageUrl,
       scale: manifest.scale,

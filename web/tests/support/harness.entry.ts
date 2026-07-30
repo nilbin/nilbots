@@ -46,6 +46,10 @@ export {
 } from '../../src/render/botLocomotion';
 export { projectileFlightMotionAt } from '../../src/render/projectileMotion';
 export {
+  projectileDissipationsAt,
+  projectileTerminalsInTick,
+} from '../../src/render/projectileTerminal';
+export {
   volleyArrowOutline,
   volleyLanes,
   volleysAt,

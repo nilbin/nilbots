@@ -3,5 +3,6 @@
   "label": "Trident Spark",
   "sprite": "sprite.svg",
   "flightCue": "axial-spin",
+  "terminalCue": "fork-burst",
   "scale": 0.58
 }

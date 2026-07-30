@@ -3,5 +3,6 @@
   "label": "Rebound Diamond",
   "sprite": "sprite.svg",
   "flightCue": "flat-spin",
+  "terminalCue": "facet-bloom",
   "scale": 0.56
 }

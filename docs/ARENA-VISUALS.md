@@ -517,6 +517,12 @@ unproven vertical slice, not a validated replacement for authored modeling:
   longer path, different speed, range, collision, or damage.
 - Record a stable ID, label, sprite filename, and gameplay-tile scale in
   `web/src/assets/projectile-looks/<id>/look.json`. Scale stays within 0.3–0.7.
+- A look may opt into typed presentation-only `flightCue` and `terminalCue`
+  motion. Flight cues move only the head around its authoritative path.
+  Terminal cues layer a restrained look-specific breakup over the renderer's
+  common outcome grammar; they never decide whether a bolt damaged, destroyed,
+  was absorbed, was deflected, expired harmlessly, or was administratively
+  purged.
 - The renderer tints the alpha mask with the bot's locally contrast-adjusted
   accent. It owns the shared trail, glow, muzzle treatment, fog visibility,
   impact effects, and interpolation over authoritative traversal paths.
@@ -578,6 +584,7 @@ Animations describe recorded events; they do not create events.
 | Idle | Active status | Subtle hover and separate soft shadow |
 | Firing | `Shot` event | Brief chassis recoil and layered beam/muzzle glow |
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
+| Projectile terminal | Typed traversal terminal plus damage/destruction/deflection events | Distinct hit, kill, guarded stop, return, harmless dissipation, and no-effect purge; optional per-look signature sampled from replay time |
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |
 | Zone activity | Recorded zone tiles/control state | Optional theme-owned floor material, continuous tint, and pulsing exterior perimeter |
