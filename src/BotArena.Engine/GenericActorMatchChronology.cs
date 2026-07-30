@@ -265,6 +265,72 @@ public sealed record GenericActorMatchChronology
                 frame,
                 parameterName);
         }
+        ValidateRouteCooldownEvidence(definition, ticks, parameterName);
+    }
+
+    /// <summary>
+    /// Route cooldowns (#181): after a completion of a cooldown-bearing
+    /// route, a REQUESTED start of the same route for the same UNIT SLOT
+    /// before completionTick + cooldownTicks + 1 is an impossible history.
+    /// Automatic (engine-caused) starts are exempt, and the clock survives
+    /// the body — it is keyed by slot, not by life.
+    /// </summary>
+    private static void ValidateRouteCooldownEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorSameLifeTransitionDefinition> routes =
+            definition.Rules.SameLifeTransitions
+                .Where(route => route.CooldownTicks > 0)
+                .ToDictionary(
+                    route => route.TransitionId,
+                    StringComparer.Ordinal);
+        if (routes.Count == 0)
+            return;
+
+        var readyAtTick =
+            new Dictionary<(int TeamId, int UnitId, string TransitionId),
+                int>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            foreach (GenericActorAuthoritativeEvent item in frame
+                         .TickStart.Events
+                         .Concat(frame.Events))
+            {
+                if (item.Payload is not GenericActorRuntimeObservation
+                        .EventPayload.FormTransition transition
+                    || !routes.TryGetValue(
+                        transition.TransitionId,
+                        out ActorSameLifeTransitionDefinition? route))
+                {
+                    continue;
+                }
+                (int, int, string) key = (
+                    transition.ActorId.TeamId,
+                    transition.ActorId.UnitId,
+                    transition.TransitionId);
+                if (item.Kind == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionStarted
+                    && transition.Reason == GenericActorRuntimeObservation
+                        .FormTransitionReason.Requested
+                    && readyAtTick.TryGetValue(key, out int ready)
+                    && item.Tick < ready)
+                {
+                    throw new ArgumentException(
+                        $"Route '{transition.TransitionId}' was requested "
+                        + $"at tick {item.Tick} while its cooldown holds "
+                        + $"the slot until tick {ready}.",
+                        parameterName);
+                }
+                if (item.Kind == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+                {
+                    readyAtTick[key] = checked(
+                        item.Tick + route.CooldownTicks + 1);
+                }
+            }
+        }
     }
 
     /// <summary>

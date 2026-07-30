@@ -188,6 +188,10 @@ internal static class ActorTransitionCanonicalWriter
             writer.WritePropertyName("automaticReturn");
             WriteAutomaticReturn(writer, automaticReturn);
         }
+        // Trailing additive optional field (#181): zero writes nothing, so
+        // every pre-existing contract keeps its exact bytes.
+        if (transition.CooldownTicks > 0)
+            writer.WriteNumber("cooldownTicks", transition.CooldownTicks);
         writer.WriteEndObject();
     }
 

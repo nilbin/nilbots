@@ -1411,6 +1411,12 @@ public static class ActorCanonicalContractReader
         bool hasAutomaticReturn = element.TryGetProperty(
             "automaticReturn",
             out JsonElement automaticReturn);
+        // Trailing additive optional field (#181): absent means no route
+        // cooldown; an explicit zero is a second, non-canonical encoding
+        // and stays rejected.
+        bool hasCooldownTicks = element.TryGetProperty(
+            "cooldownTicks",
+            out _);
         ExactObject(
             element,
             [
@@ -1426,6 +1432,7 @@ public static class ActorCanonicalContractReader
                 "placement",
                 "irreversibleForLife",
                 .. hasAutomaticReturn ? new[] { "automaticReturn" } : [],
+                .. hasCooldownTicks ? new[] { "cooldownTicks" } : [],
             ]);
         return new RulesContract.FormTransition(
             Id(element, "transitionId"),
@@ -1440,7 +1447,8 @@ public static class ActorCanonicalContractReader
             Bool(element, "irreversibleForLife"),
             hasAutomaticReturn
                 ? ReadAutomaticReturn(automaticReturn)
-                : null);
+                : null,
+            hasCooldownTicks ? Int(element, "cooldownTicks") : 0);
     }
 
     private static RulesContract.AutomaticReturnTrigger ReadAutomaticReturn(
@@ -1713,17 +1721,26 @@ public static class ActorCanonicalContractReader
     private static RulesContract.TickResolutionDefinition ReadTickResolution(
         JsonElement element)
     {
+        // Trailing additive optional field: absent means the historical
+        // armed-form clock; an explicitly written default would be a
+        // second, non-canonical encoding and stays rejected.
+        bool hasCooldownClock = element.TryGetProperty(
+            "cooldownClock",
+            out _);
         ExactObject(
             element,
-            "observationsUsePreTickState",
-            "decisionsResolveAsJointStep",
-            "movementActionResolution",
-            "rotationActionResolution",
-            "actionAdmission",
-            "actionFaultCounting",
-            "matchCompletionPrecedence",
-            "damageResolution",
-            "phases");
+            [
+                "observationsUsePreTickState",
+                "decisionsResolveAsJointStep",
+                "movementActionResolution",
+                "rotationActionResolution",
+                "actionAdmission",
+                "actionFaultCounting",
+                "matchCompletionPrecedence",
+                "damageResolution",
+                "phases",
+                .. hasCooldownClock ? new[] { "cooldownClock" } : [],
+            ]);
         return new RulesContract.TickResolutionDefinition(
             Bool(element, "observationsUsePreTickState"),
             Bool(element, "decisionsResolveAsJointStep"),
@@ -1752,7 +1769,10 @@ public static class ActorCanonicalContractReader
                     "update-cooldowns-and-resources",
                     "update-mode",
                     "complete-due-same-life-transitions",
-                    "resolve-match-completion")));
+                    "resolve-match-completion")),
+            hasCooldownClock
+                ? Semantic(element, "cooldownClock")
+                : null);
     }
 
     private static RulesContract.DamageResolution ReadDamageResolution(

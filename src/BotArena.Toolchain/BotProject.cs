@@ -165,9 +165,21 @@ public static class ToolchainInfo
     /// the open game on the ticking clock): the attack cooldown advances
     /// with time in every form, ending the gunless-stance freeze (#180).
     /// Inert-omitted, so every existing ruleset keeps its exact bytes.
+    /// 0.9.24 carries SDK/Guest 0.10.7: the canonical reader accepts the
+    /// two trailing additive contract facts of this window —
+    /// `tickResolution.cooldownClock` and the ROUTE COOLDOWN capability
+    /// (#181, `sameLifeTransitions[].cooldownTicks`): a cooldown-bearing
+    /// route is refused for its declared window after each completion,
+    /// held per unit slot so it survives the body, with automatic
+    /// returns exempt. Both are inert-omitted, so every existing ruleset
+    /// keeps its exact bytes; frozen pre-0.10.7 artifacts fault on
+    /// contracts that CARRY either fact until rebuilt — the accepted
+    /// #170 consequence. No skill declares a route cooldown yet; the
+    /// observation publication of remaining ticks is bound to the first
+    /// skill that does.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.23";
+    public const string CliVersion = "0.9.24";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -215,7 +227,7 @@ public static class ToolchainInfo
     // discipline: the canonical classId is emitted only when a ruleset declares
     // classes (#156), the observation fields are trailing tagged additions, and
     // the observation schema version stays 2.
-    public const string SdkVersion = "0.10.6";
+    public const string SdkVersion = "0.10.7";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";
     // Compiler invocation/container changes that affect artifact bytes without changing

@@ -15,6 +15,16 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly BoundedChildFabricationKernel _fabrication;
     private readonly SplitReplicationKernel _split;
     private readonly ActorSameLifeTransitionKernel _sameLife;
+
+    /// <summary>
+    /// Route-cooldown clocks (#181): first tick each cooldown-bearing route
+    /// is available again, keyed by UNIT SLOT so the clock survives the
+    /// body (a respawn does not reset it). Requested queues are gated;
+    /// automatic (engine-caused) returns are exempt by design — a forced
+    /// return must never be trapped by its own route's clock.
+    /// </summary>
+    private readonly Dictionary<(int TeamId, int UnitId, string TransitionId),
+        int> _routeReadyAtTick = new();
     private readonly Dictionary<string, ActorFormDefinition> _forms;
     private readonly Dictionary<string, ActorVisionProfileDefinition>
         _visionProfiles;
@@ -906,6 +916,7 @@ public sealed class GenericActorMatchSession : IDisposable
                         state.ValidatedAction)
                     .ToArray();
                 if (sameLifeMatches.Length != 1
+                    || RouteOnCooldown(life, sameLifeMatches[0])
                     || !_sameLife.CanQueue(
                         SameLifeSnapshot(life),
                         sameLifeMatches[0].TransitionId))
@@ -924,6 +935,16 @@ public sealed class GenericActorMatchSession : IDisposable
                     $"Action kind '{action.Kind}' has no generic resolver.");
         }
     }
+
+    private bool RouteOnCooldown(
+        LifeState life,
+        ActorFormTransitionDefinition transition) =>
+        transition.CooldownTicks > 0
+        && _routeReadyAtTick.TryGetValue(
+            (life.ActorId.TeamId, life.ActorId.UnitId,
+                transition.TransitionId),
+            out int readyAtTick)
+        && Tick < readyAtTick;
 
     private static void Block(ActionState state)
     {
@@ -1517,10 +1538,19 @@ public sealed class GenericActorMatchSession : IDisposable
             life.PendingSameLifeTransitionReason =
                 GenericActorRuntimeObservation.FormTransitionReason.Requested;
             life.HasPriorSameLifeTransition = true;
-            if (SameLifeTransition(reservation).IrreversibleForLife)
+            ActorSameLifeTransitionDefinition completedRoute =
+                SameLifeTransition(reservation);
+            if (completedRoute.IrreversibleForLife)
             {
                 life.IrreversibleReturnFormIds.Add(
                     reservation.SourceFormId);
+            }
+            if (completedRoute.CooldownTicks > 0)
+            {
+                _routeReadyAtTick[
+                    (life.ActorId.TeamId, life.ActorId.UnitId,
+                        completedRoute.TransitionId)] =
+                    checked(Tick + completedRoute.CooldownTicks + 1);
             }
             events.Add(EmitSpatial(
                 Tick,
@@ -2636,9 +2666,11 @@ public sealed class GenericActorMatchSession : IDisposable
                 && FabricationTargets(life, action).Length > 0,
             ActorActionKind.SameLifeTransition =>
                 _sameLife.MatchRoutes(life.FormId, action.Id)
-                    .Any(transition => _sameLife.CanQueue(
-                        SameLifeSnapshot(life),
-                        transition.TransitionId)),
+                    .Any(transition =>
+                        !RouteOnCooldown(life, transition)
+                        && _sameLife.CanQueue(
+                            SameLifeSnapshot(life),
+                            transition.TransitionId)),
             _ => false,
         };
     }

@@ -18,7 +18,8 @@ public sealed record ActorFormTransitionDefinition
         ActorSameLifeCombatStateDefinition combatState,
         ActorSameLifePlacementDefinition placement,
         bool irreversibleForLife,
-        ActorAutomaticReturnTriggerDefinition? automaticReturn = null)
+        ActorAutomaticReturnTriggerDefinition? automaticReturn = null,
+        int cooldownTicks = 0)
         : base(
             transitionId,
             actionId,
@@ -29,7 +30,8 @@ public sealed record ActorFormTransitionDefinition
             health,
             combatState,
             placement,
-            irreversibleForLife)
+            irreversibleForLife,
+            cooldownTicks)
     {
         AutomaticReturn = automaticReturn;
     }

@@ -413,6 +413,18 @@ declares the clock at `rules.tickResolution.cooldownClock`
 The whole open game on the ticking clock is the registered identity
 **`tide`** (`sail-open-tick` where no fabricator is in the cell).
 
+### Route cooldowns (DECISIONS #181 — capability, no skill uses it yet)
+
+A same-life route may declare `cooldownTicks` (read it on
+`sameLifeTransitions[]`; absent means none). After the route COMPLETES,
+requesting the same route from the same UNIT SLOT is refused (an
+ordinary Blocked) while `tick < completionTick + cooldownTicks + 1`.
+The clock survives the body — dying and respawning does not reset it —
+and automatic (engine-caused) returns are exempt, so a forced return is
+never trapped by its own clock. No current arm declares one; when the
+first cooldown-bearing skill ships, the remaining ticks become readable
+in observations in the same window.
+
 ### Stance ground (round 3)
 
 `--stance-ground free` drops the `transition-placement-forbidden` tag kind

@@ -56,6 +56,12 @@ internal static class GenericDeathmatchSessionTestFixture
         /// is shown to obey exactly the rules the requested one does.
         /// </summary>
         public int ReverseDurationTicks { get; init; } = 1;
+
+        /// <summary>
+        /// Route cooldown declared on the FORWARD route (#181). Zero keeps
+        /// the fixture's historical contract exactly as it was.
+        /// </summary>
+        public int ForwardCooldownTicks { get; init; }
     }
 
     public static ActorResolvedMatchDefinition Definition(
@@ -936,7 +942,9 @@ internal static class GenericDeathmatchSessionTestFixture
                 forbiddenTags,
                 ActorSameLifePlacementDefinition.FailedCompletionKind
                     .CancelAndRemainInSourceForm),
-            transitionOptions.IrreversibleForLife);
+            transitionOptions.IrreversibleForLife,
+            automaticReturn: null,
+            cooldownTicks: transitionOptions.ForwardCooldownTicks);
         ActorSameLifeTransitionDefinition[] transitions =
             transitionOptions.IncludeReverseRoute
                 ?

@@ -825,6 +825,9 @@ public sealed class GenericActorRulesContract
     /// on every route the engine never fires by itself; canonical contracts
     /// omit the property entirely rather than encoding the inert case.
     /// </param>
+    /// <param name="CooldownTicks">Optional route cooldown (#181): after this
+    /// route completes it is refused for this many ticks, held per unit slot
+    /// and surviving the body; 0 means none.</param>
     public sealed record FormTransition(
         string TransitionId,
         string ActionId,
@@ -836,7 +839,8 @@ public sealed class GenericActorRulesContract
         SameLifeCombatState CombatState,
         SameLifePlacement Placement,
         bool IrreversibleForLife,
-        AutomaticReturnTrigger? AutomaticReturn = null)
+        AutomaticReturnTrigger? AutomaticReturn = null,
+        int CooldownTicks = 0)
         : SameLifeTransition(
             SameLifeTransitionKind.FormTransition,
             TransitionId,
@@ -1079,6 +1083,8 @@ public sealed class GenericActorRulesContract
     /// <param name="MatchCompletionPrecedence">Terminal-condition phase policy ID.</param>
     /// <param name="DamageResolution">Damage and attribution ordering.</param>
     /// <param name="Phases">Authoritative phase IDs in execution order.</param>
+    /// <param name="CooldownClock">Optional cooldown-clock policy ID;
+    /// null means the historical armed-form clock.</param>
     public sealed record TickResolutionDefinition(
         bool ObservationsUsePreTickState,
         bool DecisionsResolveAsJointStep,
@@ -1088,7 +1094,8 @@ public sealed class GenericActorRulesContract
         string ActionFaultCounting,
         string MatchCompletionPrecedence,
         DamageResolution DamageResolution,
-        ImmutableArray<string> Phases);
+        ImmutableArray<string> Phases,
+        string? CooldownClock = null);
 
     /// <summary>Damage batching, identity, health, attribution, and event ordering.</summary>
     /// <param name="ContactBatch">Contact batching policy ID.</param>
