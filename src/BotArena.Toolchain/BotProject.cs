@@ -121,9 +121,14 @@ public static class ToolchainInfo
     /// identity block is now reserved before any bolt flies. No previously
     /// valid replay changes: single-bolt attacks allocate identically, and
     /// every affected match faulted rather than producing a replay.
+    /// 0.9.17 registers the FIVE SLOTS tuning variants (DECISIONS #171):
+    /// `--five-slots trim|boom|drag` mint suffixed ruleset identities that
+    /// move one lever each (slot count, extra-slot schedule, ordinary-child
+    /// rebuild clock). The default `full` arm and every existing ruleset are
+    /// byte-identical; player artifact bytes and cache keys are unchanged.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.16";
+    public const string CliVersion = "0.9.17";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

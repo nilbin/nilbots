@@ -242,6 +242,7 @@ static int CommandHelp(string command)
                    [--pendulum control|ratchet|ratchet-contest|keel|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
                    [--skills none|kit|volley|shell|five-slots]
                    [--bend striker-only|universal]
+                   [--five-slots full|trim|boom|drag]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -330,6 +331,14 @@ static int CommandHelp(string command)
             its own topology profile and fingerprint. Skills compose with
             --classes, --movement, --pendulum, the numbers-only factors, and
             --duel-map, subject to the 64-character canonical ID budget.
+            --five-slots selects a registered FIVE SLOTS tuning variant
+            (DECISIONS #171) and is only legal in a cell that carries the
+            skill: full is the measured arm and adds no suffix; trim drops
+            the fifth slot; boom swings the extra schedule late (360/480 on
+            the same cadence); drag prices count in tempo by putting the
+            ordinary children on the 30-tick baseline rebuild clock instead
+            of the fabricator's native 15. Each variant moves exactly one
+            lever and mints its own suffixed ruleset identity.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

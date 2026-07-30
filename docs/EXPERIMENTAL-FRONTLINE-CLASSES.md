@@ -360,3 +360,24 @@ The rules are the same ones the other registered tokens follow.
   `ratchet-cast-bend`.
 - The map, the format, and the seed profile are held constant across all 24
   cells, so the only moving parts are the two factors under measurement.
+
+### FIVE SLOTS tuning variants (DECISIONS #171)
+
+Phase 2 measured the counter-cycle failing in one direction — the
+fabricator dominant on both seed sets — and attributed the overshoot to
+FIVE SLOTS. `--five-slots` selects a registered tuning variant of that one
+skill; it is only legal in a cell that carries it, each variant moves
+exactly one lever, and every variant appends its token to the ruleset
+identity (after the arm tokens) and mints its own fingerprints.
+
+| Variant | Lever | Contract effect |
+| --- | --- | --- |
+| `full` | none (default) | the phase-2 measured arm, byte-identical: unlocks 60/180/**300/420**, ordinary children rebuild at **15**, extra at **30** |
+| `trim` | slot count | the fifth slot is dropped; the fourth keeps its 300 unlock |
+| `boom` | schedule | extra slots swing late: **360/480** on the class's own 120-tick cadence |
+| `drag` | rebuild economy | ordinary children rebuild at **30** (the baseline clock) instead of the class's native 15; the schedule is untouched |
+
+Read the actual unlock ticks and rebuild delays from your slots' lifecycle
+assignments and profiles rather than assuming this table: a variant cell
+is an ordinary contract, and a bot that hardcodes 60/180/300/420 plays the
+`boom` arm one unlock early.

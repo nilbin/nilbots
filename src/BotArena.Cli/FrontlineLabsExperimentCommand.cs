@@ -41,6 +41,7 @@ public static class FrontlineLabsExperimentCommand
             "movement",
             "skills",
             "bend",
+            "five-slots",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -231,6 +232,16 @@ public static class FrontlineLabsExperimentCommand
                 + "the striker's, AEGIS SHELL the bulwark's, and FIVE SLOTS "
                 + "the fabricator's.");
         }
+        FrontlineLabsFiveSlotVariant fiveSlots =
+            OptionalFiveSlotVariant(options);
+        if (fiveSlots != FrontlineLabsFiveSlotVariant.Full
+            && !skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots))
+        {
+            throw new InvalidOperationException(
+                "--five-slots tunes the FIVE SLOTS skill, so the cell must "
+                + "carry it: pass a class pair containing the fabricator and "
+                + "a --skills selection that includes five-slots.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
@@ -272,7 +283,8 @@ public static class FrontlineLabsExperimentCommand
                 primeRespawnTicks
                     ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks,
                 skills,
-                bendEnvelope);
+                bendEnvelope,
+                fiveSlots);
         }
         else if (captureThreshold is int threshold)
         {
@@ -698,6 +710,29 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --bend '{value}' "
                 + "(use striker-only or universal)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered FIVE SLOTS tuning variant (DECISIONS #171).
+    /// Omitting the option — or naming <c>full</c> explicitly — selects the
+    /// phase-2 measured arm and adds no ruleset suffix. The variant tunes
+    /// one skill, so it is only legal in a cell that carries FIVE SLOTS.
+    /// </summary>
+    private static FrontlineLabsFiveSlotVariant OptionalFiveSlotVariant(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("five-slots", out string? value))
+            return FrontlineLabsFiveSlotVariant.Full;
+        return value.ToLowerInvariant() switch
+        {
+            "full" => FrontlineLabsFiveSlotVariant.Full,
+            "trim" => FrontlineLabsFiveSlotVariant.Trim,
+            "boom" => FrontlineLabsFiveSlotVariant.Boom,
+            "drag" => FrontlineLabsFiveSlotVariant.Drag,
+            _ => throw new InvalidOperationException(
+                $"Unknown --five-slots variant '{value}' (use full, trim, "
+                + "boom, or drag)."),
         };
     }
 

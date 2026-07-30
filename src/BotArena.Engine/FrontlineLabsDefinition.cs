@@ -368,8 +368,17 @@ public static class FrontlineLabsDefinition
         int primeRespawnTicks = DefaultPrimeRespawnTicks,
         FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None,
         FrontlineLabsBendEnvelopeArm bendEnvelope =
-            FrontlineLabsBendEnvelopeArm.StrikerOnly)
+            FrontlineLabsBendEnvelopeArm.StrikerOnly,
+        FrontlineLabsFiveSlotVariant fiveSlots =
+            FrontlineLabsFiveSlotVariant.Full)
     {
+        if (!Enum.IsDefined(fiveSlots))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(fiveSlots),
+                fiveSlots,
+                "Unknown Frontline Labs five-slot variant.");
+        }
         if (!Enum.IsDefined(bendEnvelope))
         {
             throw new ArgumentOutOfRangeException(
@@ -460,6 +469,18 @@ public static class FrontlineLabsDefinition
                 + "an arm; call Create() for it.");
         }
 
+        if (fiveSlots != FrontlineLabsFiveSlotVariant.Full
+            && !effectiveSkills.HasFlag(
+                FrontlineLabsSkillKit.FabricatorFiveSlots))
+        {
+            throw new ArgumentException(
+                "A five-slot variant tunes the FIVE SLOTS skill, so it needs "
+                + "that skill active in the cell: pass a class pair "
+                + "containing the fabricator and a skill selection that "
+                + "includes five-slots.",
+                nameof(fiveSlots));
+        }
+
         return CreateResolved(
             PendulumRulesetId(
                 pendulum,
@@ -468,7 +489,8 @@ public static class FrontlineLabsDefinition
                 captureThreshold,
                 primeRespawnTicks,
                 effectiveSkills,
-                bendEnvelope),
+                bendEnvelope,
+                fiveSlots),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -476,13 +498,66 @@ public static class FrontlineLabsDefinition
             controlPolicy: ControlPolicy(pendulum),
             duelMapArm: mapArm,
             seedProfileId: classes is null ? null : ClassesSeedProfileId,
-            classes: classes,
+            classes: classes is { } cell
+                ? (ApplyFiveSlotVariant(cell.TeamZero, fiveSlots),
+                    ApplyFiveSlotVariant(cell.TeamOne, fiveSlots))
+                : null,
             movementCoupling: movementCoupling,
             pendulum: pendulum,
             primeRespawnTicks: primeRespawnTicks,
             skills: effectiveSkills,
             bendEnvelope: bendEnvelope);
     }
+
+    /// <summary>
+    /// Applies a registered FIVE SLOTS tuning variant to the class entry
+    /// that owns the skill; every other entry passes through untouched.
+    /// Each variant moves exactly one lever (the ablation discipline):
+    /// Trim drops the fifth slot, Boom swings the extra schedule late on
+    /// the class's own cadence, and Drag prices count in tempo by putting
+    /// the ordinary children on the 30-tick baseline rebuild clock.
+    /// </summary>
+    private static FrontlineLabsClassDefinition ApplyFiveSlotVariant(
+        FrontlineLabsClassDefinition entry,
+        FrontlineLabsFiveSlotVariant variant)
+    {
+        if (entry.Skill != FrontlineLabsSkillKit.FabricatorFiveSlots)
+            return entry;
+        return variant switch
+        {
+            FrontlineLabsFiveSlotVariant.Full => entry,
+            FrontlineLabsFiveSlotVariant.Trim =>
+                entry with { ExtraChildUnlockTicks = [300] },
+            FrontlineLabsFiveSlotVariant.Boom =>
+                entry with { ExtraChildUnlockTicks = [360, 480] },
+            FrontlineLabsFiveSlotVariant.Drag =>
+                entry with { ChildRebuildDelayTicks = 30 },
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(variant),
+                variant,
+                "Unknown Frontline Labs five-slot variant."),
+        };
+    }
+
+    /// <summary>
+    /// The identity token for a registered five-slot tuning variant. It
+    /// rides AFTER the arm tokens (the variant refines the skill factor),
+    /// and the Full arm contributes nothing — phase 2's measured identities
+    /// are unchanged.
+    /// </summary>
+    private static string? FiveSlotToken(
+        FrontlineLabsFiveSlotVariant variant) =>
+        variant switch
+        {
+            FrontlineLabsFiveSlotVariant.Full => null,
+            FrontlineLabsFiveSlotVariant.Trim => "trim",
+            FrontlineLabsFiveSlotVariant.Boom => "boom",
+            FrontlineLabsFiveSlotVariant.Drag => "drag",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(variant),
+                variant,
+                "Unknown Frontline Labs five-slot variant."),
+        };
 
     private const FrontlineLabsPendulumArm AllPendulumArms =
         FrontlineLabsPendulumArm.StickyFrontline
@@ -582,13 +657,18 @@ public static class FrontlineLabsDefinition
         int captureThreshold,
         int primeRespawnTicks,
         FrontlineLabsSkillKit skills,
-        FrontlineLabsBendEnvelopeArm bendEnvelope)
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        FrontlineLabsFiveSlotVariant fiveSlots =
+            FrontlineLabsFiveSlotVariant.Full)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
         string[] tokens =
         [
             .. ArmTokens(pendulum, skills, bendEnvelope, classes, composed),
+            .. FiveSlotToken(fiveSlots) is { Length: > 0 } variant
+                ? new[] { variant }
+                : [],
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
                 ? new[] { numbers }
