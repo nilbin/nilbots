@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb4bc-03d1-7142-9a37-7c3a8e2ffc34",
+  "lookId": "aegis-tortoise-kinematic",
+  "purpose": "Meshy 6 2K PBR texture-only pass for deterministic animated Bulwark family",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 121095,
+      "sha256": "067ea2e51428952036b167811e7a8c6666fd03a9e3aa116ae7547395afcbfc49",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 8680372,
+      "sha256": "d9c332494cb82ba679fc944ed6e1dd85c8993a80bca9cde112ffe113ff65d4a9",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 5185541,
+      "sha256": "7e905cc00d76bed6fab6548b9b4d801813123fc2e8750b28614450603ca7022b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 111014,
+      "sha256": "99bfa16d3a9233301bfca5d66af7f2fcf6cea1e2fecd6e42b23036ef92e16f2b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 896066,
+      "sha256": "3e37d78d2af7c770c848340f67518ba3d28656d6d239096c036535e112d70e7d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 6126114,
+      "sha256": "0bf2fc72d2c5eb248a4258b798f03c52b0768688e00636c7cf0e303a33458dae",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 951775,
+      "sha256": "dc91173f5bf29e9b72b6aa3356c6f584b2d2e8a13e4366fdf283384e6968635e",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T20:34:08.134Z",
+  "balanceBefore": 655,
+  "input": {
+    "kind": "model",
+    "file": "sandbox/bulwark-kinematic-master-v11/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "sandbox/bulwark-kinematic-master-v11/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized matte top-down game asset. Bulwark fortress palette: 70% near-black graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Texture mobile chassis, four shield plates, crown, eight tower vanes, barrels and emitter bars consistently. Crisp broad seams, powder-coated armor, high roughness, low metalness, flat readable albedo. Only reactor and weapon apertures glow neutral white. No bronze Striker or pale Fabricator palette, white hull, chrome, glossy clearcoat, photoreal wear, tiny noise, dirt, text, logos, decals, blue/red team colors, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized matte top-down game asset. Bulwark fortress palette: 70% near-black graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Texture mobile chassis, four shield plates, crown, eight tower vanes, barrels and emitter bars consistently. Crisp broad seams, powder-coated armor, high roughness, low metalness, flat readable albedo. Only reactor and weapon apertures glow neutral white. No bronze Striker or pale Fabricator palette, white hull, chrome, glossy clearcoat, photoreal wear, tiny noise, dirt, text, logos, decals, blue/red team colors, or baked lighting. Preserve geometry."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "5fcea80195e64d60aa3e0b40f130b7deab177beb8c5bf92688385338043424ba",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T20:36:16.728Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-30T20:36:16.736Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 645,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

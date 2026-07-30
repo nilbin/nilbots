@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T20:34:07.552Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-kinematic",
+  "purpose": "Meshy 6 2K PBR texture-only pass for deterministic animated Bulwark family",
+  "input": {
+    "kind": "model",
+    "file": "sandbox/bulwark-kinematic-master-v11/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "sandbox/bulwark-kinematic-master-v11/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "5fcea80195e64d60aa3e0b40f130b7deab177beb8c5bf92688385338043424ba",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized matte top-down game asset. Bulwark fortress palette: 70% near-black graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Texture mobile chassis, four shield plates, crown, eight tower vanes, barrels and emitter bars consistently. Crisp broad seams, powder-coated armor, high roughness, low metalness, flat readable albedo. Only reactor and weapon apertures glow neutral white. No bronze Striker or pale Fabricator palette, white hull, chrome, glossy clearcoat, photoreal wear, tiny noise, dirt, text, logos, decals, blue/red team colors, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized matte top-down game asset. Bulwark fortress palette: 70% near-black graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Texture mobile chassis, four shield plates, crown, eight tower vanes, barrels and emitter bars consistently. Crisp broad seams, powder-coated armor, high roughness, low metalness, flat readable albedo. Only reactor and weapon apertures glow neutral white. No bronze Striker or pale Fabricator palette, white hull, chrome, glossy clearcoat, photoreal wear, tiny noise, dirt, text, logos, decals, blue/red team colors, or baked lighting. Preserve geometry."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 655,
+  "submittedAt": "2026-07-30T20:34:08.134Z",
+  "taskId": "019fb4bc-03d1-7142-9a37-7c3a8e2ffc34",
+  "finishedAt": "2026-07-30T20:36:16.736Z"
+}

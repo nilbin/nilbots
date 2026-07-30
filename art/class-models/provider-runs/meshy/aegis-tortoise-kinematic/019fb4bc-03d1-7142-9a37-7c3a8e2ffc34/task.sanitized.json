@@ -1,0 +1,36 @@
+{
+  "id": "019fb4bc-03d1-7142-9a37-7c3a8e2ffc34",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized matte top-down game asset. Bulwark fortress palette: 70% near-black graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Texture mobile chassis, four shield plates, crown, eight tower vanes, barrels and emitter bars consistently. Crisp broad seams, powder-coated armor, high roughness, low metalness, flat readable albedo. Only reactor and weapon apertures glow neutral white. No bronze Striker or pale Fabricator palette, white hull, chrome, glossy clearcoat, photoreal wear, tiny noise, dirt, text, logos, decals, blue/red team colors, or baked lighting. Preserve geometry.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785443651552,
+  "progress": 100,
+  "started_at": 1785443651733,
+  "finished_at": 1785443775762,
+  "expires_at": 1785702975762,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 10
+}
