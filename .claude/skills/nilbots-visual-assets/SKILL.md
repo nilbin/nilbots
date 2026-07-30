@@ -365,8 +365,10 @@ Do not introduce slot-owned selection except the existing legacy fallback.
 5. Test all cardinal and diagonal headings, launch, speed-one and speed-two
    traversal, bends, every authored flight cue, hit, miss/range expiry,
    deflection, light and dark themes, fog, DPR 1/2, and the appearance-editor
-   preview. Derive hit versus miss only from exact projectile/event causality;
-   preserve the generic legacy finish when old replay generations omit it.
+   preview. Derive hit versus miss only from exact projectile/event causality.
+   Exact per-projectile events take precedence; preserve the generic legacy
+   finish for replay-v1 and whenever an otherwise-modern death tick contains
+   damage or deflection with a null projectile ID.
 6. After the 2D projectile is approved, it may receive a genuine
    `model.glb`/`model3d.json` WebGL companion under the same coordinate and
    source rules as a bot. Model a readable head volume and rule-honest
