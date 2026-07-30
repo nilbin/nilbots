@@ -5,26 +5,21 @@ description: Create, revise, bake, and validate nilbots arena themes, bot looks,
 
 # Nilbots Visual Assets
 
-Preserve ASCII gameplay semantics while improving presentation. Read
-`docs/ARENA-VISUALS.md` completely before changing assets, then inspect the
-owning map JSON, theme manifest, or bot-look manifest.
+Preserve ASCII gameplay semantics while improving presentation. Read `docs/ARENA-VISUALS.md`
+completely before changing assets, then inspect the owning map JSON, theme manifest, or look manifest.
 
 ## Arena theme workflow
 
-1. Generate distinct opaque material fields, never a whole map, isolated wall,
-   or atlas. Keep the exact accepted prompt in `art/themes/SOURCE-PROMPTS.md`.
-   When the floor is generated, keep its accepted source at
-   `art/themes/<theme>/floor/source.png` and declare the optimized runtime
-   filename, size, and WebP quality in `art.json`.
-2. Put accepted wall sources under
-   `art/themes/<theme>/walls/<family>/source.png`. Keep perimeter and interior
-   cover as separate semantic families.
-3. Update `art/themes/<theme>/art.json` and the runtime
-   `web/src/assets/themes/<theme>/theme.json`. Keep their atlas dimensions in
-   agreement. A deliberately staged theme instead sets
-   `runtime.packagePath` to `art/themes/<theme>/runtime`; its complete package
-   stays outside Vite discovery until a map intentionally ships it. Do not
-   raise `assetBudgetBytes` just to make a build pass.
+1. Generate distinct opaque material fields, never a whole map, isolated wall, or atlas. Keep the exact
+   accepted prompt in `art/themes/SOURCE-PROMPTS.md`. Keep an accepted floor at
+   `art/themes/<theme>/floor/source.png`; declare its optimized runtime filename, size, and WebP quality
+   in `art.json`.
+2. Put accepted wall sources at `art/themes/<theme>/walls/<family>/source.png`; keep perimeter and
+   interior cover as separate semantic families.
+3. Update `art/themes/<theme>/art.json` and `web/src/assets/themes/<theme>/theme.json`, with matching
+   atlas dimensions. A staged theme instead sets `runtime.packagePath` to
+   `art/themes/<theme>/runtime`; keep that complete package outside Vite discovery until a map ships it.
+   Never raise `assetBudgetBytes` merely to pass a build.
 4. Rebuild in the disposable environment:
 
    ```sh
@@ -33,371 +28,314 @@ owning map JSON, theme manifest, or bot-look manifest.
    sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/<theme>/art.json
    ```
 
-5. For a shipping theme, assign the theme and wall families in map
-   presentation data. Never infer a theme from map ID or add a viewer skin
-   switch. Keep map packages within the engine's 32×32 envelope.
-6. Review small and large maps at device pixel ratios 1 and 2. Inspect outer
-   perimeter, isolated cover, corners, junctions, zone contrast, bots, health,
-   projectiles, and fog.
+5. Assign shipping themes and wall families in map presentation data. Never infer a theme from map ID or
+   add a viewer skin switch. Keep map packages within the engine's 32×32 envelope.
+6. Review small and large maps at DPR 1 and 2: outer perimeter, isolated cover, corners, junctions, zone
+   contrast, bots, health, projectiles, and fog.
 
-The build owns floor resizing/encoding, seamless wall normalization, PBR
-helpers, 256 topology variants, and the theme-wide runtime size check. Do not
-hand-edit its outputs.
+The build owns floor resizing/encoding, seamless wall normalization, PBR helpers, 256 topology variants,
+and the theme-wide runtime-size check. Never hand-edit its outputs.
 
 ## Concept-to-model fidelity gates
 
-Treat 3D as a depth interpretation of an approved 2D identity, not another
-concept pass.
+Treat 3D as a depth interpretation of an approved 2D identity, not another concept pass.
 
-1. Before modeling, add an art-side fidelity brief naming the canonical 2D
-   asset, intended gameplay read, required silhouette and negative-space
-   anchors, rule-bearing hardware, material/color regions, team-accent
-   regions, and cues the look must not promise. Distinguish fantasy from
-   mechanics explicitly: for example, a low-hover ground skimmer may visibly
-   levitate through a small air gap, underbody glow, tight shadow, and gentle
-   bob without using the altitude, banking, rotors, or vertical traversal that
-   promise player-controlled flight.
-2. Approve the canonical East-facing 2D look first. Derive a top, side, front,
-   and gameplay-oblique model sheet from it. The top view must include a
-   same-scale silhouette overlay; invented side and underside structure may
-   explain depth but must not redesign the approved planform. When an
-   image-to-3D service expects camera-consistent views, use separately approved
-   inferred-3D top and rear renders rather than pretending the flat 2D sprite
-   is a photograph from those cameras. Keep the 2D sprite as the identity and
-   overlay target; never admit an unapproved inferred view as a new concept.
-3. Build an untextured blockout and stop. Compare it with the 2D silhouette at
-   the renderer's top/game camera, including footprint, center of mass, major
-   proportions, negative spaces, and weapon/form hardware. Return a failed
-   anchor to blockout; textures cannot repair silhouette drift.
-4. Add real depth only after the blockout passes. Model armor thickness,
-   recesses, joints, contact or hover hardware, vents, and undersides in ways
-   consistent with the brief. Do not add mobility or combat affordances that
-   the rules do not provide. If inferred depth introduces load-bearing feet,
-   legs, or another locomotion cue, concept approval must also pin its rig and
-   movement animation; never ship a walking silhouette that merely slides.
-   The Aegis Tortoise target uses heavy short four-leg steps with a level
-   carapace: all four anchors plant/compress and the body lowers into its
-   Shell/Turret stance. Do not infer an equivalent gait for another class.
-5. Map the approved 2D material regions onto the model before adding wear or
-   micro-detail. Preserve the dominant light/dark/value grouping, authored
-   accent placement, and class-readable color ratios. Keep the semantic team
-   material separate and texture-free unless its mask is explicitly authored.
-6. Review a fixed contact sheet containing the canonical 2D image, top-view
-   overlay, untextured blockout, textured gameplay camera, and at least one
-   non-team-color turntable angle. Also review the model in a real replay at
-   normal zoom, with both team colors and a tight ground shadow. Use one pinned
-   replay/time/viewport/camera for every before/after; label a comparison
-   approximate when any of those differ.
-7. Require every named anchor and forbidden cue to pass independently. Record
-   deliberate deviations in the fidelity brief with the approval reason; do
-   not average a missing identity anchor into a general quality score.
+1. Before modeling, add an art-side fidelity brief naming the canonical 2D asset, intended gameplay
+   read, silhouette/negative-space anchors, rule-bearing hardware, material/color and team-accent
+   regions, and forbidden cues. Separate fantasy from mechanics: a low-hover ground skimmer may use a
+   small air gap, underbody glow, tight shadow, and gentle bob, but not altitude, banking, rotors, or
+   vertical traversal that promise player-controlled flight.
+2. Approve the canonical East-facing 2D look first; derive top, side, front, and gameplay-oblique views.
+   Require a same-scale top silhouette overlay. Side/underside inference may explain depth, never redesign
+   the planform. For camera-consistent image-to-3D inputs, use separately approved inferred-3D top/rear
+   renders rather than treating the flat sprite as a photo. Keep the sprite as identity/overlay authority;
+   an unapproved inferred view is not a new concept.
+3. Build an untextured blockout and stop. At renderer top/game cameras compare footprint, center of mass,
+   proportions, negative spaces, and weapon/form hardware. Return any failed anchor to blockout; texture
+   cannot repair silhouette drift.
+4. Add armor thickness, recesses, joints, contact/hover hardware, vents, and undersides only after blockout
+   passes. Never imply unavailable mobility/combat. If depth adds load-bearing feet, legs, or another
+   locomotion cue, concept approval must pin its rig and movement animation; never slide a walking
+   silhouette. Aegis Tortoise specifically uses heavy short four-leg steps, a level carapace, four
+   planting/compressing anchors, and a body that lowers into Shell/Turret stance; do not generalize that gait.
+5. Map approved 2D material regions before wear or micro-detail. Preserve dominant value grouping, authored
+   accent placement, and class-readable color ratios. Keep semantic team material separate and texture-free
+   unless its mask is explicitly authored.
+6. Review one fixed sheet: canonical 2D, top overlay, blockout, textured gameplay camera, and a non-team-color
+   turntable angle. Also use a real replay at normal zoom, both teams, and a tight ground shadow. Pin
+   replay/time/viewport/camera; label comparisons approximate if any differ. Hard-gate forms/skins beside
+   their parent mobile in the same 58° rig and one-tile frame: match value, PBR/material, detail, edge wear,
+   and fixed emission, varying only the semantic team mask. Reject a good isolated render that reads as a
+   different chassis.
+7. Pass every anchor and forbidden cue independently. Record approved deviations and reasons in the brief;
+   never average a missing identity anchor into a general score.
 
 ### Multiview-AI base-mesh vertical slice
 
-Treat multiview generation as a measured base-mesh route, not as a one-click
-production modeling method. The Striker pilot proved that a textured generated
-mesh can reach the real renderer with genuine depth; it also proved that source
-quality, semantic materials, deterministic normalization, gameplay-camera
-review, and optimization remain separate required stages.
+Treat multiview generation as a measured base-mesh route, never one-click production. The Striker pilot
+proved genuine depth can reach the renderer, while source quality, semantic materials, normalization,
+game-camera review, and optimization remain separate stages.
 
-1. Give the service the approved canonical SVG, oblique target, and pinned
-   owner-approved multiview sheet. Preserve the exact inputs, generation
-   prompts, service/model version, settings, output files, and usage/license
-   terms under `art/`. Generated views are not approved merely because they
-   agree with one another.
-2. Call the result a generated base mesh. It is not an approved look, a
-   specialist-authored final, or a runtime asset, even when its preview is
-   attractive.
-3. Inspect and record which source axis the generated nose actually follows;
-   provider tasks may reverse facing even when their inputs and settings are
-   identical. Normalize provider output deterministically before review:
-   derive the transform from measured bounds and the inspected source-facing
-   axis, convert to `+X` facing and `+Y` up, center the planform, put the floor
-   at `Y=0`, and normally scale the maximum planform span to one gameplay tile
-   before the look's runtime scale. Record any deliberately larger authored
-   span explicitly. Always multiply the authored span by every renderer/look
-   scale before clearance review; a `1.12`-tile GLB followed by a `1.062`
-   renderer scale occupies `1.18944` tiles live. Do not infer facing from task
-   order, confuse authored and live span, test only one heading when diagonal
-   facing is legal, or repair one result with an undocumented DCC transform.
-4. Produce at least a lean and richer derivative from the same normalized
-   master. Record bytes, triangles, vertices, material count, map dimensions,
-   validation warnings, and first-use transfer. The Striker proof found a
-   roughly 2.5 MB / 75k-triangle / 1K-map lean tier visually comparable to a
-   roughly 6.3 MB / 150k-triangle / 2K-map rich tier at the 58-degree gameplay
-   camera; treat those as evidence from one look, not universal budgets.
-5. Put an unapproved derivative through the manifest-driven lazy loader only
-   in a review worktree. Exercise movement, every heading, hover/contact,
-   shadow, damage, multiple instances, fog, and fallback in a real replay.
-   Authored directional GLBs suppress the generic fallback-only facing wedge;
-   SVG-derived models keep it. Do this end-to-end renderer spike before paying
-   for resemblance-only provider iterations; use the evidence to decide
-   whether the next work belongs in another generation or deterministic/DCC
-   correction.
-6. Before real-replay review, render a deterministic strict top, strict side,
-   strict front, strict rear, both three-quarter views, and the gameplay
-   oblique. Compare them beside the approved inputs. Repeat the canonical
-   same-scale top-silhouette gate on the generated mesh and report coverage,
-   centerline, and local width drift; also reject a side/depth profile that
-   changes the approved body class even when the top passes. The clean Striker
-   v2 trial caught a reversed result only through the facing check and found
-   `95.67%` top IoU after the rigid correction.
-   Never accept the provider thumbnail as this evidence. Measure the downloaded
-   GLB itself, and report top and side independently. The Aegis trial retained
-   `97.06%` rich-2D top IoU while making the side roughly `41%` too thick and
-   collapsing its walking supports; that is a successful armor reference and
-   a failed animation-ready body at the same time.
-7. Prompting may confine a team color to clean, bounded inlays, but it does not
-   create semantic runtime ownership. For a clean fused result, prefer a
-   deterministic offline texture mask and face split over a runtime hue-key
-   shader: derive the mask from the authored base/emissive cyan, prune isolated
-   noise, assign majority-covered faces to a second primitive, keep its normal
-   and metallic/roughness maps, remove its base/emissive textures, use neutral
-   white factors, and mark its material
-   `extras.nilbotsRole = "team-accent"`. Neutralize the source cyan in the hull
-   maps, retain the hull PBR maps, add a structural GLB test for exactly one
-   semantic accent material/primitive, and pass both-team review.
-8. Hand the base mesh to a modeler/technical artist wherever the measured gates
-   still fail: silhouette and proportion correction, topology/retopology,
-   separate functional parts, clean UVs, PBR repair, semantic team-material
-   isolation, artifact removal, or an editable production source. Do not
-   prescribe human rework where a deterministic, reviewable transform already
-   passes.
-9. Run the normal top-overlay, forbidden-cue, gameplay-camera, team-color,
-   animation/form, performance, and fallback gates on the corrected result.
-   Generated multiview agreement is not evidence that those gates pass.
-10. Complete one Striker vertical slice end to end before using the route for
-   another class or projectile. Record provider calls and credits, where
-   deterministic or human rework was required, and compare quality, time,
-   triangles, materials, textures, and first-use bytes with the fallback.
+1. Supply the approved canonical SVG, oblique target, and pinned owner-approved multiview sheet. Preserve
+   exact inputs, prompts, service/model version, settings, outputs, and usage/license terms under `art/`.
+   Camera-consistent generated views do not approve one another.
+2. Label output a generated base mesh, never an approved look, specialist final, or runtime asset.
+3. Measure and record the actual source-facing nose axis; identical tasks may reverse it. Derive a
+   deterministic transform from that axis and measured bounds: `+X` facing, `+Y` up, centered planform,
+   floor at `Y=0`, normally one-tile maximum planform before runtime look scale. Record deliberate larger
+   spans. Multiply authored span by every runtime scale for clearance (`1.12 × 1.062 = 1.18944` tiles);
+   test all legal/diagonal headings. Never infer axis from task order, confuse authored/live span, or use an
+   undocumented DCC transform. Allow a named bounded local vertex correction only for an isolated audited
+   defect, with pinned selection, maximum displacement, unchanged regions, and a rerun overlay; never hide
+   whole-body drift with global nonuniform scale or undocumented sculpting.
+4. Derive lean and rich tiers from the same normalized master; record bytes, triangles, vertices, materials,
+   map sizes, warnings, and first-use transfer. Striker found ~2.5 MB/75k/1K comparable to
+   ~6.3 MB/150k/2K at 58°; Fabricator found 6.60 MB/75k/1K indistinguishable from
+   17.19 MB/150k/2K at normal follow and eight-tile minimum zoom. These are per-look evidence, not budgets;
+   ship rich only for a visible gain in a fixed real-camera A/B.
+5. Load an unapproved derivative only in a review worktree via the manifest lazy path. In a real replay test
+   movement, every heading, hover/contact, shadow, damage, multiple instances, fog, and fallback. Directional
+   GLBs suppress the generic fallback facing wedge; SVG models retain it. Run this end-to-end before buying
+   resemblance-only iterations; choose regeneration versus deterministic/DCC correction from that evidence.
+6. Before replay review, render deterministic strict top/side/front/rear, both three-quarters, and gameplay
+   oblique beside approved inputs. Repeat the same-scale top gate and report coverage, centerline, and local
+   width drift; reject a wrong side/depth body class even if top passes. Striker v2 exposed reversed facing
+   and reached `95.67%` top IoU only after rigid correction.
+7. Prompt-bounded team inlays are not semantic ownership. For a clean fused result use the deterministic
+   offline mask/face-split procedure below, not a runtime hue key; require exactly one semantic accent
+   primitive/material and both-team review while preserving hull PBR maps.
+8. Hand measured failures to a modeler/technical artist for silhouette/proportion, retopology, functional
+   parts, UVs, PBR, semantic-material isolation, artifact removal, or editable source. Do not prescribe
+   human work where a deterministic reviewable transform passes.
+9. Re-run top-overlay, forbidden-cue, gameplay-camera, team-color, animation/form, performance, and fallback
+   gates. Multiview agreement alone proves none of them.
+10. Complete one chassis vertical slice before another class/projectile; ledger calls/credits and compare
+    quality, time, triangles, materials, textures, bytes, and deterministic/human rework with fallback.
 
 #### Meshy 6 pilot recipe
 
-The measured provider trial uses Meshy 6 Multi-Image to 3D. This pins a
-reproducible experiment, not a provider endorsement or an approved production
-method.
+The measured Meshy 6 Multi-Image-to-3D trial pins a reproducible experiment, not an endorsement or
+approved production method.
 
-1. Keep the API credential out of the repository, shell profiles, command
-   history, screenshots, logs, and generated provenance. On the Nilbots macOS
-   workstation it lives in Login Keychain under service
-   `nilbots.meshy.api` and the current login account. Read it inside the
-   calling process with `/usr/bin/security`; never print the returned value.
-   Other environments inject `MESHY_API_KEY` from their secret manager rather
-   than adding an `.env` file.
-2. Check `GET https://api.meshy.ai/openapi/v1/balance` before a paid request
-   and record only the numeric balance. Re-check Meshy's official pricing and
-   parameter documentation when the experiment is run; provider contracts can
-   change independently of this repository. Use
-   `scripts/class-models/meshy_multi_image.py --package <manifest.json>` for
-   the offline gate. It reads no credential and makes no network request by
-   default. A paid run requires the package's explicit
-   `providerSubmission.allowed: true`, no blockers, and
-   `--submit --max-credits 30`; the runner refuses a larger ceiling. It reads
-   Login Keychain only after those gates, records the task immediately, polls,
-   downloads expiring outputs, and sanitizes provenance. Resume an already
-   recorded task with `--resume-run <provider-run-directory>` rather than
-   submitting another task.
-3. Upload one object per task as four separate, owner-approved images. Do not
-   upload a contact sheet as one image, and never mix a bot, projectile,
-   detached weapon, or scenery in the same multi-image task. Prefer square
-   lossless inputs at least 1040 pixels on the shortest side, with consistent
-   framing and object scale, a flat neutral or transparent background, diffuse
-   lighting, no cast shadow, and no clipped geometry. For Striker use a strict
-   top, strict side, front three-quarter, and rear three-quarter view. The top
-   view is derived from the approved 3D concept and must pass a same-scale
-   overlay against the canonical 2D planform before upload.
-   Treat background cleanup as an identity-critical edit. Never classify all
-   achromatic or shadow-valued pixels as background: that can erase graphite
-   mechanics, pale ceramic, legs, and truss openings while still passing
-   dimensions and border tests. Prefer a scene-only edit onto a distinctive
-   chroma field, classify only that chroma, and seed every intended aperture.
-   For a strict-SVG projectile top, rigidly align the authoritative SVG mask
-   and force only pixels outside its outer silhouette and inside its authored
-   holes to the neutral field; do not warp the inferred 3D surface content.
-   Inspect every final view at original resolution. Exact dimensions, opacity,
-   border color, margin, and scale consistency are necessary but cannot prove
-   that hardware survived.
-4. Keep geometry requirements visible and mutually consistent in the source
-   images. Meshy's `texture_prompt` describes surface appearance; prohibitions
-   such as “no landing gear” or “thin hull” in that field are not a documented
-   geometry control.
-5. The recoverable-master proof uses `ai_model: "meshy-6"`,
-   `should_texture: true`, `enable_pbr: true`,
-   `texture_resolution: "4k"`, `should_remesh: false`,
-   `remove_lighting: true`,
-   `pose_mode: ""`, and `target_formats: ["glb"]`. Do not enable Smart
-   Topology, Auto Split, pose control, remesh, or 8K for this proof. The first
-   goal is maximum recoverable form/material evidence, including emission;
-   optimization happens after approval.
-6. Set `image_enhancement: true` for noisy, low-resolution, photographed,
-   shadowed, or otherwise unreconciled inputs, matching Meshy's general
-   guidance. Default it to `false` for already-clean, approved, exact-detail
-   multiview inputs; use a recorded same-input A/B when uncertain. The clean
-   Striker v2 A/B was decisive: enhancement ON collapsed the planform to
-   `62.38%` canonical IoU while OFF preserved it at `95.67%`. Do not transfer
-   that result to noisy sources, and do not mix source changes into the A/B.
-7. Keep the texture prompt descriptive and prohibitive, not redesigning:
-   preserve the approved graphite, weathered bronze, panel seams, vents,
-   sharply bounded cyan team inlays, and amber core/engine emission; add no
-   text, logos, labels, decals, or baked lighting. Validate geometry exclusions
-   from the views rather than relying on this prompt.
-8. Record the task ID, image filenames and SHA-256 hashes, sanitized request
-   settings, numeric balance before/after, `consumed_credits`, sanitized task
-   JSON, provider/model version, license terms, and downloaded artifacts under
-   `art/class-models/provider-runs/meshy/<look-id>/<task-id>/`. Strip signed
-   URL queries and input data URIs from the recorded response. Never record the
-   Authorization header.
-9. Download every output immediately. Meshy's non-Enterprise API retention is
-   short and must not be treated as storage. Keep raw provider output
-   art-side; copy the ignored master and lossless maps into durable project
-   artifact storage before deleting a worktree. Only a corrected, reviewed
-   derivative may enter a runtime look.
-10. A default projectile is a second, separately charged task after its bot
-    proof passes. Its input shows only the projectile head; Nilbots continues
-    to own trail, glow pool, travel, impact, hitbox, and team tint.
+1. Keep the API credential out of the repository, shell profiles, history, screenshots, logs, and
+   provenance. On the Nilbots macOS workstation read Login Keychain service `nilbots.meshy.api` for the
+   current account inside the process with `/usr/bin/security`; never print it. Elsewhere inject
+   `MESHY_API_KEY` from a secret manager, never `.env`.
+2. Before paid work, call `GET https://api.meshy.ai/openapi/v1/balance`, recording only numeric balance.
+   Re-check official pricing/parameters at execution time because provider contracts change.
+3. Upload one object per task as four separate owner-approved images—never a contact sheet or mixed
+   bot/projectile/detached weapon/scenery. Prefer square lossless inputs, shortest side ≥1040 px, consistent
+   scale/framing, neutral or transparent background, diffuse light, no cast shadow or clipping. Striker uses
+   strict top/side and front/rear three-quarters; its approved-3D top must first overlay the canonical 2D.
+4. Put mutually consistent geometry requirements in the views. `texture_prompt` controls appearance;
+   “no landing gear” or “thin hull” there is not documented geometry control.
+5. For the recoverable master use `ai_model:"meshy-6"`, `should_texture:true`, `enable_pbr:true`,
+   `texture_resolution:"4k"`, `should_remesh:false`, `remove_lighting:true`, `pose_mode:""`, and
+   `target_formats:["glb"]`. Disable Smart Topology, Auto Split, pose control, remesh, and 8K. First recover
+   maximum form/material/emission evidence; optimize only after approval.
+6. Use `image_enhancement:true` for noisy, low-resolution, photographed, shadowed, or unreconciled inputs;
+   default false for clean approved exact-detail views. When unsure, record a same-input A/B without source
+   changes. Striker v2 clean input measured ON at `62.38%` canonical IoU versus OFF at `95.67%`; do not
+   generalize that result to noisy sources.
+7. Keep the texture prompt descriptive/prohibitive, not redesigning: preserve graphite, weathered bronze,
+   panel seams, vents, bounded cyan team inlays, and amber core/engine emission; forbid text, logos, labels,
+   decals, and baked lighting. Validate geometry exclusions in the views.
+8. Under `art/class-models/provider-runs/meshy/<look-id>/<task-id>/`, record task ID, input names/hashes,
+   sanitized settings/task JSON, numeric balance before/after, `consumed_credits`, provider/model version,
+   license, and downloads. Strip signed URL queries and input data URIs; never record Authorization.
+9. Download all output immediately; non-Enterprise retention is short, not storage. Keep raw output art-side;
+   only a corrected reviewed derivative may enter runtime.
+10. Charge a default projectile as a separate task after its bot proof. Show only its head; Nilbots owns
+    trail, glow, travel, impact, hitbox, and team tint.
 
-After download, record mesh/primitive/material counts, triangles, vertices,
-axis and facing, bounds, skins, animations, morphs, tangents, validation, and
-topology before attempting part animation. Loose indexed islands may be only
-UV/normal seams: weld exact coincident positions and recompute connectivity
-before calling them separable parts. A single welded manifold requires an
-authored cut/rebuild and named pivots; do not parent arbitrary seam islands.
-Provider tasks may disagree on axes even in one batch, so normalize every
-asset from measurement rather than copying the preceding task's transform.
+After download, record counts for meshes/primitives/materials, triangles/vertices, axis/facing, bounds,
+skins, animations, morphs, tangents, validation, and topology before part animation. Weld exact coincident
+positions and recompute connectivity before calling indexed islands parts; UV/normal seams are not parts.
+A welded manifold needs an authored cut/rebuild and named pivots, never arbitrary seam parenting. Normalize
+every asset from measurement because even one batch may vary axes. Detect depth-stacked duplicate bodies by
+strict side/gameplay views plus exact-position-welded component bounds, triangles, watertightness, and
+planform coverage. Delete a layer only when independent components and a complete retained body are proved;
+never average, flatten, bridge, or globally scale stacked copies. Re-run depth review and rebuild a deficient
+retained underside.
 
-Use Blender after the provider has supplied useful identity/material evidence,
-not as a reason to accept provider topology. Retopologize and rebuild
-rule-bearing functional parts, isolate semantic materials, add named rigid
-parts or a skin, author deterministic clips, rebake, add tangents, optimize,
-and rerun the fixed-view/gameplay gates. Preserve the provider master as
-reference; never animate an inseparable high-poly manifold merely because it
-looks complete from above.
+Use Blender after useful identity/material evidence, not to excuse provider topology. Retopologize or rebuild
+rule-bearing parts, isolate semantic materials, add named rigid parts or a skin, author only contract-owned
+deterministic clips, rebake, add tangents, optimize, and rerun fixed-view/gameplay gates. Preserve the provider
+master; never animate an inseparable high-poly manifold because its top view looks complete.
+
+#### Meshy T2 topology-to-rigid-animation slice
+
+Use this route only after the canonical 2D identity and each inferred-3D input view have separate owner
+approval. It is a measured single-view experiment for hard-surface bodies whose generated geometry may
+contain useful loose components; it does not supersede the four-view Meshy 6 recoverable-master route.
+
+1. Define each input view as a named immutable trial with exact path, SHA-256, dimensions, role, question,
+   and owner approval. Change only the view in an input-view A/B: keep model mode, target polycount, texture
+   settings, and prompt byte-identical. A top view may preserve dorsal/planform identity better while an
+   oblique view may infer a stronger side profile; neither is generally authoritative outside the measured
+   result.
+2. Use a guarded runner that is offline by default and validates the selected input, fixed request, duplicate
+   trial, numeric call/credit ledger, and explicit expansion gate before reading credentials. Paid submission
+   requires both `--submit` and the exact `--max-credits`; record the task ID immediately and resume that
+   record rather than retrying POST. Count succeeded, failed, and ambiguous created tasks against the
+   experiment cap.
+3. The measured Turret recipe used `model_type:"smart-topology"`, `ai_model:"meshy-t2"`,
+   `target_polycount:15000`, `should_texture:true`, `enable_pbr:true`, `texture_resolution:"4k"`, and
+   `target_formats:["glb"]`. It reused the Standard Turret texture prompt exactly. Omit
+   `image_enhancement` and `remove_lighting` because the measured T2 contract did not support them; re-check
+   official docs/pricing at execution time. Keep `texture_prompt` descriptive/prohibitive for surfaces,
+   never as undocumented geometry or rig control.
+4. Download the GLB, provider preview, and every separately exposed PBR map immediately. Preserve raw
+   artifacts in ignored durable project storage and commit sanitized request/task records, balances, cost,
+   hashes, model/version, and license. Never persist a credential, data URI, Authorization header, raw
+   signed query, or unsanitized provider response.
+5. Measure source axes and bounds independently for every task. When the approved surface lies on the wrong
+   plane, apply only the inspected right-handed quarter-turn, centering, floor placement, and uniform scale;
+   record the exact node transform and prove geometry buffers, UVs, materials, and PBR unchanged. Never
+   disguise an axis correction as design inference.
+6. Audit indexed connectivity and exact-position-welded connectivity before naming parts. Indexed islands
+   usually include UV/normal seams. If welded components expose a trustworthy repeated structure, classify
+   them deterministically from measured position/sector rules, record every assignment and ambiguity, and
+   render a false-color partition. Stop for functional retopology when a component crosses semantic groups,
+   a large panel is ambiguous, the model is a fused manifold, or the geometric seam is not credible as a
+   mechanical joint. Never let an AI label the cuts or silently hand-place exceptions.
+7. Group without welding or rewriting the provider surface. Conserve every source face and a
+   world-position/UV triangle fingerprint; retain original UVs, material slots, packed PBR images, normals,
+   and tangents. Keep a source-derived grouped GLB separate from any semantic overlay candidate.
+8. Prefer independent removable overlay geometry when the fused atlas lacks clean semantic paint: one
+   bounded neutral `team-accent` surface per intended region and a separate fixed `class-energy` material.
+   Do not hue-key or recolor the provider atlas. The renderer owns team tint and glow; prove cyan/red states
+   in the actual renderer.
+9. For hard-surface motion, set named pivots and use a rigid skin with exactly one joint weight per
+   source-derived vertex. Author only local, symmetric, rule-honest clips. The measured Turret proof permits
+   deploy/settle and restrained recoil review clips; it forbids whole-form scanning, aiming, or rotation.
+   Shipping clips require an explicit renderer contract and recorded event binding—provider/DCC animation
+   never changes authoritative facing, timing, or fire origin.
+10. Require two fresh deterministic builds, byte-identical GLBs and JSON reports, zero Khronos findings,
+    fixed top/side/front/rear/three-quarter/gameplay views, and source-hash preservation. Treat `.blend` and
+    GPU raster bytes as editable/visual evidence rather than byte-determinism targets. Then run native replay,
+    both teams, fog/hit flash/multiple instances, collision clearance, on-demand lean/rich tiers, and
+    first-use/frame budgets before runtime or store wiring.
+
+The B1 Turret evidence grouped 206 welded components into one hub and four balanced arms while conserving
+14,352 source triangles, then exported a five-joint rigid skin with two real clips. That proves this route can
+work; it is not a universal component-count threshold or permission to infer semantics from every T2 mesh.
+
+#### Static whole-form companions
+
+Treat Shell and Turret as complete static same-family transformations of the approved mobile, not unrelated
+designs or animation rigs. Reuse value hierarchy, PBR finish, wear, fixed emission, bounded team regions, and
+recognizable parts; enforce the pinned family gate above.
+
+- The current shipping fallback exports each as one fused `part:"whole"` GLB with no form clips. An animated
+  derivative stays experimental until the renderer explicitly declares its clip names, event binding, and
+  fallback behavior. Shell declares top-level
+  `formRole:"directional-stance"` plus `skillHardware:"aegis"`; Turret declares
+  `formRole:"omnidirectional-emplacement"` and no directional hardware. Never reinterpret a mobile whole
+  GLB across roles.
+- Mount each whole form once. A whole Turret contains the complete radial form and keeps supports planted;
+  only a declared `turret-arm` or SVG front-sector fallback repeats four times.
+- Leave deploy/mobilize scale, fade, energy assembly, anchor dial, directional guard field, and scan to
+  authoritative renderer state. Shell may replace the crude physical plate, never the exact floor guard
+  extent; Turret geometry never authors the scan. Require missing/invalid/cross-role GLBs to fall back.
+- Keep central and other fixed cyan/PBR surfaces authored and untagged. Only an intentionally bounded
+  primitive/material carrying `extras.nilbotsRole="team-accent"` receives owner tint.
 
 #### Fused team-accent extraction
 
-Use this only when a reviewed generated mesh has one fused material but clean,
-bounded team-color paint. It is an offline authoring step, not a runtime
-shader.
+Use this only for a reviewed fused material with clean bounded team paint; it is offline authoring, never a
+runtime shader.
 
-1. Preserve the source model and lossless provider base-color/emission maps.
-   Align the maps on an exact common grid; do not classify a resized JPEG or a
-   screenshot. Build a candidate from both color and emission, require a
-   stronger two-channel seed in every kept component, grow only a few
-   deterministic pixels inside the loose base-color candidate, close
-   one-pixel holes, and prune small unseeded components. Hue alone admits
-   reflections and weathering.
-2. Classify faces from several strictly interior UV samples, never only
-   vertices or edge midpoints. The validated Striker recipe uses seven
-   Dunavant interior samples and a conservative five-of-seven vote. Record the
-   threshold configuration, selected faces, selected surface area, boundary
-   histogram, estimated purity/coverage, and exact mask/model hashes. Treat its
-   numeric cyan thresholds as Striker evidence, not a universal palette rule.
-3. Partition the original index stream into hull and accent primitives while
-   sharing untouched position, normal, and UV accessors. The triangle multiset,
-   scene graph, transforms, facing, and geometry-buffer hashes must remain
-   exact.
-4. Remove classified color/emission pixels from lossless hull maps. Give the
-   accent material neutral white base/emission factors, no fixed base or
-   emission texture, the original normal and metallic/roughness textures, and
-   `extras.nilbotsRole = "team-accent"` on both primitive and material.
-5. Require a deterministic rerun hash, structural validation, close top and
-   gameplay-oblique renders in at least two team colors, and real-replay proof.
-   The renderer supplies tint, emissive response, and the floor glow; do not
-   bake bloom or one team's color into the asset.
+1. Preserve source model and lossless provider base-color/emission maps on one exact grid; never classify a
+   resized JPEG/screenshot. Combine color and emission, require a stronger two-channel seed in every kept
+   component, grow only a few deterministic pixels inside the loose base-color candidate, close one-pixel
+   holes, and prune small unseeded components. Hue alone admits reflections/weathering.
+2. Classify faces from several strictly interior UV samples, not vertices/edge midpoints. The validated
+   Striker method uses seven Dunavant samples and a five-of-seven vote. Record thresholds, selected faces
+   and area, boundary histogram, purity/coverage estimates, and exact mask/model hashes. Its cyan thresholds
+   are Striker evidence, not a universal palette.
+3. Split the original index stream into hull/accent primitives while sharing unchanged position, normal, UV,
+   and authored tangent accessors. Preserve triangle multiset, scene graph, transforms, facing, and geometry
+   buffer hashes exactly.
+4. Remove classified color/emission pixels from lossless hull maps. Give accent neutral white base/emission
+   factors, no fixed base/emission texture, original normal and metallic/roughness maps, and
+   `extras.nilbotsRole="team-accent"` on primitive and material.
+5. Require deterministic rerun hash, structural and Khronos validation, close top/gameplay renders in two
+   teams, and real-replay proof. Renderer owns tint/emission/floor glow; bake neither bloom nor one team.
+   For Blender zero tangents at collapsed UV derivatives or sub-thousandth export seam drift, repair only the
+   exported tangent accessor with a documented stable normal-derived perpendicular and, if needed, measured
+   direction grid plus renormalization. Prove geometry, UV, topology, textures, and transforms unchanged;
+   compare independent GLB hashes and visuals. `.blend` is editable provenance, not byte-determinism target.
 
 ## Bot-look workflow
 
-1. Start with genuine SVG. Treat PNG as an exception that requires
-   gameplay-scale evidence that intentional painterly, organic, or
-   texture-heavy art is materially worse in vector. Never auto-trace a raster
-   merely to claim vector.
-2. Use the canonical transparent 512×512 canvas or SVG viewBox, facing East.
-   A genuine SVG must not contain `<image>` or `data:image` raster payloads.
-3. Keep high-resolution raster masters and exact generation prompts outside
-   the runtime package. Remove backgrounds before deriving the 512×512 PNG.
-   When replacing a shipped raster with SVG, retain the old image under
-   `art/bot-looks/<id>/raster-reference.png`, not beside runtime assets.
-4. Add `web/src/assets/bot-looks/<id>/look.json` plus `sprite.png` or
-   `sprite.svg`. Discovery is manifest-driven; do not add a TypeScript registry.
-   A look may name an owned `defaultProjectile` companion; selecting that
-   chassis recommends the projectile but never prevents the owner from
-   choosing another.
-5. Inspect the look at gameplay size facing all four directions and during
-   movement, recoil, damage, destruction, fogging, and panel rendering.
-6. After the 2D look and fidelity brief are approved, a WebGL companion may add
-   genuine modeled depth. Keep `sprite.svg` or `sprite.png` canonical for the
-   site, Canvas2D, mobile, CLI, loading, and fallback; the model supplements
-   that identity and never replaces it.
-7. Build the companion as authored geometry, not a shallow extrusion of the
-   sprite. Preserve the 2D silhouette and rule-bearing hardware, then model the
-   hull, armor layers, recesses, joints, vents, and weapon volumes that explain
-   it from the gameplay camera. Check in an editable `.blend` source and a
-   deterministic generator or export recipe under `art/`.
-8. Put `model.glb` and `model3d.json` beside the runtime look only after the
-   model passes the gameplay review. The GLB contract is `+X` facing, `+Y` up,
-   floor at `Y=0`, tile-relative scale, no camera, no light, and no animation
-   unless a later renderer contract explicitly owns it. Discovery stays
-   manifest-driven inside `render3d`; never add the model to the shared
-   appearance registry or a hand-written TypeScript catalog.
-   Presentation motion cues such as `low-hover` belong in the canonical
-   `look.json`, not the model companion, so SVG fallback and an approved GLB
-   behave identically.
-9. Use compact PBR material maps when broad flat materials discard authored
-   panel, finish, or wear information. Prefer one small per-look atlas (or a
-   measured shared family atlas) over many tiny images. Normal and
-   metallic/roughness detail must survive the actual arena lighting and camera,
-   not merely a turntable close-up. Keep team paint on a separate material with
-   `extras.nilbotsRole = "team-accent"` so the renderer can tint it without
-   washing out the hull maps.
-10. Compare at least the current shipping tier and one richer on-demand tier.
-    Record GLB bytes, triangle count, material count, texture dimensions, total
-    first-use transfer, and what is still visible at the gameplay camera. An
-    increased per-look budget needs visible evidence; on-demand loading is not
-    permission to ship invisible micro-detail. Verify that the CLI build remains
-    model-free and that a missing or failed GLB returns to the 2D-derived
-    fallback.
+1. Start with genuine SVG. Allow PNG only when gameplay evidence shows intentional painterly, organic, or
+   texture-heavy work is materially worse in vector; never auto-trace to claim vector.
+2. Use transparent 512×512 canvas/viewBox facing East. Genuine SVG contains no `<image>` or `data:image`.
+3. Keep high-resolution masters and exact prompts outside runtime; remove backgrounds before a 512×512 PNG.
+   When replacing shipped raster with SVG, retain it at `art/bot-looks/<id>/raster-reference.png`, not runtime.
+4. Add `web/src/assets/bot-looks/<id>/look.json` plus sprite; discovery is manifest-driven, never a TypeScript
+   registry. `defaultProjectile` recommends an owned companion without preventing another selection.
+5. Inspect gameplay size in four facings, movement, recoil, damage, destruction, fog, and panels.
+6. Add WebGL depth only after 2D and the fidelity brief pass. Keep the sprite canonical for site, Canvas2D,
+   mobile, CLI, loading, and fallback; 3D supplements identity. Model authored hull, armor, recesses, joints,
+   vents, and weapon volumes—not shallow extrusion—and keep editable `.blend` plus deterministic recipe in
+   `art/`.
+7. Add runtime `model.glb`/`model3d.json` only after gameplay review: `+X` facing, `+Y` up, floor `Y=0`,
+   tile-relative scale, no camera/light, and only renderer-contracted animation. Discover only inside
+   `render3d`, never shared appearance/hand-written catalogs. Put `low-hover` and other presentation motion in
+   `look.json` so sprite and GLB agree; follow the static whole-form contract above for forms.
+8. Use compact PBR maps when flat materials lose panel/finish/wear: prefer one small per-look atlas or measured
+   shared family atlas. Prove normal and metallic/roughness detail at arena lighting/camera. Keep team paint
+   separate with `extras.nilbotsRole="team-accent"` so owner tint cannot wash hull PBR.
+9. Compare shipping and richer on-demand tiers; record bytes, triangles, materials, texture dimensions,
+   first-use transfer, and visible game-camera gain. On-demand loading does not justify invisible detail.
+   Prove CLI remains model-free and missing/failed GLB uses the 2D fallback.
 
-Bot appearance belongs to the bot and is snapshotted into matches and replays.
-Do not introduce slot-owned selection except the existing legacy fallback.
+Bot appearance belongs to the bot and is snapshotted into matches/replays. Never add slot-owned selection
+except the legacy fallback.
 
 ## Projectile-look workflow
 
-1. Start with genuine SVG on a transparent `viewBox="0 0 256 256"`, authored
-   facing East. Current projectile sprites are white alpha masks: opacity may
-   shape internal energy layers, but fixed colors, embedded rasters, floors,
-   shadows, trails, and glows do not belong in the sprite.
-2. Keep one compact projectile head centered with generous transparent
-   padding. It must remain distinct around 16–28 gameplay pixels without
-   appearing wider than its authoritative tile or implying a different
-   hitbox, path, speed, range, or damage.
-3. Add `web/src/assets/projectile-looks/<id>/look.json` plus `sprite.svg`.
-   Discovery is manifest-driven; do not add a TypeScript registry. Keep scale
-   within the tested 0.3–0.7 gameplay-tile range.
-4. The renderer tints the mask with the bot accent and owns the common trail,
-   glow, local contrast adaptation, fog truthfulness, and interpolation across
-   authoritative replay traversals. Do not bake those effects into one look.
-5. Test all cardinal and diagonal headings, launch, speed-one and speed-two
-   traversal, bends, impact, light and dark themes, fog, DPR 1/2, and the
-   appearance-editor preview.
-6. After the 2D projectile is approved, it may receive a genuine
-   `model.glb`/`model3d.json` WebGL companion under the same coordinate and
-   source rules as a bot. Model a readable head volume and rule-honest
-   directional silhouette; do not model a trail, floor glow, range, speed, or
-   hitbox. Every tintable projectile material uses
-   `extras.nilbotsRole = "projectile-mask"`. Compact texture maps may retain
-   grooves and surface breakup, but renderer-owned team tint and emissive
-   response must remain intact.
+1. Start with genuine East-facing SVG on transparent `viewBox="0 0 256 256"`. Sprites are white alpha
+   masks; opacity may layer energy, but fixed color, raster, floor, shadow, trail, and glow do not belong.
+2. Center one compact head with generous padding. Keep it distinct at 16–28 gameplay px, no wider than its
+   authoritative tile, and never imply changed hitbox, path, speed, range, or damage.
+3. Add manifest-driven `web/src/assets/projectile-looks/<id>/look.json` plus SVG, never a TS registry. Keep
+   scale in tested 0.3–0.7 tile range. Put an approved optional `flightCue`—`stable`, `axial-spin`,
+   `flat-spin`, or `tumble`—in `look.json`, never `model3d.json`.
+4. Renderer owns accent tint, trail, glow, contrast adaptation, fog truth, terminals, and authoritative
+   traversal interpolation. Flight cues transform only the head beneath its heading rig using `+X` forward,
+   `+Y` up, shared by Canvas SVG, WebGL extrusion, and GLB. Never bake common effects into a look.
+5. Test cardinal/diagonal headings, launch, speed-one/two traversal, bends, every flight cue, hit,
+   miss/range expiry, deflection, light/dark themes, fog, DPR 1/2, and editor preview. Derive hit/miss from
+   exact projectile-event causality: exact projectile events win; preserve generic replay-v1 finish and the
+   generic finish when a modern death tick has damage/deflection with null projectile ID.
+6. After 2D approval, a GLB companion follows bot coordinates/source rules. Model readable head volume and
+   rule-honest direction only—no trail, floor glow, range, speed, or hitbox. Mark every tintable material
+   `extras.nilbotsRole="projectile-mask"`; compact maps may retain grooves, but team tint/emissive response
+   remains renderer-owned.
+7. If a provider master has useful material/form but failed topology, rebuild from canonical SVG rather than
+   repairing identity by eye. Construct exact one-tile outer planform/apertures, then contained depth/detail.
+   Compare strict orthographic top alpha using only uniform longest-span normalization and translation—never
+   mirror, rotate, or nonuniformly warp. Gate IoU, coverage, precision, and aperture count; separately inspect
+   side/front/rear/gameplay because top cannot expose stacked bodies or wrong depth class.
+8. Author PBR color/emission as neutral grayscale value masks because WebGL multiplies all head surfaces by
+   team paint. Feed the same structure to base/emission so grooves survive tint. Mark all materials
+   `projectile-mask`; include tangents, compact normal/metallic-roughness maps, and structural tests for
+   dimensions, bounds, triangle/byte budgets, and export hashes. Check in deterministic recipe/editable
+   `.blend`; remove `.blend1` backups.
+9. Treat fixed-camera and 16–28 px DCC renders as local gates. Final approval needs a fresh hash-verified
+   native replay pinned to replay/tick/viewport/camera/renderer with intended map presentation explicit in
+   its header. The board must show genuine head plus renderer trail/glow, flight cue, both teams, and exact
+   hit/miss/deflection. Beauty renders, overlays, fallback themes, partial boards, and toy layouts cannot approve.
 
-Projectile appearance belongs to the bot beside its chassis and accent. The
-bot record snapshots it into each match and replay. Legacy or missing IDs use
-the default Pulse Bolt. Entitlements authorize equipping a look; they never
-change replay rendering or gameplay.
+Projectile appearance belongs to the bot/chassis/accent and is snapshotted into matches/replays. Missing or
+legacy IDs use Pulse Bolt. Entitlements authorize equip only; they never affect rendering/gameplay.
 
-When adding a shippable bot or projectile look, also add the same stable ID and
-label to `cosmetics/catalog.json`. Keep availability and unlock policy there,
-never in the rendering manifest. Run the catalog/manifest alignment tests.
-Unshipped concepts belong only under `art/`; do not add a runtime manifest or
-catalog entry until their availability and unlock are intentionally chosen.
+For a shippable bot/projectile add the same stable ID/label to `cosmetics/catalog.json`; keep availability and
+unlock policy there, never rendering manifests, and run alignment tests. Keep unshipped concepts under `art/`
+without runtime manifest/catalog entry until availability and unlock are chosen.
 
 ## 3D arena-companion workflow
 
@@ -485,6 +423,35 @@ unreviewed second map.
    generation when the deterministic topology proof is the stronger route,
    retain the provider result as an art-side donor/benchmark, and never spend
    the remainder merely because it was budgeted.
+16. Treat the approved whole-arena concept as direction, never as a runtime
+   crop, UV source, or tile-layout authority. Audit its transferable properties
+   explicitly—value hierarchy, material finish, wall profile, recesses,
+   service detail, lighting temperature—and record which remain absent from
+   the deterministic runtime. Do not call a concept match exact while source
+   materials or profiles are still missing.
+17. Express reusable 3D environment treatment as declarative theme data:
+   profile height/inset/chamfer, deterministic sparse detail cadence, material
+   maps and scalars, and lighting/floor response. Geometry placement may hash
+   only stable wall-family/tile/topology inputs; no random source, replay ID,
+   or current map layout may become art authority. Keep detail inside the
+   narrowest reviewed profile and collision-clearance envelope.
+18. Generation-3 replays require explicit presentation metadata for every map
+   theme/wall family and authored form look/projectile look. Route that
+   descriptor separately from `ActorMapDefinition` and the gameplay contract:
+   presentation changes the canonical replay hash, never rules, map, or match
+   fingerprints. Hosted execution and every Frontline CLI/sandbox writer must
+   supply the same descriptor; reject a native Frontline proof whose header
+   presentation is null or silently falls back to Control Room.
+19. Keep true normal/roughness and other environment-only material maps inside
+   the lazy WebGL renderer tree. The canonical floor/theme sources remain the
+   Canvas2D, site, mobile, loading, and CLI fallback; verify the map bytes do
+   not enter single-file CLI artifacts. When an albedo is reused as bump,
+   review a deliberately shallow scale—baked lighting, rust, and wear are not
+   physical height.
+20. Approve with a fresh hash-verified native replay whose own header carries
+   presentation. Pin replay, tick, viewport, camera, and renderer for A/B;
+   include bots/projectiles, whole arena, minimum span, and Canvas fallback.
+   Injected, hash-invalid, toy-layout, or fallback-theme boards cannot approve.
 
 ## Validation
 
@@ -507,7 +474,5 @@ renderer-only assets stayed out. Treat a normal-mapped primitive without
 tangents as a portability decision: generate tangents for portable assets or
 record and test the target renderer's derivative tangent-space support rather
 than ignoring the validator warning.
-When engine, replay, map, or submission contracts changed, also run
-`bash scripts/test.sh`. Record new durable presentation choices for the
-integration owner, but do not mint or renumber `docs/DECISIONS.md` entries on
-parallel feature branches.
+When contracts change, run `bash scripts/test.sh`; record choices in the
+owning doc, never a numbered DECISIONS entry on a branch.
