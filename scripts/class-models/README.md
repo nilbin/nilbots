@@ -74,14 +74,15 @@ Run the provider-runner tests offline:
 node --test scripts/class-models/run-meshy-smart-geometry.test.mjs
 ```
 
-`run-meshy-retexture.mjs` spends the separate ten-credit texture gate only
-after a Smart geometry task has passed local silhouette and mechanical review.
-It pins Meshy 6, original UVs, PBR, 2K source textures, lighting removal, and
-GLB output. Choose exactly one repository-local style PNG or one text prompt:
+`run-meshy-retexture.mjs` spends the separate ten-credit texture gate on
+either an accepted provider task or an approved, deterministic Blender GLB.
+It pins Meshy 6, original authored UVs, PBR, 2K source textures, lighting
+removal, and GLB output. Choose exactly one model source and exactly one
+repository-local style PNG or text prompt:
 
 ```sh
 node scripts/class-models/run-meshy-retexture.mjs \
-  --input-task-id <accepted-smart-task-id> \
+  --input-model art/class-models/<approved-authored-model>.glb \
   --look-id <look-id> \
   --purpose "<controlled texture gate>" \
   --image-style-url art/class-models/concept-targets/<candidate>/03-front-three-quarter.png \
@@ -89,7 +90,10 @@ node scripts/class-models/run-meshy-retexture.mjs \
 ```
 
 The retexture runner uses the same durable intent, lock, resume, sanitization,
-download validation, and credit-ledger rules as the geometry runner. Run its
+download validation, and credit-ledger rules as the geometry runner. Uploaded
+models must be repository-relative GLB v2 files no larger than 32 MiB. The
+runner records their path, size, and hash, but creates the base64 request value
+only for the POST and never writes it to an intent, record, or log. Run its
 offline tests with:
 
 ```sh

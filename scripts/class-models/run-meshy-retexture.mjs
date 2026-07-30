@@ -43,6 +43,7 @@ const DEFAULT_POLL_TIMEOUT_MS = 30 * 60_000;
 const API_REQUEST_TIMEOUT_MS = 30_000;
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_STYLE_IMAGE_BYTES = 20 * 1024 * 1024;
+export const MAX_INPUT_MODEL_BYTES = 32 * 1024 * 1024;
 const MAX_GLB_BYTES = 512 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 128 * 1024 * 1024;
 const MAX_TEXTURE_SETS = 64;
@@ -69,11 +70,13 @@ class SubmissionUnknownError extends Error {
 function usage() {
   return (
     "Create with image style: run-meshy-retexture.mjs " +
-    "--input-task-id <accepted-smart-task-id> --look-id <id> " +
+    "(--input-task-id <accepted-task-id> | --input-model <repo-glb>) " +
+    "--look-id <id> " +
     "--purpose <text> --image-style-url <local-pinned-png> " +
     "[--output-root <path>] [--keychain-service nilbots.meshy.api] --execute\n" +
     "Create with text style: run-meshy-retexture.mjs " +
-    "--input-task-id <accepted-smart-task-id> --look-id <id> " +
+    "(--input-task-id <accepted-task-id> | --input-model <repo-glb>) " +
+    "--look-id <id> " +
     "--purpose <text> --text-style-prompt <text> " +
     "[--output-root <path>] [--keychain-service nilbots.meshy.api] --execute\n" +
     "Resume: run-meshy-retexture.mjs --resume <retexture-task-id> " +
@@ -139,6 +142,9 @@ export function parseArguments(argv) {
       case "--input-task-id":
         options.inputTaskId = takeArgumentValue(argv, state, argument);
         break;
+      case "--input-model":
+        options.inputModelPath = takeArgumentValue(argv, state, argument);
+        break;
       case "--look-id":
         options.lookId = takeArgumentValue(argv, state, argument);
         break;
@@ -178,20 +184,39 @@ export function parseArguments(argv) {
     validateTaskId(options.resumeTaskId);
     if (
       options.inputTaskId ||
+      options.inputModelPath ||
       options.imageStylePath ||
       options.textStylePrompt
     ) {
       throw new Error(
-        "--resume cannot be combined with --input-task-id or style inputs.",
+        "--resume cannot be combined with model/task or style inputs.",
       );
     }
     return options;
   }
 
-  if (!options.inputTaskId) {
-    throw new Error(`--input-task-id is required.\n${usage()}`);
+  const inputCount =
+    Number(Boolean(options.inputTaskId)) +
+    Number(Boolean(options.inputModelPath));
+  if (inputCount !== 1) {
+    throw new Error(
+      "Choose exactly one of --input-task-id or --input-model.",
+    );
   }
-  validateTaskId(options.inputTaskId);
+  if (options.inputTaskId) {
+    validateTaskId(options.inputTaskId);
+  }
+  if (
+    options.inputModelPath &&
+    (isAbsolute(options.inputModelPath) ||
+      /^https?:\/\//iu.test(options.inputModelPath) ||
+      /^data:/iu.test(options.inputModelPath))
+  ) {
+    throw new Error(
+      "--input-model must name a repository-relative GLB, not an absolute " +
+        "path, URL, or caller-supplied data URI.",
+    );
+  }
   const styleCount =
     Number(Boolean(options.imageStylePath)) +
     Number(Boolean(options.textStylePrompt));
@@ -227,16 +252,64 @@ export function retextureSettings() {
   };
 }
 
+export function inspectInputModel(buffer, label = "Meshy input model") {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new Error(`${label} must be read as a Buffer.`);
+  }
+  if (buffer.length > MAX_INPUT_MODEL_BYTES) {
+    throw new Error(
+      `${label} exceeds the ${MAX_INPUT_MODEL_BYTES}-byte upload ceiling.`,
+    );
+  }
+  if (
+    buffer.length < 12 ||
+    buffer.subarray(0, 4).toString("ascii") !== "glTF"
+  ) {
+    throw new Error(`${label} is not a GLB.`);
+  }
+  const version = buffer.readUInt32LE(4);
+  if (version !== 2) {
+    throw new Error(`${label} must be GLB version 2; received ${version}.`);
+  }
+  const declaredLength = buffer.readUInt32LE(8);
+  if (declaredLength !== buffer.length) {
+    throw new Error(
+      `${label} declares ${declaredLength} bytes but contains ` +
+        `${buffer.length}.`,
+    );
+  }
+  return {
+    mimeType: "application/octet-stream",
+    version,
+    declaredLength,
+  };
+}
+
 export function buildRequestPayload({
   inputTaskId,
+  inputModel,
   style,
   settings = retextureSettings(),
 }) {
-  validateTaskId(inputTaskId);
-  const payload = {
-    input_task_id: inputTaskId,
-    ...settings,
-  };
+  const inputCount =
+    Number(Boolean(inputTaskId)) + Number(Boolean(inputModel));
+  if (inputCount !== 1) {
+    throw new Error(
+      "Retexture request must contain exactly one task or uploaded model.",
+    );
+  }
+  if (settings?.enable_original_uv !== true) {
+    throw new Error("Retexture requests for authored models must preserve UVs.");
+  }
+  const payload = { ...settings };
+  if (inputTaskId) {
+    payload.input_task_id = validateTaskId(inputTaskId);
+  } else {
+    inspectInputModel(inputModel.buffer);
+    payload.model_url =
+      "data:application/octet-stream;base64," +
+      inputModel.buffer.toString("base64");
+  }
   if (style.kind === "image") {
     if (
       style.mimeType !== "image/png" ||
@@ -258,12 +331,35 @@ export function buildRequestPayload({
 export function buildSanitizedRequest(payload) {
   const sanitized = sanitizeTask(payload);
   if (
+    Object.hasOwn(sanitized, "input_task_id") ===
+    Object.hasOwn(sanitized, "model_url")
+  ) {
+    throw new Error(
+      "Sanitized retexture request must contain exactly one model source.",
+    );
+  }
+  if (
     Object.hasOwn(sanitized, "image_style_url") ===
     Object.hasOwn(sanitized, "text_style_prompt")
   ) {
     throw new Error("Sanitized retexture request must contain exactly one style.");
   }
   return sanitized;
+}
+
+function inputFingerprintRecord(input) {
+  if (input.kind === "task") {
+    return {
+      kind: "task",
+      taskId: input.taskId,
+    };
+  }
+  return {
+    kind: "model",
+    sha256: input.record.sha256,
+    bytes: input.record.bytes,
+    glbVersion: input.record.glbVersion,
+  };
 }
 
 function styleFingerprintRecord(style) {
@@ -280,12 +376,14 @@ function styleFingerprintRecord(style) {
   };
 }
 
-export function requestFingerprint(inputTaskId, lookId, style, settings) {
+export function requestFingerprint(input, lookId, style, settings) {
   return sha256(
     Buffer.from(
       JSON.stringify({
         endpoint: "POST /openapi/v1/retexture",
-        inputTaskId,
+        ...(input.kind === "task"
+          ? { inputTaskId: input.taskId }
+          : { inputModel: inputFingerprintRecord(input) }),
         lookId,
         style: styleFingerprintRecord(style),
         settings,
@@ -293,6 +391,19 @@ export function requestFingerprint(inputTaskId, lookId, style, settings) {
       "utf8",
     ),
   );
+}
+
+function buildSanitizedRequestPreview(input, style, settings) {
+  const payload = {
+    ...settings,
+    ...(input.kind === "task"
+      ? { input_task_id: input.taskId }
+      : { model_url: "<redacted-data-uri>" }),
+    ...(style.kind === "image"
+      ? { image_style_url: "<redacted-data-uri>" }
+      : { text_style_prompt: style.prompt }),
+  };
+  return buildSanitizedRequest(payload);
 }
 
 function sanitizeErrorMessage(value) {
@@ -576,6 +687,60 @@ async function prepareImageStyle(repositoryRoot, imageArgument) {
       transport: "local-png-data-uri",
     },
   };
+}
+
+async function prepareInputModel(repositoryRoot, modelArgument) {
+  const requestedPath = resolve(repositoryRoot, modelArgument);
+  assertPathWithin(repositoryRoot, requestedPath, "Meshy input model");
+  const [realRepositoryRoot, inputPath] = await Promise.all([
+    realpath(repositoryRoot),
+    realpath(requestedPath),
+  ]);
+  assertPathWithin(realRepositoryRoot, inputPath, "Resolved Meshy input model");
+  if (!inputPath.toLowerCase().endsWith(".glb")) {
+    throw new Error("Meshy input model must be a GLB.");
+  }
+
+  const inputStat = await stat(inputPath);
+  if (!inputStat.isFile()) {
+    throw new Error("Meshy input model must be a regular file.");
+  }
+  if (inputStat.size > MAX_INPUT_MODEL_BYTES) {
+    throw new Error(
+      `Meshy input model exceeds the ${MAX_INPUT_MODEL_BYTES}-byte ` +
+        "upload ceiling.",
+    );
+  }
+  const buffer = await readFile(inputPath);
+  const inspected = inspectInputModel(buffer);
+  return {
+    kind: "model",
+    buffer,
+    record: {
+      kind: "model",
+      file: relative(realRepositoryRoot, inputPath),
+      bytes: buffer.length,
+      sha256: sha256(buffer),
+      mimeType: inspected.mimeType,
+      glbVersion: inspected.version,
+      declaredLength: inspected.declaredLength,
+      transport: "local-glb-data-uri",
+    },
+  };
+}
+
+async function prepareInput(repositoryRoot, options) {
+  if (options.inputTaskId) {
+    return {
+      kind: "task",
+      taskId: validateTaskId(options.inputTaskId),
+      record: {
+        kind: "task",
+        taskId: options.inputTaskId,
+      },
+    };
+  }
+  return prepareInputModel(repositoryRoot, options.inputModelPath);
 }
 
 function prepareTextStyle(prompt) {
@@ -993,19 +1158,20 @@ async function createTask({
   options,
   repositoryRoot,
   outputRoot,
+  input,
   style,
   fetchImpl,
   readApiKeyImpl,
 }) {
   const settings = retextureSettings();
-  const payload = buildRequestPayload({
-    inputTaskId: options.inputTaskId,
+  const fingerprint = requestFingerprint(
+    input,
+    options.lookId,
     style,
     settings,
-  });
-  const fingerprint = requestFingerprint(
-    options.inputTaskId,
-    options.lookId,
+  );
+  const sanitizedRequest = buildSanitizedRequestPreview(
+    input,
     style,
     settings,
   );
@@ -1024,12 +1190,15 @@ async function createTask({
     endpoint: "POST /openapi/v1/retexture",
     lookId: options.lookId,
     purpose: options.purpose,
-    inputTaskId: options.inputTaskId,
+    input: input.record,
+    ...(input.kind === "task"
+      ? { inputTaskId: input.taskId }
+      : { inputModel: input.record }),
     expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
     requestFingerprint: fingerprint,
     style: style.record,
     settings,
-    sanitizedRequest: buildSanitizedRequest(payload),
+    sanitizedRequest,
     credentialStore: {
       platform: "macOS Keychain",
       service: options.keychainService,
@@ -1060,6 +1229,13 @@ async function createTask({
 
     let created;
     try {
+      const payload = buildRequestPayload({
+        ...(input.kind === "task"
+          ? { inputTaskId: input.taskId }
+          : { inputModel: input }),
+        style,
+        settings,
+      });
       created = await apiJson(
         "/retexture",
         apiKey,
@@ -1130,10 +1306,13 @@ async function createTask({
       state: "SUBMITTED",
       submittedAt: intent.submittedAt,
       balanceBefore: intent.balanceBefore,
-      inputTaskId: options.inputTaskId,
+      input: input.record,
+      ...(input.kind === "task"
+        ? { inputTaskId: input.taskId }
+        : { inputModel: input.record }),
       style: style.record,
       settings,
-      sanitizedRequest: buildSanitizedRequest(payload),
+      sanitizedRequest,
       expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
       requestFingerprint: fingerprint,
     };
@@ -1308,13 +1487,16 @@ export async function main(
     });
   }
 
-  const style = await prepareStyle(repositoryRoot, options);
+  const [input, style] = await Promise.all([
+    prepareInput(repositoryRoot, options),
+    prepareStyle(repositoryRoot, options),
+  ]);
   const settings = retextureSettings();
-  const payload = buildRequestPayload({
-    inputTaskId: options.inputTaskId,
+  const sanitizedRequest = buildSanitizedRequestPreview(
+    input,
     style,
     settings,
-  });
+  );
   const summary = {
     provider: "Meshy",
     mode: "create",
@@ -1322,11 +1504,12 @@ export async function main(
     lookId: options.lookId,
     purpose: options.purpose,
     expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
+    input: input.record,
     style: style.record,
     settings,
-    sanitizedRequest: buildSanitizedRequest(payload),
+    sanitizedRequest,
     requestFingerprint: requestFingerprint(
-      options.inputTaskId,
+      input,
       options.lookId,
       style,
       settings,
@@ -1345,6 +1528,7 @@ export async function main(
     options,
     repositoryRoot,
     outputRoot,
+    input,
     style,
     fetchImpl,
     readApiKeyImpl,

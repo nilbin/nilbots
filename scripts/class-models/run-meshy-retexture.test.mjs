@@ -12,10 +12,12 @@ import test from "node:test";
 
 import { taskDirectorySegment } from "./run-meshy-smart-geometry.mjs";
 import {
+  MAX_INPUT_MODEL_BYTES,
   artifactDefinitions,
   assertCreditCeiling,
   buildRequestPayload,
   buildSanitizedRequest,
+  inspectInputModel,
   main,
   parseArguments,
   retextureSettings,
@@ -50,7 +52,7 @@ function jsonResponse(value, status = 200) {
   });
 }
 
-test("requires explicit paid intent and exactly one supported style source", () => {
+test("requires exactly one model source and one supported style source", () => {
   const text = parseArguments([
     "--input-task-id",
     "accepted-smart-task",
@@ -82,6 +84,52 @@ test("requires explicit paid intent and exactly one supported style source", () 
     "art/class-models/concept-targets/aegis/material.png",
   );
 
+  const uploaded = parseArguments([
+    "--input-model",
+    "art/class-models/authored/aegis-tortoise.glb",
+    "--look-id",
+    "aegis-tortoise",
+    "--purpose",
+    "authored geometry texture gate",
+    "--text-style-prompt",
+    "stylized matte game asset",
+  ]);
+  assert.equal(
+    uploaded.inputModelPath,
+    "art/class-models/authored/aegis-tortoise.glb",
+  );
+  assert.equal(uploaded.inputTaskId, undefined);
+
+  assert.throws(
+    () =>
+      parseArguments([
+        "--input-task-id",
+        "accepted-smart-task",
+        "--input-model",
+        "art/class-models/authored/aegis-tortoise.glb",
+        "--look-id",
+        "aegis-tortoise",
+        "--purpose",
+        "texture gate",
+        "--text-style-prompt",
+        "matte",
+      ]),
+    /exactly one of --input-task-id or --input-model/u,
+  );
+  assert.throws(
+    () =>
+      parseArguments([
+        "--input-model",
+        "/tmp/aegis-tortoise.glb",
+        "--look-id",
+        "aegis-tortoise",
+        "--purpose",
+        "texture gate",
+        "--text-style-prompt",
+        "matte",
+      ]),
+    /repository-relative GLB/u,
+  );
   assert.throws(
     () =>
       parseArguments([
@@ -119,6 +167,8 @@ test("requires explicit paid intent and exactly one supported style source", () 
         "retexture-task",
         "--input-task-id",
         "source-task",
+        "--input-model",
+        "art/class-models/authored/aegis-tortoise.glb",
         "--look-id",
         "aegis-tortoise",
       ]),
@@ -126,7 +176,33 @@ test("requires explicit paid intent and exactly one supported style source", () 
   );
 });
 
-test("pins the Meshy 6 game-texture request and redacts local data URIs", () => {
+test("validates authored GLB v2, declared length, and upload ceiling", () => {
+  const valid = glbBuffer();
+  assert.deepEqual(inspectInputModel(valid), {
+    mimeType: "application/octet-stream",
+    version: 2,
+    declaredLength: valid.length,
+  });
+
+  const wrongMagic = Buffer.from(valid);
+  wrongMagic.write("nope", 0, "ascii");
+  assert.throws(() => inspectInputModel(wrongMagic), /not a GLB/u);
+
+  const wrongVersion = Buffer.from(valid);
+  wrongVersion.writeUInt32LE(1, 4);
+  assert.throws(() => inspectInputModel(wrongVersion), /GLB version 2/u);
+
+  const wrongLength = Buffer.from(valid);
+  wrongLength.writeUInt32LE(valid.length + 4, 8);
+  assert.throws(() => inspectInputModel(wrongLength), /declares 16 bytes/u);
+
+  assert.throws(
+    () => inspectInputModel(Buffer.alloc(MAX_INPUT_MODEL_BYTES + 1)),
+    /upload ceiling/u,
+  );
+});
+
+test("pins Meshy 6 original UVs and redacts every local data URI", () => {
   const settings = retextureSettings();
   assert.deepEqual(settings, {
     ai_model: "meshy-6",
@@ -163,6 +239,46 @@ test("pins the Meshy 6 game-texture request and redacts local data URIs", () => 
   assert.equal(
     textPayload.text_style_prompt,
     "broad matte fortress materials",
+  );
+
+  const modelBytes = glbBuffer();
+  const modelPayload = buildRequestPayload({
+    inputModel: { buffer: modelBytes },
+    style: { kind: "text", prompt: "cold matte fortress materials" },
+    settings,
+  });
+  assert.equal(Object.hasOwn(modelPayload, "input_task_id"), false);
+  assert.match(
+    modelPayload.model_url,
+    /^data:application\/octet-stream;base64,/u,
+  );
+  assert.deepEqual(
+    Buffer.from(modelPayload.model_url.split(",", 2)[1], "base64"),
+    modelBytes,
+  );
+  assert.deepEqual(buildSanitizedRequest(modelPayload), {
+    ...settings,
+    model_url: "<redacted-data-uri>",
+    text_style_prompt: "cold matte fortress materials",
+  });
+  assert.throws(
+    () =>
+      buildRequestPayload({
+        inputTaskId: "accepted-smart-task",
+        inputModel: { buffer: modelBytes },
+        style: { kind: "text", prompt: "matte" },
+        settings,
+      }),
+    /exactly one task or uploaded model/u,
+  );
+  assert.throws(
+    () =>
+      buildRequestPayload({
+        inputModel: { buffer: modelBytes },
+        style: { kind: "text", prompt: "matte" },
+        settings: { ...settings, enable_original_uv: false },
+      }),
+    /preserve UVs/u,
   );
 });
 
@@ -234,14 +350,17 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
     `art/class-models/provider-runs/.retexture-runner-test-${nonce}`;
   const outputRoot = join(repositoryRoot, outputRootRelative);
   const imagePath = join(conceptDirectory, "material.png");
-  const inputTaskId = "accepted/source?opaque";
+  const inputModelPath = join(conceptDirectory, "authored-model.glb");
   const retextureTaskId = "retexture/result?opaque";
   const calls = [];
   const imageBytes = pngHeader();
   const modelBytes = glbBuffer();
 
   await mkdir(conceptDirectory, { recursive: true });
-  await writeFile(imagePath, imageBytes);
+  await Promise.all([
+    writeFile(imagePath, imageBytes),
+    writeFile(inputModelPath, modelBytes),
+  ]);
 
   const fetchImpl = async (url, init = {}) => {
     const method = init.method ?? "GET";
@@ -294,10 +413,36 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
   };
 
   try {
+    const dryRun = await main(
+      [
+        "--input-model",
+        relative(repositoryRoot, inputModelPath),
+        "--look-id",
+        "runner-test",
+        "--purpose",
+        "offline uploaded-model dry run",
+        "--text-style-prompt",
+        "stylized matte fortress game asset",
+        "--output-root",
+        outputRootRelative,
+      ],
+      {
+        fetchImpl: async () => {
+          throw new Error("dry run must not contact Meshy");
+        },
+        readApiKeyImpl: () => {
+          throw new Error("dry run must not read the Meshy key");
+        },
+      },
+    );
+    assert.equal(dryRun.sanitizedRequest.model_url, "<redacted-data-uri>");
+    assert.equal(JSON.stringify(dryRun).includes(";base64,"), false);
+    assert.equal(calls.length, 0);
+
     const record = await main(
       [
-        "--input-task-id",
-        inputTaskId,
+        "--input-model",
+        relative(repositoryRoot, inputModelPath),
         "--look-id",
         "runner-test",
         "--purpose",
@@ -317,7 +462,15 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
     const posts = calls.filter((call) => call.method === "POST");
     assert.equal(posts.length, 1);
     const submitted = JSON.parse(posts[0].body);
-    assert.equal(submitted.input_task_id, inputTaskId);
+    assert.equal(Object.hasOwn(submitted, "input_task_id"), false);
+    assert.match(
+      submitted.model_url,
+      /^data:application\/octet-stream;base64,/u,
+    );
+    assert.deepEqual(
+      Buffer.from(submitted.model_url.split(",", 2)[1], "base64"),
+      modelBytes,
+    );
     assert.match(submitted.image_style_url, /^data:image\/png;base64,/u);
     assert.deepEqual(
       Object.fromEntries(
@@ -346,22 +499,31 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
       join(runDirectory, "request-record.json"),
       "utf8",
     );
+    const requestIntentText = await readFile(
+      join(runDirectory, "request-intent.json"),
+      "utf8",
+    );
     const taskRecordText = await readFile(
       join(runDirectory, "task.sanitized.json"),
       "utf8",
     );
     const requestRecord = JSON.parse(requestRecordText);
-    const requestIntent = JSON.parse(
-      await readFile(join(runDirectory, "request-intent.json"), "utf8"),
-    );
+    const requestIntent = JSON.parse(requestIntentText);
     assert.equal(requestRecord.state, "ARCHIVED");
     assert.equal(requestIntent.state, "ARCHIVED");
+    assert.deepEqual(requestRecord.inputModel, requestIntent.inputModel);
+    assert.equal(requestRecord.inputModel.bytes, modelBytes.length);
+    assert.equal(requestRecord.inputModel.glbVersion, 2);
+    assert.equal(requestRecord.inputModel.declaredLength, modelBytes.length);
+    assert.equal(requestRecord.inputModel.transport, "local-glb-data-uri");
     assert.equal(Object.hasOwn(requestRecord, "resumable"), false);
     assert.equal(Object.hasOwn(requestRecord, "resumeArguments"), false);
     assert.equal(requestRecordText.includes("test-key-that-must-not-be-written"), false);
     assert.equal(requestRecordText.includes(";base64,"), false);
+    assert.equal(requestIntentText.includes(";base64,"), false);
     assert.equal(taskRecordText.includes("Signature=secret"), false);
     assert.match(requestRecordText, /<redacted-data-uri>/u);
+    assert.match(requestIntentText, /<redacted-data-uri>/u);
     assert.deepEqual(
       (await readdir(runDirectory)).sort(),
       [
