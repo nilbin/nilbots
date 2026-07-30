@@ -17,9 +17,8 @@
   },
   "orientation": {
     "modelForward": "+X",
-    "east": "+X",
-    "worldUp": "+Y",
-    "directional": true
+    "imageRight": "+X",
+    "worldUp": "+Y"
   },
   "views": [
     {
