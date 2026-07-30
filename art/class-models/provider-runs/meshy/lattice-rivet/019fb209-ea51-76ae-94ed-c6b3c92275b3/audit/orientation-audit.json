@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lattice-rivet",
+  "method": "longest-planform-span normalization, centered bounds, uniform scale and translation only",
+  "authority": {
+    "path": "web/src/assets/class-projectile-looks/lattice-rivet/sprite.svg",
+    "sha256": "e5f86e1d2c33816ab807132ced9274871854b2881ee2d47978d8ce980248a3ab",
+    "bounds": {
+      "left": 180,
+      "top": 320,
+      "right": 899,
+      "bottom": 703,
+      "width": 720,
+      "height": 384
+    },
+    "apertures": {
+      "count": 1,
+      "areasPixels": [
+        14047
+      ],
+      "largestAreaToObject": 0.07977986278340679
+    }
+  },
+  "candidates": {
+    "+x": {
+      "iou": 0.7574766659812324,
+      "coverage": 0.8577797719114908,
+      "precision": 0.8662716666857857,
+      "translationPixels": [
+        -8,
+        0
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 288,
+        "right": 931,
+        "bottom": 735,
+        "width": 840,
+        "height": 448
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 1,
+        "areasPixels": [
+          15825
+        ],
+        "largestAreaToObject": 0.09076778360272103
+      }
+    },
+    "-x": {
+      "iou": 0.9569192277405771,
+      "coverage": 0.9731530283066019,
+      "precision": 0.9828660257439827,
+      "translationPixels": [
+        -2,
+        0
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 288,
+        "right": 931,
+        "bottom": 735,
+        "width": 840,
+        "height": 448
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 1,
+        "areasPixels": [
+          15824
+        ],
+        "largestAreaToObject": 0.09076933666796687
+      }
+    }
+  },
+  "recommendedSourceFacing": "-x",
+  "inspectedSourceFacing": "-x",
+  "sourceFacingAgreement": true
+}

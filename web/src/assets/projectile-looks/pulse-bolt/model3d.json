@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "pulse-bolt",
+  "file": "model.glb",
+  "kind": "projectile",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y"
+}

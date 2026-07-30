@@ -67,8 +67,20 @@ test('the canonical skimmer looks keep low-hover independent of a GLB', () => {
   assert.equal(modelSpec('trident-wasp-volley'), null);
 });
 
+test('the canonical Pulse Bolt resolves to its audited authored projectile model', () => {
+  assert.deepEqual(modelSpec('pulse-bolt'), {
+    version: 1,
+    id: 'pulse-bolt',
+    file: 'model.glb',
+    kind: 'projectile',
+    part: 'whole',
+    facing: '+x',
+    up: '+y',
+  });
+});
+
 test('legacy looks without a genuine model remain on the SVG fallback path', () => {
   assert.equal(modelSpec('vanguard'), null);
-  assert.equal(modelSpec('pulse-bolt'), null);
+  assert.equal(modelSpec('ion-orb'), null);
   assert.equal(modelSpec('not-a-look'), null);
 });
