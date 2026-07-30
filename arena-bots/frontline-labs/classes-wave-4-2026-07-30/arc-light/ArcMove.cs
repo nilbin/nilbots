@@ -1,0 +1,330 @@
+using BotArena.Sdk;
+
+/// <summary>
+/// Movement under a coupling that may make facing and travel the same decision.
+/// Routes are planned on map geometry and the rotation that unlocks the planned
+/// step is spent explicitly, because the movement legality mask under a
+/// facing-locked coupling offers only the current facing: a search seeded from
+/// the mask does not make a bot slower, it makes it immobile.
+/// </summary>
+internal static class ArcMove
+{
+    /// <summary>
+    /// One step toward <paramref name="goals"/>, or the rotation that unlocks
+    /// it. Declines when the step would walk into a bolt while standing still is
+    /// safe — under a facing-locked coupling that refusal is often the only
+    /// evasion available.
+    /// </summary>
+    public static GenericActorDecision? Toward(
+        ArcFacts facts,
+        GenericActorContext context,
+        ArcThreat threat,
+        IReadOnlyCollection<Position> goals,
+        IReadOnlySet<Position> blocked,
+        Direction[] order)
+    {
+        var goalSet = goals.ToHashSet();
+        if (goalSet.Count == 0 || goalSet.Contains(context.Self.Position))
+            return null;
+
+        GenericActorActionLegality? move = Legality(
+            facts,
+            context,
+            GenericActorRulesContract.ActionKind.Movement);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            allowed = move?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>()
+                .SingleOrDefault();
+        if (move is null || allowed is null)
+            return null;
+
+        var firstStepBlocked = blocked.ToHashSet();
+        if (context.Self.PreviousActionResolution
+                is { Outcome: GenericActorActionResolution.ActionOutcome.Blocked }
+                previous
+            && previous.AcceptedAction.Arguments
+                    .OfType<GenericActorActionArgument.DirectionArgument>()
+                    .SingleOrDefault()
+                is { } stalled)
+        {
+            firstStepBlocked.Add(ArcBoard.Step(context.Self.Position, stalled.Value));
+        }
+
+        Direction? planned = ArcBoard.FirstStep(
+            facts,
+            context.Self.Position,
+            goalSet,
+            firstStepBlocked,
+            order);
+        if (planned is not Direction direction)
+            return null;
+
+        if (allowed.AllowedValues.Contains(direction))
+        {
+            Position destination = ArcBoard.Step(context.Self.Position, direction);
+            bool hot = threat.Threatened(destination, 1);
+            if (hot)
+            {
+                // Prefer a different step that closes just as much and is not
+                // about to be occupied by a bolt. Suppression is not a reason to
+                // concede ground, so if no such step exists this body walks into
+                // the shot anyway — unless the shot kills it.
+                int here = ArcBoard.StepDistance(facts, context.Self.Position, goals, 24)
+                    ?? int.MaxValue;
+                Direction? detour = null;
+                int detourDistance = here;
+                foreach (Direction candidate in allowed.AllowedValues)
+                {
+                    Position tile = ArcBoard.Step(context.Self.Position, candidate);
+                    if (facts.Impassable(tile)
+                        || firstStepBlocked.Contains(tile)
+                        || threat.Threatened(tile, 1))
+                    {
+                        continue;
+                    }
+                    int distance = ArcBoard.StepDistance(facts, tile, goals, 24)
+                        ?? int.MaxValue;
+                    if (distance < detourDistance)
+                    {
+                        detourDistance = distance;
+                        detour = candidate;
+                    }
+                }
+                if (detour is Direction sidestep)
+                {
+                    return new GenericActorDecision(
+                        move.ActionId,
+                        move.ActionCode,
+                        [new GenericActorActionArgument.DirectionArgument(sidestep)],
+                        $"advancing {sidestep} around a bolt");
+                }
+                if (threat.Incoming(destination) is { } arriving
+                    && arriving.Damage >= context.Self.Health)
+                {
+                    return null;
+                }
+            }
+            return new GenericActorDecision(
+                move.ActionId,
+                move.ActionCode,
+                [new GenericActorActionArgument.DirectionArgument(direction)],
+                $"advancing {direction}");
+        }
+
+        return Rotate(facts, context, direction, "unlocking the next step");
+    }
+
+    /// <summary>
+    /// Leave a tile a bolt is about to reach. Under a facing-locked coupling the
+    /// only legal step is the current facing, so the honest answer is often a
+    /// rotation that buys the escape one tick later — which only helps when the
+    /// bolt is more than one tick out.
+    /// </summary>
+    public static GenericActorDecision? Escape(
+        ArcFacts facts,
+        GenericActorContext context,
+        ArcThreat threat,
+        IReadOnlyCollection<Position> goals,
+        IReadOnlySet<Position> blocked,
+        IReadOnlySet<Position>? restrictTo = null)
+    {
+        if (threat.Incoming(context.Self.Position) is not { } incoming)
+            return null;
+
+        GenericActorActionLegality? move = Legality(
+            facts,
+            context,
+            GenericActorRulesContract.ActionKind.Movement);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            allowed = move?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>()
+                .SingleOrDefault();
+
+        if (move is not null && allowed is not null)
+        {
+            Direction? best = null;
+            int bestScore = int.MinValue;
+            foreach (Direction direction in allowed.AllowedValues)
+            {
+                Position destination = ArcBoard.Step(
+                    context.Self.Position,
+                    direction);
+                if (facts.Impassable(destination)
+                    || blocked.Contains(destination)
+                    || (restrictTo is not null
+                        && !restrictTo.Contains(destination)))
+                {
+                    continue;
+                }
+                (int Ticks, int Damage)? arriving = threat.Incoming(destination);
+                // Retreating along a bolt's own lane is a legitimate escape: the
+                // bolt has finite remaining travel, so a tile it reaches in two
+                // ticks is a tile this body will have left. Only an arrival on the
+                // very next tick disqualifies a destination.
+                if (arriving is not null && arriving.Value.Ticks <= 1)
+                    continue;
+                int score = (arriving is null ? 60 : arriving.Value.Ticks * 8)
+                    - (ArcBoard.StepDistance(facts, destination, goals, 20) ?? 12);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = direction;
+                }
+            }
+            if (best is Direction escape)
+            {
+                return new GenericActorDecision(
+                    move.ActionId,
+                    move.ActionCode,
+                    [new GenericActorActionArgument.DirectionArgument(escape)],
+                    $"stepping {escape} off an incoming bolt");
+            }
+        }
+
+        if (incoming.Ticks < 2 || restrictTo is not null)
+            return null;
+        Direction? turn = null;
+        int turnScore = int.MinValue;
+        foreach (Direction direction in ArcBoard.Cardinals)
+        {
+            if (direction == context.Self.Facing)
+                continue;
+            Position destination = ArcBoard.Step(context.Self.Position, direction);
+            if (facts.Impassable(destination))
+                continue;
+            (int Ticks, int Damage)? arriving = threat.Incoming(destination);
+            if (arriving is not null && arriving.Value.Ticks <= 1)
+                continue;
+            int score = (arriving is null ? 60 : arriving.Value.Ticks * 8)
+                - (ArcBoard.StepDistance(facts, destination, goals, 20) ?? 12);
+            if (score > turnScore)
+            {
+                turnScore = score;
+                turn = direction;
+            }
+        }
+        return turn is Direction facing
+            ? Rotate(facts, context, facing, "turning to open an escape lane")
+            : null;
+    }
+
+    /// <summary>
+    /// One step that unmasks a shot without giving up the ground.
+    ///
+    /// <para>This exists because of a contract fact that costs a duel twenty
+    /// ticks if you miss it: in the class arms the mobile gun's declared initial
+    /// aim range is zero, and a bend cannot start before the first tile — so a
+    /// DIAGONALLY ADJACENT body is unhittable by an ordinary shot, and two bodies
+    /// standing on the same objective cluster can stare at each other forever.
+    /// One step inside the cluster turns the diagonal into a cardinal.</para>
+    ///
+    /// <para>Destinations are restricted to <paramref name="keep"/> so presence
+    /// is never traded for aim, and are scored by the best lane the destination
+    /// offers over any facing, discounted for the rotation that would cost.</para>
+    /// </summary>
+    public static GenericActorDecision? Unmask(
+        ArcFacts facts,
+        GenericActorContext context,
+        ArcGun gun,
+        ArcThreat threat,
+        IReadOnlySet<Position> keep,
+        IReadOnlySet<Position> blocked)
+    {
+        GenericActorActionLegality? move = Legality(
+            facts,
+            context,
+            GenericActorRulesContract.ActionKind.Movement);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            allowed = move?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>()
+                .SingleOrDefault();
+        if (move is null || allowed is null || context.Enemies.IsEmpty)
+            return null;
+
+        int here = gun.BestLaneValueFrom(
+            context.Self.Position,
+            context.Self.Facing,
+            ticksFromNow: 0);
+        Direction? best = null;
+        int bestValue = here;
+        foreach (Direction direction in allowed.AllowedValues)
+        {
+            Position destination = ArcBoard.Step(context.Self.Position, direction);
+            if (!keep.Contains(destination)
+                || facts.Impassable(destination)
+                || blocked.Contains(destination)
+                // A bolt three tiles out with two tiles of range left cannot
+                // reach THIS tile and can reach the next one. Repositioning has
+                // to price the destination, or the cure walks into the disease.
+                || threat.Threatened(destination, 2))
+            {
+                continue;
+            }
+            int value = gun.BestLaneValueFrom(
+                destination,
+                context.Self.Facing,
+                ticksFromNow: 1);
+            if (value > bestValue)
+            {
+                bestValue = value;
+                best = direction;
+            }
+        }
+        return best is Direction step
+            ? new GenericActorDecision(
+                move.ActionId,
+                move.ActionCode,
+                [new GenericActorActionArgument.DirectionArgument(step)],
+                $"stepping {step} to unmask a lane")
+            : null;
+    }
+
+    /// <summary>An absolute rotation, when the mask offers that heading.</summary>
+    public static GenericActorDecision? Rotate(
+        ArcFacts facts,
+        GenericActorContext context,
+        Direction facing,
+        string reason)
+    {
+        if (context.Self.Facing == facing)
+            return null;
+        GenericActorActionLegality? rotate = Legality(
+            facts,
+            context,
+            GenericActorRulesContract.ActionKind.Rotation);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            headings = rotate?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>()
+                .SingleOrDefault();
+        if (rotate is null
+            || headings is null
+            || !headings.AllowedValues.Contains(facing))
+        {
+            return null;
+        }
+        return new GenericActorDecision(
+            rotate.ActionId,
+            rotate.ActionCode,
+            [new GenericActorActionArgument.DirectionArgument(facing)],
+            $"{reason} ({facing})");
+    }
+
+    private static GenericActorActionLegality? Legality(
+        ArcFacts facts,
+        GenericActorContext context,
+        GenericActorRulesContract.ActionKind kind)
+    {
+        HashSet<string> ids = facts.Contract.Rules.Actions
+            .Where(action => action.Kind == kind)
+            .Select(action => action.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        return context.ActionLegalities
+            .Where(action => action.Available && ids.Contains(action.ActionId))
+            .OrderBy(action => action.ActionId, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+}

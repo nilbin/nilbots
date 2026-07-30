@@ -1,0 +1,102 @@
+# SHA-256 manifest — VectorEdge revision 4 (lineage vector-edge-v1, class striker)
+# Frozen 2026-07-30T01:57:56Z. Paths are relative to this directory.
+# Toolchain: NativeAOT-LLVM 10.0.0-rc.1.26306.1, SDK/Guest 0.10.6, controlled
+# 'nilbots build --no-cache' through the platform-matched Docker builder
+# (sandbox/cli-publish, nilbots 0.9.15, game rules 0.5).
+# Build-cache key: 8baaa3819792899b989e22b2b6c483fd66e9ad8e2a54dabc020741bd5027330c
+
+## submitted source and project metadata
+193387131086e80d98cfe7962e6f5b8eba0db6ef6b75486b57ae55e5c491dc5f  Advance.cs
+567e9faff0546472153f773df504dd252de38a63c5b99a50a9c08b72bd192627  ArenaBasics.cs
+7b9aee1acbded847d5229170d22945d725cfad47608bc5d0dc793747f448fef0  Ballistics.cs
+eb6bdb81d5f89308ee9189d5ed296431539d0b36350ae3f80da593b795a17cea  Cast.cs
+f2e1da233868cedb0256c64302166f9e9934b7c0d0e6ee613965b1aa93d1dbf8  Doctrine.cs
+a0f3b917bfea038127e65aaee0596ace45cb6798f63ae9e625498282c493ed43  DodgeLedger.cs
+84c2ef379f025a1c9e2aa4b7e7f6e66dd0a7fa55e9aa9a494f2f91a37fd05df5  Field.cs
+19865abb94181a5f390024eb021415c6cedfb4a97cf36eed230bfd0116c2e64f  ShotSolver.cs
+450098b606a332bb2cacfe49c8d99f7ae590509e37bb078534990c63d81d6a1b  Skills.cs
+d958bc4272a7271419cba5877c1d8f08c6df7a3fa3bf072cae2a4d8b75af6951  VectorEdge.cs
+8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573  VectorEdge.csproj
+2b2fc99e65fdb30a4412ace93d22b24d5e15b6e564e3180849ed50958dbb5c64  botarena.json
+
+## player-facing documentation
+95b482d889e25c37f032754e80efaba142007d1d979f0c16e3aba70cde753f72  README.md
+116118848954924161e8103596816e36ce74230e4351d2e03dcbb6deedb08ba0  DX.md
+
+## canonical artifact
+16ab20f1785936f3537b6db0629f50b2250c0c372805401f83a8d5fbc031488d  out/bot.wasm
+
+## qualification evidence (frontline-qualification-5, exit 0, T4, balanceEvidenceEligible true)
+57043a70a1e9071440a24df4312091442ab73fdf985058b31a67274dec976adb  evidence/t4/qualification.json
+3b983dba3675173e4d807428c5a60e7ccb57b6b44679fe195c26b060155b603a  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-0/replay.json
+d38fdb98e2544fd5ce05d9147a6f8db4c9b95d34cbdb4bb9e0a9ca0b44ab2f99  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-1/replay.json
+887e58436d0db8a4caf1dcdba93c74cd24553d2dc76e9f645a3bbea65c840de8  evidence/t4/front-rotation/advance-after-capture/bot-team-0/replay.json
+598bfb9cf3043e8987fd60d1a4710e3f4fa018cbdcef4317cb0e7e065eba6d11  evidence/t4/front-rotation/advance-after-capture/bot-team-1/replay.json
+579b42d26fb4c5749be3751f4fa2a0c964db138cec8fb484f522ec3a049e4136  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-0/replay.json
+24870f8e8b5fad2d723b80e6edf99d45c431fa8e49e727b0bfac35e676938ee0  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-1/replay.json
+1be15f6d05bc8bea1fd756ffddfbcfdad5d37d9c9aea66469219e6f894370983  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-0/replay.json
+f55cce8102432364717e5c6cf380961b809b2a46b3d5b49d4677e1a430426301  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-1/replay.json
+c5548bcc061b417039194d7cd67c31a0f04c94df627bd45d9dbefdf9c2a59696  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-0/replay.json
+2a376b3f9f96b9f727569d043fa8494f04f3bbfe8377d57263c4f52c7827fbb6  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-1/replay.json
+ca4eb8c110abbf9e974bf4a1b0f2870c53162ceaa76d50adf72087ac72b10b43  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-0/replay.json
+b2192dc552770fc4a8fc6465956307d0dcd0c762a8ef31a1f21e82675f1d0a73  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-1/replay.json
+cb0aeb45fb63ec91cbbdf5156860a3b2b90216a3e2c291608f428fa436b5749d  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-0/replay.json
+a9bb77becbf82406d1f8534015bac9b85832c751d5a73ea941cb5f97079c0b19  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-1/replay.json
+4f44c8f4192b3ed8ef4029d7b82d2a79c48d3b441a7cc9739a097e32cb6a9288  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-0/replay.json
+81a453f7914d78b233b8a0c980113200a19f9eb3ff6f986881c6cbe18f5efa03  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-1/replay.json
+eebce25aeb24fd9a1c0b4ebac25885c02c23ce7655cd57551115019a88df75c1  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-0/primary/replay.json
+af5cb07fb882274a6c20f4a2fecea86dc3eb05a18f721c68b9ba4f6360a61572  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-1/primary/replay.json
+eebce25aeb24fd9a1c0b4ebac25885c02c23ce7655cd57551115019a88df75c1  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/determinism-repeat/replay.json
+eebce25aeb24fd9a1c0b4ebac25885c02c23ce7655cd57551115019a88df75c1  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/primary/replay.json
+af5cb07fb882274a6c20f4a2fecea86dc3eb05a18f721c68b9ba4f6360a61572  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/determinism-repeat/replay.json
+af5cb07fb882274a6c20f4a2fecea86dc3eb05a18f721c68b9ba4f6360a61572  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/primary/replay.json
+47388bfcb8de3ebbba6a89cbb83d5b8c6c65a2deb2dec997fd7f0229dfc0d020  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-0/primary/replay.json
+dbaa722bff0374620938d2d4130a11807069423fd826e2b67fddd33ac66d37c7  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-1/primary/replay.json
+d1ce98c4a255906894d4d9f27d5a3810c75fb8ee9da5e81f24ec56637b151624  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-0/primary/replay.json
+0ffe99ebdbdcd019010fae4a50ff1ecb47489c05af5b1f7804c6779dd8830c10  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-1/primary/replay.json
+2e136ac28a7b29fa254161cb86c09c4b81276ccf630a6f3ddc9c5c28c8fb0778  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-0/primary/replay.json
+4fbcccffac2a0357cd94b7c4ad1815a45cde7442b840ae146511732c71638a3a  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-1/primary/replay.json
+8a8818aaf007152f5d7b5607ea81ef262ac16cd6079f7324ec96e94ac8afb2e8  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-0/primary/replay.json
+8940ab9fbd1588c08139764797b4793549567c383c09e0c278d84114ad437853  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-1/primary/replay.json
+59a9e1ec6310c9fc4dba1a917837ef2b75baf971175e090a40d8eb9d6746b4dc  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-0/replay.json
+9cab29fe1cbb456608ed7e60349791f76150d36662f688c52ce50ab25fe4e3ed  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-1/replay.json
+c2b8816e8aafefdf551ba3088495901ba1d631649519e88409aff36f13ff83dc  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-0/replay.json
+58238fa032af62fe808cf9fde8f2caf164aca6199acd88be3b2825d1d17b949e  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-1/replay.json
+427b8ae0b4628e76713d8211d8b2d6da0a112f40a6f1ed5b9dae4be203968df9  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-0/replay.json
+e51f3285e66053e3044d9fad4b8523b01a8739c721679a5334253ad44022fa15  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-1/replay.json
+64aa3a316524b3a896f998567d70619adbb74344ed72669de7a6dddcbcabfee5  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-0/viewer.html
+22c86bff705d24131c130d318d2bf355af30777ea34b2cc15f2abb6946bfb66b  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-1/viewer.html
+c103bb3182d2f7a262032c00b2ca0ba7050ecf1f44271188d8e373da096e6984  evidence/t4/front-rotation/advance-after-capture/bot-team-0/viewer.html
+46602608d06c58bcd3b0f1a62f30111a84ba17ab360ce6bfc97c0624cd433793  evidence/t4/front-rotation/advance-after-capture/bot-team-1/viewer.html
+5c8059d854f4f1881c6267ac36afba0c01048b88ff051f050e61510012b7945b  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-0/viewer.html
+2760dd3d85d8ed565153b0894d725c5d4ad709b214574b8db4fde7d11d3b7ad0  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-1/viewer.html
+e5ed0eac43b793377d5e3c9f04d4e0e8ccca081c0f4980b6604863c6b62849fa  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-0/viewer.html
+4cfc4be5b256a589de63dbfb61b8cbb54065976864d3d8af4a3cf6f4bd26c2e1  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-1/viewer.html
+307c4c1d7d7f54a3268cabe041bca772ee0dfd72595fc4b84f97745427d4601f  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-0/viewer.html
+bddb146f27bdb221f63e41b0b97f20444580a60673b75ed558929c65e1a20905  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-1/viewer.html
+f0d64048e9661fbc3dd6b7f43082acd333d0ab2496ffddba6ccef7f9fea92d25  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-0/viewer.html
+5ff37483db9304d086bd343258dca9b6bb1e37b358217354dbd59ee10e554f80  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-1/viewer.html
+32558bbf7dd602347ce4b028be9cc63ce9cc54bf864cef5b53a5f8f1a0e57b0a  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-0/viewer.html
+1a5c705c2cf21d0e83a2adb3d7def5d6c437498376bbea5d514617353a3cec6e  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-1/viewer.html
+24af6ba7868d77f5de19f1161e6bebdb567193007f350336d028d0544851c5b9  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-0/viewer.html
+dee7531eb718d73fbde941134d80d7387182860aceb5d596e290e79525873ffa  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-1/viewer.html
+16605b84abefb09db0269be5b3a551af2004cb16bb3cf9d020418f3bb032281c  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-0/primary/viewer.html
+ff881466b81aad8e58ce737509f1b0b0c90ccb877b3c9c661494b16c7f5e0f78  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-1/primary/viewer.html
+16605b84abefb09db0269be5b3a551af2004cb16bb3cf9d020418f3bb032281c  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/determinism-repeat/viewer.html
+16605b84abefb09db0269be5b3a551af2004cb16bb3cf9d020418f3bb032281c  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/primary/viewer.html
+ff881466b81aad8e58ce737509f1b0b0c90ccb877b3c9c661494b16c7f5e0f78  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/determinism-repeat/viewer.html
+ff881466b81aad8e58ce737509f1b0b0c90ccb877b3c9c661494b16c7f5e0f78  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/primary/viewer.html
+8bc8d328b26797e275c75793e653433370ea141c302e5eb1d8527cdbabfa48c7  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-0/primary/viewer.html
+38084e3a24c5facbeec1288665e3e4d5a1ba0e44153e32cdf41e91af60ce490f  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-1/primary/viewer.html
+b4d71b61b2216170aa1f0f7757d45b0c51037e9945f418ea6f6753b4e2d124c6  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-0/primary/viewer.html
+f8a30aa67bcd5bd4ef81b3a053a54c02ccb3cfb13295c1177ffd3971463fb5fd  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-1/primary/viewer.html
+f201f7847d89fbdae7e0f53138c5552268858636900a0f9f9397d7632c386ec4  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-0/primary/viewer.html
+e0a0cda2bd0906c203eab1f1089fc8d4132acfcdc6edd33516d5579634b2fc47  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-1/primary/viewer.html
+d790981714880acdbc73b5c4d712195d38472fc29f989c180cbd1ad3049a3922  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-0/primary/viewer.html
+6b9e83498215bdc5416042f096b9c8f5c6148b0f0fdb119b39815a17cf2246f3  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-1/primary/viewer.html
+577c64b0181bb930f772a353c05dc27344b51e1d5aac17bb73f26b410db5b810  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-0/viewer.html
+75be821f95e2cc77b4fda1a2099959626fb2e86e6dd59c56d5096cd7fb4b3390  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-1/viewer.html
+bdcd0ef5392728f1bfebe1e56f2d0166c7968373204f59ea5fae3221b6936f12  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-0/viewer.html
+d3bd287d00ffdbc3c66531fa85195647223a900429b1b4473c4c1dfc7f23ab94  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-1/viewer.html
+bbb77c735908209d0948833e7ac58cedaf31e8a0b32a72c2fef170b2fe9d94b2  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-0/viewer.html
+e6a7424702abccfb844f72dca4ace7304dc1156d1b40f0f15324aaad311f0b1e  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-1/viewer.html
