@@ -60,6 +60,57 @@ const packages = [
       },
     ],
   },
+  {
+    id: "aegis-tortoise-shell",
+    source:
+      "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/source-sheet.png",
+    output:
+      "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1",
+    views: [
+      {
+        file: "01-top.png",
+        crop: { left: 40, top: 25, width: 690, height: 515 },
+      },
+      {
+        file: "02-side.png",
+        crop: { left: 45, top: 625, width: 690, height: 330 },
+      },
+      {
+        file: "03-front-three-quarter.png",
+        crop: { left: 775, top: 65, width: 700, height: 490 },
+      },
+      {
+        file: "04-rear-three-quarter.png",
+        crop: { left: 780, top: 600, width: 700, height: 375 },
+        semanticPatch: "darken-non-team-rear-pod-light",
+      },
+    ],
+  },
+  {
+    id: "aegis-tortoise-turret",
+    source:
+      "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/source-sheet.png",
+    output:
+      "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1",
+    views: [
+      {
+        file: "01-top.png",
+        crop: { left: 50, top: 20, width: 675, height: 590 },
+      },
+      {
+        file: "02-side.png",
+        crop: { left: 50, top: 680, width: 675, height: 300 },
+      },
+      {
+        file: "03-front-three-quarter.png",
+        crop: { left: 775, top: 65, width: 710, height: 480 },
+      },
+      {
+        file: "04-rear-three-quarter.png",
+        crop: { left: 775, top: 620, width: 710, height: 365 },
+      },
+    ],
+  },
 ];
 
 function colorDistance(data, left, right, channels) {
@@ -215,6 +266,45 @@ async function prepareView(source, crop, output) {
   };
 }
 
+async function darkenNonTeamRearPodLight(output) {
+  const target = { left: 225, top: 582, width: 34, height: 53 };
+  const { data, info } = await sharp(output)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let changedPixels = 0;
+  for (let y = target.top; y < target.top + target.height; y += 1) {
+    for (let x = target.left; x < target.left + target.width; x += 1) {
+      const offset = (y * info.width + x) * info.channels;
+      const r = data[offset];
+      const g = data[offset + 1];
+      const b = data[offset + 2];
+      const cyanLight = b >= 120 && g >= 90 && b - r >= 30;
+      if (!cyanLight) continue;
+      const luminance = Math.round((r + g + b) / 3);
+      data[offset] = Math.min(72, 22 + Math.round(luminance * 0.16));
+      data[offset + 1] = Math.min(78, 28 + Math.round(luminance * 0.17));
+      data[offset + 2] = Math.min(88, 38 + Math.round(luminance * 0.18));
+      changedPixels += 1;
+    }
+  }
+  if (changedPixels < 250 || changedPixels > 650) {
+    throw new Error(
+      `Unexpected non-team rear-pod patch size: ${changedPixels} pixels`,
+    );
+  }
+  await sharp(data, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: info.channels,
+    },
+  })
+    .png()
+    .toFile(output);
+  return { id: "darken-non-team-rear-pod-light", target, changedPixels };
+}
+
 async function contactSheet(files, output) {
   const tile = 512;
   const gap = 8;
@@ -264,7 +354,15 @@ for (const packageSpec of packages) {
   for (const view of packageSpec.views) {
     const output = join(outputRoot, view.file);
     const details = await prepareView(source, view.crop, output);
-    packageReport.views.push({ file: view.file, ...details });
+    const semanticPatch =
+      view.semanticPatch === "darken-non-team-rear-pod-light"
+        ? await darkenNonTeamRearPodLight(output)
+        : null;
+    packageReport.views.push({
+      file: view.file,
+      ...details,
+      ...(semanticPatch ? { semanticPatch } : {}),
+    });
     files.push(output);
   }
   await contactSheet(files, join(outputRoot, "contact-sheet.png"));

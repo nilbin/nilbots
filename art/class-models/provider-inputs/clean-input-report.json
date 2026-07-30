@@ -183,6 +183,196 @@
           "objectTop": 461
         }
       ]
+    },
+    {
+      "id": "aegis-tortoise-shell",
+      "source": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/source-sheet.png",
+      "views": [
+        {
+          "file": "01-top.png",
+          "crop": {
+            "left": 40,
+            "top": 25,
+            "width": 690,
+            "height": 515
+          },
+          "foregroundBounds": {
+            "left": 138,
+            "top": 71,
+            "width": 490,
+            "height": 373
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 754,
+          "objectLeft": 132,
+          "objectTop": 250
+        },
+        {
+          "file": "02-side.png",
+          "crop": {
+            "left": 45,
+            "top": 625,
+            "width": 690,
+            "height": 330
+          },
+          "foregroundBounds": {
+            "left": 65,
+            "top": 60,
+            "width": 547,
+            "height": 168
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 304,
+          "objectLeft": 132,
+          "objectTop": 475
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 775,
+            "top": 65,
+            "width": 700,
+            "height": 490
+          },
+          "foregroundBounds": {
+            "left": 44,
+            "top": 60,
+            "width": 561,
+            "height": 345
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 609,
+          "objectLeft": 132,
+          "objectTop": 323
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 780,
+            "top": 600,
+            "width": 700,
+            "height": 375
+          },
+          "foregroundBounds": {
+            "left": 66,
+            "top": 19,
+            "width": 543,
+            "height": 299
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 545,
+          "objectLeft": 132,
+          "objectTop": 355,
+          "semanticPatch": {
+            "id": "darken-non-team-rear-pod-light",
+            "target": {
+              "left": 225,
+              "top": 582,
+              "width": 34,
+              "height": 53
+            },
+            "changedPixels": 433
+          }
+        }
+      ]
+    },
+    {
+      "id": "aegis-tortoise-turret",
+      "source": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/source-sheet.png",
+      "views": [
+        {
+          "file": "01-top.png",
+          "crop": {
+            "left": 50,
+            "top": 20,
+            "width": 675,
+            "height": 590
+          },
+          "foregroundBounds": {
+            "left": 61,
+            "top": 28,
+            "width": 585,
+            "height": 561
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 949,
+          "objectLeft": 132,
+          "objectTop": 153
+        },
+        {
+          "file": "02-side.png",
+          "crop": {
+            "left": 50,
+            "top": 680,
+            "width": 675,
+            "height": 300
+          },
+          "foregroundBounds": {
+            "left": 25,
+            "top": 74,
+            "width": 637,
+            "height": 166
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 258,
+          "objectLeft": 132,
+          "objectTop": 498
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 775,
+            "top": 65,
+            "width": 710,
+            "height": 480
+          },
+          "foregroundBounds": {
+            "left": 84,
+            "top": 71,
+            "width": 614,
+            "height": 311
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 501,
+          "objectLeft": 132,
+          "objectTop": 377
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 775,
+            "top": 620,
+            "width": 710,
+            "height": 365
+          },
+          "foregroundBounds": {
+            "left": 49,
+            "top": 29,
+            "width": 613,
+            "height": 289
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 467,
+          "objectLeft": 132,
+          "objectTop": 394
+        }
+      ]
     }
   ]
 }

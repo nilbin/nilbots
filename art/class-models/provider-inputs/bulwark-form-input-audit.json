@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "method": {
+    "analysisSize": 512,
+    "background": "#b8b8b8",
+    "alignment": "unchanged orientation, one uniform scale, centroid translation; no rotation, reflection, deformation, or nonuniform warp"
+  },
+  "packages": [
+    {
+      "id": "aegis-tortoise-shell",
+      "authority": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+      "views": [
+        {
+          "file": "01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 250,
+            "maxX": 1121,
+            "maxY": 1003,
+            "width": 990,
+            "height": 754,
+            "area": 583629,
+            "centroid": {
+              "x": 620.077758301935,
+              "y": 626.0862465710237
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 475,
+            "maxX": 1121,
+            "maxY": 778,
+            "width": 990,
+            "height": 304,
+            "area": 219867,
+            "centroid": {
+              "x": 617.915521656274,
+              "y": 618.0626287710297
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 323,
+            "maxX": 1120,
+            "maxY": 930,
+            "width": 989,
+            "height": 608,
+            "area": 463416,
+            "centroid": {
+              "x": 628.443623008269,
+              "y": 625.1651928289053
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 357,
+            "maxX": 1120,
+            "maxY": 899,
+            "width": 989,
+            "height": 543,
+            "area": 359352,
+            "centroid": {
+              "x": 641.9967552705982,
+              "y": 596.0620227520649
+            }
+          },
+          "nonFlatBorderPixels": 0
+        }
+      ],
+      "topAlignment": {
+        "previousIou": 0.8237,
+        "iou": 0.8857120365268047,
+        "outerIou": 0.8857997481108313,
+        "referenceCoverage": 0.9309976748227156,
+        "candidateCoverage": 0.9479404504132579,
+        "areaDelta": -0.01787324887671593,
+        "uniformScale": 0.4510868686868687,
+        "improvement": 0.06201203652680476,
+        "overlay": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/top-overlay.png"
+      },
+      "semanticTopCheck": {
+        "note": "Threshold component count is a regression diagnostic only; the retained manual audit classifies team inlays separately from the authored class-energy core.",
+        "expectedCyanThresholdComponents": 5,
+        "observedCyanThresholdComponents": 5,
+        "passed": true
+      }
+    },
+    {
+      "id": "aegis-tortoise-turret",
+      "authority": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+      "views": [
+        {
+          "file": "01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 153,
+            "maxX": 1121,
+            "maxY": 1101,
+            "width": 990,
+            "height": 949,
+            "area": 527447,
+            "centroid": {
+              "x": 627.6121752517314,
+              "y": 632.7114838078518
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 498,
+            "maxX": 1121,
+            "maxY": 755,
+            "width": 990,
+            "height": 258,
+            "area": 181538,
+            "centroid": {
+              "x": 627.8886679372914,
+              "y": 625.8882878515793
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 377,
+            "maxX": 1121,
+            "maxY": 877,
+            "width": 990,
+            "height": 501,
+            "area": 367663,
+            "centroid": {
+              "x": 628.4225363988218,
+              "y": 627.4405447379802
+            }
+          },
+          "nonFlatBorderPixels": 0
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "channels": 3,
+          "foregroundBounds": {
+            "minX": 132,
+            "minY": 394,
+            "maxX": 1121,
+            "maxY": 860,
+            "width": 990,
+            "height": 467,
+            "area": 358999,
+            "centroid": {
+              "x": 624.9623090872119,
+              "y": 618.4876587399965
+            }
+          },
+          "nonFlatBorderPixels": 0
+        }
+      ],
+      "topAlignment": {
+        "previousIou": 0.8016,
+        "iou": 0.858451154307805,
+        "outerIou": 0.8584321152182554,
+        "referenceCoverage": 0.8876898030239531,
+        "candidateCoverage": 0.9630487815541197,
+        "areaDelta": -0.0782504271575486,
+        "uniformScale": 0.4657777777777778,
+        "improvement": 0.056851154307805074,
+        "overlay": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/top-overlay.png"
+      },
+      "semanticTopCheck": {
+        "note": "Threshold component count is a regression diagnostic only; the retained manual audit classifies team inlays separately from the authored class-energy core.",
+        "expectedCyanThresholdComponents": 5,
+        "observedCyanThresholdComponents": 5,
+        "passed": true
+      }
+    }
+  ]
+}

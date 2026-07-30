@@ -4,17 +4,19 @@ This directory contains deterministic provider-input derivatives and their
 raw crop provenance. No Meshy task was submitted and no provider credit was
 spent while preparing them.
 
-The checked-in partial covers the two selected mobile class bodies:
+The checked-in input set covers the two selected mobile class bodies plus the
+two distinct approved Bulwark deployed forms:
 
 | Package | Review state | Provider state |
 | --- | --- | --- |
 | `meshy/aegis-tortoise-mobile` | Clean V1 passed rich-2D overlay and input integrity | **Ready** |
 | `meshy/lattice-loom` | Clean V1 passed rich-2D outer-planform and input integrity | **Ready** |
+| `meshy/aegis-tortoise-shell` | Clean V1 preserves inferred 3D depth and improves rigid SVG IoU from 82.37% to 88.57% | **Ready** |
+| `meshy/aegis-tortoise-turret` | Clean V1 is one whole radial object and improves rigid SVG IoU from 80.16% to 85.85% | **Ready** |
 
-Shell, whole Turret, and all three projectile heads remain independent future
-packages. `generate-crops.zsh` records their reviewed source-panel crop
-coordinates, but this partial deliberately does not check in those follow-up
-crops or pretend they are upload-ready.
+All three projectile heads remain independent future packages.
+`generate-crops.zsh` records reviewed source-panel crop coordinates, but the
+projectiles are not included or treated as upload-ready here.
 
 ## Coordinate and orientation contract
 
@@ -48,3 +50,10 @@ same toolchain.
 gate. Aegis mobile and Lattice use the rich high-resolution 2D art as visual
 and strict top-planform authority. Their runtime SVGs remain the semantic
 team-region and Canvas/site fallback authorities.
+
+Shell and whole Turret instead use their runtime SVGs as strict top and
+semantic authorities. Their accepted inputs preserve the approved inferred-3D
+top rather than substituting a flat SVG, and pass the explicit
+material-improvement gate retained in `BULWARK-FORM-AUDIT.md`. Exact final
+contours, semantic material separation, topology, pivots, and animation remain
+downstream technical-art gates.
