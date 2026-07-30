@@ -177,6 +177,27 @@ a future swarm class.
 
 ## Drafted for the post-phase-2 tuning pass (owner direction, 2026-07-30)
 
+- **Five-slot schedule is the first knob (measured, #171).** Phase 2's
+  factorial replicated fabricator dominance on both seed sets
+  (−0.833/−0.833 over bulwark, +0.778/+0.667 over striker, mains/
+  holdout): the counter-cycle did not form because the numbers class
+  out-scales both counters. The pair structure attributes it to FIVE
+  SLOTS (both other skills sat on the losing side of the swing), with
+  universal bend a secondary amplifier — more guns curve more. Knobs
+  in priority order: slot count (5→4 as a registered arm), the
+  60/180/300/420 unlock schedule (push the late slots right), and the
+  30-tick late-rebuild clock. Keep the volley and shell legs as-is:
+  bulwark-vs-striker landed at +0.333/+0.278 — the healthiest
+  cross-class edge yet measured.
+- **The break budget fires in cross-class play — the wave-4 "0 breaks"
+  finding was a sparring artifact.** With real volleys in the arena
+  the shell broke 206/86 times (mains/holdout kit-on) against
+  1706/1038 deflections: a fan feeds up to three bolts per cast, so
+  the volley is the natural shell-breaker and the two-axis counter-play
+  (flank the locked arc or feed the break) operates constantly. The
+  tuning question is no longer "does the budget ever fire" but whether
+  ~3 is the right price now that one cast can pay most of it.
+
 - **Turret cycling**: anchor/mobilize becomes unlimited per life with a
   cooldown **per unit slot** (never per life — free respawns make
   per-life cooldowns die-to-reset exploitable; slot-level state

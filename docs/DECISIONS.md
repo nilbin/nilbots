@@ -3540,6 +3540,83 @@ cosmetic class-gating of the six purchase packs (rides the persisted
 identity, no schema), and the Meshy 3D model pipeline (presentation
 only).
 
+## 171. Phase 2 measured: the kit works as a mechanism and overshoots as a balance
+
+`balance/frontline-skills-wave-4-v1.json` pre-registered before any run
+(24 cells: six class pairs × keel/helm/veer/rig; the eight-entrant
+wave-4 T4 population; fresh seeds 480013/510007/540041; sealed 2-seed
+holdout, commitment `8384c66e…`). Mains 420/420 verified, holdout
+280/280, no collapsed seeds, verdict-eligible on both.
+
+**The factorial's first catch was an engine fault, not a balance
+fact.** Mains run 1 faulted 9/420 matches — every one arc-light's
+volley fan meeting a gate-stone or iron-root shell: a fan bolt
+deflected during its own launch traversal minted the return's identity
+mid-fan, gapping the volley's projectile identities, and the
+chronology validator correctly rejected the engine's own history
+against the contract's contiguous-ascending-in-launch-order promise.
+Wave-4 authoring could not have seen it — authors spar only their own
+class, and volley-into-shell is inherently cross-class. Fixed by
+reserving the fan's whole identity block before any bolt flies
+(CliVersion 0.9.16); regression test runs a point-blank fan into a
+raised shell, red on the old engine with the production error. No
+previously valid replay changes (a passing volley match replays
+byte-identical; every affected match had faulted, not replayed). Run 1
+is preserved beside the rerun with its payoffs unconsulted; the
+holdout stayed sealed through the fix.
+
+**Balance verdict: the predicted counter-cycle did not form — FIVE
+SLOTS makes the fabricator dominant, not cyclic.** Kit-on pooled
+edges, mains and holdout agreeing: fabricator over bulwark −0.833 /
+−0.833, fabricator over striker +0.778 / +0.667, bulwark over striker
++0.333 / +0.278. Only the bulwark-vs-striker leg lands in the
+registered [0.15, 0.40] band; G4 fails on the two fabricator legs
+both runs. Attribution needs no extra ablation — the pair structure
+carries it: bulwark-vs-fabricator has no striker (volley irrelevant)
+and fabricator-vs-striker has no bulwark (shell irrelevant), and the
+kit's other skill sits on the losing side of both swings. Universal
+bend alone (veer) already tilts the same way (fabricator −0.278/+0.333
+vs keel's +0.056/0.000): more guns curve more. G1a fails as-written
+(delta −0.019/−0.056 vs the +0.30 prediction) for a reason worth
+recording: the prediction assumed phase-1's striker-favoured anchor,
+but keel plus the wave-4 doctrines had already put bulwark ahead
+(+0.35 kit-off) — there was no gap left for the shell to close. Its
+companion G1b (ends ≥ −0.10) passes both runs.
+
+**Mechanism verdict: adopted, alive, and it improves the game's
+pacing.** All three do-no-harm gates pass on both seed sets with the
+sign of improvement, not mere non-harm: cap share 0.43→0.24 (mains)
+and 0.40→0.29 (holdout), draws to ~0, leader-extends UP 0.51→0.58 /
+0.52→0.57 — the first intervention measured here that raises
+leader-extends above the #168 plateau. The skill loop operates in
+real cross-class play: 348/316 volley casts, 1706/1038 deflections,
+and 206/86 shell breaks (mains/holdout kit-on cells). Wave-4's "break
+budget never fires" (0 in ~350 self-play raises) was a sparring
+artifact — the volley is the natural shell-breaker, and the designed
+two-axis counter-play (flank the locked arc or feed the break) is
+exercised constantly. Adoption: arc-light casts in 81.5% of kit-on
+matches; all three bulwarks raise shells (59–78%); vector-edge and
+still-water's 0%/6% are the priced declines already on the wave-4
+record (the measured-decline clause applies; striker pooled 29% ≥
+25%). Five slots is passive topology, so the usage gate is
+inapplicable to it by construction.
+
+Two disclosures resolved: striker-mirror cells keel≡veer and helm≡rig
+share identical rules/map/topology/format fingerprints, but the match
+provenance differs and seed derivation mixes it, so those cells are
+independent samples of one ruleset — honest replications, not
+double-counted bytes. And the placement-tag rationing and break
+budget were measured AS-IS per the registration; the tuning pass owns
+those knobs.
+
+Consequence: the kit stays adopted (mechanism gates passed with
+improvement), the balance fails its band as-is, and the first tuning
+knob is the five-slot schedule (count and 60/180/300/420 unlocks,
+#165) with the volley/shell legs kept — bulwark-vs-striker is the
+healthiest cross-class edge yet measured. The owner watchability
+gallery (the phase-2 human gate) proceeds on this evidence; the
+leave-one-skill-out arms stay registered for the tuning pass.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
