@@ -12,6 +12,7 @@ export {
   posesAt,
   spentBoltsAt,
 } from '../../src/render/interpolate';
+export { frontlineCaptureVisual } from '../../src/render/frontlineCaptureVisual';
 export {
   ARENA_MARGIN_TILES,
   ArenaCamera,

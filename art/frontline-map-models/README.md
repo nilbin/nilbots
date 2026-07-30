@@ -130,3 +130,12 @@ capture metrics, and the sanitized reproduction command are in
 which remain honest follow-ups. Reproduce the boards with
 `scripts/render-frontline-runtime-wall-comparison.mjs`; `REPLAY_PATH`,
 `BASELINE_DIST`, and `CANDIDATE_DIST` may point at equivalent verified inputs.
+
+The follow-up capture-visibility pass is recorded in
+`OVERLAY-PROTOTYPE.md`. It keeps this approved V4 environment byte-for-byte
+locked and adds renderer-only owner tint, exact claim progress, distinct
+challenger erosion, contested treatment, and exact ratchet pulse/countdown in
+both WebGL and Canvas. Its native seven-state boards and provenance ledger live
+under `review/capture-visibility/`; reproduce them with
+`scripts/render-frontline-capture-visibility-evidence.mjs` after generating
+the ledger-pinned replay with the documented explicit `--viewer` command.

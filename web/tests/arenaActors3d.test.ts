@@ -544,7 +544,7 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   overlays.dispose();
 });
 
-test('Frontline capture fields derive contested state from authoritative occupancy', () => {
+test('Frontline capture fields derive contested state through the binary capture policy', () => {
   const contestedReplay = structuredClone(frontline) as ReplayModel;
   const definition = contestedReplay.map.frontline;
   assert.ok(definition);
@@ -575,6 +575,73 @@ test('Frontline capture fields derive contested state from authoritative occupan
   overlays.dispose();
 });
 
+test('3D capture overlays separate build, erosion, and exact post-advance ratchet ownership', () => {
+  const building = captureReplay({
+    activePositionIndex: 1,
+    tiles: [{ x: 1, y: 4 }],
+    claimingTeamId: 0,
+    captureProgress: 2,
+  });
+  const buildOverlaysResult = buildOverlays(building);
+  buildOverlaysResult.update(0.5, null, false);
+  const buildField = activeCaptureField(buildOverlaysResult.group);
+  assert.equal(buildField.userData.state, 'building');
+  assert.equal(buildField.userData.progressDirection, 'building');
+  assert.equal(buildField.userData.claimantTeamId, 0);
+  assert.ok(
+    captureMaterial(buildField, 'frontline-capture-progress').opacity >
+      0.8,
+  );
+  assert.ok(
+    captureMaterial(buildField, 'frontline-capture-ownership').opacity >
+      0,
+  );
+  buildOverlaysResult.dispose();
+
+  const eroding = captureReplay({
+    activePositionIndex: 1,
+    tiles: [{ x: 13, y: 4 }],
+    claimingTeamId: 0,
+    captureProgress: 2,
+  });
+  const erosionOverlays = buildOverlays(eroding);
+  erosionOverlays.update(0.5, null, false);
+  const erosionField = activeCaptureField(erosionOverlays.group);
+  assert.equal(erosionField.userData.state, 'eroding');
+  assert.equal(erosionField.userData.progressDirection, 'eroding');
+  assert.equal(erosionField.userData.claimantTeamId, 0);
+  assert.equal(erosionField.userData.challengerTeamId, 1);
+  assert.ok(
+    captureMaterial(erosionField, 'frontline-capture-erosion').opacity >
+      0.6,
+  );
+  erosionOverlays.dispose();
+
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const holdOverlays = buildOverlays(held);
+  holdOverlays.update(0.5, null, false);
+  const heldField = activeCaptureField(holdOverlays.group);
+  assert.equal(heldField.userData.positionIndex, 2);
+  assert.equal(heldField.userData.state, 'holding');
+  assert.equal(heldField.userData.holdOwnerTeamId, 1);
+  assert.equal(heldField.userData.holdEndsAtTick, 31);
+  assert.ok(
+    captureMaterial(heldField, 'frontline-capture-ownership').opacity >=
+      0.2,
+  );
+  assert.ok(
+    captureMaterial(heldField, 'frontline-capture-hold').opacity > 0.7,
+  );
+  holdOverlays.dispose();
+});
+
 test('zero-tick replay-v2 prefixes do not invent bodies, lifecycle, or an active position', () => {
   const actors = buildActors(emptyFrontlinePrefix);
   actors.update(0, null, false);
@@ -592,3 +659,63 @@ test('zero-tick replay-v2 prefixes do not invent bodies, lifecycle, or an active
   actors.dispose();
   overlays.dispose();
 });
+
+function captureReplay({
+  activePositionIndex,
+  tiles,
+  claimingTeamId,
+  captureProgress,
+  holdOwnerTeamId = null,
+  holdEndsAtTick = null,
+}: {
+  activePositionIndex: number;
+  tiles: { x: number; y: number }[];
+  claimingTeamId: number | null;
+  captureProgress: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
+}): ReplayModel {
+  const candidate = structuredClone(frontline) as ReplayModel;
+  const definition = candidate.map.frontline;
+  assert.ok(definition);
+  const position = definition.positions.find(
+    (entry) => entry.positionIndex === activePositionIndex,
+  );
+  assert.ok(position);
+  position.tiles = tiles;
+  const objective = candidate.ticks[0]!.after.objective;
+  assert.equal(objective.kind, 'frontline');
+  if (objective.kind !== 'frontline') return candidate;
+  objective.activePositionIndex = activePositionIndex;
+  objective.claimingTeamId = claimingTeamId;
+  objective.captureProgress = captureProgress;
+  objective.holdOwnerTeamId = holdOwnerTeamId;
+  objective.holdEndsAtTick = holdEndsAtTick;
+  return candidate;
+}
+
+function activeCaptureField(group: THREE.Object3D): THREE.Object3D {
+  let active: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.kind === 'frontline-capture-field' &&
+      node.userData.active
+    ) {
+      active = node;
+    }
+  });
+  assert.ok(active);
+  return active;
+}
+
+function captureMaterial(
+  field: THREE.Object3D,
+  kind: string,
+): THREE.MeshBasicMaterial {
+  const mesh = field.children.find(
+    (child) => child.userData.kind === kind,
+  ) as THREE.Mesh | undefined;
+  assert.ok(mesh);
+  assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
+  return mesh.material;
+}
