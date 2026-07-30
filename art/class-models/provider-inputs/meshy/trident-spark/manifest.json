@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "assetId": "trident-spark",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "provider-ready",
+  "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/chroma-source-sheet.png",
+    "sha256": "7234437b8f018cdbeeb72c5f9b31aef646de6a9180c96ed1050e4da76e5c29d7",
+    "width": 1254,
+    "height": 1254
+  },
+  "approvedConceptSheet": {
+    "path": "art/class-models/concept-targets/projectiles/trident-spark-3d-concept-v1/approval-sheet.png",
+    "sha256": "8281af50b1cce1df2e9edba688d9b8ff982048f69f9fdc54f14149721eb11dc5",
+    "width": 1254,
+    "height": 1254
+  },
+  "reconstructionSheet": {
+    "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/reconstruction-sheet.png",
+    "sha256": "fed1d7b4c29d7b3753003a1a0b63f6caa09a7a24482cc08e455f8627446f6bf5",
+    "width": 1254,
+    "height": 1254
+  },
+  "topTextureSource": {
+    "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/top-texture-source.png",
+    "sha256": "81f5eab9cae1497184a7b83d2584b6a232bdf87e42fd6ec357baed5f34c015e9",
+    "width": 1254,
+    "height": 1254
+  },
+  "topAuthority": {
+    "path": "web/src/assets/class-projectile-looks/trident-spark/sprite.svg",
+    "sha256": "b44365017f788d9ba8ff207f04976ee244f488493699d9214d2fd8a767b25f59",
+    "kind": "runtime-projectile-svg"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "imageRight": "+X",
+    "worldUp": "+Y"
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a27c912054a602d55e66a77b7539ede8c93127e506ff30fb20528e4139493da1"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "b43f0b4434c63a1c09f8c9fc125bf0df800d4659cec55f653d6c04eec82f4317"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "2486f75dabedfa02981c6a11b6193ff6923d77fd70c51930f8f9ddd5b8547477"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "06022295d2f5862f2dac86c232cc4c7969c1ea614c41b26e5ad8304158e0c278"
+    }
+  ],
+  "blockers": [],
+  "providerSubmission": {
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate one static high-detail Trident Spark projectile-head reconstruction master for deterministic cleanup and projectile-mask material authoring; no trail, glow, spin, hit, miss, or deflection effects belong in the model.",
+    "texturePrompt": "Restrained stylized PBR compact projectile head: charcoal graphite structure, desaturated warm-metal conductor blades, crisp recessed seams, chamfered edges, subtle scuffs, and a neutral-white energy ridge. Keep all colors neutral because runtime owns team tint through the projectile-mask material. No fixed cyan, red, or orange; no text, logos, labels, decals, baked shadows, floor lighting, trail, halo, impact, or motion effects."
+  }
+}

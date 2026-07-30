@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "generator": "art/class-models/class-projectiles/build_class_projectiles.py",
+  "generatorSha256": "3257ae65868e886c0ca29f74ea76be9b6149d9229a25a94c086f972442743bdd",
+  "blender": {
+    "requiredVersion": "5.2.0",
+    "actualVersion": "5.2.0 LTS"
+  },
+  "paidProviderCallsMade": 0,
+  "sourcePolicy": "canonical SVG geometry plus authored Blender primitives; audited provider masters are verified human references only",
+  "providerReferences": {
+    "trident-spark": {
+      "taskId": "019fb203-d779-779d-8374-59deec6606d3",
+      "sha256": "b48adbf2931a101663918e207af12794f5ee3cc3a480bf35e98ede979be0736d",
+      "bytes": 34210560,
+      "usage": "verified human material/form reference only; never imported or sampled by the deterministic builder",
+      "auditCorrection": "exact SVG wing/fork planform and authored 0.165-tile underside replace the raw master's 33.7% depth deficit"
+    },
+    "rebound-diamond": {
+      "taskId": "019fb206-978f-7ff8-9f18-e2b725c02584",
+      "sha256": "fad945e58c6010f72205787c1570c895395f4846a05e4984e232c06858f1964d",
+      "bytes": 37580164,
+      "usage": "verified human material/form reference only; never imported or sampled by the deterministic builder",
+      "auditCorrection": "exact elongated-hex SVG aperture replaces the rounded raw tunnel while preserving the low armored depth class"
+    },
+    "lattice-rivet": {
+      "taskId": "019fb209-ea51-76ae-94ed-c6b3c92275b3",
+      "sha256": "f62409fd1d8bf3cafaaa92a29cd8e3eb9cfe072d51368c7ce1a63c253f030774",
+      "bytes": 40265884,
+      "usage": "verified human material/form reference only; never imported or sampled by the deterministic builder",
+      "auditCorrection": "provider topology is discarded; the visible-top identity is rebuilt over one authored 0.160-tile underside with no duplicate"
+    }
+  },
+  "reviewPolicy": "fixed views are local gates; final approval requires combined same-frame native V4 Frontline replay evidence",
+  "assets": [
+    {
+      "assetId": "trident-spark",
+      "canonicalSvg": {
+        "path": "web/src/assets/class-projectile-looks/trident-spark/sprite.svg",
+        "sha256": "b44365017f788d9ba8ff207f04976ee244f488493699d9214d2fd8a767b25f59",
+        "authority": "exact outer planform and aperture"
+      },
+      "authoredConstruction": {
+        "sourceFacing": "+X",
+        "sourceUp": "+Y after glTF export",
+        "floor": "Y=0 after glTF export",
+        "planformSpanTiles": 0.99173,
+        "heightTiles": 0.165,
+        "objects": 8,
+        "uniqueVertices": 750,
+        "uniqueTriangles": 1468,
+        "materials": 3,
+        "textureMaps": {
+          "dimensions": [
+            128,
+            128
+          ],
+          "albedo": 3,
+          "normal": 1,
+          "metallicRoughness": 1,
+          "palette": "strict grayscale; renderer supplies team tint"
+        },
+        "semanticRoles": [
+          "projectile-mask"
+        ]
+      },
+      "runtime": {
+        "lookScale": 0.58,
+        "rendererProjectileFactor": 0.72,
+        "effectivePlanformSpanTiles": 0.414147,
+        "motion": "axial-spin",
+        "exclusions": [
+          "trail",
+          "glow pool",
+          "impact",
+          "miss",
+          "deflection",
+          "hitbox",
+          "range",
+          "speed",
+          "camera",
+          "light",
+          "animation"
+        ]
+      },
+      "artifacts": {
+        "glb": {
+          "path": "web/src/assets/class-projectile-looks/trident-spark/model.glb",
+          "bytes": 301476,
+          "sha256": "7775011b33450bcd782f5ffcc5e67923641be19b0b4c46d59b2d08712cd1a82c"
+        },
+        "blend": {
+          "path": "art/class-models/class-projectiles/source/trident-spark-editable.blend",
+          "bytes": 226269,
+          "sha256": "3e5bb7282ccc4350b5af4a243b9f41702e56d78560643a8b9a0cc71eefd574d3"
+        },
+        "review": "art/class-models/class-projectiles/review/trident-spark"
+      }
+    },
+    {
+      "assetId": "rebound-diamond",
+      "canonicalSvg": {
+        "path": "web/src/assets/class-projectile-looks/rebound-diamond/sprite.svg",
+        "sha256": "7aa2a8621dbd75fa135135a2573b35aebcc140d46afc35b8cf4ae16f35d34dd7",
+        "authority": "exact outer planform and aperture"
+      },
+      "authoredConstruction": {
+        "sourceFacing": "+X",
+        "sourceUp": "+Y after glTF export",
+        "floor": "Y=0 after glTF export",
+        "planformSpanTiles": 0.991277,
+        "heightTiles": 0.158,
+        "objects": 6,
+        "uniqueVertices": 724,
+        "uniqueTriangles": 1436,
+        "materials": 3,
+        "textureMaps": {
+          "dimensions": [
+            128,
+            128
+          ],
+          "albedo": 3,
+          "normal": 1,
+          "metallicRoughness": 1,
+          "palette": "strict grayscale; renderer supplies team tint"
+        },
+        "semanticRoles": [
+          "projectile-mask"
+        ]
+      },
+      "runtime": {
+        "lookScale": 0.56,
+        "rendererProjectileFactor": 0.72,
+        "effectivePlanformSpanTiles": 0.399683,
+        "motion": "flat-spin",
+        "exclusions": [
+          "trail",
+          "glow pool",
+          "impact",
+          "miss",
+          "deflection",
+          "hitbox",
+          "range",
+          "speed",
+          "camera",
+          "light",
+          "animation"
+        ]
+      },
+      "artifacts": {
+        "glb": {
+          "path": "web/src/assets/class-projectile-looks/rebound-diamond/model.glb",
+          "bytes": 301504,
+          "sha256": "6dbb7f123d77ab3a69d470e2480df5e5e717a43f130878f66aab8b83727049a9"
+        },
+        "blend": {
+          "path": "art/class-models/class-projectiles/source/rebound-diamond-editable.blend",
+          "bytes": 226892,
+          "sha256": "3d8a61fd75e4c0a9b796bec57f1ac734bc27e767ade290a642378cc5a1bc4527"
+        },
+        "review": "art/class-models/class-projectiles/review/rebound-diamond"
+      }
+    },
+    {
+      "assetId": "lattice-rivet",
+      "canonicalSvg": {
+        "path": "web/src/assets/class-projectile-looks/lattice-rivet/sprite.svg",
+        "sha256": "e5f86e1d2c33816ab807132ced9274871854b2881ee2d47978d8ce980248a3ab",
+        "authority": "exact outer planform and aperture"
+      },
+      "authoredConstruction": {
+        "sourceFacing": "+X",
+        "sourceUp": "+Y after glTF export",
+        "floor": "Y=0 after glTF export",
+        "planformSpanTiles": 0.991281,
+        "heightTiles": 0.16,
+        "objects": 15,
+        "uniqueVertices": 1436,
+        "uniqueTriangles": 2824,
+        "materials": 3,
+        "textureMaps": {
+          "dimensions": [
+            128,
+            128
+          ],
+          "albedo": 3,
+          "normal": 1,
+          "metallicRoughness": 1,
+          "palette": "strict grayscale; renderer supplies team tint"
+        },
+        "semanticRoles": [
+          "projectile-mask"
+        ]
+      },
+      "runtime": {
+        "lookScale": 0.54,
+        "rendererProjectileFactor": 0.72,
+        "effectivePlanformSpanTiles": 0.38541,
+        "motion": "tumble",
+        "exclusions": [
+          "trail",
+          "glow pool",
+          "impact",
+          "miss",
+          "deflection",
+          "hitbox",
+          "range",
+          "speed",
+          "camera",
+          "light",
+          "animation"
+        ]
+      },
+      "artifacts": {
+        "glb": {
+          "path": "web/src/assets/class-projectile-looks/lattice-rivet/model.glb",
+          "bytes": 468276,
+          "sha256": "73606f2a94c9d848f2dab8c9a4b81214643eef06c2d15481e277e8cc14c92354"
+        },
+        "blend": {
+          "path": "art/class-models/class-projectiles/source/lattice-rivet-editable.blend",
+          "bytes": 239529,
+          "sha256": "327069b7790e2c79637884d559b30fc5f48ce7b8d35cb1b1264f3982fbc0bf36"
+        },
+        "review": "art/class-models/class-projectiles/review/lattice-rivet"
+      }
+    }
+  ]
+}

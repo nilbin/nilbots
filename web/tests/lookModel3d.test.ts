@@ -42,9 +42,6 @@ test('approved mobile class bodies resolve to authored class GLBs', () => {
     'trident-wasp-volley',
     'aegis-tortoise-shell',
     'aegis-tortoise-turret',
-    'trident-spark',
-    'rebound-diamond',
-    'lattice-rivet',
   ])
     assert.equal(modelSpec(id), null, id);
 });
