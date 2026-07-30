@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "recipe": {
+    "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/team-accent/recipe.json",
+    "sha256": "826604a0eee63fd21af62c1b72235e786d793dcc0faf192b710697947323f6bb"
+  },
+  "source": "sandbox/class-model-builds/lattice-loom/lattice-loom-lean-source.glb",
+  "output": "sandbox/class-model-builds/lattice-loom/team-accent-final/lattice-loom-team-accent.glb",
+  "artifacts": {
+    "sourceModelSha256": "60bbc96d292ee36408cadcda2786f87dbd48060ef3fed769a43986bc8916f2c6",
+    "outputModelSha256": "e5ada31e067aea1e44d62d561e0b33e1b892a1e883ac7aade7d88993a946bcb1",
+    "outputModelBytes": 6604048
+  },
+  "coordinateContract": {
+    "facing": "+X",
+    "up": "+Y",
+    "boundsMin": [
+      -0.5400000214576721,
+      0,
+      -0.46545326709747314
+    ],
+    "boundsMax": [
+      0.5400000214576721,
+      0.21867996454238892,
+      0.46545326709747314
+    ],
+    "maxPlanformSpan": 1.0800000429153442
+  },
+  "portabilityWarnings": [],
+  "pass": true,
+  "checks": [
+    {
+      "name": "recipe pins every source and generated artifact",
+      "pass": true
+    },
+    {
+      "name": "source has one primitive",
+      "pass": true
+    },
+    {
+      "name": "output has exactly hull + team-accent primitives",
+      "pass": true
+    },
+    {
+      "name": "both output primitives share the untouched geometry accessors",
+      "pass": true
+    },
+    {
+      "name": "scene graph and transforms preserve facing exactly",
+      "pass": true
+    },
+    {
+      "name": "coordinate bounds preserve the pinned +X/+Y normalized source",
+      "pass": true
+    },
+    {
+      "name": "face split is a lossless partition of source triangles",
+      "pass": true
+    },
+    {
+      "name": "team role is semantic on primitive and material",
+      "pass": true
+    },
+    {
+      "name": "team material is tintable without fixed color maps",
+      "pass": true
+    },
+    {
+      "name": "team material keeps normal and metallic/roughness PBR",
+      "pass": true
+    },
+    {
+      "name": "hull retains all four PBR texture roles",
+      "pass": true
+    },
+    {
+      "name": "normal and metallic/roughness payloads are byte-identical",
+      "pass": true
+    },
+    {
+      "name": "hull color and emission are embedded lossless PNGs",
+      "pass": true
+    },
+    {
+      "name": "generated PNGs retain their pinned resolutions",
+      "pass": true
+    },
+    {
+      "name": "runtime model remains inside its pinned transfer budget",
+      "pass": true
+    },
+    {
+      "name": "known tangent-space portability warnings remain explicit",
+      "pass": true
+    },
+    {
+      "name": "runtime model contains no camera, light, or animation",
+      "pass": true
+    },
+    {
+      "name": "report hashes and internal checks match generated files",
+      "pass": true
+    }
+  ]
+}

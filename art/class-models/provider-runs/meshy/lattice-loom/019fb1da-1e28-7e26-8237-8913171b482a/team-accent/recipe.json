@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "method": "deterministic-offline-team-accent-face-partition",
+  "lookId": "lattice-loom",
+  "taskId": "019fb1da-1e28-7e26-8237-8913171b482a",
+  "imageEnhancement": false,
+  "reportFilename": "team-accent-report.json",
+  "inputs": {
+    "model": {
+      "file": "sandbox/class-model-builds/lattice-loom/lattice-loom-lean-source.glb",
+      "bytes": 4978440,
+      "sha256": "60bbc96d292ee36408cadcda2786f87dbd48060ef3fed769a43986bc8916f2c6"
+    },
+    "baseColor": {
+      "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/texture-0-base-color.png",
+      "bytes": 30817824,
+      "sha256": "4bc286b93d175ea1188db7c4c62a002b176ab7be429d93e6c0a5ca44ab3b806e",
+      "width": 4096,
+      "height": 4096
+    },
+    "emission": {
+      "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/texture-0-emission.png",
+      "bytes": 569031,
+      "sha256": "7ddf1197562e6806269315623aa3e16e8ae0531ad3b9c281455361f092e1a619",
+      "width": 2048,
+      "height": 2048
+    }
+  },
+  "outputs": {
+    "model": {
+      "fileName": "lattice-loom-team-accent.glb",
+      "bytes": 6604048,
+      "sha256": "e5ada31e067aea1e44d62d561e0b33e1b892a1e883ac7aade7d88993a946bcb1"
+    },
+    "losslessMask": {
+      "fileName": "team-accent-mask.png",
+      "bytes": 84527,
+      "sha256": "bdbf88640cd0bce708496741d2e2def6f6bb2f1a552fc80b824768b8d55a8cef",
+      "width": 4096,
+      "height": 4096
+    },
+    "neutralHullBase": {
+      "fileName": "hull-base-neutral.png",
+      "bytes": 1873493,
+      "sha256": "bfe4a9e7b0b521d07eb7efb27fad462e55393adf0f7150eb51bee42940fa7de9",
+      "width": 1024,
+      "height": 1024
+    },
+    "neutralHullEmission": {
+      "fileName": "hull-emission-neutral.png",
+      "bytes": 168182,
+      "sha256": "65aa88197876db29580c8ebf3e7c01cc2e4a7151d9c0b79524f3c66ceec3883d",
+      "width": 1024,
+      "height": 1024
+    }
+  },
+  "thresholds": {
+    "workingGrid": "emission-resolution exact 2x2 base-color box average",
+    "baseLoose": {
+      "greenMin": 35,
+      "blueMin": 45,
+      "greenMinusRedMin": 12,
+      "blueMinusRedMin": 18
+    },
+    "baseStrong": {
+      "greenMin": 80,
+      "blueMin": 100,
+      "greenMinusRedMin": 40,
+      "blueMinusRedMin": 55
+    },
+    "emissionLoose": {
+      "greenMin": 8,
+      "blueMin": 10,
+      "greenMinusRedMin": 3,
+      "blueMinusRedMin": 5
+    },
+    "emissionStrong": {
+      "greenMin": 28,
+      "blueMin": 34,
+      "greenMinusRedMin": 14,
+      "blueMinusRedMin": 18
+    },
+    "balancedCyan": "2*g >= b && 2*b >= g",
+    "connectivity": 8,
+    "guidedGrowthIterations": 2,
+    "close": "one radius-1 square dilate/erode",
+    "minimumFinalComponentPixelsAtWorkingResolution": 32,
+    "triangleSamples": 7,
+    "triangleVoteThreshold": 5
+  },
+  "coordinateContract": {
+    "facing": "+X",
+    "up": "+Y",
+    "floorY": 0,
+    "boundsMin": [
+      -0.5400000214576721,
+      0,
+      -0.46545326709747314
+    ],
+    "boundsMax": [
+      0.5400000214576721,
+      0.21867996454238892,
+      0.46545326709747314
+    ],
+    "maxPlanformSpan": 1.0800000429153442,
+    "tolerance": 1e-9
+  },
+  "validation": {
+    "runtimeBudgetBytes": 7500000,
+    "generatedTangentSpaceWarnings": []
+  }
+}

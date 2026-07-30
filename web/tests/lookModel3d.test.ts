@@ -5,10 +5,19 @@ import {
   presentationBotLook,
 } from './.harness/harness.entry.js';
 
-test('only the approved Striker mobile body resolves to an authored class GLB', () => {
+test('the approved Striker and Fabricator bodies resolve to authored class GLBs', () => {
   assert.deepEqual(modelSpec('trident-wasp'), {
     version: 1,
     id: 'trident-wasp',
+    file: 'model.glb',
+    kind: 'bot',
+    part: 'whole',
+    facing: '+x',
+    up: '+y',
+  });
+  assert.deepEqual(modelSpec('lattice-loom'), {
+    version: 1,
+    id: 'lattice-loom',
     file: 'model.glb',
     kind: 'bot',
     part: 'whole',
@@ -21,7 +30,6 @@ test('only the approved Striker mobile body resolves to an authored class GLB', 
     'aegis-tortoise',
     'aegis-tortoise-shell',
     'aegis-tortoise-turret',
-    'lattice-loom',
     'trident-spark',
     'rebound-diamond',
     'lattice-rivet',
@@ -29,7 +37,7 @@ test('only the approved Striker mobile body resolves to an authored class GLB', 
     assert.equal(modelSpec(id), null, id);
 });
 
-test('the canonical Striker looks keep low-hover independent of a GLB', () => {
+test('the canonical skimmer looks keep low-hover independent of a GLB', () => {
   assert.equal(
     presentationBotLook('trident-wasp').locomotionCue,
     'low-hover',
@@ -38,7 +46,12 @@ test('the canonical Striker looks keep low-hover independent of a GLB', () => {
     presentationBotLook('trident-wasp-volley').locomotionCue,
     'low-hover',
   );
+  assert.equal(
+    presentationBotLook('lattice-loom').locomotionCue,
+    'low-hover',
+  );
   assert.equal(modelSpec('trident-wasp')?.kind, 'bot');
+  assert.equal(modelSpec('lattice-loom')?.kind, 'bot');
   assert.equal(modelSpec('trident-wasp-volley'), null);
 });
 

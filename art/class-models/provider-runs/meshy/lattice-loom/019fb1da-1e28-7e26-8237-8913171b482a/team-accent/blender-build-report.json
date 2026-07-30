@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "project artifact store: meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/raw-model.glb",
+    "bytes": 59972724,
+    "sha256": "0cd9084e14355323b46194f84e9a406cb07fa19f69320c62dce263223dbd0b6f",
+    "triangles": 967724
+  },
+  "normalization": {
+    "sourceFacing": "-X",
+    "runtimeFacing": "+X",
+    "blenderUp": "+Z",
+    "runtimeUp": "+Y",
+    "yawDegrees": 180,
+    "forkCorrection": {
+      "editedVertices": 77949,
+      "maximumSourceSpaceExtension": 0.05925900177955627,
+      "startFractionOfForwardHalf": 0.48,
+      "minimumSideFractionOfHalfWidth": 0.12,
+      "localExtensionFactor": 0.12
+    },
+    "uniformScale": 0.5514182233391622,
+    "boundsMin": [
+      -0.5400000214576721,
+      -0.46520674228668213,
+      0.0
+    ],
+    "boundsMax": [
+      0.5400000214576721,
+      0.46520674228668213,
+      0.21873657405376434
+    ],
+    "maxPlanformSpan": 1.0800000429153442
+  },
+  "tiers": {
+    "rich": {
+      "file": "lattice-loom-rich-source.glb",
+      "bytes": 11911816,
+      "sha256": "c0dff80ec24e76c108ee451f51050514938aadb4d26454f44448f4d44b0102b6",
+      "triangles": 150000,
+      "vertices": 105750,
+      "materials": 1,
+      "textureSize": 2048,
+      "blenderBoundsMin": [
+        -0.5400000214576721,
+        -0.4652552008628845,
+        0.0
+      ],
+      "blenderBoundsMax": [
+        0.5400000214576721,
+        0.4652552008628845,
+        0.21869422495365143
+      ],
+      "tangentRepair": {
+        "accessors": 1,
+        "verticesExamined": 110284,
+        "verticesRepaired": 6,
+        "verticesQuantized": 110284
+      },
+      "coordinateContract": {
+        "uniformScale": 1.0001751623683086,
+        "boundsMin": [
+          -0.5400000214576721,
+          -0.4652552008628845,
+          0.0
+        ],
+        "boundsMax": [
+          0.5400000214576721,
+          0.4652552008628845,
+          0.21869422495365143
+        ]
+      },
+      "editableSource": {
+        "file": "lattice-loom-rich.blend",
+        "bytes": 24905884,
+        "sha256": "4e13c531590c1b825fe0f6879420d0ce02cb70931da9e028df855bb838a17ae7"
+      },
+      "images": [
+        {
+          "name": "Image_0",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            2048,
+            2048
+          ]
+        },
+        {
+          "name": "Image_1",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            2048,
+            2048
+          ]
+        },
+        {
+          "name": "Image_2",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            2048,
+            2048
+          ]
+        },
+        {
+          "name": "Image_3",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            2048,
+            2048
+          ]
+        }
+      ]
+    },
+    "lean": {
+      "file": "lattice-loom-lean-source.glb",
+      "bytes": 4978440,
+      "sha256": "60bbc96d292ee36408cadcda2786f87dbd48060ef3fed769a43986bc8916f2c6",
+      "triangles": 75000,
+      "vertices": 64159,
+      "materials": 1,
+      "textureSize": 1024,
+      "blenderBoundsMin": [
+        -0.5400000214576721,
+        -0.46545326709747314,
+        0.0
+      ],
+      "blenderBoundsMax": [
+        0.5400000214576721,
+        0.46545326709747314,
+        0.21867996454238892
+      ],
+      "tangentRepair": {
+        "accessors": 1,
+        "verticesExamined": 68743,
+        "verticesRepaired": 5,
+        "verticesQuantized": 68743
+      },
+      "coordinateContract": {
+        "uniformScale": 1.0001446328217505,
+        "boundsMin": [
+          -0.5400000214576721,
+          -0.46545326709747314,
+          0.0
+        ],
+        "boundsMax": [
+          0.5400000214576721,
+          0.46545326709747314,
+          0.21867996454238892
+        ]
+      },
+      "editableSource": {
+        "file": "lattice-loom-lean.blend",
+        "bytes": 9385961,
+        "sha256": "1203de97d6f063a74104a3ce934be21cdcaa3712daa51c04f6df844dca2fefdc"
+      },
+      "images": [
+        {
+          "name": "Image_0",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        },
+        {
+          "name": "Image_1",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        },
+        {
+          "name": "Image_2",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        },
+        {
+          "name": "Image_3",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        }
+      ]
+    }
+  },
+  "notes": [
+    "One fused manifold remains one fused manifold.",
+    "No global nonuniform scale, rig, skin, morph, camera, light, or animation is added.",
+    "Semantic team extraction and hull cyan neutralization run after this Blender stage."
+  ]
+}
