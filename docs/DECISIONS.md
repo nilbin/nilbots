@@ -3734,6 +3734,97 @@ scaffold-driven chassis exploit them mechanically — the population is
 the distortion. Wave 5 authors doctrine the full crew game; balance is
 re-read coarsely on their play, and tuning resumes from there.
 
+## 175. The follow-camera centres the action, not the map — and playback holds the screen awake
+
+The viewer pass commissioned in #173, from a phone watching a served
+gallery.
+
+**The fit centres the action, and the frame may hang over the edge of
+the arena to do it.** `focusFrame` used to clamp the fitted frame so the
+whole of it stayed inside the map (`clampCentre`, band
+`[-0.2 + span/2, extent + 0.2 - span/2]`), which sounds obviously right
+and was the entire off-centre bug: the frame is first *grown* to the
+viewport's shape, so on a 2.17:1 phone a small skirmish becomes a
+15.6-tile-wide frame, and a 24-wide arena then leaves a band four tiles
+wide to be "centred" in. A duel by the right-hand spawn came out **33%
+of the viewport width right of centre** with empty floor beside it, and
+a portrait fight in the top third landed 20–34% high. Nothing was wrong
+with either projection — `arenaViewport` and the 3D look target both put
+`frame.x, frame.y` exactly at the middle of the screen; the frame handed
+to them was already off the action. The clamp was also inconsistent with
+the zoom-out limit it lives beside: `fullArenaFrame` letterboxes
+background on the short axis without apology, so "a fit may never show
+background" was an invariant the wide shot itself broke.
+
+The new rule is two lines. The centre is the middle of the fitted box,
+clamped only so the *point being looked at* stays over the arena — which
+never binds on a fit, only on a gesture, so pan and zoom can now reach
+everywhere the fit can (a hand that cannot is a camera that jumps when
+auto-fit is handed back). The one override: an axis the frame already
+covers whole is centred on the arena instead, because sliding that would
+push the map off one side and show background on the other for nothing.
+The accepted cost is background beside a fight that is hugging a wall,
+bounded by the span rules already in place — never wider than the whole
+arena, and at least half of each axis is arena, because the centre is
+over the board.
+
+**The deadband gained a drift band.** Containment alone let a wipe on
+one flank reshape the fitted box without escaping the committed frame,
+so the survivors sat a tenth of the screen off-centre for the rest of
+the replay. Re-aiming when the fitted centre drifts past 10% of the
+committed span is a pan the spring absorbs; it is not the zoom hunt the
+deadband exists to stop.
+
+Both are pinned by projected-pixel tests at real phone aspect ratios
+(`web/tests/arenaCamera.test.ts`), including the fit-to-selected-team
+path — the worst case for the old clamp, since a team is dug in at its
+own end of the map and its box is therefore always near an edge.
+
+**Playback holds a screen wake lock** (`useScreenWakeLock`, in
+`components/` so both viewer outputs and the hosted WebView share one
+implementation), wired to "the clock is running" rather than to the play
+button, so a live broadcast counts. The re-acquire on `visibilitychange`
+is the load-bearing part: the platform releases the lock whenever the
+page is hidden and does not give it back, so without it a viewer who
+checks a message watches the rest of the match on a screen free to
+sleep. Everything about it is silent by design — the API is absent on
+iOS Safari and on a `file:` CLI viewer, and the request rejects on a low
+battery. A console error on a device that simply cannot do this teaches
+people to ignore the console.
+
+## 176. The open game: tiles unlocked for every skill, and the turret becomes a cycle
+
+Owner rulings during the wave-5 relaunch window, applied as one batch
+(fast-iteration mode, #174):
+
+1. **All transform placements open as the starting point — turret
+   anchors included.** The wave-5 game is `deck` = crew + `--stance-ground
+   open`: shells, volleys, AND turrets may rise on objective tiles and
+   the corridor. The turret on a point keeps its weight-zero bargain.
+   The owner's standing design direction, recorded for when
+   restrictions return: **granular tile classes with per-skill rules,
+   never one umbrella tag** — which also turns the map itself into a
+   tuning surface (retag a zone, reshape a corridor) with clean
+   per-variant fingerprints.
+2. **The turret is a true cycle.** Anchor⇄mobilize unlimited per life
+   (the once-per-life mobilize was the old rule), the +2 entry heal is
+   removed (a healing entry on a repeatable route is a repair loop —
+   owner: "turret healing is probably a bad idea to begin with"), and
+   health maps by the pre-existing `preserve-ratio-floor-minimum-one`
+   policy in BOTH directions, per the owner's relative-floor idea: full
+   health cycles losslessly (4/4 ⇄ 7/7, so the turret's high maximum
+   finally matters), partial health pays the floor each round trip (a
+   natural anti-flicker tax), and preserve-capped on the way down was
+   rejected because it silently heals (5/7 → 4/4). Windups remain the
+   commitment price; the drafted per-slot cooldown stays parked unless
+   cycling proves abusive in play.
+3. A ground arm is inert-omitted where nothing it touches exists (the
+   skills rule), so one flag set serves every pair of a wave.
+
+Wave 5 was killed pre-freeze and relaunched on `deck` (agents were
+still orienting; no work lost). All under CliVersion 0.9.21 with every
+existing ruleset pinned byte-identical.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

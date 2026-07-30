@@ -18,6 +18,7 @@ import {
   type HostedBridgeVersion,
 } from '../hostedBridge';
 import ArenaCanvas from './ArenaCanvas';
+import { useScreenWakeLock } from './useScreenWakeLock';
 
 /**
  * Canvas-only viewer for an embedding host. Bridge 1 is the historical mobile
@@ -51,6 +52,13 @@ export default function HostedViewer({
   const post = useRef((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }).current;
+
+  // The same rule as the standalone viewer, from the same module: the clock is running, so
+  // the screen stays on. This costs the bridge nothing — no message, no contract change —
+  // and a WebView whose host forbids the API simply never gets a lock, which is one of the
+  // ordinary outcomes the hook already swallows. The host's own keep-awake, if it has one,
+  // is additive rather than contradicted.
+  useScreenWakeLock(following || playback.playing);
 
   useEffect(() => {
     const common = {

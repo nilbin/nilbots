@@ -6,6 +6,10 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../src/replayModel.ts';
+import type {
+  ArenaFrame,
+  ArenaFraming,
+} from '../src/render/arenaCamera.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
   ARENA_MARGIN_TILES,
@@ -33,6 +37,77 @@ const frontline = loadReplayJson(
 ).replay as ReplayModel;
 
 const FRAMING = { mapWidth: 40, mapHeight: 24, aspect: 16 / 10 };
+
+/**
+ * The two shapes a phone offers, in CSS pixels — and the reason the fit has to be arithmetic
+ * rather than something judged by eye. Both are far from square, which is what makes the
+ * fitted frame much larger than the action on one axis, which is where centring used to be
+ * lost (DECISIONS #175).
+ */
+const PHONE_LANDSCAPE = { width: 852, height: 393 };
+const PHONE_PORTRAIT = { width: 393, height: 852 };
+
+/** The middle of a bounding box, which is what "the action" means to the camera. */
+function centreOf(points: readonly { x: number; y: number }[]): {
+  x: number;
+  y: number;
+} {
+  return {
+    x: (Math.min(...points.map((p) => p.x)) + Math.max(...points.map((p) => p.x))) / 2,
+    y: (Math.min(...points.map((p) => p.y)) + Math.max(...points.map((p) => p.y))) / 2,
+  };
+}
+
+/**
+ * Where a tile position lands on screen, through the flat renderer's own transform.
+ *
+ * Deliberately the shipped projection rather than the test's arithmetic: "the fit is
+ * centred" is a claim about pixels, and `arenaViewport` is what turns a frame into them for
+ * Canvas2D. The 3D renderer consumes the same frame as a look target at `(frame.x, frame.y)`
+ * on the floor plane, so a frame centred on the action is centred in that projection too.
+ */
+function projectedPoint(
+  frame: ArenaFrame,
+  framing: ArenaFraming,
+  viewport: { width: number; height: number },
+  point: { x: number; y: number },
+): { x: number; y: number } {
+  const view = arenaViewport(
+    frame,
+    framing.mapWidth,
+    framing.mapHeight,
+    viewport.width,
+    viewport.height,
+  );
+  return {
+    x: view.originX + point.x * view.tile,
+    y: view.originY + point.y * view.tile,
+  };
+}
+
+/** The fit put the middle of the action in the middle of the screen, to the pixel. */
+function assertCentred(
+  points: readonly { x: number; y: number }[],
+  framing: ArenaFraming,
+  viewport: { width: number; height: number },
+  what: string,
+): void {
+  const box = centreOf(points);
+  const screen = projectedPoint(
+    focusFrame(points, framing),
+    framing,
+    viewport,
+    box,
+  );
+  assert.ok(
+    Math.abs(screen.x - viewport.width / 2) < 1e-6,
+    `${what}: horizontally centred (was ${screen.x.toFixed(1)} of ${viewport.width})`,
+  );
+  assert.ok(
+    Math.abs(screen.y - viewport.height / 2) < 1e-6,
+    `${what}: vertically centred (was ${screen.y.toFixed(1)} of ${viewport.height})`,
+  );
+}
 
 test('the whole arena is the zoom-out limit, at the viewport shape', () => {
   const full = fullArenaFrame(FRAMING);
@@ -83,19 +158,70 @@ test('it never gets closer than about eight tiles, and never wider than the aren
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
 });
 
-test('a fight in the corner is clamped to the arena, not centred on empty space', () => {
+test('the fit centres the action on a phone, in landscape and in portrait', () => {
+  // The bug this pins, reported from a phone: a duel by the right-hand spawn sat about a
+  // third of the screen right of centre with empty floor beside it. The cause was a fit that
+  // was forbidden from hanging over the edge of the map — and since the frame is grown to the
+  // viewport's shape, on a 2.17:1 screen that grown span is most of a 24-wide arena, leaving
+  // a band barely four tiles wide to be "centred" in. Nothing about the projection was wrong;
+  // the frame handed to it was already off the action.
+  const map = { mapWidth: 24, mapHeight: 18 };
+  const landscape = {
+    ...map,
+    aspect: PHONE_LANDSCAPE.width / PHONE_LANDSCAPE.height,
+  };
+  const portrait = {
+    ...map,
+    aspect: PHONE_PORTRAIT.width / PHONE_PORTRAIT.height,
+  };
+
+  const byTheRightSpawn = [
+    { x: 20.5, y: 8.5 },
+    { x: 22.5, y: 10.5 },
+  ];
+  const inTheOpen = [
+    { x: 11, y: 8 },
+    { x: 13, y: 10 },
+  ];
+  const nearTheTop = [
+    { x: 11, y: 3 },
+    { x: 13, y: 5 },
+  ];
+
+  for (const points of [byTheRightSpawn, inTheOpen, nearTheTop]) {
+    assertCentred(points, landscape, PHONE_LANDSCAPE, 'landscape');
+    assertCentred(points, portrait, PHONE_PORTRAIT, 'portrait');
+  }
+
+  // And the fit is still a fit: it holds the action with room around it, and it never
+  // reaches past the zoom-out limit.
+  const frame = focusFrame(byTheRightSpawn, landscape);
+  const full = fullArenaFrame(landscape);
+  assert.ok(frame.width <= full.width + 1e-9, 'no closer to nothing than the whole arena');
+  for (const point of byTheRightSpawn) {
+    assert.ok(Math.abs(point.x - frame.x) < frame.width / 2 - 1);
+    assert.ok(Math.abs(point.y - frame.y) < frame.height / 2 - 1);
+  }
+});
+
+test('a fight in the corner is centred on the fight, and a frame wider than the arena centres the arena', () => {
+  // The old rule slid the frame back inside the map, which is why a corner fight was shown
+  // from the middle of the map. Background beside the action is the price of centring it, and
+  // it is bounded: the fit can never be wider than the zoom-out framing.
   const frame = focusFrame([{ x: 1.5, y: 1.5 }], FRAMING);
-  assert.ok(
-    frame.x - frame.width / 2 >= -ARENA_MARGIN_TILES,
-    'no background off the left edge',
-  );
-  assert.ok(
-    frame.y - frame.height / 2 >= -ARENA_MARGIN_TILES,
-    'nor off the top',
-  );
-  // And it is still looking at the corner rather than at the middle of the map.
-  assert.ok(frame.x < 20);
-  assert.ok(frame.y < 12);
+  assert.ok(Math.abs(frame.x - 1.5) < 1e-9, 'looking at the corner, not near it');
+  assert.ok(Math.abs(frame.y - 1.5) < 1e-9);
+  assert.ok(frame.width <= fullArenaFrame(FRAMING).width + 1e-9);
+
+  // The one case the action does not decide: an axis the frame already covers whole. Sliding
+  // that would push the arena off one side and show background on the other for nothing, so
+  // the arena is centred instead — even bars, nothing cut off. A 12-tall map on a tall
+  // viewport is exactly that: the fit needs 16 tiles of height to hold 8 tiles of map.
+  const tall = { mapWidth: 40, mapHeight: 12, aspect: 0.5 };
+  const covered = focusFrame([{ x: 1.5, y: 1.5 }], tall);
+  assert.ok(covered.height >= tall.mapHeight + ARENA_MARGIN_TILES);
+  assert.ok(Math.abs(covered.y - tall.mapHeight / 2) < 1e-9, 'the arena is centred');
+  assert.ok(Math.abs(covered.x - 1.5) < 1e-9, 'and the fight still is, across');
 });
 
 test('a step sideways does not re-aim, and a break for the flank does', () => {
@@ -141,6 +267,40 @@ test('a step sideways does not re-aim, and a break for the flank does', () => {
     FRAMING,
   );
   assert.equal(frameEscapes(committed, broke), true, 'and leaving it is');
+});
+
+test('the action drifting to one side re-aims, even though it never left the frame', () => {
+  // The other half of the off-centre report, and the reason containment alone is not the
+  // whole deadband: a wipe on one flank reshapes the fitted box without moving it out of
+  // frame, so the survivors end up sitting well right of centre — and stay there for the
+  // rest of the replay, because nothing ever escapes and the span barely moved.
+  const committed = focusFrame(
+    [
+      { x: 10, y: 9 },
+      { x: 30, y: 15 },
+    ],
+    FRAMING,
+  );
+  const oneFlankLeft = focusFrame(
+    [
+      { x: 19.6, y: 9 },
+      { x: 25.6, y: 15 },
+    ],
+    FRAMING,
+  );
+  // Still inside the committed frame, and still wide enough that "showing mostly floor" does
+  // not fire either — so the drift is the only thing that can ask for a re-aim.
+  assert.ok(
+    oneFlankLeft.x + oneFlankLeft.width / 2 < committed.x + committed.width / 2,
+    'contained',
+  );
+  assert.ok(oneFlankLeft.width > committed.width * 0.7, 'and not a pull-in');
+  assert.equal(frameEscapes(committed, oneFlankLeft), true, 'so the camera re-centres');
+  assert.equal(
+    frameEscapes(committed, oneFlankLeft, 0.05, 1),
+    false,
+    'which containment on its own would never have done',
+  );
 });
 
 test('the camera converges without ever passing the target', () => {
@@ -279,6 +439,46 @@ test('selection fits the selected unit team, not the unit alone', () => {
     focusPointsAt(frontline, time, 'generic:9:unit:9' as ReplayStableUnitKey),
     everybody,
   );
+});
+
+test('following one team centres that team, with the other side out of frame', () => {
+  // The worst case for the old clamp, and the one a viewer reaches by tapping a bot: a team
+  // is dug in at its own end of the map, so the box it fits is *always* near an edge. Fitting
+  // it used to slide the frame back over the middle of the arena, which put the side being
+  // followed at the rim of the screen — while both sides' fits looked correct in isolation.
+  const framing = {
+    mapWidth: frontline.map.width,
+    mapHeight: frontline.map.height,
+    aspect: 16 / 10,
+  };
+  const viewport = { width: 640, height: 400 };
+  const time = 2.4;
+
+  for (const teamId of [0, 1]) {
+    const unit = frontline.units.find((candidate) => candidate.teamId === teamId)!;
+    const mine = focusPointsAt(
+      frontline,
+      time,
+      unit.unitKey as ReplayStableUnitKey,
+    );
+    assertCentred(mine, framing, viewport, `team ${teamId}`);
+
+    // And it really is that team's box: the opposition is off-screen, not merely off-centre.
+    const frame = focusFrame(mine, framing);
+    const opponent = frontline.units.find(
+      (candidate) => candidate.teamId !== teamId,
+    )!;
+    for (const enemy of focusPointsAt(
+      frontline,
+      time,
+      opponent.unitKey as ReplayStableUnitKey,
+    )) {
+      assert.ok(
+        Math.abs(enemy.x - frame.x) > frame.width / 2,
+        `team ${teamId}'s fit excludes the other side`,
+      );
+    }
+  }
 });
 
 test('the camera follows the fight rather than a fixed plan view', () => {

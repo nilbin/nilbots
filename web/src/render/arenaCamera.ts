@@ -16,9 +16,10 @@ import { posesAt } from './interpolate';
  *
  * - **It never cuts.** Every change is a critically damped spring toward the target, so
  *   the camera has no discontinuities even when the target does.
- * - **It has a deadband.** A spawn, a death, or a step sideways does not re-aim: the
- *   committed frame is kept until the fitted box actually escapes it. Re-aiming on every
- *   frame is what turns a following camera into a zoom that hunts.
+ * - **It has a deadband.** A spawn or a step sideways does not re-aim: the committed frame
+ *   is kept while it still holds the fitted box *near its middle*. Re-aiming on every frame
+ *   is what turns a following camera into a zoom that hunts; never re-aiming while the box
+ *   is technically still inside is what leaves the fight off to one side.
  * - **The user wins.** Any pan or zoom gesture drops auto-fit until it is re-engaged from
  *   the chrome. A camera that fights the hand on it is worse than one that never moves.
  */
@@ -85,11 +86,12 @@ export function fullArenaFrame(framing: ArenaFraming): ArenaFrame {
 }
 
 /**
- * The frame that holds these positions, with room around them.
+ * The frame that holds these positions, with room around them — centred on them.
  *
- * Clamped at both ends: never closer than `minSpan` tiles across, never wider than the
- * whole arena, and never centred somewhere that would push the map off one side while
- * showing empty background on the other.
+ * Clamped in *span* at both ends: never closer than `minSpan` tiles across and never wider
+ * than the whole arena. The centre, though, is the middle of the fitted box, and the frame
+ * is allowed to hang over the edge of the map to keep it there — see `frameCentre`, which
+ * is where the fit used to lose the action to one side of the screen.
  */
 export function focusFrame(
   points: readonly { x: number; y: number }[],
@@ -120,21 +122,45 @@ export function focusFrame(
 
   if (width >= full.width) return full;
   return {
-    x: clampCentre((left + right) / 2, width, framing.mapWidth),
-    y: clampCentre((top + bottom) / 2, height, framing.mapHeight),
+    x: frameCentre((left + right) / 2, width, framing.mapWidth),
+    y: frameCentre((top + bottom) / 2, height, framing.mapHeight),
     width,
     height,
   };
 }
 
-/** Keep a span of `size` inside the padded map extent, centring it when it does not fit. */
-function clampCentre(centre: number, size: number, extent: number): number {
+/**
+ * Where a span of `size` tiles may sit on an axis `extent` tiles long.
+ *
+ * **The action decides, and the frame may hang over the edge of the map to hold it in the
+ * middle.** This used to keep the whole frame inside the padded map instead, which sounds
+ * obviously right and is exactly why a fitted view sat off to one side on a phone: the fit
+ * is grown to the viewport's shape just above, so on a letterboxed device that grown span
+ * is most of the map's short axis — and a frame forbidden from leaving the map can then
+ * only be centred inside a band a couple of tiles wide. A duel by the right-hand spawn
+ * came out 30% of the screen right of centre with empty floor beside it, which is the one
+ * thing a following camera exists to prevent (DECISIONS #175).
+ *
+ * One case still overrules the action: a span that already covers the whole axis has
+ * nothing left to choose. Centring it on the map keeps the bars even and the arena whole,
+ * where sliding it would push the map off one side and show background on the other for no
+ * gain. That is also the only case where a fit shows a bar it did not have to.
+ *
+ * The remaining clamp is on the centre rather than on the frame — the camera looks *at* the
+ * arena — and it only ever binds on a gesture, since a fitted centre is a spot on the board
+ * by construction.
+ */
+function frameCentre(centre: number, size: number, extent: number): number {
+  if (size >= extent + ARENA_MARGIN_TILES) return extent / 2;
   const pad = ARENA_MARGIN_TILES / 2;
-  const low = -pad + size / 2;
-  const high = extent + pad - size / 2;
-  if (low >= high) return extent / 2;
-  return Math.min(Math.max(centre, low), high);
+  return Math.min(Math.max(centre, -pad), extent + pad);
 }
+
+/**
+ * How far the action may drift inside the committed frame before it is re-aimed, as a
+ * fraction of the committed span.
+ */
+const CENTRE_DRIFT = 0.1;
 
 /**
  * Has the action left the frame we committed to?
@@ -154,6 +180,7 @@ export function frameEscapes(
   committed: ArenaFrame,
   candidate: ArenaFrame,
   tolerance = 0.05,
+  drift = CENTRE_DRIFT,
 ): boolean {
   const slackX = committed.width * tolerance;
   const slackY = committed.height * tolerance;
@@ -162,6 +189,18 @@ export function frameEscapes(
     candidate.x + candidate.width / 2 > committed.x + committed.width / 2 + slackX ||
     candidate.y - candidate.height / 2 < committed.y - committed.height / 2 - slackY ||
     candidate.y + candidate.height / 2 > committed.y + committed.height / 2 + slackY
+  ) {
+    return true;
+  }
+  // Containment is not enough on its own. A life dying reshapes the fitted box without
+  // moving it out of frame, so the action can end up sitting a tenth of the screen off to
+  // one side — and stay there for the rest of the replay, because nothing ever escapes and
+  // the span barely changed. Re-centring is a pan the spring absorbs; it is not the zoom
+  // hunt the deadband exists to stop, which is why this band is twice the edge tolerance
+  // rather than zero.
+  if (
+    Math.abs(candidate.x - committed.x) > committed.width * drift ||
+    Math.abs(candidate.y - committed.y) > committed.height * drift
   ) {
     return true;
   }
@@ -363,13 +402,19 @@ export class ArenaCamera {
     this.target = fullArenaFrame(framing);
   }
 
-  /** A gesture. Drops auto-fit until something re-engages it. */
+  /**
+   * A gesture. Drops auto-fit until something re-engages it.
+   *
+   * Bounded the same way the fit is — the point being looked at stays over the arena —
+   * because a hand that can reach somewhere the fit cannot is a camera that jumps the
+   * moment auto-fit is handed back.
+   */
   pan(dx: number, dy: number, framing: ArenaFraming): void {
     this.release();
     this.target = {
       ...this.target,
-      x: clampCentre(this.target.x + dx, this.target.width, framing.mapWidth),
-      y: clampCentre(this.target.y + dy, this.target.height, framing.mapHeight),
+      x: frameCentre(this.target.x + dx, this.target.width, framing.mapWidth),
+      y: frameCentre(this.target.y + dy, this.target.height, framing.mapHeight),
     };
   }
 
@@ -383,8 +428,8 @@ export class ArenaCamera {
       full.width,
     );
     this.target = {
-      x: clampCentre(this.target.x, width, framing.mapWidth),
-      y: clampCentre(this.target.y, width / framing.aspect, framing.mapHeight),
+      x: frameCentre(this.target.x, width, framing.mapWidth),
+      y: frameCentre(this.target.y, width / framing.aspect, framing.mapHeight),
       width,
       height: width / framing.aspect,
     };
@@ -400,7 +445,7 @@ export class ArenaCamera {
   }
 }
 
-/** A frame at a new aspect ratio: same centre, same span, still inside the arena. */
+/** A frame at a new aspect ratio: same centre, same span, still looking at the arena. */
 function shaped(
   frame: ArenaFrame,
   full: ArenaFrame,
@@ -409,8 +454,8 @@ function shaped(
   const width = Math.min(frame.width, full.width);
   const height = width / framing.aspect;
   return {
-    x: clampCentre(frame.x, width, framing.mapWidth),
-    y: clampCentre(frame.y, height, framing.mapHeight),
+    x: frameCentre(frame.x, width, framing.mapWidth),
+    y: frameCentre(frame.y, height, framing.mapHeight),
     width,
     height,
   };

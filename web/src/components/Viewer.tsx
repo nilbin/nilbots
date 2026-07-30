@@ -16,6 +16,7 @@ import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
 import { useAssetReadiness } from '../render/useAssetReadiness';
 import { readSoundtrackEnabledPreference } from '../soundtrack/preferences';
 import { useImmersive } from './useImmersive';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import ArenaCanvas from './ArenaCanvas';
 
 import SoundEffectsControl from './SoundEffectsControl';
@@ -106,6 +107,12 @@ export default function Viewer({
   });
 
   useEffect(() => audioSession.retainOwner(), [audioSession]);
+
+  // A replay is minutes of watching with nothing to touch, so the phone dims and locks
+  // mid-match. Held while the clock is running and given back the moment it stops — a
+  // paused viewer left on a desk is not a reason to keep a screen awake. A live broadcast
+  // counts as running: its clock is the server's, and there is no transport to press.
+  useScreenWakeLock(isLive || playback.playing);
 
   useEffect(() => {
     if (audioActivationGranted) return;
