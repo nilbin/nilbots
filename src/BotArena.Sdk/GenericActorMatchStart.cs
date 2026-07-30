@@ -19,6 +19,15 @@ public sealed record GenericActorMatchStart
     /// Deterministic private random seed scoped to this exact body life.
     /// </summary>
     public required ulong ActorRandomSeed { get; init; }
+    /// <summary>
+    /// Root seed of the scoring team's SHARED deterministic stream, delivered
+    /// identically to every life on the team — including lives created later
+    /// in the match. It is the raw material behind
+    /// <see cref="GenericActorContext.TeamRandom"/>; read that instead of
+    /// seeding your own generator from this value, because the guarantee is
+    /// about drawing at the same point in the same tick, not about the seed.
+    /// </summary>
+    public required ulong TeamRandomSeed { get; init; }
     /// <summary>Immutable creation reason and lineage for this life.</summary>
     public required LifeOrigin Origin { get; init; }
     /// <summary>

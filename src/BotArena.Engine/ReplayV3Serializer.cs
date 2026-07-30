@@ -580,6 +580,12 @@ internal static class ReplayV3Serializer
         writer.WriteString(
             "matchContractFingerprint",
             start.MatchContractFingerprint);
+        // Trailing additive key: written whenever the recording engine knows
+        // the team seed, omitted only for a history that predates it.
+        if (start.TeamRandomSeed is { } teamRandomSeed)
+        {
+            WriteUInt64String(writer, "teamRandomSeed", teamRandomSeed);
+        }
         writer.WriteEndObject();
     }
 
@@ -2417,6 +2423,9 @@ internal static class ReplayV3Serializer
 
         return new CanonicalContractIndex(
             fingerprint,
+            RequiredString(
+                RequiredObject(rules, "seedMechanics"),
+                "seedProfileId"),
             teamIds,
             participants,
             unitSlots,
@@ -3221,6 +3230,7 @@ internal static class ReplayV3Serializer
             ValidateLifeStarts(
                 tick.TickStart.LifeStarts,
                 replay.Header,
+                contract,
                 $"tick {tick.Tick} life starts");
             ValidateEvents(
                 tick.TickStart.Events,
@@ -3383,6 +3393,7 @@ internal static class ReplayV3Serializer
         ValidateLifeStarts(
             frame.LifeStarts,
             header,
+            contract,
             "initial life starts");
         ValidateEvents(frame.Events, 0, "initial events");
     }
@@ -3857,6 +3868,7 @@ internal static class ReplayV3Serializer
     private static void ValidateLifeStarts(
         ImmutableArray<ReplayV3.LifeStart> starts,
         ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
         string context)
     {
         RequireCanonicalOrder(
@@ -3880,6 +3892,31 @@ internal static class ReplayV3Serializer
             {
                 throw new ArgumentException(
                     $"Replay-v3 {context} metadata does not match the header contract.");
+            }
+            if (start.TeamRandomSeed is { } teamRandomSeed)
+            {
+                // Re-derived rather than merely bounds-checked: the team
+                // stream's whole value is that teammates provably share it,
+                // so a forged or team-swapped seed is refused here.
+                if (!IsCanonicalUInt64(teamRandomSeed)
+                    || !ulong.TryParse(
+                        teamRandomSeed,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out ulong recordedTeamSeed)
+                    || !ulong.TryParse(
+                        header.Seed,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out ulong matchSeed)
+                    || recordedTeamSeed != SeedDerivation.DeriveTeamSeed(
+                        matchSeed,
+                        start.ActorId.TeamId,
+                        contract.SeedProfileId))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} team seed does not match deterministic derivation.");
+                }
             }
             if (!IsSpawnReason(start.Origin.Reason))
             {
@@ -5764,6 +5801,7 @@ internal static class ReplayV3Serializer
 
     private sealed record CanonicalContractIndex(
         string Fingerprint,
+        string SeedProfileId,
         ImmutableArray<int> TeamIds,
         ImmutableArray<ContractParticipant> Participants,
         ImmutableArray<ContractUnitSlot> UnitSlots,
@@ -5990,7 +6028,9 @@ internal static class ReplayV3Serializer
 
                         bool valid = property.Name switch
                         {
-                            "seed" or "actorRandomSeed" =>
+                            "seed"
+                                or "actorRandomSeed"
+                                or "teamRandomSeed" =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalUInt64(

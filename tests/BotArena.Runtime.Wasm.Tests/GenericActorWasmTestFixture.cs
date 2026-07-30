@@ -31,7 +31,8 @@ internal static class GenericActorWasmTestFixture
     public static Engine.GenericActorRuntimeStart Start(
         Engine.ActorResolvedMatchDefinition contract,
         int teamId,
-        ulong seed = 42)
+        ulong seed = 42,
+        ulong teamSeed = 4242)
     {
         int participantId = teamId switch
         {
@@ -48,6 +49,7 @@ internal static class GenericActorWasmTestFixture
             ActorId = new Engine.ActorIdentity(teamId, 0, 0),
             ParticipantId = participantId,
             ActorRandomSeed = seed,
+            TeamRandomSeed = teamSeed,
             Origin = new Engine.GenericActorRuntimeStart.LifeOrigin(
                 Engine.GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: 0,

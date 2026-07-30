@@ -13,7 +13,8 @@ public sealed record GenericActorLifeStart
         int participantId,
         ulong actorRandomSeed,
         GenericActorRuntimeStart.LifeOrigin origin,
-        string matchContractFingerprint)
+        string matchContractFingerprint,
+        ulong teamRandomSeed)
     {
         if (schemaVersion <= 0)
             throw new ArgumentOutOfRangeException(nameof(schemaVersion));
@@ -40,6 +41,7 @@ public sealed record GenericActorLifeStart
         ActorId = actorId;
         ParticipantId = participantId;
         ActorRandomSeed = actorRandomSeed;
+        TeamRandomSeed = teamRandomSeed;
         Origin = origin;
         MatchContractFingerprint = matchContractFingerprint;
     }
@@ -49,6 +51,13 @@ public sealed record GenericActorLifeStart
     public ActorIdentity ActorId { get; }
     public int ParticipantId { get; }
     public ulong ActorRandomSeed { get; }
+
+    /// <summary>
+    /// Root seed of the scoring team's shared per-tick stream. Every life on
+    /// the team carries the identical value, which is what makes a randomized
+    /// team plan common knowledge and byte-identical on replay.
+    /// </summary>
+    public ulong TeamRandomSeed { get; }
     public GenericActorRuntimeStart.LifeOrigin Origin { get; }
     public string MatchContractFingerprint { get; }
 
@@ -133,6 +142,17 @@ public sealed record GenericActorLifeStart
                 "Life-start actor seed does not match deterministic derivation.",
                 nameof(descriptor));
         }
+
+        ulong expectedTeamSeed = SeedDerivation.DeriveTeamSeed(
+            descriptor.MatchSeed,
+            ActorId.TeamId,
+            definition.Rules.SeedMechanics.SeedProfileId);
+        if (TeamRandomSeed != expectedTeamSeed)
+        {
+            throw new ArgumentException(
+                "Life-start team seed does not match deterministic derivation.",
+                nameof(descriptor));
+        }
     }
 
     internal void ValidateDynamicLineage(
@@ -193,7 +213,8 @@ public sealed record GenericActorLifeStart
             start.ParticipantId,
             start.ActorRandomSeed,
             start.Origin,
-            ActorContractFingerprint.ComputeMatch(start.Contract));
+            ActorContractFingerprint.ComputeMatch(start.Contract),
+            start.TeamRandomSeed);
     }
 
     private static bool IsValidLineage(

@@ -1806,8 +1806,13 @@ function worldState(value: unknown, path: string, fail: ReplayV3Fail): void {
 }
 
 function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const container = object(value, path, fail);
+  // Trailing additive key, the routeCooldowns discipline: present in every
+  // document written since the team stream landed, absent in one written
+  // before it, and never optional within a single document's own bytes.
+  const hasTeamRandomSeed = own(container, 'teamRandomSeed');
   const start = exact(
-    value,
+    container,
     path,
     [
       'schemaVersion',
@@ -1817,6 +1822,7 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
       'actorRandomSeed',
       'origin',
       'matchContractFingerprint',
+      ...(hasTeamRandomSeed ? ['teamRandomSeed'] : []),
     ],
     fail,
   );
@@ -1857,6 +1863,13 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
     `${path}.matchContractFingerprint`,
     fail,
   );
+  if (hasTeamRandomSeed) {
+    // Bounds only, exactly as actorRandomSeed is treated here: the seed
+    // ALGORITHM lives in the engine, so the C# validator is the layer that
+    // re-derives this value from the header seed and refuses a forged or
+    // team-swapped one. The viewer refuses only what it can decide alone.
+    uint64(start.teamRandomSeed, `${path}.teamRandomSeed`, fail);
+  }
 }
 
 function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
@@ -6255,6 +6268,7 @@ function lifeStartFromV3(
     actor: identity(start.actorId),
     participantId: start.participantId,
     actorRandomSeed: start.actorRandomSeed,
+    teamRandomSeed: start.teamRandomSeed ?? null,
     spawnReason: start.origin.reason,
     generation: start.origin.generation,
     parentActor: start.origin.parentActorId

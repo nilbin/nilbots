@@ -118,7 +118,11 @@ internal sealed record ReplayV3(
         int ParticipantId,
         string ActorRandomSeed,
         LifeOrigin Origin,
-        string MatchContractFingerprint);
+        string MatchContractFingerprint,
+        // Trailing additive key (#156). Every engine-authored document since
+        // the team stream landed carries it; a document written before it did
+        // decodes as null and still verifies.
+        string? TeamRandomSeed = null);
 
     internal sealed record LifeOrigin(
         string Reason,

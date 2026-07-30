@@ -114,6 +114,7 @@ public sealed class SubmissionContractProfileProbe(
                 initialLife.LifeId),
             ParticipantId = unitSlot.ControllerParticipantId,
             ActorRandomSeed = 1,
+            TeamRandomSeed = 1,
             Origin = new GenericActorRuntimeStart.LifeOrigin(
                 GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: initialGeneration,

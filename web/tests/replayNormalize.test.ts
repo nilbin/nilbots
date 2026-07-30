@@ -1016,6 +1016,44 @@ test('replay-v3 rejects explicitly inert class and hold encodings', () => {
   );
 });
 
+test('replay-v3 carries the shared team seed and tolerates a document without one', () => {
+  const replay = decodeReplay(replayV3FixtureInput()).replay;
+  const starts = replay.initialLifeStarts ?? [];
+
+  assert.ok(starts.length >= 2);
+  for (const start of starts) {
+    assert.match(String(start.teamRandomSeed), /^(0|[1-9][0-9]*)$/);
+  }
+  // One value per scoring team: teammates share it, opponents do not.
+  assert.equal(
+    new Set(starts.map((start) => start.teamRandomSeed)).size,
+    new Set(starts.map((start) => start.actor.teamId)).size,
+  );
+  assert.notEqual(starts[0]?.teamRandomSeed, starts[0]?.actorRandomSeed);
+
+  // A bounds-illegal seed is refused by the mirror on its own.
+  const malformed = replayV3FixtureInput();
+  (malformed.initialFrame.lifeStarts[0] as { teamRandomSeed: string })
+    .teamRandomSeed = '-1';
+  assert.throws(() => decodeReplay(malformed), /teamRandomSeed/);
+
+  // A document written before the team stream existed still decodes.
+  const legacy = replayV3FixtureInput();
+  for (const start of legacy.initialFrame.lifeStarts) {
+    delete (start as { teamRandomSeed?: string }).teamRandomSeed;
+  }
+  for (const tick of legacy.ticks) {
+    for (const start of tick.tickStart.lifeStarts) {
+      delete (start as { teamRandomSeed?: string }).teamRandomSeed;
+    }
+  }
+  const decodedLegacy = decodeReplay(legacy).replay;
+  assert.equal(
+    decodedLegacy.initialLifeStarts?.[0]?.teamRandomSeed,
+    null,
+  );
+});
+
 test('replay-v3 preserves projectile threat and spawn claims and rejects causal drift', () => {
   const replay = decodeReplay(replayV3FixtureInput()).replay;
   const projectile = replay.ticks

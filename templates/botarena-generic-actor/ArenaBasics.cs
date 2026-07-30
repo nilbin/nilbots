@@ -1088,16 +1088,28 @@ internal static class ArenaBasics
 
     /// <summary>
     /// A mirror-fair direction preference: advance first, retreat last, and
-    /// the two perpendiculars ordered by the per-life deterministic random
+    /// the two perpendiculars ordered by the TEAM's deterministic random
     /// stream. An absolute order (always prefer East) gives the east-advancing
     /// team a systematic edge on a mirror-symmetric map — measured as a
     /// 40-of-40 side sweep in the wave-1 factorial — because both teams share
     /// the same absolute preference. Randomizing residual ties converts that
     /// bias into seed noise, which mirrored accounting can wash out.
+    ///
+    /// <para>
+    /// It reads <c>context.TeamRandom</c>, not <c>context.Random</c>. The
+    /// per-life stream differs between teammates, so any plan built on top of
+    /// this helper silently diverged across the team — that is exactly the
+    /// trap the wave-6 sweeps hit. The team stream re-derives per tick, so
+    /// every teammate calling this at the same point in the same tick gets
+    /// the same order, and a life born mid-match agrees immediately. Pass a
+    /// different <paramref name="random"/> only when you deliberately want a
+    /// per-life tie-break that no teammate will reproduce.
+    /// </para>
     /// </summary>
     public static Direction[] OrderedDirections(
         GenericActorResolvedMatchContract contract,
-        GenericActorContext context)
+        GenericActorContext context,
+        IBotRandom? random = null)
     {
         Direction forward =
             AdvanceDirection(contract, context) ?? context.Self.Facing;
@@ -1106,8 +1118,11 @@ internal static class ArenaBasics
             Directions.Where(direction =>
                 direction != forward && direction != backward)
             .ToArray();
-        if (laterals.Length == 2 && context.Random.NextBool())
+        if (laterals.Length == 2
+            && (random ?? context.TeamRandom).NextBool())
+        {
             (laterals[0], laterals[1]) = (laterals[1], laterals[0]);
+        }
         return [forward, .. laterals, backward];
     }
 

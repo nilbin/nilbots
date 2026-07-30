@@ -99,7 +99,17 @@ does not widen or reinterpret Frontline-alpha's schema-1 objects.
 
 MatchStart carries the exact canonical rules-schema-3/map-format-3/match-
 contract-schema-2 JSON plus its independently recomputed fingerprints,
-topology, life identity, deterministic seed, and lifecycle origin. Admission
+topology, life identity, deterministic seed, and lifecycle origin. It also
+carries a second, TEAM-scoped seed as a trailing tagged field: one value
+shared by every life on a scoring team, derived host-side in its own domain
+so neither team can derive the other's. The guest turns it into
+`GenericActorContext.TeamRandom`, whose stream is re-derived from (team seed,
+tick) at the start of each tick rather than advanced across ticks — which is
+what makes teammates agree on the Nth draw of a tick no matter when a life was
+born or what it drew before, and therefore makes a randomized team plan common
+knowledge without a channel. Being a trailing tagged field, an artifact
+compiled before it existed still negotiates and still runs; it simply never
+sees the stream. Admission
 bounds the canonical contract before any guest receives it:
 
 - at most `1 MiB - 1 KiB` of canonical UTF-8;

@@ -1177,6 +1177,11 @@ export interface ReplayActorLifeStart {
   actor: ReplayActorIdentity;
   participantId: number;
   actorRandomSeed: string | null;
+  /**
+   * Root seed of the scoring team's shared per-tick stream — identical for
+   * every life on the team. Null for a replay generation that predates it.
+   */
+  teamRandomSeed?: string | null;
   spawnReason: ReplayActorSpawnReason;
   generation?: number;
   parentActor?: ReplayActorIdentity | null;

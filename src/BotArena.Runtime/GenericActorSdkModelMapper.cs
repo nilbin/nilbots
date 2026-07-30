@@ -22,6 +22,7 @@ internal static class GenericActorSdkModelMapper
             ActorId = ToSdk(start.ActorId),
             ParticipantId = start.ParticipantId,
             ActorRandomSeed = start.ActorRandomSeed,
+            TeamRandomSeed = start.TeamRandomSeed,
             Origin = new Sdk.GenericActorMatchStart.LifeOrigin(
                 ToSdk(start.Origin.Reason),
                 start.Origin.Generation,

@@ -24,6 +24,10 @@ internal static class GenericActorWireContractCodec
             ActorWireValue.String(
                 value.Contract.CanonicalJson,
                 GenericActorContractVersions.MaxCanonicalContractBytes));
+        // Trailing additive field (#156 discipline): an artifact compiled
+        // before the team stream existed simply ignores field 8 and keeps
+        // negotiating and running.
+        writer.Field(8, ActorWireValue.UInt64(value.TeamRandomSeed));
         return writer.ToArray();
     }
 
@@ -35,6 +39,10 @@ internal static class GenericActorWireContractCodec
         try
         {
             var reader = new ActorWireObjectReader(bytes, depth);
+            // Optional so a frame produced by an encoder that predates the
+            // team stream still decodes; such a frame carries no team seed,
+            // and zero is still identical for every life on the team.
+            byte[]? teamRandomSeed = reader.Optional(8);
             var result = new GenericActorMatchStart
             {
                 SchemaVersion = ActorWireValue.Int32(reader.Required(1)),
@@ -46,6 +54,9 @@ internal static class GenericActorWireContractCodec
                 ParticipantId = ActorWireValue.Int32(reader.Required(4)),
                 ActorRandomSeed =
                     ActorWireValue.UInt64(reader.Required(5)),
+                TeamRandomSeed = teamRandomSeed is null
+                    ? 0
+                    : ActorWireValue.UInt64(teamRandomSeed),
                 Origin = DecodeOrigin(reader.Required(6), depth + 1),
                 Contract = ActorCanonicalContractReader.ParseUtf8(
                     reader.Required(7)),

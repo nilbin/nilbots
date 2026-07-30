@@ -177,8 +177,52 @@ public sealed record GenericActorContext
     /// </summary>
     public ImmutableArray<GenericActorActionLegality> ActionLegalities { get; }
 
-    /// <summary>Deterministic randomness scoped to the exact observing life.</summary>
+    /// <summary>
+    /// Deterministic randomness scoped to the exact observing life. Every life
+    /// draws a DIFFERENT sequence, so a teammate never reproduces your draw —
+    /// use it for private tie-breaks only. A plan that must be shared with the
+    /// team belongs on <see cref="TeamRandom"/>.
+    /// </summary>
     public IBotRandom Random { get; init; } = null!;
+
+    /// <summary>
+    /// Deterministic randomness shared by the whole scoring team, so a
+    /// randomized choice can still be a coordinated one.
+    ///
+    /// <para>
+    /// Teams have no channel to talk over. Coordination works because every
+    /// life on the team receives this identical frozen observation, so any
+    /// pure function of it is a plan all teammates independently agree on.
+    /// <see cref="Random"/> breaks that — it differs per life, so a plan that
+    /// touches it silently diverges between teammates. <c>TeamRandom</c>
+    /// restores it: draws are unpredictable to the opponent, identical inside
+    /// the team, and byte-identical on replay.
+    /// </para>
+    ///
+    /// <para><b>What is guaranteed equal.</b> Within one tick, the Nth draw of
+    /// this stream returns the same value for every life on your team,
+    /// whatever their unit, form, position, or age — including a life created
+    /// this very tick, which agrees with its teammates on its FIRST tick. The
+    /// two teams draw unrelated sequences, and neither can derive the other's.
+    /// </para>
+    ///
+    /// <para><b>When values change.</b> The stream is re-derived from
+    /// (team seed, <see cref="Tick"/>) at the start of every tick — it is
+    /// never carried across ticks. So the same draw index gives a different
+    /// value on the next tick, and re-drawing it is how a team re-rolls a
+    /// shared choice. Nothing you drew on an earlier tick shifts what you draw
+    /// on this one, which is exactly why a mid-match respawn stays in step.
+    /// </para>
+    ///
+    /// <para><b>The one rule.</b> Agreement holds while teammates draw the
+    /// same number of values in the same order within a tick. Draw before you
+    /// branch on private state — <c>bool flank = context.TeamRandom.NextBool();
+    /// if (amScout) …</c> agrees; drawing inside a branch only some lives take
+    /// does not. A mismatch costs you only that tick: the next tick reseeds
+    /// and the team is back in step.
+    /// </para>
+    /// </summary>
+    public IBotRandom TeamRandom { get; init; } = null!;
 
     /// <summary>Bounded diagnostic output; never part of the wire observation.</summary>
     public IBotDebug Debug { get; init; } = null!;

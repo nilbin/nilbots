@@ -188,9 +188,25 @@ public static class ToolchainInfo
     /// (self/ally `routeCooldowns`, trailing tagged wire field, replay-v3
     /// `routeCooldowns` key present only while live). Cast cells and
     /// every clockless observation keep their exact bytes.
+    /// 0.9.26 carries SDK/Guest 0.10.9: TEAM RANDOMNESS
+    /// (`GenericActorContext.TeamRandom`). Teams have no channel, so
+    /// coordination has only ever worked because every life on a team gets
+    /// the identical frozen observation and any pure function of it is a
+    /// shared plan; per-life `Random` silently broke that for any plan that
+    /// touched it (the wave-6 finding — the scaffold's own
+    /// `OrderedDirections` consumed it and desynced authors' sweeps).
+    /// `TeamRandom` is re-derived per tick from a host-derived team seed, so
+    /// a life born mid-match agrees with its teammates on its FIRST tick and
+    /// no teammate's private draws can shift the shared plan. No rules bytes
+    /// move: the team seed rides MatchStart as a trailing tagged field, every
+    /// schema version stays, and a frozen artifact still negotiates and runs
+    /// — it simply cannot see the stream. Replay-v3 life starts grow one
+    /// `teamRandomSeed` key, so the engine-authored fixtures were regenerated
+    /// and a replay written before this version is not interchangeable with
+    /// one written after.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.25";
+    public const string CliVersion = "0.9.26";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -246,7 +262,18 @@ public static class ToolchainInfo
     // ReadyAtTick}, ordered, empty when none are live). Trailing tagged
     // wire field on the shared self/ally body, so the observation schema
     // version stays 2 and a clockless observation keeps its exact bytes.
-    public const string SdkVersion = "0.10.8";
+    // 0.10.9: team-scoped randomness. GenericActorMatchStart carries
+    // TeamRandomSeed — one value shared by every life on a scoring team,
+    // derived host-side from the match seed and the team id in its own
+    // "teams:" domain, so neither team can derive the other's — and
+    // GenericActorContext exposes it as TeamRandom, an IBotRandom whose
+    // stream is RE-DERIVED from (team seed, tick) at the start of every tick
+    // rather than advanced across ticks. That is what makes it common
+    // knowledge: teammates agree on the Nth draw of a tick regardless of when
+    // they were born or what they drew before, so a randomized plan is a
+    // coordinated one. Trailing tagged wire field, every schema version
+    // unchanged; an artifact built before this simply never sees TeamRandom.
+    public const string SdkVersion = "0.10.9";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";
     // Compiler invocation/container changes that affect artifact bytes without changing

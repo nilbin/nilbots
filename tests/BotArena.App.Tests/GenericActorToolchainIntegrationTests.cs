@@ -90,6 +90,7 @@ public sealed class GenericActorToolchainIntegrationTests
             ActorId = new Engine.ActorIdentity(0, 0, 0),
             ParticipantId = 10,
             ActorRandomSeed = ulong.MaxValue,
+            TeamRandomSeed = ulong.MaxValue - 1,
             Origin = new Engine.GenericActorRuntimeStart.LifeOrigin(
                 Engine.GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: 0,

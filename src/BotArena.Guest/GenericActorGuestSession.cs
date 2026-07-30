@@ -12,6 +12,7 @@ internal sealed class GenericActorGuestSession
 
     private readonly IGenericActorBot _bot;
     private readonly GuestRandom _random;
+    private readonly GuestTeamRandom _teamRandom;
     private readonly ActorIdentity _actorId;
     private readonly int _generation;
     private readonly string _contractFingerprint;
@@ -23,6 +24,7 @@ internal sealed class GenericActorGuestSession
     {
         _bot = bot;
         _random = new GuestRandom(start.ActorRandomSeed);
+        _teamRandom = new GuestTeamRandom(start.TeamRandomSeed);
         _actorId = start.ActorId;
         _generation = start.Origin.Generation;
         _contractFingerprint = start.Contract.MatchContractFingerprint;
@@ -76,9 +78,19 @@ internal sealed class GenericActorGuestSession
                 "Generic actor observation ticks must increase.");
         }
 
+        // Re-derive the team stream for this exact tick before the bot runs,
+        // so its first team draw is the team's first draw of the tick no
+        // matter what this life drew on earlier ticks — and so a life born
+        // mid-match agrees with its teammates on its very first tick.
+        _teamRandom.BeginTick(observation.Tick);
         var debug = new GenericActorGuestDebug();
         GenericActorDecision decision = _bot.Tick(
-            observation with { Random = _random, Debug = debug })
+            observation with
+            {
+                Random = _random,
+                TeamRandom = _teamRandom,
+                Debug = debug,
+            })
             ?? throw new InvalidOperationException(
                 "Generic actor bot returned null.");
         _lastTick = observation.Tick;

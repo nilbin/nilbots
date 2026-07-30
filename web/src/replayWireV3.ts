@@ -628,6 +628,10 @@ export interface ReplayV3LifeStart {
     sourceOperationId: string | null;
   };
   matchContractFingerprint: string;
+  // Trailing additive key: the scoring team's shared random root, identical
+  // for every life on the team. Absent only in a document written before the
+  // team stream existed.
+  teamRandomSeed?: string;
 }
 
 export interface ReplayV3ObservedSelf {

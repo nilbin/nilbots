@@ -38,8 +38,9 @@ and team assignment. A batch `--out evidence` writes one replay under
 Nilbots creates one independent instance of your class for every active life.
 `StartLife` receives the exact static rules, map, topology, participant/team
 counts, unit slots, forms, transitions, objective binding, lineage, and
-private deterministic seed. `Tick` receives dynamic allies, visible enemies,
-scores, objective state, and exact action legality for that body.
+private deterministic seed, plus the seed of your team's SHARED stream.
+`Tick` receives dynamic allies, visible enemies, scores, objective state, and
+exact action legality for that body.
 
 The generated bot is a competent apprentice rather than a blank or solved
 policy. Its short `Tick` priority list promptly activates an available
@@ -98,6 +99,17 @@ remains authoritative.
 
 ## Helpers worth knowing before you write your own
 
+- `context.TeamRandom` is the one way to make a RANDOM choice a COORDINATED
+  one. Your team has no channel; coordination works only because every life
+  gets the identical observation, so any pure function of it is a plan you all
+  independently agree on. `context.Random` is per life and silently breaks
+  that — two teammates computing "flank left or right?" from it get different
+  answers and split. `TeamRandom` gives every life on your team the same
+  values at the same point in the same tick, including a life that spawned
+  this tick, and re-derives per tick so private draws elsewhere in your code
+  cannot shift the shared plan. The one rule: draw before you branch on
+  private state, so teammates draw the same number of values in the same
+  order. `ArenaBasics.OrderedDirections` already uses it.
 - `ShotPaths.Preview` replays the engine's exact bend rule for a candidate
   program — the most useful single call in the SDK for aiming and
   interception. Trust it over your own geometry.

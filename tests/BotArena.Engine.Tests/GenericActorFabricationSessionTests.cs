@@ -1396,7 +1396,8 @@ public sealed class GenericActorFabricationSessionTests
             {
                 SourceOperationId = forgedOperationId,
             },
-            originalStart.MatchContractFingerprint);
+            originalStart.MatchContractFingerprint,
+            originalStart.TeamRandomSeed);
         GenericActorAuthoritativeEvent originalSpawn =
             completed.TickStart.Events.Single(item =>
                 item.Payload is

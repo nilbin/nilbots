@@ -12,6 +12,13 @@ public sealed record GenericActorRuntimeStart
     public required ActorIdentity ActorId { get; init; }
     public required int ParticipantId { get; init; }
     public required ulong ActorRandomSeed { get; init; }
+
+    /// <summary>
+    /// Root seed of the scoring team's shared stream. Identical for every life
+    /// on the team — including lives created later in the match — so a pure
+    /// function of it is common knowledge inside the team.
+    /// </summary>
+    public required ulong TeamRandomSeed { get; init; }
     public required LifeOrigin Origin { get; init; }
     public required ActorResolvedMatchDefinition Contract { get; init; }
 

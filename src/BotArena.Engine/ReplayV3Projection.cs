@@ -262,7 +262,8 @@ internal static class ReplayV3Projection
                     : ActorId(start.Origin.ParentActorId),
                 start.Origin.SourceTransitionId,
                 start.Origin.SourceOperationId),
-            start.MatchContractFingerprint);
+            start.MatchContractFingerprint,
+            Decimal(start.TeamRandomSeed));
 
     private static ReplayV3.Observation Observation(
         GenericActorRuntimeObservation observation)

@@ -432,6 +432,7 @@ public sealed class ArenaBasicsTemplateTests
             AllCardinalsLegal(contract))
         {
             Random = new AlwaysFalseRandom(),
+            TeamRandom = new AlwaysFalseRandom(),
         };
     }
 
@@ -475,8 +476,10 @@ public sealed class ArenaBasicsTemplateTests
             .ToArray();
 
     /// <summary>
-    /// The scaffold consumes the per-life stream only to break residual
-    /// direction ties; a constant answer keeps the assertions about routing.
+    /// The scaffold consumes the TEAM stream only to break residual direction
+    /// ties; a constant answer keeps the assertions about routing. The
+    /// per-life stream is supplied too so a bot that reaches for it still has
+    /// one.
     /// </summary>
     private sealed class AlwaysFalseRandom : IBotRandom
     {

@@ -86,6 +86,10 @@ internal sealed class GenericActorMatchHost : IDisposable
                 _descriptor.MatchSeed,
                 actorId,
                 _descriptor.Definition.Rules.SeedMechanics.SeedProfileId),
+            TeamRandomSeed = SeedDerivation.DeriveTeamSeed(
+                _descriptor.MatchSeed,
+                actorId.TeamId,
+                _descriptor.Definition.Rules.SeedMechanics.SeedProfileId),
             Origin = origin,
             Contract = _descriptor.Definition,
         };
