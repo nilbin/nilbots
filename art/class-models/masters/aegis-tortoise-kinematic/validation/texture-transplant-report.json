@@ -1,0 +1,2331 @@
+{
+  "artifacts": [
+    {
+      "bytes": 6737878,
+      "kind": "blend",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textured-authority.blend",
+      "sha256": "b6827956ff032dbf01564e26706f19400305b1245bedee4c65960bddc448df23"
+    },
+    {
+      "bytes": 8024032,
+      "kind": "animated-glb",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textured-animated.glb",
+      "sha256": "a169822ef3c3b98ab854257e3c637e00f50900e53cfb3f51dfd8910d7ec4df8b"
+    },
+    {
+      "bytes": 2290776,
+      "kind": "texture-baseColor",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/baseColor-b1abb3e6da2f2e91.jpg",
+      "sha256": "b1abb3e6da2f2e91ff03a493fdaabf0432e1435f10d0781d308e37f9666063e4"
+    },
+    {
+      "bytes": 1587239,
+      "kind": "texture-metallicRoughness",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/metallicRoughness-34c47bd88efdef4c.jpg",
+      "sha256": "34c47bd88efdef4c74bd43d5cef88b7756892f1befd02c56027a08b6acf7b691"
+    },
+    {
+      "bytes": 2509581,
+      "kind": "texture-normal",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/normal-5c02b357a56b88cf.jpg",
+      "sha256": "5c02b357a56b88cf8e8acddce3fce4c33241c1f69212d5cea5e3cb6449fc7a26"
+    },
+    {
+      "bytes": 84377,
+      "kind": "texture-emissive",
+      "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/emissive-fb1ab261fc082ebf.jpg",
+      "sha256": "fb1ab261fc082ebf54690a54b282f19461b49716aca50f2a67f03787ffba2ded"
+    }
+  ],
+  "authoritySnapshot": {
+    "after": {
+      "actionEndpointsSha256": "573d66ef888abe6b20ba3f3a1e49ffdc10ad5be9194ed7a1a7e8a018b91de6af",
+      "actionNames": [
+        "Mobile_Recoil__Mobile.Body.Pivot",
+        "Mobile_Recoil__Mobile.GunBarrel.Pivot",
+        "PodPlant_HoverSettle__Mobile.Body.Pivot",
+        "PodPlant_HoverSettle__Pod.NE.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.NW.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.SE.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.SW.Anchor.Pivot",
+        "Shell_Deploy__Mobile.Body.Pivot",
+        "Shell_Deploy__Mobile.GunBarrel.Pivot",
+        "Shell_Deploy__Pod.NE.Anchor.Pivot",
+        "Shell_Deploy__Pod.NW.Anchor.Pivot",
+        "Shell_Deploy__Pod.SE.Anchor.Pivot",
+        "Shell_Deploy__Pod.SW.Anchor.Pivot",
+        "Shell_Deploy__Shell.NorthInner.Hinge.Pivot",
+        "Shell_Deploy__Shell.NorthInner.Rail.Pivot",
+        "Shell_Deploy__Shell.NorthOuter.Hinge.Pivot",
+        "Shell_Deploy__Shell.NorthOuter.Rail.Pivot",
+        "Shell_Deploy__Shell.SouthInner.Hinge.Pivot",
+        "Shell_Deploy__Shell.SouthInner.Rail.Pivot",
+        "Shell_Deploy__Shell.SouthOuter.Hinge.Pivot",
+        "Shell_Deploy__Shell.SouthOuter.Rail.Pivot",
+        "Shell_Recoil__Shell.NorthInner.Hinge.Pivot",
+        "Shell_Recoil__Shell.NorthInner.Rail.Pivot",
+        "Shell_Recoil__Shell.SouthInner.Hinge.Pivot",
+        "Shell_Recoil__Shell.SouthInner.Rail.Pivot",
+        "Tower_Deploy__Mobile.Body.Pivot",
+        "Tower_Deploy__Mobile.GunBarrel.Pivot",
+        "Tower_Deploy__Pod.NE.Anchor.Pivot",
+        "Tower_Deploy__Pod.NW.Anchor.Pivot",
+        "Tower_Deploy__Pod.SE.Anchor.Pivot",
+        "Tower_Deploy__Pod.SW.Anchor.Pivot",
+        "Tower_Deploy__Tower.CrownLift.Pivot",
+        "Tower_Deploy__Tower.Vane.01.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.02.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.03.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.04.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.05.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.06.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.07.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.08.Fan.Pivot",
+        "Tower_Recoil_01__Tower.Vane.01.Barrel.Pivot",
+        "Tower_Recoil_01__Tower.Vane.01.Fan.Pivot",
+        "Tower_Recoil_02__Tower.Vane.02.Barrel.Pivot",
+        "Tower_Recoil_02__Tower.Vane.02.Fan.Pivot",
+        "Tower_Recoil_03__Tower.Vane.03.Barrel.Pivot",
+        "Tower_Recoil_03__Tower.Vane.03.Fan.Pivot",
+        "Tower_Recoil_04__Tower.Vane.04.Barrel.Pivot",
+        "Tower_Recoil_04__Tower.Vane.04.Fan.Pivot",
+        "Tower_Recoil_05__Tower.Vane.05.Barrel.Pivot",
+        "Tower_Recoil_05__Tower.Vane.05.Fan.Pivot",
+        "Tower_Recoil_06__Tower.Vane.06.Barrel.Pivot",
+        "Tower_Recoil_06__Tower.Vane.06.Fan.Pivot",
+        "Tower_Recoil_07__Tower.Vane.07.Barrel.Pivot",
+        "Tower_Recoil_07__Tower.Vane.07.Fan.Pivot",
+        "Tower_Recoil_08__Tower.Vane.08.Barrel.Pivot",
+        "Tower_Recoil_08__Tower.Vane.08.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.01.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.01.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.02.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.02.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.03.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.03.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.04.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.04.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.05.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.05.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.06.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.06.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.07.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.07.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.08.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.08.Fan.Pivot"
+      ],
+      "actions": 72,
+      "actionsSha256": "ba3b8751d8003f3dc464276686c8112bc6858f61cc341cc0e5b96bf0cb0ced1f",
+      "animationBindingsSha256": "1157971e0fe75c23eb54508d7a8e133b64bdfdee38a7a7b50844613c85d4ccd7",
+      "keyframes": 3618,
+      "meshGeometrySha256": "50a82116767fa922ea76f393ae8515781df91e44f49fb7d8731c62a83ed7f9fc",
+      "meshUvSha256": "19206f3e973671c19ed1ce3f5c5421d9acde860ffe19283d8a5cb6a7cbaf6943",
+      "meshes": 31,
+      "nlaTrackNames": [
+        "Mobile_Recoil",
+        "PodPlant_HoverSettle",
+        "Shell_Deploy",
+        "Shell_Recoil",
+        "Tower_Deploy",
+        "Tower_Recoil",
+        "Tower_Recoil_01",
+        "Tower_Recoil_02",
+        "Tower_Recoil_03",
+        "Tower_Recoil_04",
+        "Tower_Recoil_05",
+        "Tower_Recoil_06",
+        "Tower_Recoil_07",
+        "Tower_Recoil_08"
+      ],
+      "objectNames": [
+        "AUTH_AegisTortoise_Kinematic_Master",
+        "Mobile.Body.Pivot",
+        "Mobile.GunBarrel",
+        "Mobile.GunBarrel.Pivot",
+        "Mobile.Hull.Static",
+        "Pod.NE.Anchor",
+        "Pod.NE.Anchor.Pivot",
+        "Pod.NW.Anchor",
+        "Pod.NW.Anchor.Pivot",
+        "Pod.SE.Anchor",
+        "Pod.SE.Anchor.Pivot",
+        "Pod.SW.Anchor",
+        "Pod.SW.Anchor.Pivot",
+        "Shell.NorthInner.Hinge.Pivot",
+        "Shell.NorthInner.Plate",
+        "Shell.NorthInner.Rail.Pivot",
+        "Shell.NorthOuter.Hinge.Pivot",
+        "Shell.NorthOuter.Plate",
+        "Shell.NorthOuter.Rail.Pivot",
+        "Shell.SouthInner.Hinge.Pivot",
+        "Shell.SouthInner.Plate",
+        "Shell.SouthInner.Rail.Pivot",
+        "Shell.SouthOuter.Hinge.Pivot",
+        "Shell.SouthOuter.Plate",
+        "Shell.SouthOuter.Rail.Pivot",
+        "TeamAccent.Shell.NorthInner.Emitter",
+        "TeamAccent.Shell.NorthOuter.Emitter",
+        "TeamAccent.Shell.SouthInner.Emitter",
+        "TeamAccent.Shell.SouthOuter.Emitter",
+        "Tower.Crown",
+        "Tower.CrownLift.Pivot",
+        "Tower.Vane.01.Armor",
+        "Tower.Vane.01.Barrel",
+        "Tower.Vane.01.Barrel.Pivot",
+        "Tower.Vane.01.Fan.Pivot",
+        "Tower.Vane.02.Armor",
+        "Tower.Vane.02.Barrel",
+        "Tower.Vane.02.Barrel.Pivot",
+        "Tower.Vane.02.Fan.Pivot",
+        "Tower.Vane.03.Armor",
+        "Tower.Vane.03.Barrel",
+        "Tower.Vane.03.Barrel.Pivot",
+        "Tower.Vane.03.Fan.Pivot",
+        "Tower.Vane.04.Armor",
+        "Tower.Vane.04.Barrel",
+        "Tower.Vane.04.Barrel.Pivot",
+        "Tower.Vane.04.Fan.Pivot",
+        "Tower.Vane.05.Armor",
+        "Tower.Vane.05.Barrel",
+        "Tower.Vane.05.Barrel.Pivot",
+        "Tower.Vane.05.Fan.Pivot",
+        "Tower.Vane.06.Armor",
+        "Tower.Vane.06.Barrel",
+        "Tower.Vane.06.Barrel.Pivot",
+        "Tower.Vane.06.Fan.Pivot",
+        "Tower.Vane.07.Armor",
+        "Tower.Vane.07.Barrel",
+        "Tower.Vane.07.Barrel.Pivot",
+        "Tower.Vane.07.Fan.Pivot",
+        "Tower.Vane.08.Armor",
+        "Tower.Vane.08.Barrel",
+        "Tower.Vane.08.Barrel.Pivot",
+        "Tower.Vane.08.Fan.Pivot"
+      ],
+      "objectTransformsSha256": "7645bcf37961f77abf0012fba3afe5d8e59aec3256353cc804b4c556a3c01ece",
+      "objects": 63
+    },
+    "before": {
+      "actionEndpointsSha256": "573d66ef888abe6b20ba3f3a1e49ffdc10ad5be9194ed7a1a7e8a018b91de6af",
+      "actionNames": [
+        "Mobile_Recoil__Mobile.Body.Pivot",
+        "Mobile_Recoil__Mobile.GunBarrel.Pivot",
+        "PodPlant_HoverSettle__Mobile.Body.Pivot",
+        "PodPlant_HoverSettle__Pod.NE.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.NW.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.SE.Anchor.Pivot",
+        "PodPlant_HoverSettle__Pod.SW.Anchor.Pivot",
+        "Shell_Deploy__Mobile.Body.Pivot",
+        "Shell_Deploy__Mobile.GunBarrel.Pivot",
+        "Shell_Deploy__Pod.NE.Anchor.Pivot",
+        "Shell_Deploy__Pod.NW.Anchor.Pivot",
+        "Shell_Deploy__Pod.SE.Anchor.Pivot",
+        "Shell_Deploy__Pod.SW.Anchor.Pivot",
+        "Shell_Deploy__Shell.NorthInner.Hinge.Pivot",
+        "Shell_Deploy__Shell.NorthInner.Rail.Pivot",
+        "Shell_Deploy__Shell.NorthOuter.Hinge.Pivot",
+        "Shell_Deploy__Shell.NorthOuter.Rail.Pivot",
+        "Shell_Deploy__Shell.SouthInner.Hinge.Pivot",
+        "Shell_Deploy__Shell.SouthInner.Rail.Pivot",
+        "Shell_Deploy__Shell.SouthOuter.Hinge.Pivot",
+        "Shell_Deploy__Shell.SouthOuter.Rail.Pivot",
+        "Shell_Recoil__Shell.NorthInner.Hinge.Pivot",
+        "Shell_Recoil__Shell.NorthInner.Rail.Pivot",
+        "Shell_Recoil__Shell.SouthInner.Hinge.Pivot",
+        "Shell_Recoil__Shell.SouthInner.Rail.Pivot",
+        "Tower_Deploy__Mobile.Body.Pivot",
+        "Tower_Deploy__Mobile.GunBarrel.Pivot",
+        "Tower_Deploy__Pod.NE.Anchor.Pivot",
+        "Tower_Deploy__Pod.NW.Anchor.Pivot",
+        "Tower_Deploy__Pod.SE.Anchor.Pivot",
+        "Tower_Deploy__Pod.SW.Anchor.Pivot",
+        "Tower_Deploy__Tower.CrownLift.Pivot",
+        "Tower_Deploy__Tower.Vane.01.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.02.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.03.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.04.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.05.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.06.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.07.Fan.Pivot",
+        "Tower_Deploy__Tower.Vane.08.Fan.Pivot",
+        "Tower_Recoil_01__Tower.Vane.01.Barrel.Pivot",
+        "Tower_Recoil_01__Tower.Vane.01.Fan.Pivot",
+        "Tower_Recoil_02__Tower.Vane.02.Barrel.Pivot",
+        "Tower_Recoil_02__Tower.Vane.02.Fan.Pivot",
+        "Tower_Recoil_03__Tower.Vane.03.Barrel.Pivot",
+        "Tower_Recoil_03__Tower.Vane.03.Fan.Pivot",
+        "Tower_Recoil_04__Tower.Vane.04.Barrel.Pivot",
+        "Tower_Recoil_04__Tower.Vane.04.Fan.Pivot",
+        "Tower_Recoil_05__Tower.Vane.05.Barrel.Pivot",
+        "Tower_Recoil_05__Tower.Vane.05.Fan.Pivot",
+        "Tower_Recoil_06__Tower.Vane.06.Barrel.Pivot",
+        "Tower_Recoil_06__Tower.Vane.06.Fan.Pivot",
+        "Tower_Recoil_07__Tower.Vane.07.Barrel.Pivot",
+        "Tower_Recoil_07__Tower.Vane.07.Fan.Pivot",
+        "Tower_Recoil_08__Tower.Vane.08.Barrel.Pivot",
+        "Tower_Recoil_08__Tower.Vane.08.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.01.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.01.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.02.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.02.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.03.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.03.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.04.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.04.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.05.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.05.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.06.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.06.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.07.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.07.Fan.Pivot",
+        "Tower_Recoil__Tower.Vane.08.Barrel.Pivot",
+        "Tower_Recoil__Tower.Vane.08.Fan.Pivot"
+      ],
+      "actions": 72,
+      "actionsSha256": "ba3b8751d8003f3dc464276686c8112bc6858f61cc341cc0e5b96bf0cb0ced1f",
+      "animationBindingsSha256": "1157971e0fe75c23eb54508d7a8e133b64bdfdee38a7a7b50844613c85d4ccd7",
+      "keyframes": 3618,
+      "meshGeometrySha256": "50a82116767fa922ea76f393ae8515781df91e44f49fb7d8731c62a83ed7f9fc",
+      "meshUvSha256": "19206f3e973671c19ed1ce3f5c5421d9acde860ffe19283d8a5cb6a7cbaf6943",
+      "meshes": 31,
+      "nlaTrackNames": [
+        "Mobile_Recoil",
+        "PodPlant_HoverSettle",
+        "Shell_Deploy",
+        "Shell_Recoil",
+        "Tower_Deploy",
+        "Tower_Recoil",
+        "Tower_Recoil_01",
+        "Tower_Recoil_02",
+        "Tower_Recoil_03",
+        "Tower_Recoil_04",
+        "Tower_Recoil_05",
+        "Tower_Recoil_06",
+        "Tower_Recoil_07",
+        "Tower_Recoil_08"
+      ],
+      "objectNames": [
+        "AUTH_AegisTortoise_Kinematic_Master",
+        "Mobile.Body.Pivot",
+        "Mobile.GunBarrel",
+        "Mobile.GunBarrel.Pivot",
+        "Mobile.Hull.Static",
+        "Pod.NE.Anchor",
+        "Pod.NE.Anchor.Pivot",
+        "Pod.NW.Anchor",
+        "Pod.NW.Anchor.Pivot",
+        "Pod.SE.Anchor",
+        "Pod.SE.Anchor.Pivot",
+        "Pod.SW.Anchor",
+        "Pod.SW.Anchor.Pivot",
+        "Shell.NorthInner.Hinge.Pivot",
+        "Shell.NorthInner.Plate",
+        "Shell.NorthInner.Rail.Pivot",
+        "Shell.NorthOuter.Hinge.Pivot",
+        "Shell.NorthOuter.Plate",
+        "Shell.NorthOuter.Rail.Pivot",
+        "Shell.SouthInner.Hinge.Pivot",
+        "Shell.SouthInner.Plate",
+        "Shell.SouthInner.Rail.Pivot",
+        "Shell.SouthOuter.Hinge.Pivot",
+        "Shell.SouthOuter.Plate",
+        "Shell.SouthOuter.Rail.Pivot",
+        "TeamAccent.Shell.NorthInner.Emitter",
+        "TeamAccent.Shell.NorthOuter.Emitter",
+        "TeamAccent.Shell.SouthInner.Emitter",
+        "TeamAccent.Shell.SouthOuter.Emitter",
+        "Tower.Crown",
+        "Tower.CrownLift.Pivot",
+        "Tower.Vane.01.Armor",
+        "Tower.Vane.01.Barrel",
+        "Tower.Vane.01.Barrel.Pivot",
+        "Tower.Vane.01.Fan.Pivot",
+        "Tower.Vane.02.Armor",
+        "Tower.Vane.02.Barrel",
+        "Tower.Vane.02.Barrel.Pivot",
+        "Tower.Vane.02.Fan.Pivot",
+        "Tower.Vane.03.Armor",
+        "Tower.Vane.03.Barrel",
+        "Tower.Vane.03.Barrel.Pivot",
+        "Tower.Vane.03.Fan.Pivot",
+        "Tower.Vane.04.Armor",
+        "Tower.Vane.04.Barrel",
+        "Tower.Vane.04.Barrel.Pivot",
+        "Tower.Vane.04.Fan.Pivot",
+        "Tower.Vane.05.Armor",
+        "Tower.Vane.05.Barrel",
+        "Tower.Vane.05.Barrel.Pivot",
+        "Tower.Vane.05.Fan.Pivot",
+        "Tower.Vane.06.Armor",
+        "Tower.Vane.06.Barrel",
+        "Tower.Vane.06.Barrel.Pivot",
+        "Tower.Vane.06.Fan.Pivot",
+        "Tower.Vane.07.Armor",
+        "Tower.Vane.07.Barrel",
+        "Tower.Vane.07.Barrel.Pivot",
+        "Tower.Vane.07.Fan.Pivot",
+        "Tower.Vane.08.Armor",
+        "Tower.Vane.08.Barrel",
+        "Tower.Vane.08.Barrel.Pivot",
+        "Tower.Vane.08.Fan.Pivot"
+      ],
+      "objectTransformsSha256": "7645bcf37961f77abf0012fba3afe5d8e59aec3256353cc804b4c556a3c01ece",
+      "objects": 63
+    }
+  },
+  "authorityValidationLedger": {
+    "authoredBlend": {
+      "path": "sandbox/bulwark-kinematic-master-v13-final/aegis-tortoise-kinematic-master.blend",
+      "sha256": "fbe50d1f6e2d7056eacee02139b3e4ce38dd7a348806f044c4114c3a2d0dad37"
+    },
+    "path": "sandbox/bulwark-kinematic-master-v13-final/validation-report.json",
+    "present": true,
+    "schema": "nilbots-bulwark-kinematic-master-1",
+    "sha256": "cb834fd7822b1f06ca2e3842e781f65783b7ac9aa6b750d096030a39f6eb956d",
+    "status": "PASS",
+    "surfaceDigest": "4465811c2e4eb8704ed4000320176267c5f5a4939f745db93ab3c374b77f3c97",
+    "surfaceLoopUvCorrespondenceExact": true,
+    "uploadedSourceGlb": {
+      "path": "sandbox/bulwark-kinematic-master-v13-final/aegis-tortoise-texture-upload.glb",
+      "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175"
+    }
+  },
+  "blender": {
+    "background": true,
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "version": "5.2.0 LTS"
+  },
+  "checks": {
+    "actionEndpointsUnchanged": true,
+    "actionNamesAndKeyframesUnchanged": true,
+    "allPbrMapsShareAtlasResolution": true,
+    "animatedGlbPreservesFullChannelsTargetsAndSamples": true,
+    "animatedGlbPreservesGeometryTopologyUvAndVertexAttributes": true,
+    "animatedGlbPreservesNodeHierarchyAndPivots": true,
+    "animatedGlbPreservesPbrFactorsTexturesAndSamplers": true,
+    "animatedGlbPreservesSceneRoots": true,
+    "animatedGlbPreservesSemanticClipNames": true,
+    "animatedGlbPreservesSkinsAndInverseBindMatrices": true,
+    "animatedGlbPreservesTextureFreeSemanticTeamAccent": true,
+    "animatedGlbProvidesPortableNormalMapTangentBasisInputs": true,
+    "animationBindingsUnchanged": true,
+    "authoredBlendMatchesUploadedSourceSurfaceGeometryAndUv": true,
+    "meshGeometryChecksumsUnchanged": true,
+    "meshUvChecksumsUnchanged": true,
+    "objectTransformsUnchanged": true,
+    "offlineNetworkCallsZero": true,
+    "offlineProviderCallsZero": true,
+    "oneNonOverlappingSharedBodyUvAtlas": true,
+    "outputAnimatedGlbMatchesAuthoredSurfaceGeometryAndUv": true,
+    "pinnedBlender52": true,
+    "providerDonorExactOrientedUvTrianglePairing": true,
+    "providerDonorGlobalSimilarityWithinFixedResidual": true,
+    "providerDonorReflectionAndWindingRejected": true,
+    "providerGeometryNeverEnteredOutput": true,
+    "rebuiltPbrMapsRemainPackedAfterSave": true,
+    "teamAccentRemainsSemanticAndTextureFree": true,
+    "uploadedSourceMatchesDonorSurfaceGeometryAndUv": true
+  },
+  "inputs": {
+    "authoredBlend": {
+      "path": "sandbox/bulwark-kinematic-master-v13-final/aegis-tortoise-kinematic-master.blend",
+      "sha256": "fbe50d1f6e2d7056eacee02139b3e4ce38dd7a348806f044c4114c3a2d0dad37"
+    },
+    "donorGlb": {
+      "path": "art/class-models/provider-runs/meshy/aegis-tortoise-kinematic/019fb4bc-03d1-7142-9a37-7c3a8e2ffc34/raw-retextured-model.glb",
+      "sha256": "d9c332494cb82ba679fc944ed6e1dd85c8993a80bca9cde112ffe113ff65d4a9"
+    },
+    "uploadedSourceGlb": {
+      "path": "sandbox/bulwark-kinematic-master-v13-final/aegis-tortoise-texture-upload.glb",
+      "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175"
+    }
+  },
+  "method": {
+    "bindFrame": 1,
+    "geometryAuthority": "authored-blend-only",
+    "modelCollection": "NB_Bulwark_Kinematic_Master",
+    "networkCalls": 0,
+    "offline": true,
+    "providerActionsImportedIntoAuthorityScene": 0,
+    "providerCalls": 0,
+    "providerNodeGraphsImportedIntoAuthorityScene": 0,
+    "providerObjectsImportedIntoAuthorityScene": 0,
+    "providerSimilarityResidualThresholds": {
+      "maximumNormalized": 2e-05,
+      "rmsNormalized": 2e-06
+    },
+    "providerUse": "PBR image bytes and numeric material factors only",
+    "surfaceQuantum": 1e-06
+  },
+  "outputDirectory": "sandbox/bulwark-kinematic-texture-transplant-v1",
+  "outputGlbAnimationNames": [
+    "Mobile_Recoil",
+    "PodPlant_HoverSettle",
+    "Shell_Deploy",
+    "Shell_Recoil",
+    "Tower_Deploy",
+    "Tower_Recoil",
+    "Tower_Recoil_01",
+    "Tower_Recoil_02",
+    "Tower_Recoil_03",
+    "Tower_Recoil_04",
+    "Tower_Recoil_05",
+    "Tower_Recoil_06",
+    "Tower_Recoil_07",
+    "Tower_Recoil_08"
+  ],
+  "outputGlbValidation": {
+    "animations": [
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Mobile.Body.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "a5a5ac3628360b12ea8020defb60329a92a4b819f32d612852f0b3ec3fddafe7"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Mobile.GunBarrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "625236ca334f121a0ac5f4b05cbb80f9d0c12077570a3cce284605525b268152"
+          }
+        ],
+        "channels": 2,
+        "name": "Mobile_Recoil",
+        "samples": 44,
+        "targets": [
+          [
+            "Mobile.Body.Pivot",
+            "translation"
+          ],
+          [
+            "Mobile.GunBarrel.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Mobile.Body.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "5247176f0071bbb2341ecd374c94225f8df85fcc43e9836aa37c8d96039980ee"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "0458110fb1ff3d0173a594c6e796a4b3e5ef7811a3516c46f593e25511f1f4a1"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "1a8cdea012bfc9119a668549c2142092a99810d2ed7ba9a94815412928f336ec"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "a7a3b25dacb964faeb87cac2b11211569d79941ee8cfb07d7196ed3f98050209"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "c4343294523eddd5a91524965f186251dd47bc65145664d1e91cdcf046521c4c"
+          }
+        ],
+        "channels": 5,
+        "name": "PodPlant_HoverSettle",
+        "samples": 480,
+        "targets": [
+          [
+            "Mobile.Body.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NW.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SW.Anchor.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Mobile.Body.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "5247176f0071bbb2341ecd374c94225f8df85fcc43e9836aa37c8d96039980ee"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Mobile.GunBarrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "8e6ae423fc7351f7ed1e0fd4eb226c1fb7793bcba664745cae2d5884a3b0103f"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "0458110fb1ff3d0173a594c6e796a4b3e5ef7811a3516c46f593e25511f1f4a1"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "1a8cdea012bfc9119a668549c2142092a99810d2ed7ba9a94815412928f336ec"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "a7a3b25dacb964faeb87cac2b11211569d79941ee8cfb07d7196ed3f98050209"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "c4343294523eddd5a91524965f186251dd47bc65145664d1e91cdcf046521c4c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.NorthInner.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "dd0a753feec24a1ac2b0c3a351ac283154ea5f1ca373def4787549e8e2a455ae"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.NorthInner.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "f3e93216a674ee8567a1acd794af706550bcf5fae405e234c1a157e93136f430"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.NorthOuter.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "5a243a1851adf48df69c7d84ef42d3913a23c0c4fc6b89597bc60315d8d3dd87"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.NorthOuter.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "3f526f2a3cea51450b792d53e6ed3dac09396908a68b9b026859f7b0bfafaf2c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.SouthInner.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "c74c6ad6ac17de4b0ce46f97c454fab5d9bc01f43bb0364ea3ecdd38fffb14a9"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.SouthInner.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "a37748941a69a092f0214f2f5f878c9f3d79c7037428fd1352ec31de6689fee5"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.SouthOuter.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "d55b905270f824633ac56c6e696cc65fd93953e0d0e6d823644d17ff9bbab72f"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Shell.SouthOuter.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "ae8b6d7612478d367f16809c370c904ef300278bf9ec2a6e7a84ec5aedeb6941"
+          }
+        ],
+        "channels": 14,
+        "name": "Shell_Deploy",
+        "samples": 1344,
+        "targets": [
+          [
+            "Mobile.Body.Pivot",
+            "translation"
+          ],
+          [
+            "Mobile.GunBarrel.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NW.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SW.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Shell.NorthInner.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.NorthInner.Rail.Pivot",
+            "translation"
+          ],
+          [
+            "Shell.NorthOuter.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.NorthOuter.Rail.Pivot",
+            "translation"
+          ],
+          [
+            "Shell.SouthInner.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.SouthInner.Rail.Pivot",
+            "translation"
+          ],
+          [
+            "Shell.SouthOuter.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.SouthOuter.Rail.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 24,
+            "targetNode": "Shell.NorthInner.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "3aab9d082fb4140078c5cdd649d4965e353758634b684ddab632163aa883fd3c",
+            "valuesSha256": "3e3076f7b9fe01621d156e3c369f9599254e444d20e96a4a7ea3d1a284e783c5"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 24,
+            "targetNode": "Shell.NorthInner.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "3aab9d082fb4140078c5cdd649d4965e353758634b684ddab632163aa883fd3c",
+            "valuesSha256": "42c92cdd0ed24cf164b7e54b8f62c63fea246223b599e34971a4eb61d7d5bb8b"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 24,
+            "targetNode": "Shell.SouthInner.Hinge.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "3aab9d082fb4140078c5cdd649d4965e353758634b684ddab632163aa883fd3c",
+            "valuesSha256": "bf0d4b7f91008aee15dfa6e79c33950b7a8d8f3a00e45ed0cfd62c49c303b837"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 24,
+            "targetNode": "Shell.SouthInner.Rail.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "3aab9d082fb4140078c5cdd649d4965e353758634b684ddab632163aa883fd3c",
+            "valuesSha256": "c8b0abb938776fb6ff1991b843862377614d2653bacc6d0ce27c38e578bae0be"
+          }
+        ],
+        "channels": 4,
+        "name": "Shell_Recoil",
+        "samples": 96,
+        "targets": [
+          [
+            "Shell.NorthInner.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.NorthInner.Rail.Pivot",
+            "translation"
+          ],
+          [
+            "Shell.SouthInner.Hinge.Pivot",
+            "rotation"
+          ],
+          [
+            "Shell.SouthInner.Rail.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Mobile.Body.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "5247176f0071bbb2341ecd374c94225f8df85fcc43e9836aa37c8d96039980ee"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Mobile.GunBarrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "8e600b4861ac6d9270997785b37f992f725be2c0a286fe2eb19f18fc49e08946"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "0458110fb1ff3d0173a594c6e796a4b3e5ef7811a3516c46f593e25511f1f4a1"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.NW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "1a8cdea012bfc9119a668549c2142092a99810d2ed7ba9a94815412928f336ec"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SE.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "a7a3b25dacb964faeb87cac2b11211569d79941ee8cfb07d7196ed3f98050209"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Pod.SW.Anchor.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "c4343294523eddd5a91524965f186251dd47bc65145664d1e91cdcf046521c4c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.CrownLift.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "6e87afd1421d7293e5275ff0064902217495d24e2edb590c5101a683d3c96e26"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "330d19a0858dfb26b49dcec831af81c51f46060e0b58831009cbc98495c2ec37"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "55cc5d7ec55dcabd7fc371ada0e865f52dc2bb5455ae27e0d3e7d01a8ac8debd"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "67aa579cf2e8892bffe3cfcf614c84039b979a8ff0b565d3196f1f363c7171bb"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "245ff11d853fa3f285168b61e25dc0ca547256649a2bbe50f74d3b57fdccc314"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "04d16b137dc971a0783176e9654f9295a491f05249ee3c715c56133cf5dafc55"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "71ec483f5b375d31b0dce9b8cfa8178e0b4a7858edd0b23599f668a208bda4bc"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "c34d197fd5d8f6e6851ce0c464053af263931ace1c56bc0688777b1b7df5e40f"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "45e24294c5b2da6764def0639c37a3176e1924916c47fa9c0079336141adb79a"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "a2a6a1e4ac49a2e9c3ebda68a14f6281daec3a31e9d06e5d998bb5de0645ba57"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "8978ca5c0b4b61478ae15c6518deac42415f4e7e97e145294cd6a83a78cfeb49"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "5366035ad6579b71517338f92ed601ad2d1ca34e7f4523dd15621d82e3c228ec"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "257df50939115e2404f3f87e285d99da9be2d1ec0dcdefc0fa74bb791bea778e"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "e931c44a42c9568317f5f2540fc59b373b7628150aff46b992998a476c4c03cb"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "00880a9416c96f3ec8ae0f53c1f395ba7bce182b2a4e468a3667cf0467c8d287"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "bdef46c0dc1220c3c3e0b0e24c0b0cf440d43a99ac88e06f195c7cbd776e81bc"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 96,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "d9f5445d3a040d986c4b2f7433c3aaf9f57ab21e473f91eb85e5d0a18b74b635",
+            "valuesSha256": "636d961f3ebab56c2b009544c4e85d47d7798f421fc47965a0f77802e04b23e5"
+          }
+        ],
+        "channels": 23,
+        "name": "Tower_Deploy",
+        "samples": 2208,
+        "targets": [
+          [
+            "Mobile.Body.Pivot",
+            "translation"
+          ],
+          [
+            "Mobile.GunBarrel.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.NW.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SE.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Pod.SW.Anchor.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.CrownLift.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.01.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "8cd01dd2444a030b4a428879f813822e2b9c16bc9f2a2b48aa87cee4298a7d2c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "d84ebdd38d8934d31a9b190378b1a1b5159a8e87968e18d9a645a309d2fd9119"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "a9d67060276c264c15e49478299d0e20efe7c876f45c91da65c344c79318cb14"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.02.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "51cd0108d72a26e51f91c773cd58e4c1082cb10564fd59f8e69888e34d94085c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "0b11db73267ddc745669d51958db6c410085ef5340733ba5b2d08cd59fd4f96c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "1f2e36efa77c7ae350af14a3d48e29aa786c8851cb49641d7bf22bb551e7d052"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.03.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "fa8b63ba21de2b5c3148272e55877dbe03e60efcbb202a60073b9df8a09326ce"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "21f415a1907ef227a2708a085545cc680acfa70dfe637dba2f40c0e8d86a9bdc"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "f9507920ca04054c1beffb7c0ac5111269409dd29fd0633d7ccd97ddbd9d68e9"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.04.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "507a3c55d73245ee2df9e41e4196d035bd519a88f429b2667c8bd56fbffeb3d1"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "9b8b7ebe0cfad00b7a59768d158b5b1ce83acc4e9b6894794aeaad0d5393baf5"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "5e847d7570e27e85da5c9352266dbb225a13220b5f5e73cd4533b464bf03041d"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.05.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "8b4b221a6754e2d86b9e1cbc91e25459708b2ff8594e27bccbab507428cff30d"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "b1920dbd02dce267f9771654445912614c8075c28cf77fbcfe4f97bab7ac8343"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "7003e7b50b3a9768f1b5350de87b2664f4e6995760782d89f91c2f02c35fa164"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.06.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "22b37339d1901c144c54b540d17fd77594cfa7f447194732a7be12a702090d67"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "227b7852238305fc3fcf8984490fa67c28bd4c95fdd8942f15a5d7cf0bfbe7c4"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "c0162fc7bda62fba5a2fa99f7023a528ddd8bde792751e66f988c525c788af18"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.07.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "c76b5c5a1dd386e6fd1e6988fe35dcb026a69d1ebb9144a3f2fe2ab84eb1d933"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "e733a89a8ef3ae8f3dbaf42f6b8f4aff390f47dd40730d8eba96a018f685c1f4"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "2c849636908025dd28e1e19c5fe70d750ee38baab6956d0e2c53d4f58101cd6c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.08.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "61efafcb247d3d3025269a267c8cf979e24a5c5308a09bf90cd4c8bb956238c8"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "9d094bd0fb130d06a79fbc728c585b5647828f857a9805abcb3a6c345879f3f6"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 34,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "ec3f5bcdfc935494f4388704edf6ffc31eccce619532dd4d64d43198f3ffe9a4",
+            "valuesSha256": "6eb7f1aa86f75094d115fb432e2e1fe7cbadaf57772c7d10e72fc1d639a4f80d"
+          }
+        ],
+        "channels": 24,
+        "name": "Tower_Recoil",
+        "samples": 816,
+        "targets": [
+          [
+            "Tower.Vane.01.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.02.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.03.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.04.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.05.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.06.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.07.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.08.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.01.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "94857bd414c09def319ecf490afb251f62f7f27eb7c40f7f997fa0bf49f6c21a"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "0dc49c98110b994088cdc0003ef98ca5b0c9e10422c7f9da7077b42a75143e27"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.01.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "b912c7dd64fa3af7cfec42ffe68b1b10688686aa54470723cd7cf3a0702d33da"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_01",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.01.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.01.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.02.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "938ca05a15d3a9931b560985cecd2e098718899373923e2ed9ddc56d3a8fd276"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "ea809ee639d3f12c72d86d52a0a45fd24316ea575b2eae8c02af43c159784a0b"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.02.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "b8d050aa60a5d3a4b0b6955f372c32d44e378c5900284f1fd49592965d609e47"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_02",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.02.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.02.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.03.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "6caa9e5303d7a328c3b8b6815d2cd1f9529c72b748f1e82ca89aa87104fa3c24"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "efb7f6aa5efbaef118a753186a075881da121fcbf8e36f10cbe4477387974ee8"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.03.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "c660f0e71489289cc1a1fd80e5060c1bb1649c622145bd99c8bdb6094f6f69f9"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_03",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.03.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.03.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.04.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "e6027808b758d7e607ad6b4c2ecdf08239ebfbc9266b7af28b8b75be9d92f041"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "09165c280690253aee8de3b9fac5795bc87f9f1a9ae4a09a802d38e9a27cb88c"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.04.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "52c799565d15686b7ad2de6e7e27064d7b106bc298a69106e2981aed008b8b98"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_04",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.04.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.04.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.05.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "6da4aee3b8fd8b7805454e50ce29b28f547c771917f4cc970234aa78a82075f3"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "4e24d620867758202ee70d74d119a86c4c26abdd09a8703644ae4260ba1901db"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.05.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "e004155d86f2ae361737694a384a1114ca47124172483a47633713959992ff61"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_05",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.05.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.05.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.06.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "e3c59c35497f68bf9cd88007abc9c8d81dff4be0d5b0fd7bea7789d9eadc7999"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "ce2e0d2ed8efcdeef3ee4c7e40787e40bd468e18bfc61287abc00e878c4d65de"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.06.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "52dcb7853871eb317b699057724903afd0f7089aa6346c86134cae47e9488adf"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_06",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.06.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.06.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.07.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "cc7685020f4a566e95ba8f4c768c2685d7a7a8f5f482e78176efed88ed7dcb19"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "438dafb8692e3655e9ad5d532316b77bc7d0d2ddc5e60b75b0a695043048ee14"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.07.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "5378816cf30e77572d1927b8340599a751364dbcc3ec43ca9ed3e6ddd330bcc7"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_07",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.07.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.07.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      },
+      {
+        "channelProof": [
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.08.Barrel.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "0c1f8709db5af4cd735d0d1e9128bea8c62856b2508aad226df6eec42fa2a916"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "rotation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "90c64f32d90a8db560ebaaa7f3c3804a3680edb147581e8208a1493729dba7e2"
+          },
+          {
+            "interpolation": "LINEAR",
+            "keyCount": 22,
+            "targetNode": "Tower.Vane.08.Fan.Pivot",
+            "targetPath": "translation",
+            "timesSha256": "392ca396716ef8b54a9f4ff07062b5cdd7157cdb4b08ca0a2b4a9f092d38d6ca",
+            "valuesSha256": "5dc1c3f7e4789f47f71fcbf3231fd5d922176b277c1503eed1db57fe95095442"
+          }
+        ],
+        "channels": 3,
+        "name": "Tower_Recoil_08",
+        "samples": 66,
+        "targets": [
+          [
+            "Tower.Vane.08.Barrel.Pivot",
+            "translation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "rotation"
+          ],
+          [
+            "Tower.Vane.08.Fan.Pivot",
+            "translation"
+          ]
+        ]
+      }
+    ],
+    "baselineAnimationSamplesSha256": "1739ccd7731154d688fc346940bf47517f974765be8926dd77d0e3a667d8bc98",
+    "baselineMeshAuthoritySha256": "eac5f37c9ac457081abef56e6b9b9950d9e26ca6765ce7be0176dcfe7afd6ef1",
+    "baselineNodeHierarchySha256": "2a364915dabc9d1bc247cbd1eef1fa0563e5590510b32be0bb1ec676a9673af5",
+    "baselineSceneAuthoritySha256": "e6f873881d9b05c5bc1c9b429c80b3ee2de646685e57378c81835a62dd6bb94c",
+    "baselineSkinAuthoritySha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "matchesBaseline": {
+      "animationChannelsTargetsTimesAndValues": true,
+      "meshAccessorsAndMaterialBindings": true,
+      "nodeHierarchyAndPivots": true,
+      "sceneRoots": true,
+      "skinsAndInverseBindMatrices": true
+    },
+    "materials": {
+      "bodyMaterials": {
+        "Aegis_Neutral_OriginalUV": {
+          "factors": {
+            "baseColor": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            "doubleSided": true,
+            "emissive": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "emissiveStrength": 1.0,
+            "metallic": 1.0,
+            "normalScale": 1.0,
+            "occlusionStrength": 1.0,
+            "roughness": 1.0
+          },
+          "textures": {
+            "baseColor": {
+              "bytes": 2290776,
+              "mimeType": "image/jpeg",
+              "sampler": {
+                "magFilter": 9729,
+                "minFilter": 9987,
+                "wrapS": 10497,
+                "wrapT": 10497
+              },
+              "sha256": "b1abb3e6da2f2e91ff03a493fdaabf0432e1435f10d0781d308e37f9666063e4"
+            },
+            "emissive": {
+              "bytes": 84377,
+              "mimeType": "image/jpeg",
+              "sampler": {
+                "magFilter": 9729,
+                "minFilter": 9987,
+                "wrapS": 10497,
+                "wrapT": 10497
+              },
+              "sha256": "fb1ab261fc082ebf54690a54b282f19461b49716aca50f2a67f03787ffba2ded"
+            },
+            "metallicRoughness": {
+              "bytes": 1587239,
+              "mimeType": "image/jpeg",
+              "sampler": {
+                "magFilter": 9729,
+                "minFilter": 9987,
+                "wrapS": 10497,
+                "wrapT": 10497
+              },
+              "sha256": "34c47bd88efdef4c74bd43d5cef88b7756892f1befd02c56027a08b6acf7b691"
+            },
+            "normal": {
+              "bytes": 2509581,
+              "mimeType": "image/jpeg",
+              "sampler": {
+                "magFilter": 9729,
+                "minFilter": 9987,
+                "wrapS": 10497,
+                "wrapT": 10497
+              },
+              "sha256": "5c02b357a56b88cf8e8acddce3fce4c33241c1f69212d5cea5e3cb6449fc7a26"
+            },
+            "occlusion": null
+          }
+        }
+      },
+      "bodyPrimitiveMaterials": 1,
+      "normalMapTangentBasis": {
+        "bodyPrimitives": 27,
+        "explicitTangentPrimitives": 0,
+        "mikkTspaceDerivedPrimitives": 27,
+        "requiredInputsPresent": true
+      },
+      "teamAccentMaterialProof": {
+        "NB_TeamAccent_Semantic": {
+          "baselineSha256": "0dbd1577a7590bfe916ecf3d1ce62d0dc7e770524210f6a830ab9ab849770a3a",
+          "outputSha256": "0dbd1577a7590bfe916ecf3d1ce62d0dc7e770524210f6a830ab9ab849770a3a"
+        }
+      },
+      "teamAccentMaterials": [
+        "NB_TeamAccent_Semantic"
+      ],
+      "teamAccentPrimitiveMaterials": 1
+    },
+    "outputAnimationSamplesSha256": "1739ccd7731154d688fc346940bf47517f974765be8926dd77d0e3a667d8bc98",
+    "outputMeshAuthoritySha256": "eac5f37c9ac457081abef56e6b9b9950d9e26ca6765ce7be0176dcfe7afd6ef1",
+    "outputNodeHierarchySha256": "2a364915dabc9d1bc247cbd1eef1fa0563e5590510b32be0bb1ec676a9673af5",
+    "outputSceneAuthoritySha256": "e6f873881d9b05c5bc1c9b429c80b3ee2de646685e57378c81835a62dd6bb94c",
+    "outputSkinAuthoritySha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "pbr": {
+    "bodyMaterialsRebuilt": [
+      "Aegis_Neutral_OriginalUV"
+    ],
+    "dimensions": {
+      "baseColor": [
+        2048,
+        2048
+      ],
+      "emissive": [
+        2048,
+        2048
+      ],
+      "metallicRoughness": [
+        2048,
+        2048
+      ],
+      "normal": [
+        2048,
+        2048
+      ]
+    },
+    "factors": {
+      "baseColor": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "doubleSided": true,
+      "emissive": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "emissiveStrength": 1.0,
+      "metallic": 1.0,
+      "normalScale": 1.0,
+      "occlusionStrength": 1.0,
+      "roughness": 1.0
+    },
+    "materialConsumersInsideModelCollection": {
+      "Aegis_Neutral_OriginalUV": [
+        "Mobile.GunBarrel",
+        "Mobile.Hull.Static",
+        "Pod.NE.Anchor",
+        "Pod.NW.Anchor",
+        "Pod.SE.Anchor",
+        "Pod.SW.Anchor",
+        "Shell.NorthInner.Plate",
+        "Shell.NorthOuter.Plate",
+        "Shell.SouthInner.Plate",
+        "Shell.SouthOuter.Plate",
+        "Tower.Crown",
+        "Tower.Vane.01.Armor",
+        "Tower.Vane.01.Barrel",
+        "Tower.Vane.02.Armor",
+        "Tower.Vane.02.Barrel",
+        "Tower.Vane.03.Armor",
+        "Tower.Vane.03.Barrel",
+        "Tower.Vane.04.Armor",
+        "Tower.Vane.04.Barrel",
+        "Tower.Vane.05.Armor",
+        "Tower.Vane.05.Barrel",
+        "Tower.Vane.06.Armor",
+        "Tower.Vane.06.Barrel",
+        "Tower.Vane.07.Armor",
+        "Tower.Vane.07.Barrel",
+        "Tower.Vane.08.Armor",
+        "Tower.Vane.08.Barrel"
+      ]
+    },
+    "persistedBodyMaterialMaps": {
+      "Aegis_Neutral_OriginalUV": [
+        "baseColor",
+        "emissive",
+        "metallicRoughness",
+        "normal"
+      ]
+    },
+    "samplers": {
+      "baseColor": {
+        "magFilter": 9729,
+        "minFilter": 9987,
+        "wrapS": 10497,
+        "wrapT": 10497
+      },
+      "emissive": {
+        "magFilter": 9729,
+        "minFilter": 9987,
+        "wrapS": 10497,
+        "wrapT": 10497
+      },
+      "metallicRoughness": {
+        "magFilter": 9729,
+        "minFilter": 9987,
+        "wrapS": 10497,
+        "wrapT": 10497
+      },
+      "normal": {
+        "magFilter": 9729,
+        "minFilter": 9987,
+        "wrapS": 10497,
+        "wrapT": 10497
+      }
+    },
+    "teamAccentMaterialsUntouched": [
+      "NB_TeamAccent_Semantic"
+    ],
+    "textures": [
+      {
+        "bytes": 2290776,
+        "mimeType": "image/jpeg",
+        "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/baseColor-b1abb3e6da2f2e91.jpg",
+        "role": "baseColor",
+        "sha256": "b1abb3e6da2f2e91ff03a493fdaabf0432e1435f10d0781d308e37f9666063e4"
+      },
+      {
+        "bytes": 1587239,
+        "mimeType": "image/jpeg",
+        "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/metallicRoughness-34c47bd88efdef4c.jpg",
+        "role": "metallicRoughness",
+        "sha256": "34c47bd88efdef4c74bd43d5cef88b7756892f1befd02c56027a08b6acf7b691"
+      },
+      {
+        "bytes": 2509581,
+        "mimeType": "image/jpeg",
+        "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/normal-5c02b357a56b88cf.jpg",
+        "role": "normal",
+        "sha256": "5c02b357a56b88cf8e8acddce3fce4c33241c1f69212d5cea5e3cb6449fc7a26"
+      },
+      {
+        "bytes": 84377,
+        "mimeType": "image/jpeg",
+        "path": "sandbox/bulwark-kinematic-texture-transplant-v1/textures/emissive-fb1ab261fc082ebf.jpg",
+        "role": "emissive",
+        "sha256": "fb1ab261fc082ebf54690a54b282f19461b49716aca50f2a67f03787ffba2ded"
+      }
+    ]
+  },
+  "schema": "nilbots-texture-donor-transplant-1",
+  "status": "PASS",
+  "surfaceCorrespondence": {
+    "authoredBlend": {
+      "bounds": {
+        "maximum": [
+          612000,
+          466000,
+          532801
+        ],
+        "minimum": [
+          -488672,
+          -466000,
+          53670
+        ],
+        "quantum": 1e-06
+      },
+      "normalization": {
+        "center": [
+          0.061664074659347534,
+          0.0,
+          0.2932354509830475
+        ],
+        "maximumSpan": 1.1006719470024109,
+        "quantum": 1e-05
+      },
+      "normalizedPositionSurfaceSha256": "441676b43a0eab1b3cea6a4c7954e31ecd6f791f18044596754878bbbbb99ad8",
+      "normalizedPositionUvSurfaceSha256": "d475b25bdabbefad3bc73462acbbc912df75055121c1a431e2db9e3bb586555f",
+      "positionSurfaceSha256": "f7bbc593363d0fbbf94fa8840b1e3a2f0416ba360b587ab3642a78ab9ae20704",
+      "positionUvSurfaceSha256": "7efa32b359c8202650dc503dd1e7c16bd5a95c4ccb05afeb8071d6f2c5578f05",
+      "triangles": 22320,
+      "uvSurfaceSha256": "c3fd30184328c875379dded1171f76f8163f8feac51a833cbe14bd11e1adc94b",
+      "vertices": 11322
+    },
+    "authoredBlendFreshBaselineToUploadedSource": {
+      "exactIndexPositionNormalUvTangentAndMorphAccessors": true,
+      "freshBaselineGeometryAccessorsSha256": "fabb8f4ea8c1f56c841b0527576d31554e763145f9f09ffc4f5f8623fce6645b",
+      "freshBaselineRawSurfaceDigest": "4465811c2e4eb8704ed4000320176267c5f5a4939f745db93ab3c374b77f3c97",
+      "materialBindingsExcludedFromThisSeam": true,
+      "uploadedGeometryAccessorsSha256": "fabb8f4ea8c1f56c841b0527576d31554e763145f9f09ffc4f5f8623fce6645b",
+      "uploadedRawSurfaceDigest": "4465811c2e4eb8704ed4000320176267c5f5a4939f745db93ab3c374b77f3c97"
+    },
+    "donor": {
+      "bounds": {
+        "maximum": [
+          1000000,
+          846756,
+          435308
+        ],
+        "minimum": [
+          -1000000,
+          -846756,
+          -435308
+        ],
+        "quantum": 1e-06
+      },
+      "normalization": {
+        "center": [
+          0.0,
+          0.0,
+          -4.470348358154297e-08
+        ],
+        "maximumSpan": 2.0,
+        "quantum": 1e-05
+      },
+      "normalizedPositionSurfaceSha256": "361c2bc60d575f166d379eb7bb9b047306e5d1ad8743d1b27110ee7c2fe10e86",
+      "normalizedPositionUvSurfaceSha256": "5dde46c09517ba728fb96b071f463ad03ed974fc552743892472483204338400",
+      "positionSurfaceSha256": "9e72f44a6ddd4852b7fefa6357aaadb89ced3c731430ef4685cad79d3a294eea",
+      "positionUvSurfaceSha256": "55484d1787c5a6c4023e07450208b9ce2a2628cbf173ec960c15b7b571eec304",
+      "triangles": 22320,
+      "uvSurfaceSha256": "1176753df5b173900e0ac240c4daff1a601598e80154ed44f9300c28053cfe7f",
+      "vertices": 40382
+    },
+    "texturedAnimatedGlb": {
+      "bounds": {
+        "maximum": [
+          612000,
+          466000,
+          532801
+        ],
+        "minimum": [
+          -488672,
+          -466000,
+          53670
+        ],
+        "quantum": 1e-06
+      },
+      "normalization": {
+        "center": [
+          0.061664074659347534,
+          0.0,
+          0.29323551058769226
+        ],
+        "maximumSpan": 1.1006719470024109,
+        "quantum": 1e-05
+      },
+      "normalizedPositionSurfaceSha256": "10dedb5696c99c257480a3099c1651aaaef18a51913153b7f2d7dcd8b6ff2ddf",
+      "normalizedPositionUvSurfaceSha256": "16c47f5ba74792279812988fbd15e63697daa2fe020a50df99c143c070c86a5f",
+      "positionSurfaceSha256": "624aec037eedaa83daeaecc9bcdb1793e419cd47cbd69866358273fa293ebb1d",
+      "positionUvSurfaceSha256": "741c733378bf0fb2c91ee915c16db2e4f0d484db2b473aec7eab595edf6c239d",
+      "triangles": 22320,
+      "uvSurfaceSha256": "1176753df5b173900e0ac240c4daff1a601598e80154ed44f9300c28053cfe7f",
+      "vertices": 42594
+    },
+    "uploadedSource": {
+      "bounds": {
+        "maximum": [
+          612000,
+          466000,
+          532801
+        ],
+        "minimum": [
+          -488672,
+          -466000,
+          53670
+        ],
+        "quantum": 1e-06
+      },
+      "normalization": {
+        "center": [
+          0.061664074659347534,
+          0.0,
+          0.29323551058769226
+        ],
+        "maximumSpan": 1.1006719470024109,
+        "quantum": 1e-05
+      },
+      "normalizedPositionSurfaceSha256": "10dedb5696c99c257480a3099c1651aaaef18a51913153b7f2d7dcd8b6ff2ddf",
+      "normalizedPositionUvSurfaceSha256": "16c47f5ba74792279812988fbd15e63697daa2fe020a50df99c143c070c86a5f",
+      "positionSurfaceSha256": "624aec037eedaa83daeaecc9bcdb1793e419cd47cbd69866358273fa293ebb1d",
+      "positionUvSurfaceSha256": "741c733378bf0fb2c91ee915c16db2e4f0d484db2b473aec7eab595edf6c239d",
+      "triangles": 22320,
+      "uvSurfaceSha256": "1176753df5b173900e0ac240c4daff1a601598e80154ed44f9300c28053cfe7f",
+      "vertices": 42594
+    },
+    "uploadedSourceToDonor": {
+      "acceptedTransform": {
+        "determinant": 0.9999999999999997,
+        "reflection": false,
+        "residualNormalizedToDonorSpan": {
+          "maximum": 1.2849695154493454e-07,
+          "mean": 2.646451262585596e-08,
+          "p95": 6.525596239262275e-08,
+          "p99": 8.72326815146062e-08,
+          "rms": 3.227517894322006e-08
+        },
+        "rotation": [
+          [
+            1.0000000000000002,
+            5.076552466746728e-10,
+            8.298876273064436e-09
+          ],
+          [
+            -5.07655275079689e-10,
+            0.9999999999999998,
+            7.567840992070277e-11
+          ],
+          [
+            -8.298876391643617e-09,
+            -7.567883759983587e-11,
+            0.9999999999999996
+          ]
+        ],
+        "scale": 1.8170719051283777,
+        "translation": [
+          -0.11204811198112771,
+          -6.859918774519691e-12,
+          -0.5328300562215477
+        ]
+      },
+      "ambiguousOrDegenerateUvTriangles": 0,
+      "bestOrientationPreservingAxisTransform": {
+        "determinant": 1.0,
+        "permutation": [
+          0,
+          1,
+          2
+        ],
+        "reflection": false,
+        "residualNormalizedToDonorSpan": {
+          "maximum": 1.278794063946892e-07,
+          "mean": 2.648953814418298e-08,
+          "p95": 6.523927433307501e-08,
+          "p99": 8.744328237927346e-08,
+          "rms": 3.2371251914962015e-08
+        },
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "scale": 1.8170719051283777,
+        "signs": [
+          1,
+          1,
+          1
+        ],
+        "translation": [
+          -0.11204810745485261,
+          2.600743394514521e-11,
+          -0.5328300563589988
+        ]
+      },
+      "bestSignedAxisTransform": {
+        "determinant": 1.0,
+        "permutation": [
+          0,
+          1,
+          2
+        ],
+        "reflection": false,
+        "residualNormalizedToDonorSpan": {
+          "maximum": 1.278794063946892e-07,
+          "mean": 2.648953814418298e-08,
+          "p95": 6.523927433307501e-08,
+          "p99": 8.744328237927346e-08,
+          "rms": 3.2371251914962015e-08
+        },
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "scale": 1.8170719051283777,
+        "signs": [
+          1,
+          1,
+          1
+        ],
+        "translation": [
+          -0.11204810745485261,
+          2.600743394514521e-11,
+          -0.5328300563589988
+        ]
+      },
+      "donorVertices": 40382,
+      "geometryWindingMismatches": 0,
+      "geometryWindingParity": 1,
+      "minimumGeometryNormalDot": 0.9999999963357844,
+      "orientedUvEdgeSha256": "2049b6cc18cf90aadd9d90bbe06f3857007d54e894f5366d749ad0b2d58b2495",
+      "orientedUvTriangleSha256": "cfeae7eb440901d5505039b3382f8fb8a00c9ff74e1f7ffd3aafa37d6dae4df4",
+      "pairedCorners": 66960,
+      "providerWeldedVertexDelta": 2212,
+      "reflectionRejected": true,
+      "sourceVertices": 42594,
+      "thresholds": {
+        "maximumNormalizedResidual": 2e-05,
+        "rmsNormalizedResidual": 2e-06
+      },
+      "triangles": 22320,
+      "unrestrictedTransform": {
+        "determinant": 0.9999999999999997,
+        "reflection": false,
+        "residualNormalizedToDonorSpan": {
+          "maximum": 1.2849695154493454e-07,
+          "mean": 2.646451262585596e-08,
+          "p95": 6.525596239262275e-08,
+          "p99": 8.72326815146062e-08,
+          "rms": 3.227517894322006e-08
+        },
+        "rotation": [
+          [
+            1.0000000000000002,
+            5.076552466746728e-10,
+            8.298876273064436e-09
+          ],
+          [
+            -5.07655275079689e-10,
+            0.9999999999999998,
+            7.567840992070277e-11
+          ],
+          [
+            -8.298876391643617e-09,
+            -7.567883759983587e-11,
+            0.9999999999999996
+          ]
+        ],
+        "scale": 1.8170719051283777,
+        "translation": [
+          -0.11204811198112771,
+          -6.859918774519691e-12,
+          -0.5328300562215477
+        ]
+      },
+      "uvWindingMismatches": 0,
+      "uvWindingParity": 1
+    }
+  },
+  "uvAtlas": {
+    "bodyTriangles": 21888,
+    "bounds": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    "layer": "UVMap",
+    "overlapPairs": 0
+  }
+}

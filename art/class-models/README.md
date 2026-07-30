@@ -1,10 +1,11 @@
 # Frontline 3D class-model vertical slice
 
-The Striker mobile body is the first accepted generated-geometry vertical
-slice. Its reviewed runtime derivative is staged beside
-`web/src/assets/class-looks/trident-wasp/sprite.svg`; every other class body,
-stance, emplacement, and class projectile still uses the canonical SVG
-extrusion fallback.
+The three primary class bodies and their default projectiles now have
+manifest-driven, on-demand WebGL companions. Striker established the
+generated-geometry route, Fabricator uses the same static companion contract,
+and Bulwark establishes the deterministic animated-authority plus generated
+texture-donor route. Bulwark Mobile, Shell, and Tower are one mechanically
+continuous model rather than unrelated form swaps.
 
 The companion supplements rather than replaces the SVG. WebGL discovers and
 downloads the separate GLB only when the 3D renderer resolves that look. The
@@ -67,39 +68,32 @@ All generated GLBs, Blender files, textures, previews, build reports, and
 procedural model generators from those failed experiments were removed so the
 approach cannot be mistaken for a production pipeline.
 
-## Remaining landing work
-
-Before merging, retain the deterministic team-accent script/config/report
-outside ignored scratch space, record the tangent-space decision, rebase onto
-Fable's current integration tip, and rerun the full web and production/CLI
-builds. The Frontline map branch owns the corrected live-span wall-clearance
-proof and modular wall implementation; it does not change gameplay collision.
-
 Striker's shallow `low-hover` is canonical presentation metadata in
-`look.json`, independent of whether an approved GLB ever exists.
+`look.json`. Fabricator's levitation and Bulwark's heavy low hover are likewise
+presentation metadata shared by the model and SVG fallback.
 
-The default `trident-spark` projectile has not been submitted to Meshy. It is a
-separate object, input review, task, and credit charge after this chassis
-landing; its trail, floor glow, travel, impact, hitbox, and team tint remain
-renderer-owned.
+The three default projectile heads remain separate objects with their own
+manifests and GLBs. Their spin, travel, trail, floor glow, team tint, and
+terminal effects remain renderer-owned. Their look manifests select only the
+outcome-agnostic signature: Striker fork burst, Bulwark facet bloom, and
+Fabricator lattice unweave.
 
-## Accepted Bulwark mobile result
+## Accepted animated Bulwark family
 
-The accepted Bulwark mobile source now lives under
-`masters/aegis-tortoise-mobile/`. It establishes the production hybrid:
+The durable authority is under `masters/aegis-tortoise-kinematic/`. Blender
+owns the 22,320-triangle Mobile/Shell/Tower machine, all rigid pivots, hidden
+faces, exact endpoints, one UV atlas, four texture-free team emitters, and 14
+semantic clips.
 
-1. approve provider geometry and PBR treatment at gameplay scale;
-2. partition the accepted mesh into deterministic semantic rigid groups;
-3. add small explicit team-accent surfaces under the correct pivots;
-4. retain the editable 2K Blender master and authored motion clips;
-5. package a stripped on-demand GLB at the lowest visually equivalent map
-   tier;
-6. derive the East-facing avatar and semantic mask from the accepted master.
+Meshy task `019fb4bc-03d1-7142-9a37-7c3a8e2ffc34` supplied only the stylized
+2K graphite/gunmetal PBR payload. Its returned GLB fused, welded, and normalized
+the upload, so a deterministic oriented-UV similarity proof discarded that
+geometry and transplanted only the verified maps onto the untouched authority.
+The final 8,024,032-byte GLB has SHA-256
+`a169822ef3c3b98ab854257e3c637e00f50900e53cfb3f51dfd8910d7ec4df8b`.
 
-The runtime decision is a 512-map, 685,744-byte GLB. Its geometry, PBR roles,
-neutral team-accent contract, axis/floor contract, and absence of accidental
-animation/camera/light payloads pass the recorded structural gate. The 2K
-editable master remains the visual authority.
-
-This acceptance covers only the Bulwark mobile body. Shell and Tower remain
-separate planted forms pending their own add-on-kit treatment.
+The WebGL renderer samples Shell/Tower deploy and reverse, form-specific
+recoil, and settle from replay truth through one mixer per clone. It falls back
+to the canonical SVG representation if the manifest or clip bindings fail.
+The earlier `masters/aegis-tortoise-mobile/` archive remains as historical
+mobile-only evidence; it is not the full-family runtime authority.

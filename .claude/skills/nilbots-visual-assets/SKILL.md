@@ -178,6 +178,14 @@ small rigid form kits over unrelated whole-model replacements.
    objects, pivots, clip presence/duration, forward/reverse endpoints, no
    interpenetration at sampled frames, retained UV/material assignment, and
    the 58-degree gameplay read before adding polish.
+9. Gate motion at native gameplay size, not only in a close-up. A deploy must
+   change the silhouette through multiple readable mechanical stages; a recoil
+   must show both kick and recovery; and reverse sampling must visibly return
+   the same parts to the exact rest pose. Measure principal-part pixel travel
+   and changed-pixel area in a fixed roughly 41-pixel frame. The accepted
+   Bulwark family uses about 3–5 pixels of principal recoil travel as evidence,
+   not as a universal constant. Reject a technically valid clip that reads as
+   static or a one-frame pop in the real replay camera.
 
 ### Multiview-AI base-mesh vertical slice
 
@@ -269,8 +277,9 @@ difference, credit boundary, texture stage, runtime optimization, animation
 ownership, provenance, credential handling, and projectile variant. The short
 rule is: approve clean views, buy geometry before texture, reject silhouette or
 part-boundary failures while cheap, prove required rigid pivots in Blender,
-texture only an accepted mesh, and optimize the corrected result for gameplay
-rather than shipping provider output directly.
+texture only an accepted mesh, treat a provider retexture as a PBR donor until
+its geometry preservation is proven, and optimize the corrected result for
+gameplay rather than shipping provider output directly.
 
 #### Fused team-accent extraction
 
@@ -355,10 +364,17 @@ Do not introduce slot-owned selection except the existing legacy fallback.
 4. The renderer tints the mask with the bot accent and owns the common trail,
    glow, local contrast adaptation, fog truthfulness, and interpolation across
    authoritative replay traversals. Do not bake those effects into one look.
-5. Test all cardinal and diagonal headings, launch, speed-one and speed-two
+5. A class projectile may declare a look-owned, outcome-agnostic terminal
+   signature such as a fork burst, facet bloom, or lattice unweave. Classify
+   the authoritative replay terminal first—damage, destruction, guard
+   absorption, deflection, harmless expiry, or administrative purge—then let
+   the renderer vary that signature's direction, strength, closure, and team
+   emission. Never infer hit or miss from disappearance in a generation-3
+   replay, and never show an impact for lifecycle/disqualification purge.
+6. Test all cardinal and diagonal headings, launch, speed-one and speed-two
    traversal, bends, impact, light and dark themes, fog, DPR 1/2, and the
    appearance-editor preview.
-6. After the 2D projectile is approved, it may receive a genuine
+7. After the 2D projectile is approved, it may receive a genuine
    `model.glb`/`model3d.json` WebGL companion under the same coordinate and
    source rules as a bot. Model a readable head volume and rule-honest
    directional silhouette; do not model a trail, floor glow, range, speed, or

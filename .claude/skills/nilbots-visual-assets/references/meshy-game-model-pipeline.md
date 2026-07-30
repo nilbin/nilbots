@@ -131,15 +131,24 @@ that truly deform.
 
 ## Texture only accepted geometry
 
-Retexture the accepted T2 task before introducing a multipart rig. Meshy may
-merge uploaded multi-mesh files, and its keep-original-UV path expects one
-material and one non-overlapping UV set after merge.
+For generated geometry, retexture the accepted T2 task before introducing a
+multipart rig. For a deterministic animated chassis, export a separate static
+full-surface upload from the exact authority: one texture-eligible material,
+one authored non-overlapping UV atlas, no animation, and semantic team-accent
+surfaces excluded from provider replacement. Use `input_task_id` for the first
+route and `model_url` for the second. Never upload the only copy of the
+animation authority.
+
+Meshy may fuse meshes, weld duplicate vertices, and apply a global similarity
+transform even when `enable_original_uv` is true. “Original UV” preserves the
+layout; it is not a promise that the returned GLB keeps object hierarchy,
+pivots, vertex indexing, bounds, or animation.
 
 Use a Meshy 6 Retexture request shaped like:
 
 ```json
 {
-  "input_task_id": "<accepted-smart-task-id>",
+  "model_url": "<accepted-static-upload-data-uri-or-url>",
   "image_style_url": "<approved-neutral-material-reference>",
   "ai_model": "meshy-6",
   "enable_original_uv": true,
@@ -168,6 +177,39 @@ normal or metallic/roughness maps only when their contribution survives the
 actual arena lighting and camera. Nilbots wants shaped, stylized materials,
 not realism for its own sake.
 
+### Prove and transplant a texture donor
+
+Do not ship an uploaded Retexture result directly for an animated authority.
+Treat its geometry as untrusted and transplant only the PBR material payload
+after all of these gates pass:
+
+1. Pin hashes for the animated authority, static upload, raw provider GLB, and
+   every texture. Reject external buffer/image URIs, traversal, unexpected
+   extensions, and unsupported samplers before Blender opens the donor.
+2. Pair every oriented provider triangle with exactly one upload triangle by
+   its three UV corners. Reject ambiguous or degenerate UV triangles and any
+   UV/geometry winding mismatch.
+3. Solve one orientation-preserving global similarity from the paired
+   positions and normals. Reject reflection, non-uniform deformation, or
+   residual drift. The accepted Bulwark donor used maximum/RMS position gates
+   of `2e-5`/`2e-6`, achieved `1.28e-7`/`3.23e-8`, and had minimum normal dot
+   above `0.999999996`.
+4. Account explicitly for provider welding. The accepted proof paired all
+   `22,320` oriented triangles and `66,960` corners while explaining `2,212`
+   welded duplicate export vertices; matching vertex counts was not required.
+5. Assign the donor's exact base-color, metallic/roughness, normal, and
+   emission maps/factors to the untouched authority materials. Preserve the
+   semantic team material texture-free.
+6. Export from the authority scene, then compare baseline and final scene
+   roots, hierarchy, transforms, pivots, skins, geometry/UV/material bindings,
+   semantic material metadata, and every animation channel, target, time, and
+   value exactly. Deriving MikkTSpace tangents at runtime is acceptable only
+   when the target renderer is tested and the unchanged
+   `POSITION`/`NORMAL`/`TEXCOORD_0` streams are pinned.
+
+Fail closed. A visually attractive donor with an unprovable UV/geometry
+correspondence is reference art, not a transplant source.
+
 Do not ask Meshy to own the semantic team material. In Blender, isolate clean
 bounded emitter faces into one texture-free neutral material with
 `extras.nilbotsRole = "team-accent"` for bots or
@@ -188,14 +230,24 @@ Treat provider output as source art, never as a shippable result.
 4. Prefer one shared PBR atlas plus the texture-free semantic team material.
 5. Author rigid `deploy`, `hold`, `retract`, and localized `recoil` actions.
    Keep forward and reverse endpoints transform-identical and inspect actual
-   keyframes.
+   keyframes. At the pinned gameplay camera, require multiple readable deploy
+   stages and enough recoil travel to show a kick and recovery; the accepted
+   roughly 41-pixel Bulwark proof measured about 3–5 pixels of principal-part
+   travel and exact zero-difference settle.
 6. Keep hover/bank/settle as a renderer-owned locomotion profile. Do not bake a
    free-running hover loop that advances independently of replay time.
 7. Export `+X` facing, `+Y` up, floor at `Y=0`, tile-relative scale, no camera,
    no light, and only named semantic clips the renderer explicitly samples.
-8. Validate the GLB, hashes, clips, bounds, draw count, maps, both team colors,
+8. Bind each runtime clone to its own mixer, but sample clips from absolute
+   replay time. Drive deploy/retract from authoritative form progress, firing
+   recoil from attack events, and defensive Shell recoil from authoritative
+   deflections. Deduplicate same-tick volleys and interrupt recovery on a
+   conflicting form transition.
+9. Validate the GLB, hashes, clips, bounds, draw count, maps, both team colors,
    all legal headings, wall clearance, fog, damage, fallback, multiple
-   instances, store preview, and real replay.
+   instances, store preview, and a real native replay. Inspect forward and
+   reverse deploy plus every recoil at normal zoom; clip presence alone is not
+   animation approval.
 
 Meshy's programmatic Rigging API is for standard textured humanoid bipeds.
 Its Animation API applies preset action IDs to those rigs. The web app also
@@ -210,15 +262,16 @@ the silhouette and moving seams:
 1. **Generated mobile body, deterministic semantic rig** — use Smart for a
    visually distinctive rigid mobile whose required motion can be expressed by
    rotating or translating clean connected components. Normalize, partition,
-   name, pivot, and validate those components in Blender. This is the proven
-   Bulwark mobile route.
+   name, pivot, and validate those components in Blender. This is the earlier
+   accepted Bulwark mobile-only route.
 2. **Deterministic chassis and form kits, generated texture donor** — use
    Blender for the complete mobile/Shell/Tower geometry when a transition must
    be mechanically traceable. Lock the kinematic blockout first, unwrap one
-   non-overlapping atlas, then use Retexture or a generated sibling as a
-   material reference. This is the preferred route for future skills and
-   stances because provider inference cannot invent trustworthy hidden faces,
-   stowage, sockets, or pivots.
+   non-overlapping atlas, then use Retexture as a material donor and transplant
+   only its proven PBR payload. This is the accepted full Bulwark-family route
+   and the preferred route for future skills and stances because provider
+   inference cannot invent trustworthy hidden faces, stowage, sockets, or
+   pivots.
 3. **Generated donor plus DCC rebuild** — use a generated result only as a
    proportion, surface, or texture donor when it has the right visual language
    but the wrong topology. Rebuild the production mesh around the approved
@@ -234,39 +287,43 @@ runtime lifecycles, and acceptance gates. A planted form may reuse the mobile
 core and material atlas, but its add-on kit must remain separately selectable
 and independently grounded.
 
-### Proven Bulwark mobile recipe
+### Proven full Bulwark-family recipe
 
-The accepted Aegis Tortoise mobile demonstrates the first route from start to
-finish:
+The accepted Aegis Tortoise Mobile/Shell/Tower family demonstrates the second
+route from start to finish:
 
-1. A single approved elevated three-quarter input produced an untextured Smart
-   T2 candidate at the explicit 15,000-triangle ceiling.
-2. The corrected `+X` candidate passed a `91.65%` same-scale top-planform IoU
-   gate and a measured side-profile review before texture spend.
-3. Meshy 6 Retexture produced a 2K PBR source on the accepted geometry.
-4. Blender deterministically assigned every imported face, vertex, loop, UV,
-   and material payload to nine rigid semantic groups. The source textures and
-   `12,979` body triangles were preserved exactly.
-5. The editable master added only four small chamfered emitter bars under the
-   correct shield/pod pivots. They share one texture-free neutral
-   `team-accent` material and occupy `2.117523%` of the fixed top body area.
-   Broad projected team paint was rejected because it clipped, fragmented,
-   and overwhelmed class identity.
-6. `PodPlant_HoverSettle` and `GunRecoil` were authored and endpoint-checked in
-   the editable master. The present runtime derivative strips those clips
-   because the renderer does not yet sample GLTF actions; replay-time
-   `heavy-hover` remains renderer-owned.
-7. Deterministic packages retained the same `13,091` total triangles and all
-   four PBR roles at 2K, 1K, and 512 map sizes. At measured 140px and 41px
-   gameplay views the 512 tier was visually equivalent to 2K, so the
-   685,744-byte 512 GLB ships while the 2K `.blend` remains art authority.
-8. The transparent East-facing avatar and separate semantic team mask were
-   rendered from the accepted master after the 3D decision.
+1. Blender owns all `31` rigid meshes, hidden faces, pivots, sockets, and
+   mechanically traceable endpoints. The authority has `22,320` triangles and
+   one non-overlapping atlas.
+2. The neutral master exports exactly `14` named semantic clips:
+   `PodPlant_HoverSettle`, two deploy clips, three renderer recoil clips, and
+   eight independently addressable Tower-vane recoil clips. Deploy endpoints
+   reverse exactly; every recoil settles exactly.
+3. Four small texture-free `team-accent` emitters occupy `1.834944%` of the
+   fixed top projection. Team blue/orange, bloom, and floor glow remain
+   renderer-owned.
+4. A static full-surface upload with the same surface/UV digest went to Meshy 6
+   Retexture with original UV, 2K PBR, lighting removal, and a stylized matte
+   graphite/gunmetal prompt. The provider charged `10` credits.
+5. Meshy returned a fused, welded, uniformly normalized GLB. The oriented-UV
+   similarity proof passed, so only its PBR payload was transplanted onto the
+   untouched animated authority; provider geometry was discarded.
+6. The final export preserves all `14` clips and semantic accents exactly.
+   Runtime manifests name the two deploy and three form-specific recoil clips;
+   per-clone mixers sample them from replay truth and fail closed to the
+   existing fallback when binding is invalid.
+7. Native roughly 41-pixel proofs quantify deploy stages and stronger localized
+   recoil. Mobile, Shell, and Tower settle to the exact rest frame; sampled BVH
+   gates reject foreign moving-part collisions while allowing only each Tower
+   barrel's bounded travel inside its own cradle.
+8. Keep the transparent East-facing avatar and semantic mask derivation as the
+   final stage. Do not replace an existing 2D fallback until those outputs and
+   their consumers are explicitly reviewed.
 
-The reusable lesson is not the 15k ceiling. Buy enough recoverable geometry to
-judge the silhouette and parts, then let gameplay-size evidence choose the
-runtime texture and geometry budget. Keep texture quality, semantic mechanics,
-renderer motion, and 2D derivation as separate deterministic gates.
+The reusable lesson is that generated finish and mechanically valid motion
+have different authorities. Build and prove the machine first, buy surface
+language second, transplant only what can be verified, and approve motion in
+the real renderer rather than in a provider preview.
 
 ## Projectiles and skins
 
@@ -274,8 +331,11 @@ Generate a default projectile separately after its bot geometry path passes.
 Show only the projectile head. Model a readable volume and directional
 silhouette; do not model trail, range, hitbox, floor glow, or impact field.
 The renderer owns spin, travel, trail, team emission, hit/miss effects, and
-replay timing. Compare a mechanical head and a generic neutral energy head in
-the real renderer before choosing the default.
+replay timing. A look may choose an outcome-agnostic terminal signature, but
+the renderer must classify authoritative damage, destruction, guard,
+deflection, harmless expiry, and purge before sampling it; never infer the
+outcome from disappearance. Compare a mechanical head and a generic neutral
+energy head in the real renderer before choosing the default.
 
 For a skin that preserves the approved silhouette and moving hardware, reuse
 the corrected base mesh and author a new material/texture set. Use a new Smart
