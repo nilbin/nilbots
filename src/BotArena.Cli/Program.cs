@@ -134,7 +134,7 @@ static int Help(int exitCode = 1)
           nilbots experiment frontline-labs
                         --bot <generic-spec> --opponent <generic-spec>
                         [--seed <n> | --seeds a,b,c] [--swap]
-                        [--runtime wasm|in-process] [--out <dir>] [--open]
+                        [--runtime wasm|in-process] [--out <dir>] [--viewer] [--open]
                                                   exact hosted Labs v1 contract,
                                                   local/quota-free, replay v3
           nilbots experiment frontline-labs qualify

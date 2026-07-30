@@ -151,9 +151,18 @@ public static class ToolchainInfo
     /// removed). A ground arm is inert-omitted where nothing it touches
     /// exists, so one flag set serves every pair. Existing rulesets stay
     /// byte-identical.
+    /// 0.9.22 makes the experiment command's self-contained viewer OPT-IN
+    /// (--viewer, or implied by --open): the viewer embeds the whole replay
+    /// into a multi-megabyte theme template and was most of a sweep's disk
+    /// footprint — a wave-5 full-disk incident produced replays that parsed
+    /// and lied. Replay writes now verify byte length through a temp file
+    /// and fail loudly instead. play/replay keep writing viewers. The same
+    /// version raises the submission source cap from 256 KB to 2 MB (owner
+    /// ruling: the cap had become the binding constraint on contract-driven
+    /// authorship).
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.21";
+    public const string CliVersion = "0.9.22";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

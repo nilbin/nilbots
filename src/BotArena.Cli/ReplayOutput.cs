@@ -1,3 +1,4 @@
+using System.Text;
 using BotArena.Engine;
 
 namespace BotArena.Cli;
@@ -29,14 +30,53 @@ public static class ReplayOutput
     public static WrittenReplay WriteJson(
         string json,
         string outDir,
-        string? themeId = null)
+        string? themeId = null,
+        bool withViewer = true)
     {
         ArgumentNullException.ThrowIfNull(json);
         Directory.CreateDirectory(outDir);
         string replayPath = Path.GetFullPath(Path.Combine(outDir, "replay.json"));
-        File.WriteAllText(replayPath, json);
-        string? viewerPath = WriteViewer(json, outDir, themeId);
+        WriteVerified(replayPath, json);
+        string? viewerPath = withViewer
+            ? WriteViewer(json, outDir, themeId)
+            : null;
         return new WrittenReplay(replayPath, viewerPath);
+    }
+
+    /// <summary>
+    /// Writes through a temp file, verifies the byte length on disk, and
+    /// moves into place — so a full volume produces a loud failure instead
+    /// of a truncated replay that parses, reports plausible standings, and
+    /// lies (a wave-5 author lost a sweep to exactly that).
+    /// </summary>
+    private static void WriteVerified(string path, string content)
+    {
+        string temp = path + ".tmp";
+        try
+        {
+            File.WriteAllText(temp, content);
+            long expected = new UTF8Encoding(false).GetByteCount(content);
+            long actual = new FileInfo(temp).Length;
+            if (actual != expected)
+            {
+                throw new IOException(
+                    $"Replay write verification failed: {actual} bytes on "
+                    + $"disk, {expected} expected — is the volume full?");
+            }
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // The loud failure below matters more than temp hygiene.
+            }
+            throw;
+        }
     }
 
     public static string? WriteViewer(string replayJson, string outDir, string? themeId = null)

@@ -18,7 +18,11 @@ public sealed record BuiltBot(string WasmPath, string ArtifactHash, bool FromCac
 public static class BotBuilder
 {
     public const int MaxSourceFiles = 16;
-    public const int MaxTotalSourceBytes = 256 * 1024;
+    // 2 MB (owner ruling, 2026-07-30): the old 256 KB cap became the binding
+    // constraint on contract-driven authorship — a wave-5 author paid for
+    // reading three new contract declarations by deleting documented code,
+    // and ~20% of any budget is scaffold boilerplate every project carries.
+    public const int MaxTotalSourceBytes = 2 * 1024 * 1024;
     public const int MaxBuildLogCharacters = 1024 * 1024;
     public const int MaxArtifactBytes = 16 * 1024 * 1024;
 

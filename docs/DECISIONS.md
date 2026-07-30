@@ -3825,6 +3825,28 @@ Wave 5 was killed pre-freeze and relaunched on `deck` (agents were
 still orienting; no work lost). All under CliVersion 0.9.21 with every
 existing ruleset pinned byte-identical.
 
+## 177. Wave-5 infrastructure rulings: viewers opt-in, writes verified, source cap 2 MB
+
+Three owner-directed fixes from wave-5 friction, batched under CliVersion
+0.9.22 (fast-iteration mode):
+
+1. **The experiment command's self-contained viewer is opt-in**
+   (`--viewer`, or implied by `--open`). It embeds the entire replay
+   into a multi-megabyte theme template — most of a sweep's footprint,
+   duplicated per match for a file nobody opens; two authors filled the
+   disk under it ("self contained viewer per replay is stupid" — owner).
+   `play`/`replay` keep writing viewers; the balance-lab drive benefits
+   automatically.
+2. **Replay writes verify and fail loudly.** The full-disk incident
+   produced replays that parsed, carried plausible standings, and were
+   wrong by five wins with exit code 0. Writes now go through a temp
+   file with byte-length verification and an atomic move.
+3. **The submission source cap rises 256 KB → 2 MB** (files stay ≤16).
+   Wave-5 measured the old cap as the binding constraint on exactly the
+   two behaviours the author packet demands — read the contract, write
+   the reasoning down — with ~20% of any budget being scaffold
+   boilerplate. The scaffold-as-SDK-type idea stays on the bench.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -27,6 +27,7 @@ public static class FrontlineLabsExperimentCommand
             "runtime",
             "out",
             "open",
+            "viewer",
             "capture-threshold",
             "capture-gain-phase",
             "prime-respawn-ticks",
@@ -467,9 +468,16 @@ public static class FrontlineLabsExperimentCommand
                 bot1.Name,
                 seed,
                 seeds.Length > 1);
+            // The self-contained viewer embeds the whole replay into a
+            // multi-megabyte theme template — most of a sweep's disk
+            // footprint for a file nobody opens (owner ruling: viewers are
+            // opt-in for experiments). --open implies one; --viewer forces
+            // one without opening it.
             WrittenReplay written = ReplayOutput.WriteJson(
                 replay.CanonicalJson,
-                outDir);
+                outDir,
+                withViewer: options.ContainsKey("open")
+                    || options.ContainsKey("viewer"));
             _ = result.WinnerTeamId switch
             {
                 0 => wins++,
@@ -487,9 +495,12 @@ public static class FrontlineLabsExperimentCommand
                     seed);
                 Console.WriteLine($"Replay:  {written.ReplayPath}");
                 Console.WriteLine(
-                    written.ViewerPath is null
+                    written.ViewerPath is not null
+                        ? $"Viewer:  {written.ViewerPath}"
+                        : options.ContainsKey("open")
+                            || options.ContainsKey("viewer")
                         ? "Viewer:  unavailable (build web/dist-cli first)"
-                        : $"Viewer:  {written.ViewerPath}");
+                        : "Viewer:  not written (pass --viewer or --open)");
                 if (options.ContainsKey("open")
                     && written.ViewerPath is not null)
                 {
