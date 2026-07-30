@@ -124,3 +124,14 @@ branch should touch arena-bots/, balance/, or scripts/ except where an
 assignment explicitly requires it. Questions or conflicts: leave a note
 in this file's directory as HANDOVER-CODEX-NOTES.md on the branch; the
 session reads it at integration.
+
+## Owner ask for the default-map pass (2026-07-30, from watching wave-5 deck games)
+
+Capture visuals are weak: **the owning team's color on a captured zone
+must be obvious at a glance** — current state is too subtle in the 3D
+viewer. While in there: capture *progress* (the erode-then-build reclaim
+arithmetic) is the game's most important invisible number; any
+map-surface treatment that makes claim + progress + ratchet-hold
+readable (ring fill, pulsing during holds, whatever fits the map
+language) directly serves the owner's watchability bar. Renderer lane
+stays yours; replay data already carries holdOwnerTeamId/holdEndsAtTick.
