@@ -3870,6 +3870,40 @@ bvs pull measured in round 3, the shell/turret pricing questions in
 #176/#177, lethality numbers) and takes the owner's watch impressions
 as input.
 
+## 179. Wave 6: coordination fixed a balance edge; the striker problem is now the class
+
+The coordination cohort froze 8/8 T4 first-attempt (cohort README
+carries the converged findings — coordination does not decompose;
+corridors are fixed by routing, not yielding; spacing only works as a
+tiebreak; the convention is common knowledge from the frozen union and
+per-life randomness is what breaks it). Every author beat or matched
+its wave-5 self, several overwhelmingly (ledger-fly 48-0; spark-line
+24-0; march-wall 29-1-2 with a zero-breach control).
+
+The coarse re-read (same 63-cell sweep as #178, coordinating bots):
+**bulwark-vs-fabricator +0.333 — inside the band, fixed by IQ alone**
+(was +0.611); bulwark-vs-striker +0.815 unchanged;
+fabricator-vs-striker hardened to +1.000. March-wall's caveat
+confirmed: wave-5's meta was partly a coordination artifact, and what
+survives smart play is one crisp finding — **the striker loses to both
+classes and it is the class, not the bots** (three inventive striker
+lineages across two waves cannot close it). The striker buff is the
+next balance conversation, with candidates already measured on the
+record: freed striker-side stance ground (pulled bulwark-vs-striker
+toward band in the round-3 factorial), the sight-band/vision numbers,
+lethality, and the gunless-stance cooldown-freeze un-nerf.
+
+The owner gallery was refreshed from these matches under the standing
+tunnel. The post-wave engineering batch is queued by demand: qualify
+viewer opt-out (six authors), refusals naming their cause + observed
+ally next-step + resolved placement candidate lists (schema window),
+the coordination-grade suite (five authors; T4 is reachable by a bot
+that cannot share a corridor with itself), team-scoped randomness, the
+evidence/ build-glob exclusion, and the frozen-artifact drift
+investigation (a wave-5 freeze re-measured differently across the
+0.9.21→0.9.22 republish — determinism is the product; find the moved
+input).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
