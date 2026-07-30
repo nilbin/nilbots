@@ -3978,6 +3978,23 @@ clocks; observation schema stays 2). Cast cells stay byte-identical
 (pinned), and the salvo values ship untuned per the dump-then-tune
 doctrine. SDK 0.10.8 / CLI 0.9.25.
 
+Coarse surf read (same rebuilt wave-6 cohort and seeds as the tide
+read, so directly comparable): bulwark-vs-fabricator **+0.333** —
+identical to tide, as it must be (salvo inert-omits there; the field
+replays mint the tide identity); bulwark-vs-striker **+1.000**;
+fabricator-vs-striker **+1.000**. No movement — and the usage count
+says why: 57 volley entries across the 45 striker matches, most of
+them from still-water (4–5 casts/match), with vector-edge never
+entering the stance at all. The cohort's doctrine was authored when
+the fan was measured DECLINE, so a stale-doctrine read cannot price
+the salvo; it can only confirm nothing regressed. The salvo's real
+pricing waits for a doctrine wave briefed on the new fan (and the
+route-cooldown observation gives authors the clock to play around).
+One CLI catch recorded: the --volley guard first validated the
+class-EFFECTIVE kit and rejected the fabricator mirror cells the arm
+is designed to inert-omit in — fixed to validate the requested kit,
+preserving the one-flag-set-per-wave property.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
