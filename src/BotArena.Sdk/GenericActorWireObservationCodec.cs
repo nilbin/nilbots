@@ -175,7 +175,8 @@ internal static class GenericActorWireObservationCodec
             value.Cooldown,
             value.Energy,
             value.PreviousActionResolution,
-            value.PendingSameLifeTransition);
+            value.PendingSameLifeTransition,
+            value.ClassId);
         return writer.ToArray();
     }
 
@@ -186,6 +187,7 @@ internal static class GenericActorWireObservationCodec
         var reader = new ActorWireObjectReader(bytes, depth);
         byte[]? resolution = reader.Optional(9);
         byte[]? transition = reader.Optional(10);
+        byte[]? classId = reader.Optional(11);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedSelfState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -209,7 +211,10 @@ internal static class GenericActorWireObservationCodec
                     ? null
                     : DecodePendingTransition(
                         transition,
-                        depth + 1)),
+                        depth + 1),
+                classId is null
+                    ? null
+                    : GenericActorWireCodecValues.SemanticId(classId)),
             "self observation");
     }
 
@@ -228,7 +233,8 @@ internal static class GenericActorWireObservationCodec
             value.Cooldown,
             value.Energy,
             value.PreviousActionResolution,
-            value.PendingSameLifeTransition);
+            value.PendingSameLifeTransition,
+            value.ClassId);
         return writer.ToArray();
     }
 
@@ -239,6 +245,7 @@ internal static class GenericActorWireObservationCodec
         var reader = new ActorWireObjectReader(bytes, depth);
         byte[]? resolution = reader.Optional(9);
         byte[]? transition = reader.Optional(10);
+        byte[]? classId = reader.Optional(11);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedAllyState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -262,7 +269,10 @@ internal static class GenericActorWireObservationCodec
                     ? null
                     : DecodePendingTransition(
                         transition,
-                        depth + 1)),
+                        depth + 1),
+                classId is null
+                    ? null
+                    : GenericActorWireCodecValues.SemanticId(classId)),
             "ally observation");
     }
 
@@ -278,7 +288,8 @@ internal static class GenericActorWireObservationCodec
         int? energy,
         GenericActorActionResolution? previousActionResolution,
         GenericActorContext.PendingSameLifeTransition?
-            pendingSameLifeTransition)
+            pendingSameLifeTransition,
+        string? classId)
     {
         writer.Field(
             1,
@@ -303,6 +314,11 @@ internal static class GenericActorWireObservationCodec
             pendingSameLifeTransition is null
                 ? null
                 : EncodePendingTransition(pendingSameLifeTransition));
+        writer.Optional(
+            11,
+            classId is null
+                ? null
+                : GenericActorWireCodecValues.SemanticId(classId));
     }
 
     private static byte[] EncodePendingTransition(
@@ -527,6 +543,11 @@ internal static class GenericActorWireObservationCodec
             3,
             GenericActorWireCodecValues.Int64(value.RuntimeFaultCount));
         writer.Field(4, ActorWireValue.Boolean(value.Disqualified));
+        writer.Optional(
+            5,
+            value.ClassId is null
+                ? null
+                : GenericActorWireCodecValues.SemanticId(value.ClassId));
         return writer.ToArray();
     }
 
@@ -534,12 +555,16 @@ internal static class GenericActorWireObservationCodec
         DecodeParticipant(byte[] bytes, int depth)
     {
         var reader = new ActorWireObjectReader(bytes, depth);
+        byte[]? classId = reader.Optional(5);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedParticipantStatus(
                 GenericActorWireCodecValues.Int32(reader, 1),
                 GenericActorWireCodecValues.Int32(reader, 2),
                 GenericActorWireCodecValues.Int64(reader.Required(3)),
-                GenericActorWireCodecValues.Boolean(reader, 4)),
+                GenericActorWireCodecValues.Boolean(reader, 4),
+                classId is null
+                    ? null
+                    : GenericActorWireCodecValues.SemanticId(classId)),
             "participant observation");
     }
 
@@ -569,6 +594,11 @@ internal static class GenericActorWireObservationCodec
             Array(
                 value.ObservedBy,
                 GenericActorWireCodecValues.EncodeIdentity));
+        writer.Optional(
+            8,
+            value.ClassId is null
+                ? null
+                : GenericActorWireCodecValues.SemanticId(value.ClassId));
         return writer.ToArray();
     }
 
@@ -578,6 +608,7 @@ internal static class GenericActorWireObservationCodec
     {
         var reader = new ActorWireObjectReader(bytes, depth);
         byte[]? transition = reader.Optional(6);
+        byte[]? classId = reader.Optional(8);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedEnemyState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -599,7 +630,10 @@ internal static class GenericActorWireObservationCodec
                     7,
                     item => GenericActorWireCodecValues.DecodeIdentity(
                         item,
-                        depth + 1))),
+                        depth + 1)),
+                classId is null
+                    ? null
+                    : GenericActorWireCodecValues.SemanticId(classId)),
             "enemy observation");
     }
 
@@ -616,6 +650,11 @@ internal static class GenericActorWireObservationCodec
             Array(
                 value.ObservedBy,
                 GenericActorWireCodecValues.EncodeIdentity));
+        writer.Optional(
+            4,
+            value.SpawnReservation is null
+                ? null
+                : EncodeSpawnReservation(value.SpawnReservation));
         return writer.ToArray();
     }
 
@@ -624,6 +663,7 @@ internal static class GenericActorWireObservationCodec
         int depth)
     {
         var reader = new ActorWireObjectReader(bytes, depth);
+        byte[]? spawnReservation = reader.Optional(4);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedTile(
                 GenericActorWireCodecValues.DecodePosition(
@@ -635,7 +675,12 @@ internal static class GenericActorWireObservationCodec
                     3,
                     item => GenericActorWireCodecValues.DecodeIdentity(
                         item,
-                        depth + 1))),
+                        depth + 1)),
+                spawnReservation is null
+                    ? null
+                    : DecodeSpawnReservation(
+                        spawnReservation,
+                        depth + 1)),
             "tile observation");
     }
 
@@ -820,6 +865,32 @@ internal static class GenericActorWireObservationCodec
                     "Unknown generic actor mode observation variant.");
         }
         return writer.ToArray();
+    }
+
+    private static byte[] EncodeSpawnReservation(
+        GenericActorContext.SpawnReservation value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(value.TeamId));
+        writer.Field(2, ActorWireValue.Int32(value.UnitId));
+        writer.Field(3, ActorWireValue.Enum(value.Kind));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer,
+            4,
+            value.DueTick);
+        return writer.ToArray();
+    }
+
+    private static GenericActorContext.SpawnReservation
+        DecodeSpawnReservation(byte[] bytes, int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        return new GenericActorContext.SpawnReservation(
+            GenericActorWireCodecValues.Int32(reader, 1),
+            GenericActorWireCodecValues.Int32(reader, 2),
+            GenericActorWireCodecValues.Enum<
+                GenericActorContext.SpawnReservationKind>(reader, 3),
+            GenericActorWireCodecValues.OptionalInt32(reader, 4));
     }
 
     private static byte[] Array<T>(

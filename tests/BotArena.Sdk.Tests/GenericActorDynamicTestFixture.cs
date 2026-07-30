@@ -111,7 +111,8 @@ internal static class GenericActorDynamicTestFixture
         bool nullCapabilities = false,
         bool emptyCapabilities = false,
         bool includeAllEvents = true,
-        bool frontline = true)
+        bool frontline = true,
+        int schemaVersion = GenericActorContext.CurrentSchemaVersion)
     {
         GenericActorContext.ObservedEvent[] events = includeAllEvents
             ? Events().Reverse().ToArray()
@@ -153,7 +154,7 @@ internal static class GenericActorDynamicTestFixture
                 ];
 
         return new GenericActorContext(
-            GenericActorContext.CurrentSchemaVersion,
+            schemaVersion,
             tick: 9,
             new string('a', 64),
             new GenericActorContext.ObservedSelfState(
@@ -172,29 +173,34 @@ internal static class GenericActorDynamicTestFixture
                     "anchor:0:0:4:9",
                     "turret",
                     startedTick: 8,
-                    dueTick: 10)),
+                    dueTick: 10),
+                classId: "striker"),
             UnitSlots().Reverse(),
             [
                 new GenericActorContext.ObservedParticipantStatus(
                     40,
                     3,
                     0,
-                    false),
+                    false,
+                    "striker"),
                 new GenericActorContext.ObservedParticipantStatus(
                     10,
                     0,
                     long.MaxValue,
-                    false),
+                    false,
+                    "striker"),
                 new GenericActorContext.ObservedParticipantStatus(
                     30,
                     2,
                     2,
-                    true),
+                    true,
+                    "fabricator"),
                 new GenericActorContext.ObservedParticipantStatus(
                     20,
                     1,
                     1,
-                    false),
+                    false,
+                    "bulwark"),
             ],
             [
                 new GenericActorContext.ObservedAllyState(
@@ -207,7 +213,8 @@ internal static class GenericActorDynamicTestFixture
                     cooldown: 0,
                     energy: null,
                     previousActionResolution: null,
-                    pendingSameLifeTransition: null),
+                    pendingSameLifeTransition: null,
+                    classId: "striker"),
             ],
             [
                 new GenericActorContext.ObservedEnemyState(
@@ -217,7 +224,8 @@ internal static class GenericActorDynamicTestFixture
                     Direction.South,
                     health: 8,
                     pendingSameLifeTransition: null,
-                    [SelfActor]),
+                    [SelfActor],
+                    classId: "fabricator"),
                 new GenericActorContext.ObservedEnemyState(
                     EnemyActor,
                     "mobile",
@@ -225,7 +233,8 @@ internal static class GenericActorDynamicTestFixture
                     Direction.West,
                     health: 2,
                     pendingSameLifeTransition: null,
-                    [AllyActor, SelfActor]),
+                    [AllyActor, SelfActor],
+                    classId: "bulwark"),
             ],
             [
                 new GenericActorContext.ObservedTile(
@@ -235,7 +244,12 @@ internal static class GenericActorDynamicTestFixture
                 new GenericActorContext.ObservedTile(
                     new Position(2, 2),
                     isWall: false,
-                    [SelfActor]),
+                    [SelfActor],
+                    new GenericActorContext.SpawnReservation(
+                        teamId: 0,
+                        unitId: 4,
+                        GenericActorContext.SpawnReservationKind.Fabrication,
+                        dueTick: 12)),
             ],
             projectiles,
             events,

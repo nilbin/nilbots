@@ -950,6 +950,13 @@ public static class FrontlineLabsDefinition
             CreateCapabilityVersions());
     }
 
+    /// <summary>
+    /// Every labs ruleset — hosted v1 and every local arm — resolves on the one
+    /// generic capability profile. A class arm differs from a class-free arm in
+    /// its content, not its generation: the canonical topology gains a
+    /// <c>classId</c> only where classes are declared (#156), so a class-free
+    /// arm keeps byte-identical topology and match fingerprints.
+    /// </summary>
     private static ActorMatchCapabilityVersions CreateCapabilityVersions() =>
         new(
             contractProfileId: "generic-actor-match-2",
@@ -2431,11 +2438,15 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSkillKit skills) =>
         new()
         {
-            Teams = [new PublicScoringTeam(0), new PublicScoringTeam(1)],
+            Teams =
+            [
+                new PublicScoringTeam(0, classes?.TeamZero.Id),
+                new PublicScoringTeam(1, classes?.TeamOne.Id),
+            ],
             Participants =
             [
-                new PublicParticipant(0, 0),
-                new PublicParticipant(1, 1),
+                new PublicParticipant(0, 0, classes?.TeamZero.Id),
+                new PublicParticipant(1, 1, classes?.TeamOne.Id),
             ],
             UnitSlots =
             [

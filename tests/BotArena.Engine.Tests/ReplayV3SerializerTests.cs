@@ -17,7 +17,7 @@ public sealed class ReplayV3SerializerTests
     private const ulong FixtureSeed = 9_007_199_254_740_993UL;
     private const string FixtureName = "generic-replay-v3.json";
     private const string FixtureReplayHash =
-        "247ce067013314dacff84025fc656cebf0c9f9acc12d48c00f4dadddea836e89";
+        "30135dc33d3becd5a2092de4cf47fe6a6b5a146143319c395685790cd3a880d9";
 
     [Fact]
     public void CompleteDocument_HasExactEnvelopeAndVerifiablePayloadHash()
@@ -412,6 +412,56 @@ public sealed class ReplayV3SerializerTests
         Assert.Contains(
             "victory policy",
             rankingFailure,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void VerificationRejectsProjectileAndSpawnReservationDrift()
+    {
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        string json = ReplayV3Serializer.ToJson(replay);
+        string projectileDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonObject projectile = root["ticks"]![1]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleProjectiles"]![0]!
+                    .AsObject();
+                projectile["ticksPerAdvance"] =
+                    projectile["ticksPerAdvance"]!.GetValue<int>() + 1;
+            });
+        string reservationDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonArray tiles = root["ticks"]![0]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleTiles"]!
+                    .AsArray();
+                JsonObject reservation = tiles
+                    .Select(tile => tile!.AsObject())
+                    .First(tile => tile["spawnReservation"] is not null)[
+                        "spawnReservation"]!.AsObject();
+                reservation["unitId"] =
+                    reservation["unitId"]!.GetValue<int>() + 1;
+            });
+
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                projectileDrift,
+                out string? projectileFailure));
+        Assert.Contains(
+            "projectile",
+            projectileFailure,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                reservationDrift,
+                out string? reservationFailure));
+        Assert.Contains(
+            "spawn reservation",
+            reservationFailure,
             StringComparison.OrdinalIgnoreCase);
     }
 

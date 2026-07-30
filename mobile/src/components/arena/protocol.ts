@@ -133,9 +133,9 @@ export type ArenaFrontlineResult = {
     captureProgress: number;
     decayTicksElapsed: number;
     controlResumesAtTick: number;
-    /** Team a live territory-ratchet hold protects; absent before generation 3. */
+    /** Team a live territory-ratchet hold protects; absent on pre-v3 replays. */
     holdOwnerTeamId?: number | null;
-    /** First tick the live hold stops denying regression; absent before generation 3. */
+    /** First tick the live hold stops denying regression; absent on pre-v3 replays. */
     holdEndsAtTick?: number | null;
   };
   scores: {
@@ -212,9 +212,9 @@ export type ArenaModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
-      /** Team a live territory-ratchet hold protects; absent before generation 3. */
+      /** Team a live territory-ratchet hold protects; absent on pre-v3 replays. */
       holdOwnerTeamId?: number | null;
-      /** First tick the live hold stops denying regression; absent before generation 3. */
+      /** First tick the live hold stops denying regression; absent on pre-v3 replays. */
       holdEndsAtTick?: number | null;
     }
   | {

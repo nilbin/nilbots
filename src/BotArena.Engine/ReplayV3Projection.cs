@@ -14,14 +14,13 @@ internal static class ReplayV3Projection
         ReplayV3.PresentationMetadata? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(chronology);
-
         return new ReplayV3(
             Header(
                 chronology.Descriptor,
                 Presentation(presentation)),
             InitialFrame(chronology.InitialFrame),
             chronology.Ticks
-                .Select(TickFrame)
+                .Select(frame => TickFrame(frame))
                 .ToImmutableArray(),
             chronology.Result is null
                 ? null
@@ -207,7 +206,9 @@ internal static class ReplayV3Projection
         new(
             WorldState(frame.State),
             frame.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray());
+            frame.Events
+                .Select(value => Event(value))
+                .ToImmutableArray());
 
     private static ReplayV3.TickFrame TickFrame(
         GenericActorMatchTickFrame frame) =>
@@ -215,7 +216,9 @@ internal static class ReplayV3Projection
             frame.Tick,
             TickStart(frame.TickStart),
             frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray(),
+            frame.Events
+                .Select(value => Event(value))
+                .ToImmutableArray(),
             frame.Traversals.Select(Traversal).ToImmutableArray(),
             WorldState(frame.PostState));
 
@@ -226,7 +229,9 @@ internal static class ReplayV3Projection
             WorldState(tickStart.State),
             tickStart.ActiveActorIds.Select(ActorId).ToImmutableArray(),
             tickStart.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            tickStart.Events.Select(Event).ToImmutableArray(),
+            tickStart.Events
+                .Select(value => Event(value))
+                .ToImmutableArray(),
             tickStart.Traversals.Select(Traversal).ToImmutableArray());
 
     private static ReplayV3.ActorTurn ActorTurn(
@@ -260,8 +265,9 @@ internal static class ReplayV3Projection
             start.MatchContractFingerprint);
 
     private static ReplayV3.Observation Observation(
-        GenericActorRuntimeObservation observation) =>
-        new(
+        GenericActorRuntimeObservation observation)
+    {
+        return new(
             observation.SchemaVersion,
             observation.Tick,
             observation.MatchContractFingerprint,
@@ -270,24 +276,27 @@ internal static class ReplayV3Projection
                 .Select(ObservedUnitSlot)
                 .ToImmutableArray(),
             observation.Participants
-                .Select(ParticipantStatus)
+                .Select(value =>
+                    ParticipantStatus(value))
                 .ToImmutableArray(),
             observation.Allies
-                .Select(ObservedAlly)
+                .Select(value => ObservedAlly(value))
                 .ToImmutableArray(),
             observation.Enemies
-                .Select(ObservedEnemy)
+                .Select(value => ObservedEnemy(value))
                 .ToImmutableArray(),
             observation.VisibleTiles
-                .Select(ObservedTile)
+                .Select(value => ObservedTile(value))
                 .ToImmutableArray(),
             observation.VisibleProjectiles is { } projectiles
                 ? projectiles
-                    .Select(ObservedProjectile)
+                    .Select(value =>
+                        ObservedProjectile(value))
                     .ToImmutableArray()
                 : null,
             observation.VisibleEvents
-                .Select(ObservedEvent)
+                .Select(value =>
+                    ObservedEvent(value))
                 .ToImmutableArray(),
             observation.HeardSounds is { } sounds
                 ? sounds
@@ -299,6 +308,7 @@ internal static class ReplayV3Projection
             observation.ActionLegalities
                 .Select(ActionLegality)
                 .ToImmutableArray());
+    }
 
     private static ReplayV3.ObservedSelf ObservedSelf(
         GenericActorRuntimeObservation.ObservedSelfState value) =>
@@ -314,7 +324,8 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            value.ClassId);
 
     private static ReplayV3.ObservedAlly ObservedAlly(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -330,7 +341,8 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            value.ClassId);
 
     private static ReplayV3.ObservedEnemy ObservedEnemy(
         GenericActorRuntimeObservation.ObservedEnemyState value) =>
@@ -341,7 +353,8 @@ internal static class ReplayV3Projection
             Direction(value.Facing),
             value.Health,
             PendingTransition(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.ClassId);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -416,14 +429,22 @@ internal static class ReplayV3Projection
             value.ParticipantId,
             value.TeamId,
             Decimal(value.RuntimeFaultCount),
-            value.Disqualified);
+            value.Disqualified,
+            value.ClassId);
 
     private static ReplayV3.ObservedTile ObservedTile(
         GenericActorRuntimeObservation.ObservedTile value) =>
         new(
             Position(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.SpawnReservation is null
+                ? null
+                : new ReplayV3.SpawnReservation(
+                    value.SpawnReservation.TeamId,
+                    value.SpawnReservation.UnitId,
+                    SpawnReservationKind(value.SpawnReservation.Kind),
+                    value.SpawnReservation.DueTick));
 
     private static ReplayV3.ObservedProjectile ObservedProjectile(
         GenericActorRuntimeObservation.ObservedProjectile value) =>
@@ -1157,6 +1178,19 @@ internal static class ReplayV3Projection
                 .InitialUnlock => "initial-unlock",
             GenericActorRuntimeObservation.AvailabilityReason
                 .DestructionRecovery => "destruction-recovery",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string SpawnReservationKind(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn => "automatic-return",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Fabrication => "fabrication",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Replication => "replication",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

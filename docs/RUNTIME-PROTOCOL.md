@@ -110,9 +110,17 @@ Per-tick observations use variable, canonically ordered entity collections;
 exact `teamId + unitId + lifeId` identity; participant and lifecycle state;
 nullable capability collections whose `null` and empty meanings differ;
 generic score channels; a tagged mode state; typed events and lineage; and
-per-action legality masks. Decisions use stable action ID/code pairs and a
-bounded tagged argument union. Signed 64-bit projectile and score values keep
-their exact integer meaning across the wire.
+per-action legality masks. Class identity is explicit on teams, participants,
+self, allies, and visible enemies — absent for a classless contract, and on the
+canonical contract emitted only when a ruleset declares classes, so a
+class-free ruleset keeps byte-identical bytes (#156). A live territory-ratchet
+hold publishes its owner and the tick it lifts. Visible projectile observations
+include their advance cadence and damage per hit, while an already-visible tile
+publishes the permanent automatic-return claim or the due-tick fabrication or
+replication claim that makes it unavailable.
+Decisions use stable action ID/code pairs and a bounded tagged argument union.
+Signed 64-bit projectile and score values keep their exact integer meaning
+across the wire.
 
 The SDK parses static canonical contracts without `System.Text.Json`, keeping
 controlled NativeAOT guests below the existing 16 MiB ceiling. Full semantic
@@ -158,7 +166,7 @@ field ID, changing its meaning, or requiring a contract an old guest cannot
 attest requires a new version and explicit eligibility handling.
 
 The Frontline-alpha delivery remains the historical SDK/Guest 0.9.0,
-actor-protocol/configuration 1.0 checkpoint. The generic profile is introduced
+actor-protocol/configuration 1.0 checkpoint. Generic profile 2 was introduced
 by SDK/Guest 0.10.2, extended in 0.10.3 with optional canonical Frontline
 capture-gain schedules, and extended in 0.10.4 with declared delayed first-life
 activation and its distinct life-origin reason. Controlled-build pipeline 4
@@ -180,3 +188,25 @@ field ID is reused, a meaning changes, or a guest is asked to attest a contract
 it cannot. Replay-v3 documents are a separate matter: the two mode keys and the
 two projectile keys are mandatory in the document, so a replay written before
 0.10.5 and one written after are not interchangeable.
+
+SDK/Guest 0.10.6 (CLI 0.9.15) adds typed class identity and spawn-reservation
+observability under exactly that rule, and **the profile stays
+`generic-actor-match-2`**. The observation side is trailing tagged additions:
+`classId` on self, allies, visible enemies, and participant status, and a
+`spawnReservation` on an already-visible tile. The contract side is the #156
+additive-canonical pattern rather than a new generation — the canonical writer
+emits `classId` on a team or participant **only when the ruleset declares
+classes**, and both mirrors reject an explicit null as a second encoding of the
+same contract, so every class-free ruleset keeps byte-identical topology and
+match fingerprints and the pinned `frontline-labs-1` fingerprint is untouched.
+A ruleset that DOES declare classes is a new content-identified ruleset whose
+fingerprint is new anyway, and an artifact built before 0.10.6 faults on it at
+tick 0 exactly as `ratchetHoldTicks` already made it fault — the accepted #156
+consequence, not a new one. Minting a `generic-actor-match-3` was considered
+and rejected: the capability tuple rides inside the fingerprinted match
+contract, so bumping it relabels every immutable generic ruleset, invalidates
+the whole frozen phase-1 artifact population on contracts it can still play,
+and would force a second registered hosted generation for identical mechanics.
+Replay-v3 documents again grow mandatory keys — `classId` on the four observed
+actor shapes and `spawnReservation` on a visible tile, both nullable and always
+present — so the engine-authored fixtures were regenerated.

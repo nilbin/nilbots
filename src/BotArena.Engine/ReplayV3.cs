@@ -170,7 +170,8 @@ internal sealed record ReplayV3(
         int Cooldown,
         int? Energy,
         ActionResolution? PreviousActionResolution,
-        PendingSameLifeTransition? PendingSameLifeTransition);
+        PendingSameLifeTransition? PendingSameLifeTransition,
+        string? ClassId);
 
     internal sealed record ObservedAlly(
         ActorId ActorId,
@@ -182,7 +183,8 @@ internal sealed record ReplayV3(
         int Cooldown,
         int? Energy,
         ActionResolution? PreviousActionResolution,
-        PendingSameLifeTransition? PendingSameLifeTransition);
+        PendingSameLifeTransition? PendingSameLifeTransition,
+        string? ClassId);
 
     internal sealed record ObservedEnemy(
         ActorId ActorId,
@@ -191,7 +193,8 @@ internal sealed record ReplayV3(
         string Facing,
         int Health,
         PendingSameLifeTransition? PendingSameLifeTransition,
-        ImmutableArray<ActorId> ObservedBy);
+        ImmutableArray<ActorId> ObservedBy,
+        string? ClassId);
 
     internal sealed record PendingSameLifeTransition(
         string TransitionId,
@@ -249,12 +252,20 @@ internal sealed record ReplayV3(
         int ParticipantId,
         int TeamId,
         string RuntimeFaultCount,
-        bool Disqualified);
+        bool Disqualified,
+        string? ClassId);
 
     internal sealed record ObservedTile(
         PositionValue Position,
         bool IsWall,
-        ImmutableArray<ActorId> ObservedBy);
+        ImmutableArray<ActorId> ObservedBy,
+        SpawnReservation? SpawnReservation);
+
+    internal sealed record SpawnReservation(
+        int TeamId,
+        int UnitId,
+        string Kind,
+        int? DueTick);
 
     internal sealed record ObservedProjectile(
         string ProjectileId,

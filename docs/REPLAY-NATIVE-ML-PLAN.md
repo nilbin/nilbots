@@ -25,11 +25,13 @@ format. This is not a claim that App/server admission, general replay
 summary/verification, dataset tooling, or a hosted product can consume it
 yet.
 
-The successor SDK/Guest 0.10.0 boundary also negotiates the exact
+The current SDK/Guest 0.10.6 boundary negotiates the exact
 `generic-actor-match-2` profile. It parses the canonical resolved contract and
 exposes variable entity sets, score channels, tagged mode state, typed action
-arguments, and lifecycle lineage without assuming two players. This completes
-the bot-facing half of the generic ML seam. The neutral Engine host now records
+arguments, lifecycle lineage, explicit class identity, ratchet-hold state,
+projectile cadence/damage, and visible spawn reservations without assuming two
+players. This completes the bot-facing half of the generic ML seam. The neutral
+Engine host now records
 the same inputs, decisions, lifecycle causality, post-state, standings, and
 typed Deathmatch/Frontline terminal facts in strict replay 3. The
 off-by-default hosted Frontline Labs slice now proves replay-3 persistence and

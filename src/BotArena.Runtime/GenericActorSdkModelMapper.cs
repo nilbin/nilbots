@@ -44,12 +44,18 @@ internal static class GenericActorSdkModelMapper
             observation.MatchContractFingerprint,
             ToSdk(observation.Self),
             observation.TeamUnits.Select(ToSdk),
-            observation.Participants.Select(ToSdk),
-            observation.Allies.Select(ToSdk),
-            observation.Enemies.Select(ToSdk),
-            observation.VisibleTiles.Select(ToSdk),
-            observation.VisibleProjectiles?.Select(ToSdk),
-            observation.VisibleEvents.Select(ToSdk),
+            observation.Participants.Select(value =>
+                ToSdk(value)),
+            observation.Allies.Select(value =>
+                ToSdk(value)),
+            observation.Enemies.Select(value =>
+                ToSdk(value)),
+            observation.VisibleTiles.Select(value =>
+                ToSdk(value)),
+            observation.VisibleProjectiles?.Select(value =>
+                ToSdk(value)),
+            observation.VisibleEvents.Select(value =>
+                ToSdk(value)),
             observation.HeardSounds?.Select(ToSdk),
             ToSdk(observation.Scoreboard),
             ToSdk(observation.Mode),
@@ -82,7 +88,8 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            value.ClassId);
 
     private static Sdk.GenericActorContext.ObservedAllyState ToSdk(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -96,7 +103,8 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            value.ClassId);
 
     private static Sdk.GenericActorContext.PendingSameLifeTransition? ToSdk(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -165,7 +173,8 @@ internal static class GenericActorSdkModelMapper
             value.ParticipantId,
             value.TeamId,
             value.RuntimeFaultCount,
-            value.Disqualified);
+            value.Disqualified,
+            value.ClassId);
 
     private static Sdk.GenericActorContext.ObservedEnemyState ToSdk(
         GenericActorRuntimeObservation.ObservedEnemyState value) =>
@@ -176,14 +185,26 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.Facing),
             value.Health,
             ToSdk(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            value.ClassId);
 
     private static Sdk.GenericActorContext.ObservedTile ToSdk(
         GenericActorRuntimeObservation.ObservedTile value) =>
         new(
             ToSdk(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            ToSdk(value.SpawnReservation));
+
+    private static Sdk.GenericActorContext.SpawnReservation? ToSdk(
+        GenericActorRuntimeObservation.SpawnReservation? value) =>
+        value is null
+            ? null
+            : new(
+                value.TeamId,
+                value.UnitId,
+                ToSdk(value.Kind),
+                value.DueTick);
 
     private static Sdk.GenericActorContext.ObservedProjectile ToSdk(
         GenericActorRuntimeObservation.ObservedProjectile value) =>
@@ -619,6 +640,20 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.AvailabilityReason.DestructionRecovery =>
                 Sdk.GenericActorContext.AvailabilityReason
                     .DestructionRecovery,
+            _ => throw UnknownEnum(value),
+        };
+
+    private static Sdk.GenericActorContext.SpawnReservationKind ToSdk(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn =>
+                Sdk.GenericActorContext.SpawnReservationKind.AutomaticReturn,
+            GenericActorRuntimeObservation.SpawnReservationKind.Fabrication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Fabrication,
+            GenericActorRuntimeObservation.SpawnReservationKind.Replication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Replication,
             _ => throw UnknownEnum(value),
         };
 

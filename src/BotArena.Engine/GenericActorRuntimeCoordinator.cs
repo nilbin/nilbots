@@ -112,7 +112,14 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
                             participant.ParticipantId,
                             participant.TeamId,
                             participant.FaultCount,
-                            participant.Disqualified))
+                            participant.Disqualified)
+                        {
+                            ClassId = _contract.Topology.Participants
+                                .Single(value =>
+                                    value.ParticipantId
+                                        == participant.ParticipantId)
+                                .ClassId,
+                        })
                 .ToImmutableArray();
         }
     }

@@ -290,8 +290,12 @@ export interface ReplayV3TopologyContract {
     unitSlotCount: number;
     initialLifeCount: number;
   };
-  teams: { teamId: number }[];
-  participants: { participantId: number; teamId: number }[];
+  teams: { teamId: number; classId?: string }[];
+  participants: {
+    participantId: number;
+    teamId: number;
+    classId?: string;
+  }[];
   unitSlots: {
     teamId: number;
     unitId: number;
@@ -446,6 +450,7 @@ export interface ReplayV3ParticipantStatus {
   teamId: number;
   runtimeFaultCount: string;
   disqualified: boolean;
+  classId: string | null;
 }
 
 export interface ReplayV3PendingSameLifeTransition {
@@ -636,6 +641,7 @@ export interface ReplayV3ObservedSelf {
   energy: number | null;
   previousActionResolution: ReplayV3ActionResolution | null;
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
+  classId: string | null;
 }
 
 export interface ReplayV3ObservedAlly extends ReplayV3ObservedSelf {}
@@ -648,6 +654,22 @@ export interface ReplayV3ObservedEnemy {
   health: number;
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
   observedBy: ReplayV3ActorId[];
+  classId: string | null;
+}
+
+export interface ReplayV3SpawnReservation {
+  teamId: number;
+  unitId: number;
+  kind: 'automatic-return' | 'fabrication' | 'replication';
+  /** Null exactly for a permanent automatic-return slot claim. */
+  dueTick: number | null;
+}
+
+export interface ReplayV3ObservedTile {
+  position: ReplayV3Position;
+  isWall: boolean;
+  observedBy: ReplayV3ActorId[];
+  spawnReservation: ReplayV3SpawnReservation | null;
 }
 
 export interface ReplayV3ObservedProjectile {
@@ -876,11 +898,7 @@ export interface ReplayV3Observation {
   participants: ReplayV3ParticipantStatus[];
   allies: ReplayV3ObservedAlly[];
   enemies: ReplayV3ObservedEnemy[];
-  visibleTiles: {
-    position: ReplayV3Position;
-    isWall: boolean;
-    observedBy: ReplayV3ActorId[];
-  }[];
+  visibleTiles: ReplayV3ObservedTile[];
   visibleProjectiles: ReplayV3ObservedProjectile[] | null;
   visibleEvents: ReplayV3ObservedEvent[];
   heardSounds: ReplayV3ObservedSound[] | null;

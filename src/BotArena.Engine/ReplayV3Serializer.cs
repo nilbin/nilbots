@@ -692,6 +692,7 @@ internal static class ReplayV3Serializer
         WritePendingTransition(
             writer,
             value.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
     }
 
@@ -718,6 +719,7 @@ internal static class ReplayV3Serializer
         WritePendingTransition(
             writer,
             value.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
     }
 
@@ -742,6 +744,7 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
     }
 
@@ -859,6 +862,7 @@ internal static class ReplayV3Serializer
             value.RuntimeFaultCount,
             nonNegative: true);
         writer.WriteBoolean("disqualified", value.Disqualified);
+        WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
     }
 
@@ -875,6 +879,23 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        writer.WritePropertyName("spawnReservation");
+        if (value.SpawnReservation is { } reservation)
+            WriteSpawnReservation(writer, reservation);
+        else
+            writer.WriteNullValue();
+        writer.WriteEndObject();
+    }
+
+    private static void WriteSpawnReservation(
+        Utf8JsonWriter writer,
+        ReplayV3.SpawnReservation value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WriteNumber("unitId", value.UnitId);
+        writer.WriteString("kind", value.Kind);
+        WriteNullableNumber(writer, "dueTick", value.DueTick);
         writer.WriteEndObject();
     }
 
@@ -2348,6 +2369,8 @@ internal static class ReplayV3Serializer
 
         ImmutableArray<ContractAction> actions =
             ReadContractActions(rules);
+        ImmutableArray<ContractAttackProfile> attackProfiles =
+            ReadContractAttackProfiles(rules);
         ImmutableArray<ContractReplication> replications =
             ReadContractReplications(rules);
         ImmutableArray<string> scoreChannels =
@@ -2361,6 +2384,9 @@ internal static class ReplayV3Serializer
             rules,
             RequiredObject(root, "modeMapBinding"),
             teamIds);
+        ImmutableArray<ContractPermanentReservation>
+            permanentReservations =
+                ReadPermanentSpawnReservations(root);
 
         return new CanonicalContractIndex(
             fingerprint,
@@ -2369,7 +2395,9 @@ internal static class ReplayV3Serializer
             unitSlots,
             scoreChannels,
             actions,
+            attackProfiles,
             replications,
+            permanentReservations,
             mode);
     }
 
@@ -2528,6 +2556,113 @@ internal static class ReplayV3Serializer
                 left.Code.CompareTo(right.Code),
             "embedded actions by action code");
         return actions;
+    }
+
+    private static ImmutableArray<ContractAttackProfile>
+        ReadContractAttackProfiles(JsonElement rules)
+    {
+        ImmutableArray<ContractAttackProfile> profiles =
+            RequiredArray(rules, "attackProfiles")
+                .EnumerateArray()
+                .Select(value =>
+                {
+                    JsonElement projectile =
+                        RequiredObject(value, "projectile");
+                    return new ContractAttackProfile(
+                        RequiredString(value, "id"),
+                        RequiredInt32(
+                            projectile,
+                            "tilesPerAdvance"),
+                        RequiredInt32(
+                            projectile,
+                            "ticksPerAdvance"),
+                        RequiredInt32(
+                            projectile,
+                            "damagePerHit"));
+                })
+                .ToImmutableArray();
+        RequireCanonicalOrder(
+            profiles,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.Id, right.Id),
+            "embedded attack profiles");
+        return profiles;
+    }
+
+    private static ImmutableArray<ContractPermanentReservation>
+        ReadPermanentSpawnReservations(JsonElement root)
+    {
+        JsonElement rules = RequiredObject(root, "rules");
+        JsonElement lifecycle = RequiredObject(rules, "lifecycle");
+        HashSet<string> automaticProfileIds =
+            RequiredArray(lifecycle, "profiles")
+                .EnumerateArray()
+                .Where(profile => string.Equals(
+                    RequiredString(profile, "destructionPolicy"),
+                    "automatic-respawn",
+                    StringComparison.Ordinal))
+                .Select(profile =>
+                    RequiredString(profile, "profileId"))
+                .ToHashSet(StringComparer.Ordinal);
+        JsonElement map = RequiredObject(
+            root,
+            "map");
+        Dictionary<string, ReplayV3.PositionValue> positions =
+            RequiredArray(map, "spawnAnchors")
+                .EnumerateArray()
+                .ToDictionary(
+                    value => RequiredString(value, "spawnId"),
+                    value => ContractPosition(
+                        value.GetProperty("position")),
+                    StringComparer.Ordinal);
+        var reservations =
+            ImmutableArray.CreateBuilder<ContractPermanentReservation>();
+        foreach (JsonElement value in RequiredArray(
+                     root,
+                     "lifecycleAssignments").EnumerateArray())
+        {
+            if (!automaticProfileIds.Contains(
+                    RequiredString(value, "lifecycleProfileId")))
+            {
+                continue;
+            }
+            JsonElement assigned =
+                value.GetProperty("assignedRespawnSpawnId");
+            if (assigned.ValueKind == JsonValueKind.Null)
+                continue;
+            if (assigned.ValueKind != JsonValueKind.String
+                || assigned.GetString() is not { } spawnId
+                || !positions.TryGetValue(
+                    spawnId,
+                    out ReplayV3.PositionValue? position))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 lifecycle reservation references an unknown spawn.");
+            }
+            reservations.Add(
+                new ContractPermanentReservation(
+                    RequiredInt32(value, "teamId"),
+                    RequiredInt32(value, "unitId"),
+                    position));
+        }
+        return reservations
+            .OrderBy(value => value.TeamId)
+            .ThenBy(value => value.UnitId)
+            .ToImmutableArray();
+    }
+
+    private static ReplayV3.PositionValue ContractPosition(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array
+            || value.GetArrayLength() != 2
+            || !value[0].TryGetInt32(out int x)
+            || !value[1].TryGetInt32(out int y))
+        {
+            throw new ArgumentException(
+                "Replay-v3 embedded contract position is invalid.");
+        }
+        return new ReplayV3.PositionValue(x, y);
     }
 
     private static HashSet<string> ReadOptionalAttackActionIds(
@@ -2896,22 +3031,34 @@ internal static class ReplayV3Serializer
         ImmutableArray<ContractUnitSlot> UnitSlots)
         ReadContractTopology(JsonElement topology)
     {
-        ImmutableArray<int> teamIds = RequiredArray(
+        ImmutableArray<ContractTeam> teams = RequiredArray(
                 topology,
                 "teams")
             .EnumerateArray()
             .Select(value =>
             {
+                bool hasClassId = value.TryGetProperty(
+                    "classId",
+                    out _);
                 RequireExactObject(
                     value,
                     "embedded topology team",
-                    "teamId");
-                return RequiredInt32(value, "teamId");
+                    hasClassId
+                        ? ["teamId", "classId"]
+                        : ["teamId"]);
+                return new ContractTeam(
+                    RequiredInt32(value, "teamId"),
+                    hasClassId
+                        ? RequiredString(value, "classId")
+                        : null);
             })
             .ToImmutableArray();
+        ImmutableArray<int> teamIds =
+            teams.Select(team => team.TeamId).ToImmutableArray();
         RequireCanonicalOrder(
-            teamIds,
-            static (left, right) => left.CompareTo(right),
+            teams,
+            static (left, right) =>
+                left.TeamId.CompareTo(right.TeamId),
             "embedded topology teams");
 
         ImmutableArray<ContractParticipant> participants =
@@ -2919,14 +3066,21 @@ internal static class ReplayV3Serializer
                 .EnumerateArray()
                 .Select(value =>
                 {
+                    bool hasClassId = value.TryGetProperty(
+                        "classId",
+                        out _);
                     RequireExactObject(
                         value,
                         "embedded topology participant",
-                        "participantId",
-                        "teamId");
+                        hasClassId
+                            ? ["participantId", "teamId", "classId"]
+                            : ["participantId", "teamId"]);
                     return new ContractParticipant(
                         RequiredInt32(value, "participantId"),
-                        RequiredInt32(value, "teamId"));
+                        RequiredInt32(value, "teamId"),
+                        hasClassId
+                            ? RequiredString(value, "classId")
+                            : null);
                 })
                 .ToImmutableArray();
         RequireCanonicalOrder(
@@ -2934,6 +3088,20 @@ internal static class ReplayV3Serializer
             static (left, right) =>
                 left.ParticipantId.CompareTo(right.ParticipantId),
             "embedded topology participants");
+        Dictionary<int, string?> teamClasses =
+            teams.ToDictionary(team => team.TeamId, team => team.ClassId);
+        if (participants.Any(participant =>
+                !teamClasses.TryGetValue(
+                    participant.TeamId,
+                    out string? classId)
+                || !string.Equals(
+                    participant.ClassId,
+                    classId,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Replay-v3 participant class IDs must exactly match their scoring teams.");
+        }
 
         ImmutableArray<ContractUnitSlot> unitSlots =
             RequiredArray(topology, "unitSlots")
@@ -3093,6 +3261,11 @@ internal static class ReplayV3Serializer
                     replay.Header,
                     contract,
                     $"tick {tick.Tick} actor {turn.ActorId}");
+                ValidateObservationAgainstState(
+                    turn.Observation,
+                    tick.TickStart.State,
+                    contract,
+                    $"tick {tick.Tick} actor {turn.ActorId}");
                 ValidateActionResolution(
                     turn.ActionResolution,
                     contract,
@@ -3151,11 +3324,9 @@ internal static class ReplayV3Serializer
                 left.ParticipantId.CompareTo(right.ParticipantId),
             "provenance participants");
         if (!provenance.Participants
-                .Select(value =>
-                    new ContractParticipant(
-                        value.ParticipantId,
-                        value.TeamId))
-                .SequenceEqual(contract.Participants))
+                .Select(value => (value.ParticipantId, value.TeamId))
+                .SequenceEqual(contract.Participants.Select(
+                    value => (value.ParticipantId, value.TeamId))))
         {
             throw new ArgumentException(
                 "Replay-v3 provenance participants must exactly match match topology.");
@@ -3221,7 +3392,8 @@ internal static class ReplayV3Serializer
                 .Select(value =>
                     new ContractParticipant(
                         value.ParticipantId,
-                        value.TeamId))
+                        value.TeamId,
+                        value.ClassId))
                 .SequenceEqual(contract.Participants))
         {
             throw new ArgumentException(
@@ -3707,10 +3879,14 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} observation metadata does not match the header contract.");
         }
         ArgumentNullException.ThrowIfNull(observation.Self);
-        if (!IsDirection(observation.Self.Facing))
+        if (!IsDirection(observation.Self.Facing)
+            || !ObservationClassMatches(
+                observation.Self.ActorId,
+                observation.Self.ClassId,
+                contract))
         {
             throw new ArgumentException(
-                $"Replay-v3 {context} self facing is invalid.");
+                $"Replay-v3 {context} self facing or class is invalid.");
         }
         if (observation.Self.PreviousActionResolution is { } previous)
         {
@@ -3747,7 +3923,8 @@ internal static class ReplayV3Serializer
                 .Select(value =>
                     new ContractParticipant(
                         value.ParticipantId,
-                        value.TeamId))
+                        value.TeamId,
+                        value.ClassId))
                 .SequenceEqual(contract.Participants))
         {
             throw new ArgumentException(
@@ -3762,10 +3939,14 @@ internal static class ReplayV3Serializer
         foreach (ReplayV3.ObservedAlly ally in observation.Allies)
         {
             ArgumentNullException.ThrowIfNull(ally);
-            if (!IsDirection(ally.Facing))
+            if (!IsDirection(ally.Facing)
+                || !ObservationClassMatches(
+                    ally.ActorId,
+                    ally.ClassId,
+                    contract))
             {
                 throw new ArgumentException(
-                    $"Replay-v3 {context} ally facing is invalid.");
+                    $"Replay-v3 {context} ally facing or class is invalid.");
             }
             if (ally.PreviousActionResolution is { } allyPrevious)
             {
@@ -3784,10 +3965,14 @@ internal static class ReplayV3Serializer
         foreach (ReplayV3.ObservedEnemy enemy in observation.Enemies)
         {
             ArgumentNullException.ThrowIfNull(enemy);
-            if (!IsDirection(enemy.Facing))
+            if (!IsDirection(enemy.Facing)
+                || !ObservationClassMatches(
+                    enemy.ActorId,
+                    enemy.ClassId,
+                    contract))
             {
                 throw new ArgumentException(
-                    $"Replay-v3 {context} enemy facing is invalid.");
+                    $"Replay-v3 {context} enemy facing or class is invalid.");
             }
             ValidateActorIds(
                 enemy.ObservedBy,
@@ -3805,6 +3990,27 @@ internal static class ReplayV3Serializer
             ValidateActorIds(
                 tile.ObservedBy,
                 $"{context} visible tile observedBy");
+            if (tile.SpawnReservation is { } reservation)
+            {
+                bool automatic = string.Equals(
+                    reservation.Kind,
+                    "automatic-return",
+                    StringComparison.Ordinal);
+                bool dynamic = reservation.Kind is
+                    "fabrication" or "replication";
+                if (!contract.UnitSlots.Any(slot =>
+                        slot.TeamId == reservation.TeamId
+                        && slot.UnitId == reservation.UnitId)
+                    || !automatic && !dynamic
+                    || automatic && reservation.DueTick is not null
+                    || dynamic
+                        && (reservation.DueTick is not int dueTick
+                            || dueTick < observation.Tick))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} visible spawn reservation is invalid.");
+                }
+            }
         }
 
         if (observation.VisibleProjectiles is { } projectiles)
@@ -3820,13 +4026,26 @@ internal static class ReplayV3Serializer
             foreach (ReplayV3.ObservedProjectile projectile in projectiles)
             {
                 ArgumentNullException.ThrowIfNull(projectile);
+                bool invalidLedger =
+                    projectile.TicksPerAdvance <= 0
+                    || projectile.TicksUntilAdvance
+                        > projectile.TicksPerAdvance
+                    || projectile.DamagePerHit <= 0;
                 if (!IsCanonicalInt64(
                         projectile.ProjectileId,
                         nonNegative: true)
-                    || !IsProjectileHeading(projectile.Heading))
+                    || !IsProjectileHeading(projectile.Heading)
+                    || !contract.TeamIds.Contains(
+                        projectile.OwnerTeamId)
+                    || projectile.OwnerActorId is { } owner
+                        && owner.TeamId != projectile.OwnerTeamId
+                    || projectile.TilesPerAdvance <= 0
+                    || projectile.TicksUntilAdvance <= 0
+                    || projectile.RemainingTiles < 0
+                    || invalidLedger)
                 {
                     throw new ArgumentException(
-                        $"Replay-v3 {context} projectile id is invalid.");
+                        $"Replay-v3 {context} projectile state is invalid.");
                 }
                 ValidateActorIds(
                     projectile.ObservedBy,
@@ -3893,6 +4112,149 @@ internal static class ReplayV3Serializer
             observation.ActionLegalities,
             contract,
             context);
+    }
+
+    private static bool ObservationClassMatches(
+        ReplayV3.ActorId actorId,
+        string? classId,
+        CanonicalContractIndex contract)
+    {
+        ContractUnitSlot? slot = contract.UnitSlots.FirstOrDefault(
+            value => value.TeamId == actorId.TeamId
+                && value.UnitId == actorId.UnitId);
+        ContractParticipant? participant = slot is null
+            ? null
+            : contract.Participants.FirstOrDefault(
+                value => value.ParticipantId == slot.ParticipantId);
+        return participant is not null
+            && string.Equals(
+                classId,
+                participant.ClassId,
+                StringComparison.Ordinal);
+    }
+
+    private static void ValidateObservationAgainstState(
+        ReplayV3.Observation observation,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (observation.Mode != state.Mode)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
+        }
+
+        foreach (ReplayV3.ObservedTile tile in observation.VisibleTiles)
+        {
+            ReplayV3.SpawnReservation? expected =
+                SpawnReservationAt(
+                    tile.Position,
+                    state,
+                    contract);
+            if (tile.SpawnReservation != expected)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible spawn reservation does not match the authoritative pre-state.");
+            }
+        }
+
+        if (observation.VisibleProjectiles is not { } projectiles)
+            return;
+        foreach (ReplayV3.ObservedProjectile observed in projectiles)
+        {
+            ReplayV3.ProjectileState? authoritative =
+                state.Projectiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.ProjectileId,
+                        observed.ProjectileId,
+                        StringComparison.Ordinal));
+            ContractAttackProfile? profile = authoritative is null
+                ? null
+                : contract.AttackProfiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.Id,
+                        authoritative.AttackProfileId,
+                        StringComparison.Ordinal));
+            ReplayV3.ActorId? expectedOwnerActorId =
+                authoritative is not null
+                    && (authoritative.OwnerTeamId
+                            == observation.Self.ActorId.TeamId
+                        || observation.Enemies.Any(enemy =>
+                            enemy.ActorId
+                                == authoritative.OwnerActorId))
+                    ? authoritative.OwnerActorId
+                    : null;
+            if (authoritative is null
+                || profile is null
+                || observed.OwnerTeamId
+                    != authoritative.OwnerTeamId
+                || observed.OwnerActorId
+                    != expectedOwnerActorId
+                || observed.Position != authoritative.Position
+                || !string.Equals(
+                    observed.Heading,
+                    authoritative.Heading,
+                    StringComparison.Ordinal)
+                || observed.TilesPerAdvance
+                    != profile.TilesPerAdvance
+                || observed.TicksPerAdvance
+                    != profile.TicksPerAdvance
+                || observed.TicksUntilAdvance
+                    != authoritative.TicksUntilAdvance
+                || observed.RemainingTiles
+                    != authoritative.RemainingTiles
+                || observed.DamagePerHit != profile.DamagePerHit)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible projectile does not match the authoritative pre-state and attack profile.");
+            }
+        }
+    }
+
+    private static ReplayV3.SpawnReservation? SpawnReservationAt(
+        ReplayV3.PositionValue position,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract)
+    {
+        foreach (ReplayV3.PendingReplication replication in
+                 state.PendingReplications)
+        {
+            ReplayV3.ReservedDescendant? descendant =
+                replication.Descendants.FirstOrDefault(value =>
+                    value.Position == position);
+            if (descendant is not null)
+            {
+                return new ReplayV3.SpawnReservation(
+                    descendant.TeamId,
+                    descendant.UnitId,
+                    "replication",
+                    replication.DueTick);
+            }
+        }
+        foreach (ReplayV3.SlotState slot in state.Slots)
+        {
+            switch (slot.State)
+            {
+                case ReplayV3.UnitSlotState.FabricationPending pending
+                    when pending.ReservedPosition == position:
+                    return new ReplayV3.SpawnReservation(
+                        slot.TeamId,
+                        slot.UnitId,
+                        "fabrication",
+                        pending.DueTick);
+            }
+        }
+        ContractPermanentReservation? permanent =
+            contract.PermanentReservations.FirstOrDefault(value =>
+                value.Position == position);
+        return permanent is null
+            ? null
+            : new ReplayV3.SpawnReservation(
+                permanent.TeamId,
+                permanent.UnitId,
+                "automatic-return",
+                null);
     }
 
     private static void ValidateActionLegalities(
@@ -5339,12 +5701,20 @@ internal static class ReplayV3Serializer
         ImmutableArray<ContractUnitSlot> UnitSlots,
         ImmutableArray<string> ScoreChannels,
         ImmutableArray<ContractAction> Actions,
+        ImmutableArray<ContractAttackProfile> AttackProfiles,
         ImmutableArray<ContractReplication> Replications,
+        ImmutableArray<ContractPermanentReservation>
+            PermanentReservations,
         ContractMode Mode);
 
     private sealed record ContractParticipant(
         int ParticipantId,
-        int TeamId);
+        int TeamId,
+        string? ClassId);
+
+    private sealed record ContractTeam(
+        int TeamId,
+        string? ClassId);
 
     private sealed record ContractUnitSlot(
         int TeamId,
@@ -5356,6 +5726,17 @@ internal static class ReplayV3Serializer
         int Code,
         ImmutableArray<string> ParameterKinds,
         bool AllowsOmittedArguments);
+
+    private sealed record ContractAttackProfile(
+        string Id,
+        int TilesPerAdvance,
+        int TicksPerAdvance,
+        int DamagePerHit);
+
+    private sealed record ContractPermanentReservation(
+        int TeamId,
+        int UnitId,
+        ReplayV3.PositionValue Position);
 
     private sealed record ContractReplication(
         string TransitionId,

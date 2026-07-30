@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace BotArena.Sdk;
 
 /// <summary>
-/// Canonical schema-2 public pre-tick input for one generic actor life. Static
+/// Canonical schema-3 public pre-tick input for one generic actor life. Static
 /// rules, map, topology, and counts are joined through the match fingerprint
 /// delivered at life start.
 /// </summary>
@@ -52,11 +52,12 @@ public sealed record GenericActorContext
         ModeObservationState mode,
         IEnumerable<GenericActorActionLegality> actionLegalities)
     {
-        if (schemaVersion != CurrentSchemaVersion)
+        if (schemaVersion
+            != GenericActorContractVersions.ObservationSchemaVersion)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(schemaVersion),
-                $"Generic actor observations require schema {CurrentSchemaVersion}.");
+                "Generic actor observations require the exact profile's observation schema.");
         }
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
@@ -214,6 +215,10 @@ public sealed record GenericActorContext
         /// <param name="pendingSameLifeTransition">
         /// Current form-transition windup, or <see langword="null"/>.
         /// </param>
+        /// <param name="classId">
+        /// Immutable chassis class, or <see langword="null"/> for a classless
+        /// contract.
+        /// </param>
         public ObservedSelfState(
             ActorIdentity actorId,
             int generation,
@@ -224,7 +229,8 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -245,6 +251,11 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact body-life identity.</summary>
@@ -273,6 +284,10 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Current same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>
+        /// Immutable chassis class, or null for a classless contract.
+        /// </summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -292,6 +307,7 @@ public sealed record GenericActorContext
         /// <param name="energy">Current energy, or <see langword="null"/> if unsupported.</param>
         /// <param name="previousActionResolution">Allied prior action result, if any.</param>
         /// <param name="pendingSameLifeTransition">Allied transition windup, if any.</param>
+        /// <param name="classId">Immutable allied chassis class, if declared.</param>
         public ObservedAllyState(
             ActorIdentity actorId,
             int generation,
@@ -302,7 +318,8 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -323,6 +340,11 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact allied body-life identity.</summary>
@@ -345,6 +367,8 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Allied same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>Immutable allied chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -698,11 +722,13 @@ public sealed record GenericActorContext
         /// <param name="teamId">Assigned scoring-team identifier.</param>
         /// <param name="runtimeFaultCount">Cumulative participant fault count.</param>
         /// <param name="disqualified">Whether the participant is ineligible to continue.</param>
+        /// <param name="classId">Immutable participant chassis class, if declared.</param>
         public ObservedParticipantStatus(
             int participantId,
             int teamId,
             long runtimeFaultCount,
-            bool disqualified)
+            bool disqualified,
+            string? classId = null)
         {
             if (participantId < 0)
                 throw new ArgumentOutOfRangeException(nameof(participantId));
@@ -717,6 +743,11 @@ public sealed record GenericActorContext
             TeamId = teamId;
             RuntimeFaultCount = runtimeFaultCount;
             Disqualified = disqualified;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Submitted-program identifier.</summary>
@@ -727,6 +758,8 @@ public sealed record GenericActorContext
         public long RuntimeFaultCount { get; }
         /// <summary>Whether the participant is ineligible to continue.</summary>
         public bool Disqualified { get; }
+        /// <summary>Immutable participant chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -745,6 +778,7 @@ public sealed record GenericActorContext
         /// <param name="observedBy">
         /// Exact allied life identities whose sensors revealed this state.
         /// </param>
+        /// <param name="classId">Immutable enemy chassis class, if declared.</param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -752,7 +786,8 @@ public sealed record GenericActorContext
             Direction facing,
             int health,
             PendingSameLifeTransition? pendingSameLifeTransition,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidatePosition(position, nameof(position));
@@ -771,6 +806,11 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact visible enemy body-life identity.</summary>
@@ -790,6 +830,8 @@ public sealed record GenericActorContext
         /// Empty is valid only under a provenance policy that declares it.
         /// </summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>Immutable enemy chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>One sensor-visible map tile and its observation provenance.</summary>
@@ -799,10 +841,14 @@ public sealed record GenericActorContext
         /// <param name="position">Map coordinate in tiles.</param>
         /// <param name="isWall">Whether the gameplay tile blocks as a wall.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed the tile.</param>
+        /// <param name="spawnReservation">
+        /// Visible lifecycle output claim, or <see langword="null"/>.
+        /// </param>
         public ObservedTile(
             Position position,
             bool isWall,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            SpawnReservation? spawnReservation = null)
         {
             ValidatePosition(position, nameof(position));
             Position = position;
@@ -810,6 +856,7 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            SpawnReservation = spawnReservation;
         }
 
         /// <summary>Map coordinate in tiles.</summary>
@@ -818,6 +865,59 @@ public sealed record GenericActorContext
         public bool IsWall { get; }
         /// <summary>Exact allied lives whose sensors revealed the tile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>
+        /// Visible lifecycle output claim, or null when this tile is not
+        /// reserved for a future or recurring spawn.
+        /// </summary>
+        public SpawnReservation? SpawnReservation { get; }
+    }
+
+    /// <summary>One spawn claim attached to an already visible tile.</summary>
+    public sealed record SpawnReservation
+    {
+        /// <summary>Creates a visible spawn claim.</summary>
+        public SpawnReservation(
+            int teamId,
+            int unitId,
+            SpawnReservationKind kind,
+            int? dueTick)
+        {
+            if (teamId < 0)
+                throw new ArgumentOutOfRangeException(nameof(teamId));
+            if (unitId < 0)
+                throw new ArgumentOutOfRangeException(nameof(unitId));
+            Kind = GenericActorDynamicValueRules.EnumValue(
+                kind,
+                nameof(kind));
+            if (kind == SpawnReservationKind.AutomaticReturn
+                    && dueTick is not null
+                || kind != SpawnReservationKind.AutomaticReturn
+                    && dueTick is null or < 0)
+            {
+                throw new ArgumentException(
+                    "Permanent automatic-return claims omit dueTick; pending lifecycle claims require a non-negative dueTick.",
+                    nameof(dueTick));
+            }
+            TeamId = teamId;
+            UnitId = unitId;
+            DueTick = dueTick;
+        }
+
+        public int TeamId { get; }
+        public int UnitId { get; }
+        public SpawnReservationKind Kind { get; }
+        public int? DueTick { get; }
+    }
+
+    /// <summary>Why a visible tile is unavailable for another spawn.</summary>
+    public enum SpawnReservationKind
+    {
+        /// <summary>A slot's authored return anchor is permanently claimed.</summary>
+        AutomaticReturn = 0,
+        /// <summary>A queued fabrication claimed this output tile.</summary>
+        Fabrication = 1,
+        /// <summary>A queued replication claimed this output tile.</summary>
+        Replication = 2,
     }
 
     /// <summary>

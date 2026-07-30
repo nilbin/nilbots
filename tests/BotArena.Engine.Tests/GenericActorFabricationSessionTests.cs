@@ -5,6 +5,56 @@ namespace BotArena.Engine.Tests;
 public sealed class GenericActorFabricationSessionTests
 {
     [Fact]
+    public void PendingFabricationPublishesVisibleSpawnReservation()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericActorContractTestFixture.WithTransitions(
+                fabricationDelayTicks: 3,
+                includeMovement: true);
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10
+                        ? observation.Tick switch
+                        {
+                            0 => GenericDeathmatchSessionTestFixture.Move(
+                                Direction.East),
+                            1 => GenericDeathmatchSessionTestFixture.Fabricate(
+                                0,
+                                1),
+                            _ => GenericDeathmatchSessionTestFixture.Wait(),
+                        }
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using GenericActorMatchSession session = Session(
+            definition,
+            factories);
+
+        session.Step(session.PrepareTick().Observations);
+        session.Step(session.PrepareTick().Observations);
+        GenericActorMatchPreparedTick pending = session.PrepareTick();
+        GenericActorRuntimeObservation source = pending.Observations.Single(
+            observation =>
+                observation.Self.ActorId == new ActorIdentity(0, 0, 0));
+        GenericActorRuntimeObservation.ObservedTile reservedTile =
+            source.VisibleTiles.Single(tile =>
+                tile.Position == new Position(3, 3));
+        GenericActorRuntimeObservation.SpawnReservation reservation =
+            Assert.IsType<
+                GenericActorRuntimeObservation.SpawnReservation>(
+                    reservedTile.SpawnReservation);
+
+        Assert.Equal(0, reservation.TeamId);
+        Assert.Equal(1, reservation.UnitId);
+        Assert.Equal(
+            GenericActorRuntimeObservation.SpawnReservationKind.Fabrication,
+            reservation.Kind);
+        Assert.Equal(4, reservation.DueTick);
+    }
+
+    [Fact]
     public void QueuePendingDue_CreatesFreshChildThatActsOnCreationTick()
     {
         ActorResolvedMatchDefinition definition =

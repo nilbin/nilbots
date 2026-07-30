@@ -27,6 +27,7 @@ public sealed class GenericActorMatchSession : IDisposable
         _lifecycleProfiles;
     private readonly Dictionary<string, InitialSpawnDefinition> _spawns;
     private readonly Dictionary<int, int> _participantTeams;
+    private readonly Dictionary<int, string?> _participantClassIds;
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
@@ -84,6 +85,9 @@ public sealed class GenericActorMatchSession : IDisposable
         _participantTeams = definition.Topology.Participants.ToDictionary(
             participant => participant.ParticipantId,
             participant => participant.TeamId);
+        _participantClassIds = definition.Topology.Participants.ToDictionary(
+            participant => participant.ParticipantId,
+            participant => participant.ClassId);
         _slots = CreateSlots(definition);
         _mode = mode;
         _fabrication = new BoundedChildFabricationKernel(definition);
@@ -2146,7 +2150,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     new GenericActorRuntimeObservation.ObservedTile(
                         item.position,
                         _definition.Map.IsWall(item.position),
-                        item.observedBy))
+                        item.observedBy)
+                    {
+                        SpawnReservation = SpawnReservationAt(item.position),
+                    })
                 .ToImmutableArray();
 
         ImmutableArray<GenericActorRuntimeObservation.ObservedEnemyState>
@@ -2166,7 +2173,11 @@ public sealed class GenericActorMatchSession : IDisposable
                         item.life.Facing,
                         item.life.Health,
                         PendingObservation(item.life),
-                        item.observedBy))
+                        item.observedBy)
+                    {
+                        ClassId =
+                            _participantClassIds[item.life.ParticipantId],
+                    })
                 .ToImmutableArray();
         HashSet<ActorIdentity> visibleEnemyIds =
             enemies.Select(enemy => enemy.ActorId).ToHashSet();
@@ -2191,7 +2202,11 @@ public sealed class GenericActorMatchSession : IDisposable
                             life.Cooldown,
                             life.Energy,
                             life.PreviousActionResolution,
-                            PendingObservation(life)))
+                            PendingObservation(life))
+                        {
+                            ClassId =
+                                _participantClassIds[life.ParticipantId],
+                        })
                     .ToImmutableArray()
                 : [];
 
@@ -2325,7 +2340,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 observer.Cooldown,
                 observer.Energy,
                 observer.PreviousActionResolution,
-                PendingObservation(observer)),
+                PendingObservation(observer))
+            {
+                ClassId = _participantClassIds[observer.ParticipantId],
+            },
             TeamUnitObservations(observer.ActorId.TeamId),
             _host.ParticipantStatuses,
             allies,
@@ -2339,6 +2357,61 @@ public sealed class GenericActorMatchSession : IDisposable
             modeProjection.Scoreboard,
             modeProjection.Mode,
             ActionLegalities(observer));
+    }
+
+    private GenericActorRuntimeObservation.SpawnReservation?
+        SpawnReservationAt(Position position)
+    {
+        BoundedChildFabricationProvisionalReservation? fabrication =
+            _fabricationReservations.SingleOrDefault(reservation =>
+                reservation.ReservedPosition == position);
+        if (fabrication is not null)
+        {
+            return new GenericActorRuntimeObservation.SpawnReservation(
+                fabrication.TargetTeamId,
+                fabrication.TargetUnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .Fabrication,
+                fabrication.DueTick);
+        }
+
+        SplitReplicationReservedDescendant? descendant =
+            _splitReservations
+                .SelectMany(reservation =>
+                    reservation.Descendants.Select(value =>
+                        (Reservation: reservation, Descendant: value)))
+                .Where(item => item.Descendant.Position == position)
+                .Select(item => item.Descendant)
+                .SingleOrDefault();
+        if (descendant is not null)
+        {
+            SplitReplicationReservation reservation = _splitReservations
+                .Single(value => value.Descendants.Contains(descendant));
+            return new GenericActorRuntimeObservation.SpawnReservation(
+                descendant.TeamId,
+                descendant.UnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .Replication,
+                reservation.DueTick);
+        }
+
+        SlotState? returnSlot = _slots.Values
+            .Where(slot =>
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DestructionPolicy
+                == ActorLifecycleProfileDefinition.DestructionPolicyKind
+                    .AutomaticRespawn)
+            .SingleOrDefault(slot =>
+                _spawns[slot.Assignment.AssignedRespawnSpawnId!].Position
+                    == position);
+        return returnSlot is null
+            ? null
+            : new GenericActorRuntimeObservation.SpawnReservation(
+                returnSlot.TeamId,
+                returnSlot.UnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .AutomaticReturn,
+                DueTick: null);
     }
 
     private bool ProjectSpatialEvent(

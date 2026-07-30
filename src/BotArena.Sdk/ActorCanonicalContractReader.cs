@@ -350,16 +350,33 @@ public static class ActorCanonicalContractReader
 
     private static PublicScoringTeam ReadTeam(JsonElement element)
     {
-        ExactObject(element, "teamId");
-        return new PublicScoringTeam(Int(element, "teamId"));
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["teamId", "classId"]
+                : ["teamId"]);
+        return new PublicScoringTeam(
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicParticipant ReadParticipant(JsonElement element)
     {
-        ExactObject(element, "participantId", "teamId");
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["participantId", "teamId", "classId"]
+                : ["participantId", "teamId"]);
         return new PublicParticipant(
             Int(element, "participantId"),
-            Int(element, "teamId"));
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicUnitSlot ReadUnitSlot(JsonElement element)
@@ -1798,6 +1815,31 @@ public static class ActorCanonicalContractReader
         {
             throw new FormatException(
                 "Topology counts do not match their canonical collections.");
+        }
+        Dictionary<int, string?> teamClasses;
+        try
+        {
+            teamClasses = topology.Teams.ToDictionary(
+                team => team.TeamId,
+                team => team.ClassId);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new FormatException(
+                "Topology team identifiers must be unique.",
+                exception);
+        }
+        if (topology.Participants.Any(participant =>
+                !teamClasses.TryGetValue(
+                    participant.TeamId,
+                    out string? teamClassId)
+                || !string.Equals(
+                    participant.ClassId,
+                    teamClassId,
+                    StringComparison.Ordinal)))
+        {
+            throw new FormatException(
+                "Each participant classId must exactly match its scoring team classId.");
         }
         if (format.ScoringTeamCount != topology.Teams.Length
             || format.ParticipantCount != topology.Participants.Length

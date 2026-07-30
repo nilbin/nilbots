@@ -99,10 +99,22 @@ public static class ToolchainInfo
     /// and two projectile keys, so a replay recorded before this version is
     /// not readable by the new reader and vice versa. The same version
     /// registers the phase-2 composite arm identities `helm`, `veer`, and
-    /// `rig`, which rename nothing that already existed. Keep in lockstep with
-    /// BotArena.Cli.csproj's
+    /// `rig`, which rename nothing that already existed. 0.9.15 carries
+    /// SDK/Guest 0.10.6: typed class identity becomes a first-class contract
+    /// and observation fact, and a visible tile publishes the spawn
+    /// reservation that makes it unavailable. The canonical `classId` is
+    /// emitted only where a ruleset declares classes, following the #156
+    /// additive pattern exactly, so every class-free ruleset — the hosted
+    /// contract included — keeps byte-identical topology and match
+    /// fingerprints and the pinned goldens are untouched; a class arm was
+    /// already a distinct content-identified ruleset. The observation fields
+    /// are trailing tagged additions, so the negotiated schema version is
+    /// unchanged and no new contract profile was minted. Replay-v3 documents
+    /// grow four `classId` keys and one `spawnReservation` key, so a replay
+    /// recorded before this version is not interchangeable with one after.
+    /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.14";
+    public const string CliVersion = "0.9.15";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -144,9 +156,15 @@ public static class ToolchainInfo
     // carries TicksPerAdvance/DamagePerHit. Both ride the wire as trailing
     // tagged fields, so the observation schema version stays 2 and an older
     // artifact still negotiates and still runs — it simply cannot see them.
-    public const string SdkVersion = "0.10.5";
+    // 0.10.6: typed class identity reaches the contract topology and the
+    // observation (self, allies, visible enemies, participants), and a visible
+    // tile publishes the spawn reservation that makes it unavailable. Same
+    // discipline: the canonical classId is emitted only when a ruleset declares
+    // classes (#156), the observation fields are trailing tagged additions, and
+    // the observation schema version stays 2.
+    public const string SdkVersion = "0.10.6";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.5";
+    public const string GuestAdapterVersion = "0.10.6";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

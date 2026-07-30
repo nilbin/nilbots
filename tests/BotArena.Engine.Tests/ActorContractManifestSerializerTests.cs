@@ -487,6 +487,63 @@ public sealed class ActorContractManifestSerializerTests
     }
 
     [Fact]
+    public void ClassIdentityMovesTopologyAndMatchButNotRulesBytes()
+    {
+        ActorRulesDefinition rules = CreateRules();
+        ActorMapDefinition map = CreateMap();
+        var format = new HeadToHeadMatchFormatDefinition();
+        PublicMatchTopology classlessTopology =
+            CreateTopology([[10], [20]]);
+        PublicMatchTopology classedTopology = classlessTopology with
+        {
+            Teams = classlessTopology.Teams
+                .Select(team => team with
+                {
+                    ClassId = team.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+            Participants = classlessTopology.Participants
+                .Select(participant => participant with
+                {
+                    ClassId = participant.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+        };
+        ActorResolvedMatchDefinition classless = Resolve(
+            rules,
+            map,
+            format,
+            classlessTopology,
+            ["west", "east"]);
+        ActorResolvedMatchDefinition classed = Resolve(
+            rules,
+            map,
+            format,
+            classedTopology,
+            ["west", "east"]);
+
+        Assert.Equal(
+            "95b203b1966d7d7ccec38d4b6c1c51561bae2527ddcccb2e1249e744bef7f1c1",
+            ActorContractFingerprint.ComputeRules(rules));
+        Assert.Equal(
+            "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a",
+            ActorContractFingerprint.ComputeTopology(classlessTopology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeTopology(classlessTopology),
+            ActorContractFingerprint.ComputeTopology(classedTopology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(classless),
+            ActorContractFingerprint.ComputeMatch(classed));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(classless.Rules),
+            ActorContractFingerprint.ComputeRules(classed.Rules));
+    }
+
+    [Fact]
     public void AggregateEmbedsCapturedCapabilitiesAndStablePropertyOrder()
     {
         ActorRulesDefinition rules = CreateRules();

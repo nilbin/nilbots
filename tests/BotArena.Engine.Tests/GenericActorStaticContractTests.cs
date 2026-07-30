@@ -135,6 +135,78 @@ public sealed class GenericActorStaticContractTests
     }
 
     [Fact]
+    public void ParsesClassIdsFromTopologyWithoutFormNameInference()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Striker);
+        string canonical =
+            ActorContractManifestSerializer.ToCanonicalJson(source);
+
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(canonical);
+
+        Assert.Equal(
+            ["bulwark", "striker"],
+            contract.Topology.Teams.Select(team => team.ClassId));
+        Assert.Equal(
+            ["bulwark", "striker"],
+            contract.Topology.Participants.Select(
+                participant => participant.ClassId));
+        Assert.Contains(
+            "\"classId\":\"bulwark\"",
+            canonical,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"classId\":",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                GenericActorContractTestFixture.Frontline()),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReaderRejectsExplicitlyInertOrMismatchedClassIdentity()
+    {
+        string classless = ActorContractManifestSerializer.ToCanonicalJson(
+            GenericActorContractTestFixture.Deathmatch("head-to-head"));
+        string explicitNull = classless.Replace(
+            "\"teams\":[{\"teamId\":0}",
+            "\"teams\":[{\"teamId\":0,\"classId\":null}",
+            StringComparison.Ordinal);
+        string classed = ActorContractManifestSerializer.ToCanonicalJson(
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Striker));
+        JsonObject mismatchRoot =
+            Assert.IsType<JsonObject>(JsonNode.Parse(classed));
+        JsonObject mismatchTopology =
+            Assert.IsType<JsonObject>(mismatchRoot["topology"]);
+        Assert.IsType<JsonArray>(
+            mismatchTopology["participants"])[0]!["classId"] =
+                "striker";
+        Rehash(
+            mismatchTopology,
+            "topologyFingerprint",
+            "topologyFingerprint");
+        Rehash(
+            mismatchRoot,
+            "matchContractFingerprint",
+            "matchContractFingerprint");
+        string mismatch = mismatchRoot.ToJsonString();
+
+        Assert.NotEqual(classless, explicitNull);
+        Assert.NotEqual(classed, mismatch);
+        Assert.Throws<FormatException>(() =>
+            ActorCanonicalContractReader.Parse(explicitNull));
+        Assert.Contains(
+            "class",
+            Assert.Throws<FormatException>(() =>
+                ActorCanonicalContractReader.Parse(mismatch)).Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ParsesOptionalFrontlineCaptureGainSchedule()
     {
         ActorResolvedMatchDefinition source =
@@ -618,8 +690,12 @@ public sealed class GenericActorStaticContractTests
                 "\"kind\":\"future-action\",\"parameterKinds\"",
                 StringComparison.Ordinal),
             "unknown-property" => canonical.Replace(
-                "{\"schemaVersion\":2,",
-                "{\"schemaVersion\":2,\"future\":true,",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",\"future\":true,",
                 StringComparison.Ordinal),
             "noncanonical-number" => canonical.Replace(
                 "\"maxTicks\":100",
@@ -645,8 +721,14 @@ public sealed class GenericActorStaticContractTests
                 StringComparison.Ordinal),
             "trailing-data" => canonical + "false",
             "duplicate-property" => canonical.Replace(
-                "{\"schemaVersion\":2,",
-                "{\"schemaVersion\":2,\"schemaVersion\":2,",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
                 StringComparison.Ordinal),
             "trailing-comma" => canonical.Insert(
                 canonical.Length - 1,

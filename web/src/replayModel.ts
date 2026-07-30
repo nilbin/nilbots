@@ -506,12 +506,14 @@ export interface ReplayContractTopology {
   teams: {
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   participants: {
     participantId: number;
     participantKey: ReplayParticipantKey;
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   unitSlots: {
     teamId: number;
@@ -685,6 +687,7 @@ export interface ReplayParticipantController {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   name: string;
   runtimeKind: string;
   artifactHash: string | null;
@@ -696,6 +699,7 @@ export interface ReplayParticipantController {
 export interface ReplayTeam {
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   participantKeys: ReplayParticipantKey[];
   unitKeys: ReplayStableUnitKey[];
 }
@@ -845,6 +849,7 @@ export interface ReplayParticipantStatus {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   runtimeFaultCount: string;
   disqualified: boolean;
 }
@@ -882,8 +887,8 @@ export type ReplayModeState =
       /**
        * Team whose advance a live territory-ratchet hold protects, or null
        * when no hold is live — which includes every ruleset whose redeploy
-       * policy has no ratchet at all. Only the generation-3 contract carries
-       * the fact, so it is absent on replays normalized from older wires.
+       * policy has no ratchet at all. Only the generic contract carries the
+       * fact, so it is absent on replays normalized from older wires.
        */
       holdOwnerTeamId?: number | null;
       /** First tick the live hold stops denying regression; null when none. */
@@ -936,6 +941,8 @@ export interface ReplayFrontlineObjectiveState {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
   winnerTeamId: number | null;
   completeness: 'exact';
 }
@@ -995,6 +1002,7 @@ export type ReplayObservedActorRef =
 
 export interface ReplayObservedActor {
   actor: ReplayObservedActorRef;
+  classId: string | null;
   formId: string;
   position: ReplayPosition;
   facing: ReplayDirection;
@@ -1010,6 +1018,15 @@ export interface ReplayObservedTile {
   position: ReplayPosition;
   isWall: boolean | null;
   observedBy: ReplayActorLifeKey[];
+  spawnReservation: ReplayObservedSpawnReservation | null;
+}
+
+export interface ReplayObservedSpawnReservation {
+  teamId: number;
+  unitId: number;
+  unitKey: ReplayStableUnitKey;
+  kind: 'automatic-return' | 'fabrication' | 'replication';
+  dueTick: number | null;
 }
 
 export interface ReplayObservedProjectile {
@@ -1092,6 +1109,8 @@ export interface ReplayObservedFrontlineObjective {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
 }
 
 export interface ReplayActorObservation {
