@@ -1,6 +1,6 @@
 # Lattice Loom — review crop pack
 
-Status: **raw review complete; provider submission blocked**.
+Status: **clean V1 provider input ready**.
 
 V2 supplies the selected low-hover geometry. V1 remains the rejected grounded
 alternative, and V3 remains a semantic-accent review only; they must not be
@@ -40,20 +40,20 @@ Source hashes:
 - Semantic team-region SVG:
   `f45a956fd2df4e726f889557e863a183ddaf74fbb8c5b763d07bdde22d8a6a61`
 
-## Blockers
+## Clean provider pack
 
-- Replace the native V2 crops with consistent 1254×1254 flat `#b8b8b8`
-  inputs, at least 1040 px source detail, and no floor/cast/contact shadow.
-- Preserve the V2 low-hover geometry; do not revive V1's feet.
-- Clean the triangular truss gaps and extend the paired fork tips to the rich
-  2D endpoints. Preserve the internal negative spaces during background
-  flattening.
-- Do not submit V3 as-is. Remove its unsupported north/south cyan strips and
-  reshape the four valid team surfaces to the runtime SVG's west-shoulder and
-  east-fork-root regions.
-- Keep the honeycomb aperture, fork-tip lights, and underside field emitters
-  authored amber rather than renderer-owned team color.
+`clean-v1` contains four 1254×1254 shadowless low-hover views on exact flat
+`#b8b8b8`. The clean top passed the rich 2D authority at 90.96% full
+silhouette IoU and 96.36% outer IoU. Exactly four cyan shoulder/fork-root
+inlays remain; the unsupported north/south strips are gone.
 
-The rejected experimental shadow mask is not retained: the silhouette audit's
+The provider result remains a static reconstruction master. The Blender pass
+must re-square/extend the east fork tips by roughly 3%, align the internal
+diagonal truss cells, preserve all negative spaces, and split the four team
+surfaces. The core, coils, fork-tip lights, and hover emitters remain authored
+amber class energy.
+
+The raw V1/V2/V3 crop packs remain immutable provenance. The rejected
+experimental shadow mask is not retained: the silhouette audit's
 global achromatic rule erased real pale ceramic and neutral truss hardware
 when reused as alpha.

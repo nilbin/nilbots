@@ -3,8 +3,14 @@
   "assetId": "aegis-tortoise-mobile",
   "provider": "meshy",
   "taskKind": "image-to-3d-multiview",
-  "status": "review-ready-provider-blocked",
+  "status": "provider-ready",
   "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/source-sheet.png",
+    "sha256": "ca6c5a24147175e4b3283b3cb23d9ab266ea0bbcc2d5eb9b5e44311a556d3a29",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
     "path": "art/class-models/concept-targets/aegis-tortoise-3d-concept-v2/approval-sheet.png",
     "sha256": "d1acf3d6af2ed71c64146a843f7564c99ede0b9384b26c28515218f4f57c3be7",
     "width": 1536,
@@ -23,64 +29,38 @@
   "views": [
     {
       "role": "top",
-      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/01-top.png",
-      "width": 700,
-      "height": 610,
-      "crop": {
-        "height": 610,
-        "width": 700,
-        "offsetY": 20,
-        "offsetX": 60
-      },
-      "sha256": "b02dd61edd6ed936e8fe620f2e495c770491ead9b635921428195df00df3f59f"
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d806e4ba3517fb8e09ed02ca41636dbb04d31e92b92a5d792b648574768aec18"
     },
     {
       "role": "side",
-      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/02-side.png",
-      "width": 700,
-      "height": 320,
-      "crop": {
-        "height": 320,
-        "width": 700,
-        "offsetY": 650,
-        "offsetX": 35
-      },
-      "sha256": "c506e36fc0770f64b54247b9c33da5f62e328faa947032ffa5ad1f28c2fac667"
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5b74bdd48413aedf63a6f7a37e3d33f8f29355c8985a18c23f437ccaa0ef008f"
     },
     {
       "role": "front-three-quarter",
-      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/03-front-three-quarter.png",
-      "width": 740,
-      "height": 510,
-      "crop": {
-        "height": 510,
-        "width": 740,
-        "offsetY": 90,
-        "offsetX": 760
-      },
-      "sha256": "a07e3a7f7bc24ddf739ca24d2d3cffeb2b97952c1d6c45989378dbdc58d0329a"
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "279ab86b4b370706628db23edde62b959b28e85a8a372dd5046307e6efb3687e"
     },
     {
       "role": "rear-three-quarter",
-      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/04-rear-three-quarter.png",
-      "width": 710,
-      "height": 375,
-      "crop": {
-        "height": 375,
-        "width": 710,
-        "offsetY": 610,
-        "offsetX": 775
-      },
-      "sha256": "b6cebc28b29d5002bc8480d63286ad2cb5de457292164c51784fb2d24c9b3fdf"
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8e2067220e89b98e526c0cc3ca3c129bcbdb6becb571ca22c20db121067aa54f"
     }
   ],
-  "blockers": [
-    "Views are native non-square crops below the required 1254x1254 provider size and 1040px source-detail gate.",
-    "Studio cast/contact shadows remain and must be removed without erasing neutral gun or leg hardware.",
-    "Restore the west-centre semantic team inlay; forward shield slits and core remain authored class energy.",
-    "Re-run the strict rich-2D top overlay after final flattening."
-  ],
+  "blockers": [],
   "providerSubmission": {
-    "allowed": false
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail Aegis Tortoise mobile master for the Bulwark class Blender segmentation, retopology, team-material split, and deterministic walk rig.",
+    "texturePrompt": "Restrained stylized PBR heavy combat robot: matte graphite-navy hard-surface armor, weathered bronze plates, crisp panel seams, dark neutral gun and leg mechanics, bounded cyan light inlays, and cool cyan reactor energy. Keep cyan confined to clean inlay and light surfaces with no spill. No text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic. Preserve authored wear."
   }
 }

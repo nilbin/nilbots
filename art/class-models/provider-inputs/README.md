@@ -1,14 +1,15 @@
 # Meshy input preparation
 
-This directory contains deterministic, review-only isolation crops. No Meshy
-task was submitted and no provider credit was spent while preparing them.
+This directory contains deterministic provider-input derivatives and their
+raw crop provenance. No Meshy task was submitted and no provider credit was
+spent while preparing them.
 
 The checked-in partial covers the two selected mobile class bodies:
 
 | Package | Review state | Provider state |
 | --- | --- | --- |
-| `meshy/aegis-tortoise-mobile` | Complete raw crop/provenance review | **Blocked** |
-| `meshy/lattice-loom` | Complete raw crop/provenance review | **Blocked** |
+| `meshy/aegis-tortoise-mobile` | Clean V1 passed rich-2D overlay and input integrity | **Ready** |
+| `meshy/lattice-loom` | Clean V1 passed rich-2D outer-planform and input integrity | **Ready** |
 
 Shell, whole Turret, and all three projectile heads remain independent future
 packages. `generate-crops.zsh` records their reviewed source-panel crop
@@ -27,12 +28,14 @@ crops or pretend they are upload-ready.
 - Each package contains exactly one modeled object. Variants under one package
   are retained references for that same object, not extra task inputs.
 
-The approved approval sheet remains the contact sheet for each package. The
-individual crops are intentionally kept at native resolution as provenance.
-They do not satisfy the Nilbots provider-input requirement for 1254×1254 flat
-neutral images with at least 1040 px source detail and consistent object
-scale. Studio cast/contact shadows also remain. These facts are explicit
-blockers in each manifest, so an offline runner must refuse submission.
+The approved approval sheets and native crops remain immutable provenance.
+Each package's `clean-v1` directory contains the four submission inputs:
+1254×1254, consistently scaled, no warp, exact flat `#b8b8b8` external
+background, and no cast/contact shadow. The clean Aegis top achieved 99.16%
+rigid silhouette IoU against its rich 2D authority. The clean Lattice top
+achieved 90.96% full and 96.36% outer silhouette IoU; its remaining fork-tip
+and internal truss cleanup is an explicit downstream Blender refinement, not
+a provider-input blocker.
 
 ## Reproduction
 

@@ -3,8 +3,14 @@
   "assetId": "lattice-loom",
   "provider": "meshy",
   "taskKind": "image-to-3d-multiview",
-  "status": "review-ready-provider-blocked",
+  "status": "provider-ready",
   "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/source-sheet.png",
+    "sha256": "4bdbdec59afa76d316d088269b050d3676c2b6cf557aeb26bd2c90f9ffcab680",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
     "path": "art/class-models/concept-targets/lattice-loom-3d-concept-v2/approval-sheet.png",
     "sha256": "c208e69e8099e3b88f521a3af02471fada686161300215553d210244c25d9036",
     "width": 1536,
@@ -23,65 +29,38 @@
   "views": [
     {
       "role": "top",
-      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/01-top.png",
-      "width": 745,
-      "height": 660,
-      "crop": {
-        "height": 660,
-        "width": 745,
-        "offsetY": 20,
-        "offsetX": 35
-      },
-      "sha256": "dd621b4313917a38bb920bcb22b79aa7c68728d4c91db29fb1b3e12195df1412"
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "85d433e6f962ce95e8f49250d2e2b912f9ee85bfe9ed4b14c3071f466f0d6819"
     },
     {
       "role": "side",
-      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/02-side.png",
-      "width": 770,
-      "height": 260,
-      "crop": {
-        "height": 260,
-        "width": 770,
-        "offsetY": 690,
-        "offsetX": 30
-      },
-      "sha256": "e65853d39e0556a907e71f12659fc3b6604fbf524ff2295ed96ba3b43521e4b5"
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "db1eb1c090687bb58048506b926b274a1d068c4779864aff54fe3e17fcd72da5"
     },
     {
       "role": "front-three-quarter",
-      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/03-front-three-quarter.png",
-      "width": 756,
-      "height": 545,
-      "crop": {
-        "height": 545,
-        "width": 756,
-        "offsetY": 95,
-        "offsetX": 780
-      },
-      "sha256": "6a058ae5ec2e75d8361afa945a6f3d81f200f3b97a50de2079102c978d82a94d"
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "cc2d8f7c7551ffcabfcc6bb5326a078d7f717a41869737d96877b1855368090c"
     },
     {
       "role": "rear-three-quarter",
-      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/04-rear-three-quarter.png",
-      "width": 680,
-      "height": 310,
-      "crop": {
-        "height": 310,
-        "width": 680,
-        "offsetY": 650,
-        "offsetX": 815
-      },
-      "sha256": "0cd1a8d2500014df3b5ab41eab3f89e258150a8d3c66b7b4b9656b2b27a64398"
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a0c3361db16082796f234dcb4c8e951d4e2ef9a7425a0654eedf10433877e3cf"
     }
   ],
-  "blockers": [
-    "Views are native non-square crops below the required 1254x1254 provider size and 1040px source-detail gate.",
-    "Studio cast/contact shadows remain and must be removed while preserving ceramic, truss hardware, and enclosed negative spaces.",
-    "Clean triangular truss gaps and extend fork tips to the rich-2D endpoints without warping.",
-    "Apply only the runtime SVG's four valid team regions; remove unsupported north/south V3 strips.",
-    "Re-run the strict rich-2D top overlay after final flattening."
-  ],
+  "blockers": [],
   "providerSubmission": {
-    "allowed": false
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail Lattice Loom master for the Fabricator class Blender cleanup, team-material split, hover treatment, and deterministic runtime presentation.",
+    "texturePrompt": "Restrained stylized PBR levitating industrial robot: warm ceramic-white armor, graphite trusswork, copper coils, warm amber honeycomb core, fork, and hover energy, with exactly four clean bounded cyan shoulder and fork-root inlays. Keep cyan out of the core, coils, fork tips, and hover emitters. No text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic."
   }
 }

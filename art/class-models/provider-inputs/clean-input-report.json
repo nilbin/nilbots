@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "canvasSize": 1254,
+  "objectExtent": 990,
+  "background": "#b8b8b8",
+  "packages": [
+    {
+      "id": "aegis-tortoise-mobile",
+      "source": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/source-sheet.png",
+      "views": [
+        {
+          "file": "01-top.png",
+          "crop": {
+            "left": 40,
+            "top": 15,
+            "width": 710,
+            "height": 620
+          },
+          "foregroundBounds": {
+            "left": 81,
+            "top": 31,
+            "width": 597,
+            "height": 569
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 944,
+          "objectLeft": 132,
+          "objectTop": 155
+        },
+        {
+          "file": "02-side.png",
+          "crop": {
+            "left": 35,
+            "top": 625,
+            "width": 710,
+            "height": 320
+          },
+          "foregroundBounds": {
+            "left": 59,
+            "top": 90,
+            "width": 619,
+            "height": 185
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 296,
+          "objectLeft": 132,
+          "objectTop": 479
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 760,
+            "top": 80,
+            "width": 740,
+            "height": 525
+          },
+          "foregroundBounds": {
+            "left": 27,
+            "top": 75,
+            "width": 663,
+            "height": 406
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 606,
+          "objectLeft": 132,
+          "objectTop": 324
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 775,
+            "top": 595,
+            "width": 715,
+            "height": 395
+          },
+          "foregroundBounds": {
+            "left": 38,
+            "top": 50,
+            "width": 630,
+            "height": 298
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 468,
+          "objectLeft": 132,
+          "objectTop": 393
+        }
+      ]
+    },
+    {
+      "id": "lattice-loom",
+      "source": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/source-sheet.png",
+      "views": [
+        {
+          "file": "01-top.png",
+          "crop": {
+            "left": 25,
+            "top": 25,
+            "width": 760,
+            "height": 650
+          },
+          "foregroundBounds": {
+            "left": 46,
+            "top": 38,
+            "width": 703,
+            "height": 582
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 820,
+          "objectLeft": 132,
+          "objectTop": 217
+        },
+        {
+          "file": "02-side.png",
+          "crop": {
+            "left": 25,
+            "top": 680,
+            "width": 770,
+            "height": 280
+          },
+          "foregroundBounds": {
+            "left": 36,
+            "top": 64,
+            "width": 710,
+            "height": 132
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 184,
+          "objectLeft": 132,
+          "objectTop": 535
+        },
+        {
+          "file": "03-front-three-quarter.png",
+          "crop": {
+            "left": 790,
+            "top": 80,
+            "width": 725,
+            "height": 560
+          },
+          "foregroundBounds": {
+            "left": 30,
+            "top": 45,
+            "width": 694,
+            "height": 436
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 622,
+          "objectLeft": 132,
+          "objectTop": 316
+        },
+        {
+          "file": "04-rear-three-quarter.png",
+          "crop": {
+            "left": 805,
+            "top": 620,
+            "width": 700,
+            "height": 360
+          },
+          "foregroundBounds": {
+            "left": 39,
+            "top": 75,
+            "width": 605,
+            "height": 203
+          },
+          "outputWidth": 1254,
+          "outputHeight": 1254,
+          "objectWidth": 990,
+          "objectHeight": 332,
+          "objectLeft": 132,
+          "objectTop": 461
+        }
+      ]
+    }
+  ]
+}

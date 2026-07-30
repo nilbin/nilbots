@@ -1,6 +1,6 @@
 # Aegis Tortoise mobile — review crop pack
 
-Status: **raw review complete; provider submission blocked**.
+Status: **clean V1 provider input ready**.
 
 The approved V2 sheet supplies the selected four views. V1 is retained only
 for the accepted short-leg/depth inference. The V2 strict top already passes
@@ -34,16 +34,19 @@ Source hashes:
 - Semantic team-region SVG:
   `0e4e5c3c9ea91feec349f7516d6f1de09ac674aac7f2243d6af8845b92fc45f9`
 
-## Blockers
+## Clean provider pack
 
-- Replace these native crops with consistent 1254×1254 flat `#b8b8b8`
-  inputs, at least 1040 px source detail, and no floor/cast/contact shadow.
-- Keep the two long forward shield slits and cyan core as authored class
-  energy, not team color.
-- Restore the runtime SVG's west-centre semantic team inlay and prove it with
-  a deterministic mask; do not broaden team ownership to unrelated cyan.
-- Re-run the close top overlay after the final flattened top is authored.
+`clean-v1` contains four 1254×1254 shadowless views on exact flat `#b8b8b8`.
+The clean top passed the rich 2D authority at 99.16% rigid silhouette IoU
+(99.16% outer), with only +0.38% foreground area difference. No geometric
+correction is needed before provider submission.
 
-The rejected experimental shadow mask is not retained: silhouette-audit
+The provider result remains a static reconstruction master. The Blender pass
+must segment/retopologize and author renderer-owned team material surfaces,
+including the west-centre inlay. The two forward shield slits and reactor
+remain class energy rather than team tint.
+
+The raw selected V2 crop pack remains immutable provenance. The rejected
+experimental shadow mask is not retained: silhouette-audit
 achromatic flooding removed real neutral gun/leg hardware when reused as
 alpha, so it was unsafe as a provider input.
