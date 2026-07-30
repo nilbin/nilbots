@@ -353,13 +353,20 @@ Do not introduce slot-owned selection except the existing legacy fallback.
    hitbox, path, speed, range, or damage.
 3. Add `web/src/assets/projectile-looks/<id>/look.json` plus `sprite.svg`.
    Discovery is manifest-driven; do not add a TypeScript registry. Keep scale
-   within the tested 0.3–0.7 gameplay-tile range.
+   within the tested 0.3–0.7 gameplay-tile range. Add the optional look-level
+   `flightCue` only when approved: `stable`, `axial-spin`, `flat-spin`, or
+   `tumble`. Keep it out of `model3d.json`.
 4. The renderer tints the mask with the bot accent and owns the common trail,
-   glow, local contrast adaptation, fog truthfulness, and interpolation across
-   authoritative replay traversals. Do not bake those effects into one look.
+   glow, local contrast adaptation, fog truthfulness, terminal effects, and
+   interpolation across authoritative replay traversals. Flight cues transform
+   only the head below its heading rig, using `+X` forward and `+Y` up, so the
+   Canvas SVG, WebGL extrusion, and future GLB share one motion language. Do
+   not bake those effects into one look.
 5. Test all cardinal and diagonal headings, launch, speed-one and speed-two
-   traversal, bends, impact, light and dark themes, fog, DPR 1/2, and the
-   appearance-editor preview.
+   traversal, bends, every authored flight cue, hit, miss/range expiry,
+   deflection, light and dark themes, fog, DPR 1/2, and the appearance-editor
+   preview. Derive hit versus miss only from exact projectile/event causality;
+   preserve the generic legacy finish when old replay generations omit it.
 6. After the 2D projectile is approved, it may receive a genuine
    `model.glb`/`model3d.json` WebGL companion under the same coordinate and
    source rules as a bot. Model a readable head volume and rule-honest
