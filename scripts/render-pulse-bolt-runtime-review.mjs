@@ -30,6 +30,8 @@ if (!process.env.REPLAY_PATH)
   );
 const replayPath = resolve(process.env.REPLAY_PATH);
 const reviewThemeId = process.env.REVIEW_THEME_ID ?? 'ember-forge';
+const allowMapPresentationOverlay =
+  process.env.ALLOW_MAP_PRESENTATION_OVERLAY === '1';
 const dist = resolve(
   process.env.DIST_DIRECTORY ??
     join(repository, 'web', 'dist-review'),
@@ -83,7 +85,8 @@ const [sourceReplayBytes, modelBytes] = await Promise.all([
   readFile(modelPath),
 ]);
 const sourceReplay = JSON.parse(sourceReplayBytes);
-const replay = reviewReplay(sourceReplay);
+const review = reviewReplay(sourceReplay);
+const replay = review.document;
 const replayBytes = Buffer.from(`${JSON.stringify(replay)}\n`);
 assertReplay(sourceReplay, replay);
 await stat(join(dist, 'index.html'));
@@ -185,6 +188,7 @@ try {
       reviewSha256: sha256(replayBytes),
       reviewIsUnhashedPartial: replay.partial && replay.replayHash === null,
       reviewPresentation: replay.header.presentation,
+      mapPresentationSource: review.mapPresentationSource,
       tickCount: replay.ticks.length,
       participants: replay.header.provenance.participants.map((participant) => ({
         participantId: participant.participantId,
@@ -237,7 +241,9 @@ try {
         ]),
     ),
     limitations: [
-      'Gameplay frames come unchanged from the named real engine replay, while this review serves an explicitly unhashed partial copy with a presentation-only Ember Forge and Pulse Bolt overlay. It is not represented as the original canonical replay.',
+      review.mapPresentationSource === 'native-replay'
+        ? 'Gameplay frames and Ember Forge map presentation come from the named real engine replay. This review changes only per-form projectile presentation, so it is served as an explicitly unhashed partial copy and is not represented as the original canonical replay.'
+        : 'PROVISIONAL ONLY: gameplay frames come from the named real engine replay, but its map presentation was null. This review serves an explicitly unhashed partial copy with both Ember Forge map and Pulse Bolt form overlays; it cannot approve the map/theme handoff.',
       'This compares the canonical Pulse Bolt GLB with its forced SVG-derived WebGL fallback; class-specific mechanical projectile models remain art-side until their corrections pass.',
       'Renderer-owned trail, glow, hover, turn easing, impact, and team paint are unchanged between the two captures.',
       'The review uses headless SwiftShader for reproducible evidence; a hardware-GPU visual pass remains part of integration QA.',
@@ -458,7 +464,11 @@ async function comparisonBoard(candidatePath, fallbackPath, output) {
   context.font = '13px monospace';
   context.fillStyle = '#a9947d';
   const subtitle =
-    `real Frontline frames · ${reviewThemeId} presentation · t=${reviewTime} · 58° camera · 8-tile minimum`;
+    `real Frontline frames · ${
+      review.mapPresentationSource === 'native-replay'
+        ? `native ${reviewThemeId} map`
+        : `PROVISIONAL ${reviewThemeId} overlay`
+    } · t=${reviewTime} · 58° camera · 8-tile minimum`;
   context.fillText(subtitle, 22, 58);
   context.fillText(
     subtitle,
@@ -652,6 +662,32 @@ async function serve({ rejectModel }) {
 
 function reviewReplay(document) {
   const copy = structuredClone(document);
+  const sourcePresentation = copy.header?.presentation;
+  let map;
+  let mapPresentationSource;
+  if (sourcePresentation === null) {
+    if (!allowMapPresentationOverlay)
+      throw new Error(
+        'Source replay has null presentation. Regenerate it through the Frontline presentation writer, or set ALLOW_MAP_PRESENTATION_OVERLAY=1 for provisional non-approval evidence.',
+      );
+    map = {
+      boundaryWall: 'perimeter',
+      interiorWall: 'cover',
+      wallGroups: [],
+    };
+    mapPresentationSource = 'provisional-review-overlay';
+  } else {
+    if (
+      sourcePresentation?.themeId !== reviewThemeId ||
+      sourcePresentation?.map?.boundaryWall !== 'perimeter' ||
+      sourcePresentation?.map?.interiorWall !== 'cover'
+    )
+      throw new Error(
+        `Source replay must natively carry ${reviewThemeId} with perimeter/cover wall families.`,
+      );
+    map = structuredClone(sourcePresentation.map);
+    mapPresentationSource = 'native-replay';
+  }
   const forms = copy.header.contract.rules.forms.map((form) => ({
     formId: form.id,
     lookId: null,
@@ -659,17 +695,13 @@ function reviewReplay(document) {
   }));
   copy.header.presentation = {
     themeId: reviewThemeId,
-    map: {
-      boundaryWall: 'perimeter',
-      interiorWall: 'cover',
-      wallGroups: [],
-    },
+    map,
     forms,
   };
   copy.result = null;
   copy.replayHash = null;
   copy.partial = true;
-  return copy;
+  return { document: copy, mapPresentationSource };
 }
 
 function assertReplay(source, document) {
