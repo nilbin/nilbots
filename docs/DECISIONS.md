@@ -3711,6 +3711,29 @@ Also commissioned outside the lab: a viewer pass on the follow-camera
 auto-fit (action drifting off-center) and a mobile wake-lock so the
 screen stays on during replays.
 
+## 174. Fast-iteration mode; crew is the working game; aim numbers provisional
+
+Owner process ruling: until the game is balanced and fun, small changes
+are NOT verified standalone — batch, check at mains level, record as
+provisional, keep moving (balance-harness skill §6 carries the rule;
+the full discipline returns on a stable base). Consequences applied
+immediately: the aim-restoration factorial's sealed holdout is
+deliberately left unconsumed (its commitment stays valid if ever
+wanted), and no per-knob owner review happens.
+
+**`crew` is the working game** — keel + skill kit + universal bend +
+four-slot/22-tick-rebuild fabricator + the restored 45° aim (`sail` on
+pairs without a fabricator) — per the #173 entertainment ruling. The
+aim mains (210/210 verified, fresh seeds, wave-4 population) are
+recorded as PROVISIONAL: diagonals swing bulwark-vs-fabricator from
+−0.667 to 0.000, but the striker loses ground everywhere
+(bulwark-vs-striker +0.93, fabricator-vs-striker +0.78 toward the
+fabricator) and two mirrors cap more. Read with the registered
+disclosure: wave-4 striker doctrine predates diagonals entirely, while
+scaffold-driven chassis exploit them mechanically — the population is
+the distortion. Wave 5 authors doctrine the full crew game; balance is
+re-read coarsely on their play, and tuning resumes from there.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

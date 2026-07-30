@@ -308,6 +308,15 @@ outrank measured product gates (record the override per §5, don't
 re-litigate); anything ambiguous in an owner message gets one clarifying
 question BEFORE hours of work, not after.
 
+**Phase ruling (owner, 2026-07-30): fast-iteration mode.** Until the
+game is balanced and fun and we are building ON TOP of that base, do
+not verify every small change standalone: batch related changes, run
+mains-level checks without per-change holdout ceremonies or per-knob
+owner reviews, and record results as provisional in DECISIONS. Safety,
+determinism, faults, and replay integrity remain hard gates. The full
+pre-registration discipline (sealed holdouts, per-arm verdicts,
+standalone galleries) returns when the owner declares the base stable.
+
 ## 7. Pinning a version
 
 Winner: add `GameRules.V0_X`, point `GameRules.Current` + 
