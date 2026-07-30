@@ -56,6 +56,10 @@ export {
   buildActors,
   installMobileModel,
 } from '../../src/render3d/arenaActors';
+export {
+  buildArena,
+  WALL_OPEN_EDGE_INSET,
+} from '../../src/render3d/arenaScene';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';
 export {
   isGenuineLookModel,

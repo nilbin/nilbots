@@ -53,11 +53,12 @@ parameters:
 
 ```text
 tile_size = 1.0
-open_edge_inset = 0.03
+open_edge_visual_inset = 0.14462
+open_edge_source_inset_for_outward_0_055_bevel = 0.19962
 perimeter_height = 0.72
 cover_height = 0.46
-perimeter_radius = 0.22
-cover_radius = 0.28
+perimeter_radius = 0.23
+cover_radius = 0.31
 bevel_width = 0.055
 cap_height_max = 0.06
 variant_seed = 1
@@ -68,8 +69,10 @@ Construction sequence:
 1. Start from exact canonical 2D footprint curves for obstacle, end, straight,
    corner, T, and cross.
 2. Extrude the collision-faithful substrate.
-3. Add swept/tapered shoulder profiles and bevels without crossing an open
-   edge's inset.
+3. Add swept/tapered shoulder profiles and bevels without crossing the final
+   `0.14462` open-edge relief. If the bevel grows outward by `0.055`, build the
+   source outline at the `0.19962` inset; validate final vertices, not the
+   nominal curve.
 4. Boolean only broad recessed vents and service channels; hairline detail
    belongs in normal/roughness maps.
 5. Place clamps, ribs, caps, and ceramic panels from socket empties named by
@@ -109,6 +112,12 @@ Provider output enters Blender as a surface/shape candidate:
 6. bake maps and export the same kit contract as the procedural route.
 
 The Meshy mesh is never allowed to define collision or topology.
+
+The live-bot clearance input is also measured, not inferred from a bounding
+box width: transform every GLB vertex through its node hierarchy and runtime
+look scale, then take the maximum XZ radius. Striker's current source radius is
+`0.5881543316`; at live scale `1.062` it becomes `0.6246199002`, so a `0.02`
+margin in a one-tile corridor requires the `0.14462` final relief above.
 
 ## Art hierarchy
 

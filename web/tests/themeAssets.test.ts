@@ -22,6 +22,10 @@ type ThemeManifest = {
         material: string;
         edgeAtlas: string;
         shadowAtlas: string;
+        geometry3d?: {
+          height: number;
+          cornerRadius: number;
+        };
       }
     >;
   };
@@ -42,6 +46,18 @@ function assertCompletePackage(root: string, expectedId: string) {
       family.shadowAtlas,
     ])
       assert.doesNotThrow(() => readFileSync(join(root, asset)));
+    if (family.geometry3d) {
+      assert.ok(
+        family.geometry3d.height >= 0.25 &&
+          family.geometry3d.height <= 0.9,
+        `wall height ${family.geometry3d.height} is outside the runtime contract`,
+      );
+      assert.ok(
+        family.geometry3d.cornerRadius >= 0 &&
+          family.geometry3d.cornerRadius <= 0.4,
+        `wall radius ${family.geometry3d.cornerRadius} is outside the runtime contract`,
+      );
+    }
   }
 }
 
@@ -62,6 +78,20 @@ test('only active map themes enter the web bundle', () => {
 test('future map themes remain complete staged packages', () => {
   for (const id of ['desert-array', 'drowned-vault', 'void-sanctum'])
     assertCompletePackage(join(stagedRoot, id, 'runtime'), id);
+});
+
+test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
+  const manifest = JSON.parse(
+    readFileSync(join(activeRoot, 'ember-forge', 'theme.json'), 'utf8'),
+  ) as ThemeManifest;
+  assert.deepEqual(manifest.walls.families.perimeter.geometry3d, {
+    height: 0.72,
+    cornerRadius: 0.23,
+  });
+  assert.deepEqual(manifest.walls.families.cover.geometry3d, {
+    height: 0.46,
+    cornerRadius: 0.31,
+  });
 });
 
 test('theme registration does not eagerly decode high-resolution atlases', () => {

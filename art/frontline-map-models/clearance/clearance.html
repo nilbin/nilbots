@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Frontline 1.12-span clearance proof</title>
+    <title>Frontline live-size clearance proof</title>
     <style>
       :root {
         color-scheme: dark;
@@ -61,26 +61,27 @@
     </style>
   </head>
   <body>
-    <div class="heading">Frontline visual-clearance audit · approved 1.12-span Striker</div>
-    <div class="sub">authoritative map · actual Ember Forge materials · exact 58° pitch · focus span 8 tiles · tile centres unchanged</div>
+    <div class="heading">Frontline visual-clearance audit · live 1.18944-span Striker</div>
+    <div class="sub">approved GLB 1.12 × runtime actor size 1.062 · authoritative map · exact 58° pitch · tile centres unchanged</div>
     <div class="panel current">Current wall body + cap</div>
     <div class="panel proposed">Renderer-only open-edge setback</div>
     <div class="note left">
       <span class="metric">Authoritative centreline → wall boundary:</span> 0.500 tile<br />
       <span class="bad">Current body reaches 0.055 into open floor:</span> clearance 0.445,
-      signed margin −0.115 for a radius-0.56 chassis.<br />
+      signed margin −0.180 for a rotation-safe radius-0.62462 chassis.<br />
       <span class="bad">Current topology cap reaches 0.112 into open floor:</span>
-      projected overlap can be worse at the 58° camera.<br />
-      The diagnostic rings are the 1.12-tile visual envelope, not collision.
+      signed margin −0.236 before camera projection.<br />
+      The diagnostic rings are the measured rotation-safe static envelope, not collision.
     </div>
     <div class="note right">
-      <span class="metric">Proposed widest lower body face:</span> 0.080 tile
+      <span class="metric">Proposed widest lower body face:</span> 0.14462 tile
       inside every open wall edge.<br />
-      <span class="good">Resulting centreline clearance:</span> 0.580 tile,
+      <span class="good">Resulting centreline clearance:</span> 0.64462 tile,
       signed visual margin +0.020.<br />
       Connected cap edges retain their gutter overlap; only edges facing open
-      floor are cropped to the same 0.080 inset. Map JSON, collision, paths,
-      tile centres, pads, and objectives are untouched.
+      floor end on the supported planar top at a 0.19962 source inset
+      (0.14462 visual relief + 0.055 outward bevel). Map JSON, collision,
+      paths, tile centres, pads, and objectives are untouched.
     </div>
     <canvas id="stage" width="1920" height="1080"></canvas>
     <script type="importmap">
@@ -95,6 +96,10 @@
       import { GLTFLoader } from '/GLTFLoader.js';
 
       const map = await fetch('/map.json').then((response) => response.json());
+      const runtimeActorSize = 1.062;
+      const liveBotRadius = 0.62462;
+      const openEdgeInset = 0.14462;
+      const proposedCapInset = openEdgeInset + 0.055;
       const loader = new THREE.TextureLoader();
       const [floorTexture, perimeterTexture, coverTexture, strikerGltf] =
         await Promise.all([
@@ -163,6 +168,7 @@
 
         for (const z of [2.5, 3.5]) {
           const bot = strikerGltf.scene.clone(true);
+          bot.scale.setScalar(runtimeActorSize);
           bot.position.set(11.5, 0, z);
           bot.traverse((node) => {
             if (!node.isMesh) return;
@@ -171,7 +177,11 @@
           });
           scene.add(bot);
 
-          const ringGeometry = new THREE.RingGeometry(.553, .56, 64);
+          const ringGeometry = new THREE.RingGeometry(
+            liveBotRadius - .007,
+            liveBotRadius,
+            64,
+          );
           ringGeometry.rotateX(-Math.PI / 2);
           const ring = new THREE.Mesh(
             ringGeometry,
@@ -207,10 +217,12 @@
               south: isWall(tile.x, tile.y + 1),
               west: isWall(tile.x - 1, tile.y),
             };
-            const left = tile.x + (connected.west ? 0 : .08);
-            const right = tile.x + 1 - (connected.east ? 0 : .08);
-            const north = tile.y + (connected.north ? 0 : .08);
-            const south = tile.y + 1 - (connected.south ? 0 : .08);
+            const left = tile.x + (connected.west ? 0 : openEdgeInset);
+            const right =
+              tile.x + 1 - (connected.east ? 0 : openEdgeInset);
+            const north = tile.y + (connected.north ? 0 : openEdgeInset);
+            const south =
+              tile.y + 1 - (connected.south ? 0 : openEdgeInset);
             const geometry = new THREE.BoxGeometry(
               right - left,
               .565,
@@ -247,7 +259,7 @@
         const capMaterial = material.clone();
         capMaterial.roughness = .72;
         const currentHalf = .5 + 32 / 192 - .055;
-        const exposedHalf = .42;
+        const exposedHalf = .5 - proposedCapInset;
         for (const tile of tiles) {
           const connected = {
             north: isWall(tile.x, tile.y - 1),

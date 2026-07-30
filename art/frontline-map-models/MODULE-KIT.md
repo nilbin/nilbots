@@ -47,12 +47,22 @@ Local coordinates use one gameplay tile:
 - tile centre: `(0, 0, 0)`;
 - floor: `Y = 0`;
 - cell boundaries: `X/Z = ±0.5`;
-- open-facing silhouette and bevel: no farther than `±0.47`, retaining a
-  visible safety margin to the collision boundary;
-- same-family connector: may meet exactly at `±0.5` only on the connected
-  edge;
+- open-facing final silhouette and bevel: no farther than `±0.35538`. That is
+  the `0.14462` rotation-safe live-Striker relief from the cell boundary;
+- the current outward `0.055` runtime bevel therefore starts from a source
+  outline no farther than `±0.30038` (`0.14462 + 0.055` inset);
+- same-family connector: the source outline and planar top may meet exactly at
+  `±0.5` only on the connected edge;
+- different-family connectors also retain the exact source/top grid boundary;
+  the current outward bevel may visually overlap that plane by `0.055`;
 - no geometry, shadow-casting appendage, or decal with apparent height may
   extend into an open neighbour.
+
+The promoted topology cap is still a rectangular per-tile plane over rounded
+family corners. Its straight open edges end on the supported planar top and
+preserve the atlas rim, but a small diagonal corner overhang remains. Treat a
+shaped or nine-slice cap as a follow-up rather than claiming that corner case
+is solved.
 
 Initial gameplay-scale envelope:
 
@@ -111,3 +121,6 @@ no map-specific model is regenerated.
 5. Verify perimeter and cover remain immediately distinguishable at gameplay
    scale.
 6. Verify bots win silhouette, color, contrast, and emission against the map.
+7. Derive clearance from transformed model vertices and the live renderer
+   scale. Do not use sprite width or model width divided by two when diagonal
+   headings can expose a farther off-axis vertex.

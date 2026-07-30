@@ -60,7 +60,11 @@ concept pass.
 2. Approve the canonical East-facing 2D look first. Derive a top, side, front,
    and gameplay-oblique model sheet from it. The top view must include a
    same-scale silhouette overlay; invented side and underside structure may
-   explain depth but must not redesign the approved planform.
+   explain depth but must not redesign the approved planform. When an
+   image-to-3D service expects camera-consistent views, use separately approved
+   inferred-3D top and rear renders rather than pretending the flat 2D sprite
+   is a photograph from those cameras. Keep the 2D sprite as the identity and
+   overlay target; never admit an unapproved inferred view as a new concept.
 3. Build an untextured blockout and stop. Compare it with the 2D silhouette at
    the renderer's top/game camera, including footprint, center of mass, major
    proportions, negative spaces, and weapon/form hardware. Return a failed
@@ -68,7 +72,12 @@ concept pass.
 4. Add real depth only after the blockout passes. Model armor thickness,
    recesses, joints, contact or hover hardware, vents, and undersides in ways
    consistent with the brief. Do not add mobility or combat affordances that
-   the rules do not provide.
+   the rules do not provide. If inferred depth introduces load-bearing feet,
+   legs, or another locomotion cue, concept approval must also pin its rig and
+   movement animation; never ship a walking silhouette that merely slides.
+   The Aegis Tortoise target uses heavy short four-leg steps with a level
+   carapace: all four anchors plant/compress and the body lowers into its
+   Shell/Turret stance. Do not infer an equivalent gait for another class.
 5. Map the approved 2D material regions onto the model before adding wear or
    micro-detail. Preserve the dominant light/dark/value grouping, authored
    accent placement, and class-readable color ratios. Keep the semantic team
@@ -76,7 +85,9 @@ concept pass.
 6. Review a fixed contact sheet containing the canonical 2D image, top-view
    overlay, untextured blockout, textured gameplay camera, and at least one
    non-team-color turntable angle. Also review the model in a real replay at
-   normal zoom, with both team colors and a tight ground shadow.
+   normal zoom, with both team colors and a tight ground shadow. Use one pinned
+   replay/time/viewport/camera for every before/after; label a comparison
+   approximate when any of those differ.
 7. Require every named anchor and forbidden cue to pass independently. Record
    deliberate deviations in the fidelity brief with the approval reason; do
    not average a missing identity anchor into a general quality score.
@@ -119,7 +130,10 @@ review, and optimization remain separate required stages.
    in a review worktree. Exercise movement, every heading, hover/contact,
    shadow, damage, multiple instances, fog, and fallback in a real replay.
    Authored directional GLBs suppress the generic fallback-only facing wedge;
-   SVG-derived models keep it.
+   SVG-derived models keep it. Do this end-to-end renderer spike before paying
+   for resemblance-only provider iterations; use the evidence to decide
+   whether the next work belongs in another generation or deterministic/DCC
+   correction.
 6. Before real-replay review, render a deterministic strict top, strict side,
    strict front, strict rear, both three-quarter views, and the gameplay
    oblique. Compare them beside the approved inputs. Repeat the canonical
@@ -400,6 +414,33 @@ unreviewed second map.
    pressure, camera motion, every wall topology, and the Canvas fallback. A
    more organic wall outline is successful only if grid occupancy and cover
    remain faster to read, not merely less square.
+12. Start the runtime foundation from `WallLayout`, not a provider mesh: trace a
+   continuous solid per wall family, let the theme manifest own reviewed
+   height/radius profiles, and crop topology caps only on edges facing open
+   floor. Keep connector source outlines and planar tops at the authoritative
+   grid boundary, including between different families; an intentionally
+   outward bevel may still overlap that plane by its measured reach. Add
+   instanced ribs/panels only after this substrate passes.
+13. Derive open-floor relief from the largest live model's actual transformed
+   GLB vertices. Compose the node hierarchy and runtime look scale, measure the
+   maximum XZ radius for arbitrary yaw/diagonal facing, then use
+   `max(0, radius + safety - 0.5)`. If an extrusion bevel grows outward, add
+   its reach to the source-outline inset and assert the final generated bounds.
+   Keep recoil, sway, and other translations actor-owned; do not hollow every
+   wall to absorb animation extremes.
+14. Keep topology caps on the extrusion's supported planar top. On an open
+   side their half-extent is `0.5 - visualInset - outwardBevel`, while a
+   same-family side may retain the atlas gutter overlap. Preserve the authored
+   rim by mapping open and different-family edges to the atlas cell's content
+   edge `gutter / (content + 2*gutter)`, not by proportionally cropping farther
+   into the cell; same-family joins retain UV 0/1. Assert built cap bounds
+   against top-face bounds and assert the UV endpoints. A square cap corner
+   over a rounded outline remains a later shaped/nine-slice-cap problem, not
+   permission to leave an unsupported square lip.
+15. Set a provider call/credit cap and ledger before experiments. Stop paid
+   generation when the deterministic topology proof is the stronger route,
+   retain the provider result as an art-side donor/benchmark, and never spend
+   the remainder merely because it was budgeted.
 
 ## Validation
 

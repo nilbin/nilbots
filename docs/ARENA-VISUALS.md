@@ -428,8 +428,9 @@ To create another look:
 The sprite is still the canonical look. It serves site cards, Canvas2D,
 mobile, the self-contained CLI viewer, loading, and WebGL failure. A genuine
 3D companion is an additional representation for the hosted WebGL renderer.
-No class GLB is currently approved; all class looks therefore remain on the
-sprite-derived WebGL fallback:
+The approved Striker mobile look, Trident Wasp, now lazy-loads a genuine GLB.
+Every other class look and non-mobile form still uses the sprite-derived
+WebGL fallback:
 
 - Author the SVG first and approve its class identity, silhouette, team-accent
   surfaces, and rule-bearing hardware. Then translate that design into actual
@@ -631,10 +632,11 @@ gameplay scale.
 ## 3D arena environment companions
 
 Environment geometry follows the same two-stage rule: approve the 2D
-theme/map package first, then add an optional WebGL representation. No 3D map
-package ships yet. Frontline is the first pilot because its camera, cover,
-objective strip, class silhouettes, and projectile grammar exercise the
-contract before it is generalized to other arenas.
+theme/map package first, then add an optional WebGL representation. Frontline
+ships the first topology-derived procedural wall substrate; no authored
+modular environment GLB package ships yet. It is the first pilot because its
+camera, cover, objective strip, class silhouettes, and projectile grammar
+exercise the contract before it is generalized to other arenas.
 
 - Build an instanced modular kit for floor, perimeter, interior cover,
   corners, junctions, and explicitly tagged props. Reuse the approved theme's
@@ -644,6 +646,12 @@ contract before it is generalized to other arenas.
   silhouettes, but the occupied tile and cover edge must remain immediately
   legible. Decorative overhangs cannot imply an opening, changed collision,
   sight line, spawn pad, or traversal route.
+- Resolve open-floor relief from the largest approved live model's transformed
+  vertices, not its nominal width. Compose GLB node transforms and runtime look
+  scale, take the maximum XZ radius for arbitrary yaw/diagonal facing, add the
+  review safety margin, and subtract the half-tile centreline clearance. If an
+  extrusion bevel expands outward, add that reach to the source-outline inset
+  and assert the final generated-vertex bounds.
 - Solid geometry belongs on blocked tiles. Walkable cells retain only
   rule-honest flat or clearly non-blocking detail. Objective treatment cannot
   obscure capture ownership or pressure.

@@ -8,8 +8,14 @@ const mapPath = resolve(repository, 'maps/experimental/frontline-01.json');
 const map = JSON.parse(await readFile(mapPath, 'utf8'));
 const rows = map.tiles;
 
-const BOT_VISUAL_SPAN = 1.12;
-const BOT_RADIUS = BOT_VISUAL_SPAN / 2;
+const ASSET_PLANFORM_SPAN = 1.12;
+const ASSET_MAX_PLANFORM_RADIUS = 0.5881543316;
+const LOOK_SCALE = 1.18;
+const RUNTIME_SCALE_FACTOR = 0.9;
+const RUNTIME_MIN_SIZE = 0.82;
+const RUNTIME_SIZE = Math.max(RUNTIME_MIN_SIZE, LOOK_SCALE * RUNTIME_SCALE_FACTOR);
+const BOT_VISUAL_SPAN = ASSET_PLANFORM_SPAN * RUNTIME_SIZE;
+const BOT_RADIUS = ASSET_MAX_PLANFORM_RADIUS * RUNTIME_SIZE;
 const SAFETY = 0.02;
 const CURRENT_BODY_OUTSET = 0.055;
 const atlas = { contentPixels: 192, gutterPixels: 32 };
@@ -222,8 +228,14 @@ const audit = {
     oneTileCorridorExamples: oneTileCorridors.slice(0, 12),
   },
   visual: {
-    botSpan: BOT_VISUAL_SPAN,
-    botRadius: BOT_RADIUS,
+    assetPlanformSpan: ASSET_PLANFORM_SPAN,
+    assetMaxPlanformRadius: ASSET_MAX_PLANFORM_RADIUS,
+    lookScale: LOOK_SCALE,
+    runtimeScaleFactor: RUNTIME_SCALE_FACTOR,
+    runtimeMinSize: RUNTIME_MIN_SIZE,
+    runtimeSize: round(RUNTIME_SIZE),
+    botSpan: round(BOT_VISUAL_SPAN),
+    botRadius: round(BOT_RADIUS),
     requestedSafety: SAFETY,
     currentBodyOutset: CURRENT_BODY_OUTSET,
     currentCapOutset: round(CURRENT_CAP_OUTSET),

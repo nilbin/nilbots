@@ -41,17 +41,17 @@ opening spawn fit = 18 centre separation + 2 × 2.6 margin = 23.20 tiles
 
 ## Legibility comparison
 
-Approximate on-screen width of a 1.12-tile Striker is:
+Approximate on-screen width of the live 1.18944-tile Striker is:
 
 ```text
-viewport width × 1.12 / camera world span
+viewport width × 1.18944 / camera world span
 ```
 
 | Arena viewport width | Whole Fit 24.64 | Current opening fit 23.20 | Follow cap 18 | Follow cap 16 |
 | ---: | ---: | ---: | ---: | ---: |
-| 800 px | 36.4 px | 38.6 px | 49.8 px | 56.0 px |
-| 927 px | 42.1 px | 44.8 px | 57.7 px | 64.9 px |
-| 1200 px | 54.5 px | 57.9 px | 74.7 px | 84.0 px |
+| 800 px | 38.6 px | 41.0 px | 52.9 px | 59.5 px |
+| 927 px | 44.7 px | 47.5 px | 61.3 px | 68.9 px |
+| 1200 px | 57.9 px | 61.5 px | 79.3 px | 89.2 px |
 
 An 18-tile cap gives roughly 29 percent more model width than the current
 opening fit and 37 percent more than whole Fit at the same viewport. Sixteen

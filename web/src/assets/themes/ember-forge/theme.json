@@ -19,13 +19,21 @@
         "label": "Forge perimeter",
         "material": "wall-perimeter-albedo.webp",
         "edgeAtlas": "wall-perimeter-edges.webp",
-        "shadowAtlas": "wall-perimeter-shadows.webp"
+        "shadowAtlas": "wall-perimeter-shadows.webp",
+        "geometry3d": {
+          "height": 0.72,
+          "cornerRadius": 0.23
+        }
       },
       "cover": {
         "label": "Refractory cover",
         "material": "wall-cover-albedo.webp",
         "edgeAtlas": "wall-cover-edges.webp",
-        "shadowAtlas": "wall-cover-shadows.webp"
+        "shadowAtlas": "wall-cover-shadows.webp",
+        "geometry3d": {
+          "height": 0.46,
+          "cornerRadius": 0.31
+        }
       }
     }
   },

@@ -41,6 +41,10 @@ export interface WallFamily {
   materialTexture: HTMLImageElement | null;
   edgeAtlasTexture: HTMLImageElement | null;
   shadowAtlasTexture: HTMLImageElement | null;
+  geometry3d: {
+    height: number;
+    cornerRadius: number;
+  };
 }
 
 export interface ArenaTheme {
@@ -91,6 +95,10 @@ interface ThemeManifest {
         material: string;
         edgeAtlas: string;
         shadowAtlas: string;
+        geometry3d?: {
+          height: number;
+          cornerRadius: number;
+        };
       }
     >;
   };
@@ -304,6 +312,11 @@ function buildThemes(): Map<string, ArenaTheme> {
       wallFamilies.set(familyId, {
         id: familyId,
         label: family.label,
+        geometry3d: wallGeometry3d(
+          family.geometry3d,
+          manifest.id,
+          familyId,
+        ),
         get materialTexture() {
           return materialTexture();
         },
@@ -356,6 +369,27 @@ function buildThemes(): Map<string, ArenaTheme> {
     });
   }
   return result;
+}
+
+function wallGeometry3d(
+  candidate: { height: number; cornerRadius: number } | undefined,
+  themeId: string,
+  familyId: string,
+): WallFamily['geometry3d'] {
+  const height = candidate?.height ?? 0.62;
+  const cornerRadius = candidate?.cornerRadius ?? 0.1;
+  if (
+    !Number.isFinite(height) ||
+    height < 0.25 ||
+    height > 0.9 ||
+    !Number.isFinite(cornerRadius) ||
+    cornerRadius < 0 ||
+    cornerRadius > 0.4
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid 3D geometry.`,
+    );
+  return { height, cornerRadius };
 }
 
 function buildLooks(

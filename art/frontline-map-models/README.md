@@ -68,20 +68,25 @@ The current recommended direction is V4:
 V4 is the selected visual direction for the pilot, not approval to ship a
 generated arena wholesale.
 
-This branch now contains four independent proofs/audits:
+This branch now contains four independent proofs/audits plus one contained
+runtime foundation:
 
-- a topology-driven procedural wall/floor proof that changes no runtime
-  renderer;
+- a topology-driven procedural wall/floor proof and its promoted
+  outline-derived wall substrate;
 - a presentation-only renderer prototype for authored spawn pads and
   stateful Frontline capture fields, reviewed in Fable's unchanged 58-degree
   camera.
-- an exhaustive 1.12-span Striker clearance audit and renderer-only
+- an exhaustive live-size Striker clearance audit and renderer-only
   open-edge-setback proof;
 - a read-only camera-scale audit that keeps normal action follow distinct from
   explicit whole-arena Fit.
 
-The map, collision, replay schema, and camera remain unchanged. Wall models
-have not been promoted into the runtime.
+The map, collision, replay schema, and camera remain unchanged. The runtime
+now consumes the existing `WallLayout` to build continuous family solids with
+the approved Ember perimeter/cover height and radius profiles. It also
+applies the measured `0.14462` open-floor relief needed by the live Striker.
+No authored whole-map mesh, provider mesh, prop kit, or camera change was
+promoted.
 
 The isolated perimeter-straight Meshy task succeeded for 30 credits. It
 demonstrated genuine depth, coherent PBR maps, and repeatable ends, but drifted
@@ -91,8 +96,18 @@ pilot stopped at **1 call / 30 credits**. The exact request, hashes, metrics,
 review board, verdict, and remaining budget are recorded under
 `provider-runs/` and in `MESHY-PLAN.md`.
 
-The only runtime code in this pilot is the flat, state-derived spawn/capture
-overlay prototype. `CLEARANCE-AUDIT.md` specifies a future renderer-only wall
-relief without changing gameplay authority. `CAMERA-SCALE-AUDIT.md` recommends
-an 18-tile maximum normal-follow span once a semantic action anchor exists,
-while preserving Fable's explicit full-arena Fit.
+Runtime changes are limited to the flat state-derived spawn/capture overlays
+and the topology-derived wall substrate/profile contract.
+`CLEARANCE-AUDIT.md` proves the renderer-only wall relief without changing
+gameplay authority. `CAMERA-SCALE-AUDIT.md` recommends an 18-tile maximum
+normal-follow span once a semantic action anchor exists, while preserving
+Fable's explicit full-arena Fit.
+
+`review/runtime/frontline-runtime-walls-before-after-v1.png` is the exact full
+map-pilot runtime A/B: the same Frontline fixture, Ember presentation, tick
+zero, 1600×1000 viewport, whole-arena frame, and unchanged 58-degree camera.
+The left side is the rebased Fable plus class-model baseline before both map
+pilot commits; the right side includes the state-derived spawn/capture
+overlays and topology-kit walls. Reproduce it with
+`scripts/render-frontline-runtime-wall-comparison.mjs` after supplying those
+two review builds through `BASELINE_DIST` and `CANDIDATE_DIST`.

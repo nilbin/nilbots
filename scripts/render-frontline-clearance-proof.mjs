@@ -19,7 +19,7 @@ const output = resolve(
       'frontline-map-models',
       'review',
       'clearance',
-      'frontline-striker-112-clearance-v1.png',
+      'frontline-striker-live-clearance-v2.png',
     ),
 );
 const worktrees = resolve(repository, '..');
@@ -189,12 +189,16 @@ try {
         map: 'maps/experimental/frontline-01.json',
         strikerReviewSource: striker,
         strikerCommitted: false,
-        botVisualSpan: 1.12,
+        assetPlanformSpan: 1.12,
+        runtimeActorSize: 1.062,
+        botVisualSpan: 1.18944,
+        botRotationSafeRadius: 0.62462,
         cameraPitchDegrees: 58,
         focusSpanTiles: 8,
         currentBodyOutset: 0.055,
-        proposedOpenEdgeInset: 0.08,
-        rendererModified: false,
+        proposedOpenEdgeInset: 0.14462,
+        proposedCapInset: 0.19962,
+        rendererModified: true,
       })}\n`,
     );
   } finally {

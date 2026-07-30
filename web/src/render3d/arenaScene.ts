@@ -33,11 +33,21 @@ import { wallShapes } from './wallSolids';
  */
 export const CAMERA_PITCH = (58 * Math.PI) / 180;
 
-/** Wall height, in tiles. Tall enough to read as a room, low enough to see over. */
-const WALL_HEIGHT = 0.62;
-
 /** The chamfer along a wall's top edge, in tiles. */
 const WALL_CHAMFER = 0.055;
+
+/**
+ * Static visual room around the largest approved live chassis.
+ *
+ * Trident Wasp's approved GLB spans 1.12 tiles and the actor renderer applies
+ * `max(0.82, 1.18 * 0.9) = 1.062`, for a live span of 1.18944. Its farthest
+ * measured planform vertex has a rotation-safe live radius of 0.62462; adding
+ * 0.02 tile safety and subtracting the authoritative half-tile corridor gives
+ * 0.14462. Width / 2 is insufficient for diagonal headings.
+ * Cosmetic idle/recoil motion remains actor-owned and is deliberately not paid for by
+ * hollowing every wall out further.
+ */
+export const WALL_OPEN_EDGE_INSET = 0.14462;
 
 export interface ArenaScene {
   scene: THREE.Scene;
@@ -205,18 +215,57 @@ function walls(
     (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!)
       .push({ x: wall.x, y: wall.y });
 
-    // The overlay quad. Wider than its tile by the manifest's gutter, which is what lets a
-    // wall's edge trim sit over its neighbour — the same reason the 2D renderer draws it
-    // oversized — and then pulled back in by the chamfer, because the surface it is lying on
-    // is no longer the full tile. Without that second term the cap keeps its square corners
-    // out past the rounded ones beneath it, and a wall reads as a block with a lid resting
-    // askew on top of it.
-    const gutter = theme.walls.atlas.gutterPixels / theme.walls.atlas.contentPixels;
-    const span = 1 + gutter * 2 - WALL_CHAMFER * 2;
-    const cap = new THREE.PlaneGeometry(span, span);
+    const family = theme.walls.families.get(wall.family)!;
+
+    // Preserve atlas gutter only across same-family joins. A different wall family meets
+    // on the grid boundary; open floor receives the universal live-bot clearance.
+    const { contentPixels, gutterPixels } = theme.walls.atlas;
+    const gutter = gutterPixels / contentPixels;
+    const cellGutter = gutterPixels / (contentPixels + gutterPixels * 2);
+    const connectedHalf = 0.5 + gutter - WALL_CHAMFER;
+    const openHalf = 0.5 - WALL_OPEN_EDGE_INSET - WALL_CHAMFER;
+    const edge = (
+      dx: number,
+      dy: number,
+      lowUv: boolean,
+    ): { extent: number; uv: number } => {
+      const neighbour = layout.familyAt(wall.x + dx, wall.y + dy);
+      if (neighbour === wall.family)
+        return { extent: connectedHalf, uv: lowUv ? 0 : 1 };
+      return {
+        extent: neighbour === null ? openHalf : 0.5,
+        // The atlas cell's outer gutter lies beyond the authored wall rim. Move that rim
+        // to a newly inset edge instead of cropping progressively deeper into the art.
+        uv: lowUv ? cellGutter : 1 - cellGutter,
+      };
+    };
+    const west = edge(-1, 0, true);
+    const east = edge(1, 0, false);
+    // Plane V runs from south to north after it is laid onto XZ.
+    const southEdge = edge(0, 1, true);
+    const northEdge = edge(0, -1, false);
+    const left = -west.extent;
+    const right = east.extent;
+    const north = -northEdge.extent;
+    const south = southEdge.extent;
+    const cap = new THREE.PlaneGeometry(right - left, south - north);
     cap.rotateX(-Math.PI / 2);
-    applyAtlasUvs(cap, wall.mask, theme.walls.atlas.columns);
-    cap.translate(wall.x + 0.5, WALL_HEIGHT + 0.004, wall.y + 0.5);
+    applyAtlasUvs(
+      cap,
+      wall.mask,
+      theme.walls.atlas.columns,
+      {
+        uMin: west.uv,
+        uMax: east.uv,
+        vMin: southEdge.uv,
+        vMax: northEdge.uv,
+      },
+    );
+    cap.translate(
+      wall.x + 0.5 + (left + right) / 2,
+      family.geometry3d.height + 0.004,
+      wall.y + 0.5 + (north + south) / 2,
+    );
     (capsByFamily.get(wall.family) ?? capsByFamily.set(wall.family, []).get(wall.family)!)
       .push(cap);
   }
@@ -224,14 +273,22 @@ function walls(
   const meshes: THREE.Mesh[] = [];
   for (const [familyId, tiles] of byFamily) {
     const family = theme.walls.families.get(familyId);
-    const shapes = wallShapes(tiles);
+    if (!family) continue;
+    const height = family.geometry3d.height;
+    const shapes = wallShapes(tiles, {
+      cornerRadius: family.geometry3d.cornerRadius,
+      // ExtrudeGeometry's bevel reaches outside its source outline. Compensate here so the
+      // widest generated vertex, not merely the nominal outline, honours the contract.
+      openEdgeInset: WALL_OPEN_EDGE_INSET + WALL_CHAMFER,
+      isWall: (x, y) => layout.familyAt(x, y) !== null,
+    });
     if (shapes.length === 0) continue;
 
     // Extruded from the traced outline rather than assembled from cubes, with a chamfer
     // along the top edge. `curveSegments` is what the corner arcs are drawn with; three is
     // enough to round a corner at this scale and cheap enough to spend on every wall.
     const geometry = new THREE.ExtrudeGeometry(shapes, {
-      depth: WALL_HEIGHT - WALL_CHAMFER,
+      depth: height - WALL_CHAMFER,
       bevelEnabled: true,
       bevelThickness: WALL_CHAMFER,
       bevelSize: WALL_CHAMFER,
@@ -260,6 +317,11 @@ function walls(
     });
 
     const mesh = new THREE.Mesh(geometry, body);
+    mesh.userData.kind = 'arena-wall-body';
+    mesh.userData.family = familyId;
+    mesh.userData.height = height;
+    mesh.userData.cornerRadius = family.geometry3d.cornerRadius;
+    mesh.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     meshes.push(mesh);
@@ -279,6 +341,10 @@ function walls(
         metalness: 0.25,
       });
       const capMesh = new THREE.Mesh(capGeometry, capMaterial);
+      capMesh.userData.kind = 'arena-wall-caps';
+      capMesh.userData.family = familyId;
+      capMesh.userData.height = height;
+      capMesh.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
       capMesh.receiveShadow = true;
       meshes.push(capMesh);
       disposables.push(capGeometry, capMaterial);
@@ -336,15 +402,22 @@ function tintMultiplier(tint: string): THREE.Color {
 }
 
 /** Point a quad's UVs at one cell of the 16-column topology atlas. */
-function applyAtlasUvs(geometry: THREE.BufferGeometry, mask: number, columns: number): void {
+function applyAtlasUvs(
+  geometry: THREE.BufferGeometry,
+  mask: number,
+  columns: number,
+  crop = { uMin: 0, uMax: 1, vMin: 0, vMax: 1 },
+): void {
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
   const cell = 1 / columns;
   const column = mask % columns;
   const row = Math.floor(mask / columns);
 
   for (let vertex = 0; vertex < uv.count; vertex++) {
-    const u = uv.getX(vertex);
-    const v = uv.getY(vertex);
+    const u =
+      crop.uMin + uv.getX(vertex) * (crop.uMax - crop.uMin);
+    const v =
+      crop.vMin + uv.getY(vertex) * (crop.vMax - crop.vMin);
     uv.setXY(vertex, (column + u) * cell, 1 - (row + 1 - v) * cell);
   }
   uv.needsUpdate = true;
