@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- This project is for editing and the diagnostic in-process loop.
+       `nilbots build` ignores player project settings and compiles the .cs
+       sources through the controlled WASM toolchain. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/BotArena.Sdk/BotArena.Sdk.csproj" />
+  </ItemGroup>
+</Project>

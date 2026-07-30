@@ -4013,9 +4013,10 @@ replays in #182 stay honest as entry-2 history. On the record
 unchanged: striker loses +1.000 in both pairs with near-zero fan
 usage, so the chassis is losing, not just the fan; class numbers and
 granular asymmetric tiles remain the levers behind this one, and the
-salvo package prices at wave 7.
+salvo package prices at wave 7 [it did — #184].
 
-Coarse swell read (same cohort/seeds as the tide and surf reads):
+Coarse swell read (same cohort/seeds as the tide and surf reads;
+superseded by the wave-7 read in #184):
 **the first striker movement of the campaign, on stale doctrine** —
 bulwark-vs-striker +1.000 → **+0.852** (vector-edge beats iron-root
 in a seed; arc-light beats march-wall in a seed),
@@ -4026,6 +4027,39 @@ with casts — vector-edge, which never entered the stance under surf,
 now casts. Same deterministic bots, same seeds, doctrine unchanged:
 the delta is pure mechanics. Still a stale-doctrine LOWER bound —
 wave 7 prices the package properly.
+
+## 184. Wave 7: the triangle closes — every class pair in band
+
+The striker-only salvo-integration round the owner commissioned
+("another training round on the striker bots only with the new updated
+information"), run while he was AFK under standing autonomy. Three
+authors (vector-edge, still-water, arc-light revision 7), wave-6
+harness, 3/3 T4 first-attempt, frozen at
+arena-bots/frontline-labs/classes-wave-7-strikers-2026-07-30/ with the
+full read and converged findings in that README.
+
+The verdict: **bulwark-vs-striker +1.000 → +0.333,
+fabricator-vs-striker +1.000 → −0.222, bulwark-vs-fabricator +0.333
+unmoved — every class pair inside the cycle-magnitude band for the
+first time in the campaign.** Fan usage in the read went 45 → 368
+entries. The wave's converged insight: the wave-6 strikers had been
+CORRECTLY refusing to cast under the old arithmetic (their refusal
+logic priced the old fan right); re-reading the contract's declared
+damage numbers was the whole fix, and both attempts at plain
+aggression measured worse. The salvo (#182) + sharpened entry (#183)
+are hereby priced: adopted, working, tuned enough for now.
+
+Standing caveats: freshness is asymmetric (fresh strikers vs stale
+wave-6 bulwark/fabricator doctrine) — wave 8 re-prices the triangle
+with every lineage adapted (and with MUSTER + TeamRandom in the game);
+iron-root's leg is the entire remaining bvs payoff and two authors
+localized it to striker POSTURE (out-trades, under-holds), which is
+wave-8 doctrine material, not a fan tune. Distinct-outcome discipline
+disclosed in the README. Engineering asks recorded there too — the
+recurring ones (qualify's viewer spam, print-candidate-contract
+printing identity not contract, movement-blocked naming no blocker)
+plus a new inconsistency: two authors observed DIFFERENT
+`allowedFormIds` shapes for a cooldown-held route.
 
 ## Deferred decisions
 
