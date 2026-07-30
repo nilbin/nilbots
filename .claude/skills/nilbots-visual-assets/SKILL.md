@@ -168,7 +168,16 @@ method.
 2. Check `GET https://api.meshy.ai/openapi/v1/balance` before a paid request
    and record only the numeric balance. Re-check Meshy's official pricing and
    parameter documentation when the experiment is run; provider contracts can
-   change independently of this repository.
+   change independently of this repository. Use
+   `scripts/class-models/meshy_multi_image.py --package <manifest.json>` for
+   the offline gate. It reads no credential and makes no network request by
+   default. A paid run requires the package's explicit
+   `providerSubmission.allowed: true`, no blockers, and
+   `--submit --max-credits 30`; the runner refuses a larger ceiling. It reads
+   Login Keychain only after those gates, records the task immediately, polls,
+   downloads expiring outputs, and sanitizes provenance. Resume an already
+   recorded task with `--resume-run <provider-run-directory>` rather than
+   submitting another task.
 3. Upload one object per task as four separate, owner-approved images. Do not
    upload a contact sheet as one image, and never mix a bot, projectile,
    detached weapon, or scenery in the same multi-image task. Prefer square
