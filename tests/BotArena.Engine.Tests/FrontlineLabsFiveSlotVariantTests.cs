@@ -80,6 +80,8 @@ public sealed class FrontlineLabsFiveSlotVariantTests
                      (FrontlineLabsFiveSlotVariant.Trim, "trim"),
                      (FrontlineLabsFiveSlotVariant.Boom, "boom"),
                      (FrontlineLabsFiveSlotVariant.Drag, "drag"),
+                     (FrontlineLabsFiveSlotVariant.Moor, "moor"),
+                     (FrontlineLabsFiveSlotVariant.Wane, "wane"),
                  })
         {
             string id = Arm(variant).Rules.RulesetId;
@@ -100,6 +102,8 @@ public sealed class FrontlineLabsFiveSlotVariantTests
                     FrontlineLabsFiveSlotVariant.Trim,
                     FrontlineLabsFiveSlotVariant.Boom,
                     FrontlineLabsFiveSlotVariant.Drag,
+                    FrontlineLabsFiveSlotVariant.Moor,
+                    FrontlineLabsFiveSlotVariant.Wane,
                 }
                 .Select(variant =>
                     ActorContractFingerprint.ComputeMatch(Arm(variant))),
@@ -171,6 +175,29 @@ public sealed class FrontlineLabsFiveSlotVariantTests
                 childProfile));
         // Drag leaves the schedule untouched.
         Assert.Equal(FabricatorUnlocks(full), FabricatorUnlocks(drag));
+    }
+
+    [Fact]
+    public void TheCompositesCarryBothMeasuredLevers()
+    {
+        ActorResolvedMatchDefinition moor = Arm(
+            FrontlineLabsFiveSlotVariant.Moor);
+        ActorResolvedMatchDefinition wane = Arm(
+            FrontlineLabsFiveSlotVariant.Wane);
+        string childProfile = FrontlineLabsClassDefinition.Fabricator
+            .ChildLifecycleProfileId;
+
+        Assert.Equal([60, 180, 300], FabricatorUnlocks(moor));
+        Assert.Equal([60, 180, 300], FabricatorUnlocks(wane));
+        Assert.Equal(30, RebuildDelay(moor, childProfile));
+        Assert.Equal(22, RebuildDelay(wane, childProfile));
+        // Four slots means the trim topology profiles, not new ones.
+        Assert.Equal(
+            FrontlineLabsDefinition.TrimAsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(moor.Topology));
+        Assert.Equal(
+            FrontlineLabsDefinition.TrimAsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(wane.Topology));
     }
 
     [Fact]

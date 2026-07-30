@@ -47,4 +47,23 @@ public enum FrontlineLabsFiveSlotVariant
     /// bodies stays farmed — the counter-play the volley was built for.
     /// </summary>
     Drag,
+
+    /// <summary>
+    /// Trim + Drag composed (round 2). Round 1 measured a clean lever
+    /// split: dropping the fifth slot fixed only the bulwark edge
+    /// (−0.833 → −0.333) and the baseline rebuild clock fixed only the
+    /// striker edge (+0.667 → +0.111), so the composite carries both —
+    /// four slots, ordinary children on the 30-tick baseline clock.
+    /// </summary>
+    Moor,
+
+    /// <summary>
+    /// The hedged composite (round 2): Trim plus a half-step rebuild
+    /// clock of 22 (between the class's native 15 and the 30 baseline).
+    /// Registered beside Moor because Drag alone stalled the fabricator
+    /// mirror (five of six matches capped) — if Moor inherits that
+    /// pacing failure, the half-step is the measured fallback rather
+    /// than a fresh round.
+    /// </summary>
+    Wane,
 }

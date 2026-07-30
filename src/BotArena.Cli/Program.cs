@@ -242,7 +242,7 @@ static int CommandHelp(string command)
                    [--pendulum control|ratchet|ratchet-contest|keel|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
                    [--skills none|kit|volley|shell|five-slots]
                    [--bend striker-only|universal]
-                   [--five-slots full|trim|boom|drag]
+                   [--five-slots full|trim|boom|drag|moor|wane]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -337,8 +337,11 @@ static int CommandHelp(string command)
             the fifth slot; boom swings the extra schedule late (360/480 on
             the same cadence); drag prices count in tempo by putting the
             ordinary children on the 30-tick baseline rebuild clock instead
-            of the fabricator's native 15. Each variant moves exactly one
-            lever and mints its own suffixed ruleset identity.
+            of the fabricator's native 15. Each single-lever variant moves
+            exactly one lever; round 2's registered composites carry the two
+            levers round 1 measured working on different edges — moor is
+            trim + drag, wane is trim + a half-step 22-tick rebuild. Every
+            variant mints its own suffixed ruleset identity.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

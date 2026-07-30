@@ -547,6 +547,18 @@ public static class FrontlineLabsDefinition
                 entry with { ExtraChildUnlockTicks = [360, 480] },
             FrontlineLabsFiveSlotVariant.Drag =>
                 entry with { ChildRebuildDelayTicks = 30 },
+            FrontlineLabsFiveSlotVariant.Moor =>
+                entry with
+                {
+                    ExtraChildUnlockTicks = [300],
+                    ChildRebuildDelayTicks = 30,
+                },
+            FrontlineLabsFiveSlotVariant.Wane =>
+                entry with
+                {
+                    ExtraChildUnlockTicks = [300],
+                    ChildRebuildDelayTicks = 22,
+                },
             _ => throw new ArgumentOutOfRangeException(
                 nameof(variant),
                 variant,
@@ -568,6 +580,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsFiveSlotVariant.Trim => "trim",
             FrontlineLabsFiveSlotVariant.Boom => "boom",
             FrontlineLabsFiveSlotVariant.Drag => "drag",
+            FrontlineLabsFiveSlotVariant.Moor => "moor",
+            FrontlineLabsFiveSlotVariant.Wane => "wane",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(variant),
                 variant,

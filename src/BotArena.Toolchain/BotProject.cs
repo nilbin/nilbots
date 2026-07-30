@@ -126,9 +126,13 @@ public static class ToolchainInfo
     /// move one lever each (slot count, extra-slot schedule, ordinary-child
     /// rebuild clock). The default `full` arm and every existing ruleset are
     /// byte-identical; player artifact bytes and cache keys are unchanged.
+    /// 0.9.18 adds the round-2 composites `moor` (trim + drag) and `wane`
+    /// (trim + a half-step 22-tick rebuild) after round 1 measured the two
+    /// single levers fixing different edges. Existing rulesets stay
+    /// byte-identical; artifact bytes and cache keys are unchanged.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.17";
+    public const string CliVersion = "0.9.18";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

@@ -730,9 +730,11 @@ public static class FrontlineLabsExperimentCommand
             "trim" => FrontlineLabsFiveSlotVariant.Trim,
             "boom" => FrontlineLabsFiveSlotVariant.Boom,
             "drag" => FrontlineLabsFiveSlotVariant.Drag,
+            "moor" => FrontlineLabsFiveSlotVariant.Moor,
+            "wane" => FrontlineLabsFiveSlotVariant.Wane,
             _ => throw new InvalidOperationException(
                 $"Unknown --five-slots variant '{value}' (use full, trim, "
-                + "boom, or drag)."),
+                + "boom, drag, moor, or wane)."),
         };
     }
 
