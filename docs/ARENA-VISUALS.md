@@ -502,9 +502,18 @@ unproven vertical slice, not a validated replacement for authored modeling:
   longer path, different speed, range, collision, or damage.
 - Record a stable ID, label, sprite filename, and gameplay-tile scale in
   `web/src/assets/projectile-looks/<id>/look.json`. Scale stays within 0.3–0.7.
+- A look may opt into `flightCue`: `stable`, `axial-spin`, `flat-spin`, or
+  `tumble`. The cue rotates only the rendered head under its heading rig, using
+  the shared `+X` forward / `+Y` up contract. Canvas approximates depth with
+  signed silhouette compression; WebGL applies the same local-axis motion to
+  an SVG-derived body or genuine GLB. Omission preserves legacy treatment.
 - The renderer tints the alpha mask with the bot's locally contrast-adjusted
   accent. It owns the shared trail, glow, muzzle treatment, fog visibility,
-  impact effects, and interpolation over authoritative traversal paths.
+  impact effects, terminal effects, and interpolation over authoritative
+  traversal paths.
+- Exact replay-v2/v3 projectile causality distinguishes a damaging hit, a
+  deflection, and a non-damaging wall/range terminal. Never infer a hit from a
+  shared tile in replay-v1: those documents retain the generic legacy finish.
 - Projectile appearance belongs to the bot beside accent and chassis. The CLI
   reads `appearance.projectile`; the server stores it on the bot and snapshots
   it into match participants and replays. Historical playback never consults
@@ -532,13 +541,17 @@ Trident Spark, Rebound Diamond, and Lattice Rivet are separate internal
 class-form projectile masks. They are resolved after an authored per-form
 `projectileLookId` and before a participant cosmetic only for class forms, so
 historical Duel playback keeps the snapshotted participant projectile.
+Trident Spark uses a restrained axial spin, Rebound Diamond a readable flat
+spin, and Lattice Rivet a slower multi-axis tumble.
 
 To create another projectile look:
 
 1. Design the gameplay-scale silhouette first on the canonical 256 viewBox.
 2. Add opacity layers only where they survive tinting and downscaling. Do not
    auto-trace or embed a raster.
-3. Add its manifest and sprite; no TypeScript registry edit is required.
+3. Add its manifest and sprite; no TypeScript registry edit is required. Add
+   `flightCue` only when the silhouette benefits from an explicit stable,
+   axial, flat-spin, or tumble language.
 4. Test launch, stationary and imminent states, speed-one and speed-two
    movement, bends, impact, light/dark themes, fog, DPR 1/2, and the bot
    appearance editor.
@@ -550,7 +563,8 @@ A projectile can use the same optional WebGL companion contract after its SVG
 mask is approved. Its model is one readable head volume, not a baked trail,
 glow pool, speed, range, or hitbox. Renderer tint remains authoritative; PBR
 detail may shape grooves and reflections but cannot replace the semantic
-projectile-mask material.
+projectile-mask material. Flight cues stay in `look.json`, so replacing the
+SVG-derived body with a GLB cannot silently change its motion language.
 
 ## Animation contract
 
@@ -562,7 +576,8 @@ Animations describe recorded events; they do not create events.
 | Turning | Recorded facings | Shortest-angle rotation |
 | Idle | Active status | Subtle hover and separate soft shadow |
 | Firing | `Shot` event | Brief chassis recoil and layered beam/muzzle glow |
-| Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
+| Projectile travel | Recorded traversal path plus optional look cue | Substep interpolation, glow core, trail, and head-only stable/axial/flat/tumble motion |
+| Projectile terminal | Exact projectile disappearance plus causal event ID | Hit shards, deflection handoff, or miss/expiry dissipation; generic legacy finish when exact causality is absent |
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |
 | Zone activity | Recorded zone tiles/control state | Optional theme-owned floor material, continuous tint, and pulsing exterior perimeter |

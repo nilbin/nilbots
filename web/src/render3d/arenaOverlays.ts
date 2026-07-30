@@ -5,7 +5,12 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
-import { arrivalsAt, spentBoltsAt } from '../render/interpolate';
+import {
+  arrivalsAt,
+  headingAngle,
+  spentBoltsAt,
+} from '../render/interpolate';
+import { volleyLanes } from '../render/volley';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
 import {
@@ -1035,54 +1040,117 @@ function buildFlashes(
 }
 
 /**
- * The puff a bolt leaves when it runs out of range.
+ * The projectile head's own finish.
  *
- * A ring rather than a blob: a bolt dissipating outward reads as something coming apart,
- * where a fading dot reads as the renderer losing track of it. It expands and thins on the
- * same curve, so it is gone by the end of the tick it is drawn in — long enough to see,
- * short enough that a busy exchange is not full of ghosts.
+ * A non-damaging terminal dissipates outwards as the historical ring. An
+ * exact hit breaks sharply back along its authoritative approach, separate
+ * from the target-owned floor shockwave. A deflection is already owned by the
+ * guard plate treatment above. Replay-v1 keeps the old generic ring because
+ * its damage events do not identify an exact projectile and presentation must
+ * not infer causality from a coincident tile.
  */
 function buildSpentBolts(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
-  const geometry = new THREE.RingGeometry(0.12, 0.34, 24);
-  geometry.rotateX(-Math.PI / 2);
-  disposables.push(geometry);
+  const missGeometry = new THREE.RingGeometry(0.12, 0.34, 24);
+  missGeometry.rotateX(-Math.PI / 2);
+  const hitCoreGeometry = new THREE.OctahedronGeometry(0.13);
+  const hitShardGeometry = new THREE.BoxGeometry(0.28, 0.035, 0.035);
+  disposables.push(missGeometry, hitCoreGeometry, hitShardGeometry);
 
-  const pool: THREE.Mesh[] = [];
-  const borrow = (index: number) => {
-    while (pool.length <= index) {
+  const missPool: THREE.Mesh[] = [];
+  const borrowMiss = (index: number) => {
+    while (missPool.length <= index) {
       const material = new THREE.MeshBasicMaterial({
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
       });
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(missGeometry, material);
+      mesh.userData.cue = 'projectile-miss';
       mesh.visible = false;
       group.add(mesh);
-      pool.push(mesh);
+      missPool.push(mesh);
       disposables.push(material);
     }
-    return pool[index];
+    return missPool[index];
   };
 
-  const update = (time: number) => {
-    let used = 0;
-    for (const bolt of spentBoltsAt(replay, time)) {
-      const mesh = borrow(used++);
-      mesh.visible = true;
-      mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
-      mesh.scale.setScalar(0.6 + bolt.age * 2.2);
-      const material = mesh.material as THREE.MeshBasicMaterial;
-      material.color.set(
-        accentForUnit(replay, bolt.ownerActor.unitKey),
-      );
-      material.opacity = (1 - bolt.age) ** 2 * 0.9;
+  const hitPool: {
+    group: THREE.Group;
+    material: THREE.MeshBasicMaterial;
+  }[] = [];
+  const borrowHit = (index: number) => {
+    while (hitPool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const effect = new THREE.Group();
+      effect.userData.cue = 'projectile-hit';
+      effect.add(new THREE.Mesh(hitCoreGeometry, material));
+      for (const spread of [-0.62, -0.2, 0.2, 0.62]) {
+        const angle = Math.PI + spread;
+        const shard = new THREE.Mesh(hitShardGeometry, material);
+        shard.position.set(
+          Math.cos(angle) * 0.2,
+          0,
+          Math.sin(angle) * 0.2,
+        );
+        shard.rotation.y = -angle;
+        effect.add(shard);
+      }
+      effect.visible = false;
+      group.add(effect);
+      hitPool.push({ group: effect, material });
+      disposables.push(material);
     }
-    for (let index = used; index < pool.length; index++) pool[index].visible = false;
+    return hitPool[index];
+  };
+
+  const grouped = volleyLanes(replay);
+  const update = (time: number) => {
+    let usedMisses = 0;
+    let usedHits = 0;
+    for (const bolt of spentBoltsAt(replay, time)) {
+      if (bolt.resolution === 'deflected') continue;
+      if (grouped.has(bolt.id) && bolt.resolution !== 'legacy') continue;
+      const accent = accentForUnit(replay, bolt.ownerActor.unitKey);
+      if (bolt.resolution === 'hit') {
+        const effect = borrowHit(usedHits++);
+        effect.group.visible = true;
+        effect.group.position.set(
+          bolt.x + 0.5,
+          PROJECTILE_HOVER,
+          bolt.y + 0.5,
+        );
+        effect.group.rotation.y = -headingAngle[bolt.heading];
+        effect.group.scale.setScalar(0.45 + Math.sqrt(bolt.age) * 1.65);
+        effect.material.color.set(accent);
+        effect.material.opacity = (1 - bolt.age) ** 2 * 0.95;
+      } else {
+        const mesh = borrowMiss(usedMisses++);
+        mesh.visible = true;
+        mesh.userData.resolution = bolt.resolution;
+        mesh.position.set(
+          bolt.x + 0.5,
+          PROJECTILE_HOVER,
+          bolt.y + 0.5,
+        );
+        mesh.scale.setScalar(0.6 + bolt.age * 2.2);
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.color.set(accent);
+        material.opacity = (1 - bolt.age) ** 2 * 0.9;
+      }
+    }
+    for (let index = usedMisses; index < missPool.length; index++)
+      missPool[index].visible = false;
+    for (let index = usedHits; index < hitPool.length; index++)
+      hitPool[index].group.visible = false;
   };
 
   return { group, update };

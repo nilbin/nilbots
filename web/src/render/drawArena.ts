@@ -13,6 +13,7 @@ import {
   teamAccentedBotImage,
   type ProjectileLook,
 } from './arenaThemes';
+import { projectileFlightMotionAt } from './projectileMotion';
 import {
   stanceKindForForm,
   unitAccent,
@@ -39,6 +40,7 @@ import {
   arrivalsAt,
   boltsAt,
   posesAt,
+  spentBoltsAt,
   type Arrival,
   type BotPose,
 } from './interpolate';
@@ -305,6 +307,7 @@ export function drawArena(
     drawFog(selectedUnitKey);
   drawProjectiles();
   drawVolleys();
+  drawProjectileResolutions();
   drawHeardSounds();
   // Before the bodies, because it happens on the floor: the 3D renderer puts the same ring
   // on the ground plane, so drawing it over the chassis here would make the flat viewer
@@ -874,6 +877,7 @@ export function drawArena(
         ownerActor.unitKey,
         accent,
         0.95 * pulse,
+        projectileId,
       );
     }
 
@@ -886,6 +890,7 @@ export function drawArena(
     ownerUnitKey: ReplayStableUnitKey | null,
     accent: string,
     alpha: number,
+    motionIdentity: string,
   ): void {
     const look = ownerUnitKey
       ? unitProjectileLook(replay, ownerUnitKey)
@@ -908,6 +913,15 @@ export function drawArena(
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
+    if (look.flightCue !== null) {
+      const motion = projectileFlightMotionAt(
+        look.flightCue,
+        time,
+        motionIdentity,
+      );
+      ctx.rotate(motion.canvasRotation);
+      ctx.scale(motion.canvasScaleX, motion.canvasScaleY);
+    }
     ctx.globalAlpha = alpha;
     ctx.shadowColor = accent;
     ctx.shadowBlur = Math.max(4, tile * 0.18);
@@ -923,6 +937,92 @@ export function drawArena(
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  /**
+   * The projectile head's own finish, separate from the target's damage
+   * reaction.
+   *
+   * An exact hit drives sharp fragments along the recorded approach. A
+   * non-damaging terminal expands into a quiet ring and orbiting fragments.
+   * Replay-v1 lacks exact projectile IDs on damage events, so it keeps its
+   * historical treatment instead of guessing from a shared tile.
+   */
+  function drawProjectileResolutions(): void {
+    const grouped = volleyLanes(replay);
+    for (const bolt of spentBoltsAt(replay, time)) {
+      if (
+        bolt.resolution === 'legacy' ||
+        bolt.resolution === 'deflected' ||
+        grouped.has(bolt.id)
+      )
+        continue;
+
+      const cx = px(bolt.x) + tile / 2;
+      const cy = py(bolt.y) + tile / 2;
+      const accent = accentAt(
+        accentFor(bolt.ownerActor.unitKey),
+        cx,
+        cy,
+      );
+      const age = bolt.age;
+      const fade = (1 - age) ** 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(projectileAngle[bolt.heading]);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(4, tile * 0.22);
+      ctx.lineCap = 'round';
+
+      if (bolt.resolution === 'hit') {
+        ctx.fillStyle = `rgba(248, 253, 255, ${0.95 * fade})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, tile * (0.035 + 0.09 * (1 - age)), 0, Math.PI * 2);
+        ctx.fill();
+
+        for (const spread of [-0.62, -0.2, 0.2, 0.62]) {
+          const reach = tile * (0.14 + Math.sqrt(age) * 0.48);
+          const angle = Math.PI + spread;
+          ctx.strokeStyle = hexWithAlpha(accent, 0.9 * fade);
+          ctx.lineWidth = Math.max(1.5, tile * 0.055 * (1 - age * 0.55));
+          ctx.beginPath();
+          ctx.moveTo(
+            Math.cos(angle) * reach * 0.22,
+            Math.sin(angle) * reach * 0.22,
+          );
+          ctx.lineTo(
+            Math.cos(angle) * reach,
+            Math.sin(angle) * reach,
+          );
+          ctx.stroke();
+        }
+      } else {
+        const radius = tile * (0.1 + age * 0.34);
+        ctx.strokeStyle = hexWithAlpha(accent, 0.78 * fade);
+        ctx.lineWidth = Math.max(1.5, tile * 0.055 * (1 - age * 0.5));
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = hexWithAlpha(accent, 0.72 * fade);
+        for (let index = 0; index < 3; index++) {
+          const orbit =
+            (index / 3) * Math.PI * 2 + age * Math.PI * 1.4;
+          ctx.beginPath();
+          ctx.arc(
+            Math.cos(orbit) * radius,
+            Math.sin(orbit) * radius,
+            Math.max(1, tile * 0.025 * (1 - age * 0.5)),
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    }
   }
 
   /**
@@ -1676,6 +1776,7 @@ export function drawArena(
         ownerUnitKey,
         accentAt(authoredAccent, tipX, tipY),
         alpha,
+        event.projectileId ?? event.eventId,
       );
     }
   }
