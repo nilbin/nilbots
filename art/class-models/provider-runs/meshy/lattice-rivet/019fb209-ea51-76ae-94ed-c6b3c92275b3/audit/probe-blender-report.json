@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lattice-rivet",
+  "taskId": "019fb209-ea51-76ae-94ed-c6b3c92275b3",
+  "auditTool": {
+    "name": "Blender",
+    "version": "5.2.0",
+    "script": "scripts/class-models/audit-projectile-masters.py"
+  },
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/lattice-rivet/019fb209-ea51-76ae-94ed-c6b3c92275b3/raw-model.glb",
+    "bytes": 40265884,
+    "sha256": "f62409fd1d8bf3cafaaa92a29cd8e3eb9cfe072d51368c7ce1a63c253f030774",
+    "preservedUnmodified": true
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 185463,
+    "triangles": 356538,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasProjectileMaskMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 30585606,
+        "sha256": "71cfc37dc14316d178ee31c132c989251e36bcd1434fa6acbc013131d70710c3",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 82592,
+        "sha256": "e8f7604313fd6133220401fd2857c9b37b5ab61bd30b1392e5605243c4d73b84",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 134684,
+        "sha256": "d76e33610715f53c2fa7369aba5dc837367f8080ba4dacf66bd21231e5f9428c",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 33512872,
+        "sha256": "6da1b12bfbd0cbdbebcce47009a1803e0f5093af3fc5e83537653a1eba332ada",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1547259,
+        "sha256": "1a3862f2138364e91fa4d0dfc9f3d1e2ebe55e044ffca927f379ae936107f1a5",
+        "width": 2048,
+        "height": 2048
+      }
+    ]
+  },
+  "topology": {
+    "indexedSeamIslands": 105,
+    "weldedUniquePositions": 178249,
+    "weldedEdges": 534807,
+    "weldedComponents": 2,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateTrianglesAfterWeld": 0,
+    "verdict": "requires-authored-topology-review"
+  },
+  "runtimeScale": {
+    "lookScale": 0.54,
+    "rendererProjectileFactor": 0.72,
+    "effectivePlanformSpanTiles": 0.38880000000000003
+  },
+  "normalizationProbes": {
+    "+x": {
+      "sourceFacing": "+x",
+      "sourceUp": "+z",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up rotation; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5266018225832028,
+      "normalizedBounds": {
+        "minimum": [
+          -0.9508389830589294,
+          -0.2854999899864197,
+          -0.5061360001564026
+        ],
+        "maximum": [
+          0.9481289982795715,
+          0.2872839868068695,
+          0.504006028175354
+        ],
+        "span": [
+          1.898967981338501,
+          0.5727839469909668,
+          1.0101420879364014
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    },
+    "-x": {
+      "sourceFacing": "-x",
+      "sourceUp": "+z",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up rotation; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5266018225832028,
+      "normalizedBounds": {
+        "minimum": [
+          -0.9508389830589294,
+          -0.2854999899864197,
+          -0.5061360001564026
+        ],
+        "maximum": [
+          0.9481289982795715,
+          0.2872839868068695,
+          0.504006028175354
+        ],
+        "span": [
+          1.898967981338501,
+          0.5727839469909668,
+          1.0101420879364014
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    }
+  }
+}

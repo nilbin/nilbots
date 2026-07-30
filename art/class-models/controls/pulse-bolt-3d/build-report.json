@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "pulse-bolt",
+  "status": "art-side-comparison-control-only",
+  "canonicalSvg": {
+    "path": "web/src/assets/projectile-looks/pulse-bolt/sprite.svg",
+    "sha256": "21e821e5dda1c46ea666f46699c9a8311528c5db868f2a1d445ff08c43f0ef06"
+  },
+  "generator": "art/class-models/controls/pulse-bolt-3d/build-pulse-bolt-control.py",
+  "geometry": {
+    "objects": 5,
+    "vertices": 116,
+    "triangles": 212,
+    "authoredPlanformSpanTiles": 1.0,
+    "maximumDepthTiles": 0.155,
+    "facing": "+x",
+    "up": "+y"
+  },
+  "materials": {
+    "count": 2,
+    "semanticRoles": [
+      "projectile-mask",
+      "projectile-mask"
+    ],
+    "teamNeutral": true
+  },
+  "runtime": {
+    "installed": false,
+    "catalogEntryAdded": false,
+    "lookIdCreated": false,
+    "canonicalLookScale": 0.54,
+    "rendererProjectileFactor": 0.72,
+    "effectivePlanformSpanTiles": 0.3888
+  },
+  "exclusions": [
+    "trail",
+    "halo",
+    "floor glow",
+    "impact",
+    "hitbox",
+    "motion"
+  ],
+  "outputs": {
+    "blend": {
+      "file": "pulse-bolt-control.blend",
+      "bytes": 96754,
+      "sha256": "beeb432bfeccae3a44bf89b333bdefac930ce723e555103dd11704456b1f0a0e"
+    },
+    "glb": {
+      "file": "pulse-bolt-control.glb",
+      "bytes": 16032,
+      "sha256": "63f2b97cc2b6f427d6e4be989894f902e5547e03a866c6a0130030188dabfe6e"
+    }
+  }
+}

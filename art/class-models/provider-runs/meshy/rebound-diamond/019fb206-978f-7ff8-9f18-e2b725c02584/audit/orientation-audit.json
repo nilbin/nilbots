@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "assetId": "rebound-diamond",
+  "method": "longest-planform-span normalization, centered bounds, uniform scale and translation only",
+  "authority": {
+    "path": "web/src/assets/class-projectile-looks/rebound-diamond/sprite.svg",
+    "sha256": "7aa2a8621dbd75fa135135a2573b35aebcc140d46afc35b8cf4ae16f35d34dd7",
+    "bounds": {
+      "left": 168,
+      "top": 344,
+      "right": 855,
+      "bottom": 679,
+      "width": 688,
+      "height": 336
+    },
+    "apertures": {
+      "count": 1,
+      "areasPixels": [
+        48426
+      ],
+      "largestAreaToObject": 0.275854604697264
+    }
+  },
+  "candidates": {
+    "+x": {
+      "iou": 0.7471158981242113,
+      "coverage": 0.9005064113153592,
+      "precision": 0.8143361236316806,
+      "translationPixels": [
+        -8,
+        0
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 309,
+        "right": 931,
+        "bottom": 714,
+        "width": 840,
+        "height": 406
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 1,
+        "areasPixels": [
+          28534
+        ],
+        "largestAreaToObject": 0.14698776561493881
+      }
+    },
+    "-x": {
+      "iou": 0.8768276023177984,
+      "coverage": 0.9835259671088984,
+      "precision": 0.889897381184317,
+      "translationPixels": [
+        5,
+        0
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 309,
+        "right": 931,
+        "bottom": 714,
+        "width": 840,
+        "height": 406
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 1,
+        "areasPixels": [
+          28636
+        ],
+        "largestAreaToObject": 0.14759379236054201
+      }
+    }
+  },
+  "recommendedSourceFacing": "-x",
+  "inspectedSourceFacing": "-x",
+  "sourceFacingAgreement": true
+}
