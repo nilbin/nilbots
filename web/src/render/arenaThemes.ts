@@ -1,5 +1,9 @@
 import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
+import {
+  isProjectileFlightCue,
+  type ProjectileFlightCue,
+} from './projectileMotion';
 
 export type BotLookClassId = 'striker' | 'bulwark' | 'fabricator';
 export type BotLocomotionCue = 'low-hover';
@@ -30,6 +34,11 @@ export interface BotLook {
 export interface ProjectileLook {
   id: string;
   label: string;
+  /**
+   * Presentation-only head motion. Null preserves the historical renderer
+   * treatment for old looks.
+   */
+  flightCue: ProjectileFlightCue | null;
   image: HTMLImageElement | null;
   imageUrl: string;
   scale: number;
@@ -120,6 +129,7 @@ interface ProjectileLookManifest {
   id: string;
   label: string;
   sprite: string;
+  flightCue?: ProjectileFlightCue;
   scale: number;
 }
 
@@ -470,11 +480,20 @@ function buildProjectileLooks(
       `${directory}/${manifest.sprite}`,
       manifest.id,
     );
+    if (
+      manifest.flightCue !== undefined &&
+      !isProjectileFlightCue(manifest.flightCue)
+    )
+      throw new Error(
+        `Projectile look '${manifest.id}' has unknown flight cue ` +
+          `'${String(manifest.flightCue)}'.`,
+      );
     if (result.has(manifest.id))
       throw new Error(`Duplicate projectile look ID '${manifest.id}'.`);
     result.set(manifest.id, {
       id: manifest.id,
       label: manifest.label,
+      flightCue: manifest.flightCue ?? null,
       image: loadImage(imageUrl),
       imageUrl,
       scale: manifest.scale,

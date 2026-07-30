@@ -19,6 +19,8 @@ const strikerModelPath = join(
 const fabricatorModelPath = join(
   classLooksPath,
   'lattice-loom',
+  'model.glb',
+);
 const aegisModelPath = join(
   classLooksPath,
   'aegis-tortoise',

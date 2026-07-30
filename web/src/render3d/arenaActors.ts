@@ -23,6 +23,10 @@ import {
   headingAngle,
   posesAt,
 } from '../render/interpolate';
+import {
+  projectileFlightMotionAt,
+  projectileMotionPhase,
+} from '../render/projectileMotion';
 import { volleyLanes } from '../render/volley';
 import { buildVolleyArrows } from './volleyArrows';
 import {
@@ -1102,6 +1106,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const rig = new THREE.Group();
       const head = new THREE.Group();
       head.position.y = PROJECTILE_HOVER;
+      head.userData.cue = 'projectile-head';
+      head.userData.flightCue = arsenal.look.flightCue;
+      rig.userData.cue = 'projectile-rig';
+      rig.userData.projectileLookId = arsenal.look.id;
       dressHead(arsenal, head);
 
       // The tracer trails *behind* the head — geometry is pre-translated so the quad hangs
@@ -1574,6 +1582,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (boltHidden(bolt.id, bolt.x, bolt.y)) continue;
       const arsenalIndex =
         arsenalIndexByUnit.get(bolt.ownerActor.unitKey) ?? 0;
+      const arsenal = arsenals[arsenalIndex] ?? arsenals[0];
       const rig = borrow(
         bolt.ownerActor.unitKey,
         flying[arsenalIndex]++,
@@ -1608,7 +1617,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Shared frequencies make two bolts in the air move as one object with a gap in it —
       // the tell that they are the same code and not two things. Derived rather than random
       // because a replay must look the same every time it is watched.
-      const phase = phaseForIdentity(bolt.id);
+      const phase = projectileMotionPhase(bolt.id);
       const wander =
         1 + (Math.floor(phase * 10_000) % 23) / 46;
       rig.head.position.y =
@@ -1617,8 +1626,25 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Local −z is across the heading, since the rig is turned to face along +x.
       rig.head.position.z =
         (Math.sin(time * 6.7 * wander + phase * 1.9) + Math.sin(time * 3.9 + phase) * 0.5) * 0.055;
-      rig.head.rotation.x = Math.sin(time * 6.1 * wander + phase) * 0.35;
-      rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.18;
+      if (arsenal.look.flightCue === null) {
+        // Exact historical treatment for manifests that predate motion cues.
+        rig.head.rotation.set(
+          Math.sin(time * 6.1 * wander + phase) * 0.35,
+          0,
+          Math.sin(time * 4.7 + phase * 1.7) * 0.18,
+        );
+      } else {
+        const motion = projectileFlightMotionAt(
+          arsenal.look.flightCue,
+          time,
+          bolt.id,
+        );
+        rig.head.rotation.set(
+          motion.rotationX,
+          motion.rotationY,
+          motion.rotationZ,
+        );
+      }
     }
     // Forget bolts that have landed, or the map grows for the length of the replay.
     for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);

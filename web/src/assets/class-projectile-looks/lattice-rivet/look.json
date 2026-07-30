@@ -2,5 +2,6 @@
   "id": "lattice-rivet",
   "label": "Lattice Rivet",
   "sprite": "sprite.svg",
+  "flightCue": "tumble",
   "scale": 0.54
 }

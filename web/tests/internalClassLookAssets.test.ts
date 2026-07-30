@@ -82,7 +82,11 @@ test('internal class looks are genuine tagged SVG packages with paired shots', (
 });
 
 test('internal class projectiles are compact white-alpha SVG masks', () => {
-  const expected = ['lattice-rivet', 'rebound-diamond', 'trident-spark'];
+  const expected = new Map([
+    ['lattice-rivet', 'tumble'],
+    ['rebound-diamond', 'flat-spin'],
+    ['trident-spark', 'axial-spin'],
+  ]);
   const found: string[] = [];
   for (const directory of readdirSync(projectilesRoot, {
     withFileTypes: true,
@@ -91,10 +95,16 @@ test('internal class projectiles are compact white-alpha SVG masks', () => {
     const root = join(projectilesRoot, directory.name);
     const manifest = JSON.parse(
       readFileSync(join(root, 'look.json'), 'utf8'),
-    ) as { id: string; sprite: string; scale: number };
+    ) as {
+      id: string;
+      sprite: string;
+      flightCue: string;
+      scale: number;
+    };
     found.push(manifest.id);
     assert.equal(manifest.id, directory.name);
     assert.equal(manifest.sprite, 'sprite.svg');
+    assert.equal(manifest.flightCue, expected.get(manifest.id));
     assert.ok(manifest.scale >= 0.3 && manifest.scale <= 0.7);
     const source = readFileSync(join(root, manifest.sprite), 'utf8');
     assert.match(source, /viewBox="0 0 256 256"/);
@@ -105,7 +115,7 @@ test('internal class projectiles are compact white-alpha SVG masks', () => {
     assert.ok(colors.length > 0);
     assert.ok(colors.every((color) => color === '#fff'));
   }
-  assert.deepEqual(found.sort(), expected);
+  assert.deepEqual(found.sort(), [...expected.keys()].sort());
 });
 
 test('semantic team accents replace tagged paint and preserve authored armor', () => {

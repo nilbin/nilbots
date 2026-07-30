@@ -264,6 +264,14 @@ export interface SpentBolt {
   /** Where the projectile was when it stopped existing. */
   x: number;
   y: number;
+  /** Final authoritative heading, used only to orient the finish. */
+  heading: ReplayProjectileHeading;
+  /**
+   * Exact terminal presentation when the replay generation carries projectile
+   * causality. Legacy means the document cannot distinguish a hit from a
+   * coincident disappearance without inference.
+   */
+  resolution: 'hit' | 'miss' | 'deflected' | 'legacy';
   /** 0 at disappearance, 1 when the dissipation is over. */
   age: number;
 }
@@ -296,21 +304,61 @@ export function spentBoltsAt(
     {
       ownerActor: ReplayActorIdentity;
       position: ReplayPosition;
+      heading: ReplayProjectileHeading;
     }
   >();
   for (const projectile of deathTick.before.projectiles ?? []) {
     candidates.set(projectile.projectileId, {
       ownerActor: projectile.ownerActor,
       position: projectile.position,
+      heading: projectile.heading ?? projectile.launchDirection,
     });
   }
   for (const traversal of deathTick.projectileTraversals) {
+    const terminal =
+      traversal.path[traversal.path.length - 1] ?? traversal.from;
+    const previous =
+      traversal.path[traversal.path.length - 2] ?? traversal.from;
     candidates.set(traversal.projectileId, {
       ownerActor: traversal.ownerActor,
-      position:
-        traversal.path[traversal.path.length - 1] ?? traversal.from,
+      position: terminal,
+      heading:
+        terminal.x !== previous.x || terminal.y !== previous.y
+          ? headingBetween(
+              previous.x,
+              previous.y,
+              terminal.x,
+              terminal.y,
+            )
+          : (traversal.finalHeading ??
+            traversal.heading ??
+            traversal.launchDirection),
     });
   }
+
+  const hit = new Set(
+    deathTick.events
+      .filter(
+        (event) =>
+          event.type === 'damage' && event.projectileId !== null,
+      )
+      .map((event) => event.projectileId!),
+  );
+  const deflected = new Set(
+    deathTick.events
+      .filter(
+        (event) =>
+          event.type === 'projectile-deflected' &&
+          event.projectileId !== null,
+      )
+      .map((event) => event.projectileId!),
+  );
+  const hasUnattributedTerminal = deathTick.events.some(
+    (event) =>
+      (event.type === 'damage' ||
+        event.type === 'projectile-deflected') &&
+      event.projectileId === null,
+  );
 
   const spent: SpentBolt[] = [];
   for (const [id, candidate] of candidates) {
@@ -320,6 +368,15 @@ export function spentBoltsAt(
       ownerActor: candidate.ownerActor,
       x: candidate.position.x,
       y: candidate.position.y,
+      heading: candidate.heading,
+      resolution:
+        deflected.has(id)
+          ? 'deflected'
+          : hit.has(id)
+            ? 'hit'
+            : replay.sourceVersion === 1 || hasUnattributedTerminal
+              ? 'legacy'
+              : 'miss',
       age: fraction,
     });
   }
