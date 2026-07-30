@@ -1105,18 +1105,32 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   for (const timeline of formTimelines.values())
     timeline.sort((left, right) => left.at - right.at);
 
-  /** Exact attack launch times per actor life, used only by authored recoil clips. */
+  /**
+   * Exact authored recoil starts per actor life.
+   *
+   * Mobile and Tower recoil follow an outgoing attack. Shell is defensive hardware and
+   * cannot attack in the class contract, so its recoil follows the incoming
+   * `projectile-deflected` contact instead. Treating every clip as muzzle recoil left the
+   * authored Shell animation unreachable in real matches even though it bound correctly.
+   */
   const semanticRecoilStarts = new Map<ReplayActorLifeKey, number[]>();
   for (const tick of replay.ticks)
     for (const event of tick.events) {
-      if (!isAttackEvent(event.type) || !event.sourceActor) continue;
+      const recoilActor = isAttackEvent(event.type)
+        ? event.sourceActor
+        : event.type === 'projectile-deflected' &&
+            stanceKindForForm(event.toFormId) === 'aegis'
+          ? event.targetActor
+          : null;
+      if (!recoilActor) continue;
       const starts =
-        semanticRecoilStarts.get(event.sourceActor.actorKey) ?? [];
+        semanticRecoilStarts.get(recoilActor.actorKey) ?? [];
       const start = tick.tick + SHOT_PRESENTATION_START;
       // A volley can carry several same-owner shot events at one tick. It is one physical
-      // recoil, not one mixer reset per projectile lane.
+      // recoil, not one mixer reset per projectile lane. The same dedupe also makes a
+      // simultaneous multi-contact Shell impact one authored response.
       if (starts.at(-1) !== start) starts.push(start);
-      semanticRecoilStarts.set(event.sourceActor.actorKey, starts);
+      semanticRecoilStarts.set(recoilActor.actorKey, starts);
     }
 
   /** The transition covering the playhead for this life, or null before its first one. */

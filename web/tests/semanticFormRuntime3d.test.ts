@@ -244,6 +244,63 @@ function withShellStance(source: ReplayModel): ReplayModel {
   return model;
 }
 
+/** Add the defensive contact that actually drives a Shell's authored recoil. */
+function withShellDeflection(source: ReplayModel): ReplayModel {
+  const model = withShellStance(source);
+  const tick = model.ticks[10];
+  const template = tick.events[0];
+  const target = tick.before.actors.find(
+    (actor) => actor.actorKey === TRANSFORMING_ACTOR,
+  );
+  assert.ok(template);
+  assert.ok(target);
+  tick.events.push({
+    ...structuredClone(template),
+    eventId: 'synthetic:semantic-shell-deflection',
+    tick: 10,
+    type: 'projectile-deflected',
+    sourceActor: null,
+    targetActor: target.identity,
+    fromFormId: null,
+    toFormId: 'child-mobile-aegis-shell',
+  });
+  return model;
+}
+
+/** Defensive-looking contacts on ordinary Mobile/Tower forms must not borrow Shell recoil. */
+function withNonShellDeflections(source: ReplayModel): ReplayModel {
+  const model = structuredClone(source) as ReplayModel;
+  const tick = model.ticks[10];
+  tick.events = tick.events.filter(
+    (event) => event.sourceActor?.actorKey !== TRANSFORMING_ACTOR,
+  );
+  const template = tick.events[0];
+  const mobile = tick.before.actors.find(
+    (actor) => actor.unitKey === MOBILE_UNIT,
+  );
+  const tower = tick.before.actors.find(
+    (actor) => actor.actorKey === TRANSFORMING_ACTOR,
+  );
+  assert.ok(template);
+  assert.ok(mobile);
+  assert.ok(tower);
+  for (const [ordinal, target, formId] of [
+    [0, mobile, 'child-mobile'],
+    [1, tower, 'turret'],
+  ] as const)
+    tick.events.push({
+      ...structuredClone(template),
+      eventId: `synthetic:non-shell-deflection:${ordinal}`,
+      tick: 10,
+      type: 'projectile-deflected',
+      sourceActor: null,
+      targetActor: target.identity,
+      fromFormId: null,
+      toFormId: formId,
+    });
+  return model;
+}
+
 test('semantic Tower deploy is replay-driven and isolated per bot instance', () => {
   const actors = buildActors(frontline);
   const mobileRig = semanticRig();
@@ -341,6 +398,46 @@ test('Shell deploy uses its authored path while the exact guard sector remains v
   assert.equal(parts.stance.visible, true, 'sector overlay keeps its parent');
   assert.equal(genericPlate.visible, false, 'generic Shell body is suppressed');
   assert.equal(guard.visible, true, 'rules-owned ±45° sector remains');
+
+  actors.dispose();
+});
+
+test('Shell recoil follows an incoming deflection and preserves authored recovery', () => {
+  const actors = buildActors(withShellDeflection(frontline));
+  const rig = semanticRig();
+  install(actors, TRANSFORMING_UNIT, rig);
+
+  actors.update(10.2, null, false);
+  close(rig.recoil.position.x, 0);
+
+  actors.update(10.7, null, false);
+  const progress = (10.7 - 10.45) / 1.15;
+  close(rig.recoil.position.x, -4 * progress);
+  assert.ok(
+    rig.recoil.position.x < -0.5,
+    `Shell contact drives its authored recoil (${rig.recoil.position.x})`,
+  );
+  const recovering = rig.recoil.position.x;
+  actors.update(10.2, null, false);
+  actors.update(10.7, null, false);
+  close(rig.recoil.position.x, recovering);
+
+  actors.update(11.61, null, false);
+  close(rig.recoil.position.x, 0);
+
+  actors.dispose();
+});
+
+test('deflection does not trigger Mobile or Tower firing recoil', () => {
+  const actors = buildActors(withNonShellDeflections(frontline));
+  const mobileRig = semanticRig();
+  const towerRig = semanticRig();
+  install(actors, MOBILE_UNIT, mobileRig);
+  install(actors, TRANSFORMING_UNIT, towerRig);
+
+  actors.update(10.7, null, false);
+  close(mobileRig.recoil.position.x, 0);
+  close(towerRig.recoil.position.x, 0);
 
   actors.dispose();
 });
