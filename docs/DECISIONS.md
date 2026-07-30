@@ -3494,6 +3494,52 @@ it). Composite arm identities for the phase-2 cells get the keel
 treatment — registered short tokens, since even keel+bend overflows
 the worst class cell by one character.
 
+## 170. Class becomes a first-class citizen, additively — and the schema window closes
+
+Three integrations complete #153's Phase B inside the #169 window, all
+on contract profile 2 with the pinned hosted fingerprints byte-
+identical throughout. (1) **Persistence** (`codex/bot-class-config`):
+a nullable persisted `Bot.ClassId` with EF migration, engine-owned
+catalog validation, class identity on the bot API contracts with
+regenerated mirrors, owner-only immutable atomic first assignment for
+legacy bots, Garage UI, and CLI propagation with declaration-mismatch
+checks — the persisted identity is authoritative; an omitted manifest
+class stays deliberately class-agnostic. (2) **Observability** (the
+phase-2 engine prep): readable ratchet-hold facts (`holdOwnerTeamId`,
+`holdEndsAtTick`, `controlResumesAtTick` grammar) and
+`ObservedProjectile` timing/damage, probe-proven, plus the registered
+phase-2 composite identities `helm`/`veer`/`rig` beside `keel`.
+(3) **Contract classId + spawn reservations**
+(`codex/class-first-class`, resolved): typed `classId` on scoring
+teams, participants, and every observed body — copied from the
+controlling participant, never parsed from form IDs — and
+`spawnReservation` on observed tiles.
+
+The load-bearing resolution: Codex minted a contract profile 3 for
+this, and it is **rejected with evidence** — its own branch had to
+rewrite the pinned match-fingerprint golden and assert the entire
+phase-1 WASM population faulting at tick 0 across all qualification
+probes, because the capability tuple rides inside the fingerprinted
+bytes. Everything it carried lands additively under the #156 pattern
+instead; `observationSchemaVersion` deliberately does not move (the
+rule, documented in RUNTIME-PROTOCOL.md: additive unknown-ignored
+fields retain the version, since bumping relabels every immutable
+ruleset); duplicate hold/projectile encodings are removed with a
+reflection test pinning one encoding per fact. `generic-actor-match-2`
+remains the one generic lineage. SDK 0.10.6, CLI 0.9.15; frozen
+artifacts fault on new contracts until rebuilt — the accepted
+consequence the wave-4 rebuild absorbs.
+
+Measurement note for phase 2: class-declaring arms now carry classId
+in their canonical bytes, so every phase-2 cell is a fresh
+content-identified ruleset relative to the phase-1 cohort's arms. That
+is correct, not a problem — phase 2 pre-registers fresh contracts, and
+its keel anchor cells double as a robustness replication of #168 under
+the new identities. Remaining class work outside this window:
+cosmetic class-gating of the six purchase packs (rides the persisted
+identity, no schema), and the Meshy 3D model pipeline (presentation
+only).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
