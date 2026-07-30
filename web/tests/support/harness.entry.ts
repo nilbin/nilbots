@@ -54,7 +54,11 @@ export {
 } from '../../src/replayIngress';
 export {
   buildActors,
+  formModelMountCount,
+  formTransitionPresentation,
   installMobileModel,
+  stanceLayerPolicy,
+  turretSupportYaw,
 } from '../../src/render3d/arenaActors';
 export {
   buildArena,
@@ -62,10 +66,18 @@ export {
 } from '../../src/render3d/arenaScene';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';
 export {
+  actorLookMaterial,
   isGenuineLookModel,
   lookModel,
   modelSpec,
+  modelSupportsPurpose,
 } from '../../src/render3d/lookModel';
+export {
+  bindLookAnimation,
+  releaseLookAnimation,
+  seekLookAnimation,
+  validateLookAnimationSpec,
+} from '../../src/render3d/lookAnimation';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {
   arenaModeParticipantsReady,

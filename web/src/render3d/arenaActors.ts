@@ -33,7 +33,13 @@ import {
   isGenuineLookModel,
   lookModel,
   modelSpec,
+  type LookModelSpec,
 } from './lookModel';
+import {
+  releaseLookAnimation,
+  seekLookAnimation,
+  type LookMotion,
+} from './lookAnimation';
 import { CAMERA_PITCH } from './arenaScene';
 
 /**
@@ -56,11 +62,13 @@ import { CAMERA_PITCH } from './arenaScene';
  */
 
 /**
- * The turret: the chassis' forward section, repeated around the axis it turns about.
+ * The fallback turret: one authored arm or the SVG's forward section repeated
+ * around its axis. A dedicated authored whole turret bypasses this construction.
  *
- * The offsets follow from tipping a model that lies in x ∈ ±½ and y ∈ [0, depth] onto its
- * nose — that leaves it half below the floor and off-centre by half its depth, so the lift
- * seats it and the shift puts its middle back on the axis.
+ * The offsets follow from tipping an SVG-derived model that lies in x ∈ ±½ and
+ * y ∈ [0, depth] onto its nose — that leaves it half below the floor and
+ * off-centre by half its depth, so the lift seats it and the shift puts its
+ * middle back on the axis.
  */
 const TURRET_ARMS = 4;
 const TURRET_LIFT = 0.5;
@@ -236,6 +244,95 @@ export function installMobileModel(
     body.remove(placeholders.facingMarker);
 }
 
+/**
+ * How many scene instances represent one resolved stationary form.
+ *
+ * A directional stance is always one facing body. An omnidirectional
+ * emplacement is one instance only when a dedicated authored GLB says it
+ * contains the whole form; one authored arm and every SVG/front-sector
+ * fallback remain the established four-spoke construction.
+ */
+export function formModelMountCount(
+  purpose: 'directional-stance' | 'omnidirectional-emplacement',
+  spec: LookModelSpec | null,
+  genuine: boolean,
+  dedicatedLook: boolean,
+): number {
+  if (purpose === 'directional-stance') return 1;
+  return genuine && dedicatedLook && spec?.part === 'whole'
+    ? 1
+    : TURRET_ARMS;
+}
+
+export interface FormTransitionPresentation {
+  phase: number;
+  modelScale: number;
+  modelOpacity: number;
+  energyScale: number;
+  energyOpacity: number;
+}
+
+/**
+ * Renderer-owned assembly treatment for one static fused form.
+ *
+ * It is deliberately a pure function of authoritative transition progress.
+ * Playing a transition backwards, pausing, or scrubbing to the same replay
+ * point therefore produces the same scale/fade/energy state without a model
+ * clip or requestAnimationFrame history.
+ */
+export function formTransitionPresentation(
+  progress: number,
+): FormTransitionPresentation {
+  const phase = Number.isFinite(progress)
+    ? Math.max(0, Math.min(progress, 1))
+    : 0;
+  const eased = easeInOut(phase);
+  return {
+    phase,
+    modelScale: 0.72 + eased * 0.28,
+    modelOpacity: eased,
+    energyScale: 0.74 + eased * 0.5,
+    energyOpacity: Math.sin(phase * Math.PI) * 0.48,
+  };
+}
+
+export interface StanceLayerPolicy {
+  hideFallbackPhysicalHardware: boolean;
+  preserveSemanticGuardOverlay: true;
+}
+
+/**
+ * A genuine Shell may replace the crude renderer plate, never the rules-owned
+ * guard field. The latter remains an exact directional floor cue regardless of
+ * which visual representation resolves.
+ */
+export function stanceLayerPolicy(
+  spec: LookModelSpec | null,
+  genuine: boolean,
+  skillHardware: 'volley' | 'aegis',
+): StanceLayerPolicy {
+  return {
+    hideFallbackPhysicalHardware:
+      genuine &&
+      spec?.part === 'whole' &&
+      spec.formRole === 'directional-stance' &&
+      spec.skillHardware === skillHardware,
+    preserveSemanticGuardOverlay: true,
+  };
+}
+
+/** Whole authored supports stay planted; only legacy/spoke turrets rotate. */
+export function turretSupportYaw(
+  whole: boolean,
+  fullyRaised: boolean,
+  emplacing: boolean,
+  replayTime: number,
+): number {
+  return fullyRaised && emplacing && !whole
+    ? replayTime * TURRET_SPIN
+    : 0;
+}
+
 export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
@@ -259,7 +356,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const stanceForm = stanceFormForUnit(replay, unit.unitKey, defaultFormId);
     const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
     const stancePresentation = stanceLook ?? look;
-    const stanceHardware = modelSpec(stancePresentation.id)?.skillHardware;
+    const stanceSpec = modelSpec(stancePresentation.id);
     const mobileLowHover = look.locomotionCue === 'low-hover';
     const stanceLowHover =
       stancePresentation.locomotionCue === 'low-hover';
@@ -350,12 +447,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // movement disabled: it has no privileged facing, which is what a form that sees and
     // fires in every direction actually looks like.
     //
-    // **Derived from the sprite rather than built from primitives.** A cylinder with vanes
-    // says "turret" but says nothing about *which* bot it is, and everything else in this
-    // renderer is extruded from the look's own drawing (#127) precisely so a new chassis
-    // needs no new model. So a turret is the chassis' forward section repeated around its
-    // own axis — radially symmetric by construction, and still recognisably the machine it
-    // was. Every look in the library gets one, and so does anything added later.
+    // A dedicated authored whole model is already the radial machine and mounts once.
+    // Otherwise the fallback remains derived from the sprite rather than anonymous
+    // primitives: the chassis' forward section repeats around its own axis, radially
+    // symmetric by construction and still recognisably the machine it was.
     const turret = new THREE.Group();
     turret.visible = false;
     turret.userData.renderForm = 'stationary-omnidirectional';
@@ -366,23 +461,40 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // an emplacement that is unmistakably an emplacement; a legacy `turret` form keeps the
     // silhouette it has always had.
     const turretLook = emplacedLook ?? look;
-    const genuineTurretArm =
-      modelSpec(turretLook.id)?.part === 'turret-arm';
-    void lookModel(
-      turretLook,
-      undefined,
-      'front',
-      accent,
-    ).then((model) => {
+    const turretSpec = modelSpec(turretLook.id);
+    const dedicatedEmplacedLook = emplacedLook !== null;
+    const turretMount = { whole: false };
+    void lookModel(turretLook, {
+      sector: 'front',
+      teamAccent: accent,
+      purpose: dedicatedEmplacedLook
+        ? { kind: 'omnidirectional-emplacement' }
+        : { kind: 'sprite-turret-sector' },
+    }).then((model) => {
       if (!live || !model) return;
-      for (let arm = 0; arm < TURRET_ARMS; arm++) {
+      const genuine = isGenuineLookModel(model);
+      const mountCount = formModelMountCount(
+        'omnidirectional-emplacement',
+        turretSpec,
+        genuine,
+        dedicatedEmplacedLook,
+      );
+      const genuineTurretArm =
+        genuine && turretSpec?.part === 'turret-arm';
+      turretMount.whole = mountCount === 1;
+      turret.userData.modelMountCount = mountCount;
+      turret.userData.wholeModel = turretMount.whole;
+
+      for (let arm = 0; arm < mountCount; arm++) {
         const spoke = new THREE.Group();
         // The loader gave this actor an independent material set. Its four arms may share
         // those materials because they fade, flash and highlight as one machine, while
-        // their scene nodes remain independent for the deployment fan.
-        const section = model.clone(true);
+        // their scene nodes remain independent for the deployment fan. A complete authored
+        // turret is already the whole machine and is mounted directly, exactly once.
+        const section =
+          mountCount === 1 ? model : model.clone(true);
         section.scale.setScalar(size);
-        if (!genuineTurretArm) {
+        if (mountCount > 1 && !genuineTurretArm) {
           // SVG fallback sections lie flat as chassis lids. Tip the cropped nose upright,
           // seat it on the floor, and pull it back onto the axis it turns about. A genuine
           // turret-arm GLB is authored in its deployed orientation already.
@@ -393,7 +505,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         turret.add(spoke);
         spokes.push(spoke);
       }
-      registerModelMaterials(turret);
+      registerModelMaterials(turret, () => formReveal.turret);
     });
     chassis.add(turret);
 
@@ -407,6 +519,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const barrels: THREE.Group[] = [];
     let plate: THREE.Object3D | null = null;
     let guardArc: THREE.Mesh | null = null;
+    const fallbackStanceHardware = new THREE.Group();
+    fallbackStanceHardware.userData.cue = 'stance-fallback-hardware';
+    stance.add(fallbackStanceHardware);
     chassis.add(stance);
 
     // Anchor windup is state, not a guessed animation: the ring appears only while the
@@ -463,6 +578,34 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     chassis.add(scan);
     disposables.push(scanGeometry, scanMaterial);
 
+    // Static Meshy forms assemble through a renderer-owned energy seam. The model itself
+    // remains a fused, deterministic asset; this ring supplies transition motion from the
+    // recorded form progress and vanishes at both endpoints.
+    const assemblyGeometry = new THREE.RingGeometry(
+      size * 0.5,
+      size * 0.73,
+      40,
+      1,
+    );
+    assemblyGeometry.rotateX(-Math.PI / 2);
+    const assemblyMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const assembly = new THREE.Mesh(
+      assemblyGeometry,
+      assemblyMaterial,
+    );
+    assembly.userData.cue = 'form-energy-assembly';
+    assembly.position.y = 0.035;
+    assembly.visible = false;
+    chassis.add(assembly);
+    disposables.push(assemblyGeometry, assemblyMaterial);
+
     // A pool of accent light under the bot, and the **only** place the owner's colour
     // appears on a bot in this renderer — which makes it load-bearing rather than
     // decoration. The flat renderer casts the same pool, so this is a match rather than an
@@ -505,9 +648,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // fade it, so the two have to compose rather than overwrite each other.
     const glowFade = { material: glowMaterial as THREE.Material, base: UNSELECTED_POOL };
     let lastFactor = 1;
+    const formReveal = {
+      turret: 1,
+      stance: 1,
+    };
     const fading: {
       material: THREE.Material;
       base: number;
+      reveal?: () => number;
       // Some materials are only correct in the transparent pass. Pips draw with depthTest
       // off so they read over walls, and an opaque-pass material that writes no depth is
       // simply painted over by whatever opaque thing is drawn after it — which is why they
@@ -547,7 +695,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      * would only multiply GPU materials. Turret arms deliberately share one actor-local
      * set; the Set keeps that repeated scene from registering or disposing it four times.
      */
-    const registerModelMaterials = (solid: THREE.Object3D) => {
+    const registerModelMaterials = (
+      solid: THREE.Object3D,
+      reveal?: () => number,
+    ) => {
       const seen = new Set<THREE.Material>();
       solid.traverse((node) => {
         const mesh = node as THREE.Mesh;
@@ -558,7 +709,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         for (const material of materials) {
           if (seen.has(material)) continue;
           seen.add(material);
-          fading.push({ material, base: 1 });
+          fading.push({ material, base: 1, reveal });
           if (material instanceof THREE.MeshStandardMaterial)
             tintable(material);
           disposables.push(material);
@@ -566,6 +717,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       });
       // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
       repaint();
+      for (const entry of fading) {
+        const revealFactor = entry.reveal?.() ?? 1;
+        entry.material.opacity = entry.base * lastFactor * revealFactor;
+        entry.material.transparent =
+          entry.alwaysTransparent ||
+          lastFactor < 1 ||
+          revealFactor < 1 ||
+          entry.base < 1;
+      }
     };
 
     // The stance hardware. Built here rather than beside the empty group above because it
@@ -574,20 +734,38 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     if (stanceForm !== null) {
       // The stance's own model (or SVG-derived fallback). A form change swaps the machine,
       // not its paint.
-      void lookModel(
-        stancePresentation,
-        undefined,
-        undefined,
-        accent,
-      ).then((model) => {
+      void lookModel(stancePresentation, {
+        teamAccent: accent,
+        purpose: {
+          kind: 'directional-stance',
+          skillHardware: stanceForm.kind,
+        },
+      }).then((model) => {
         if (!live || !model) return;
         model.scale.setScalar(size * 0.94);
-        registerModelMaterials(model);
+        registerModelMaterials(model, () => formReveal.stance);
         stance.add(model);
+        const layerPolicy = stanceLayerPolicy(
+          stanceSpec,
+          isGenuineLookModel(model),
+          stanceForm.kind,
+        );
+        fallbackStanceHardware.visible =
+          !layerPolicy.hideFallbackPhysicalHardware;
+        stance.userData.modelMountCount = formModelMountCount(
+          'directional-stance',
+          stanceSpec,
+          isGenuineLookModel(model),
+          stanceLook !== null,
+        );
+        stance.userData.authoredSkillHardware =
+          layerPolicy.hideFallbackPhysicalHardware;
+        stance.userData.semanticGuardOverlay =
+          layerPolicy.preserveSemanticGuardOverlay;
       });
     }
 
-    if (stanceForm?.kind === 'volley' && stanceHardware !== 'volley') {
+    if (stanceForm?.kind === 'volley') {
       // Three barrels on three hinges, at the exact headings the profile fires. Local −Y
       // rotation is the screen-space fan angle: the chassis is turned by `-pose.angle`,
       // so world (x, z) and screen (x, y) are the same plane in the same order.
@@ -613,7 +791,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         barrel.position.set(size * BARREL_REACH * 0.5, BOT_HEIGHT * 0.9, 0);
         barrel.castShadow = true;
         hinge.add(barrel);
-        stance.add(hinge);
+        fallbackStanceHardware.add(hinge);
         barrels.push(hinge);
       }
     }
@@ -621,36 +799,34 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     if (stanceForm?.kind === 'aegis') {
       // A standing curved plate across the guarded quadrant. Open-ended, so it is a wall
       // rather than a tube, and it stops hard at ±45° — the edge is the counter-play.
-      if (stanceHardware !== 'aegis') {
-        const plateGeometry = new THREE.CylinderGeometry(
-          size * PLATE_RADIUS,
-          size * PLATE_RADIUS,
-          size * PLATE_HEIGHT,
-          20,
-          1,
-          true,
-          // Cylinder theta runs from +Z; the guarded quadrant is centred on +X.
-          Math.PI / 2 - STANCE_HALF_ANGLE,
-          STANCE_HALF_ANGLE * 2,
-        );
-        const plateMaterial = new THREE.MeshStandardMaterial({
-          color: accent.clone().multiplyScalar(0.5),
-          emissive: accent,
-          emissiveIntensity: 0.9,
-          roughness: 0.3,
-          metalness: 0.65,
-          side: THREE.DoubleSide,
-        });
-        disposables.push(plateGeometry, plateMaterial);
-        fading.push({ material: plateMaterial, base: 1 });
-        tintable(plateMaterial);
-        const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
-        plateMesh.userData.cue = 'aegis-plate';
-        plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
-        plateMesh.castShadow = true;
-        stance.add(plateMesh);
-        plate = plateMesh;
-      }
+      const plateGeometry = new THREE.CylinderGeometry(
+        size * PLATE_RADIUS,
+        size * PLATE_RADIUS,
+        size * PLATE_HEIGHT,
+        20,
+        1,
+        true,
+        // Cylinder theta runs from +Z; the guarded quadrant is centred on +X.
+        Math.PI / 2 - STANCE_HALF_ANGLE,
+        STANCE_HALF_ANGLE * 2,
+      );
+      const plateMaterial = new THREE.MeshStandardMaterial({
+        color: accent.clone().multiplyScalar(0.5),
+        emissive: accent,
+        emissiveIntensity: 0.9,
+        roughness: 0.3,
+        metalness: 0.65,
+        side: THREE.DoubleSide,
+      });
+      disposables.push(plateGeometry, plateMaterial);
+      fading.push({ material: plateMaterial, base: 1 });
+      tintable(plateMaterial);
+      const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
+      plateMesh.userData.cue = 'aegis-plate';
+      plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
+      plateMesh.castShadow = true;
+      fallbackStanceHardware.add(plateMesh);
+      plate = plateMesh;
 
       // And the same quadrant on the floor, because from a raised camera an upright plate
       // foreshortens and the *extent* of the guard is what a flanker is judging.
@@ -689,12 +865,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // fetch and a first frame with nothing on the floor is worse than a first frame with a
     // block on it — but a block is what a chassis looks like when this step is missing,
     // which is exactly how it shipped once.
-    void lookModel(
-      look,
-      undefined,
-      undefined,
-      accent,
-    ).then((model) => {
+    let mobileModel: THREE.Group | null = null;
+    void lookModel(look, {
+      teamAccent: accent,
+      purpose: { kind: 'mobile' },
+    }).then((model) => {
       if (!live || !model) return;
       model.scale.setScalar(size);
       registerModelMaterials(model);
@@ -703,7 +878,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         lid,
         facingMarker: nose,
       });
+      mobileModel = model;
+      disposables.push({
+        dispose: () => releaseLookAnimation(model),
+      });
     });
+    const seekMobileMotion = (
+      motion: Extract<LookMotion, 'idle' | 'moving'>,
+      phase: number,
+    ) =>
+      mobileModel === null
+        ? false
+        : seekLookAnimation(mobileModel, motion, phase);
 
     // Following a bot lights *the bot*, not a ring drawn near it.
     //
@@ -815,9 +1001,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     );
     const fade = (factor: number) => {
       lastFactor = factor;
-      for (const { material, base, alwaysTransparent } of fading) {
-        material.opacity = base * factor;
-        material.transparent = alwaysTransparent || factor < 1 || base < 1;
+      for (const {
+        material,
+        base,
+        reveal,
+        alwaysTransparent,
+      } of fading) {
+        const revealFactor = reveal?.() ?? 1;
+        material.opacity = base * factor * revealFactor;
+        material.transparent =
+          alwaysTransparent ||
+          factor < 1 ||
+          revealFactor < 1 ||
+          base < 1;
       }
     };
 
@@ -831,6 +1027,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       body,
       turret,
       spokes,
+      turretMount,
       stance,
       stanceKind: stanceForm?.kind ?? null,
       barrels,
@@ -841,6 +1038,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       scan,
       scanMaterial,
       anchorMaterial,
+      assembly,
+      assemblyMaterial,
+      formReveal,
       pad,
       highlight,
       flash,
@@ -850,6 +1050,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       lostPip,
       fading,
       fade,
+      seekMobileMotion,
     };
   });
   /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
@@ -1024,7 +1225,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       sparkMaterial,
     };
 
-    void lookModel(look, accent).then((model) => {
+    void lookModel(look, {
+      paint: accent,
+      purpose: { kind: 'projectile' },
+    }).then((model) => {
       if (!live || !model) return;
       // `lookModel` returns actor-owned materials while sharing the cached geometry.
       // Every rig in this arsenal may share that one painted set, but the set still has
@@ -1257,6 +1461,28 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         replay.forms.find((candidate) => candidate.formId === pose.formId) ??
         null;
       const stationary = form?.canMove === false;
+      const openingActor = opening?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const closingActor = closing?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const moving =
+        !stationary &&
+        openingActor !== undefined &&
+        closingActor !== undefined &&
+        (openingActor.position.x !== closingActor.position.x ||
+          openingActor.position.y !== closingActor.position.y);
+      // A complete walk cycle spans exactly one authoritative movement tick.
+      // Idle is intentionally slower and identity-offset, but remains an
+      // absolute function of replay time so pause and scrub never accumulate
+      // renderer-frame deltas.
+      bot.seekMobileMotion(
+        moving ? 'moving' : 'idle',
+        moving
+          ? fraction
+          : time * 0.5 + bot.motionPhase / (Math.PI * 2),
+      );
 
       bot.chassis.visible = pose.status === 'active' || dying;
       bot.chassis.userData.actorKey = pose.actorKey;
@@ -1321,17 +1547,49 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const folded = 1 - Math.min(1, stanceOut / 0.5) * 0.42;
       bot.body.scale.setScalar(stancing ? folded : 1);
       const opened = Math.max(0, (stanceOut - 0.5) / 0.5);
-      bot.stance.scale.setScalar(0.7 + 0.3 * easeInOut(opened));
+      const turretPresentation =
+        formTransitionPresentation(unfolding);
+      const stancePresentation =
+        formTransitionPresentation(opened);
+      bot.formReveal.turret = turretPresentation.modelOpacity;
+      bot.formReveal.stance = stancePresentation.modelOpacity;
+      bot.turret.scale.setScalar(turretPresentation.modelScale);
+      bot.stance.scale.setScalar(stancePresentation.modelScale);
       for (const hinge of bot.barrels)
         hinge.rotation.y =
           -(hinge.userData.fanAngle as number) * easeInOut(opened);
       if (bot.plate) bot.plate.scale.y = 0.12 + 0.88 * easeInOut(opened);
       const guardOpacity = 0.42 * (0.35 + 0.65 * easeInOut(opened));
       for (const [arm, spoke] of bot.spokes.entries())
-        spoke.rotation.y = ((arm * Math.PI * 2) / TURRET_ARMS) * easeInOut(unfolding);
+        spoke.rotation.y =
+          ((arm * Math.PI * 2) / TURRET_ARMS) *
+          easeInOut(unfolding);
+      const assemblyPresentation = emplacing
+        ? turretPresentation
+        : stancing
+          ? stancePresentation
+          : formTransitionPresentation(0);
+      bot.assembly.visible =
+        (emplacing || stancing) &&
+        assemblyPresentation.phase > 0 &&
+        assemblyPresentation.phase < 1;
+      bot.assembly.scale.setScalar(
+        assemblyPresentation.energyScale,
+      );
+      bot.assembly.rotation.y =
+        assemblyPresentation.phase * Math.PI * 2;
+      bot.assemblyMaterial.opacity =
+        assemblyPresentation.energyOpacity;
       // It only turns once it is out; something spinning while it unfolds reads as falling
-      // over rather than deploying.
-      bot.turret.rotation.y = raising >= 1 && emplacing ? time * TURRET_SPIN : 0;
+      // over rather than deploying. A whole authored radial turret keeps its fixed supports
+      // planted; the scan overlay still turns, while legacy/spoke constructions keep their
+      // established slow physical spin.
+      bot.turret.rotation.y = turretSupportYaw(
+        bot.turretMount.whole,
+        raising >= 1,
+        emplacing,
+        time,
+      );
       const glide = glideAt(pose.actorKey, pose);
       bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
       bot.highlight(
@@ -1401,6 +1659,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (bot.anchorRing.visible)
         bot.anchorMaterial.opacity *= visibility * (1 - collapse);
       if (bot.scan.visible) bot.scanMaterial.opacity = 0.34 * visibility * (1 - collapse);
+      if (bot.assembly.visible)
+        bot.assemblyMaterial.opacity *= visibility * (1 - collapse);
       if (bot.guardArc)
         (bot.guardArc.material as THREE.MeshBasicMaterial).opacity =
           guardOpacity * visibility * (1 - collapse);
