@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "assetId": "trident-spark",
+  "taskId": "019fb203-d779-779d-8374-59deec6606d3",
+  "auditTool": {
+    "name": "Blender",
+    "version": "5.2.0",
+    "script": "scripts/class-models/audit-projectile-masters.py"
+  },
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/trident-spark/019fb203-d779-779d-8374-59deec6606d3/raw-model.glb",
+    "bytes": 34210560,
+    "sha256": "b48adbf2931a101663918e207af12794f5ee3cc3a480bf35e98ede979be0736d",
+    "preservedUnmodified": true
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 56037,
+    "triangles": 103874,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasProjectileMaskMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 30653728,
+        "sha256": "bb2f1731d4a0daefca9eb27b257f561465ad07bb011ff77170fcd99f50d1c701",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 352058,
+        "sha256": "8cf4219491df1daf58e8e5563752a0f2951bb658cf4a9b0a4afb30235bef068a",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 1035561,
+        "sha256": "0c31f397672181f3722f3bfd2081dcf6619ac52a47b3e1d95ff5b8623c6869a0",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 33359391,
+        "sha256": "c75b9b0a9f83f1ea024e83582d6870d2aa3a0aa4fc8b19c8345bf69a83d01cbc",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1215273,
+        "sha256": "23955d208aa29fac502ee60a25698f4bad20cb0744c66ffcc48716305c95a951",
+        "width": 2048,
+        "height": 2048
+      }
+    ]
+  },
+  "topology": {
+    "indexedSeamIslands": 79,
+    "weldedUniquePositions": 51937,
+    "weldedEdges": 155811,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateTrianglesAfterWeld": 0,
+    "weldedComponentDetails": [
+      {
+        "component": 1,
+        "weldedVertices": 51937,
+        "triangles": 103874,
+        "bounds": {
+          "minimum": [
+            -0.9498630166053772,
+            -0.10082799941301346,
+            -0.5633479952812195
+          ],
+          "maximum": [
+            0.9488340020179749,
+            0.10228099673986435,
+            0.5615779757499695
+          ],
+          "span": [
+            1.898697018623352,
+            0.2031089961528778,
+            1.124925971031189
+          ]
+        },
+        "centroid": [
+          0.09053389008121138,
+          0.00117236435405887,
+          -0.0007800997730805584
+        ],
+        "planformCoverage": {
+          "longitudinalX": 1.0,
+          "lateralZ": 1.0
+        },
+        "physicalDepthY": 0.2031089961528778,
+        "surfaceArea": 2.4519584420209677,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "watertight": true
+      }
+    ],
+    "sourceDccAxes": {
+      "longitudinal": "x",
+      "physicalDepth": "y",
+      "lateral": "z"
+    },
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  },
+  "runtimeScale": {
+    "lookScale": 0.58,
+    "rendererProjectileFactor": 0.72,
+    "effectivePlanformSpanTiles": 0.41759999999999997
+  },
+  "normalization": {
+    "sourceFacing": "+x",
+    "sourceUp": "+z",
+    "targetFacing": "+x",
+    "targetUp": "+y",
+    "dccReviewUp": "+z",
+    "operation": "fixed source-up rotation; optional fixed 180-degree yaw; uniform scale and translation only",
+    "uniformScale": 0.5266769738360093,
+    "normalizedBounds": {
+      "minimum": [
+        -0.4999999701976776,
+        -0.2962362766265869,
+        2.9789113398237532e-09
+      ],
+      "maximum": [
+        0.5,
+        0.2962363064289093,
+        0.10697281360626221
+      ],
+      "span": [
+        1.0,
+        0.5924725532531738,
+        0.10697281360626221
+      ]
+    },
+    "authoredPlanformSpanTiles": 1.0
+  }
+}

@@ -250,6 +250,14 @@ before calling them separable parts. A single welded manifold requires an
 authored cut/rebuild and named pivots; do not parent arbitrary seam islands.
 Provider tasks may disagree on axes even in one batch, so normalize every
 asset from measurement rather than copying the preceding task's transform.
+A strong top silhouette can also hide complete geometry duplicated along the
+depth axis. Always inspect strict side and gameplay oblique views and record
+each exact-position-welded component's bounds, triangles, watertightness, and
+planform coverage. Delete a duplicate layer only when those measurements prove
+the components are independent and the retained component is a complete
+approved body; do not average, flatten, bridge, or globally scale stacked
+copies into one. Re-run the side/depth gate after deletion and rebuild the
+retained underside when its own profile still misses the approved reference.
 
 Use Blender after the provider has supplied useful identity/material evidence,
 not as a reason to accept provider topology. Retopologize and rebuild

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "blender": {
+    "version": "5.2.0",
+    "binary": "var/toolchains/Blender-5.2.0.app/Contents/MacOS/Blender"
+  },
+  "sourcePolicy": "raw provider masters preserved; provider thumbnails are provenance only",
+  "normalization": "per-master inspected source facing; +X target, +Y target up; one-tile authored planform; no non-uniform warp",
+  "gameplayScaleEvidence": {
+    "assumedPixelsPerTile": 50,
+    "rendererProjectileFactor": 0.72,
+    "file": "gameplay-scale-comparison.png",
+    "tintTreatment": "grayscale multiply proxy used equally for all four heads; runtime still requires real both-team replay review"
+  },
+  "mechanicalMasters": [
+    {
+      "assetId": "trident-spark",
+      "label": "Trident Spark",
+      "taskId": "019fb203-d779-779d-8374-59deec6606d3",
+      "sourceSha256": "b48adbf2931a101663918e207af12794f5ee3cc3a480bf35e98ede979be0736d",
+      "topIoU": 0.9298122022209451,
+      "apertureCount": 0,
+      "sideDepthDrift": -0.337135749822317,
+      "weldedComponents": 1,
+      "triangles": 103874,
+      "materials": 1,
+      "hasProjectileMaskMaterial": false,
+      "verdict": "coherent-reconstruction-master-not-runtime-ready",
+      "runtimeReady": false
+    },
+    {
+      "assetId": "rebound-diamond",
+      "label": "Rebound Diamond",
+      "taskId": "019fb206-978f-7ff8-9f18-e2b725c02584",
+      "sourceSha256": "fad945e58c6010f72205787c1570c895395f4846a05e4984e232c06858f1964d",
+      "topIoU": 0.8768276023177984,
+      "apertureCount": 1,
+      "sideDepthDrift": 0.09275362318840585,
+      "weldedComponents": 1,
+      "triangles": 180580,
+      "materials": 1,
+      "hasProjectileMaskMaterial": false,
+      "verdict": "coherent-reconstruction-master-needs-aperture-contour-correction",
+      "runtimeReady": false
+    },
+    {
+      "assetId": "lattice-rivet",
+      "label": "Lattice Rivet",
+      "taskId": "019fb209-ea51-76ae-94ed-c6b3c92275b3",
+      "sourceSha256": "f62409fd1d8bf3cafaaa92a29cd8e3eb9cfe072d51368c7ce1a63c253f030774",
+      "topIoU": 0.9569192277405771,
+      "apertureCount": 1,
+      "sideDepthDrift": 0.8887179487179486,
+      "weldedComponents": 2,
+      "triangles": 356538,
+      "materials": 1,
+      "hasProjectileMaskMaterial": false,
+      "verdict": "failed-duplicated-depth-master-top-reference-only",
+      "runtimeReady": false
+    }
+  ],
+  "pulseBoltControl": {
+    "schemaVersion": 1,
+    "id": "pulse-bolt",
+    "status": "art-side-comparison-control-only",
+    "silhouette": {
+      "method": "longest-planform-span normalization, centered bounds, uniform scale and translation only",
+      "iou": 0.9969890225904101,
+      "coverage": 0.9992280201686479,
+      "precision": 0.9977575453746678,
+      "translationPixels": [
+        0,
+        0
+      ],
+      "authorityApertures": {
+        "count": 0,
+        "areasPixels": [],
+        "largestAreaToObject": 0
+      },
+      "modelApertures": {
+        "count": 0,
+        "areasPixels": [],
+        "largestAreaToObject": 0
+      }
+    },
+    "glbStructure": {
+      "scenes": 1,
+      "nodes": 5,
+      "meshes": 5,
+      "materials": 2,
+      "semanticRoles": [
+        "projectile-mask",
+        "projectile-mask"
+      ],
+      "everyMaterialIsProjectileMask": true,
+      "cameras": 0,
+      "animations": 0,
+      "skins": 0
+    },
+    "runtime": {
+      "installed": false,
+      "catalogEntryAdded": false,
+      "lookIdCreated": false,
+      "effectivePlanformSpanTiles": 0.38880000000000003
+    },
+    "exclusions": [
+      "trail",
+      "halo",
+      "floor glow",
+      "impact",
+      "hitbox",
+      "motion"
+    ]
+  },
+  "paidCallsMade": 0
+}
