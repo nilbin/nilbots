@@ -21,10 +21,13 @@ public enum FrontlineLabsVolleyArm
     /// at most one bolt per body — per-bolt damage is not representable,
     /// so "center bolt 2" ships as all-2 with identical duel effect), the
     /// fan no longer taxes the mobile gun (its profile counter drops to
-    /// the 1-tick floor), and frequency is priced by the FIRST CONSUMER
-    /// of the route-cooldown capability: the stance entry carries
-    /// cooldownTicks 8, slot-scoped and death-proof (#181). Inert-omitted
-    /// where no striker is in the cell.
+    /// the 1-tick floor), delivery enters on the uniform 1-tick stance
+    /// grammar (#183 — the 2-tick fan was the game's only 2-tick public
+    /// telegraph), and frequency is priced by the FIRST CONSUMER of the
+    /// route-cooldown capability: the stance entry carries cooldownTicks
+    /// 8, slot-scoped and death-proof (#181). Inert-omitted where no
+    /// striker is in the cell. First minted as `surf`/`salvo` with entry
+    /// windup 2; re-minted `swell`/`crest` when the entry sharpened.
     /// </summary>
     Salvo,
 }

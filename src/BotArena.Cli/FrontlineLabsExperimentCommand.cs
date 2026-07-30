@@ -790,11 +790,12 @@ public static class FrontlineLabsExperimentCommand
     }
 
     /// <summary>
-    /// Reads the registered volley arm (DECISIONS #182). Omitting the
-    /// option — or naming <c>cast</c> — keeps the measured phase-2 fan and
-    /// adds no ruleset suffix. <c>salvo</c> re-arms the fan: every bolt
-    /// deals 2, the fan stops taxing the mobile gun's counter, and its
-    /// frequency moves to an 8-tick cooldown on the stance entry route.
+    /// Reads the registered volley arm (DECISIONS #182/#183). Omitting
+    /// the option — or naming <c>cast</c> — keeps the measured phase-2
+    /// fan and adds no ruleset suffix. <c>salvo</c> re-arms the fan:
+    /// every bolt deals 2, the fan stops taxing the mobile gun's counter,
+    /// the stance enters on the uniform 1-tick windup, and its frequency
+    /// moves to an 8-tick cooldown on the stance entry route.
     /// </summary>
     private static FrontlineLabsVolleyArm OptionalVolleyArm(
         IReadOnlyDictionary<string, string> options)

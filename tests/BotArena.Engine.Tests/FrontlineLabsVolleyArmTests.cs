@@ -3,10 +3,11 @@ using BotArena.ActorContracts;
 namespace BotArena.Engine.Tests;
 
 /// <summary>
-/// Pins the salvo (#182): damage-2 fan on its own slot-scoped entry
+/// Pins the salvo (#182/#183): damage-2 fan on its own slot-scoped entry
 /// cooldown (the first consumer of #181), the shared gun counter dropped
-/// to the floor, inert-omitted without a striker, cast cells
-/// byte-identical, and the surf identities inside the budget.
+/// to the floor, the sharpened 1-tick entry, inert-omitted without a
+/// striker, cast cells byte-identical, and the swell identities inside
+/// the budget.
 /// </summary>
 public sealed class FrontlineLabsVolleyArmTests
 {
@@ -71,25 +72,26 @@ public sealed class FrontlineLabsVolleyArmTests
             fan.Projectile.TilesPerAdvance);
         // The fan stops taxing the shared counter (floor cadence)...
         Assert.Equal(1, fan.CooldownTicks);
-        // ...and its frequency moves to the entry route (#181).
+        // ...its frequency moves to the entry route (#181), and delivery
+        // enters on the uniform 1-tick stance grammar (#183).
         foreach (string route in new[]
                  {
                      "volley-striker-prime",
                      "volley-striker-child",
                  })
         {
-            Assert.Equal(
-                8,
+            ActorSameLifeTransitionDefinition entry =
                 salvo.Rules.SameLifeTransitions
-                    .Single(item => item.TransitionId == route)
-                    .CooldownTicks);
+                    .Single(item => item.TransitionId == route);
+            Assert.Equal(8, entry.CooldownTicks);
+            Assert.Equal(1, entry.Windup.DurationTicks);
         }
-        // The shell's entries stay cooldown-free.
-        Assert.Equal(
-            0,
+        // The shell's entries stay cooldown-free on their own grammar.
+        ActorSameLifeTransitionDefinition shell =
             salvo.Rules.SameLifeTransitions
-                .Single(item => item.TransitionId == "shell-bulwark-prime")
-                .CooldownTicks);
+                .Single(item => item.TransitionId == "shell-bulwark-prime");
+        Assert.Equal(0, shell.CooldownTicks);
+        Assert.Equal(1, shell.Windup.DurationTicks);
     }
 
     [Fact]
@@ -99,6 +101,13 @@ public sealed class FrontlineLabsVolleyArmTests
             FrontlineLabsClassDefinition.Bulwark,
             FrontlineLabsClassDefinition.Striker,
             FrontlineLabsVolleyArm.Cast);
+        // The measured fan keeps its historical 2-tick entry (#183 touches
+        // only the salvo).
+        Assert.Equal(
+            2,
+            cast.Rules.SameLifeTransitions
+                .Single(item => item.TransitionId == "volley-striker-prime")
+                .Windup.DurationTicks);
         ActorResolvedMatchDefinition measured =
             FrontlineLabsDefinition.CreatePendulumExperiment(
                 Keel,
@@ -117,7 +126,7 @@ public sealed class FrontlineLabsVolleyArmTests
     }
 
     [Fact]
-    public void TheSurfIdentitiesFitAndSalvoInertOmitsWithoutAStriker()
+    public void TheSwellIdentitiesFitAndSalvoInertOmitsWithoutAStriker()
     {
         foreach ((FrontlineLabsClassDefinition zero,
                   FrontlineLabsClassDefinition one) in new[]
@@ -132,7 +141,7 @@ public sealed class FrontlineLabsVolleyArmTests
         {
             string id = Arm(zero, one, FrontlineLabsVolleyArm.Salvo)
                 .Rules.RulesetId;
-            Assert.Contains("-surf-", id, StringComparison.Ordinal);
+            Assert.Contains("-swell-", id, StringComparison.Ordinal);
             Assert.True(id.Length <= 64, $"{id} is {id.Length}");
         }
         // No striker: salvo is inert-omitted and the mirror stays tide.

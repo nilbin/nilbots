@@ -3995,6 +3995,26 @@ class-EFFECTIVE kit and rejected the fabricator mirror cells the arm
 is designed to inert-omit in — fixed to validate the requested kit,
 preserving the one-flag-set-per-wave property.
 
+## 183. The salvo sharpened: 1-tick entry; surf re-mints as swell
+
+Owner ruling on "is salvo enough, or also lower the windup?": fold the
+faster entry into the salvo now, one coherent skill change, priced as
+a package by the next doctrine wave. Rationale accepted: the fan's
+delivery had the worst telegraph-to-payoff ratio in the game — the
+only 2-tick public windup (pending transitions are published), spent
+stationary for a one-tick payoff, against a shell that deflects
+frontal bolts — so damage alone fixes the reward while leaving the
+landing problem intact. Under salvo the volley entry drops to the
+uniform 1-tick stance grammar (`SalvoEntryWindupTicks`); the measured
+cast fan keeps its historical 2-tick entry, pinned. Behavior changed
+hours after the first mint, so the identity re-minted: plain token
+`salvo` → `crest`, composite `surf` → **`swell`** — the surf-id sweep
+replays in #182 stay honest as entry-2 history. On the record
+unchanged: striker loses +1.000 in both pairs with near-zero fan
+usage, so the chassis is losing, not just the fan; class numbers and
+granular asymmetric tiles remain the levers behind this one, and the
+salvo package prices at wave 7.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

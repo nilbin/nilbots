@@ -433,7 +433,7 @@ exactly as before. Do not infer the window from your own completion
 history — the clock survives your death, and a life born mid-window has
 no history to infer from.
 
-### Volley salvo (DECISIONS #182)
+### Volley salvo (DECISIONS #182/#183)
 
 `--volley salvo` re-arms the striker's fan. The aim restoration (#173)
 had cannibalized it: the fan's spread is exactly the mobile gun's three
@@ -447,6 +447,10 @@ up the step. On this arm the fan is worth the stance again:
   the 1-tick floor: launching the volley barely touches the shared
   body counter, so you re-enter mobile play with your gun essentially
   ready.
+- **The stance enters in 1 tick** (#183) — the same grammar as every
+  other stance. The measured fan's 2-tick entry was the game's only
+  2-tick public telegraph, and a warned target had time to leave the
+  three covered arcs or face the fan with a shell.
 - **Frequency is priced on the ENTRY, not the shot**: the volley stance
   entry routes declare `cooldownTicks: 8` — the first consumer of the
   route-cooldown capability above. One cast per entry is unchanged;
@@ -454,7 +458,9 @@ up the step. On this arm the fan is worth the stance again:
   `self.routeCooldowns` names the exact tick the stance opens again.
 
 The arm is inert-omitted where no striker is in the cell. `tide` +
-salvo is the registered identity **`surf`**.
+salvo is the registered identity **`swell`** (the entry-2 first mint
+was `surf`; behavior changed, so the token re-minted — read your entry
+route's `windup.durationTicks`, don't assume).
 
 ### Stance ground (round 3)
 

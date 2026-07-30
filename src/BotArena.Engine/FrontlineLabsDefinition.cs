@@ -844,21 +844,26 @@ public static class FrontlineLabsDefinition
         }
         if (volley == FrontlineLabsVolleyArm.Salvo)
         {
-            // `surf` = the whole game with the re-armed fan (#182). The
-            // striker cells cannot spell their factors plus `salvo`
-            // inside the budget, so the full-game spellings collapse:
+            // `swell` = the whole game with the re-armed fan (#182/#183).
+            // `crest` is the plain arm token where the game spells its
+            // factors. The first mint of this arm (`surf`/`salvo`, entry
+            // windup 2) was re-minted the same day the owner sharpened the
+            // entry to the 1-tick grammar — behavior changed, so the
+            // tokens changed; surf-id replays stay honest. The striker
+            // cells cannot spell their factors plus `crest` inside the
+            // budget, so the full-game spellings collapse:
             // fabricator-vs-striker resolves tide (wane present) and the
             // strikerless-wane-free spellings resolve sail-open-tick.
             arms = arms switch
             {
-                ["tide"] => ["surf"],
+                ["tide"] => ["swell"],
                 ["sail", .. ] when stanceGround
                         == FrontlineLabsStanceGroundArm.Open
                     && cooldown == FrontlineLabsCooldownArm.Ticking
-                    => ["surf"],
-                _ => [.. arms, "salvo"],
+                    => ["swell"],
+                _ => [.. arms, "crest"],
             };
-            if (arms is ["surf"])
+            if (arms is ["swell"])
                 tuning = [];
         }
         string[] tokens =
@@ -2004,17 +2009,24 @@ public static class FrontlineLabsDefinition
                                     .FacingQuadrantContactsDeflected
                                 : ActorFormProjectileGuardKind.None));
                 }
-                int entryCooldownTicks =
+                bool salvoStance =
                     volleyArm == FrontlineLabsVolleyArm.Salvo
-                    && entry.Skill == FrontlineLabsSkillKit.StrikerVolley
-                        ? SalvoEntryCooldownTicks
-                        : 0;
+                    && entry.Skill == FrontlineLabsSkillKit.StrikerVolley;
+                int entryCooldownTicks =
+                    salvoStance ? SalvoEntryCooldownTicks : 0;
+                // The salvo also sharpens delivery (owner ruling on top of
+                // #182): entry drops to the 1-tick grammar every other
+                // stance already uses — the fan's 2-tick public telegraph
+                // was the worst telegraph-to-payoff ratio in the game.
+                int entryWindupTicks = salvoStance
+                    ? SalvoEntryWindupTicks
+                    : entry.StanceEntryWindupTicks;
                 sameLifeTransitions.Add(
                     StanceRoute(
                         $"{StanceRouteToken(entry)}-{entry.Id}-prime",
                         entry.PrimeFormId,
                         entry.PrimeStanceFormId,
-                        entry.StanceEntryWindupTicks,
+                        entryWindupTicks,
                         stanceGround,
                         entryCooldownTicks));
                 sameLifeTransitions.Add(
@@ -2022,7 +2034,7 @@ public static class FrontlineLabsDefinition
                         $"{StanceRouteToken(entry)}-{entry.Id}-child",
                         entry.ChildFormId,
                         entry.ChildStanceFormId,
-                        entry.StanceEntryWindupTicks,
+                        entryWindupTicks,
                         stanceGround,
                         entryCooldownTicks));
                 ActorAutomaticReturnTriggerDefinition automaticReturn =
@@ -2229,6 +2241,13 @@ public static class FrontlineLabsDefinition
     /// <summary>The salvo's entry price (#182): slot-scoped, death-proof,
     /// the first declared consumer of the route-cooldown capability.</summary>
     private const int SalvoEntryCooldownTicks = 8;
+
+    /// <summary>
+    /// The salvo's sharpened delivery (#183): the fan enters on the same
+    /// 1-tick grammar as every other stance, ending the volley's status as
+    /// the game's only 2-tick public telegraph.
+    /// </summary>
+    private const int SalvoEntryWindupTicks = 1;
 
     private static ActorFormTransitionDefinition StanceRoute(
         string transitionId,
