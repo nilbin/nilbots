@@ -34,9 +34,13 @@ any class arm.
 - **Striker** duels through hidden trajectory commitments: straight or one
   private 45° bend after 1–4 tiles, longest gun on the fastest cadence.
 - **Bulwark** fortifies: any of its bodies may Anchor into a tough
-  omnidirectional turret and Mobilize back once per life. The prime's
-  three-tick windup is a visible, punishable commitment — opponents see the
-  route, the windup, and the reversibility in the contract before tick 0.
+  omnidirectional turret and Mobilize back. Whether that is once per life
+  (the historical rule) or an unlimited cycle is an ARM fact — read
+  `irreversibleForLife` on the mobilize routes; under `--stance-ground
+  open` it is false and health maps proportionally (see the open-game
+  section). The prime's three-tick windup is a visible, punishable
+  commitment — opponents see the route, the windup, and the
+  reversibility in the contract before tick 0.
 - **Fabricator** is the only class that fabricates, and its fabrication is a
   real decision: the child materializes beside the prime in the field (never
   on a protected pad), earlier and rebuilt faster than anyone else's — but
