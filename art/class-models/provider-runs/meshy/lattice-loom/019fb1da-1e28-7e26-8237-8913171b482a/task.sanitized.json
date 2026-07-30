@@ -1,0 +1,38 @@
+{
+  "id": "019fb1da-1e28-7e26-8237-8913171b482a",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Restrained stylized PBR levitating industrial robot: warm ceramic-white armor, graphite trusswork, copper coils, warm amber honeycomb core, fork, and hover energy, with exactly four clean bounded cyan shoulder and fork-root inlays. Keep cyan out of the core, coils, fork tips, and hover emitters. No text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic.",
+  "texture_image_url": "",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785395293194,
+  "progress": 100,
+  "started_at": 1785395293689,
+  "finished_at": 1785395557978,
+  "expires_at": 1785654757978,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb1da-1e28-7e26-8237-8913171b482a/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 30
+}

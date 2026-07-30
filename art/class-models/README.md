@@ -6,6 +6,22 @@ slice. Its reviewed runtime derivative is staged beside
 stance, emplacement, and class projectile still uses the canonical SVG
 extrusion fallback.
 
+Aegis Tortoise mobile and Lattice Loom now also have separately charged,
+audited high-detail provider masters. Neither raw master is a runtime asset:
+
+- Aegis passes the rich top at 97.06% IoU, but its side is approximately 41%
+  too thick and its four walking supports collapsed into the lower hull. Keep
+  its armor/top as reference and reconstruct/rig the lower chassis in Blender.
+- Lattice passes at 93.62% outer IoU to its clean top and 90.67% to the rich
+  2D authority. Keep the low-hover/no-feet/open-truss body, then perform
+  targeted fork/truss correction, semantic material isolation, and runtime
+  optimization.
+
+The tasks, exact inputs, hashes, PBR maps, audit overlays, and raw verdicts are
+recorded under `provider-inputs/meshy/` and `provider-runs/meshy/`. The raw
+GLBs remain ignored recoverable masters; only reviewed derivatives may enter
+`web/src/assets/class-looks/`.
+
 The companion supplements rather than replaces the SVG. WebGL discovers and
 downloads the separate GLB only when the 3D renderer resolves that look. The
 site, Canvas2D, mobile, CLI, loading state, and failed-model path remain on the

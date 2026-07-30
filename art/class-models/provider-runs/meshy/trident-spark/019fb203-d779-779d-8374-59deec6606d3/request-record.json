@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb203-d779-779d-8374-59deec6606d3",
+  "assetId": "trident-spark",
+  "purpose": "Generate one static high-detail Trident Spark projectile-head reconstruction master for deterministic cleanup and projectile-mask material authoring; no trail, glow, spin, hit, miss, or deflection effects belong in the model.",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-30T07:53:43.320934Z",
+  "balanceBefore": 890,
+  "expectedCredits": 30,
+  "maxCredits": 30,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/01-top.png",
+      "bytes": 532632,
+      "sha256": "a27c912054a602d55e66a77b7539ede8c93127e506ff30fb20528e4139493da1",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "side",
+      "file": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/02-side.png",
+      "bytes": 276838,
+      "sha256": "b43f0b4434c63a1c09f8c9fc125bf0df800d4659cec55f653d6c04eec82f4317",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "front-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/03-front-three-quarter.png",
+      "bytes": 625047,
+      "sha256": "2486f75dabedfa02981c6a11b6193ff6923d77fd70c51930f8f9ddd5b8547477",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "rear-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/trident-spark/clean-v1/04-rear-three-quarter.png",
+      "bytes": 650531,
+      "sha256": "06022295d2f5862f2dac86c232cc4c7969c1ea614c41b26e5ad8304158e0c278",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Restrained stylized PBR compact projectile head: charcoal graphite structure, desaturated warm-metal conductor blades, crisp recessed seams, chamfered edges, subtle scuffs, and a neutral-white energy ridge. Keep all colors neutral because runtime owns team tint through the projectile-mask material. No fixed cyan, red, or orange; no text, logos, labels, decals, baked shadows, floor lighting, trail, halo, impact, or motion effects."
+  },
+  "sourcePackage": {
+    "manifest": "art/class-models/provider-inputs/meshy/trident-spark/manifest.json",
+    "sha256": "4f00d4561d7a8a00ba577c3609f10c628a93ed2665b3f78b3be68ccb1fbfdddc",
+    "status": "provider-ready"
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "multiImageApi": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "terms": "https://www.meshy.ai/terms-of-use",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "Meshy output URLs expire; provider output is downloaded immediately and URLs are not storage.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T07:56:17.728229Z",
+  "consumedCreditsObserved": 30,
+  "finishedAt": "2026-07-30T07:56:28.778556Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 860,
+  "consumedCredits": 30,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 34210560,
+      "sha256": "b48adbf2931a101663918e207af12794f5ee3cc3a480bf35e98ede979be0736d",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 77505,
+      "sha256": "6f0807dba4eae658db6ea41f2f2774a193586eebcddd64b8e70100acc675d00b",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 30653728,
+      "sha256": "bb2f1731d4a0daefca9eb27b257f561465ad07bb011ff77170fcd99f50d1c701",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1035561,
+      "sha256": "0c31f397672181f3722f3bfd2081dcf6619ac52a47b3e1d95ff5b8623c6869a0",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1215273,
+      "sha256": "23955d208aa29fac502ee60a25698f4bad20cb0744c66ffcc48716305c95a951",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33359391,
+      "sha256": "c75b9b0a9f83f1ea024e83582d6870d2aa3a0aa4fc8b19c8345bf69a83d01cbc",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 352058,
+      "sha256": "8cf4219491df1daf58e8e5563752a0f2951bb658cf4a9b0a4afb30235bef068a",
+      "contentType": "image/png",
+      "reusedExisting": false
+    }
+  ]
+}

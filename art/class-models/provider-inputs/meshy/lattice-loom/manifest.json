@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lattice-loom",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "provider-ready",
+  "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/source-sheet.png",
+    "sha256": "4bdbdec59afa76d316d088269b050d3676c2b6cf557aeb26bd2c90f9ffcab680",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
+    "path": "art/class-models/concept-targets/lattice-loom-3d-concept-v2/approval-sheet.png",
+    "sha256": "c208e69e8099e3b88f521a3af02471fada686161300215553d210244c25d9036",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "art/class-look-concepts/fabricator/lattice-loom/concept.png",
+    "sha256": "cd1d47fa5cbcaf488aa0c1ee06f7f7bf03767577daa216110d0c3bd9088a8ab5",
+    "kind": "rich-2d-visual"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "imageRight": "+X",
+    "worldUp": "+Y"
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "85d433e6f962ce95e8f49250d2e2b912f9ee85bfe9ed4b14c3071f466f0d6819"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "db1eb1c090687bb58048506b926b274a1d068c4779864aff54fe3e17fcd72da5"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "cc2d8f7c7551ffcabfcc6bb5326a078d7f717a41869737d96877b1855368090c"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a0c3361db16082796f234dcb4c8e951d4e2ef9a7425a0654eedf10433877e3cf"
+    }
+  ],
+  "blockers": [],
+  "providerSubmission": {
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail Lattice Loom master for the Fabricator class Blender cleanup, team-material split, hover treatment, and deterministic runtime presentation.",
+    "texturePrompt": "Restrained stylized PBR levitating industrial robot: warm ceramic-white armor, graphite trusswork, copper coils, warm amber honeycomb core, fork, and hover energy, with exactly four clean bounded cyan shoulder and fork-root inlays. Keep cyan out of the core, coils, fork tips, and hover emitters. No text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic."
+  }
+}

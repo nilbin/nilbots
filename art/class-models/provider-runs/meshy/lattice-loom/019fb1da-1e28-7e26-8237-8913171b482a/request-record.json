@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb1da-1e28-7e26-8237-8913171b482a",
+  "assetId": "lattice-loom",
+  "purpose": "Generate the static high-detail Lattice Loom master for the Fabricator class Blender cleanup, team-material split, hover treatment, and deterministic runtime presentation.",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-30T07:08:09.002827Z",
+  "balanceBefore": 920,
+  "expectedCredits": 30,
+  "maxCredits": 30,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/01-top.png",
+      "bytes": 1210750,
+      "sha256": "85d433e6f962ce95e8f49250d2e2b912f9ee85bfe9ed4b14c3071f466f0d6819",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "side",
+      "file": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/02-side.png",
+      "bytes": 351800,
+      "sha256": "db1eb1c090687bb58048506b926b274a1d068c4779864aff54fe3e17fcd72da5",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "front-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/03-front-three-quarter.png",
+      "bytes": 1031469,
+      "sha256": "cc2d8f7c7551ffcabfcc6bb5326a078d7f717a41869737d96877b1855368090c",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "rear-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/lattice-loom/clean-v1/04-rear-three-quarter.png",
+      "bytes": 658080,
+      "sha256": "a0c3361db16082796f234dcb4c8e951d4e2ef9a7425a0654eedf10433877e3cf",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Restrained stylized PBR levitating industrial robot: warm ceramic-white armor, graphite trusswork, copper coils, warm amber honeycomb core, fork, and hover energy, with exactly four clean bounded cyan shoulder and fork-root inlays. Keep cyan out of the core, coils, fork tips, and hover emitters. No text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic."
+  },
+  "sourcePackage": {
+    "manifest": "art/class-models/provider-inputs/meshy/lattice-loom/manifest.json",
+    "sha256": "2e1e0b4a1bd107bc7f351644a08a30cc9e0b103bb2b297d9cd33968dd3bf5d0b",
+    "status": "provider-ready"
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "multiImageApi": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "terms": "https://www.meshy.ai/terms-of-use",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "Meshy output URLs expire; provider output is downloaded immediately and URLs are not storage.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T07:12:42.025655Z",
+  "consumedCreditsObserved": 30,
+  "finishedAt": "2026-07-30T07:12:57.313852Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 890,
+  "consumedCredits": 30,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 59972724,
+      "sha256": "0cd9084e14355323b46194f84e9a406cb07fa19f69320c62dce263223dbd0b6f",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 82940,
+      "sha256": "a248e4ed836836e9b69458d05b35dcef265491bf9507727f15e3c570aaf10c07",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 30817824,
+      "sha256": "4bc286b93d175ea1188db7c4c62a002b176ab7be429d93e6c0a5ca44ab3b806e",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1164750,
+      "sha256": "eff9fcf60449b05d056550e465cdcaf067ce81b16248a8572366f27d4f328dd2",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1910684,
+      "sha256": "d77cdfc0713abb85dd1b6a9c15ce8b3275b9378adf3dad04cd242719a7afb2b7",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 34406061,
+      "sha256": "cca1e9ae49f9eb7b22a91ac507b20e6ada0be0587b8d63ec45375e493eb39241",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 569031,
+      "sha256": "7ddf1197562e6806269315623aa3e16e8ae0531ad3b9c281455361f092e1a619",
+      "contentType": "image/png",
+      "reusedExisting": false
+    }
+  ]
+}

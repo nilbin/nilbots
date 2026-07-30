@@ -1,0 +1,78 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 59972724,
+    "sha256": "0cd9084e14355323b46194f84e9a406cb07fa19f69320c62dce263223dbd0b6f"
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 521012,
+    "triangles": 967724,
+    "sourceFacing": "-x",
+    "sourceUp": "+y",
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticTeamMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "metallicRoughness",
+      "normal",
+      "emission"
+    ]
+  },
+  "topology": {
+    "indexedSeamIslands": 732,
+    "weldedUniquePositions": 483312,
+    "weldedEdges": 1451586,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  },
+  "silhouette": {
+    "normalization": "fixed 180-degree yaw; uniform scale and translation only",
+    "rawTopIoUToCleanInput": 0.8537,
+    "rawTopOuterIoUToCleanInput": 0.9362,
+    "rawTopIoUToRich2dAuthority": 0.8324,
+    "rawTopOuterIoUToRich2dAuthority": 0.9067,
+    "rawTopAspect": 1.126,
+    "cleanInputTopAspect": 1.206,
+    "rich2dTopAspect": 1.233,
+    "cleanSideAspect": 5.38,
+    "rawSideAspect": 4.81,
+    "rawSideIoUToCleanInputApprox": 0.793,
+    "sideThicknessDriftApprox": 0.12,
+    "topVerdict": "passed-outer-planform-with-targeted-fork-and-truss-correction",
+    "sideVerdict": "passed-low-hover-class-with-targeted-profile-correction"
+  },
+  "identity": {
+    "preserved": [
+      "diamond planform",
+      "open negative-space truss",
+      "honeycomb core",
+      "four copper coils",
+      "two forward fork arms",
+      "exactly four cyan shoulder and fork-root panels",
+      "no unsupported north or south cyan panels",
+      "low-hover body with no feet"
+    ],
+    "requiredCorrection": [
+      "extend and square the forward fork span without global warp",
+      "clean the diagonal truss pattern and preserve every opening",
+      "author clearer underside amber hover emitters",
+      "split exactly four semantic team panels from amber class energy",
+      "retopologize, rebake, author tangents, and optimize"
+    ]
+  },
+  "validation": {
+    "khronosValidation": "pending-runtime-derivative"
+  },
+  "verdict": "accepted-high-detail-master-requires-targeted-runtime-authoring"
+}

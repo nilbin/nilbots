@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+  "assetId": "aegis-tortoise-turret",
+  "purpose": "Generate the static high-detail whole Aegis Tortoise Turret master for Bulwark form segmentation, retopology, semantic team-material isolation, and deterministic anchor/fire rigging.",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-30T08:44:36.405872Z",
+  "balanceBefore": 770,
+  "expectedCredits": 30,
+  "maxCredits": 30,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+      "bytes": 1365442,
+      "sha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "side",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/02-side.png",
+      "bytes": 458660,
+      "sha256": "87fe51f18efedb8f1b5160899715bdd6c4efb34d19b1a04738db6492a908adc2",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "front-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/03-front-three-quarter.png",
+      "bytes": 942465,
+      "sha256": "404b12a82bf21a0b22f492bac2190ec4b5562cf1ae18a8baf23d4b204a029bb4",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "rear-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/04-rear-three-quarter.png",
+      "bytes": 909626,
+      "sha256": "c848dd98a7172ae28e718651b31fd4a46c1488ddc663d62f80809f157a5dfebd",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Restrained stylized PBR whole radial emplacement: matte graphite-navy hard-surface armor, weathered bronze cardinal plates, crisp panel seams, dark gunmetal locks and restrained wear. Preserve exactly four equal bounded cyan cardinal inlays; keep the cyan reactor as separate class energy. No extra cyan, glow spill, text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic."
+  },
+  "sourcePackage": {
+    "manifest": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/manifest.json",
+    "sha256": "7531725476f0360f9aad094c39a7722db6fb2db75fa71423e75fe24cc73210c7",
+    "status": "provider-ready"
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "multiImageApi": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "terms": "https://www.meshy.ai/terms-of-use",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "Meshy output URLs expire; provider output is downloaded immediately and URLs are not storage.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T08:48:15.464321Z",
+  "consumedCreditsObserved": 30,
+  "finishedAt": "2026-07-30T08:48:27.902832Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 740,
+  "consumedCredits": 30,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 50525092,
+      "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 91018,
+      "sha256": "dfb8af7a54a5738ab5277af34e4292624fd00d8d1650fab5ebc09a3e93c38494",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 32855923,
+      "sha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1002711,
+      "sha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1755276,
+      "sha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 34909212,
+      "sha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 539286,
+      "sha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba",
+      "contentType": "image/png",
+      "reusedExisting": false
+    }
+  ]
+}

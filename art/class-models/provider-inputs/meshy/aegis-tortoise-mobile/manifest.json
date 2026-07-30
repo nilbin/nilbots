@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-mobile",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "provider-ready",
+  "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/source-sheet.png",
+    "sha256": "ca6c5a24147175e4b3283b3cb23d9ab266ea0bbcc2d5eb9b5e44311a556d3a29",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
+    "path": "art/class-models/concept-targets/aegis-tortoise-3d-concept-v2/approval-sheet.png",
+    "sha256": "d1acf3d6af2ed71c64146a843f7564c99ede0b9384b26c28515218f4f57c3be7",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "art/class-look-concepts/bulwark/aegis-tortoise/concept.png",
+    "sha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+    "kind": "rich-2d-visual"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "imageRight": "+X",
+    "worldUp": "+Y"
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d806e4ba3517fb8e09ed02ca41636dbb04d31e92b92a5d792b648574768aec18"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5b74bdd48413aedf63a6f7a37e3d33f8f29355c8985a18c23f437ccaa0ef008f"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "279ab86b4b370706628db23edde62b959b28e85a8a372dd5046307e6efb3687e"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8e2067220e89b98e526c0cc3ca3c129bcbdb6becb571ca22c20db121067aa54f"
+    }
+  ],
+  "blockers": [],
+  "providerSubmission": {
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail Aegis Tortoise mobile master for the Bulwark class Blender segmentation, retopology, team-material split, and deterministic walk rig.",
+    "texturePrompt": "Restrained stylized PBR heavy combat robot: matte graphite-navy hard-surface armor, weathered bronze plates, crisp panel seams, dark neutral gun and leg mechanics, bounded cyan light inlays, and cool cyan reactor energy. Keep cyan confined to clean inlay and light surfaces with no spill. No text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic. Preserve authored wear."
+  }
+}

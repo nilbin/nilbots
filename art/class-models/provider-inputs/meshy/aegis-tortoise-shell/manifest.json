@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-shell",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "provider-ready",
+  "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/source-sheet.png",
+    "sha256": "147694c15072a7006e61bbebf1d75585addd5801a612c48d1a70fde3dd488655",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
+    "path": "art/class-models/concept-targets/aegis-tortoise-shell-3d-concept-v1/approval-sheet.png",
+    "sha256": "2d77b5ae7e6a96714164fc4f417d4c0cc0b4a23f13851ce4dad34208fe19f867",
+    "width": 1536,
+    "height": 1024
+  },
+  "identityCorrectionSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/identity-correction-source.png",
+    "sha256": "e099012c964ae3be92b79e5284ff22ec7b993eefdca2b2f8bf85625620ae7b05",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+    "sha256": "935cd10f6ecbe6b006e14011218d0619160f89b78e6b20c6b6a0d7469dc03d81",
+    "kind": "runtime-svg-exact-form-authority"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "imageRight": "+X",
+    "worldUp": "+Y"
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d39111631efa577b5efdfa16811da6a03d4a9aa8714def29ee455cf7681e26e4"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "98e0fed13fe0edbf613150763df7d1d53700769148a44ab54112d8e5f72c9e3f"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "eb7ccfa0e03afca30847c193a63426c19316e63ed7aa45c35cc853586fedbd91"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "4ca9878351ed4ffb6f70ec716b9f56189fbc05cdf8fd0686dc6abea7c8573bfb"
+    }
+  ],
+  "blockers": [],
+  "providerSubmission": {
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail Aegis Tortoise Shell master for Bulwark form segmentation, retopology, semantic team-material isolation, and deterministic deploy/retract rigging.",
+    "texturePrompt": "Restrained stylized PBR deployed directional shield robot: matte graphite-navy hard-surface armor, weathered bronze quadrant plate, crisp panel seams, dark gunmetal supports and restrained wear. Preserve the two bounded cyan shield-edge inlays and west-center cyan inlay; keep the cyan reactor as separate class energy. No cyan on rear corner pods, glow spill, text, logos, labels, decals, baked shadows, floor lighting, extra markings, or glossy toy plastic."
+  }
+}
