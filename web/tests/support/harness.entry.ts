@@ -47,7 +47,9 @@ export {
 export { projectileFlightMotionAt } from '../../src/render/projectileMotion';
 export {
   projectileDissipationsAt,
+  projectileTerminalSignaturesAt,
   projectileTerminalsInTick,
+  PROJECTILE_TERMINAL_SIGNATURE_TICKS,
 } from '../../src/render/projectileTerminal';
 export {
   volleyArrowOutline,

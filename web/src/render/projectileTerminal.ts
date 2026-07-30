@@ -31,6 +31,18 @@ export interface ProjectileTerminalSample extends ProjectileTerminal {
   age: number;
 }
 
+/**
+ * Class-specific terminal geometry gets a slightly longer signature than the common hit
+ * vocabulary.
+ *
+ * Five 60 Hz frames were enough to register "a hit happened", but not enough to read fork
+ * versus facet versus lattice at whole-arena scale. 0.75 replay tick is 150 ms at the
+ * viewer's five ticks per second: still a sharp reaction, with enough tail to preserve the
+ * projectile identity after the common 0.4-tick shockwave has finished.
+ */
+export const PROJECTILE_TERMINAL_SIGNATURE_TICKS = 0.75;
+const TYPED_TERMINAL_PRESENTATION_START = 0.6;
+
 const terminalIndex = new WeakMap<
   ReplayModel,
   ReadonlyMap<number, readonly ProjectileTerminal[]>
@@ -82,6 +94,67 @@ export function projectileDissipationsAt(
   return projectileTerminalsInTick(replay, deathTick)
     .filter((terminal) => terminal.kind === 'spent')
     .map((terminal) => ({ ...terminal, age }));
+}
+
+/**
+ * Damage, destruction, and harmless expiry signatures at absolute replay time.
+ *
+ * This is presentation-only and deliberately separate from the common rules cues. Those
+ * still land and finish in their existing late-tick 0.4 window; only the look-specific
+ * geometry sampled by this function carries across the boundary. At most the current and
+ * previous replay ticks can contribute, and every result is rebuilt from the playhead, so
+ * backwards scrubs and overlapping terminals are history-independent.
+ *
+ * A generation-3 typed terminal begins at the authoritative late-tick contact point.
+ * Older terminal-less replays preserve their historical harmless-expiry fallback at the
+ * next tick. Such a fallback is not invented after the final legacy tick, where no next
+ * tick exists. A typed final-tick terminal remains visible on the frozen final replay
+ * frame rather than disappearing merely because its cosmetic tail extends past playback.
+ */
+export function projectileTerminalSignaturesAt(
+  replay: ReplayModel,
+  time: number,
+): ProjectileTerminalSample[] {
+  if (replay.ticks.length === 0) return [];
+  const clamped = Math.max(0, Math.min(time, replay.ticks.length));
+  const playheadTick = Math.min(
+    Math.floor(clamped),
+    replay.ticks.length - 1,
+  );
+  const results: ProjectileTerminalSample[] = [];
+  for (
+    let terminalTick = Math.max(0, playheadTick - 1);
+    terminalTick <= playheadTick;
+    terminalTick += 1
+  ) {
+    for (const terminal of projectileTerminalsInTick(
+      replay,
+      terminalTick,
+    )) {
+      if (
+        terminal.kind !== 'damage-hit' &&
+        terminal.kind !== 'destruction' &&
+        terminal.kind !== 'spent'
+      )
+        continue;
+      const legacySpent =
+        terminal.kind === 'spent' && replay.sourceVersion < 3;
+      if (
+        legacySpent &&
+        terminal.tick >= replay.ticks.length - 1
+      )
+        continue;
+      const startsAt =
+        terminal.tick +
+        (legacySpent ? 1 : TYPED_TERMINAL_PRESENTATION_START);
+      const age =
+        (clamped - startsAt) /
+        PROJECTILE_TERMINAL_SIGNATURE_TICKS;
+      if (age < 0 || age > 1) continue;
+      results.push({ ...terminal, age });
+    }
+  }
+  return results;
 }
 
 function buildTerminalIndex(

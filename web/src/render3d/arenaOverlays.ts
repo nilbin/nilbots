@@ -13,6 +13,7 @@ import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
 import { arrivalsAt, headingAngle } from '../render/interpolate';
 import {
   projectileDissipationsAt,
+  projectileTerminalSignaturesAt,
   projectileTerminalsInTick,
   type ProjectileTerminal,
 } from '../render/projectileTerminal';
@@ -139,7 +140,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction, visibleTiles);
     impacts.update(tick, fraction, visibleTiles);
-    projectileTerminals.update(tick, fraction, visibleTiles);
+    projectileTerminals.update(time, visibleTiles);
     spent.update(time, visibleTiles);
     absorptions.update(tick, fraction, visibleTiles);
     arrivals.update(time);
@@ -1147,8 +1148,7 @@ function buildProjectileTerminalCues(
 ): {
   group: THREE.Group;
   update: (
-    tick: number,
-    fraction: number,
+    time: number,
     visibleTiles: VisibleTiles,
   ) => void;
 } {
@@ -1252,33 +1252,31 @@ function buildProjectileTerminalCues(
   };
 
   const update = (
-    tick: number,
-    fraction: number,
+    time: number,
     visibleTiles: VisibleTiles,
   ) => {
     used.clear();
-    const contactAge = (fraction - 0.6) / 0.4;
-    if (contactAge >= 0 && contactAge <= 1) {
-      for (const terminal of projectileTerminalsInTick(replay, tick)) {
-        if (
-          (terminal.kind !== 'damage-hit' &&
-            terminal.kind !== 'destruction') ||
-          !tileIsVisible(terminal.position, visibleTiles)
-        )
-          continue;
-        const cue = projectileLookAtTerminal(replay, terminal).terminalCue;
-        if (cue === null) continue;
-        show(terminal, cue, terminal.kind, contactAge);
-      }
-    }
-
-    // Generation 3's typed terminal shares the late contact window. Older replay
-    // generations retain the following-tick fallback encoded by this pure sampler.
-    for (const terminal of projectileDissipationsAt(replay, tick + fraction)) {
+    for (const terminal of projectileTerminalSignaturesAt(
+      replay,
+      time,
+    )) {
       if (!tileIsVisible(terminal.position, visibleTiles)) continue;
       const cue = projectileLookAtTerminal(replay, terminal).terminalCue;
       if (cue === null) continue;
-      show(terminal, cue, 'dissipation', terminal.age);
+      let presentation: ProjectileTerminalPresentation;
+      if (terminal.kind === 'spent') presentation = 'dissipation';
+      else if (
+        terminal.kind === 'damage-hit' ||
+        terminal.kind === 'destruction'
+      )
+        presentation = terminal.kind;
+      else continue;
+      show(
+        terminal,
+        cue,
+        presentation,
+        terminal.age,
+      );
     }
 
     for (const [cue, pool] of pools) {

@@ -13,7 +13,9 @@ import {
   buildOverlays,
   loadReplayJson,
   projectileDissipationsAt,
+  projectileTerminalSignaturesAt,
   projectileTerminalsInTick,
+  PROJECTILE_TERMINAL_SIGNATURE_TICKS,
 } from './.harness/harness.entry.js';
 
 const generic = loadReplayJson(
@@ -238,6 +240,150 @@ test('every class terminal cue has authored replay-time motion and scrub purity'
     );
     overlays.dispose();
   }
+});
+
+test('class signatures keep a 0.75-tick tail, end exactly, and remain scrub-pure', () => {
+  assert.equal(PROJECTILE_TERMINAL_SIGNATURE_TICKS, 0.75);
+  const replay = terminalReplay(
+    {
+      kind: 'actor-contact',
+      targetActorId: { teamId: 1, unitId: 0, lifeId: 0 },
+      appliedDamage: true,
+    },
+    'damage',
+  );
+  const terminal = projectileTerminalsInTick(replay, 0)[0]!;
+
+  const [tail] = projectileTerminalSignaturesAt(replay, 1.2).filter(
+    (candidate) => candidate.projectileId === terminal.projectileId,
+  );
+  assert.ok(tail, 'the class signature survives into the following tick');
+  assert.ok(Math.abs(tail.age - 0.8) < 1e-9);
+
+  const overlays = buildOverlays(replay);
+  overlays.update(1.2, null, false);
+  const [root] = visibleNodes(
+    overlays,
+    (node) =>
+      node.userData.cue === 'projectile-terminal' &&
+      node.userData.projectileId === terminal.projectileId,
+  );
+  assert.ok(root);
+  const carried = terminalSnapshot(root);
+
+  overlays.update(0.2, null, false);
+  assert.equal(
+    visibleNodes(
+      overlays,
+      (node) =>
+        node.userData.cue === 'projectile-terminal' &&
+        node.userData.projectileId === terminal.projectileId,
+    ).length,
+    0,
+  );
+  overlays.update(1.2, null, false);
+  const [revisited] = visibleNodes(
+    overlays,
+    (node) =>
+      node.userData.cue === 'projectile-terminal' &&
+      node.userData.projectileId === terminal.projectileId,
+  );
+  assert.ok(revisited);
+  assert.deepEqual(terminalSnapshot(revisited), carried);
+
+  overlays.update(1.36, null, false);
+  assert.equal(
+    visibleNodes(
+      overlays,
+      (node) =>
+        node.userData.cue === 'projectile-terminal' &&
+        node.userData.projectileId === terminal.projectileId,
+    ).length,
+    0,
+    'the signature is gone immediately after its exact 0.75-tick window',
+  );
+  overlays.dispose();
+});
+
+test('same-tick terminals pool independently during the extended signature', () => {
+  const replay = terminalReplay(
+    {
+      kind: 'actor-contact',
+      targetActorId: { teamId: 1, unitId: 0, lifeId: 0 },
+      appliedDamage: true,
+    },
+    'damage',
+  );
+  const tick = replay.ticks[0]!;
+  const duplicate = structuredClone(tick.projectileTraversals[0]!);
+  duplicate.projectileId = 'same-tick-overlap';
+  duplicate.terminal = {
+    kind: 'actor-contact',
+    targetActorId: { teamId: 1, unitId: 0, lifeId: 0 },
+    appliedDamage: true,
+  };
+  tick.projectileTraversals.push(duplicate);
+
+  const overlays = buildOverlays(replay);
+  overlays.update(0.82, null, false);
+  const roots = visibleNodes(
+    overlays,
+    (node) =>
+      node.userData.cue === 'projectile-terminal' &&
+      node.userData.terminalTick === 0,
+  );
+  assert.equal(roots.length, 2);
+  assert.deepEqual(
+    roots
+      .map((root) => root.userData.projectileId as string)
+      .sort(),
+    [
+      tick.projectileTraversals[0]!.projectileId,
+      duplicate.projectileId,
+    ].sort(),
+  );
+  overlays.dispose();
+});
+
+test('a typed final-tick terminal remains visible on the frozen final frame', () => {
+  const replay = structuredClone(generic) as ReplayModel;
+  replay.forms[0]!.projectileLookId = 'trident-spark';
+  const terminalTick = replay.ticks.length - 1;
+  const traversal =
+    replay.ticks[terminalTick]!.projectileTraversals[0]!;
+  traversal.terminal = {
+    kind: 'actor-contact',
+    targetActorId: { teamId: 1, unitId: 0, lifeId: 0 },
+    appliedDamage: true,
+  };
+  const terminal = projectileTerminalsInTick(
+    replay,
+    terminalTick,
+  ).find(
+    (candidate) => candidate.projectileId === traversal.projectileId,
+  );
+  assert.ok(terminal);
+  const [sample] = projectileTerminalSignaturesAt(
+    replay,
+    replay.ticks.length,
+  ).filter(
+    (candidate) => candidate.projectileId === traversal.projectileId,
+  );
+  assert.ok(sample);
+  assert.ok(sample.age > 0 && sample.age < 1);
+
+  const overlays = buildOverlays(replay);
+  overlays.update(replay.ticks.length, null, false);
+  assert.equal(
+    visibleNodes(
+      overlays,
+      (node) =>
+        node.userData.cue === 'projectile-terminal' &&
+        node.userData.projectileId === traversal.projectileId,
+    ).length,
+    1,
+  );
+  overlays.dispose();
 });
 
 test('a persistent projectile keeps its exact firing-form cue', () => {
