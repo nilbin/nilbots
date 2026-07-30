@@ -642,6 +642,136 @@ test('3D capture overlays separate build, erosion, and exact post-advance ratche
   holdOverlays.dispose();
 });
 
+test('the accent pool stays transparent when a bot is followed', () => {
+  // The pool is an additively blended `PlaneGeometry` two and a half tiles square with a
+  // radial glow for a texture and no alpha test — everything it draws is alpha. Following a
+  // bot raises its base opacity to exactly 1, and `fade` used to *assign*
+  // `transparent = factor < 1 || base < 1`, which at full strength is `false`. Dropped into
+  // the opaque pass, the soft circle of light became a hard square: the rectangular box
+  // reported around one unit at a time — the selected one.
+  const actors = buildActors(replay);
+  const followed: ReplayStableUnitKey = 'duel:0:unit:0';
+
+  const poolOf = (unitKey: ReplayStableUnitKey) => {
+    let material: THREE.MeshBasicMaterial | null = null;
+    chassisOf(actors.group, unitKey).traverse((node) => {
+      if (node.userData.cue !== 'accent-pool') return;
+      const mesh = node as THREE.Mesh;
+      assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
+      material = mesh.material;
+    });
+    assert.ok(material, `no accent pool for ${unitKey}`);
+    return material as THREE.MeshBasicMaterial;
+  };
+
+  // Unfollowed: base is below 1, so even the old rule kept this one honest.
+  actors.update(10, null, false);
+  assert.equal(poolOf(followed).transparent, true);
+
+  // Followed, unfogged, fully emerged — base 1 and factor 1, the exact corner that broke.
+  actors.update(10, followed, false);
+  const pool = poolOf(followed);
+  assert.equal(
+    pool.transparent,
+    true,
+    'the followed bot\'s pool must stay in the transparent pass',
+  );
+  assert.ok(pool.opacity > 0.99, 'and it is at full strength while followed');
+
+  // Selecting a different bot must hand the first one back unbroken.
+  actors.update(10, 'duel:1:unit:0' as ReplayStableUnitKey, false);
+  assert.equal(poolOf(followed).transparent, true);
+
+  actors.dispose();
+});
+
+test('capture arcs spin about their own tile, never about the map corner', () => {
+  // The erosion and hold arcs are `InstancedMesh`es whose tile translation lives in the
+  // instance matrices. Turning the mesh — the obvious way to spin them — swung every arc
+  // around tile (0,0) on a radius of however far into the arena its tile sat, at nearly two
+  // revolutions a second. That is what "random flying circles all over the map" was: rings
+  // of light orbiting the corner of the arena, surfacing wherever the playhead landed.
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const overlays = buildOverlays(held);
+
+  // Several playheads, because the angle is a function of time: at t=0 even a mesh
+  // rotation is the identity, so a single early frame proves nothing.
+  for (const time of [0, 0.5, 7.5, 31.25, 220]) {
+    overlays.update(time, null, false);
+    overlays.group.updateMatrixWorld(true);
+
+    const placed: Record<string, THREE.Vector3> = {};
+    overlays.group.traverse((node) => {
+      const kind = node.userData.kind;
+      const mesh = node as THREE.InstancedMesh;
+      if (typeof kind !== 'string' || !mesh.isInstancedMesh) return;
+      const matrix = new THREE.Matrix4();
+      mesh.getMatrixAt(0, matrix);
+      placed[kind] = new THREE.Vector3()
+        .setFromMatrixPosition(matrix)
+        .applyMatrix4(mesh.matrixWorld);
+    });
+
+    for (const kind of [
+      'frontline-capture-progress',
+      'frontline-capture-erosion',
+      'frontline-capture-hold',
+    ]) {
+      const at = placed[kind];
+      assert.ok(at, `${kind} is instanced`);
+      assert.ok(
+        Math.abs(at.x - 9.5) < 1e-6 && Math.abs(at.z - 2.5) < 1e-6,
+        `${kind} sits on its tile at t=${time}, not at (${at.x.toFixed(2)}, ${at.z.toFixed(2)})`,
+      );
+    }
+  }
+
+  overlays.dispose();
+});
+
+test('the capture arcs still turn — the spin is local, not removed', () => {
+  // The fix must not be "delete the rotation". The arcs are meant to counter-rotate; what
+  // changed is the centre they turn about, so the instance matrices have to differ between
+  // two playheads while their translation stays put.
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const overlays = buildOverlays(held);
+
+  const basisAt = (time: number): number[] => {
+    overlays.update(time, null, false);
+    let found: number[] | null = null;
+    overlays.group.traverse((node) => {
+      if (node.userData.kind !== 'frontline-capture-hold') return;
+      const matrix = new THREE.Matrix4();
+      (node as THREE.InstancedMesh).getMatrixAt(0, matrix);
+      found = [...matrix.elements];
+    });
+    assert.ok(found);
+    return found;
+  };
+
+  const early = basisAt(1);
+  const later = basisAt(2.5);
+  assert.notDeepEqual(early, later, 'the arc turns between two playheads');
+  // Elements 12/13/14 are the translation column: unchanged while the basis rotates.
+  assert.deepEqual(early.slice(12, 15), later.slice(12, 15));
+
+  overlays.dispose();
+});
+
 test('zero-tick replay-v2 prefixes do not invent bodies, lifecycle, or an active position', () => {
   const actors = buildActors(emptyFrontlinePrefix);
   actors.update(0, null, false);

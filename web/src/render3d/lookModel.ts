@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { beginAsset } from '../render/assetReadiness';
 import { chassisModel } from './chassisModel';
 
 /**
@@ -81,12 +82,49 @@ const models = registerModels([
   [classProjectileModelSpecs, classProjectileModelUrls, 'projectile'],
 ]);
 
-const loader = new GLTFLoader();
+/**
+ * One manager across every GLB, so every request a model makes is visible in one place.
+ *
+ * A GLB is not one request: glTF pulls its own buffers and textures, and the loader routes
+ * those through the manager it was given. The manager is what makes those sub-requests
+ * countable at all.
+ *
+ * **It is not, however, what holds the gate.** `LoadingManager` fires `onLoad` the moment
+ * `itemsLoaded === itemsTotal`, which is true at every lull — including the gap between
+ * the `.glb` arriving and its textures being requested. Hanging the hold off `onStart` and
+ * `onLoad` therefore released it mid-load and reported the arena ready with the striker
+ * still missing, which is measurably what happened: the play button lit five seconds into
+ * an eight-second model fetch. The authoritative hold is per load, below, and spans the
+ * whole of `loadAsync` — which resolves only once glTF has parsed every dependency.
+ */
+const loadingManager = new THREE.LoadingManager();
+
+const loader = new GLTFLoader(loadingManager);
 const rawModels = new Map<string, Promise<THREE.Group | null>>();
 
 /** Return renderer metadata synchronously without starting a model download. */
 export function modelSpec(id: string): LookModelSpec | null {
   return models.get(id)?.spec ?? null;
+}
+
+/**
+ * Which source `lookModel` will draw this request from, decided without fetching anything.
+ *
+ * Exists so the sector rule can be asserted rather than eyeballed: both paths return a
+ * `THREE.Group`, and the difference between "the striker's nose" and "four whole strikers"
+ * is invisible to a caller and — as it turned out — to a reviewer as well.
+ */
+export function lookModelSource(
+  id: string,
+  sector?: 'front',
+): LookModelSource {
+  const registered = models.get(id);
+  if (!registered) return 'fallback';
+  // Only a model authored *as* the arm already is the sector. Anything else would have to
+  // be cropped, and a triangulated mesh cannot be — the layered SVG can.
+  if (sector !== undefined && registered.spec.part !== 'turret-arm')
+    return 'fallback';
+  return 'gltf';
 }
 
 /** Whether this representation came from an authored GLB rather than the SVG fallback. */
@@ -104,6 +142,15 @@ export function isGenuineLookModel(model: THREE.Object3D): boolean {
  * A missing, unreadable or malformed GLB falls back to the existing sprite extrusion.
  * The SVG therefore remains the canonical asset for Canvas/mobile/site use and the safe
  * rendering floor for WebGL.
+ *
+ * **A `sector` a model cannot serve is also a fallback.** `sector: 'front'` asks for the
+ * chassis' forward section — the piece the turret builder repeats around an axis to make
+ * an emplacement. A layered SVG can be cropped to it; a triangulated GLB authored as
+ * `part: 'whole'` cannot. Ignoring the argument and handing back the whole body was
+ * silently wrong in a way that only showed up on the one look with a model: the striker's
+ * turret came out as four entire strikers tipped on their noses and splayed around the
+ * unit — a boxy cage of hardware where a compact emplacement belonged, at four times the
+ * triangles. Only a model that declares itself a `turret-arm` is already the sector.
  */
 export async function lookModel(
   look: ModelledLook,
@@ -112,7 +159,7 @@ export async function lookModel(
   teamAccent?: THREE.Color,
 ): Promise<THREE.Group | null> {
   const registered = models.get(look.id);
-  if (!registered)
+  if (!registered || lookModelSource(look.id, sector) === 'fallback')
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
   const raw = await rawModel(registered.url);
@@ -158,6 +205,10 @@ function rawModel(url: string): Promise<THREE.Group | null> {
   const existing = rawModels.get(url);
   if (existing) return existing;
 
+  // Held for the whole load, released however it ends. A model that 404s falls back to the
+  // sprite extrusion, and a viewer must not sit behind a loading screen waiting for a file
+  // that is never coming — degraded is not the same as hung.
+  const release = beginAsset();
   const loaded = loader
     .loadAsync(url)
     .then(({ scene }) => {
@@ -167,7 +218,8 @@ function rawModel(url: string): Promise<THREE.Group | null> {
       });
       return hasMesh ? scene : null;
     })
-    .catch(() => null);
+    .catch(() => null)
+    .finally(release);
   rawModels.set(url, loaded);
   return loaded;
 }

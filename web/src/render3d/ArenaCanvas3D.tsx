@@ -32,6 +32,7 @@ export default function ArenaCanvas3D({
   showVisibility,
   onSelectUnit,
   onUnavailable,
+  onReady,
   autoFit = true,
   onManualCamera,
 }: {
@@ -41,6 +42,14 @@ export default function ArenaCanvas3D({
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onUnavailable: () => void;
+  /**
+   * Fired once the scene exists and a frame has actually been rendered.
+   *
+   * This module is a lazy chunk with three.js inside it, so there is a real stretch between
+   * "the viewer decided to use WebGL" and "there is something to look at" that no asset
+   * counter can observe. Playback must not be offered during it.
+   */
+  onReady?: () => void;
   /** Follow the action. On by default; a gesture or the chrome's toggle turns it off. */
   autoFit?: boolean;
   /** Fired when a gesture takes the camera, so the chrome can show auto-fit as off. */
@@ -56,6 +65,7 @@ export default function ArenaCanvas3D({
     showVisibility,
     onSelectUnit,
     onUnavailable,
+    onReady,
     autoFit,
     onManualCamera,
   });
@@ -65,6 +75,7 @@ export default function ArenaCanvas3D({
     showVisibility,
     onSelectUnit,
     onUnavailable,
+    onReady,
     autoFit,
     onManualCamera,
   };
@@ -228,6 +239,7 @@ export default function ArenaCanvas3D({
 
     let animation = 0;
     let last: number | null = null;
+    let announced = false;
     let lastFit = frameState.current.autoFit;
     const draw = (stamp: number) => {
       const {
@@ -269,6 +281,13 @@ export default function ArenaCanvas3D({
       );
       arena.camera.lookAt(looking);
       renderer.render(arena.scene, arena.camera);
+      // Announced after the draw, not before it: the point of the signal is that there is
+      // now something on screen, and reporting it from the effect would hand back a ready
+      // renderer that had not yet drawn a pixel.
+      if (!announced) {
+        announced = true;
+        frameState.current.onReady?.();
+      }
       animation = requestAnimationFrame(draw);
     };
     animation = requestAnimationFrame(draw);

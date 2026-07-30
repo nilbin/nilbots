@@ -14,10 +14,12 @@ import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
 import { useAssetReadiness } from '../render/useAssetReadiness';
+import { viewerGate } from '../render/viewerReadiness';
 import { readSoundtrackEnabledPreference } from '../soundtrack/preferences';
 import { useImmersive } from './useImmersive';
 import { useScreenWakeLock } from './useScreenWakeLock';
 import ArenaCanvas from './ArenaCanvas';
+import PlayOverlay from './PlayOverlay';
 
 import SoundEffectsControl from './SoundEffectsControl';
 import CameraFitToggle from './CameraFitToggle';
@@ -68,7 +70,17 @@ export default function Viewer({
     useState(false);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
-  const playback = usePlayback(replay, assets.ready, !isLive);
+  // The WebGL renderer arrives as its own chunk and then builds a scene, and neither of
+  // those is an asset the counter can see. Until the first frame has been drawn there is
+  // nothing on screen, so readiness has to include it — otherwise the button lights while
+  // the arena is still a black rectangle, which is the state this whole gate exists to
+  // remove. Canvas2D needs no equivalent: it draws from the same atlases the counter
+  // already holds, so it is ready the moment they are.
+  const [sceneReady, setSceneReady] = useState(false);
+  // Whether the viewer has been asked to play. The overlay is offered exactly once — the
+  // transport owns pause and resume from there, and a scrim over a running match would be
+  // worse than none.
+  const [started, setStarted] = useState(false);
   const liveTime = useLiveFollower(replay, live);
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
@@ -90,6 +102,17 @@ export default function Viewer({
   // catches. Both fall back without asking.
   const [dimensional, setDimensional] = useState(DIMENSIONAL_RENDERER_AVAILABLE);
 
+  const gate = viewerGate({
+    assetsReady: assets.ready,
+    dimensional,
+    sceneReady,
+    live: isLive,
+    started,
+  });
+  // Never autostarted. A live broadcast is the exception and not a contradiction: its clock
+  // is the server's, every viewer is on the same tick, and there is no transport to press.
+  const playback = usePlayback(replay, gate.ready, !isLive, false);
+
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;
@@ -107,6 +130,13 @@ export default function Viewer({
   });
 
   useEffect(() => audioSession.retainOwner(), [audioSession]);
+
+  // The overlay is not the only way in — the transport has a play button, space toggles,
+  // and a seek starts the clock too. Whichever route was taken, the invitation has been
+  // accepted and must not be drawn over a running match again.
+  useEffect(() => {
+    if (playback.playing) setStarted(true);
+  }, [playback.playing]);
 
   // A replay is minutes of watching with nothing to touch, so the phone dims and locks
   // mid-match. Held while the clock is running and given back the moment it stops — a
@@ -435,6 +465,7 @@ export default function Viewer({
                 showVisibility={showVisibility}
                 onSelectUnit={setSelectedUnitKey}
                 onUnavailable={() => setDimensional(false)}
+                onReady={() => setSceneReady(true)}
                 autoFit={autoFit}
                 onManualCamera={() => setAutoFit(false)}
               />
@@ -466,13 +497,25 @@ export default function Viewer({
             </span>{' '}
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
-          {!assets.ready && (
+          {/* A live broadcast has no play button — the clock belongs to the server and
+              every viewer is on the same tick — so it keeps a plain indicator. */}
+          {isLive && gate.overlay === 'loading' && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
               <p className="lab" role="status">
-                Loading arena — {assets.pending} texture
-                {assets.pending === 1 ? '' : 's'}
+                Loading arena
+                {assets.pending > 0 && ` — ${assets.pending} asset${assets.pending === 1 ? '' : 's'}`}
               </p>
             </div>
+          )}
+          {!isLive && gate.overlay !== 'hidden' && (
+            <PlayOverlay
+              ready={gate.playable}
+              pending={assets.pending}
+              onPlay={() => {
+                setStarted(true);
+                playback.play();
+              }}
+            />
           )}
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">

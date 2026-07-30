@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
+import { beginAsset } from '../render/assetReadiness';
 
 /**
  * A chassis as real volume, extruded from the sprite that draws it flat.
@@ -55,7 +56,13 @@ export function chassisModel(
   const existing = cache.get(key);
   if (existing) return existing;
 
-  const built = load(url, paint, sector, teamAccent).catch(() => null);
+  // The derived path is a fetch and a triangulation, and it is what every look without an
+  // authored GLB uses — so it gates the opening frame exactly as a model does. Held here
+  // rather than inside `load`, so the parse counts too and not merely the download.
+  const release = beginAsset();
+  const built = load(url, paint, sector, teamAccent)
+    .catch(() => null)
+    .finally(release);
   cache.set(key, built);
   return built;
 }

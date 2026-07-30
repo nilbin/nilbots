@@ -65,6 +65,7 @@ export { buildOverlays } from '../../src/render3d/arenaOverlays';
 export {
   isGenuineLookModel,
   lookModel,
+  lookModelSource,
   modelSpec,
 } from '../../src/render3d/lookModel';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';

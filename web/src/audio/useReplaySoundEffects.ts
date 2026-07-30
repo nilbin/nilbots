@@ -5,6 +5,7 @@ import {
   type SoundEffectCueId,
 } from './soundEffects';
 import { ArenaAudioSession } from './ArenaAudioSession';
+import { beginAsset } from '../render/assetReadiness';
 import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
 import {
@@ -34,6 +35,9 @@ const cueVoiceLimit: Record<SoundEffectCueId, number> = {
   impact: 2,
   destroyed: 1,
 };
+
+/** The cues a match cannot start without. Same set `preloadEffects` decodes. */
+const PRELOADED_CUES = ['projectile', 'impact', 'destroyed'] as const;
 
 interface AudioGraph {
   context: AudioContext;
@@ -103,6 +107,34 @@ export function useReplaySoundEffects({
     () => (ownsSession ? audioSession.retainOwner() : undefined),
     [audioSession, ownsSession],
   );
+  // Warm the cue bytes while the arena is still building, and hold the loading gate open
+  // until they land.
+  //
+  // Decoding cannot happen here: `decodeAudioData` needs the graph, the graph needs a
+  // resumed context, and a context resumes only from a trusted gesture — which is the play
+  // button itself. Gating that button on a decode would be a deadlock. Fetching is not
+  // gesture-bound, though, so the bytes can be in the HTTP cache before the click, and the
+  // decode `enable()` does afterwards is then local work rather than a network round trip.
+  // That is the difference between a match whose first shot is silent and one that is not.
+  useEffect(() => {
+    if (!available || typeof fetch !== 'function') return;
+    let cancelled = false;
+    const release = beginAsset();
+    void Promise.all(
+      PRELOADED_CUES.map((cue) =>
+        // A cue that will not download is not a reason to hold the viewer shut; the
+        // arena plays silent and the control says so.
+        fetch(soundEffectPack.cues[cue]).catch(() => null),
+      ),
+    ).finally(() => {
+      if (!cancelled) release();
+    });
+    return () => {
+      cancelled = true;
+      release();
+    };
+  }, [available]);
+
   const [volume, setVolumeState] = useState(
     readSoundEffectsVolumePreference,
   );

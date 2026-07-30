@@ -477,6 +477,7 @@ function buildObjective(
       );
       return {
         positionIndex: position.positionIndex,
+        tiles: position.tiles,
         field,
         bedMaterial,
         boundaryMaterial,
@@ -487,9 +488,11 @@ function buildObjective(
         progressMaterial,
         erosion,
         erosionMaterial,
+        erosionSpin: Number.NaN,
         hold,
         holdGeometry,
         holdMaterial,
+        holdSpin: Number.NaN,
       };
     });
 
@@ -632,7 +635,12 @@ function buildObjective(
         active && visual.progressDirection === 'eroding'
           ? 0.68 + pulse * 0.24
           : 0;
-      entry.erosion.rotation.y = -time * Math.PI * 0.72;
+      entry.erosionSpin = spinCaptureRings(
+        entry.erosion,
+        entry.tiles,
+        entry.erosionSpin,
+        -time * Math.PI * 0.72,
+      );
 
       setCaptureArcFraction(
         entry.holdGeometry,
@@ -645,7 +653,12 @@ function buildObjective(
         active && visual.state === 'holding'
           ? 0.72 + pulse * 0.26
           : 0;
-      entry.hold.rotation.y = time * Math.PI * 0.18;
+      entry.holdSpin = spinCaptureRings(
+        entry.hold,
+        entry.tiles,
+        entry.holdSpin,
+        time * Math.PI * 0.18,
+      );
     }
   };
 
@@ -915,13 +928,47 @@ function captureRingInstances(
     material,
     tiles.length,
   );
+  writeCaptureRingMatrices(instances, tiles, 0);
+  return instances;
+}
+
+/**
+ * Spin the capture arcs **in place**, one tile at a time.
+ *
+ * `rotation.y` on the mesh is the obvious way to write this and the wrong one: the tile
+ * translation lives in each instance matrix, and the mesh sits at the map's origin corner,
+ * so turning the mesh swings every arc around tile (0,0) on a radius of however far into
+ * the arena its tile happens to be. At ~1.8 revolutions a second that is a ring of light
+ * flying across — and off — the map, appearing wherever the playhead lands, which is
+ * exactly what it looked like. The rotation has to be composed *before* the translation,
+ * per instance, so each arc turns about its own centre.
+ *
+ * Rewriting the matrices costs a few tiles' worth of arithmetic, so it is skipped when the
+ * angle has not moved — a paused viewer writes nothing.
+ */
+function spinCaptureRings(
+  instances: THREE.InstancedMesh,
+  tiles: readonly ReplayPosition[],
+  current: number,
+  angle: number,
+): number {
+  if (current === angle) return current;
+  writeCaptureRingMatrices(instances, tiles, angle);
+  return angle;
+}
+
+function writeCaptureRingMatrices(
+  instances: THREE.InstancedMesh,
+  tiles: readonly ReplayPosition[],
+  angle: number,
+): void {
   const matrix = new THREE.Matrix4();
   tiles.forEach((tile, index) => {
-    matrix.makeTranslation(tile.x + 0.5, 0, tile.y + 0.5);
+    matrix.makeRotationY(angle);
+    matrix.setPosition(tile.x + 0.5, 0, tile.y + 0.5);
     instances.setMatrixAt(index, matrix);
   });
   instances.instanceMatrix.needsUpdate = true;
-  return instances;
 }
 
 function setCaptureArcFraction(

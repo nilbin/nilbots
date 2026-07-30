@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach } from 'node:test';
 import {
-  pendingDecodes,
-  resetDecodeTracking,
-  subscribeToDecodes,
+  beginAsset,
+  pendingAssets,
+  resetAssetTracking,
+  subscribeToAssets,
   trackDecode,
 } from '../src/render/assetReadiness.ts';
 
@@ -24,11 +25,11 @@ function fakeImage(complete = false) {
   } as unknown as HTMLImageElement & { fire(event: 'load' | 'error'): void };
 }
 
-beforeEach(resetDecodeTracking);
+beforeEach(resetAssetTracking);
 
 test('an already-decoded image never gates playback', () => {
   trackDecode(fakeImage(true));
-  assert.equal(pendingDecodes(), 0);
+  assert.equal(pendingAssets(), 0);
 });
 
 test('pending decodes hold, and loading releases', () => {
@@ -36,12 +37,12 @@ test('pending decodes hold, and loading releases', () => {
   const second = fakeImage();
   trackDecode(first);
   trackDecode(second);
-  assert.equal(pendingDecodes(), 2);
+  assert.equal(pendingAssets(), 2);
 
   first.fire('load');
-  assert.equal(pendingDecodes(), 1);
+  assert.equal(pendingAssets(), 1);
   second.fire('load');
-  assert.equal(pendingDecodes(), 0);
+  assert.equal(pendingAssets(), 0);
 });
 
 test('a failed image releases too', () => {
@@ -50,7 +51,7 @@ test('a failed image releases too', () => {
   const image = fakeImage();
   trackDecode(image);
   image.fire('error');
-  assert.equal(pendingDecodes(), 0);
+  assert.equal(pendingAssets(), 0);
 });
 
 test('an image settling twice only counts once', () => {
@@ -61,15 +62,48 @@ test('an image settling twice only counts once', () => {
   trackDecode(image);
   image.fire('load');
   image.fire('error');
-  assert.equal(pendingDecodes(), 1);
+  assert.equal(pendingAssets(), 1);
 });
 
 test('subscribers see every change', () => {
   const seen: number[] = [];
-  const unsubscribe = subscribeToDecodes((pending) => seen.push(pending));
+  const unsubscribe = subscribeToAssets((pending) => seen.push(pending));
   const image = fakeImage();
   trackDecode(image);
   image.fire('load');
   unsubscribe();
   assert.deepEqual(seen, [1, 0]);
+});
+
+test('a model hold gates playback until it is released', () => {
+  // A GLB is not an image and never went through `trackDecode`, which is how the striker's
+  // 4.5 MB model stayed outside the count entirely — the viewer reported ready and started
+  // a match whose machines arrived seconds later.
+  const release = beginAsset();
+  assert.equal(pendingAssets(), 1);
+  release();
+  assert.equal(pendingAssets(), 0);
+});
+
+test('releasing a hold twice only counts once', () => {
+  // Loaders settle in more than one way — three fires `itemError` and `itemEnd` for the
+  // same failed file — and a double release would report readiness while other work ran.
+  const release = beginAsset();
+  beginAsset();
+  release();
+  release();
+  assert.equal(pendingAssets(), 1);
+});
+
+test('images and models share one count', () => {
+  // The gate is a single question. A viewer waiting on a texture and a viewer waiting on a
+  // model are the same viewer, and two counters would let one of them start early.
+  const release = beginAsset();
+  const image = fakeImage();
+  trackDecode(image);
+  assert.equal(pendingAssets(), 2);
+  image.fire('load');
+  assert.equal(pendingAssets(), 1);
+  release();
+  assert.equal(pendingAssets(), 0);
 });

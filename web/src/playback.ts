@@ -26,18 +26,26 @@ export interface PlaybackState {
 const BASE_TICKS_PER_SECOND = 5;
 
 /**
- * @param ready Hold at tick 0 until the arena's images have decoded. Without this the
+ * @param ready Hold at tick 0 until the arena's assets have arrived. Without this the
  * clock runs behind a loading screen, and the match is already underway when it lifts.
  * @param active False while the server's live clock owns presentation time.
+ * @param autoStart Whether the clock runs as soon as it is allowed to.
+ *
+ * `autoStart` is false wherever a person is watching and a play button is offered: waiting
+ * for assets and then starting anyway is the same missed opening as not waiting at all,
+ * and only a real press can carry the audio activation a browser demands. It stays true
+ * for an embedding host, which draws its own transport and asks for playback over the
+ * bridge — a host that never sent `play` would otherwise sit on a still frame forever.
  */
 export function usePlayback(
   replay: ReplayModel,
   ready = true,
   active = true,
+  autoStart = true,
 ): PlaybackState {
   const tickCount = replay.ticks.length;
   const [time, setTime] = useState(0);
-  const [playing, setPlaying] = useState(active);
+  const [playing, setPlaying] = useState(active && autoStart);
   const [endedNaturally, setEndedNaturally] = useState(false);
   const [transportRevision, setTransportRevision] = useState(0);
   const [speed, setSpeed] = useState(1);

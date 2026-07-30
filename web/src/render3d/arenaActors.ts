@@ -479,6 +479,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     });
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
     glow.position.y = 0.012;
+    glow.userData.cue = 'accent-pool';
     chassis.add(glow);
 
     // A generous invisible target for taps. `visible = false` would take it out of
@@ -813,11 +814,33 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       { material: litPip, base: 1, alwaysTransparent: true },
       { material: lostPip, base: 0.35, alwaysTransparent: true },
     );
+    /**
+     * How each material was authored, before anything faded it.
+     *
+     * Snapshotted lazily rather than at enrolment because models resolve late and register
+     * their own materials; `fade` is the only thing that writes `transparent`, so the first
+     * time it sees a material the value is still the author's.
+     */
+    const authoredTransparent = new Map<THREE.Material, boolean>();
     const fade = (factor: number) => {
       lastFactor = factor;
       for (const { material, base, alwaysTransparent } of fading) {
+        if (!authoredTransparent.has(material))
+          authoredTransparent.set(material, material.transparent);
         material.opacity = base * factor;
-        material.transparent = alwaysTransparent || factor < 1 || base < 1;
+        // **Or'd with how it was authored, never assigned over it.** Assigning was a bug
+        // with one visible victim: the accent pool is an additive, depth-write-free
+        // `PlaneGeometry` two and a half tiles square, and following a bot raises its base
+        // to exactly 1 — so at full strength this computed `false` and moved a radial glow
+        // into the opaque pass, where alpha is not read. The soft circle of light under the
+        // machine became a hard, flat rectangle around it, on the selected bot only. That is
+        // the "box around a model": a material told to stop being transparent while it was
+        // still drawing something transparent.
+        material.transparent =
+          authoredTransparent.get(material)! ||
+          alwaysTransparent ||
+          factor < 1 ||
+          base < 1;
       }
     };
 

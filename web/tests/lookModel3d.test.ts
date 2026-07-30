@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  lookModelSource,
   modelSpec,
   presentationBotLook,
 } from './.harness/harness.entry.js';
@@ -46,4 +47,21 @@ test('legacy looks without a genuine model remain on the SVG fallback path', () 
   assert.equal(modelSpec('vanguard'), null);
   assert.equal(modelSpec('pulse-bolt'), null);
   assert.equal(modelSpec('not-a-look'), null);
+});
+
+test('a whole-body GLB cannot serve a turret sector and yields to the sprite', () => {
+  // The turret is the chassis' forward section repeated around an axis. A layered SVG can
+  // be cropped to that section; the Striker's `part: 'whole'` mesh cannot, and handing the
+  // whole body back put four entire strikers, tipped on their noses, around the unit —
+  // a cage of hardware where an emplacement belonged.
+  assert.equal(modelSpec('trident-wasp')?.part, 'whole');
+  assert.equal(lookModelSource('trident-wasp'), 'gltf');
+  assert.equal(lookModelSource('trident-wasp', 'front'), 'fallback');
+
+  // The mobile body is unaffected: no sector is asked for, so the model still wins.
+  assert.equal(lookModelSource('trident-wasp', undefined), 'gltf');
+
+  // And a look with no model at all was always the sprite, sector or not.
+  assert.equal(lookModelSource('lattice-loom'), 'fallback');
+  assert.equal(lookModelSource('lattice-loom', 'front'), 'fallback');
 });
