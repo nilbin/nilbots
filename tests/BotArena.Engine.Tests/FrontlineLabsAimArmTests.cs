@@ -126,13 +126,26 @@ public sealed class FrontlineLabsAimArmTests
         Assert.DoesNotContain("-rig-", sail, StringComparison.Ordinal);
         Assert.True(sail.Length <= 64, $"{sail} is {sail.Length}");
 
-        string sailWane = Arm(
-            FrontlineLabsClassDefinition.Bulwark,
-            FrontlineLabsClassDefinition.Fabricator,
-            FrontlineLabsAimArm.Offset,
-            FrontlineLabsFiveSlotVariant.Wane).Rules.RulesetId;
-        Assert.Contains("-sail-wane-", sailWane, StringComparison.Ordinal);
-        Assert.True(sailWane.Length <= 64, $"{sailWane} is {sailWane.Length}");
+        // The whole tuned game is one registered identity, `crew`, and it
+        // must fit the worst cell — the fabricator mirror.
+        foreach ((FrontlineLabsClassDefinition zero,
+                  FrontlineLabsClassDefinition one) in new[]
+                 {
+                     (FrontlineLabsClassDefinition.Bulwark,
+                         FrontlineLabsClassDefinition.Fabricator),
+                     (FrontlineLabsClassDefinition.Fabricator,
+                         FrontlineLabsClassDefinition.Fabricator),
+                 })
+        {
+            string crew = Arm(
+                zero,
+                one,
+                FrontlineLabsAimArm.Offset,
+                FrontlineLabsFiveSlotVariant.Wane).Rules.RulesetId;
+            Assert.Contains("-crew-", crew, StringComparison.Ordinal);
+            Assert.DoesNotContain("-wane-", crew, StringComparison.Ordinal);
+            Assert.True(crew.Length <= 64, $"{crew} is {crew.Length}");
+        }
     }
 
     [Fact]

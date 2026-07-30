@@ -753,16 +753,28 @@ public static class FrontlineLabsDefinition
                     : [],
             ];
         // The aim grammar is an arm-level factor (it rides the gun, not a
-        // skill), so its token lands right after the arm tokens. `rig` +
-        // aim is registered as one token — `sail` — because spelling both
-        // beside `wane` overflows the bulwark-vs-fabricator cell.
+        // skill), so its token lands right after the arm tokens. Two
+        // combinations are registered under one token because their
+        // spellings overflow the worst cells: `sail` = rig + aim, and
+        // `crew` = rig + aim + wane — the whole tuned candidate game,
+        // which the fabricator mirror cannot spell as sail-wane.
         string[] arms =
             ArmTokens(pendulum, skills, bendEnvelope, classes, composed);
         if (aim == FrontlineLabsAimArm.Offset)
         {
-            arms = arms is ["rig"]
-                ? ["sail"]
-                : [.. arms, "aim"];
+            if (arms is ["rig"]
+                && fiveSlots == FrontlineLabsFiveSlotVariant.Wane
+                && stanceGround == FrontlineLabsStanceGroundArm.Strict)
+            {
+                arms = ["crew"];
+                tuning = [];
+            }
+            else
+            {
+                arms = arms is ["rig"]
+                    ? ["sail"]
+                    : [.. arms, "aim"];
+            }
         }
         string[] tokens =
         [

@@ -392,8 +392,8 @@ bends) or combine the offset with the one-bend program. Read the bounds
 from your attack profile's `shotProgram` (`minInitialAimSteps`/
 `maxInitialAimSteps` are ±1 on this arm, 0 otherwise). Specials never
 carry it — the volley aims by facing, the turret aims absolutely.
-`rig` + aim is registered as `sail`; the tuned candidate game is
-`sail-wane`.
+`rig` + aim is registered as `sail`; the whole tuned candidate game
+(rig + aim + wane) is `crew`.
 
 ### Stance ground (round 3)
 

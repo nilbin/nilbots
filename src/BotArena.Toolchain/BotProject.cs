@@ -136,8 +136,8 @@ public static class ToolchainInfo
     /// skill stance can rise on objective tiles and in the corridor; turret
     /// anchors keep the tag. Pure route data — existing rulesets stay
     /// byte-identical.
-    /// 0.9.20 registers the aim arm (`--aim offset`, rig + aim composite
-    /// `sail`): the ±1-sector initial launch offset returns to every
+    /// 0.9.20 registers the aim arm (`--aim offset`; composites `sail` =
+    /// rig + aim and `crew` = the tuned game rig + aim + wane): the ±1-sector initial launch offset returns to every
     /// class's mobile gun (DECISIONS #173 — the one-bend grammar had
     /// dropped it by conflation). Existing rulesets stay byte-identical.
     /// Keep in lockstep with BotArena.Cli.csproj's

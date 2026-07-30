@@ -353,7 +353,7 @@ static int CommandHelp(string command)
             on every class's mobile gun (DECISIONS #173) — the one-bend
             grammar had dropped it by conflation, never by ruling. Specials
             are untouched. Needs a class pair. rig + aim is registered as
-            `sail`, so the tuned candidate game spells `sail-wane`.
+            `sail`, and the whole tuned game (rig + aim + wane) as `crew`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the
