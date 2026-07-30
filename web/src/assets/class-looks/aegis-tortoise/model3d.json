@@ -5,5 +5,13 @@
   "kind": "bot",
   "part": "whole",
   "facing": "+x",
-  "up": "+y"
+  "up": "+y",
+  "semanticAnimation": {
+    "version": 1,
+    "stanceDeployClip": "Shell_Deploy",
+    "emplacedDeployClip": "Tower_Deploy",
+    "mobileRecoilClip": "Mobile_Recoil",
+    "stanceRecoilClip": "Shell_Recoil",
+    "emplacedRecoilClip": "Tower_Recoil"
+  }
 }

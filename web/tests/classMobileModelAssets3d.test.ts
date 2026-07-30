@@ -21,6 +21,14 @@ interface ModelSpec {
   part: string;
   facing: string;
   up: string;
+  semanticAnimation?: {
+    version: number;
+    stanceDeployClip: string;
+    emplacedDeployClip: string;
+    mobileRecoilClip?: string;
+    stanceRecoilClip?: string;
+    emplacedRecoilClip?: string;
+  };
 }
 
 interface GlbAccessor {
@@ -43,10 +51,17 @@ interface GlbBufferView {
 interface GlbMaterial {
   name?: string;
   extras?: {
+    nilbotsAtlasCount?: number;
     nilbotsNeutral?: boolean;
+    nilbotsRendererContract?: string;
     nilbotsRole?: string;
     nilbotsSourceTextureFree?: boolean;
     nilbotsTeamColourAtRuntime?: boolean;
+    nilbotsTeamColorOwnership?: string;
+    nilbotsTextureDonorSha256?: string;
+    nilbotsTextureEligible?: boolean;
+    nilbotsTextureSource?: string;
+    nilbotsTextureStage?: string;
   };
   emissiveFactor?: number[];
   emissiveTexture?: { index?: number };
@@ -80,14 +95,28 @@ interface GlbNode {
   children?: number[];
   matrix?: number[];
   mesh?: number;
+  name?: string;
   rotation?: number[];
   scale?: number[];
   translation?: number[];
 }
 
+interface GlbAnimation {
+  name?: string;
+  channels?: {
+    sampler?: number;
+    target?: { node?: number; path?: string };
+  }[];
+  samplers?: {
+    input?: number;
+    interpolation?: string;
+    output?: number;
+  }[];
+}
+
 interface GlbDocument {
   accessors?: GlbAccessor[];
-  animations?: unknown[];
+  animations?: GlbAnimation[];
   bufferViews?: GlbBufferView[];
   cameras?: unknown[];
   extensions?: {
@@ -284,7 +313,7 @@ function worldBoundsY(document: GlbDocument): {
   return { min, max };
 }
 
-test('the Bulwark runtime GLB pins the approved 512-tier body and neutral team emitters', () => {
+test('the Bulwark runtime GLB pins the textured animated family and semantic team emitters', () => {
   assert.deepEqual(modelSpec('aegis-tortoise'), {
     version: 1,
     id: 'aegis-tortoise',
@@ -293,42 +322,37 @@ test('the Bulwark runtime GLB pins the approved 512-tier body and neutral team e
     part: 'whole',
     facing: '+x',
     up: '+y',
+    semanticAnimation: {
+      version: 1,
+      stanceDeployClip: 'Shell_Deploy',
+      emplacedDeployClip: 'Tower_Deploy',
+      mobileRecoilClip: 'Mobile_Recoil',
+      stanceRecoilClip: 'Shell_Recoil',
+      emplacedRecoilClip: 'Tower_Recoil',
+    },
   });
 
   const glb = readGlb(modelPath('aegis-tortoise'));
   const { document } = glb;
-  assert.equal(glb.bytes.length, 685_744);
+  assert.equal(glb.bytes.length, 8_024_032);
   assert.equal(
     sha256(glb.bytes),
-    '0d083a34c6d5a947882273dce0b7d18d10364bdf9e36f437c0c94e7f2b4d5c8c',
+    'a169822ef3c3b98ab854257e3c637e00f50900e53cfb3f51dfd8910d7ec4df8b',
   );
 
   const entries = (document.meshes ?? []).flatMap((mesh) =>
     (mesh.primitives ?? []).map((primitive) => ({ mesh, primitive })),
   );
-  assert.equal(entries.length, 13);
+  assert.equal(entries.length, 31);
   const accentEntries = entries.filter(
-    ({ mesh, primitive }) =>
-      mesh.extras?.nilbotsRole === 'team-accent' &&
-      primitive.extras?.nilbotsRole === 'team-accent',
+    ({ primitive }) => primitive.material === 1,
   );
   assert.equal(accentEntries.length, 4);
-  assert.deepEqual(
-    accentEntries
-      .map(({ mesh }) => mesh.extras?.nilbotsPanelKind)
-      .sort(),
-    [
-      'forward-shield-long',
-      'forward-shield-long',
-      'rear-outer-pod-compact',
-      'rear-outer-pod-compact',
-    ],
-  );
   assert.ok(
     accentEntries.every(
-      ({ mesh }) =>
-        mesh.extras?.nilbotsSurfaceFitted === true &&
-        mesh.extras?.nilbotsTextureFree === true,
+      ({ primitive }) =>
+        JSON.stringify(Object.keys(primitive.attributes ?? {}).sort()) ===
+        JSON.stringify(['NORMAL', 'POSITION', 'TEXCOORD_0']),
     ),
   );
 
@@ -337,12 +361,13 @@ test('the Bulwark runtime GLB pins the approved 512-tier body and neutral team e
   );
   assert.deepEqual([...accentMaterialIndices], [1]);
   const accentMaterial = document.materials?.[1];
-  assert.equal(accentMaterial?.name, 'Nilbots Team Accent');
+  assert.equal(accentMaterial?.name, 'NB_TeamAccent_Semantic');
   assert.deepEqual(accentMaterial?.extras, {
-    nilbotsNeutral: true,
+    nilbotsRendererContract:
+      'renderer supplies restrained team glow; provider material is ignored',
     nilbotsRole: 'team-accent',
-    nilbotsSourceTextureFree: true,
-    nilbotsTeamColourAtRuntime: true,
+    nilbotsTextureEligible: false,
+    nilbotsTextureStage: 'semantic-texture-free',
   });
   assert.equal(
     accentMaterial?.pbrMetallicRoughness?.baseColorTexture,
@@ -356,35 +381,52 @@ test('the Bulwark runtime GLB pins the approved 512-tier body and neutral team e
   assert.equal(accentMaterial?.normalTexture, undefined);
 
   const bodyEntries = entries.filter(
-    ({ primitive }) => primitive.extras?.nilbotsRole !== 'team-accent',
+    ({ primitive }) => primitive.material !== 1,
   );
-  assert.equal(bodyEntries.length, 9);
+  assert.equal(bodyEntries.length, 27);
   assert.ok(
     bodyEntries.every(({ primitive }) => primitive.material === 0),
+  );
+  assert.ok(
+    bodyEntries.every(
+      ({ primitive }) =>
+        JSON.stringify(Object.keys(primitive.attributes ?? {}).sort()) ===
+        JSON.stringify(['NORMAL', 'POSITION', 'TEXCOORD_0']),
+    ),
+    'the validated MikkTSpace inputs stay on every textured primitive',
   );
   assert.equal(
     bodyEntries.reduce(
       (sum, { primitive }) => sum + triangleCount(document, primitive),
       0,
     ),
-    12_979,
+    21_888,
   );
   assert.equal(
     accentEntries.reduce(
       (sum, { primitive }) => sum + triangleCount(document, primitive),
       0,
     ),
-    112,
+    432,
   );
   assert.equal(
     entries.reduce(
       (sum, { primitive }) => sum + triangleCount(document, primitive),
       0,
     ),
-    13_091,
+    22_320,
   );
 
   const bodyMaterial = document.materials?.[0];
+  assert.equal(bodyMaterial?.name, 'Aegis_Neutral_OriginalUV');
+  assert.deepEqual(bodyMaterial?.extras, {
+    nilbotsAtlasCount: 1,
+    nilbotsTeamColorOwnership: 'renderer',
+    nilbotsTextureDonorSha256:
+      'd9c332494cb82ba679fc944ed6e1dd85c8993a80bca9cde112ffe113ff65d4a9',
+    nilbotsTextureSource: 'texture-only-donor',
+    nilbotsTextureStage: 'neutral-original-uv-input',
+  });
   const textureIndices = [
     bodyMaterial?.emissiveTexture?.index,
     bodyMaterial?.normalTexture?.index,
@@ -398,20 +440,77 @@ test('the Bulwark runtime GLB pins the approved 512-tier body and neutral team e
   });
   assert.deepEqual(
     images.map((image) => image?.name),
-    ['emissive', 'normal', 'base_color', 'metallic_roughness'],
+    [
+      'emissive-fb1ab261fc082ebf',
+      'normal-5c02b357a56b88cf',
+      'baseColor-b1abb3e6da2f2e91',
+      'metallicRoughness-34c47bd88efdef4c',
+    ],
   );
   for (const image of images) {
     assert.equal(image?.mimeType, 'image/jpeg');
     assert.ok(image?.bufferView !== undefined);
     assert.deepEqual(
       jpegSize(readBufferView(glb, image.bufferView)),
-      { height: 512, width: 512 },
+      { height: 2048, width: 2048 },
     );
   }
 
-  const bounds = worldBoundsY(document);
-  assert.ok(Math.abs(bounds.min) < 1e-7, `floor is y=${bounds.min}`);
-  assertNoScenePayload(document);
+  const animations = document.animations ?? [];
+  const animationRows = animations.map((animation) => ({
+    name: animation.name,
+    channels: animation.channels?.length ?? 0,
+    targets: new Set(
+      (animation.channels ?? []).map((channel) => channel.target?.node),
+    ).size,
+    duration: Math.max(
+      ...(animation.samplers ?? []).map(
+        (sampler) =>
+          document.accessors?.[sampler.input ?? -1]?.max?.[0] ?? 0,
+      ),
+    ),
+  }));
+  assert.deepEqual(animationRows, [
+    { name: 'PodPlant_HoverSettle', channels: 5, targets: 5, duration: 3.2 },
+    { name: 'Shell_Deploy', channels: 14, targets: 14, duration: 3.2 },
+    { name: 'Tower_Deploy', channels: 23, targets: 15, duration: 3.2 },
+    {
+      name: 'Mobile_Recoil',
+      channels: 2,
+      targets: 2,
+      duration: 0.7333333333333333,
+    },
+    { name: 'Shell_Recoil', channels: 4, targets: 4, duration: 0.8 },
+    {
+      name: 'Tower_Recoil',
+      channels: 24,
+      targets: 16,
+      duration: 1.1333333333333333,
+    },
+    ...Array.from({ length: 8 }, (_, index) => ({
+      name: `Tower_Recoil_${String(index + 1).padStart(2, '0')}`,
+      channels: 3,
+      targets: 2,
+      duration: 0.7333333333333333,
+    })),
+  ]);
+  assert.ok(
+    animations.every((animation) =>
+      (animation.channels ?? []).every(
+        (channel) =>
+          channel.target?.node !== undefined &&
+          document.nodes?.[channel.target.node] !== undefined &&
+          channel.sampler !== undefined &&
+          animation.samplers?.[channel.sampler] !== undefined,
+      ),
+    ),
+    'every preserved animation channel binds to an exported node and sampler',
+  );
+  assert.deepEqual(document.cameras ?? [], []);
+  assert.deepEqual(
+    document.extensions?.KHR_lights_punctual?.lights ?? [],
+    [],
+  );
 });
 
 test('the Fabricator GLB stays lean and exposes exactly four team-panel quadrants', () => {
