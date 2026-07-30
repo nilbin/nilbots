@@ -3,30 +3,57 @@
 
 Consolidates the blind-review flow used for the classes wave-1 factorial:
 take the header-only sample manifest written by ``replay-review-sample.py``,
-inject each replay into a built viewer template at the CLI's
-``<!--BOTARENA_REPLAY-->`` marker (the ``ReplayOutput.WriteViewer``
-semantics, including the ``</`` escape), and emit an index. Two viewer
-modes:
+put each replay behind a page built from a viewer template, and emit an
+index. Two viewer modes:
 
-- ``--viewer hosted`` (default): inject into ``web/dist/index.html`` and
+- ``--viewer hosted`` (default): build from ``web/dist/index.html`` and
   copy everything ``dist`` ships beside it — the hashed ``assets/`` *and*
   the ``public/`` passthrough the viewer fetches at runtime, which is
   where the soundtrack lives (``soundtracks/index.json``). Full renderer
-  (lazy WebGL); must be SERVED (http.server / cloudflared per the
-  replay-highlights skill) — file:// blocks module loading, and the
-  pages reference ``/assets`` and ``/soundtracks`` absolutely, so serve
-  the gallery directory as the server root.
-- ``--viewer self-contained``: inject into a ``web/dist-cli/<theme>``
-  template. Portable single files, Canvas2D only (dist-cli excludes
-  Three.js by design).
+  (lazy WebGL); must be SERVED (``scripts/serve-gallery.py`` behind
+  cloudflared per the replay-highlights skill) — file:// blocks module
+  loading, and the pages reference ``/assets`` and ``/soundtracks``
+  absolutely, so serve the gallery directory as the server root.
 
-``--review-panel`` appends the outcome-blind rating panel to every page
-(two 1-5 scores — fun to watch, easy to follow — plus free notes;
-autosaved to localStorage) and gives the index per-sample progress plus a
-"Copy review JSON" button that copies the decision-record artifact to the
-clipboard and shows it in a selectable box (clipboard needs a secure
-context, so the box is the fallback on plain-http LAN).
-The index shows pairing and map but never outcomes; keep it that way.
+  The replay is **not** inlined here. Each page is a few kB that fetches
+  ``replays/<sample>.json`` beside it, assigns
+  ``window.__BOTARENA_REPLAY__``, and only then appends the bundle's
+  module script — the mode switch in ``web/src/main.tsx`` reads that
+  global at module-evaluation time, so the order is load-bearing. That
+  keeps the per-match download to one compressible JSON instead of a
+  15-25 MB HTML document that re-ships the whole bundle every match, and
+  lets the browser cache ``/assets`` across pages. The builder also
+  writes ``.gz`` siblings for everything compressible;
+  ``scripts/serve-gallery.py`` serves them with ``Content-Encoding:
+  gzip`` (replays shrink ~10x).
+
+- ``--viewer self-contained``: inject into a ``web/dist-cli/<theme>``
+  template at the CLI's ``<!--BOTARENA_REPLAY-->`` marker (the
+  ``ReplayOutput.WriteViewer`` semantics, including the ``</`` escape).
+  Portable single files, Canvas2D only (dist-cli excludes Three.js by
+  design). Unchanged: this is the path whose whole point is one file.
+
+``--review-panel`` appends the rating panel to every page (two 1-5
+scores — fun to watch, easy to follow — plus free notes; autosaved to
+localStorage) and gives the index per-sample progress plus a "Copy review
+JSON" button that copies the decision-record artifact to the clipboard and
+shows it in a selectable box (clipboard needs a secure context, so the box
+is the fallback on plain-http LAN).
+
+An index is generated from the sample manifest by default: pairing and map,
+never outcomes — keep a blind gallery that way. A *curated* gallery (an
+already-unblinded highlight reel) supplies its own card copy with
+``--index-cards`` and its own lede with ``--intro``, and still gets the
+progress markers and the export button:
+
+    [{"id": "sample-02", "title": "vector-edge beats iron-root",
+      "subtitle": "striker over bulwark, seed 960017", "win": true}, ...]
+
+(a bare list, or an object with ``cards`` plus optional ``intro``/``title``;
+``win`` only picks the win colour). Card order is the index order. Note the
+per-sample ids come from the builder's deterministic hash shuffle of the
+manifest, not from the manifest's own order — build once and read the
+mapping out of the output before writing curated copy.
 
 Example:
     python3 scripts/build-review-gallery.py \
@@ -39,6 +66,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import html
 import json
@@ -48,6 +76,58 @@ from pathlib import Path
 
 MARKER = "<!--BOTARENA_REPLAY-->"
 REPO = Path(__file__).resolve().parent.parent
+
+# The hashed module script(s) `web/dist/index.html` loads. Hosted pages strip
+# them out of the template and re-append them from JS once the replay is in
+# `window.__BOTARENA_REPLAY__`; see BOOT_TEMPLATE.
+MODULE_SCRIPT = re.compile(
+    r"[ \t]*<script\b(?=[^>]*\btype=\"module\")[^>]*>\s*</script>[ \t]*\n?")
+SCRIPT_SRC = re.compile(r"\bsrc=\"([^\"]+)\"")
+
+# Pre-compressed siblings for `scripts/serve-gallery.py` (stdlib http.server
+# sends no Content-Encoding of its own). Only what actually shrinks: the
+# replays are the point (~10x), the bundle and the pages come along cheaply,
+# and the textures/audio beside them are already compressed formats.
+GZIP_SUFFIXES = {".css", ".html", ".js", ".json", ".map", ".svg", ".txt"}
+GZIP_MIN_BYTES = 1024
+
+DEFAULT_INTRO = """Outcome-blind review: outcomes are hidden. Watch at normal
+speed and give two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy
+to follow &mdash; plus any notes."""
+
+# Hosted boot: fetch the replay, publish it, *then* load the bundle. The
+# placeholder is plain markup so it is visible before any of this runs, and it
+# survives until the module has executed — removing it at fetch-time would
+# trade a "fetching" line for a blank page while the bundle loads.
+BOOT_TEMPLATE = """
+<style>#brvboot{position:fixed;inset:0;z-index:9990;display:flex;
+ align-items:center;justify-content:center;background:#0b1020;color:#9fb2d8;
+ font:15px/1.5 system-ui}</style>
+<div id=brvboot>Fetching replay&hellip;</div>
+<script>
+(function(){
+var SOURCES=__SOURCES__,REPLAY="__REPLAY__";
+var note=document.getElementById("brvboot");
+function say(text){if(note)note.textContent=text}
+function boot(){
+ var pending=SOURCES.length;
+ SOURCES.forEach(function(src){
+  var script=document.createElement("script");
+  script.type="module";script.crossOrigin="anonymous";script.src=src;
+  script.onload=function(){if(--pending===0)
+   requestAnimationFrame(function(){requestAnimationFrame(function(){
+    if(note&&note.parentNode)note.parentNode.removeChild(note)})})};
+  script.onerror=function(){say("Viewer bundle failed to load \\u2014 reload.")};
+  document.head.appendChild(script)})}
+fetch(REPLAY).then(function(response){
+  if(!response.ok)throw new Error("HTTP "+response.status);
+  return response.json()})
+ .then(function(replay){
+  window.__BOTARENA_REPLAY__=replay;say("Starting viewer\\u2026");boot()})
+ .catch(function(error){say("Replay failed to load: "+error.message)});
+})();
+</script>
+"""
 
 PANEL_TEMPLATE = """
 <style>
@@ -129,6 +209,105 @@ def card_labels(entry: dict) -> str:
     return f"{pairing} — {arm} map" if pairing else entry.get("rules", "")
 
 
+def gzip_sibling(path: Path) -> int:
+    """Write ``<path>.gz`` and return its size."""
+    target = path.with_name(path.name + ".gz")
+    with path.open("rb") as source, target.open("wb") as raw:
+        # mtime=0 keeps the sibling byte-stable for an unchanged input.
+        with gzip.GzipFile(fileobj=raw, mode="wb", compresslevel=6,
+                           mtime=0) as compressed:
+            shutil.copyfileobj(source, compressed)
+    return target.stat().st_size
+
+
+def gzip_tree(root: Path) -> int:
+    """Pre-compress every servable text file under ``root``."""
+    count = 0
+    for path in sorted(root.rglob("*")):
+        if (path.is_file()
+                and path.suffix in GZIP_SUFFIXES
+                and path.stat().st_size >= GZIP_MIN_BYTES):
+            gzip_sibling(path)
+            count += 1
+    return count
+
+
+def append_to_body(page: str, block: str) -> str:
+    return (page.replace("</body>", block + "</body>", 1)
+            if "</body>" in page else page + block)
+
+
+def hosted_page(template: str, replay_url: str) -> str:
+    """A page that fetches its replay before booting the bundle."""
+    sources = []
+    for tag in MODULE_SCRIPT.findall(template):
+        src = SCRIPT_SRC.search(tag)
+        if src:
+            sources.append(src.group(1))
+    if not sources:
+        raise SystemExit(
+            "web/dist/index.html: no <script type=\"module\" src=…> to defer")
+    page = MODULE_SCRIPT.sub("", template).replace(
+        MARKER, "<!-- replay fetched at runtime by the boot script -->")
+    return append_to_body(page, BOOT_TEMPLATE
+                          .replace("__SOURCES__", json.dumps(sources))
+                          .replace("__REPLAY__", replay_url))
+
+
+def inlined_page(template: str, replay: str) -> str:
+    """The CLI's single-file semantics: the replay lives in the document."""
+    return template.replace(
+        MARKER,
+        "<script>window.__BOTARENA_REPLAY__ = "
+        + replay.replace("</", "<\\/")
+        + ";</script>")
+
+
+def curated_cards(path: Path) -> tuple[list[dict], str | None, str | None]:
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(document, list):
+        return document, None, None
+    cards = document.get("cards")
+    if not cards:
+        raise SystemExit(f"{path}: no cards")
+    return cards, document.get("intro"), document.get("title")
+
+
+def index_cards(entries: list[dict], curated: list[dict] | None) -> list[dict]:
+    """Card order + copy for the index: curated when supplied, else derived."""
+    derived = {
+        entry["id"]: {
+            "id": entry["id"],
+            "title": f"Sample {index}",
+            "subtitle": card_labels(entry),
+        }
+        for index, entry in enumerate(entries, start=1)
+    }
+    if not curated:
+        return list(derived.values())
+    cards, seen = [], set()
+    for card in curated:
+        sid = card.get("id") or card.get("sample")
+        if sid not in derived:
+            raise SystemExit(
+                f"--index-cards names {sid!r}, which this sample does not "
+                f"build (have: {', '.join(derived)})")
+        seen.add(sid)
+        cards.append({
+            "id": sid,
+            "title": card.get("title", derived[sid]["title"]),
+            "subtitle": card.get("subtitle", derived[sid]["subtitle"]),
+            "win": bool(card.get("win")),
+        })
+    # A sample the curated list forgot still gets a link rather than
+    # vanishing from a gallery that was built with it.
+    for sid, card in derived.items():
+        if sid not in seen:
+            print(f"note: --index-cards omits {sid}; appended with defaults")
+            cards.append(card)
+    return cards
+
+
 def build(args: argparse.Namespace) -> None:
     # Multiple --sample manifests merge into one blind sequence. The order
     # is a deterministic hash shuffle: concatenation order would otherwise
@@ -145,8 +324,9 @@ def build(args: argparse.Namespace) -> None:
         entry["id"] = f"sample-{index:02}"
     output = args.output
     output.mkdir(parents=True, exist_ok=True)
+    hosted = args.viewer == "hosted"
 
-    if args.viewer == "hosted":
+    if hosted:
         dist = REPO / "web" / "dist"
         template_path = dist / "index.html"
         if not template_path.exists():
@@ -181,29 +361,37 @@ def build(args: argparse.Namespace) -> None:
     if MARKER not in template:
         raise SystemExit(f"{template_path}: injection marker missing")
 
-    cards = []
-    for index, entry in enumerate(entries, start=1):
-        sid = f"sample-{index:02}"
-        replay = Path(entry["source"]).read_text(encoding="utf-8")
-        page = template.replace(
-            MARKER,
-            "<script>window.__BOTARENA_REPLAY__ = "
-            + replay.replace("</", "<\\/")
-            + ";</script>")
+    replays = output / "replays"
+    if hosted:
+        replays.mkdir(exist_ok=True)
+    for entry in entries:
+        sid = entry["id"]
+        if hosted:
+            shutil.copyfile(entry["source"], replays / f"{sid}.json")
+            page = hosted_page(template, f"replays/{sid}.json")
+        else:
+            page = inlined_page(
+                template, Path(entry["source"]).read_text(encoding="utf-8"))
         if args.review_panel:
-            panel = PANEL_TEMPLATE.replace("__SID__", sid)
-            page = (
-                page.replace("</body>", panel + "</body>")
-                if "</body>" in page
-                else page + panel)
+            page = append_to_body(page, PANEL_TEMPLATE.replace("__SID__", sid))
         (output / f"{sid}.html").write_text(page, encoding="utf-8")
-        cards.append((sid, f"Sample {index}", card_labels(entry)))
+
+    curated, curated_intro, curated_title = (
+        curated_cards(args.index_cards) if args.index_cards
+        else (None, None, None))
+    cards = index_cards(entries, curated)
+    title = args.title if args.title is not None else (
+        curated_title or "Replay review")
+    intro = args.intro if args.intro is not None else (
+        curated_intro if curated_intro is not None else DEFAULT_INTRO)
 
     items = "\n".join(
-        f'<li><a href="{sid}.html"><strong>{html.escape(title)}</strong>'
-        f" <span>{html.escape(subtitle)}</span>"
-        f'<em class=prog data-sid="{sid}"></em></a></li>'
-        for sid, title, subtitle in cards)
+        f'<li><a href="{card["id"]}.html">'
+        f'<strong{" class=w" if card.get("win") else ""}>'
+        f'{html.escape(card["title"])}</strong>'
+        f' <span>{html.escape(card["subtitle"])}</span>'
+        f'<em class=prog data-sid="{card["id"]}"></em></a></li>'
+        for card in cards)
     review_block = ""
     if args.review_panel:
         review_block = f"""
@@ -219,7 +407,7 @@ function refresh(){{document.querySelectorAll('em.prog').forEach(function(el){{
  el.textContent=n?(n===2?'\\u2713':n+'/2'):'';}})}}
 function exportNotes(){{
  var out={{exported:new Date().toISOString(),
-   protocol:'outcome-blind-review-v1',samples:{{}}}};
+   protocol:'{args.review_protocol}',samples:{{}}}};
  for(var i=1;i<={len(cards)};i++){{
   var sid='sample-'+String(i).padStart(2,'0');
   var d=localStorage.getItem('nilbots-blind-review::'+sid);
@@ -234,7 +422,7 @@ refresh();window.addEventListener('pageshow',refresh);
     (output / "index.html").write_text(f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(args.title)}</title>
+<title>{html.escape(title)}</title>
 <style>
  body{{font:16px/1.5 system-ui;margin:2rem auto;max-width:40rem;padding:0 1rem;
       background:#0b1020;color:#dbe7ff}}
@@ -243,19 +431,23 @@ refresh();window.addEventListener('pageshow',refresh);
  a{{display:block;padding:.7rem 1rem;border:1px solid #27355c;
    border-radius:.5rem;color:#dbe7ff;text-decoration:none;position:relative}}
  a:hover{{border-color:#4a6cc3}} a span{{color:#9fb2d8;font-size:.9rem;display:block}}
+ strong.w{{color:#7fd6a0}}
  em.prog{{position:absolute;right:1rem;top:.9rem;font-style:normal;color:#7fd6a0}}
  button{{padding:.6rem 1rem;border-radius:.5rem;border:1px solid #33477e;
    background:#1a2a55;color:#dbe7ff;cursor:pointer;font:inherit}}
 </style>
-<h1>{html.escape(args.title)}</h1>
-<p>Outcome-blind review: outcomes are hidden. Watch at normal speed and give
-two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy to follow
-&mdash; plus any notes.</p>
+<h1>{html.escape(title)}</h1>
+{f"<p>{intro}</p>" if intro else ""}
 {review_block}
 <ul>{items}</ul>
 """, encoding="utf-8")
+
+    if hosted:
+        compressed = gzip_tree(output)
+        print(f"pre-compressed {compressed} files "
+              f"(serve with scripts/serve-gallery.py)")
     mode = ("hosted (serve it — file:// will not load modules)"
-            if args.viewer == "hosted" else "self-contained")
+            if hosted else "self-contained")
     print(f"built {len(cards)} review pages ({mode}) in {output}")
 
 
@@ -265,12 +457,23 @@ def main() -> int:
                         action="append",
                         help="replay-review-sample.py output manifest")
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--title", default="Replay review")
+    parser.add_argument("--title", default=None,
+                        help="index heading (default: --index-cards title, "
+                             "else 'Replay review')")
+    parser.add_argument("--intro", default=None,
+                        help="index lede, raw HTML; '' omits it. Default is "
+                             "the outcome-blind protocol paragraph, which a "
+                             "non-blind gallery must replace")
+    parser.add_argument("--index-cards", type=Path, default=None,
+                        help="JSON with curated index card copy and order "
+                             "(see module docstring)")
     parser.add_argument("--viewer", choices=("hosted", "self-contained"),
                         default="hosted")
     parser.add_argument("--theme", default="control-room",
                         help="dist-cli theme for self-contained mode")
     parser.add_argument("--review-panel", action="store_true")
+    parser.add_argument("--review-protocol", default="outcome-blind-review-v1",
+                        help="protocol id stamped into the exported record")
     build(parser.parse_args())
     return 0
 

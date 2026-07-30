@@ -48,15 +48,31 @@ python3 scripts/build-review-gallery.py \
   --title "<experiment> — blind review" --review-panel
 ```
 
-It injects each replay into the built viewer at the CLI's marker
-(`ReplayOutput.WriteViewer` semantics), hides outcomes, and embeds the
-rating panel (methodology dimensions, tick notes, localStorage autosave,
-JSON export). Default `--viewer hosted` uses the full WebGL bundle and must
-be served; `--viewer self-contained` produces portable Canvas2D pages.
+It builds each replay's page from the built viewer, hides outcomes, and
+embeds the rating panel (methodology dimensions, tick notes, localStorage
+autosave, JSON export). Default `--viewer hosted` uses the full WebGL bundle
+and must be served; `--viewer self-contained` inlines the replay at the CLI's
+marker (`ReplayOutput.WriteViewer` semantics) for portable Canvas2D pages.
 Rebuild `web/` first when the viewer changed; rerunning the script is the
 canonical way to refresh a gallery after viewer fixes. Note
 `nilbots replay --out` cannot export replay-v3 viewers (v1 only) — the
-script's marker injection is the v3 path.
+script's injection is the v3 path.
+
+**A hosted page does not carry its replay.** It is a few kB that fetches
+`replays/<sample>.json`, assigns `window.__BOTARENA_REPLAY__` and only then
+appends the bundle's module script, because `main.tsx` reads that global at
+module-evaluation time. Inlining a 4-19 MB replay into every page — which is
+what this used to do — re-shipped the whole bundle per match to a phone on
+mobile data. Serve it with the companion script, which sends the `.gz`
+siblings the builder writes:
+
+```bash
+(cd <gallery-dir> && python3 scripts/serve-gallery.py 8931 --directory .)
+cloudflared tunnel --url http://127.0.0.1:8931
+```
+
+Plain `python3 -m http.server` still works but sends everything
+uncompressed, and replay JSON compresses ~30x.
 
 A hosted gallery carries the whole of `web/dist`, and **the soundtrack is a
 directory, not a bundled asset**: the score is fetched at runtime from
@@ -64,6 +80,14 @@ directory, not a bundled asset**: the score is fetched at runtime from
 the gallery directory *as the server root*, and if the viewer's music control
 reads `SCORE ERROR` while the sound effects still fire, the catalog 404'd —
 the pages are fine, the tree beside them is not.
+
+A gallery that is **not** blind (an unblinded highlight reel) keeps the same
+builder: `--index-cards <json>` supplies curated card order, titles,
+subtitles and a `win` flag, `--intro` replaces the blind-protocol lede, and
+`--review-protocol` names the record. The index still emits its own progress
+markers and export button, so curated copy never costs the rating flow. The
+sample ids come from the builder's hash shuffle, not the manifest order —
+build once, read the mapping out of the output, then write the cards.
 
 ## Without the Sites integration
 
