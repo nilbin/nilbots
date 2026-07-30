@@ -1,8 +1,8 @@
 # Frontline 3D class-model vertical slice
 
-The Striker mobile body is the first accepted generated-geometry vertical
-slice. Its reviewed runtime derivative is staged beside
-`web/src/assets/class-looks/trident-wasp/sprite.svg`; every other class body,
+The Striker and Fabricator mobile bodies are accepted generated-geometry
+vertical slices. Their reviewed runtime derivatives are staged beside the
+canonical SVGs for `trident-wasp` and `lattice-loom`; every other class body,
 stance, emplacement, and class projectile still uses the canonical SVG
 extrusion fallback.
 
@@ -45,6 +45,38 @@ direction is to preserve the larger look and give open wall edges a
 presentation-only setback; actor-owned idle/recoil motion remains a separate
 wall-aware clamp problem.
 
+## Accepted Fabricator result
+
+The accepted Lattice Loom geometry came from Meshy task
+`019fb1da-1e28-7e26-8237-8913171b482a` with image enhancement disabled. The
+immutable provider master is retained in the project artifact store; the
+runtime derivative and reproducible evidence are under
+`provider-runs/meshy/lattice-loom/<task-id>/team-accent/`.
+
+- rigid top-planform full IoU: `81.322%`;
+- rigid top-planform outer-envelope IoU: `88.501%`;
+- runtime GLB: `6,604,048` bytes, `75,000` triangles, two primitives;
+- runtime SHA-256:
+  `e5ada31e067aea1e44d62d561e0b33e1b892a1e883ac7aade7d88993a946bcb1`;
+- exactly 131 team-owned faces across four bounded shoulder/fork-root panel
+  quadrants; the amber core, coils, forks, and hover energy stay authored;
+- authored tangents, zero Khronos errors or warnings, and byte-identical lean
+  and rich GLBs from two independent deterministic Blender runs;
+- blue/orange real-replay review at normal follow and the supported eight-tile
+  minimum zoom, plus an explicit failed-GLB fallback capture.
+
+The deterministic correction is a fixed `180°` yaw, one uniform
+centre/floor/size normalization, and a bounded extension of only the two short
+outer fork prongs. There is no global anisotropic warp. The accepted 75k/1K
+tier was visually indistinguishable at the real camera from the retained
+150k/2K comparison, whose final semantic GLB measured `17,194,988` bytes.
+
+The GLB's authored span is `1.08` tiles. The Fabricator look applies
+`1.14 × 0.9 = 1.026`, so its effective live span is `1.10808` tiles. Its
+`low-hover` cue is presentation-only: rules, movement, and collision remain on
+the ground layer. Fabrication continues to create separate identical
+instances; neither the model nor renderer implies self-fabrication.
+
 ## Rejected procedural evidence
 
 The procedural Blender proof was rejected because its three-dimensional form
@@ -67,16 +99,16 @@ All generated GLBs, Blender files, textures, previews, build reports, and
 procedural model generators from those failed experiments were removed so the
 approach cannot be mistaken for a production pipeline.
 
-## Remaining landing work
+## Landing boundaries
 
-Before merging, retain the deterministic team-accent script/config/report
-outside ignored scratch space, record the tangent-space decision, rebase onto
-Fable's current integration tip, and rerun the full web and production/CLI
-builds. The Frontline map branch owns the corrected live-span wall-clearance
-proof and modular wall implementation; it does not change gameplay collision.
+The Frontline map branch owns the corrected live-span wall-clearance proof and
+modular wall implementation; it does not change gameplay collision. Runtime
+models remain WebGL-only, manifest-driven, and lazy-loaded. The canonical
+2D assets continue to serve the site, Canvas2D, mobile, CLI, loading, and
+failed-model paths.
 
-Striker's shallow `low-hover` is canonical presentation metadata in
-`look.json`, independent of whether an approved GLB ever exists.
+Striker and Fabricator shallow `low-hover` cues are canonical presentation
+metadata in `look.json`, independent of whether an approved GLB exists.
 
 The default `trident-spark` projectile has not been submitted to Meshy. It is a
 separate object, input review, task, and credit charge after this chassis

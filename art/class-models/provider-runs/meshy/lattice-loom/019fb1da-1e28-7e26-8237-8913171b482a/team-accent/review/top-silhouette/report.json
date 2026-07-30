@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "inputs": {
+    "canonical": {
+      "file": "art/class-look-concepts/fabricator/lattice-loom/concept.png",
+      "bytes": 1128386,
+      "sha256": "cd1d47fa5cbcaf488aa0c1ee06f7f7bf03767577daa216110d0c3bd9088a8ab5"
+    },
+    "candidate": {
+      "file": "review/blender/top-blue.png",
+      "bytes": 441767,
+      "sha256": "ce5ceacd0ad5a843a83b4dc0554f4b81ebcb4e7047d90ea4a8ce87026c74bb98"
+    }
+  },
+  "method": {
+    "alphaThreshold": 64,
+    "orientation": "unchanged; both inputs face East/right",
+    "alignment": "largest-alpha bounds, one uniform candidate scale to canonical width, bounding-box centres aligned",
+    "prohibited": [
+      "rotation",
+      "reflection",
+      "anisotropic scale",
+      "warp"
+    ],
+    "canvas": {
+      "width": 768,
+      "height": 768
+    },
+    "overlayLegend": {
+      "overlap": "#dee4ea",
+      "canonicalOnly": "#00dcff",
+      "candidateOnly": "#ff488b"
+    }
+  },
+  "measurements": {
+    "canonicalBounds": {
+      "minX": 49,
+      "minY": 161,
+      "maxX": 1198,
+      "maxY": 1092,
+      "width": 1150,
+      "height": 932
+    },
+    "candidateBounds": {
+      "minX": 77,
+      "minY": 119,
+      "maxX": 690,
+      "maxY": 648,
+      "width": 614,
+      "height": 530
+    },
+    "canonicalAspect": 1.233906,
+    "candidateAspect": 1.158491,
+    "full": {
+      "intersectionPixels": 146040,
+      "unionPixels": 179582,
+      "intersectionOverUnion": 0.813222,
+      "intersectionOverUnionPercent": 81.322,
+      "canonicalCoveragePercent": 92.075,
+      "candidateCoveragePercent": 87.442
+    },
+    "outerEnvelope": {
+      "intersectionPixels": 164641,
+      "unionPixels": 186032,
+      "intersectionOverUnion": 0.885014,
+      "intersectionOverUnionPercent": 88.501,
+      "canonicalCoveragePercent": 97.619,
+      "candidateCoveragePercent": 90.454
+    }
+  }
+}

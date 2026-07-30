@@ -1,0 +1,507 @@
+{
+  "version": 1,
+  "method": "deterministic-offline-team-accent-face-partition",
+  "recipe": {
+    "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/team-accent/recipe.json",
+    "sha256": "826604a0eee63fd21af62c1b72235e786d793dcc0faf192b710697947323f6bb"
+  },
+  "source": {
+    "taskId": "019fb1da-1e28-7e26-8237-8913171b482a",
+    "imageEnhancement": false,
+    "model": "sandbox/class-model-builds/lattice-loom/lattice-loom-lean-source.glb",
+    "modelBytes": 4978440,
+    "modelSha256": "60bbc96d292ee36408cadcda2786f87dbd48060ef3fed769a43986bc8916f2c6",
+    "baseColor": {
+      "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/texture-0-base-color.png",
+      "width": 4096,
+      "height": 4096,
+      "sha256": "4bc286b93d175ea1188db7c4c62a002b176ab7be429d93e6c0a5ca44ab3b806e"
+    },
+    "emission": {
+      "file": "art/class-models/provider-runs/meshy/lattice-loom/019fb1da-1e28-7e26-8237-8913171b482a/texture-0-emission.png",
+      "width": 2048,
+      "height": 2048,
+      "sha256": "7ddf1197562e6806269315623aa3e16e8ae0531ad3b9c281455361f092e1a619"
+    }
+  },
+  "outputs": {
+    "model": {
+      "file": "sandbox/class-model-builds/lattice-loom/team-accent-final/lattice-loom-team-accent.glb",
+      "bytes": 6604048,
+      "sha256": "e5ada31e067aea1e44d62d561e0b33e1b892a1e883ac7aade7d88993a946bcb1"
+    },
+    "losslessMask": {
+      "file": "sandbox/class-model-builds/lattice-loom/team-accent-final/team-accent-mask.png",
+      "bytes": 84527,
+      "sha256": "bdbf88640cd0bce708496741d2e2def6f6bb2f1a552fc80b824768b8d55a8cef",
+      "width": 4096,
+      "height": 4096,
+      "format": "PNG"
+    },
+    "neutralHullBase": {
+      "file": "sandbox/class-model-builds/lattice-loom/team-accent-final/hull-base-neutral.png",
+      "bytes": 1873493,
+      "sha256": "bfe4a9e7b0b521d07eb7efb27fad462e55393adf0f7150eb51bee42940fa7de9",
+      "width": 1024,
+      "height": 1024,
+      "format": "PNG"
+    },
+    "neutralHullEmission": {
+      "file": "sandbox/class-model-builds/lattice-loom/team-accent-final/hull-emission-neutral.png",
+      "bytes": 168182,
+      "sha256": "65aa88197876db29580c8ebf3e7c01cc2e4a7151d9c0b79524f3c66ceec3883d",
+      "width": 1024,
+      "height": 1024,
+      "format": "PNG"
+    }
+  },
+  "thresholds": {
+    "workingGrid": "emission-resolution exact 2x2 base-color box average",
+    "baseLoose": {
+      "greenMin": 35,
+      "blueMin": 45,
+      "greenMinusRedMin": 12,
+      "blueMinusRedMin": 18
+    },
+    "baseStrong": {
+      "greenMin": 80,
+      "blueMin": 100,
+      "greenMinusRedMin": 40,
+      "blueMinusRedMin": 55
+    },
+    "emissionLoose": {
+      "greenMin": 8,
+      "blueMin": 10,
+      "greenMinusRedMin": 3,
+      "blueMinusRedMin": 5
+    },
+    "emissionStrong": {
+      "greenMin": 28,
+      "blueMin": 34,
+      "greenMinusRedMin": 14,
+      "blueMinusRedMin": 18
+    },
+    "balancedCyan": "2*g >= b && 2*b >= g",
+    "connectivity": 8,
+    "guidedGrowthIterations": 2,
+    "close": "one radius-1 square dilate/erode",
+    "minimumFinalComponentPixelsAtWorkingResolution": 32,
+    "triangleSamples": 7,
+    "triangleVoteThreshold": 5
+  },
+  "mask": {
+    "workingWidth": 2048,
+    "workingHeight": 2048,
+    "baseCandidatePixelsAtWorkingResolution": 26302,
+    "emissionCandidatePixelsAtWorkingResolution": 21983,
+    "initialTwoChannelPixelsAtWorkingResolution": 21468,
+    "strongSeedPixelsAtWorkingResolution": 19423,
+    "finalPixelsAtWorkingResolution": 22798,
+    "keptPixels": 91192,
+    "keptPercent": 0.5435466766357422,
+    "components": {
+      "initial": {
+        "total": 71,
+        "kept": 35,
+        "removed": 36,
+        "keptPixels": 21391,
+        "removedPixels": 77,
+        "largest": [
+          {
+            "pixels": 2234,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1614,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1340,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1290,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1233,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1180,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1157,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1054,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1034,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 939,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 915,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 869,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 799,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 745,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 716,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 597,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 558,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 545,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 491,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 458,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 455,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 439,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 406,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 154,
+            "containsStrongSeed": true,
+            "kept": true
+          }
+        ]
+      },
+      "final": {
+        "total": 28,
+        "kept": 27,
+        "removed": 1,
+        "keptPixels": 22798,
+        "removedPixels": 28,
+        "largest": [
+          {
+            "pixels": 2516,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1673,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1444,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1370,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1268,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1236,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1181,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1137,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1079,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 1050,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 950,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 922,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 864,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 825,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 760,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 653,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 585,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 565,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 557,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 476,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 462,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 446,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 445,
+            "containsStrongSeed": true,
+            "kept": true
+          },
+          {
+            "pixels": 124,
+            "containsStrongSeed": true,
+            "kept": true
+          }
+        ]
+      }
+    }
+  },
+  "triangleSplit": {
+    "sourceTriangles": 75000,
+    "hullTriangles": 74869,
+    "teamAccentTriangles": 131,
+    "hullTriangleHash": "4aff70a4c9e1ba2dbb1c9108d0696f98c091b5c670e74302e2179fccb0b3a6c7",
+    "teamAccentTriangleHash": "f796d4b2256e9e52c55e85f7cf6629a21d4d2f01196a0c183e0fd30aa949a237",
+    "teamAccentPercent": 0.17466666666666666,
+    "sourceSurfaceArea": 2.4707637191721274,
+    "teamAccentSurfaceArea": 0.008864782203659398,
+    "teamAccentSurfaceAreaPercent": 0.358787128646591,
+    "votesHistogram": {
+      "0": 74774,
+      "1": 28,
+      "2": 24,
+      "3": 17,
+      "4": 26,
+      "5": 22,
+      "6": 33,
+      "7": 76
+    },
+    "connectedComponents": {
+      "total": 26,
+      "singleTriangle": 4,
+      "underTenTriangles": 25,
+      "trianglesInComponentsUnderTen": 121,
+      "largestTriangleCounts": [
+        10,
+        9,
+        9,
+        8,
+        8,
+        7,
+        7,
+        6,
+        6,
+        6,
+        6,
+        6,
+        5,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4,
+        3,
+        3,
+        3,
+        1,
+        1
+      ]
+    }
+  },
+  "hullNeutralization": {
+    "baseColor": {
+      "maskedPixels": 22978,
+      "cyanPixelsBefore": 22900,
+      "cyanPixelsAfter": 0
+    },
+    "emission": {
+      "maskedPixels": 8725,
+      "cyanPixelsBefore": 8470,
+      "cyanPixelsAfter": 0
+    }
+  },
+  "preservation": {
+    "sourceTriangleHash": "3e4b88bda66ebb85b1cb00527c9a2812400c75ed8a649d2ffd4364a36e50de23",
+    "outputTriangleHash": "3e4b88bda66ebb85b1cb00527c9a2812400c75ed8a649d2ffd4364a36e50de23",
+    "sourceAttributeBufferSha256": "27a73d59568d824dab91e8f003e064eebcfd7afc52db4123c4c2cab7004a1ddf",
+    "outputAttributeBufferSha256": "27a73d59568d824dab91e8f003e064eebcfd7afc52db4123c4c2cab7004a1ddf",
+    "sourceNodesScenesSha256": "cbf0e64605903fbede5fdeb8ad7fa2c47d9dbcb4765493c3fdc6b1d617b8c96a",
+    "outputNodesScenesSha256": "cbf0e64605903fbede5fdeb8ad7fa2c47d9dbcb4765493c3fdc6b1d617b8c96a"
+  },
+  "structure": {
+    "primitives": [
+      {
+        "role": "hull",
+        "material": 0,
+        "indexAccessor": 4,
+        "attributes": {
+          "POSITION": 0,
+          "NORMAL": 1,
+          "TEXCOORD_0": 2,
+          "TANGENT": 3
+        }
+      },
+      {
+        "role": "team-accent",
+        "material": 1,
+        "indexAccessor": 5,
+        "attributes": {
+          "POSITION": 0,
+          "NORMAL": 1,
+          "TEXCOORD_0": 2,
+          "TANGENT": 3
+        }
+      }
+    ],
+    "teamMaterial": {
+      "name": "Nilbots Team Accent",
+      "doubleSided": false,
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicFactor": 1,
+        "roughnessFactor": 1,
+        "metallicRoughnessTexture": {
+          "index": 3
+        }
+      },
+      "emissiveFactor": [
+        1,
+        1,
+        1
+      ],
+      "extras": {
+        "nilbotsRole": "team-accent"
+      },
+      "normalTexture": {
+        "index": 1
+      }
+    }
+  },
+  "validation": {
+    "pass": true,
+    "checks": {
+      "trianglePartitionExact": true,
+      "triangleCountPreserved": true,
+      "sharedGeometryAccessors": true,
+      "geometryBufferUnchanged": true,
+      "nodesScenesFacingUnchanged": true,
+      "teamMaterialTagged": true,
+      "teamPrimitiveTagged": true,
+      "teamMaterialHasNoFixedColorMaps": true,
+      "teamMaterialKeepsNormalAndMetallicRoughness": true,
+      "hullKeepsFullPbr": true,
+      "cyanRemovedFromHullBase": true,
+      "cyanRemovedFromHullEmission": true
+    }
+  }
+}

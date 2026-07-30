@@ -120,12 +120,21 @@ review, and optimization remain separate required stages.
    renderer scale occupies `1.18944` tiles live. Do not infer facing from task
    order, confuse authored and live span, test only one heading when diagonal
    facing is legal, or repair one result with an undocumented DCC transform.
+   A fused provider mesh may receive a bounded, named local vertex correction
+   only when the fidelity audit isolates that exact defect and the recipe pins
+   the selection rule, maximum displacement, and unchanged regions. Re-run the
+   overlay afterward. Never disguise whole-body proportion drift with global
+   nonuniform scale or an undocumented sculpt.
 4. Produce at least a lean and richer derivative from the same normalized
    master. Record bytes, triangles, vertices, material count, map dimensions,
    validation warnings, and first-use transfer. The Striker proof found a
    roughly 2.5 MB / 75k-triangle / 1K-map lean tier visually comparable to a
    roughly 6.3 MB / 150k-triangle / 2K-map rich tier at the 58-degree gameplay
-   camera; treat those as evidence from one look, not universal budgets.
+   camera. The Fabricator comparison similarly found a 6.60 MB / 75k / 1K
+   final indistinguishable from a 17.19 MB / 150k / 2K final at normal follow
+   and the supported eight-tile minimum zoom. Treat these as per-look evidence,
+   not universal budgets: ship the richer tier only when a fixed real-camera
+   comparison shows a material visible gain.
 5. Put an unapproved derivative through the manifest-driven lazy loader only
    in a review worktree. Exercise movement, every heading, hover/contact,
    shadow, damage, multiple instances, fog, and fallback in a real replay.
@@ -161,10 +170,10 @@ review, and optimization remain separate required stages.
 9. Run the normal top-overlay, forbidden-cue, gameplay-camera, team-color,
    animation/form, performance, and fallback gates on the corrected result.
    Generated multiview agreement is not evidence that those gates pass.
-10. Complete one Striker vertical slice end to end before using the route for
-   another class or projectile. Record provider calls and credits, where
-   deterministic or human rework was required, and compare quality, time,
-   triangles, materials, textures, and first-use bytes with the fallback.
+10. Complete one chassis vertical slice end to end before using the route for
+    another class or projectile. Record provider calls and credits, where
+    deterministic or human rework was required, and compare quality, time,
+    triangles, materials, textures, and first-use bytes with the fallback.
 
 #### Meshy 6 pilot recipe
 
@@ -249,9 +258,9 @@ shader.
    histogram, estimated purity/coverage, and exact mask/model hashes. Treat its
    numeric cyan thresholds as Striker evidence, not a universal palette rule.
 3. Partition the original index stream into hull and accent primitives while
-   sharing untouched position, normal, and UV accessors. The triangle multiset,
-   scene graph, transforms, facing, and geometry-buffer hashes must remain
-   exact.
+   sharing untouched position, normal, UV, and authored tangent accessors. The
+   triangle multiset, scene graph, transforms, facing, and geometry-buffer
+   hashes must remain exact.
 4. Remove classified color/emission pixels from lossless hull maps. Give the
    accent material neutral white base/emission factors, no fixed base or
    emission texture, the original normal and metallic/roughness textures, and
@@ -259,7 +268,14 @@ shader.
 5. Require a deterministic rerun hash, structural validation, close top and
    gameplay-oblique renders in at least two team colors, and real-replay proof.
    The renderer supplies tint, emissive response, and the floor glow; do not
-   bake bloom or one team's color into the asset.
+   bake bloom or one team's color into the asset. Run Khronos validation on
+   the final semantic GLB. If Blender emits zero tangents at collapsed UV
+   derivatives or sub-thousandth seam-solver drift between identical exports,
+   repair only the exported tangent accessor with a documented stable
+   normal-derived perpendicular and, if needed, a measured direction grid plus
+   renormalization. Prove geometry, UVs, topology, textures, and transforms are
+   untouched; compare independent GLB hashes and visual output. `.blend` files
+   are editable provenance, not the byte-determinism target.
 
 ## Bot-look workflow
 

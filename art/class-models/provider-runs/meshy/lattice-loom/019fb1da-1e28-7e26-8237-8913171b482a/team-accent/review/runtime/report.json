@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "runtimeModel": {
+    "file": "web/src/assets/class-looks/lattice-loom/model.glb",
+    "bytes": 6604048,
+    "sha256": "e5ada31e067aea1e44d62d561e0b33e1b892a1e883ac7aade7d88993a946bcb1"
+  },
+  "replayPair": {
+    "blue": {
+      "file": "Fable real replay artifact: sweep-wasm/keel-104729-a/replay.json",
+      "bytes": 10713605,
+      "sha256": "c5ed949382e021629c3aa954876c1e7d30d44c636c5be4adc5b94c144584a40b",
+      "ticks": 313,
+      "accents": [
+        "#22d3ee",
+        "#22d3ee"
+      ],
+      "activeAtCapture": [
+        {
+          "teamId": 0,
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 4,
+            "y": 7
+          },
+          "facing": "east",
+          "health": 1
+        },
+        {
+          "teamId": 0,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 7,
+            "y": 5
+          },
+          "facing": "south",
+          "health": 1
+        },
+        {
+          "teamId": 0,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 6,
+            "y": 9
+          },
+          "facing": "north",
+          "health": 3
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 10,
+            "y": 6
+          },
+          "facing": "west",
+          "health": 2
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 7,
+            "y": 7
+          },
+          "facing": "west",
+          "health": 2
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 11,
+            "y": 7
+          },
+          "facing": "west",
+          "health": 3
+        }
+      ]
+    },
+    "orange": {
+      "file": "Fable real replay artifact: sweep-abl-tighten/keel-104729-a/replay.json",
+      "bytes": 10713642,
+      "sha256": "d3bc4847b3fbb495a965fc4776e56c14af74e18ddceecf7f7b6e2e6c6d86dc52",
+      "ticks": 313,
+      "accents": [
+        "#b45309",
+        "#b45309"
+      ],
+      "activeAtCapture": [
+        {
+          "teamId": 0,
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 4,
+            "y": 7
+          },
+          "facing": "east",
+          "health": 1
+        },
+        {
+          "teamId": 0,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 7,
+            "y": 5
+          },
+          "facing": "south",
+          "health": 1
+        },
+        {
+          "teamId": 0,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 6,
+            "y": 9
+          },
+          "facing": "north",
+          "health": 3
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 10,
+            "y": 6
+          },
+          "facing": "west",
+          "health": 2
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 7,
+            "y": 7
+          },
+          "facing": "west",
+          "health": 2
+        },
+        {
+          "teamId": 1,
+          "formId": "fabricator-child",
+          "position": {
+            "x": 11,
+            "y": 7
+          },
+          "facing": "west",
+          "health": 3
+        }
+      ]
+    },
+    "comparison": "real Fable Fabricator mirror replays with duplicate submitted accents; presentation resolves the safe blue/orange team pair, and the selected tick has the same six active form/position/facing/health records"
+  },
+  "camera": {
+    "normal": "product auto-fit action follow",
+    "close": "supported manual wheel zoom after camera handoff; deltaY -850, clamped to the product eight-tile minimum",
+    "pitchDegreesAboveHorizontal": 58,
+    "perspectiveFieldOfViewDegrees": 42
+  },
+  "tick": 215,
+  "viewport": {
+    "width": 1600,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "captures": {
+    "blue": {
+      "label": "cyan-source-mirror",
+      "fallback": false,
+      "normalPath": "review/runtime/normal.png",
+      "closePath": "review/runtime/min-zoom.png",
+      "glbResponses": [
+        {
+          "url": "/assets/model-C4YQTieX.glb",
+          "status": 200,
+          "contentLength": 0
+        }
+      ],
+      "canvas": {
+        "width": 926,
+        "height": 578
+      }
+    },
+    "orange": {
+      "label": "orange-source-mirror",
+      "fallback": false,
+      "normalPath": "review/runtime/orange-normal.png",
+      "closePath": "review/runtime/orange-min-zoom.png",
+      "glbResponses": [
+        {
+          "url": "/assets/model-C4YQTieX.glb",
+          "status": 200,
+          "contentLength": 0
+        }
+      ],
+      "canvas": {
+        "width": 926,
+        "height": 578
+      }
+    },
+    "fallback": {
+      "label": "cyan-source-mirror",
+      "fallback": true,
+      "normalPath": "review/runtime/fallback-normal.png",
+      "closePath": null,
+      "glbResponses": [],
+      "canvas": {
+        "width": 926,
+        "height": 578
+      }
+    }
+  },
+  "boards": {
+    "team": "review/runtime/team-runtime-board.png",
+    "fallback": "review/runtime/fallback-runtime-board.png"
+  }
+}

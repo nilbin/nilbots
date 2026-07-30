@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "lattice-loom",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y"
+}

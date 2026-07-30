@@ -127,10 +127,13 @@ function frameHash(replay: ReplayModel, time: number): string {
  * contract hands the viewer: a form catalog whose IDs are the only thing separating two
  * classes, and a header carrying no presentation at all.
  */
-function asClassArms(source: ReplayModel): ReplayModel {
+function asClassArms(
+  source: ReplayModel,
+  families: readonly [string, string] = ['bulwark', 'striker'],
+): ReplayModel {
   const model = structuredClone(source) as ReplayModel;
   const rename = (teamId: number, formId: string) => {
-    const family = teamId === 0 ? 'bulwark' : 'striker';
+    const family = teamId === 0 ? families[0] : families[1];
     if (formId === 'turret') return `${family}-child-turret`;
     return `${family}-${formId.replace('-mobile', '')}`;
   };
@@ -323,7 +326,7 @@ test('a class replay renders its classes and its teams apart', () => {
   );
 });
 
-test('the Striker visibly low-hovers while remaining on the ground gameplay layer', () => {
+test('Striker and Fabricator visibly low-hover on the ground gameplay layer', () => {
   const actors = buildActors(asClassArms(frontline));
   const bulwarkBody = partOf(
     chassisOf(actors.group, 'frontline:0:unit:1'),
@@ -344,7 +347,29 @@ test('the Striker visibly low-hovers while remaining on the ground gameplay laye
     'low-hover is a Striker presentation cue, not a lift applied to every class',
   );
 
+  const fabricators = buildActors(
+    asClassArms(frontline, ['bulwark', 'fabricator']),
+  );
+  const groundedBody = partOf(
+    chassisOf(fabricators.group, 'frontline:0:unit:1'),
+    'mobile',
+  );
+  const fabricatorBody = partOf(
+    chassisOf(fabricators.group, 'frontline:1:unit:1'),
+    'mobile',
+  );
+  fabricators.update(2.5, null, false);
+  assert.ok(
+    fabricatorBody.position.y > 0.05,
+    `the Fabricator has a visible air gap (${fabricatorBody.position.y})`,
+  );
+  assert.ok(
+    fabricatorBody.position.y - groundedBody.position.y > 0.04,
+    'Fabricator hover stays presentation-only and does not lift Bulwark',
+  );
+
   actors.dispose();
+  fabricators.dispose();
 });
 
 test('authored presentation and distinct participant accents are left alone', () => {
