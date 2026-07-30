@@ -405,6 +405,10 @@ test('Anchor telegraphs pending state, then authoritatively switches to a statio
     (child) => child.userData.cue === 'form-transition-pending',
   );
   assert.ok(anchor);
+  const assembly = chassis.children.find(
+    (child) => child.userData.cue === 'form-energy-assembly',
+  ) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | undefined;
+  assert.ok(assembly);
 
   actors.update(9.25, 'frontline:0:unit:1', false);
   assert.equal(mobile.visible, true);
@@ -415,6 +419,19 @@ test('Anchor telegraphs pending state, then authoritatively switches to a statio
   );
   assert.equal(anchor.visible, true);
   assert.equal(chassis.userData.formId, 'child-mobile');
+
+  actors.update(9.9, 'frontline:0:unit:1', false);
+  assert.equal(assembly.visible, true, 'static form assembles from replay progress');
+  assert.ok(assembly.material.opacity > 0, 'assembly seam carries visible energy');
+  const assemblyScale = assembly.scale.x;
+  const assemblyOpacity = assembly.material.opacity;
+  actors.update(9.9, 'frontline:0:unit:1', false);
+  assert.equal(assembly.scale.x, assemblyScale, 'same replay phase, same scale');
+  assert.equal(
+    assembly.material.opacity,
+    assemblyOpacity,
+    'same replay phase, same fade',
+  );
 
   actors.update(9.99, 'frontline:0:unit:1', false);
   assert.equal(mobile.visible, false);
@@ -437,6 +454,7 @@ test('Anchor telegraphs pending state, then authoritatively switches to a statio
   assert.ok(scan, 'the turret has a scan wedge');
   actors.update(11.2, 'frontline:0:unit:1', false);
   assert.equal(anchor.visible, false, 'spent once the turret is out');
+  assert.equal(assembly.visible, false, 'assembly seam is absent at the endpoint');
   assert.equal(scan.visible, true, 'scanning once emplaced');
 
   actors.update(2, 'frontline:0:unit:1', false);

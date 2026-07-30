@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export type LookMotion = 'idle' | 'moving';
 
 /**
- * Named clips supplied by one authored bot GLB.
+ * Named locomotion clips supplied by one authored mobile-bot GLB.
  *
  * Playback rate is deliberately not asset metadata. The arena samples a moving
  * cycle once per authoritative replay tick and an idle cycle every two ticks,
@@ -58,7 +58,7 @@ export function validateLookAnimationSpec(
 /**
  * Bind one independently cloned scene to its authored idle and movement clips.
  *
- * A missing clip is a hard representation failure: callers can retain the SVG
+ * A missing clip is a hard representation failure: callers retain the SVG
  * fallback rather than show a walking chassis sliding in its bind pose.
  */
 export function bindLookAnimation(

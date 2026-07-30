@@ -8,6 +8,10 @@ import {
   validateLookAnimationSpec,
 } from './lookAnimation';
 
+export type LookFormRole =
+  | 'directional-stance'
+  | 'omnidirectional-emplacement';
+
 /**
  * The small, renderer-only contract beside an authored GLB.
  *
@@ -20,16 +24,44 @@ export interface LookModelSpec {
   id: string;
   file: 'model.glb';
   kind: 'bot' | 'projectile';
+  /** Complete resolved look, or the one repeatable arm of a fallback turret. */
   part: 'whole' | 'turret-arm';
   facing: '+x';
   up: '+y';
   skillHardware?: 'volley' | 'aegis';
+  /** Static fused form represented by this whole model. */
+  formRole?: LookFormRole;
+  /** Mobile Idle/Walk clips only; static forms use renderer-owned transitions. */
   animation?: LookAnimationSpec;
 }
 
 export interface ModelledLook {
   id: string;
   imageUrl: string;
+}
+
+/**
+ * The semantic job this model is being asked to do.
+ *
+ * `part` says how much geometry the file contains; purpose says what the
+ * renderer is resolving it as. Keeping both explicit prevents a directional
+ * Shell from becoming a radial turret merely because both are whole models.
+ */
+export type LookModelPurpose =
+  | { kind: 'mobile' }
+  | { kind: 'projectile' }
+  | {
+      kind: 'directional-stance';
+      skillHardware: 'volley' | 'aegis';
+    }
+  | { kind: 'omnidirectional-emplacement' }
+  | { kind: 'sprite-turret-sector' };
+
+export interface LookModelOptions {
+  paint?: THREE.Color;
+  sector?: 'front';
+  teamAccent?: THREE.Color;
+  purpose?: LookModelPurpose;
 }
 
 interface RegisteredModel {
@@ -107,6 +139,55 @@ export function isGenuineLookModel(model: THREE.Object3D): boolean {
 }
 
 /**
+ * Whether one authored model contract can truthfully fill a renderer role.
+ *
+ * A static whole form must name its semantic role explicitly, while mobile
+ * locomotion clips stay mobile-only.
+ * `sprite-turret-sector` intentionally rejects every GLB: that path exists for
+ * legacy forms whose only honest emplacement fallback is four cropped SVG
+ * noses.
+ */
+export function modelSupportsPurpose(
+  spec: LookModelSpec,
+  purpose: LookModelPurpose,
+): boolean {
+  if (purpose.kind === 'sprite-turret-sector') return false;
+  if (purpose.kind === 'projectile')
+    return (
+      spec.kind === 'projectile' &&
+      spec.part === 'whole' &&
+      spec.formRole === undefined &&
+      spec.skillHardware === undefined &&
+      spec.animation === undefined
+    );
+  if (spec.kind !== 'bot') return false;
+
+  const animation = spec.animation;
+  if (purpose.kind === 'mobile')
+    return (
+      spec.part === 'whole' &&
+      spec.skillHardware === undefined &&
+      spec.formRole === undefined
+    );
+
+  if (purpose.kind === 'directional-stance')
+    return (
+      spec.part === 'whole' &&
+      spec.skillHardware === purpose.skillHardware &&
+      spec.formRole === 'directional-stance' &&
+      animation === undefined
+    );
+
+  return (
+    spec.skillHardware === undefined &&
+    animation === undefined &&
+    ((spec.part === 'turret-arm' && spec.formRole === undefined) ||
+      (spec.part === 'whole' &&
+        spec.formRole === 'omnidirectional-emplacement'))
+  );
+}
+
+/**
  * Resolve one look to an independently paintable model.
  *
  * Geometry remains shared with the URL-level raw cache; scene nodes and materials do not.
@@ -119,12 +200,16 @@ export function isGenuineLookModel(model: THREE.Object3D): boolean {
  */
 export async function lookModel(
   look: ModelledLook,
-  paint?: THREE.Color,
-  sector?: 'front',
-  teamAccent?: THREE.Color,
+  options: LookModelOptions = {},
 ): Promise<THREE.Group | null> {
+  const { paint, sector, teamAccent } = options;
+  const purpose =
+    options.purpose ??
+    (paint === undefined
+      ? ({ kind: 'mobile' } as const)
+      : ({ kind: 'projectile' } as const));
   const registered = models.get(look.id);
-  if (!registered)
+  if (!registered || !modelSupportsPurpose(registered.spec, purpose))
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
   const raw = await rawModel(registered.url);
@@ -219,8 +304,10 @@ function instantiate(
   if (
     animationSpec &&
     !bindLookAnimation(instance, animations, animationSpec)
-  )
+  ) {
+    for (const material of materials.values()) material.dispose();
     throw new Error('Authored look model is missing its declared animation clips.');
+  }
 
   return instance;
 }
@@ -234,8 +321,25 @@ function instanceMaterial(
   const existing = materials.get(source);
   if (existing) return existing;
 
-  const material = source.clone();
+  const material = actorLookMaterial(source, paint, teamAccent);
   materials.set(source, material);
+  return material;
+}
+
+/**
+ * Clone one authored material for an actor without contaminating its class art.
+ *
+ * `paint` is the explicit projectile-energy path and recolours every standard
+ * surface. Bot owner colour is narrower: only a glTF material carrying the
+ * semantic `nilbotsRole: "team-accent"` extra may change. Fixed cyan trims,
+ * authored PBR paint, and every untagged surface stay exactly as authored.
+ */
+export function actorLookMaterial(
+  source: THREE.Material,
+  paint?: THREE.Color,
+  teamAccent?: THREE.Color,
+): THREE.Material {
+  const material = source.clone();
   if (!(material instanceof THREE.MeshStandardMaterial)) return material;
 
   if (paint) {
@@ -301,6 +405,7 @@ function validateSpec(
   const facing = input.facing;
   const up = input.up;
   const skillHardware = input.skillHardware;
+  const formRole = input.formRole;
   const animation = validateLookAnimationSpec(
     input.animation,
     `3D look '${String(id)}'`,
@@ -340,9 +445,47 @@ function validateSpec(
     throw new Error(`3D projectile '${id}' cannot declare skill hardware.`);
   if (part === 'turret-arm' && skillHardware !== undefined)
     throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
+  if (
+    formRole !== undefined &&
+    formRole !== 'directional-stance' &&
+    formRole !== 'omnidirectional-emplacement'
+  )
+    throw new Error(
+      `3D look '${id}' has unknown form role '${String(formRole)}'.`,
+    );
+  if (formRole !== undefined && (kind !== 'bot' || part !== 'whole'))
+    throw new Error(
+      `Only a whole 3D bot '${id}' can declare a form role.`,
+    );
   if (animation !== undefined && (kind !== 'bot' || part !== 'whole'))
     throw new Error(
-      `Only a whole 3D bot '${id}' can declare locomotion animation.`,
+      `Only a whole 3D bot '${id}' can declare animation.`,
+    );
+  if (animation !== undefined && formRole !== undefined)
+    throw new Error(
+      `Static form '${id}' cannot declare locomotion animation.`,
+    );
+  if (animation !== undefined && skillHardware !== undefined)
+    throw new Error(
+      `Locomotion animation on '${id}' cannot supply stance hardware.`,
+    );
+  if (
+    formRole === 'directional-stance' &&
+    skillHardware === undefined
+  )
+    throw new Error(
+      `Directional form '${id}' requires skill hardware.`,
+    );
+  if (
+    formRole === 'omnidirectional-emplacement' &&
+    skillHardware !== undefined
+  )
+    throw new Error(
+      `Omnidirectional form '${id}' cannot declare directional skill hardware.`,
+    );
+  if (skillHardware !== undefined && formRole !== 'directional-stance')
+    throw new Error(
+      `3D stance hardware on '${id}' requires a directional form role.`,
     );
 
   return {
@@ -354,6 +497,9 @@ function validateSpec(
     facing,
     up,
     ...(skillHardware === undefined ? {} : { skillHardware }),
+    ...(formRole === undefined
+      ? {}
+      : { formRole: formRole as LookFormRole }),
     ...(animation === undefined ? {} : { animation }),
   };
 }

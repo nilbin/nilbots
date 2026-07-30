@@ -457,7 +457,28 @@ WebGL fallback:
 - Models face `+X`, use `+Y` as up, sit on `Y=0`, and are scaled relative to a
   gameplay tile. They contain no camera, light, floor, trail, or rules data.
   The manifest declares whether the asset is a whole bot/projectile or a
-  renderer-owned part such as one turret arm.
+  renderer-owned part such as one turret arm. `part: "whole"` means one
+  complete resolved look: a dedicated whole directional stance and a
+  dedicated whole four-arm turret each mount exactly once. Only
+  `part: "turret-arm"` and the SVG front-sector fallback repeat four times.
+  Reusing a mobile look for a legacy turret always takes the SVG fallback; its
+  whole mobile GLB is not silently reinterpreted as an emplacement.
+- A rigged whole bot may declare exact clip names in `model3d.json`.
+  Mobile locomotion uses `animation: { idleClip, movingClip }`. Static fused
+  form models instead declare `formRole` as exactly `directional-stance` or
+  `omnidirectional-emplacement`; a directional form also requires matching
+  `skillHardware`, while an omnidirectional form cannot declare it. Form models
+  do not declare animation clips. Invalid roles, cross-role use, and missing or
+  invalid GLBs retain the SVG/procedural fallback.
+- Static form deployment is renderer-owned and sampled from the authoritative
+  transition curve: model scale/fade and an energy assembly seam play forward
+  on emplacement and backward on mobilize or cancellation, clamped at both
+  endpoints. The anchor dial, directional guard field, and omnidirectional scan
+  remain semantic overlays rather than model-authored claims. A Shell GLB may
+  replace the crude physical fallback plate, but never the exact guard-field
+  extent on the floor. A complete authored radial turret keeps its physical
+  supports fixed while the scan cue turns; legacy four-spoke turrets retain
+  their existing slow presentation spin.
 - Presentation motion such as Striker's shallow `low-hover` belongs in the
   canonical `look.json`, not `model3d.json`. The SVG fallback and any future
   approved GLB must receive the same cue without duplicating metadata.
@@ -601,8 +622,9 @@ Animations describe recorded events; they do not create events.
 | Zone activity | Recorded zone tiles/control state | Optional theme-owned floor material, continuous tint, and pulsing exterior perimeter |
 | Frontline | Recorded active position/claim/redeploy state | Five-position route, signed progress, claiming-team color, and redeploy timing |
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
+| Form deployment | Recorded transition start/completion/cancellation | Static form scale/fade and energy assembly seam sampled forward/reverse from transition progress |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
-| Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
+| Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue, fixed authored whole supports, and heading-true muzzle/projectile treatment |
 | Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
 
 Animation timing is expressed inside the current replay tick window. Do not
