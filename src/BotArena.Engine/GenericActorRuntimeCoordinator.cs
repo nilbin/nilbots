@@ -750,6 +750,13 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
                 || value.AllowedValues.Any(heading =>
                     !Enum.IsDefined(heading))
                 || HasDuplicates(value.AllowedValues),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UpgradeTrackConstraint value =>
+                value.AllowedTrackIds.IsDefault
+                || value.AllowedTrackIds.Any(string.IsNullOrWhiteSpace)
+                || HasDuplicates(
+                    value.AllowedTrackIds,
+                    StringComparer.Ordinal),
             _ => true,
         };
         if (invalid)
@@ -987,6 +994,8 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
             GenericActorRuntimeActionArgument.ProjectileHeadingArgument
                 value =>
                 Enum.IsDefined(value.Value),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument value =>
+                !string.IsNullOrWhiteSpace(value.TrackId),
             _ => false,
         };
 
@@ -1031,6 +1040,14 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
                     .ProjectileHeadingConstraint allowed) =>
                 Enum.IsDefined(value.Value)
                 && allowed.AllowedValues.Contains(value.Value),
+            (
+                GenericActorRuntimeActionArgument.UpgradeTrackArgument value,
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint allowed) =>
+                !string.IsNullOrWhiteSpace(value.TrackId)
+                && allowed.AllowedTrackIds.Contains(
+                    value.TrackId,
+                    StringComparer.Ordinal),
             _ => false,
         };
 

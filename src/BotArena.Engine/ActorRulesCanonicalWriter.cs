@@ -171,6 +171,16 @@ internal static class ActorRulesCanonicalWriter
                     writer.WritePropertyName("secondaryControl");
                     WriteFrontlineSecondaryControl(writer, secondaryControl);
                 }
+                // The battlefield economy follows the same trailing
+                // inert-default omission: a mode that declares none writes no
+                // bytes for one, so every contract authored before this
+                // capability existed keeps its exact rules, match, and
+                // aggregate fingerprints.
+                if (frontline.ScrapEconomy is { } scrapEconomy)
+                {
+                    writer.WritePropertyName("scrapEconomy");
+                    WriteFrontlineScrapEconomy(writer, scrapEconomy);
+                }
                 break;
             default:
                 throw Unsupported(mode);
@@ -266,6 +276,67 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString("ownership", Id(secondaryControl.Ownership));
         writer.WriteString("effect", Id(secondaryControl.Effect));
         writer.WriteString("rallyScope", Id(secondaryControl.RallyScope));
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineScrapEconomy(
+        Utf8JsonWriter writer,
+        FrontlineScrapEconomyDefinition economy)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("veinSites");
+        writer.WriteStartArray();
+        // Declared order, not sorted: a bot reads the sites positionally out
+        // of the contract, exactly like the objective chain.
+        foreach (Position site in economy.VeinSites)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("x", site.X);
+            writer.WriteNumber("y", site.Y);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+        writer.WriteNumber(
+            "veinFirstSpawnTick",
+            economy.VeinFirstSpawnTick);
+        writer.WriteNumber(
+            "veinSpawnIntervalTicks",
+            economy.VeinSpawnIntervalTicks);
+        writer.WriteNumber("veinLastSpawnTick", economy.VeinLastSpawnTick);
+        writer.WriteNumber("veinAmount", economy.VeinAmount);
+        writer.WriteNumber("wreckAmount", economy.WreckAmount);
+        writer.WriteNumber("assayAmount", economy.AssayAmount);
+        writer.WriteNumber("carryCapacity", economy.CarryCapacity);
+        writer.WriteNumber("pileLifetimeTicks", economy.PileLifetimeTicks);
+        writer.WriteNumber(
+            "maxSimultaneousPiles",
+            economy.MaxSimultaneousPiles);
+        writer.WritePropertyName("bankRegionIds");
+        writer.WriteStartArray();
+        // Declared order is team order: index is the scoring team ID.
+        foreach (string regionId in economy.BankRegionIds)
+            writer.WriteStringValue(regionId);
+        writer.WriteEndArray();
+        writer.WriteString("upgradeScope", Id(economy.UpgradeScope));
+        writer.WriteNumber("maxTotalTiers", economy.MaxTotalTiers);
+        writer.WriteString("purchaseMode", Id(economy.PurchaseMode));
+        writer.WritePropertyName("tracks");
+        writer.WriteStartArray();
+        foreach (FrontlineScrapTrackDefinition track in economy.Tracks)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("trackId", track.TrackId);
+            writer.WriteString("effect", Id(track.Effect));
+            writer.WriteNumber("perTierMagnitude", track.PerTierMagnitude);
+            writer.WriteNumber("maxTier", track.MaxTier);
+            writer.WritePropertyName("tierCosts");
+            writer.WriteStartArray();
+            foreach (int cost in track.TierCosts)
+                writer.WriteNumberValue(cost);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 

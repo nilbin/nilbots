@@ -176,7 +176,8 @@ internal sealed record ReplayV3(
         ActionResolution? PreviousActionResolution,
         PendingSameLifeTransition? PendingSameLifeTransition,
         string? ClassId,
-        ImmutableArray<RouteCooldown> RouteCooldowns = default);
+        ImmutableArray<RouteCooldown> RouteCooldowns = default,
+        int CarriedScrap = 0);
 
     internal sealed record ObservedAlly(
         ActorId ActorId,
@@ -190,7 +191,8 @@ internal sealed record ReplayV3(
         ActionResolution? PreviousActionResolution,
         PendingSameLifeTransition? PendingSameLifeTransition,
         string? ClassId,
-        ImmutableArray<RouteCooldown> RouteCooldowns = default);
+        ImmutableArray<RouteCooldown> RouteCooldowns = default,
+        int CarriedScrap = 0);
 
     /// <summary>
     /// One live slot-scoped route cooldown snapshot (#181/#182): the named
@@ -210,7 +212,8 @@ internal sealed record ReplayV3(
         int Health,
         PendingSameLifeTransition? PendingSameLifeTransition,
         ImmutableArray<ActorId> ObservedBy,
-        string? ClassId);
+        string? ClassId,
+        int CarriedScrap = 0);
 
     internal sealed record PendingSameLifeTransition(
         string TransitionId,
@@ -339,6 +342,9 @@ internal sealed record ReplayV3(
 
         internal sealed record ProjectileHeading(int Value)
             : RawActionArgument("projectile-heading");
+
+        internal sealed record UpgradeTrack(string? TrackId)
+            : RawActionArgument("upgrade-track");
     }
 
     internal sealed record ActionResolution(
@@ -369,6 +375,9 @@ internal sealed record ReplayV3(
 
         internal sealed record ProjectileHeading(string Value)
             : ActionArgument("projectile-heading");
+
+        internal sealed record UpgradeTrack(string TrackId)
+            : ActionArgument("upgrade-track");
     }
 
     internal sealed record RuntimeFault(
@@ -406,6 +415,10 @@ internal sealed record ReplayV3(
         internal sealed record ProjectileHeading(
             ImmutableArray<string> AllowedValues)
             : ActionConstraint("projectile-heading");
+
+        internal sealed record UpgradeTrack(
+            ImmutableArray<string> AllowedTrackIds)
+            : ActionConstraint("upgrade-track");
     }
 
     internal sealed record UnitTargetValue(
@@ -711,9 +724,109 @@ internal sealed record ReplayV3(
             int? HoldOwnerTeamId,
             int? HoldEndsAtTick,
             int? SecondaryOwnerTeamId,
-            int SecondaryClaimProgress)
-            : ModeState("frontline", Id);
+            int SecondaryClaimProgress,
+            ImmutableArray<ScrapTeam> ScrapTeams = default,
+            ImmutableArray<ScrapPile> ScrapPiles = default)
+            : ModeState("frontline", Id)
+        {
+            /// <summary>
+            /// Structural equality, spelled out because the two economy facts
+            /// are <see cref="ImmutableArray{T}"/>: its own equality compares
+            /// the underlying array by REFERENCE, so the synthesized record
+            /// comparison would call two identical published states different
+            /// and every "does the observed mode match the authoritative
+            /// pre-state?" check would fail on a contract that declares an
+            /// economy.
+            /// </summary>
+            public bool Equals(Frontline? other) =>
+                other is not null
+                && string.Equals(Id, other.Id, StringComparison.Ordinal)
+                && ActivePositionIndex == other.ActivePositionIndex
+                && ClaimingTeamId == other.ClaimingTeamId
+                && CaptureProgress == other.CaptureProgress
+                && DecayTicksElapsed == other.DecayTicksElapsed
+                && ControlResumesAtTick == other.ControlResumesAtTick
+                && HoldOwnerTeamId == other.HoldOwnerTeamId
+                && HoldEndsAtTick == other.HoldEndsAtTick
+                && SecondaryOwnerTeamId == other.SecondaryOwnerTeamId
+                && SecondaryClaimProgress == other.SecondaryClaimProgress
+                && ScrapTeams.IsDefaultOrEmpty
+                    == other.ScrapTeams.IsDefaultOrEmpty
+                && ScrapPiles.IsDefaultOrEmpty
+                    == other.ScrapPiles.IsDefaultOrEmpty
+                && (ScrapTeams.IsDefaultOrEmpty
+                    || ScrapTeams.SequenceEqual(other.ScrapTeams))
+                && (ScrapPiles.IsDefaultOrEmpty
+                    || ScrapPiles.SequenceEqual(other.ScrapPiles));
+
+            /// <inheritdoc />
+            public override int GetHashCode()
+            {
+                var hash = default(HashCode);
+                hash.Add(Id, StringComparer.Ordinal);
+                hash.Add(ActivePositionIndex);
+                hash.Add(ClaimingTeamId);
+                hash.Add(CaptureProgress);
+                hash.Add(DecayTicksElapsed);
+                hash.Add(ControlResumesAtTick);
+                hash.Add(HoldOwnerTeamId);
+                hash.Add(HoldEndsAtTick);
+                hash.Add(SecondaryOwnerTeamId);
+                hash.Add(SecondaryClaimProgress);
+                if (!ScrapTeams.IsDefaultOrEmpty)
+                {
+                    foreach (ScrapTeam team in ScrapTeams)
+                        hash.Add(team.GetHashCode());
+                }
+                if (!ScrapPiles.IsDefaultOrEmpty)
+                {
+                    foreach (ScrapPile pile in ScrapPiles)
+                        hash.Add(pile);
+                }
+                return hash.ToHashCode();
+            }
+        }
     }
+
+    /// <summary>
+    /// One team's published economic position. Serialized only on a ruleset
+    /// that declares an economy, so a contract without one never carries the
+    /// key.
+    /// </summary>
+    internal sealed record ScrapTeam(
+        int TeamId,
+        int Bank,
+        ImmutableArray<int> TierLevels)
+    {
+        /// <summary>Structural equality: the tier vector is an array.</summary>
+        public bool Equals(ScrapTeam? other) =>
+            other is not null
+            && TeamId == other.TeamId
+            && Bank == other.Bank
+            && TierLevels.IsDefaultOrEmpty == other.TierLevels.IsDefaultOrEmpty
+            && (TierLevels.IsDefaultOrEmpty
+                || TierLevels.SequenceEqual(other.TierLevels));
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            var hash = default(HashCode);
+            hash.Add(TeamId);
+            hash.Add(Bank);
+            if (!TierLevels.IsDefaultOrEmpty)
+            {
+                foreach (int tier in TierLevels)
+                    hash.Add(tier);
+            }
+            return hash.ToHashCode();
+        }
+    }
+
+    /// <summary>One live pile of loose scrap.</summary>
+    internal sealed record ScrapPile(
+        PositionValue Position,
+        int Amount,
+        int ExpiresAtTick);
 
     internal sealed record MatchResult(
         string CompletionReason,

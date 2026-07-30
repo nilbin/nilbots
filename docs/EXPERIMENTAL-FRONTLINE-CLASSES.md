@@ -734,3 +734,185 @@ candidate game plus the channel carries a registered identity per shape:
 open game on the ticking clock without the fabricator's `wane`
 (`sail-tick-open`) + channel is **`mantlet`**. Smaller cells spell their
 factors and append `channel`.
+
+## Economy: SCRAP
+
+`--economy scrap` (DECISIONS #187) puts a resource on the map. It is the first
+arm in this brief whose payoff is attached to your *bodies* rather than to your
+team's clock: you collect a currency, you carry it home, and you spend it on
+typed stat tiers that make a body you are looking at do something it could not
+do a minute ago. It composes with `--capture channel`, and the two together are
+the shipped game.
+
+The mechanic lives in the two rows nothing else touches — rows 1 and 13, the
+21-tile open corridors along the top and bottom of the map. Going out there is
+now worth something, and *coming back* is where you can be robbed.
+
+### The loop
+
+- **Deposits arrive on a public metronome.** Six scrap appears at `(11,1)` and
+  `(11,13)` — both lanes, every event — on ticks **120, 200, 280 and 360**.
+  Every one of those numbers is static contract data you can plan against
+  before tick zero. The sites sit on the map's centre column, which is why they
+  are exactly 16 facing-locked ticks from *both* home pads: the tile rows are
+  palindromic about `x = 11`, so the mirror is free and the map is unchanged.
+- **If a body is standing on a site when a deposit is due, the deposit moves**
+  to the nearest free floor tile in the same row (ties break toward the lower
+  `x`). Parking on the tile denies nothing.
+- **Every destroyed body drops a wreck worth 1 at its death tile**, merged with
+  whatever it was carrying. A killed carrier is one pile worth `1 + load` — the
+  largest single transfer in the game, and it is available to whoever did the
+  killing.
+- **Stepping onto a pile banks 1 for your team instantly** (the assay, paid at
+  the tile with no transport) **and loads the rest as carry, up to 6.** The
+  remainder stays on the tile with its original expiry.
+- **A load banks in full when you end a tick on your own team's home pad.**
+  Automatic, no action, no cost — the walk *was* the price.
+- **Piles expire 80 ticks after they appear.** That is exactly one cadence, so
+  an untaken deposit disappears as the next pair arrives and at most one
+  cycle's worth is ever live. You cannot stockpile corpses and cash them later.
+- **Objective weight gates the economy.** A form declaring weight 0 — an
+  anchored turret — can neither pick up nor carry, and completing a transition
+  into one drops the whole load on the floor. This is the same rule the class
+  slate already rests on, and it is what stops a turret on a deposit site from
+  being a permanent denial engine that also banks the assay for free.
+
+### Spending it: the `invest` action
+
+`invest` (action code **106**, kind `mode-investment`) is the first genuinely
+new player verb since Split. Any live body may cast it, from any tile, with no
+positional requirement — and it **costs that body its action for the tick**,
+the same price `fabricate` pays and for the same reason.
+
+It takes one `upgrade-track` argument. The three tracks, each `+1` per tier:
+
+| track | what a tier does | why |
+| --- | --- | --- |
+| `edge` | +1 tile of gun travel | Gap-preserving: every chassis moves by the same integer. Buys the opening shot rather than the kill |
+| `plate` | +1 maximum health, **applied at spawn** | The corrective track. It raises the ceiling and **never heals** — a standing body keeps its exact current health, so buying mid-duel is never a rescue |
+| `optic` | +1 tile of sight range | Gap-preserving, and naturally terminal: every class reaches see-as-far-as-you-shoot at tier 2 |
+
+**Ten per tier, flat.** Going deep (2 in one track) and going broad (1 in each
+of three) both cost 30, at every point in the match — tier 2 is never a
+discount for being ahead. **At most 2 in one track and 3 in total.** Every tier
+applies to your **Prime slot's lives**, current and future, in every form that
+slot occupies, so a five-slot fabricator buys exactly as much upgraded body as
+a three-slot striker.
+
+**Read the mask, don't price the ladder.** A track appears in this tick's
+`upgrade-track` constraint only when your team's bank covers its next tier and
+no cap forbids it. A bot that reads its legality masks — which every
+contract-driven bot already must — never does the arithmetic; a bot that
+guesses gets an ordinary `Blocked`. Two teammates investing on the same tick
+against a bank that covers only one resolve in canonical
+`(teamId, unitId, lifeId)` order and the second is `Blocked`. That is the
+existing simultaneous-reservation grammar, not a new rule.
+
+A purchase settles **after** every bolt has flown, so the tier you buy this
+tick lengthens your *next* shot, widens your *next* tick's sight, and raises
+the health of your *next* life.
+
+### Read your contract, don't assume
+
+Everything above is contract data on `rules.gameMode.scrapEconomy`, and the
+whole block is **absent** on every ruleset without the arm — absent means the
+mechanic does not exist for that match.
+
+| field | what it tells you |
+| --- | --- |
+| `veinSites[]`, `veinFirstSpawnTick`, `veinSpawnIntervalTicks`, `veinLastSpawnTick` | every deposit's address and due tick, before tick zero |
+| `veinAmount`, `wreckAmount`, `assayAmount`, `carryCapacity` | what a pile is worth and how much you can take |
+| `pileLifetimeTicks`, `maxSimultaneousPiles` | how long loose scrap survives, and the hard bound on the published collection |
+| `bankRegionIds[]` | where a load banks, indexed by team ID |
+| `upgradeScope`, `maxTotalTiers` | who a tier applies to, and the ceiling |
+| `purchaseMode` | `invest-action` is the arm; `automatic-greedy-declared-order` is the control level, where the verb does not exist at all |
+| `tracks[]` | each track's ID, its typed effect, its per-tier magnitude, its max tier, and every tier's price |
+
+A track's effect is resolved at the point of use against the form catalog's
+**declared** number: effective gun travel is `attackProfile.projectile
+.maxTravelTiles + edge tier`, effective sight is `visionProfile.range + optic
+tier`, effective spawn health is `form.maxHealth + plate tier`. Both operands
+are published — the base in the contract, the tier in the observation — so
+nothing you already read becomes a lie. `self.Health`, the legality masks and
+`visibleTiles` are all authoritative post-application values, as they always
+were.
+
+### The three new observation facts
+
+They are additive and inert by default: empty or zero for the whole match on
+every ruleset without the arm, so a bot never branches on whether the mechanic
+exists.
+
+- **`mode.scrapTeams`** — both teams' complete economic position, ordered by
+  team ID: the liquid `bank` and a `tierLevels` vector positional against the
+  contract's declared track order. Both teams' are public. This is also the
+  purchase telegraph: a tier change moves the mode state, and a changed mode
+  state rides the ordinary `ModeChanged` fact carrying the post-change state,
+  so the enemy's bank dropping and its tier rising arrive together on the tick
+  they happen with no visibility requirement and no inference. **There are no
+  new event kinds.**
+- **`mode.scrapPiles`** — every live pile, ordered by `(y, x)`, each with its
+  `position`, its `amount`, and an `expiresAtTick` in the established clock
+  grammar (the pile is gone the first tick `tick >= expiresAtTick`). The
+  schedule is contract data, but *whether a deposit is still standing* is not,
+  and neither is where a body you never saw died. It is worth knowing that this
+  leaks enemy deaths the perception union would otherwise have hidden: it is
+  symmetric, it is small — a pile says "a body died here within 80 ticks", not
+  which one — and the alternative is a race you cannot see.
+- **`carriedScrap`** — one integer on `self`, on every ally, and on every
+  *visible* enemy. It is the fact that makes interception a decision rather
+  than a guess: killing a loaded carrier drops its whole load plus its wreck on
+  one tile, so "is that body worth chasing" has an answer.
+
+### What it costs you to go and get it
+
+A dedicated harvester leaving home around tick 104 and running until the horn
+spends roughly a quarter of a three-body team's total body-ticks. While it is
+out, your front runs a body light — and under `--capture channel` two defenders
+who keep moving hold three stationary attackers, so the deficit is real and the
+front knows it. That is the allocation cost, and it is meant to be severe
+enough that nobody harvests while the front is genuinely live.
+
+Ignoring the deposits entirely is a strategy, not a forfeit: a team that never
+leaves the front still banks, because corpses fall where it is standing and the
+assay pays in full at the tile with no transport. Ignoring SCRAP costs you the
+*deposit* channel, not the whole economy — roughly one tier against a
+committed team's three.
+
+The supply is a **fixed pot**: 4 events × 2 sites × 6 = 48 scrap, and one
+harvester already services a whole cycle. Extra bodies therefore buy *security
+of collection* — a harvester and an escort and a front — not extra income.
+
+### The control level
+
+`--economy scrap-flat` is the same economy with the spend side removed: same
+deposits, same carrying, same wreckage, same ladder, same prices, but the bank
+buys by itself at the end of every tick — the cheapest legal next tier,
+breaking ties by declared track order — at no action cost, and the `invest`
+verb is not in the action catalog at all. It exists to make the claim that the
+allocation decision *matters* falsifiable rather than asserted
+(`scrap-flat-control-arm`). If you are writing a bot for a `scrap-flat` cell,
+read `purchaseMode` and skip your purchase routine.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum keel --skills kit \
+  --bend universal --volley salvo --capture channel --economy scrap \
+  --seed 42 --runtime wasm --out /tmp/bastion
+```
+
+The arm needs a cell to sit in: a class pair (explicit or manifest-declared) or
+a `--pendulum` level. It is a **real arm on every pair** — never inert-omitted,
+because the deposits, the wreckage and the ladder are the same whatever classes
+are present — and it **cannot be combined with `--side-objective`**, because
+both claim the side lanes' attention. Registered identities: `swell` + scrap is
+**`forge`**, `tide` + scrap is **`anvil`**, `sail-tick-open` + scrap is
+**`smelter`**, and with the channel already in the cell `siege` + scrap is
+**`bastion`**, `sap` + scrap is **`redoubt`** and `mantlet` + scrap is
+**`smithy`**. Smaller cells spell their factors and append `scrap`. The control
+level never takes a registered composite — an identity it shared with the arm
+it controls would be unreadable in the evidence — so it always appends `flat`
+(`siege-flat`, `sap-flat`, …); it spells `flat` rather than the flag's own
+`scrap-flat` because the composite it appends to already names the economy and
+the extra characters do not fit beside the worst class pair.

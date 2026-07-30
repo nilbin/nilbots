@@ -374,6 +374,11 @@ public sealed record GenericActorMatchActorTurn
             GenericActorRuntimeActionArgument.ProjectileHeadingArgument
                 value =>
                 Enum.IsDefined(value.Value),
+            // The declared tracks live on the mode rather than on the rules
+            // catalog, so structural representability is exactly a non-blank
+            // ID; whether it is legal THIS tick is the legality mask's job.
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument value =>
+                !string.IsNullOrWhiteSpace(value.TrackId),
             _ => false,
         };
 
@@ -459,6 +464,13 @@ public sealed record GenericActorMatchActorTurn
                 GenericActorRuntimeActionArgument
                     .ProjectileHeadingArgument b) =>
                 a.Value == b.Value,
+            (
+                GenericActorRuntimeActionArgument.UpgradeTrackArgument a,
+                GenericActorRuntimeActionArgument.UpgradeTrackArgument b) =>
+                string.Equals(
+                    a.TrackId,
+                    b.TrackId,
+                    StringComparison.Ordinal),
             _ => false,
         };
 

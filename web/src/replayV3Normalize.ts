@@ -404,6 +404,10 @@ function validateContract(
             // discipline: the engine writes it only for a mode that declares
             // a side objective, so its presence is itself a contract fact.
             ...(own(mode, 'secondaryControl') ? ['secondaryControl'] : []),
+            // Same discipline for the battlefield economy: written only for
+            // a mode that declares one, and mutually exclusive with the side
+            // objective, because both claim the side lanes' attention.
+            ...(own(mode, 'scrapEconomy') ? ['scrapEconomy'] : []),
           ]
         : null;
   if (modeKeys === null) {
@@ -903,6 +907,156 @@ function validateContract(
             `expected one of ${allowed.join(', ')}`,
           );
         }
+      }
+    }
+    if (own(mode, 'scrapEconomy')) {
+      if (own(mode, 'secondaryControl')) {
+        fail(
+          `${modePath}.scrapEconomy`,
+          'a mode declares a side objective or a scrap economy, never both',
+        );
+      }
+      const economyPath = `${modePath}.scrapEconomy`;
+      const economy = exact(
+        object(mode.scrapEconomy, economyPath, fail),
+        economyPath,
+        [
+          'veinSites',
+          'veinFirstSpawnTick',
+          'veinSpawnIntervalTicks',
+          'veinLastSpawnTick',
+          'veinAmount',
+          'wreckAmount',
+          'assayAmount',
+          'carryCapacity',
+          'pileLifetimeTicks',
+          'maxSimultaneousPiles',
+          'bankRegionIds',
+          'upgradeScope',
+          'maxTotalTiers',
+          'purchaseMode',
+          'tracks',
+        ],
+        fail,
+      );
+      const veinSites = array(
+        economy.veinSites,
+        `${economyPath}.veinSites`,
+        fail,
+      );
+      veinSites.forEach((site, index) => {
+        const sitePath = `${economyPath}.veinSites[${index}]`;
+        const value = exact(object(site, sitePath, fail), sitePath, ['x', 'y'], fail);
+        integer(value.x, `${sitePath}.x`, fail);
+        integer(value.y, `${sitePath}.y`, fail);
+      });
+      if (veinSites.length === 0) {
+        fail(`${economyPath}.veinSites`, 'declares at least one vein site');
+      }
+      for (const key of [
+        'veinFirstSpawnTick',
+        'veinSpawnIntervalTicks',
+        'veinLastSpawnTick',
+        'veinAmount',
+        'wreckAmount',
+        'assayAmount',
+        'carryCapacity',
+        'pileLifetimeTicks',
+        'maxSimultaneousPiles',
+        'maxTotalTiers',
+      ]) {
+        integer(economy[key], `${economyPath}.${key}`, fail);
+      }
+      const firstTick = economy.veinFirstSpawnTick as number;
+      const interval = economy.veinSpawnIntervalTicks as number;
+      const lastTick = economy.veinLastSpawnTick as number;
+      if (
+        firstTick < 0 ||
+        interval <= 0 ||
+        lastTick < firstTick ||
+        (lastTick - firstTick) % interval !== 0
+      ) {
+        fail(
+          `${economyPath}.veinLastSpawnTick`,
+          'the last scheduled vein tick must sit on the declared cadence',
+        );
+      }
+      const bankRegionIds = array(
+        economy.bankRegionIds,
+        `${economyPath}.bankRegionIds`,
+        fail,
+      );
+      bankRegionIds.forEach((regionId, index) =>
+        nonEmpty(regionId, `${economyPath}.bankRegionIds[${index}]`, fail),
+      );
+      if (
+        bankRegionIds.length === 0 ||
+        new Set(bankRegionIds.map(String)).size !== bankRegionIds.length
+      ) {
+        fail(
+          `${economyPath}.bankRegionIds`,
+          'names one distinct banking region per scoring team',
+        );
+      }
+      if (String(economy.upgradeScope) !== 'prime-slot-lives-only') {
+        fail(
+          `${economyPath}.upgradeScope`,
+          'expected one of prime-slot-lives-only',
+        );
+      }
+      if (
+        !['invest-action', 'automatic-greedy-declared-order'].includes(
+          String(economy.purchaseMode),
+        )
+      ) {
+        fail(
+          `${economyPath}.purchaseMode`,
+          'expected one of invest-action, automatic-greedy-declared-order',
+        );
+      }
+      const tracks = array(economy.tracks, `${economyPath}.tracks`, fail);
+      const trackIds: string[] = [];
+      tracks.forEach((entry, index) => {
+        const trackPath = `${economyPath}.tracks[${index}]`;
+        const track = exact(
+          object(entry, trackPath, fail),
+          trackPath,
+          ['trackId', 'effect', 'perTierMagnitude', 'maxTier', 'tierCosts'],
+          fail,
+        );
+        nonEmpty(track.trackId, `${trackPath}.trackId`, fail);
+        trackIds.push(String(track.trackId));
+        if (
+          ![
+            'mobile-attack-travel-tiles-delta',
+            'spawn-max-health-delta',
+            'vision-range-delta',
+          ].includes(String(track.effect))
+        ) {
+          fail(`${trackPath}.effect`, 'unknown scrap upgrade effect');
+        }
+        integer(track.perTierMagnitude, `${trackPath}.perTierMagnitude`, fail);
+        integer(track.maxTier, `${trackPath}.maxTier`, fail);
+        const tierCosts = array(track.tierCosts, `${trackPath}.tierCosts`, fail);
+        tierCosts.forEach((cost, costIndex) =>
+          integer(cost, `${trackPath}.tierCosts[${costIndex}]`, fail),
+        );
+        if (
+          (track.maxTier as number) <= 0 ||
+          tierCosts.length !== (track.maxTier as number) ||
+          tierCosts.some((cost) => (cost as number) <= 0)
+        ) {
+          fail(
+            `${trackPath}.tierCosts`,
+            'prices every declared tier, positively',
+          );
+        }
+      });
+      if (tracks.length === 0 || new Set(trackIds).size !== trackIds.length) {
+        fail(
+          `${economyPath}.tracks`,
+          'declares at least one track with unique IDs',
+        );
       }
     }
     if (
@@ -1498,6 +1652,11 @@ function rawArgument(value: unknown, path: string, fail: ReplayV3Fail): void {
     nullable(item.formId, `${path}.formId`, string, fail);
     return;
   }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'trackId'], fail);
+    nullable(item.trackId, `${path}.trackId`, string, fail);
+    return;
+  }
   const item = exact(base, path, ['kind', 'value'], fail);
   switch (item.kind) {
     case 'shot-program':
@@ -1528,6 +1687,11 @@ function actionArgument(
   if (base.kind === 'form-target') {
     const item = exact(base, path, ['kind', 'formId'], fail);
     nonEmpty(item.formId, `${path}.formId`, fail);
+    return;
+  }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'trackId'], fail);
+    nonEmpty(item.trackId, `${path}.trackId`, fail);
     return;
   }
   const item = exact(base, path, ['kind', 'value'], fail);
@@ -1865,6 +2029,11 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         // signed claim whose sign names the claiming team.
         'secondaryOwnerTeamId',
         'secondaryClaimProgress',
+        // The economy's two collections are TRAILING and optional: they
+        // appear only on a ruleset that declares an economy, so a document
+        // written before the capability existed reads identically.
+        ...(own(base, 'scrapTeams') ? ['scrapTeams'] : []),
+        ...(own(base, 'scrapPiles') ? ['scrapPiles'] : []),
       ],
       fail,
     );
@@ -1893,6 +2062,61 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
       fail,
     );
     integer(item.secondaryClaimProgress, `${path}.secondaryClaimProgress`, fail);
+    if (own(item, 'scrapTeams')) {
+      const teams = array(item.scrapTeams, `${path}.scrapTeams`, fail);
+      if (teams.length === 0) {
+        fail(`${path}.scrapTeams`, 'must be omitted when empty');
+      }
+      teams.forEach((entry, index) => {
+        const teamPath = `${path}.scrapTeams[${index}]`;
+        const team = exact(
+          object(entry, teamPath, fail),
+          teamPath,
+          ['teamId', 'bank', 'tierLevels'],
+          fail,
+        );
+        integer(team.teamId, `${teamPath}.teamId`, fail);
+        integer(team.bank, `${teamPath}.bank`, fail);
+        const tiers = array(team.tierLevels, `${teamPath}.tierLevels`, fail);
+        tiers.forEach((tier, tierIndex) =>
+          integer(tier, `${teamPath}.tierLevels[${tierIndex}]`, fail),
+        );
+        if ((team.bank as number) < 0 || tiers.some((tier) => (tier as number) < 0)) {
+          fail(`${teamPath}.bank`, 'a bank and its tiers are never negative');
+        }
+      });
+    }
+    if (own(item, 'scrapPiles')) {
+      const piles = array(item.scrapPiles, `${path}.scrapPiles`, fail);
+      if (piles.length === 0) {
+        fail(`${path}.scrapPiles`, 'must be omitted when empty');
+      }
+      let previousKey: string | null = null;
+      piles.forEach((entry, index) => {
+        const pilePath = `${path}.scrapPiles[${index}]`;
+        const pile = exact(
+          object(entry, pilePath, fail),
+          pilePath,
+          ['position', 'amount', 'expiresAtTick'],
+          fail,
+        );
+        position(pile.position, `${pilePath}.position`, fail);
+        integer(pile.amount, `${pilePath}.amount`, fail);
+        integer(pile.expiresAtTick, `${pilePath}.expiresAtTick`, fail);
+        if ((pile.amount as number) <= 0) {
+          fail(`${pilePath}.amount`, 'a published pile carries something');
+        }
+        const point = pile.position as { x: number; y: number };
+        const key = `${String(point?.y).padStart(6, '0')}:${String(point?.x).padStart(6, '0')}`;
+        if (previousKey !== null && previousKey >= key) {
+          fail(
+            `${pilePath}.position`,
+            'scrap piles must be strictly ordered by (y, x)',
+          );
+        }
+        previousKey = key;
+      });
+    }
     return;
   }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
@@ -2013,6 +2237,10 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
 function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
   const self = object(value, path, fail);
   const hasRouteCooldowns = own(self, 'routeCooldowns');
+  // Trailing additive key on the same discipline: the load is written only
+  // while the body is actually carrying, so a document from a contract with
+  // no declared economy never carries the key.
+  const hasCarriedScrap = own(self, 'carriedScrap');
   const item = exact(
     self,
     path,
@@ -2029,6 +2257,7 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
       'pendingSameLifeTransition',
       'classId',
       ...(hasRouteCooldowns ? ['routeCooldowns'] : []),
+      ...(hasCarriedScrap ? ['carriedScrap'] : []),
     ],
     fail,
   );
@@ -2085,6 +2314,12 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
         previousTransitionId = cooldown.transitionId;
       }
     });
+  }
+  if (hasCarriedScrap) {
+    integer(item.carriedScrap, `${path}.carriedScrap`, fail);
+    if ((item.carriedScrap as number) <= 0) {
+      fail(`${path}.carriedScrap`, 'must be omitted when nothing is carried');
+    }
   }
 }
 
@@ -2464,6 +2699,14 @@ function actionConstraint(
     );
     return;
   }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'allowedTrackIds'], fail);
+    array(item.allowedTrackIds, `${path}.allowedTrackIds`, fail).forEach(
+      (entry, index) =>
+        nonEmpty(entry, `${path}.allowedTrackIds[${index}]`, fail),
+    );
+    return;
+  }
   const item = exact(base, path, ['kind', 'allowedValues'], fail);
   const values = array(item.allowedValues, `${path}.allowedValues`, fail);
   if (base.kind === 'direction') {
@@ -2553,6 +2796,7 @@ function observation(
       `${path}.enemies[${index}]`,
       fail,
     );
+    const hasEnemyCarriedScrap = own(enemyValue, 'carriedScrap');
     const enemy = exact(
       enemyValue,
       `${path}.enemies[${index}]`,
@@ -2565,6 +2809,7 @@ function observation(
         'pendingSameLifeTransition',
         'observedBy',
         'classId',
+        ...(hasEnemyCarriedScrap ? ['carriedScrap'] : []),
       ],
       fail,
     );
@@ -2592,6 +2837,19 @@ function observation(
       semanticId,
       fail,
     );
+    if (hasEnemyCarriedScrap) {
+      integer(
+        enemy.carriedScrap,
+        `${path}.enemies[${index}].carriedScrap`,
+        fail,
+      );
+      if ((enemy.carriedScrap as number) <= 0) {
+        fail(
+          `${path}.enemies[${index}].carriedScrap`,
+          'must be omitted when nothing is carried',
+        );
+      }
+    }
   });
   array(item.visibleTiles, `${path}.visibleTiles`, fail).forEach(
     (entry, index) => {
@@ -6044,6 +6302,27 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         holdEndsAtTick: mode.holdEndsAtTick,
         secondaryOwnerTeamId: mode.secondaryOwnerTeamId,
         secondaryClaimProgress: mode.secondaryClaimProgress,
+        // Spread rather than assign: the economy's collections are absent
+        // on every ruleset without one, and an explicit `undefined` key is a
+        // different shape from an omitted one.
+        ...(mode.scrapTeams === undefined
+          ? {}
+          : {
+              scrapTeams: mode.scrapTeams.map((team) => ({
+                teamId: team.teamId,
+                bank: team.bank,
+                tierLevels: [...team.tierLevels],
+              })),
+            }),
+        ...(mode.scrapPiles === undefined
+          ? {}
+          : {
+              scrapPiles: mode.scrapPiles.map((pile) => ({
+                position: { x: pile.position.x, y: pile.position.y },
+                amount: pile.amount,
+                expiresAtTick: pile.expiresAtTick,
+              })),
+            }),
       };
 }
 
@@ -6630,6 +6909,9 @@ function observationFromV3(
       const forms = legality.constraints.find(
         (constraint) => constraint.kind === 'form-target',
       );
+      const tracks = legality.constraints.find(
+        (constraint) => constraint.kind === 'upgrade-track',
+      );
       return {
         actionId: legality.actionId,
         actionCode: legality.actionCode,
@@ -6656,6 +6938,10 @@ function observationFromV3(
             : null,
         allowedFormTargets:
           forms?.kind === 'form-target' ? [...forms.allowedFormIds] : null,
+        allowedUpgradeTracks:
+          tracks?.kind === 'upgrade-track'
+            ? [...tracks.allowedTrackIds]
+            : null,
       };
     }),
   };

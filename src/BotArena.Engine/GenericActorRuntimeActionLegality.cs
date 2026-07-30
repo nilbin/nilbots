@@ -54,5 +54,19 @@ public sealed record GenericActorRuntimeActionLegality(
             public override ActorActionParameterKind Kind =>
                 ActorActionParameterKind.ProjectileHeading;
         }
+
+        /// <summary>
+        /// The upgrade tracks the acting body's team may buy the next tier of
+        /// this tick: affordable out of the standing bank, below their own
+        /// maximum tier, and inside the team's total-tier cap. Affordability
+        /// lives in the mask rather than in the bot, which is the cheapest
+        /// possible author surface for a new verb.
+        /// </summary>
+        public sealed record UpgradeTrackConstraint(
+            ImmutableArray<string> AllowedTrackIds) : ArgumentConstraint
+        {
+            public override ActorActionParameterKind Kind =>
+                ActorActionParameterKind.UpgradeTrack;
+        }
     }
 }

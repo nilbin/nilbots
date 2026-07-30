@@ -243,5 +243,49 @@ public sealed record GenericActorActionLegality
             /// <summary>Complete canonical set of legal headings.</summary>
             public ImmutableArray<ProjectileHeading> AllowedValues { get; }
         }
+
+        /// <summary>
+        /// Enumerates the upgrade tracks this body's team may buy the next
+        /// tier of RIGHT NOW: affordable out of the standing bank, below their
+        /// own maximum tier, and inside the team's total-tier cap. Empty means
+        /// no purchase is currently legal — which is also every contract that
+        /// declares no store at all.
+        /// </summary>
+        public sealed record UpgradeTrackConstraint : ArgumentConstraint
+        {
+            /// <summary>Creates an upgrade-track constraint.</summary>
+            /// <param name="allowedTrackIds">
+            /// Complete set of legal track IDs; empty means none.
+            /// </param>
+            public UpgradeTrackConstraint(
+                IEnumerable<string> allowedTrackIds)
+            {
+                ArgumentNullException.ThrowIfNull(allowedTrackIds);
+                string[] snapshot = allowedTrackIds
+                    .Select(trackId =>
+                        GenericActorDynamicValueRules.SemanticId(
+                            trackId,
+                            nameof(allowedTrackIds)))
+                    .ToArray();
+                if (snapshot.Length > ActorWireProtocol.MaxCollectionCount)
+                {
+                    throw new ArgumentException(
+                        "Collection exceeds the actor wire item limit.",
+                        nameof(allowedTrackIds));
+                }
+                GenericActorDynamicValueRules.EnsureUnique(
+                    snapshot,
+                    nameof(allowedTrackIds));
+                AllowedTrackIds = snapshot
+                    .Order(StringComparer.Ordinal)
+                    .ToImmutableArray();
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.ActionParameterKind Kind =>
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack;
+            /// <summary>Complete ordinal-sorted set of legal track IDs.</summary>
+            public ImmutableArray<string> AllowedTrackIds { get; }
+        }
     }
 }

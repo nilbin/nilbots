@@ -37,6 +37,30 @@ internal static class GenericFrontlineChronologyEvidence
             gameMode,
             binding);
         FrontlineControlState control = kernel.CreateInitialState();
+        // The economy is re-derived from the same recorded document as the
+        // front, through the SAME kernel the live driver ran: deposits from
+        // the declared schedule, wreckage from the recorded destructions,
+        // pickup and banking from the recorded post-combat bodies, and
+        // purchases from the recorded action resolutions. Nothing is taken
+        // from anything the document asserts directly, which is what makes a
+        // forged bank, a forged pile, an unaffordable purchase, an
+        // over-capped tier, or a pile that outlived its expiry
+        // unreconcilable: each produces a different projection than the
+        // boundary the document published.
+        FrontlineScrapKernel? scrapKernel = gameMode.ScrapEconomy is null
+            ? null
+            : new FrontlineScrapKernel(
+                definition.Topology,
+                definition.Map,
+                definition.Rules.Forms,
+                definition.LifecycleAssignments,
+                gameMode.ScrapEconomy);
+        FrontlineScrapState? scrap = scrapKernel?.CreateInitialState();
+        Dictionary<string, ActorActionKind> actionKinds =
+            definition.Rules.Actions.ToDictionary(
+                action => action.Id,
+                action => action.Kind,
+                StringComparer.Ordinal);
         Dictionary<string, int> objectiveWeights =
             definition.Rules.Forms.ToDictionary(
                 form => form.Id,
@@ -60,7 +84,17 @@ internal static class GenericFrontlineChronologyEvidence
             control,
             kernel,
             gameMode,
-            "initialFrame");
+            "initialFrame",
+            scrapKernel,
+            scrap);
+        if (scrapKernel is not null && scrap is not null)
+        {
+            ValidateSpawnHealth(
+                definition,
+                initialFrame.Events,
+                scrapKernel,
+                scrap);
+        }
         if (initialFrame.Events.Any(IsModeOwnedEvent))
         {
             throw Invalid(
@@ -82,8 +116,22 @@ internal static class GenericFrontlineChronologyEvidence
                 control,
                 kernel,
                 gameMode,
-                "ticks");
+                "ticks",
+                scrapKernel,
+                scrap);
             ValidateObservedModeBoundary(frame);
+            FrontlineScrapState? previousScrap = scrap;
+            // Lives created during this tick's preparation arrived with the
+            // economy as it stood at the END of the previous tick, so the
+            // spawn health they claim is checked against exactly that.
+            if (scrapKernel is not null && scrap is not null)
+            {
+                ValidateSpawnHealth(
+                    definition,
+                    frame.TickStart.Events,
+                    scrapKernel,
+                    scrap);
+            }
 
             ImmutableArray<int> eligible = frame.PostState.Scoreboard.Teams
                 .Where(team => team.Eligible)
@@ -97,6 +145,14 @@ internal static class GenericFrontlineChronologyEvidence
             }
             else
             {
+                if (scrapKernel is not null && scrap is not null)
+                {
+                    scrap = ApplyRecordedInvestments(
+                        scrapKernel,
+                        scrap,
+                        frame,
+                        actionKinds);
+                }
                 ImmutableHashSet<Position> activeTiles = regionTiles[
                     binding.OrderedObjectiveRegionIds[
                         previous.ActivePositionIndex]];
@@ -121,6 +177,21 @@ internal static class GenericFrontlineChronologyEvidence
                                 objectiveWeights,
                                 secondarySiteTiles))
                     .State;
+                if (scrapKernel is not null && scrap is not null)
+                {
+                    scrap = scrapKernel.ApplyJointTick(
+                        scrap,
+                        frame.Tick,
+                        ScrapBodiesAtModePhase(definition, frame),
+                        RecordedDestructions(frame));
+                    if (!scrap.IsConserved())
+                    {
+                        throw Invalid(
+                            "the recorded economy does not conserve scrap: "
+                            + "every unit spawned must be banked, spent, "
+                            + "carried, on a pile, or evaporated");
+                    }
+                }
                 if (control.WinnerTeamId is not null)
                 {
                     terminalReason = GenericFrontlineEndReason.BaseBreach;
@@ -137,7 +208,9 @@ internal static class GenericFrontlineChronologyEvidence
                 control,
                 kernel,
                 gameMode,
-                "ticks");
+                "ticks",
+                scrapKernel,
+                scrap);
             ValidateModeOwnedEvents(
                 definition,
                 frame,
@@ -145,7 +218,10 @@ internal static class GenericFrontlineChronologyEvidence
                 control,
                 kernel,
                 gameMode,
-                eligible.Length <= 1);
+                eligible.Length <= 1,
+                scrapKernel,
+                previousScrap,
+                scrap);
 
             if (terminalReason is not null && index != ticks.Count - 1)
             {
@@ -179,7 +255,11 @@ internal static class GenericFrontlineChronologyEvidence
 
         GenericActorWorldSnapshot finalState = ticks[^1].PostState;
         GenericActorRuntimeObservation.ModeObservationState.Frontline
-            expectedPublicControl = ProjectControl(gameMode, control);
+            expectedPublicControl = ProjectControl(
+                gameMode,
+                control,
+                scrapKernel,
+                scrap);
         if (!Equals(frontline.Control, expectedPublicControl)
             || !ScoresEqual(
                 frontline.Scores,
@@ -310,30 +390,8 @@ internal static class GenericFrontlineChronologyEvidence
         IReadOnlyDictionary<ActorIdentity, Position>? stationaryAgainst =
             null)
     {
-        Dictionary<ActorIdentity, string> endClockSourceForms = frame.Events
-            .Where(item =>
-                item.Kind
-                    == GenericActorRuntimeObservation.EventKind
-                        .FormTransitionCompleted)
-            .Select(item =>
-                (GenericActorRuntimeObservation.EventPayload.FormTransition)
-                    item.Payload)
-            .Where(payload =>
-            {
-                ActorSameLifeTransitionDefinition transition =
-                    definition.Rules.SameLifeTransitions.Single(value =>
-                        string.Equals(
-                            value.TransitionId,
-                            payload.TransitionId,
-                            StringComparison.Ordinal));
-                return transition.Windup.Completion
-                    == ActorTransitionWindupDefinition
-                        .ActorTransitionCompletionKind
-                        .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate;
-            })
-            .ToDictionary(
-                payload => payload.ActorId,
-                payload => payload.FromFormId);
+        Dictionary<ActorIdentity, string> endClockSourceForms =
+            EndClockSourceForms(definition, frame);
 
         return frame.PostState.ActiveLives
             .Select(life =>
@@ -360,17 +418,55 @@ internal static class GenericFrontlineChronologyEvidence
                 group => group.Sum(item => item.Weight));
     }
 
+    /// <summary>
+    /// The form each life wore at the MODE phase, where that differs from the
+    /// form the post-tick boundary records: an end-clock same-life completion
+    /// lands after the mode update, so its life contributed with the source
+    /// form.
+    /// </summary>
+    private static Dictionary<ActorIdentity, string> EndClockSourceForms(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickFrame frame) =>
+        frame.Events
+            .Where(item =>
+                item.Kind
+                    == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+            .Select(item =>
+                (GenericActorRuntimeObservation.EventPayload.FormTransition)
+                    item.Payload)
+            .Where(payload =>
+            {
+                ActorSameLifeTransitionDefinition transition =
+                    definition.Rules.SameLifeTransitions.Single(value =>
+                        string.Equals(
+                            value.TransitionId,
+                            payload.TransitionId,
+                            StringComparison.Ordinal));
+                return transition.Windup.Completion
+                    == ActorTransitionWindupDefinition
+                        .ActorTransitionCompletionKind
+                        .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate;
+            })
+            .ToDictionary(
+                payload => payload.ActorId,
+                payload => payload.FromFormId);
+
     private static void ValidateBoundary(
         GenericActorWorldSnapshot state,
         FrontlineControlState control,
         FrontlineModeKernel kernel,
         FrontlineGameModeDefinition gameMode,
-        string parameterName)
+        string parameterName,
+        FrontlineScrapKernel? scrapKernel,
+        FrontlineScrapState? scrap)
     {
         if (state.Mode
                 is not GenericActorRuntimeObservation.ModeObservationState
                     .Frontline actualMode
-            || !Equals(actualMode, ProjectControl(gameMode, control))
+            || !Equals(
+                actualMode,
+                ProjectControl(gameMode, control, scrapKernel, scrap))
             || !ScoreboardMatches(
                 state.Scoreboard,
                 kernel.CreateScoreState(control)))
@@ -406,7 +502,10 @@ internal static class GenericFrontlineChronologyEvidence
         FrontlineControlState current,
         FrontlineModeKernel kernel,
         FrontlineGameModeDefinition gameMode,
-        bool modePhaseSkipped)
+        bool modePhaseSkipped,
+        FrontlineScrapKernel? scrapKernel = null,
+        FrontlineScrapState? previousScrap = null,
+        FrontlineScrapState? currentScrap = null)
     {
         FrontlineScoreState beforeScores = kernel.CreateScoreState(previous);
         FrontlineScoreState afterScores = kernel.CreateScoreState(current);
@@ -418,9 +517,17 @@ internal static class GenericFrontlineChronologyEvidence
                 != score.TerritorialProgress)
             .ToArray();
         GenericActorRuntimeObservation.ModeObservationState.Frontline
-            beforeMode = ProjectControl(gameMode, previous);
+            beforeMode = ProjectControl(
+                gameMode,
+                previous,
+                scrapKernel,
+                previousScrap);
         GenericActorRuntimeObservation.ModeObservationState.Frontline
-            afterMode = ProjectControl(gameMode, current);
+            afterMode = ProjectControl(
+                gameMode,
+                current,
+                scrapKernel,
+                currentScrap);
         bool expectedModeChange = !Equals(beforeMode, afterMode);
         GenericActorAuthoritativeEvent[] facts = frame.Events
             .Where(IsModeOwnedEvent)
@@ -552,8 +659,151 @@ internal static class GenericFrontlineChronologyEvidence
     private static GenericActorRuntimeObservation.ModeObservationState
         .Frontline ProjectControl(
             FrontlineGameModeDefinition gameMode,
-            FrontlineControlState control) =>
-        FrontlineControlProjection.Project(gameMode.ModeId, control);
+            FrontlineControlState control,
+            FrontlineScrapKernel? scrapKernel = null,
+            FrontlineScrapState? scrap = null) =>
+        FrontlineControlProjection.Project(
+            gameMode.ModeId,
+            control,
+            scrapKernel is null || scrap is null
+                ? null
+                : (scrapKernel, scrap));
+
+    /// <summary>
+    /// Re-applies this tick's recorded purchases in canonical order. A
+    /// document that records a SUCCESSFUL purchase the ladder would have
+    /// refused — unaffordable, capped, or naming a track that does not exist
+    /// — cannot reconcile, and neither can one that records a purchase the
+    /// bank never paid for, because the re-derived bank is the one the
+    /// boundary is compared against.
+    /// </summary>
+    private static FrontlineScrapState ApplyRecordedInvestments(
+        FrontlineScrapKernel scrapKernel,
+        FrontlineScrapState scrap,
+        GenericActorMatchTickFrame frame,
+        IReadOnlyDictionary<string, ActorActionKind> actionKinds)
+    {
+        FrontlineScrapState current = scrap;
+        foreach (GenericActorMatchActorTurn turn in frame.ActorTurns
+                     .OrderBy(item => item.ActorId))
+        {
+            if (turn.ActionResolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome
+                        .Success
+                || !actionKinds.TryGetValue(
+                    turn.ActionResolution.ValidatedAction.ActionId,
+                    out ActorActionKind kind)
+                || kind != ActorActionKind.ModeInvestment)
+            {
+                continue;
+            }
+
+            string? trackId = turn.ActionResolution.ValidatedAction.Arguments
+                .OfType<GenericActorRuntimeActionArgument
+                    .UpgradeTrackArgument>()
+                .SingleOrDefault()
+                ?.TrackId;
+            if (trackId is null
+                || !scrapKernel.TryInvest(
+                    current,
+                    turn.ActorId.TeamId,
+                    trackId,
+                    out FrontlineScrapState bought))
+            {
+                throw Invalid(
+                    "a recorded successful investment names a track the "
+                    + "declared ladder would have refused");
+            }
+            current = bought;
+        }
+        return current;
+    }
+
+    /// <summary>
+    /// The bodies the economy phase saw, re-derived from the recorded
+    /// document with the same mode-phase form resolution the objective uses:
+    /// an end-clock completion contributes with its SOURCE form, because the
+    /// completion lands after the mode update.
+    /// </summary>
+    private static ImmutableArray<FrontlineScrapBody> ScrapBodiesAtModePhase(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickFrame frame)
+    {
+        Dictionary<ActorIdentity, string> endClockSourceForms =
+            EndClockSourceForms(definition, frame);
+        return frame.PostState.ActiveLives
+            .Select(life => new FrontlineScrapBody(
+                life.ActorId,
+                endClockSourceForms.GetValueOrDefault(
+                    life.ActorId,
+                    life.FormId),
+                life.Position))
+            .ToImmutableArray();
+    }
+
+    /// <summary>
+    /// This tick's destructions, read from the recorded Destruction facts
+    /// rather than from anything the economy state asserts. The death TILE is
+    /// the wreck's address, which is why the destruction rather than the
+    /// damage contact is the input.
+    /// </summary>
+    /// <summary>
+    /// Every life created at this boundary arrives at its form's declared
+    /// maximum health plus EXACTLY the health tier its team held at that
+    /// moment — re-derived from the recorded economy rather than read off the
+    /// document. The generic chronology checks only the contract-declared
+    /// band, because the tier vector is mode state; this is where the exact
+    /// number is proven, and it is proven against a bank that was itself
+    /// re-derived from recorded pickups, deposits, and purchases.
+    /// </summary>
+    private static void ValidateSpawnHealth(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        FrontlineScrapKernel scrapKernel,
+        FrontlineScrapState scrap)
+    {
+        foreach (GenericActorAuthoritativeEvent item in events)
+        {
+            if (item.Kind
+                    != GenericActorRuntimeObservation.EventKind.LifeSpawned
+                || item.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.LifeSpawned spawned)
+            {
+                continue;
+            }
+            ActorFormDefinition form = definition.Rules.Forms.Single(value =>
+                string.Equals(
+                    value.Id,
+                    spawned.FormId,
+                    StringComparison.Ordinal));
+            int expected = checked(
+                form.MaxHealth
+                + scrapKernel
+                    .ModifiersFor(scrap, spawned.ActorId)
+                    .MaxHealthDelta);
+            if (spawned.Health != expected)
+            {
+                throw Invalid(
+                    "a life spawned with health the declared form and the "
+                    + "re-derived upgrade ladder do not produce");
+            }
+        }
+    }
+
+    private static ImmutableArray<FrontlineScrapDestruction>
+        RecordedDestructions(GenericActorMatchTickFrame frame) =>
+        frame.Events
+            .Where(item =>
+                item.Kind
+                == GenericActorRuntimeObservation.EventKind.Destruction)
+            .Select(item =>
+                (GenericActorRuntimeObservation.EventPayload.Destruction)
+                    item.Payload)
+            .Select(payload => new FrontlineScrapDestruction(
+                payload.ActorId,
+                payload.Position))
+            .OrderBy(item => item.ActorId)
+            .ToImmutableArray();
 
     private static bool ScoreboardMatches(
         GenericActorRuntimeObservation.ScoreboardState scoreboard,

@@ -523,7 +523,18 @@ public sealed class GenericActorWorldSnapshot
                     "Every active life must exactly match one active slot, placement, and transition state.",
                     nameof(lives));
             }
-            if (life.Health <= 0 || life.Health > form.MaxHealth)
+            // A body may exceed its form's declared maximum by exactly the
+            // headroom the mode's own declared upgrade ladder allows, and
+            // never by more. On every contract that declares no ladder the
+            // headroom is zero and this is the historical invariant verbatim.
+            if (life.Health <= 0
+                || life.Health
+                    > checked(
+                        form.MaxHealth
+                        + FrontlineScrapEconomyDefinition.HeadroomOn(
+                            definition.Rules.GameMode,
+                            FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                                .SpawnMaxHealthDelta)))
             {
                 throw new ArgumentException(
                     "An active life's health must be within its form maximum.",
@@ -744,20 +755,31 @@ public sealed class GenericActorWorldSnapshot
                     && !profiles[value.AttackProfileId]
                         .ShotProgram.IsValid(program)
                 || value.CommittedPath.IsEmpty
-                || value.CommittedPath.Length
-                    > profiles[value.AttackProfileId]
-                        .Projectile.MaxTravelTiles
                 || value.NextPathIndex <= 0
                 || value.NextPathIndex >= value.CommittedPath.Length
                 || value.Position
                     != value.CommittedPath[value.NextPathIndex - 1]
-                || value.RemainingTiles
-                    > profiles[value.AttackProfileId]
+                || value.RemainingTiles < 0
+                // A bolt's REACH is its remaining travel plus what it has
+                // already spent. It is the profile's declared maximum plus
+                // whatever the mode's declared ladder adds to the firing body
+                // — never less, because nothing shortens a declared gun, and
+                // never more than the ladder's own headroom. On a contract
+                // that declares no ladder the headroom is zero and the two
+                // bounds collapse into the historical equality.
+                || checked(value.RemainingTiles + value.NextPathIndex)
+                    < profiles[value.AttackProfileId]
                         .Projectile.MaxTravelTiles
-                || value.RemainingTiles
-                    != profiles[value.AttackProfileId]
-                        .Projectile.MaxTravelTiles
-                        - value.NextPathIndex
+                || checked(value.RemainingTiles + value.NextPathIndex)
+                    > checked(
+                        profiles[value.AttackProfileId]
+                            .Projectile.MaxTravelTiles
+                        + FrontlineScrapEconomyDefinition.HeadroomOn(
+                            definition.Rules.GameMode,
+                            FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                                .MobileAttackTravelTilesDelta))
+                || value.CommittedPath.Length
+                    > checked(value.RemainingTiles + value.NextPathIndex)
                 || value.TicksUntilAdvance
                     > profiles[value.AttackProfileId]
                         .Projectile.TicksPerAdvance))

@@ -266,6 +266,10 @@ public sealed record GenericActorContext
         /// <param name="routeCooldowns">
         /// Live slot-scoped route cooldowns, or empty when none are live.
         /// </param>
+        /// <param name="carriedScrap">
+        /// Scrap this body is carrying, or zero — which is also every
+        /// contract without a declared economy.
+        /// </param>
         public ObservedSelfState(
             ActorIdentity actorId,
             int generation,
@@ -278,8 +282,10 @@ public sealed record GenericActorContext
             GenericActorActionResolution? previousActionResolution,
             PendingSameLifeTransition? pendingSameLifeTransition,
             string? classId = null,
-            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default)
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default,
+            int carriedScrap = 0)
         {
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
                 generation,
@@ -307,6 +313,7 @@ public sealed record GenericActorContext
             RouteCooldowns = routeCooldowns.IsDefault
                 ? []
                 : routeCooldowns;
+            CarriedScrap = carriedScrap;
         }
 
         /// <summary>Exact body-life identity.</summary>
@@ -350,6 +357,19 @@ public sealed record GenericActorContext
         /// — including every contract that declares none.
         /// </summary>
         public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
+
+        /// <summary>
+        /// Scrap this body is currently carrying, which is exactly what a
+        /// death on this tile would put on the floor. Stepping onto a pile
+        /// banks the declared assay instantly and loads the remainder up to
+        /// the declared carry capacity; standing on your own team's declared
+        /// banking region converts the whole load, automatically and free.
+        /// Zero when carrying nothing, and zero for the whole match on every
+        /// contract whose
+        /// <c>GenericActorRulesContract.FrontlineGameMode.ScrapEconomy</c> is
+        /// absent.
+        /// </summary>
+        public int CarriedScrap { get; }
     }
 
     /// <summary>
@@ -398,6 +418,7 @@ public sealed record GenericActorContext
         /// <param name="routeCooldowns">
         /// Live allied slot route cooldowns, or empty when none are live.
         /// </param>
+        /// <param name="carriedScrap">The ally's load, or zero.</param>
         public ObservedAllyState(
             ActorIdentity actorId,
             int generation,
@@ -410,9 +431,11 @@ public sealed record GenericActorContext
             GenericActorActionResolution? previousActionResolution,
             PendingSameLifeTransition? pendingSameLifeTransition,
             string? classId = null,
-            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default)
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default,
+            int carriedScrap = 0)
         {
             ArgumentNullException.ThrowIfNull(actorId);
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ValidateBody(
                 generation,
                 formId,
@@ -439,6 +462,7 @@ public sealed record GenericActorContext
             RouteCooldowns = routeCooldowns.IsDefault
                 ? []
                 : routeCooldowns;
+            CarriedScrap = carriedScrap;
         }
 
         /// <summary>Exact allied body-life identity.</summary>
@@ -470,6 +494,14 @@ public sealed record GenericActorContext
         /// allies share their complete gameplay state.
         /// </summary>
         public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
+
+        /// <summary>
+        /// The ally's load, published under the same grammar as
+        /// <see cref="ObservedSelfState.CarriedScrap"/> — allies share their
+        /// complete gameplay state, so an escort knows what it is escorting
+        /// and a team can decide whether the walk home is worth covering.
+        /// </summary>
+        public int CarriedScrap { get; }
     }
 
     /// <summary>
@@ -880,6 +912,7 @@ public sealed record GenericActorContext
         /// Exact allied life identities whose sensors revealed this state.
         /// </param>
         /// <param name="classId">Immutable enemy chassis class, if declared.</param>
+        /// <param name="carriedScrap">The enemy's visible load, or zero.</param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -888,9 +921,11 @@ public sealed record GenericActorContext
             int health,
             PendingSameLifeTransition? pendingSameLifeTransition,
             IEnumerable<ActorIdentity> observedBy,
-            string? classId = null)
+            string? classId = null,
+            int carriedScrap = 0)
         {
             ArgumentNullException.ThrowIfNull(actorId);
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ValidatePosition(position, nameof(position));
             if (health <= 0)
                 throw new ArgumentOutOfRangeException(nameof(health));
@@ -912,6 +947,7 @@ public sealed record GenericActorContext
                 : GenericActorDynamicValueRules.SemanticId(
                     classId,
                     nameof(classId));
+            CarriedScrap = carriedScrap;
         }
 
         /// <summary>Exact visible enemy body-life identity.</summary>
@@ -933,6 +969,15 @@ public sealed record GenericActorContext
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
         /// <summary>Immutable enemy chassis class, if declared.</summary>
         public string? ClassId { get; }
+
+        /// <summary>
+        /// A visible enemy's load. This is the fact that makes interception a
+        /// decision rather than a guess: killing a loaded carrier drops its
+        /// whole load plus its wreck on one tile, so "is that body worth
+        /// chasing" has an answer. Zero when it carries nothing, and zero for
+        /// the whole match on every contract without a declared economy.
+        /// </summary>
+        public int CarriedScrap { get; }
     }
 
     /// <summary>One sensor-visible map tile and its observation provenance.</summary>
@@ -2388,6 +2433,13 @@ public sealed record GenericActorContext
             /// objective capture: positive for team 0, negative for team 1,
             /// zero when no claim stands.
             /// </param>
+            /// <param name="scrapTeams">
+            /// Both teams' bank and tier vector, ordered by team ID, or empty
+            /// on every ruleset without a declared economy.
+            /// </param>
+            /// <param name="scrapPiles">
+            /// Live piles of loose scrap ordered by (y, x), or empty.
+            /// </param>
             public Frontline(
                 string modeId,
                 int activePositionIndex,
@@ -2398,7 +2450,9 @@ public sealed record GenericActorContext
                 int? holdOwnerTeamId = null,
                 int? holdEndsAtTick = null,
                 int? secondaryOwnerTeamId = null,
-                int secondaryClaimProgress = 0)
+                int secondaryClaimProgress = 0,
+                ImmutableArray<ScrapTeamState> scrapTeams = default,
+                ImmutableArray<ScrapPile> scrapPiles = default)
                 : base(modeId)
             {
                 if (activePositionIndex < 0)
@@ -2442,6 +2496,8 @@ public sealed record GenericActorContext
                 HoldEndsAtTick = holdEndsAtTick;
                 SecondaryOwnerTeamId = secondaryOwnerTeamId;
                 SecondaryClaimProgress = secondaryClaimProgress;
+                ScrapTeams = scrapTeams.IsDefault ? [] : scrapTeams;
+                ScrapPiles = scrapPiles.IsDefault ? [] : scrapPiles;
             }
 
             /// <inheritdoc />
@@ -2494,7 +2550,108 @@ public sealed record GenericActorContext
             /// once is a real denial rather than a pause.
             /// </summary>
             public int SecondaryClaimProgress { get; }
+
+            /// <summary>
+            /// Both teams' complete economic position — liquid bank and the
+            /// tier held on each declared track — ordered by team ID and
+            /// public to everybody. Read what a tier DOES, what the next one
+            /// costs, and how deep a track goes from
+            /// <c>GenericActorRulesContract.FrontlineGameMode.ScrapEconomy</c>;
+            /// this field is only where both teams stand right now.
+            /// <para>Every purchase is public on the tick it happens: a tier
+            /// change moves this state, and a changed mode state rides the
+            /// ordinary mode-changed event, so the enemy's bank dropping and
+            /// its tier rising arrive together with no inference and no
+            /// visibility requirement. Empty on every ruleset that declares no
+            /// economy.</para>
+            /// </summary>
+            public ImmutableArray<ScrapTeamState> ScrapTeams { get; }
+
+            /// <summary>
+            /// Every live pile of loose scrap, ordered by (y, x). The deposit
+            /// schedule is static contract data, but WHETHER a deposit is
+            /// still standing is not — and neither is where a body you never
+            /// saw died. Empty on every ruleset that declares no economy.
+            /// </summary>
+            public ImmutableArray<ScrapPile> ScrapPiles { get; }
         }
+    }
+
+    /// <summary>One team's published economic position.</summary>
+    public sealed record ScrapTeamState
+    {
+        /// <summary>Creates one team's economic position.</summary>
+        /// <param name="teamId">The scoring team.</param>
+        /// <param name="bank">Unspent scrap.</param>
+        /// <param name="tierLevels">
+        /// Tier held on each track, positionally against the contract's
+        /// declared track order.
+        /// </param>
+        public ScrapTeamState(
+            int teamId,
+            int bank,
+            ImmutableArray<int> tierLevels)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(teamId);
+            ArgumentOutOfRangeException.ThrowIfNegative(bank);
+            ImmutableArray<int> tiers =
+                tierLevels.IsDefault ? [] : tierLevels;
+            if (tiers.Any(tier => tier < 0))
+            {
+                throw new ArgumentOutOfRangeException(nameof(tierLevels));
+            }
+            TeamId = teamId;
+            Bank = bank;
+            TierLevels = tiers;
+        }
+
+        /// <summary>The scoring team.</summary>
+        public int TeamId { get; }
+        /// <summary>Unspent scrap. Both teams' banks are public.</summary>
+        public int Bank { get; }
+        /// <summary>
+        /// Tier held on each declared track, in the contract's declared track
+        /// order. Multiply by that track's declared per-tier magnitude to get
+        /// the effective modifier — the form catalog carries the BASE number,
+        /// this carries the step.
+        /// </summary>
+        public ImmutableArray<int> TierLevels { get; }
+    }
+
+    /// <summary>
+    /// One live pile of loose scrap. Piles merge by tile, so there is no
+    /// origin discriminator — a wreck landing on a live deposit is one pile,
+    /// and a killed carrier is simply a bigger wreck.
+    /// </summary>
+    public sealed record ScrapPile
+    {
+        /// <summary>Creates one live pile.</summary>
+        /// <param name="position">The tile it sits on.</param>
+        /// <param name="amount">Scrap on it.</param>
+        /// <param name="expiresAtTick">
+        /// The pile is gone the first tick <c>tick &gt;= expiresAtTick</c>.
+        /// </param>
+        public ScrapPile(Position position, int amount, int expiresAtTick)
+        {
+            ValidatePosition(position, nameof(position));
+            if (amount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            ArgumentOutOfRangeException.ThrowIfNegative(expiresAtTick);
+            Position = position;
+            Amount = amount;
+            ExpiresAtTick = expiresAtTick;
+        }
+
+        /// <summary>The tile it sits on.</summary>
+        public Position Position { get; }
+        /// <summary>Scrap on it.</summary>
+        public int Amount { get; }
+        /// <summary>
+        /// The first tick on which this pile no longer exists — the same clock
+        /// grammar as a route cooldown's ready tick and the ratchet hold's
+        /// end tick. It binds while the observed tick is strictly below it.
+        /// </summary>
+        public int ExpiresAtTick { get; }
     }
 
     private static void ValidateBody(

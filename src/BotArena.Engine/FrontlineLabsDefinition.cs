@@ -446,7 +446,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
-        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen)
+        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
     {
         if (!Enum.IsDefined(capture))
         {
@@ -454,6 +455,22 @@ public static class FrontlineLabsDefinition
                 nameof(capture),
                 capture,
                 "Unknown Frontline Labs capture arm.");
+        }
+        if (!Enum.IsDefined(economy))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(economy),
+                economy,
+                "Unknown Frontline Labs economy arm.");
+        }
+        if (economy != FrontlineLabsEconomyArm.None
+            && sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            throw new ArgumentException(
+                "A battlefield economy and a side objective both claim the "
+                + "side lanes' attention, so they are mutually exclusive "
+                + "arms: a cell carrying both could attribute neither.",
+                nameof(economy));
         }
         if (!Enum.IsDefined(sideObjective))
         {
@@ -609,6 +626,20 @@ public static class FrontlineLabsDefinition
                 + "pair, or compose it with a pendulum level.",
                 nameof(capture));
         }
+        // The economy changes the game for every class pair whatever is in
+        // the cell — the deposits, the wreckage, and the ladder are the same
+        // whatever chassis are present — so it is never inert-omitted, and it
+        // needs a cell for exactly the reason the other two arms do.
+        if (economy != FrontlineLabsEconomyArm.None
+            && classes is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new ArgumentException(
+                "A battlefield economy adds a resource both teams fight "
+                + "over, so it needs a cell to sit in: pass a class pair, or "
+                + "compose it with a pendulum level.",
+                nameof(economy));
+        }
         if (pendulum == FrontlineLabsPendulumArm.None
             && captureThreshold == DefaultCaptureThreshold
             && primeRespawnTicks == DefaultPrimeRespawnTicks
@@ -617,6 +648,7 @@ public static class FrontlineLabsDefinition
             && bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
             && sideObjective == FrontlineLabsSideObjectiveArm.None
             && capture == FrontlineLabsCaptureArm.Frozen
+            && economy == FrontlineLabsEconomyArm.None
             && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
             throw new ArgumentOutOfRangeException(
@@ -678,7 +710,8 @@ public static class FrontlineLabsDefinition
                 cooldown,
                 effectiveVolley,
                 sideObjective,
-                capture),
+                capture,
+                economy),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -699,7 +732,8 @@ public static class FrontlineLabsDefinition
             aim: aim,
             cooldown: cooldown,
             volley: effectiveVolley,
-            sideObjective: sideObjective);
+            sideObjective: sideObjective,
+            economy: economy);
     }
 
     /// <summary>
@@ -925,7 +959,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
-        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen)
+        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -1071,6 +1106,40 @@ public static class FrontlineLabsDefinition
             arms = channeled.Arms;
             tuning = channeled.Tuning;
         }
+        if (economy != FrontlineLabsEconomyArm.None)
+        {
+            // The economy re-mints the cell for the same reason the channel
+            // does — the game it produces is not the game it was — and it hits
+            // the same budget wall, because the worst class pair beside
+            // `facing-locked` leaves eight canonical characters for the whole
+            // arm. `forge` is swell + scrap and `bastion` is the full
+            // shipped game (swell + channel + scrap); `redoubt` is the tuned
+            // clock's version of the same. The control level always spells
+            // itself, because a control that shared an identity with the arm
+            // it controls would be unreadable in the evidence.
+            (string[] Arms, string[] Tuning) traded =
+                (arms, tuning, economy) switch
+                {
+                    (["swell"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "forge" }, []),
+                    (["tide"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "anvil" }, []),
+                    (["sail", "tick"], ["open"],
+                        FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "smelter" }, []),
+                    (["siege"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "bastion" }, []),
+                    (["sap"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "redoubt" }, []),
+                    (["mantlet"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "smithy" }, []),
+                    _ => (
+                        [.. arms, EconomyArmToken(economy)],
+                        tuning),
+                };
+            arms = traded.Arms;
+            tuning = traded.Tuning;
+        }
         string[] tokens =
         [
             .. arms,
@@ -1108,6 +1177,60 @@ public static class FrontlineLabsDefinition
         }
         return id;
     }
+
+    /// <summary>
+    /// The plain per-factor spelling of one economy level, used wherever the
+    /// cell has no registered composite. The control level always spells
+    /// itself, because a control that shared an identity with the arm it
+    /// controls would be unreadable in the evidence.
+    /// </summary>
+    private static string EconomyArmToken(
+        FrontlineLabsEconomyArm economy) =>
+        economy switch
+        {
+            FrontlineLabsEconomyArm.Scrap =>
+                FrontlineLabsScrapEconomy.ArmToken,
+            // The control never takes a registered composite: an identity it
+            // shared with the arm it controls would be unreadable in the
+            // evidence. It spells `flat` rather than the flag's own
+            // `scrap-flat` because the composite it appends to already names
+            // the economy, and the six extra characters do not fit beside the
+            // worst class pair.
+            FrontlineLabsEconomyArm.ScrapFlat =>
+                FrontlineLabsScrapEconomy.FlatArmToken,
+            _ => throw new ArgumentOutOfRangeException(nameof(economy)),
+        };
+
+    /// <summary>
+    /// Whether this economy level declares the <c>invest</c> verb at all. The
+    /// control level's whole point is that it does not: the bank buys by
+    /// itself, so the action never enters the catalog and no form ever offers
+    /// it.
+    /// </summary>
+    private static bool DeclaresInvestAction(
+        FrontlineLabsEconomyArm economy) =>
+        economy == FrontlineLabsEconomyArm.Scrap;
+
+    /// <summary>The <c>invest</c> catalog entry.</summary>
+    private static ActorActionDefinition InvestAction() =>
+        new(
+            PublicActionIds.Invest,
+            PublicActionCodes.Invest,
+            ActorActionKind.ModeInvestment,
+            [ActorActionParameterKind.UpgradeTrack]);
+
+    /// <summary>
+    /// The verb appended to every form's allowed actions under the economy
+    /// arm, or nothing. Any live body may cast it, from any tile: making it
+    /// Prime-only would add a denial vector — freeze their economy by killing
+    /// one body — which is a gotcha rather than a decision, and requiring a
+    /// forge tile would double-tax an errand that already costs a round trip.
+    /// </summary>
+    private static string[] InvestActionIds(
+        FrontlineLabsEconomyArm economy) =>
+        DeclaresInvestAction(economy)
+            ? [PublicActionIds.Invest]
+            : [];
 
     /// <summary>
     /// The rules-side arm tokens for one cell: a registered composite
@@ -1403,7 +1526,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None)
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1425,7 +1549,8 @@ public static class FrontlineLabsDefinition
             aim,
             cooldown,
             volley,
-            sideObjective);
+            sideObjective,
+            economy);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1517,7 +1642,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None)
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1540,7 +1666,8 @@ public static class FrontlineLabsDefinition
                 cooldown,
                 volley,
                 sideObjective,
-                controlPolicy);
+                controlPolicy,
+                economy);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1590,9 +1717,21 @@ public static class FrontlineLabsDefinition
         ActorTransitionWindupDefinition splitWindup = Windup(
             ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                 .TickStartAfterDuration);
+        string[] investActions = InvestActionIds(economy);
         string[] turretActions = enableMobilize
-            ? ["wait", PublicActionIds.ShootDirection, MobilizeActionId]
-            : ["wait", PublicActionIds.ShootDirection];
+            ?
+            [
+                "wait",
+                PublicActionIds.ShootDirection,
+                MobilizeActionId,
+                .. investActions,
+            ]
+            :
+            [
+                "wait",
+                PublicActionIds.ShootDirection,
+                .. investActions,
+            ];
         var actions = new List<ActorActionDefinition>
         {
             new(
@@ -1650,6 +1789,8 @@ public static class FrontlineLabsDefinition
                     ActorActionKind.SameLifeTransition,
                     []));
         }
+        if (DeclaresInvestAction(economy))
+            actions.Add(InvestAction());
         var sameLifeTransitions =
             new List<ActorSameLifeTransitionDefinition>
             {
@@ -1752,14 +1893,23 @@ public static class FrontlineLabsDefinition
                     mobileAttack.Id,
                     objectiveWeight: 1,
                     automaticCompanions
-                        ? ["wait", "move", "rotate", "shoot"]
-                        : [
+                        ?
+                        [
+                            "wait",
+                            "move",
+                            "rotate",
+                            "shoot",
+                            .. investActions,
+                        ]
+                        :
+                        [
                             "wait",
                             "move",
                             "rotate",
                             "shoot",
                             "fabricate",
                             "split",
+                            .. investActions,
                         ]),
                 new ActorFormDefinition(
                     ChildFormId,
@@ -1768,7 +1918,14 @@ public static class FrontlineLabsDefinition
                     mobileVision.Id,
                     mobileAttack.Id,
                     objectiveWeight: 1,
-                    ["wait", "move", "rotate", "shoot", "transform"]),
+                    [
+                        "wait",
+                        "move",
+                        "rotate",
+                        "shoot",
+                        "transform",
+                        .. investActions,
+                    ]),
                 new ActorFormDefinition(
                     ReplicaFormId,
                     maxHealth: 3,
@@ -1776,7 +1933,7 @@ public static class FrontlineLabsDefinition
                     mobileVision.Id,
                     mobileAttack.Id,
                     objectiveWeight: 1,
-                    ["wait", "move", "rotate", "shoot"]),
+                    ["wait", "move", "rotate", "shoot", .. investActions]),
                 new ActorFormDefinition(
                     TurretFormId,
                     maxHealth: 5,
@@ -1876,7 +2033,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown =
             FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None) =>
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None) =>
         new(
             rulesetId,
             new ActorRulesLimits(
@@ -1934,7 +2092,8 @@ public static class FrontlineLabsDefinition
                         ? FrontlineClaimInterruptDefinition
                             .DamageRevertsWork
                         : null),
-                SecondaryControl(sideObjective)),
+                SecondaryControl(sideObjective),
+                FrontlineLabsScrapEconomy.For(economy)),
             lifecycle,
             forms,
             movementProfiles,
@@ -1998,7 +2157,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsSideObjectiveArm.None,
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
             FrontlineCaptureDefinition.ControlPolicyKind
-                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -2106,6 +2266,9 @@ public static class FrontlineLabsDefinition
                     ActorActionKind.Attack,
                     []));
         }
+        string[] investActions = InvestActionIds(economy);
+        if (DeclaresInvestAction(economy))
+            actions.Add(InvestAction());
 
         var visions = new List<ActorVisionProfileDefinition>();
         var attacks = new List<ActorAttackProfileDefinition>();
@@ -2151,6 +2314,7 @@ public static class FrontlineLabsDefinition
                 .. entry.ExplicitForwardFabrication
                     ? new[] { "fabricate" }
                     : [],
+                .. investActions,
             ];
             string[] childActions =
             [
@@ -2159,6 +2323,7 @@ public static class FrontlineLabsDefinition
                 "rotate",
                 shootActionId,
                 .. mayTransform ? new[] { "transform" } : [],
+                .. investActions,
             ];
             forms.Add(
                 new ActorFormDefinition(
@@ -2198,6 +2363,7 @@ public static class FrontlineLabsDefinition
                                 "wait",
                                 PublicActionIds.ShootDirection,
                                 MobilizeActionId,
+                                .. investActions,
                             ]));
                 }
             }
@@ -2267,6 +2433,7 @@ public static class FrontlineLabsDefinition
                                     ? new[] { ShootStraightActionId }
                                     : [],
                                 MobilizeActionId,
+                                .. investActions,
                             ],
                             lockedArc
                                 ? ActorFormProjectileGuardKind
@@ -2432,7 +2599,8 @@ public static class FrontlineLabsDefinition
             sameLifeTransitions,
             replicationTransitions: [],
             cooldown,
-            sideObjective);
+            sideObjective,
+            economy);
     }
 
     private static ActorFormTransitionDefinition AnchorRoute(

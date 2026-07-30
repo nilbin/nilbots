@@ -62,6 +62,16 @@ public sealed record GenericActorRuntimeObservation(
             get;
             init;
         } = [];
+
+        /// <summary>
+        /// Scrap this body is currently carrying, which is exactly what a
+        /// death on this tile would put on the floor. Zero when carrying
+        /// nothing, and zero for the whole match on every ruleset without a
+        /// declared scrap economy — the additive inert default. Compare it
+        /// against the contract's declared <c>carryCapacity</c> to know
+        /// whether another pile would fit.
+        /// </summary>
+        public int CarriedScrap { get; init; }
     }
 
     public sealed record ObservedAllyState(
@@ -88,6 +98,13 @@ public sealed record GenericActorRuntimeObservation(
             get;
             init;
         } = [];
+
+        /// <summary>
+        /// The ally's load, published under the same grammar as
+        /// <see cref="ObservedSelfState.CarriedScrap"/> — allies share their
+        /// complete gameplay state, so an escort knows what it is escorting.
+        /// </summary>
+        public int CarriedScrap { get; init; }
     }
 
     /// <summary>
@@ -248,6 +265,15 @@ public sealed record GenericActorRuntimeObservation(
         ImmutableArray<ActorIdentity> ObservedBy)
     {
         public string? ClassId { get; init; }
+
+        /// <summary>
+        /// A visible enemy's load. It is the fact that makes interception a
+        /// decision rather than a guess — "is that body worth chasing" is
+        /// exactly the question — and without it the harass loop is a coin
+        /// flip. Zero when carrying nothing, and zero for the whole match on
+        /// every ruleset without a declared scrap economy.
+        /// </summary>
+        public int CarriedScrap { get; init; }
     }
 
     public sealed record ObservedTile(
@@ -579,6 +605,94 @@ public sealed record GenericActorRuntimeObservation(
             }
 
             /// <summary>
+            /// Both teams' complete economic position — liquid bank and the
+            /// tier held on each declared track — ordered by team ID and
+            /// published to everybody. One field carries the whole ledger,
+            /// which is what makes the purchase telegraph free: a tier change
+            /// moves the mode state, a changed mode state rides the existing
+            /// <see cref="EventKind.ModeChanged"/> fact, and the enemy sees
+            /// the bank drop and the tier rise on the tick they happen with
+            /// no visibility requirement and no inference.
+            /// <para>Empty on every ruleset that declares no scrap economy —
+            /// the additive inert default, so a bot never branches on whether
+            /// the mechanic exists. <c>TierLevels</c> is positional against
+            /// the contract's declared track order.</para>
+            /// </summary>
+            public ImmutableArray<ScrapTeamState> ScrapTeams
+            {
+                get;
+                init;
+            } = [];
+
+            /// <summary>
+            /// Every live pile of loose scrap, ordered by <c>(y, x)</c>.
+            /// Neither half is derivable: the deposit schedule is static
+            /// contract data but WHETHER a deposit is still there is not, and
+            /// a wreck's location is unavailable to a body that was not
+            /// present at the kill. Empty on every ruleset without the
+            /// economy.
+            /// </summary>
+            public ImmutableArray<ScrapPile> ScrapPiles
+            {
+                get;
+                init;
+            } = [];
+
+            /// <summary>
+            /// Structural equality, spelled out because the two economy facts
+            /// are <see cref="ImmutableArray{T}"/>: its own equality compares
+            /// the underlying array by REFERENCE, so the synthesized record
+            /// comparison would call two identical published states different
+            /// and every consumer that asks "did the mode change this tick?"
+            /// — the mode-changed telegraph and the replay validator's
+            /// boundary check among them — would answer yes on every tick.
+            /// </summary>
+            public bool Equals(Frontline? other) =>
+                other is not null
+                && string.Equals(ModeId, other.ModeId, StringComparison.Ordinal)
+                && ActivePositionIndex == other.ActivePositionIndex
+                && ClaimingTeamId == other.ClaimingTeamId
+                && CaptureProgress == other.CaptureProgress
+                && DecayTicksElapsed == other.DecayTicksElapsed
+                && ControlResumesAtTick == other.ControlResumesAtTick
+                && HoldOwnerTeamId == other.HoldOwnerTeamId
+                && HoldEndsAtTick == other.HoldEndsAtTick
+                && SecondaryOwnerTeamId == other.SecondaryOwnerTeamId
+                && SecondaryClaimProgress == other.SecondaryClaimProgress
+                && ScrapTeams.SequenceEqual(other.ScrapTeams)
+                && ScrapPiles.SequenceEqual(other.ScrapPiles);
+
+            /// <inheritdoc />
+            public override int GetHashCode()
+            {
+                var hash = default(HashCode);
+                hash.Add(ModeId, StringComparer.Ordinal);
+                hash.Add(ActivePositionIndex);
+                hash.Add(ClaimingTeamId);
+                hash.Add(CaptureProgress);
+                hash.Add(DecayTicksElapsed);
+                hash.Add(ControlResumesAtTick);
+                hash.Add(HoldOwnerTeamId);
+                hash.Add(HoldEndsAtTick);
+                hash.Add(SecondaryOwnerTeamId);
+                hash.Add(SecondaryClaimProgress);
+                foreach (ScrapTeamState team in ScrapTeams)
+                {
+                    hash.Add(team.TeamId);
+                    hash.Add(team.Bank);
+                    foreach (int tier in team.TierLevels)
+                        hash.Add(tier);
+                }
+                foreach (ScrapPile pile in ScrapPiles)
+                {
+                    hash.Add(pile.Position);
+                    hash.Add(pile.Amount);
+                    hash.Add(pile.ExpiresAtTick);
+                }
+                return hash.ToHashCode();
+            }
+
+            /// <summary>
             /// The team a signed side-objective claim belongs to, or null
             /// when the claim is zero.
             /// </summary>
@@ -639,4 +753,56 @@ public sealed record GenericActorRuntimeObservation(
             public int SecondaryClaimProgress { get; }
         }
     }
+
+    /// <summary>
+    /// One team's published economic position under a declared scrap economy.
+    /// </summary>
+    /// <param name="TeamId">The scoring team.</param>
+    /// <param name="Bank">Unspent scrap. Both teams' banks are public.</param>
+    /// <param name="TierLevels">
+    /// Tier held on each track, positionally against the contract's declared
+    /// track order. Multiply by that track's declared per-tier magnitude to
+    /// get the effective modifier.
+    /// </param>
+    public sealed record ScrapTeamState(
+        int TeamId,
+        int Bank,
+        ImmutableArray<int> TierLevels)
+    {
+        /// <summary>
+        /// Structural equality for the same reason the mode state spells its
+        /// own out: the tier vector is an <see cref="ImmutableArray{T}"/>.
+        /// </summary>
+        public bool Equals(ScrapTeamState? other) =>
+            other is not null
+            && TeamId == other.TeamId
+            && Bank == other.Bank
+            && TierLevels.SequenceEqual(other.TierLevels);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            var hash = default(HashCode);
+            hash.Add(TeamId);
+            hash.Add(Bank);
+            foreach (int tier in TierLevels)
+                hash.Add(tier);
+            return hash.ToHashCode();
+        }
+    }
+
+    /// <summary>
+    /// One live pile of loose scrap. Piles merge by tile, so there is no
+    /// origin discriminator — a wreck landing on a live deposit is one pile.
+    /// </summary>
+    /// <param name="Position">The tile.</param>
+    /// <param name="Amount">Scrap on it.</param>
+    /// <param name="ExpiresAtTick">
+    /// The pile is gone the first tick <c>tick &gt;= expiresAtTick</c>, the
+    /// same clock grammar as <c>holdEndsAtTick</c> and <c>readyAtTick</c>.
+    /// </param>
+    public sealed record ScrapPile(
+        Position Position,
+        int Amount,
+        int ExpiresAtTick);
 }

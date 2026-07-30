@@ -700,6 +700,7 @@ internal static class ReplayV3Serializer
             value.PendingSameLifeTransition);
         WriteNullableString(writer, "classId", value.ClassId);
         WriteRouteCooldowns(writer, value.RouteCooldowns);
+        WriteCarriedScrap(writer, value.CarriedScrap);
         writer.WriteEndObject();
     }
 
@@ -728,6 +729,7 @@ internal static class ReplayV3Serializer
             value.PendingSameLifeTransition);
         WriteNullableString(writer, "classId", value.ClassId);
         WriteRouteCooldowns(writer, value.RouteCooldowns);
+        WriteCarriedScrap(writer, value.CarriedScrap);
         writer.WriteEndObject();
     }
 
@@ -753,7 +755,22 @@ internal static class ReplayV3Serializer
             value.ObservedBy,
             WriteActorId);
         WriteNullableString(writer, "classId", value.ClassId);
+        WriteCarriedScrap(writer, value.CarriedScrap);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Canonical form for a body's carried scrap: the key exists only while
+    /// the body is actually carrying, so every replay from a contract that
+    /// declares no economy serializes byte-exactly as before.
+    /// </summary>
+    private static void WriteCarriedScrap(
+        Utf8JsonWriter writer,
+        int value)
+    {
+        if (value == 0)
+            return;
+        writer.WriteNumber("carriedScrap", value);
     }
 
     /// <summary>
@@ -775,6 +792,51 @@ internal static class ReplayV3Serializer
             writer.WriteStartObject();
             writer.WriteString("transitionId", cooldown.TransitionId);
             writer.WriteNumber("readyAtTick", cooldown.ReadyAtTick);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteScrapTeams(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.ScrapTeam> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("scrapTeams");
+        writer.WriteStartArray();
+        foreach (ReplayV3.ScrapTeam team in value)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("teamId", team.TeamId);
+            writer.WriteNumber("bank", team.Bank);
+            writer.WritePropertyName("tierLevels");
+            writer.WriteStartArray();
+            foreach (int tier in team.TierLevels)
+                writer.WriteNumberValue(tier);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteScrapPiles(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.ScrapPile> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("scrapPiles");
+        writer.WriteStartArray();
+        foreach (ReplayV3.ScrapPile pile in value)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("position");
+            WritePosition(writer, pile.Position);
+            writer.WriteNumber("amount", pile.Amount);
+            writer.WriteNumber("expiresAtTick", pile.ExpiresAtTick);
             writer.WriteEndObject();
         }
 
@@ -1077,6 +1139,12 @@ internal static class ReplayV3Serializer
             case ReplayV3.RawActionArgument.ProjectileHeading argument:
                 writer.WriteNumber("value", argument.Value);
                 break;
+            case ReplayV3.RawActionArgument.UpgradeTrack argument:
+                WriteNullableString(
+                    writer,
+                    "trackId",
+                    argument.TrackId);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 raw action argument '{value.GetType().Name}'.");
@@ -1160,6 +1228,9 @@ internal static class ReplayV3Serializer
                 break;
             case ReplayV3.ActionArgument.ProjectileHeading argument:
                 writer.WriteString("value", argument.Value);
+                break;
+            case ReplayV3.ActionArgument.UpgradeTrack argument:
+                writer.WriteString("trackId", argument.TrackId);
                 break;
             default:
                 throw new NotSupportedException(
@@ -1248,6 +1319,12 @@ internal static class ReplayV3Serializer
                     writer,
                     "allowedValues",
                     constraint.AllowedValues);
+                break;
+            case ReplayV3.ActionConstraint.UpgradeTrack constraint:
+                WriteStringArray(
+                    writer,
+                    "allowedTrackIds",
+                    constraint.AllowedTrackIds);
                 break;
             default:
                 throw new NotSupportedException(
@@ -1897,6 +1974,12 @@ internal static class ReplayV3Serializer
                 writer.WriteNumber(
                     "secondaryClaimProgress",
                     frontline.SecondaryClaimProgress);
+                // The economy's two collections, on the same discipline: the
+                // keys exist only on a ruleset that declares an economy, so
+                // every replay produced before the capability existed
+                // serializes byte-exactly as before.
+                WriteScrapTeams(writer, frontline.ScrapTeams);
+                WriteScrapPiles(writer, frontline.ScrapPiles);
                 break;
             default:
                 throw new NotSupportedException(
@@ -4481,6 +4564,15 @@ internal static class ReplayV3Serializer
                                 $"Replay-v3 {context} contains invalid allowed projectile headings.");
                         }
                         break;
+                    case ReplayV3.ActionConstraint.UpgradeTrack tracks:
+                        RequireCanonicalOrder(
+                            tracks.AllowedTrackIds,
+                            static (left, right) =>
+                                StringComparer.Ordinal.Compare(
+                                    left,
+                                    right),
+                            $"{context} allowed upgrade tracks");
+                        break;
                 }
             }
         }
@@ -6243,6 +6335,8 @@ internal static class ReplayV3Serializer
                     ["projectile-heading"] =
                         typeof(
                             ReplayV3.ActionConstraint.ProjectileHeading),
+                    ["upgrade-track"] =
+                        typeof(ReplayV3.ActionConstraint.UpgradeTrack),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventPayload>(
@@ -6324,6 +6418,68 @@ internal static class ReplayV3Serializer
                 }));
         options.Converters.Add(new ModeResultJsonConverter());
         return options;
+    }
+
+    /// <summary>
+    /// One live economy ledger, read from the document. Amounts and expiries
+    /// are re-derived by the chronology validator, so this reader's job is
+    /// exactly shape.
+    /// </summary>
+    private static ImmutableArray<ReplayV3.ScrapTeam> ReadScrapTeams(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException(
+                "Replay-v3 'scrapTeams' must be an array.");
+        }
+        var teams = ImmutableArray.CreateBuilder<ReplayV3.ScrapTeam>();
+        foreach (JsonElement item in value.EnumerateArray())
+        {
+            RequireProperties(item, "teamId", "bank", "tierLevels");
+            JsonElement tiers = item.GetProperty("tierLevels");
+            if (tiers.ValueKind != JsonValueKind.Array)
+            {
+                throw new JsonException(
+                    "Replay-v3 'tierLevels' must be an array.");
+            }
+            teams.Add(new ReplayV3.ScrapTeam(
+                RequiredInt32(item, "teamId"),
+                RequiredInt32(item, "bank"),
+                [
+                    .. tiers.EnumerateArray().Select(tier =>
+                        tier.ValueKind == JsonValueKind.Number
+                        && tier.TryGetInt32(out int level)
+                            ? level
+                            : throw new JsonException(
+                                "Replay-v3 tier level must be an int32.")),
+                ]));
+        }
+        return teams.ToImmutable();
+    }
+
+    private static ImmutableArray<ReplayV3.ScrapPile> ReadScrapPiles(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException(
+                "Replay-v3 'scrapPiles' must be an array.");
+        }
+        var piles = ImmutableArray.CreateBuilder<ReplayV3.ScrapPile>();
+        foreach (JsonElement item in value.EnumerateArray())
+        {
+            RequireProperties(item, "position", "amount", "expiresAtTick");
+            JsonElement position = item.GetProperty("position");
+            RequireProperties(position, "x", "y");
+            piles.Add(new ReplayV3.ScrapPile(
+                new ReplayV3.PositionValue(
+                    RequiredInt32(position, "x"),
+                    RequiredInt32(position, "y")),
+                RequiredInt32(item, "amount"),
+                RequiredInt32(item, "expiresAtTick")));
+        }
+        return piles.ToImmutable();
     }
 
     private static void RequireProperties(
@@ -6492,6 +6648,10 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.RawActionArgument
                         .ProjectileHeading(
                             RequiredInt32(root, "value"));
+                case "upgrade-track":
+                    RequireProperties(root, "kind", "trackId");
+                    return new ReplayV3.RawActionArgument.UpgradeTrack(
+                        NullableString(root, "trackId"));
                 default:
                     throw new JsonException(
                         $"Unknown raw replay-v3 action argument kind '{kind}'.");
@@ -6560,6 +6720,10 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.ActionArgument
                         .ProjectileHeading(
                             RequiredString(root, "value"));
+                case "upgrade-track":
+                    RequireProperties(root, "kind", "trackId");
+                    return new ReplayV3.ActionArgument.UpgradeTrack(
+                        RequiredString(root, "trackId"));
                 default:
                     throw new JsonException(
                         $"Unknown resolved replay-v3 action argument kind '{kind}'.");
@@ -6597,19 +6761,38 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.ModeState.Deathmatch(modeId);
                 case "frontline":
                     {
+                        // The economy's two collections are TRAILING and
+                        // optional: they appear only on a ruleset that
+                        // declares an economy, in that exact order, so a
+                        // document from before the capability existed reads
+                        // byte-identically.
+                        bool scrapTeams = root.TryGetProperty(
+                            "scrapTeams",
+                            out JsonElement teams);
+                        bool scrapPiles = root.TryGetProperty(
+                            "scrapPiles",
+                            out JsonElement piles);
                         RequireProperties(
                             root,
-                            "kind",
-                            "modeId",
-                            "activePositionIndex",
-                            "claimingTeamId",
-                            "captureProgress",
-                            "decayTicksElapsed",
-                            "controlResumesAtTick",
-                            "holdOwnerTeamId",
-                            "holdEndsAtTick",
-                            "secondaryOwnerTeamId",
-                            "secondaryClaimProgress");
+                            [
+                                "kind",
+                                "modeId",
+                                "activePositionIndex",
+                                "claimingTeamId",
+                                "captureProgress",
+                                "decayTicksElapsed",
+                                "controlResumesAtTick",
+                                "holdOwnerTeamId",
+                                "holdEndsAtTick",
+                                "secondaryOwnerTeamId",
+                                "secondaryClaimProgress",
+                                .. scrapTeams
+                                    ? new[] { "scrapTeams" }
+                                    : [],
+                                .. scrapPiles
+                                    ? new[] { "scrapPiles" }
+                                    : [],
+                            ]);
                         return new ReplayV3.ModeState.Frontline(
                             modeId,
                             RequiredInt32(
@@ -6626,7 +6809,9 @@ internal static class ReplayV3Serializer
                             NullableInt32(root, "secondaryOwnerTeamId"),
                             RequiredInt32(
                                 root,
-                                "secondaryClaimProgress"));
+                                "secondaryClaimProgress"),
+                            scrapTeams ? ReadScrapTeams(teams) : [],
+                            scrapPiles ? ReadScrapPiles(piles) : []);
                     }
                 default:
                     throw new JsonException(

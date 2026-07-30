@@ -25,6 +25,7 @@ internal static class GenericActorMatchModeDriverFactory
                 definition.Topology,
                 definition.Map,
                 definition.Rules.Forms,
+                definition.LifecycleAssignments,
                 mode,
                 binding),
             _ => throw new ArgumentException(

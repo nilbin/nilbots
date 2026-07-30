@@ -13,6 +13,7 @@ public static class PublicActionIds
     public const string Fabricate = "fabricate";
     public const string Transform = "transform";
     public const string ShootDirection = "shoot-direction";
+    public const string Invest = "invest";
 }
 
 /// <summary>
@@ -24,6 +25,13 @@ public static class PublicActionCodes
     public const int Fabricate = 100;
     public const int Transform = 101;
     public const int ShootDirection = 102;
+
+    /// <summary>
+    /// The mode store's verb. 103 (split), 104 (mobilize) and 105
+    /// (shoot-straight) are taken by the Frontline Labs catalogs, so the next
+    /// free code is 106.
+    /// </summary>
+    public const int Invest = 106;
 }
 
 /// <summary>
@@ -38,6 +46,12 @@ public sealed record ActorActionPayload
     public ObservedUnitTarget? UnitTarget { get; init; }
     public string? FormTargetId { get; init; }
     public ProjectileHeading? LaunchHeading { get; init; }
+
+    /// <summary>
+    /// The declared upgrade track a mode-investment names. Null on every
+    /// other action and on every contract that declares no store.
+    /// </summary>
+    public string? UpgradeTrackId { get; init; }
 }
 
 /// <summary>

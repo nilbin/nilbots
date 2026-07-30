@@ -226,6 +226,37 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     effect: 'muster';
     rallyScope: 'prime-automatic-return-only';
   };
+  /**
+   * The declared battlefield economy. Additive and inert-omitted on the same
+   * discipline, and mutually exclusive with `secondaryControl` because both
+   * claim the side lanes' attention.
+   */
+  scrapEconomy?: {
+    veinSites: { x: number; y: number }[];
+    veinFirstSpawnTick: number;
+    veinSpawnIntervalTicks: number;
+    veinLastSpawnTick: number;
+    veinAmount: number;
+    wreckAmount: number;
+    assayAmount: number;
+    carryCapacity: number;
+    pileLifetimeTicks: number;
+    maxSimultaneousPiles: number;
+    bankRegionIds: string[];
+    upgradeScope: 'prime-slot-lives-only';
+    maxTotalTiers: number;
+    purchaseMode: 'invest-action' | 'automatic-greedy-declared-order';
+    tracks: {
+      trackId: string;
+      effect:
+        | 'mobile-attack-travel-tiles-delta'
+        | 'spawn-max-health-delta'
+        | 'vision-range-delta';
+      perTierMagnitude: number;
+      maxTier: number;
+      tierCosts: number[];
+    }[];
+  };
 }
 
 export interface ReplayV3FrontlineCaptureGainPhase
@@ -494,14 +525,16 @@ export type ReplayV3RawActionArgument =
   | { kind: 'direction'; value: number }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string | null }
-  | { kind: 'projectile-heading'; value: number };
+  | { kind: 'projectile-heading'; value: number }
+  | { kind: 'upgrade-track'; trackId: string | null };
 
 export type ReplayV3ActionArgument =
   | { kind: 'shot-program'; value: ReplayV3ShotProgram }
   | { kind: 'direction'; value: ReplayV3Direction }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string }
-  | { kind: 'projectile-heading'; value: ReplayV3ProjectileHeading };
+  | { kind: 'projectile-heading'; value: ReplayV3ProjectileHeading }
+  | { kind: 'upgrade-track'; trackId: string };
 
 export interface ReplayV3SubmittedDecision {
   actionId: string | null;
@@ -631,7 +664,30 @@ export type ReplayV3ModeState =
       secondaryOwnerTeamId: number | null;
       /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
       secondaryClaimProgress: number;
+      /**
+       * Both teams' bank and tier vector, ordered by team ID. Present only
+       * on a ruleset that declares a scrap economy.
+       */
+      scrapTeams?: ReplayV3ScrapTeam[];
+      /** Live piles of loose scrap, ordered by (y, x). */
+      scrapPiles?: ReplayV3ScrapPile[];
     };
+
+/** One team's published economic position under a declared scrap economy. */
+export interface ReplayV3ScrapTeam extends ReplayV3JsonObject {
+  teamId: number;
+  bank: number;
+  /** Tier held per track, positional against the declared track order. */
+  tierLevels: number[];
+}
+
+/** One live pile of loose scrap. */
+export interface ReplayV3ScrapPile extends ReplayV3JsonObject {
+  position: ReplayV3Position;
+  amount: number;
+  /** The pile is gone the first tick `tick >= expiresAtTick`. */
+  expiresAtTick: number;
+}
 
 export interface ReplayV3WorldState {
   matchContractFingerprint: string;
@@ -684,6 +740,11 @@ export interface ReplayV3ObservedSelf {
    * below readyAtTick. Present only while at least one clock is live.
    */
   routeCooldowns?: ReplayV3RouteCooldown[];
+  /**
+   * Scrap this body is carrying. Present only while it is actually carrying,
+   * so a document from a contract with no declared economy never carries it.
+   */
+  carriedScrap?: number;
 }
 
 export interface ReplayV3RouteCooldown {
@@ -702,6 +763,8 @@ export interface ReplayV3ObservedEnemy {
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
   observedBy: ReplayV3ActorId[];
   classId: string | null;
+  /** A visible enemy's load; present only while it is carrying. */
+  carriedScrap?: number;
 }
 
 export interface ReplayV3SpawnReservation {
@@ -746,7 +809,8 @@ export type ReplayV3ActionConstraint =
   | {
       kind: 'projectile-heading';
       allowedValues: ReplayV3ProjectileHeading[];
-    };
+    }
+  | { kind: 'upgrade-track'; allowedTrackIds: string[] };
 
 export interface ReplayV3ActionLegality {
   actionId: string;

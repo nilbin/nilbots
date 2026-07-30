@@ -156,7 +156,9 @@ internal static class GenericActorWireObservationCodec
                         GenericActorWireCodecValues.OptionalInt32(payload, 7),
                         GenericActorWireCodecValues.OptionalInt32(payload, 8),
                         GenericActorWireCodecValues.OptionalInt32(payload, 9)
-                            ?? 0),
+                            ?? 0,
+                        DecodeScrapTeams(payload.Optional(10), depth),
+                        DecodeScrapPiles(payload.Optional(11), depth)),
                 _ => throw new FormatException(
                     "Unknown generic actor mode discriminator."),
             },
@@ -180,7 +182,8 @@ internal static class GenericActorWireObservationCodec
             value.PreviousActionResolution,
             value.PendingSameLifeTransition,
             value.ClassId,
-            value.RouteCooldowns);
+            value.RouteCooldowns,
+            value.CarriedScrap);
         return writer.ToArray();
     }
 
@@ -220,7 +223,8 @@ internal static class GenericActorWireObservationCodec
                 classId is null
                     ? null
                     : GenericActorWireCodecValues.SemanticId(classId),
-                DecodeRouteCooldowns(routeCooldowns, depth)),
+                DecodeRouteCooldowns(routeCooldowns, depth),
+                GenericActorWireCodecValues.OptionalInt32(reader, 13) ?? 0),
             "self observation");
     }
 
@@ -241,7 +245,8 @@ internal static class GenericActorWireObservationCodec
             value.PreviousActionResolution,
             value.PendingSameLifeTransition,
             value.ClassId,
-            value.RouteCooldowns);
+            value.RouteCooldowns,
+            value.CarriedScrap);
         return writer.ToArray();
     }
 
@@ -281,7 +286,8 @@ internal static class GenericActorWireObservationCodec
                 classId is null
                     ? null
                     : GenericActorWireCodecValues.SemanticId(classId),
-                DecodeRouteCooldowns(routeCooldowns, depth)),
+                DecodeRouteCooldowns(routeCooldowns, depth),
+                GenericActorWireCodecValues.OptionalInt32(reader, 13) ?? 0),
             "ally observation");
     }
 
@@ -300,7 +306,8 @@ internal static class GenericActorWireObservationCodec
             pendingSameLifeTransition,
         string? classId,
         ImmutableArray<GenericActorContext.ObservedRouteCooldown>
-            routeCooldowns)
+            routeCooldowns,
+        int carriedScrap)
     {
         writer.Field(
             1,
@@ -335,6 +342,12 @@ internal static class GenericActorWireObservationCodec
             routeCooldowns.IsEmpty
                 ? null
                 : Array(routeCooldowns, EncodeRouteCooldown));
+        // Absent means "carrying nothing", so a ruleset with no declared
+        // economy spends no wire bytes on the load.
+        GenericActorWireCodecValues.OptionalInt32(
+            writer,
+            13,
+            carriedScrap == 0 ? null : carriedScrap);
     }
 
     private static byte[] EncodeRouteCooldown(
@@ -648,6 +661,10 @@ internal static class GenericActorWireObservationCodec
             value.ClassId is null
                 ? null
                 : GenericActorWireCodecValues.SemanticId(value.ClassId));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer,
+            9,
+            value.CarriedScrap == 0 ? null : value.CarriedScrap);
         return writer.ToArray();
     }
 
@@ -682,7 +699,8 @@ internal static class GenericActorWireObservationCodec
                         depth + 1)),
                 classId is null
                     ? null
-                    : GenericActorWireCodecValues.SemanticId(classId)),
+                    : GenericActorWireCodecValues.SemanticId(classId),
+                GenericActorWireCodecValues.OptionalInt32(reader, 9) ?? 0),
             "enemy observation");
     }
 
@@ -921,6 +939,19 @@ internal static class GenericActorWireObservationCodec
                     frontline.SecondaryClaimProgress == 0
                         ? null
                         : frontline.SecondaryClaimProgress);
+                // Both economy collections are empty exactly when the mode
+                // declares no economy, so an absent field is the inert
+                // default and a non-economy ruleset spends no wire bytes.
+                writer.Optional(
+                    10,
+                    frontline.ScrapTeams.IsEmpty
+                        ? null
+                        : Array(frontline.ScrapTeams, EncodeScrapTeam));
+                writer.Optional(
+                    11,
+                    frontline.ScrapPiles.IsEmpty
+                        ? null
+                        : Array(frontline.ScrapPiles, EncodeScrapPile));
                 break;
             default:
                 throw new InvalidOperationException(
@@ -928,6 +959,72 @@ internal static class GenericActorWireObservationCodec
         }
         return writer.ToArray();
     }
+
+    private static byte[] EncodeScrapTeam(
+        GenericActorContext.ScrapTeamState value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(value.TeamId));
+        writer.Field(2, ActorWireValue.Int32(value.Bank));
+        writer.Field(
+            3,
+            Array(value.TierLevels, tier => ActorWireValue.Int32(tier)));
+        return writer.ToArray();
+    }
+
+    private static ImmutableArray<GenericActorContext.ScrapTeamState>
+        DecodeScrapTeams(byte[]? bytes, int depth) =>
+        bytes is null
+            ? []
+            : ActorWireValue.Array(
+                bytes,
+                item => GenericActorWireCodecValues.Decode(
+                    () =>
+                    {
+                        var reader = new ActorWireObjectReader(
+                            item,
+                            depth + 1);
+                        return new GenericActorContext.ScrapTeamState(
+                            GenericActorWireCodecValues.Int32(reader, 1),
+                            GenericActorWireCodecValues.Int32(reader, 2),
+                            ActorWireValue.Array(
+                                reader.Required(3),
+                                tier => ActorWireValue.Int32(tier)));
+                    },
+                    "scrap team"));
+
+    private static byte[] EncodeScrapPile(
+        GenericActorContext.ScrapPile value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(
+            1,
+            GenericActorWireCodecValues.EncodePosition(value.Position));
+        writer.Field(2, ActorWireValue.Int32(value.Amount));
+        writer.Field(3, ActorWireValue.Int32(value.ExpiresAtTick));
+        return writer.ToArray();
+    }
+
+    private static ImmutableArray<GenericActorContext.ScrapPile>
+        DecodeScrapPiles(byte[]? bytes, int depth) =>
+        bytes is null
+            ? []
+            : ActorWireValue.Array(
+                bytes,
+                item => GenericActorWireCodecValues.Decode(
+                    () =>
+                    {
+                        var reader = new ActorWireObjectReader(
+                            item,
+                            depth + 1);
+                        return new GenericActorContext.ScrapPile(
+                            GenericActorWireCodecValues.DecodePosition(
+                                reader.Required(1),
+                                depth + 2),
+                            GenericActorWireCodecValues.Int32(reader, 2),
+                            GenericActorWireCodecValues.Int32(reader, 3));
+                    },
+                    "scrap pile"));
 
     private static byte[] EncodeSpawnReservation(
         GenericActorContext.SpawnReservation value)

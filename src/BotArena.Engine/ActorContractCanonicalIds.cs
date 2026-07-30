@@ -115,6 +115,23 @@ internal static class ActorContractCanonicalIds
                 .PrimeAutomaticReturnOnly =>
             "prime-automatic-return-only",
 
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                .MobileAttackTravelTilesDelta =>
+            "mobile-attack-travel-tiles-delta",
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                .SpawnMaxHealthDelta =>
+            "spawn-max-health-delta",
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind.VisionRangeDelta =>
+            "vision-range-delta",
+        FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                .PrimeSlotLivesOnly =>
+            "prime-slot-lives-only",
+        FrontlineScrapEconomyDefinition.PurchaseModeKind.InvestAction =>
+            "invest-action",
+        FrontlineScrapEconomyDefinition.PurchaseModeKind
+                .AutomaticGreedyDeclaredOrder =>
+            "automatic-greedy-declared-order",
+
         MatchFormatDefinition.MatchFormatDefinitionKind.HeadToHead =>
             "head-to-head",
         MatchFormatDefinition.MatchFormatDefinitionKind.FreeForAll =>
@@ -317,11 +334,13 @@ internal static class ActorContractCanonicalIds
         ActorActionKind.Fabrication => "fabrication",
         ActorActionKind.SameLifeTransition => "same-life-transition",
         ActorActionKind.Replication => "replication",
+        ActorActionKind.ModeInvestment => "mode-investment",
         ActorActionParameterKind.ShotProgram => "shot-program",
         ActorActionParameterKind.Direction => "direction",
         ActorActionParameterKind.UnitTarget => "unit-target",
         ActorActionParameterKind.FormTarget => "form-target",
         ActorActionParameterKind.ProjectileHeading => "projectile-heading",
+        ActorActionParameterKind.UpgradeTrack => "upgrade-track",
         ActorActionRejectionResult.Blocked => "blocked",
         ActorActionRejectionResult.Faulted => "faulted",
         ActorActionRejectionResult.Rejected => "rejected",

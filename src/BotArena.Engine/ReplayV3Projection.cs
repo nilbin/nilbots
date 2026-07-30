@@ -327,7 +327,8 @@ internal static class ReplayV3Projection
                 : ActionResolution(value.PreviousActionResolution),
             PendingTransition(value.PendingSameLifeTransition),
             value.ClassId,
-            RouteCooldowns(value.RouteCooldowns));
+            RouteCooldowns(value.RouteCooldowns),
+            value.CarriedScrap);
 
     private static ReplayV3.ObservedAlly ObservedAlly(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -345,7 +346,8 @@ internal static class ReplayV3Projection
                 : ActionResolution(value.PreviousActionResolution),
             PendingTransition(value.PendingSameLifeTransition),
             value.ClassId,
-            RouteCooldowns(value.RouteCooldowns));
+            RouteCooldowns(value.RouteCooldowns),
+            value.CarriedScrap);
 
     private static ImmutableArray<ReplayV3.RouteCooldown> RouteCooldowns(
         ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
@@ -366,7 +368,8 @@ internal static class ReplayV3Projection
             value.Health,
             PendingTransition(value.PendingSameLifeTransition),
             value.ObservedBy.Select(ActorId).ToImmutableArray(),
-            value.ClassId);
+            value.ClassId,
+            value.CarriedScrap);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -536,6 +539,10 @@ internal static class ReplayV3Projection
                 argument =>
                 new ReplayV3.RawActionArgument.ProjectileHeading(
                     (int)argument.Value),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument
+                argument =>
+                new ReplayV3.RawActionArgument.UpgradeTrack(
+                    argument.TrackId),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -590,6 +597,9 @@ internal static class ReplayV3Projection
                 argument =>
                 new ReplayV3.ActionArgument.ProjectileHeading(
                     ProjectileHeading(argument.Value)),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument
+                argument =>
+                new ReplayV3.ActionArgument.UpgradeTrack(argument.TrackId),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -650,6 +660,10 @@ internal static class ReplayV3Projection
                     constraint.AllowedValues
                         .Select(ProjectileHeading)
                         .ToImmutableArray()),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UpgradeTrackConstraint constraint =>
+                new ReplayV3.ActionConstraint.UpgradeTrack(
+                    constraint.AllowedTrackIds),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1039,7 +1053,19 @@ internal static class ReplayV3Projection
             value.HoldOwnerTeamId,
             value.HoldEndsAtTick,
             value.SecondaryOwnerTeamId,
-            value.SecondaryClaimProgress);
+            value.SecondaryClaimProgress,
+            [
+                .. value.ScrapTeams.Select(team => new ReplayV3.ScrapTeam(
+                    team.TeamId,
+                    team.Bank,
+                    team.TierLevels)),
+            ],
+            [
+                .. value.ScrapPiles.Select(pile => new ReplayV3.ScrapPile(
+                    Position(pile.Position),
+                    pile.Amount,
+                    pile.ExpiresAtTick)),
+            ]);
 
     private static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>

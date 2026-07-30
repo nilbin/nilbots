@@ -132,7 +132,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     slot.Assignment.InitialGeneration!.Value,
                     spawn.Position,
                     spawn.Facing,
-                    health: _forms[deployment.FormId].MaxHealth,
+                    health: EffectiveMaxHealth(
+                        deployment.FormId,
+                        deployment.TeamId,
+                        deployment.UnitId),
                     GenericActorRuntimeStart.SpawnReason.Initial,
                     parentActorId: null,
                     sourceTransitionId: null,
@@ -409,7 +412,13 @@ public sealed class GenericActorMatchSession : IDisposable
             runtimeTick.NewlyDisqualifiedParticipantIds,
             events,
             projectileTransitions);
-        FinalizeDestroyedLives(newlyDisqualified, events);
+        ImmutableArray<FrontlineScrapDestruction> destructions =
+            FinalizeDestroyedLives(newlyDisqualified, events);
+        // The mode store's verb settles here: after every bolt has flown, so
+        // a tier bought this tick cannot lengthen this tick's shot, and
+        // before the resolutions are remembered, so a blocked purchase is the
+        // outcome the next observation reports.
+        ResolveInvestments(resolutions);
         RememberActionResolutions(resolutions);
 
         ImmutableArray<int> eligibleTeams = EligibleTeamIds();
@@ -424,7 +433,10 @@ public sealed class GenericActorMatchSession : IDisposable
             UpdateCooldownsAndEnergy(resolutions);
             GenericActorModeTickResult modeTick = _mode.ApplyJointTick(
                 ModeWorldView(),
-                new GenericActorModeTickInput(Tick, scoredContacts));
+                new GenericActorModeTickInput(
+                    Tick,
+                    scoredContacts,
+                    destructions));
             EmitModeChanges(modeTick, events);
             modeObjectiveCompletion = modeTick.ModeObjectiveReached;
             CompleteDueSameLifeTransitions(
@@ -595,7 +607,7 @@ public sealed class GenericActorMatchSession : IDisposable
                     slot.Assignment.InitialGeneration!.Value,
                     arrival,
                     spawn.Facing,
-                    _forms[formId].MaxHealth,
+                    EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
                     GenericActorRuntimeStart.SpawnReason
                         .AutomaticActivation,
                     parentActorId: null,
@@ -644,7 +656,7 @@ public sealed class GenericActorMatchSession : IDisposable
                     slot.PendingGeneration!.Value,
                     arrival,
                     spawn.Facing,
-                    _forms[formId].MaxHealth,
+                    EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
                     GenericActorRuntimeStart.SpawnReason.AutomaticReturn,
                     slot.PendingParentActorId,
                     sourceTransitionId: null,
@@ -704,7 +716,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 reservation.TargetGeneration,
                 reservation.ReservedPosition,
                 reservation.OutputFacing,
-                _forms[reservation.TargetFormId].MaxHealth,
+                EffectiveMaxHealth(
+                    reservation.TargetFormId,
+                    reservation.TargetTeamId,
+                    reservation.TargetUnitId),
                 GenericActorRuntimeStart.SpawnReason.Fabrication,
                 reservation.SourceActorId,
                 reservation.TransitionId,
@@ -938,6 +953,20 @@ public sealed class GenericActorMatchSession : IDisposable
                     MatchingFabricationTransitions(life, action.Id);
                 if (fabricationMatches.Length != 1)
                     Block(state);
+                return;
+            case ActorActionKind.ModeInvestment:
+                // The mask this life was handed was computed against the bank
+                // as of tick start, and this is that same instant, so a track
+                // absent from it was never legal. Whether the purchase still
+                // fits AFTER a teammate spent first is settled later, in
+                // ResolveInvestments — that is the ordinary simultaneous
+                // reservation grammar rather than a new rule.
+                if (InvestedTrack(state.ValidatedAction) is not string track
+                    || !_mode.InvestableTracks(life.ActorId.TeamId)
+                        .Contains(track, StringComparer.Ordinal))
+                {
+                    Block(state);
+                }
                 return;
             default:
                 throw new InvalidOperationException(
@@ -1669,11 +1698,20 @@ public sealed class GenericActorMatchSession : IDisposable
             for (int bolt = 0; bolt < headings.Length; bolt++)
             {
                 ProjectileHeading heading = headings[bolt];
+                // Effective gun reach is the profile's declared travel plus
+                // whatever the mode currently adds to this body. The path and
+                // the bolt's remaining distance are traced against the same
+                // number, so a lengthened shot behaves exactly like a longer
+                // declared gun rather than like a bolt that outlives its path.
+                int extraTravel = _mode
+                    .StatModifiersFor(shooter.ActorId)
+                    .AttackTravelTilesDelta;
                 ImmutableArray<Position> path = TraceProjectilePath(
                     shooter.Position,
                     heading,
                     profile,
-                    program);
+                    program,
+                    extraTravel);
                 long projectileId = firstProjectileId + bolt;
                 var projectile = new ProjectileState(
                     projectileId,
@@ -1685,7 +1723,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     heading,
                     program,
                     profile,
-                    path);
+                    path,
+                    extraTravel);
                 events.Add(EmitSpatial(
                     Tick,
                     GenericActorRuntimeObservation.EventKind.Attack,
@@ -1699,7 +1738,8 @@ public sealed class GenericActorMatchSession : IDisposable
 
                 int launchTraversal =
                     profile.Projectile.Mode == ActorProjectileMode.InstantRay
-                        ? profile.Projectile.MaxTravelTiles
+                        ? checked(
+                            profile.Projectile.MaxTravelTiles + extraTravel)
                         : profile.Projectile.LaunchTiles;
                 TraverseProjectile(
                     projectile,
@@ -1999,10 +2039,18 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
-    private void FinalizeDestroyedLives(
+    /// <summary>
+    /// Retires every body that reached zero health, and reports each one with
+    /// the tile it died on. A mode that places anything at a death site — a
+    /// wreck, for the scrap economy — needs the destruction rather than the
+    /// contact that caused it, because the contact names where the bolt was.
+    /// </summary>
+    private ImmutableArray<FrontlineScrapDestruction> FinalizeDestroyedLives(
         IReadOnlySet<int> newlyDisqualified,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
+        var destroyed =
+            ImmutableArray.CreateBuilder<FrontlineScrapDestruction>();
         foreach (LifeState life in _lives.Values
                      .Where(life => life.Health == 0)
                      .OrderBy(life => life.ActorId)
@@ -2010,6 +2058,9 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             if (newlyDisqualified.Contains(life.ParticipantId))
                 continue;
+            destroyed.Add(new FrontlineScrapDestruction(
+                life.ActorId,
+                life.Position));
             CancelSourceSplit(life.ActorId, "source-destroyed", events);
             _host.RetireLife(life.ActorId);
             _lives.Remove(life.ActorId);
@@ -2024,6 +2075,7 @@ public sealed class GenericActorMatchSession : IDisposable
             CancelSameLifeTransition(life, events);
             ScheduleAfterDestruction(slot, life);
         }
+        return destroyed.ToImmutable();
     }
 
     private void CancelParticipantClocks(
@@ -2196,6 +2248,10 @@ public sealed class GenericActorMatchSession : IDisposable
         LifeState observer,
         ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
     {
+        // Resolved up front because the mode's body-scoped facts are stamped
+        // onto self, ally, and enemy states as they are built.
+        GenericActorModeProjection modeProjection =
+            _mode.Project(ModeWorldView());
         ImmutableArray<LifeState> sensors =
             _definition.Rules.TeamPerception.Kind
                 == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
@@ -2250,6 +2306,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     {
                         ClassId =
                             _participantClassIds[item.life.ParticipantId],
+                        CarriedScrap = modeProjection.CarriedScrapByActor
+                            .GetValueOrDefault(item.life.ActorId),
                     })
                 .ToImmutableArray();
         HashSet<ActorIdentity> visibleEnemyIds =
@@ -2282,6 +2340,8 @@ public sealed class GenericActorMatchSession : IDisposable
                             RouteCooldowns = LiveRouteCooldowns(
                                 life.ActorId.TeamId,
                                 life.ActorId.UnitId),
+                            CarriedScrap = modeProjection.CarriedScrapByActor
+                                .GetValueOrDefault(life.ActorId),
                         })
                     .ToImmutableArray()
                 : [];
@@ -2400,8 +2460,6 @@ public sealed class GenericActorMatchSession : IDisposable
             }
         }
 
-        GenericActorModeProjection modeProjection =
-            _mode.Project(ModeWorldView());
         return new GenericActorRuntimeObservation(
             _definition.CapabilityVersions.ObservationSchemaVersion,
             Tick,
@@ -2422,6 +2480,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 RouteCooldowns = LiveRouteCooldowns(
                     observer.ActorId.TeamId,
                     observer.ActorId.UnitId),
+                CarriedScrap = modeProjection.CarriedScrapByActor
+                    .GetValueOrDefault(observer.ActorId),
             },
             TeamUnitObservations(observer.ActorId.TeamId),
             _host.ParticipantStatuses,
@@ -2704,8 +2764,52 @@ public sealed class GenericActorMatchSession : IDisposable
                         && _sameLife.CanQueue(
                             SameLifeSnapshot(life),
                             transition.TransitionId)),
+            // Available exactly when the mode's store would accept SOMETHING
+            // right now. Which tracks is the constraint's job, so a bot that
+            // reads its mask never prices the ladder itself.
+            ActorActionKind.ModeInvestment =>
+                _mode.InvestableTracks(life.ActorId.TeamId).Count > 0,
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// The track a mode-investment names, or null when it named none.
+    /// </summary>
+    private static string? InvestedTrack(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.UpgradeTrackArgument>()
+            .SingleOrDefault()
+            ?.TrackId;
+
+    /// <summary>
+    /// Settles this tick's mode-store purchases in canonical
+    /// <c>(teamId, unitId, lifeId)</c> order. Two teammates investing against
+    /// a bank that covers only one leave the second Blocked, which costs it
+    /// its action exactly as any other blocked verb does.
+    /// </summary>
+    private void ResolveInvestments(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions)
+    {
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome
+                        .Success
+                || action.Kind != ActorActionKind.ModeInvestment)
+            {
+                continue;
+            }
+            if (InvestedTrack(resolution.ValidatedAction) is not string track
+                || !_mode.TryInvest(Tick, resolution.ActorId, track))
+            {
+                Block(resolution);
+            }
+        }
     }
 
     private bool IsSplitAvailable(
@@ -2790,6 +2894,20 @@ public sealed class GenericActorMatchSession : IDisposable
                         .ProjectileHeadingConstraint(
                             Enum.GetValues<ProjectileHeading>()
                                 .ToImmutableArray()),
+                // Affordability lives in the mask, not in the bot: a track is
+                // offered only when the team's bank covers its next tier and
+                // no cap forbids it. The mask is a SET in canonical ordinal
+                // order, like every other enumerated constraint; the
+                // contract's DECLARED track order is the separate thing tier
+                // vectors are published positionally against.
+                ActorActionParameterKind.UpgradeTrack =>
+                    new GenericActorRuntimeActionLegality.ArgumentConstraint
+                        .UpgradeTrackConstraint(
+                            [
+                                .. _mode
+                                    .InvestableTracks(life.ActorId.TeamId)
+                                    .Order(StringComparer.Ordinal),
+                            ]),
                 _ => throw new InvalidOperationException(
                     "Unknown actor action parameter kind."),
             });
@@ -2816,11 +2934,18 @@ public sealed class GenericActorMatchSession : IDisposable
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
         ActorVisionProfileDefinition vision = VisionFor(sensor);
+        // Effective sight is the form's declared range plus whatever the mode
+        // currently adds. The omnidirectional proximity radius is deliberately
+        // NOT moved: the tier widens what a body sees at distance, it does not
+        // reshape what it sees up close.
+        int range = checked(
+            vision.Range
+            + _mode.StatModifiersFor(sensor.ActorId).VisionRangeDelta);
         var visible = new HashSet<Position>();
         foreach (Position target in AllMapPositions())
         {
             int distance = sensor.Position.ChebyshevDistance(target);
-            if (distance > vision.Range)
+            if (distance > range)
                 continue;
             if (vision.Shape == ActorVisionShape.FacingQuadrant
                 && distance > vision.OmnidirectionalProximityRange
@@ -2983,6 +3108,24 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private ActorVisionProfileDefinition VisionFor(LifeState life) =>
         _visionProfiles[_forms[life.FormId].VisionProfileId];
+
+    /// <summary>
+    /// The health one new life of a slot arrives with: the form's declared
+    /// maximum plus whatever the mode currently adds to that slot. It is
+    /// deliberately read only at SPAWN, which is what makes a purchased
+    /// health tier raise the ceiling without healing anybody — a standing
+    /// body keeps its exact current health, so buying mid-duel is never a
+    /// rescue.
+    /// </summary>
+    private int EffectiveMaxHealth(string formId, int teamId, int unitId) =>
+        checked(
+            _forms[formId].MaxHealth
+            // The modifier's scope is the stable SLOT, so the life half of the
+            // identity is immaterial here and the not-yet-minted life is
+            // probed as its slot.
+            + _mode.StatModifiersFor(
+                    ActorIdentity.FromTeamUnitLife(teamId, unitId, 0))
+                .MaxHealthDelta);
 
     private ActorMovementProfileDefinition MovementFor(LifeState life) =>
         _movementProfiles[_forms[life.FormId].MovementProfileId];
@@ -3154,13 +3297,15 @@ public sealed class GenericActorMatchSession : IDisposable
         Position origin,
         ProjectileHeading initialHeading,
         ActorAttackProfileDefinition profile,
-        ShotProgram? program) =>
+        ShotProgram? program,
+        int extraTravelTiles = 0) =>
         GenericActorProjectilePath.Trace(
             _definition.Map,
             origin,
             initialHeading,
             profile,
-            program);
+            program,
+            extraTravelTiles);
 
     private ProjectileContact Contact(
         ProjectileState projectile,
@@ -3307,6 +3452,11 @@ public sealed class GenericActorMatchSession : IDisposable
                         deflection.Profile.ShotProgram.DefaultProgram
                             .BendCount)
                     : null;
+            // A returned bolt is the deflector's own shot from here on, so it
+            // carries the deflector's modifiers exactly as a fired one does.
+            int returnExtraTravel = _mode
+                .StatModifiersFor(deflection.Deflector.ActorId)
+                .AttackTravelTilesDelta;
             var returned = new ProjectileState(
                 deflection.ProjectileId,
                 deflection.Deflector.ParticipantId,
@@ -3321,14 +3471,16 @@ public sealed class GenericActorMatchSession : IDisposable
                     deflection.Deflector.Position,
                     deflection.Heading,
                     deflection.Profile,
-                    program))
+                    program,
+                    returnExtraTravel),
+                returnExtraTravel)
             {
                 ReturnedAtTick = Tick,
             };
             TraverseProjectile(
                 returned,
                 kinematics.Mode == ActorProjectileMode.InstantRay
-                    ? kinematics.MaxTravelTiles
+                    ? checked(kinematics.MaxTravelTiles + returnExtraTravel)
                     : kinematics.LaunchTiles,
                 contacts,
                 ref contactOrdinal,
@@ -4509,7 +4661,8 @@ public sealed class GenericActorMatchSession : IDisposable
             ProjectileHeading launchHeading,
             ShotProgram? shotProgram,
             ActorAttackProfileDefinition profile,
-            ImmutableArray<Position> path)
+            ImmutableArray<Position> path,
+            int extraTravelTiles = 0)
         {
             Id = id;
             OwnerParticipantId = ownerParticipantId;
@@ -4523,7 +4676,8 @@ public sealed class GenericActorMatchSession : IDisposable
             ShotProgram = shotProgram;
             Profile = profile;
             Path = path;
-            RemainingTiles = profile.Projectile.MaxTravelTiles;
+            RemainingTiles = checked(
+                profile.Projectile.MaxTravelTiles + extraTravelTiles);
             TicksUntilAdvance = profile.Projectile.TicksPerAdvance;
         }
 

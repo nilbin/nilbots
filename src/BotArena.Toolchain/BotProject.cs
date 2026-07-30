@@ -241,6 +241,25 @@ public static class ToolchainInfo
     /// `claimingTeamId` in their exact published shape, so a frozen artifact
     /// that never reads the contract still plays a channel cell — it simply
     /// cannot tell why the number moved.
+    /// The same version registers the SCRAP ECONOMY (`--economy
+    /// scrap`, composites `forge` = swell + scrap and `bastion` = swell +
+    /// channel + scrap; the control level is `--economy scrap-flat`).
+    /// Deposits worth 6 arrive at (11,1) and (11,13) on ticks 120/200/280/
+    /// 360, every destroyed body leaves a wreck worth 1 at its death tile,
+    /// stepping onto a pile banks 1 instantly and loads the rest up to a
+    /// carry of 6, a load banks in full on your own home pad and drops with
+    /// you when you die, and piles expire 80 ticks after they appear. The
+    /// bank buys tiers on `edge`, `plate` and `optic` at a flat 10 each — at
+    /// most 2 in a track and 3 in total, applied to the Prime slot's lives —
+    /// through the new `invest` verb (action code 106, kind
+    /// `mode-investment`, one `upgrade-track` argument), which costs the
+    /// casting body its action for the tick and whose affordability lives in
+    /// the legality mask. Unlike the channel this arm DOES cost observation:
+    /// three trailing additive facts (`mode.scrapTeams`, `mode.scrapPiles`,
+    /// and `carriedScrap` on self, allies and visible enemies), all empty or
+    /// zero on every ruleset that declares no economy, and no new event kind
+    /// at all — every purchase and bank change rides the existing
+    /// mode-changed fact carrying the post-change state.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.27";
@@ -334,6 +353,21 @@ public static class ToolchainInfo
     // Read the policy and the three settings from the contract rather than
     // assuming a threshold or a multiplier — a channel cell's threshold is
     // 8, not 15, and its gain multiplier stops at 2.
+    // The same version carries the SCRAP ECONOMY's surface: the contract
+    // reader accepts gameMode.scrapEconomy (vein sites and schedule, the
+    // wreck/assay/carry/pile numbers, the banking regions, the upgrade
+    // scope, the tier cap, the purchase mode, and the declared track ladder
+    // with its per-tier magnitudes and prices), the action envelope gains
+    // ActionKind.ModeInvestment and ActionParameterKind.UpgradeTrack with
+    // their argument and constraint, and the observation gains exactly three
+    // facts — ScrapTeams and ScrapPiles on the Frontline mode state, and
+    // CarriedScrap on self, ally, and enemy bodies. Every one of them is
+    // trailing and inert by default, so a ruleset without an economy spends
+    // no wire bytes and a frozen artifact reads zeros. The economy block and
+    // the side objective are mutually exclusive and the reader refuses a
+    // contract carrying both. Read the ladder's prices and caps from the
+    // contract and the affordable tracks from the legality mask; never price
+    // a tier in the bot.
     public const string SdkVersion = "0.10.10";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";

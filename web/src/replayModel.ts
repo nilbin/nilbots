@@ -149,7 +149,8 @@ export type ReplayActionParameterKind =
   | 'direction'
   | 'unit-target'
   | 'form-target'
-  | 'projectile-heading';
+  | 'projectile-heading'
+  | 'upgrade-track';
 export type ReplayActionKind =
   | 'wait'
   | 'movement'
@@ -157,6 +158,7 @@ export type ReplayActionKind =
   | 'attack'
   | 'fabrication'
   | 'transformation'
+  | 'mode-investment'
   | (string & {});
 /**
  * The events presentation surfaces key off, under both names they carry.
@@ -905,6 +907,13 @@ export type ReplayModeState =
        * positive for team 0, negative for team 1, zero when none stands.
        */
       secondaryClaimProgress?: number;
+      /**
+       * Both teams' bank and tier vector under a declared scrap economy,
+       * ordered by team ID. Undefined on every ruleset without one.
+       */
+      scrapTeams?: ReplayScrapTeam[];
+      /** Live piles of loose scrap, ordered by (y, x). */
+      scrapPiles?: ReplayScrapPile[];
     }
   | {
       kind: string;
@@ -1113,6 +1122,28 @@ export interface ReplayObservedActionAvailability {
   allowedProjectileHeadings: ReplayProjectileHeading[] | null;
   allowedUnitKeys: ReplayStableUnitKey[] | null;
   allowedFormTargets: string[] | null;
+  /**
+   * Upgrade tracks this body's team may buy the next tier of this tick, or
+   * null when the action declares no such parameter. Affordability and the
+   * caps live in the mask, so an empty array means "nothing is buyable right
+   * now" rather than "no economy exists".
+   */
+  allowedUpgradeTracks?: string[] | null;
+}
+
+/** One team's published economic position under a declared scrap economy. */
+export interface ReplayScrapTeam {
+  teamId: number;
+  bank: number;
+  /** Tier held per track, positional against the declared track order. */
+  tierLevels: number[];
+}
+
+/** One live pile of loose scrap; gone the first tick `tick >= expiresAtTick`. */
+export interface ReplayScrapPile {
+  position: ReplayPosition;
+  amount: number;
+  expiresAtTick: number;
 }
 
 export interface ReplayObservedFrontlineObjective {

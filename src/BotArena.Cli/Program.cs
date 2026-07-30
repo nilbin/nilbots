@@ -249,6 +249,7 @@ static int CommandHelp(string command)
                    [--volley cast|salvo]
                    [--side-objective none|muster]
                    [--capture frozen|channel]
+                   [--economy none|scrap|scrap-flat]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -423,6 +424,37 @@ static int CommandHelp(string command)
             them. It is a real arm on every pair and needs a class pair or a
             --pendulum level to sit in. swell + channel is registered as
             `siege`.
+            --economy scrap adds a BATTLEFIELD ECONOMY (DECISIONS #187).
+            Deposits worth 6 arrive at (11,1) and (11,13) — the two dead side
+            lanes, equidistant from both home pads by construction — on ticks
+            120, 200, 280 and 360, and every destroyed body leaves a wreck
+            worth 1 at its death tile. Standing on a pile banks 1 for your
+            team instantly and loads the rest as carry up to 6; a load banks
+            in full when you end a tick on your own home pad, and drops with
+            you, merged into your wreck, when you die. Piles expire 80 ticks
+            after they appear. A form with objective weight 0 — an anchored
+            turret — can neither pick up nor carry, and anchoring drops the
+            load. Spend the bank with the new `invest` verb, which costs the
+            casting body its action for that tick and takes an upgrade track:
+            `edge` (+1 gun travel per tier), `plate` (+1 max health per tier,
+            applied at spawn — it NEVER heals) or `optic` (+1 vision per
+            tier). Ten per tier, flat; at most 2 in one track and 3 in total;
+            every tier applies to your PRIME slot's lives, current and
+            future. Affordability lives in the legality mask, so read your
+            constraint rather than pricing the ladder yourself. Three
+            observation facts arrive with it — mode.scrapTeams (both teams'
+            bank and tier vector), mode.scrapPiles (every live pile with its
+            expiry) and carriedScrap on self, allies, and visible enemies —
+            and no new event kind: every purchase and every bank change rides
+            the existing mode-changed fact carrying the post-change state.
+            --economy scrap-flat is the pre-registered CONTROL: same
+            deposits, same carrying, same ladder, but the bank buys greedily
+            by itself in declared track order at no action cost and the
+            `invest` verb does not exist. It is a real arm on every pair,
+            needs a class pair or a --pendulum level to sit in, and cannot be
+            combined with --side-objective. swell + scrap is registered as
+            `forge`, and swell + channel + scrap — the full shipped game — as
+            `bastion`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

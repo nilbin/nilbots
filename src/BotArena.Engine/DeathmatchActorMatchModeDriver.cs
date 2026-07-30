@@ -150,6 +150,21 @@ internal sealed class DeathmatchActorMatchModeDriver
                 _gameMode.ModeId));
     }
 
+    /// <summary>
+    /// Deathmatch owns no store, so it offers no track, refuses every
+    /// purchase, and modifies nothing.
+    /// </summary>
+    public IReadOnlyList<string> InvestableTracks(int teamId) => [];
+
+    /// <inheritdoc />
+    public bool TryInvest(int tick, ActorIdentity actor, string trackId) =>
+        false;
+
+    /// <inheritdoc />
+    public GenericActorModeStatModifiers StatModifiersFor(
+        ActorIdentity actor) =>
+        GenericActorModeStatModifiers.None;
+
     private ImmutableArray<GenericActorModeScoreChange> ScoreChanges(
         DeathmatchScoreState previous,
         DeathmatchScoreState current)

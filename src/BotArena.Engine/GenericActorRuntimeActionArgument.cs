@@ -44,5 +44,12 @@ public abstract record GenericActorRuntimeActionArgument
             ActorActionParameterKind.ProjectileHeading;
     }
 
+    public sealed record UpgradeTrackArgument(
+        string TrackId) : GenericActorRuntimeActionArgument
+    {
+        public override ActorActionParameterKind Kind =>
+            ActorActionParameterKind.UpgradeTrack;
+    }
+
     public readonly record struct UnitTarget(int TeamId, int UnitId);
 }

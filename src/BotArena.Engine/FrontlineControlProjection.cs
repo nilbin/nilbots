@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace BotArena.Engine;
 
 /// <summary>
@@ -10,8 +12,19 @@ namespace BotArena.Engine;
 /// </summary>
 internal static class FrontlineControlProjection
 {
+    /// <param name="modeId">The declared mode identity.</param>
+    /// <param name="control">Authoritative objective state.</param>
+    /// <param name="scrap">
+    /// Authoritative economy state and the kernel that reads it, or null on
+    /// every ruleset that declares no economy — in which case both scrap
+    /// facts stay empty for the whole match, which is their inert default.
+    /// </param>
     public static GenericActorRuntimeObservation.ModeObservationState.Frontline
-        Project(string modeId, FrontlineControlState control)
+        Project(
+            string modeId,
+            FrontlineControlState control,
+            (FrontlineScrapKernel Kernel, FrontlineScrapState State)? scrap =
+                null)
     {
         // The hold is published only while it is LIVE. The kernel keeps the
         // last protected advance on the state after it lapses (a later advance
@@ -22,7 +35,7 @@ internal static class FrontlineControlProjection
         // at all, so both fields stay null for its whole match.
         bool live = control.RatchetHold is { } hold
             && control.NextTick <= hold.HoldsThroughTick;
-        return new GenericActorRuntimeObservation.ModeObservationState
+        var mode = new GenericActorRuntimeObservation.ModeObservationState
             .Frontline(
                 modeId,
                 control.ActivePositionIndex,
@@ -34,6 +47,17 @@ internal static class FrontlineControlProjection
                 live ? control.RatchetHold!.HoldsThroughTick + 1 : null,
                 control.SecondaryControl?.OwnerTeamId,
                 SecondaryClaimProgress(control.SecondaryControl));
+        if (scrap is not { } economy)
+            return mode;
+
+        (ImmutableArray<GenericActorRuntimeObservation.ScrapTeamState> teams,
+                ImmutableArray<GenericActorRuntimeObservation.ScrapPile> piles)
+            = economy.Kernel.Project(economy.State);
+        return mode with
+        {
+            ScrapTeams = teams,
+            ScrapPiles = piles,
+        };
     }
 
     /// <summary>

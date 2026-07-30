@@ -46,6 +46,9 @@ internal static class GenericActorWireActionCodec
                         .ProjectileHeading =>
                     new GenericActorActionArgument.ProjectileHeadingArgument(
                         ActorWireValue.Enum<ProjectileHeading>(value)),
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack =>
+                    new GenericActorActionArgument.UpgradeTrackArgument(
+                        GenericActorWireCodecValues.SemanticId(value)),
                 _ => throw new FormatException(
                     "Unknown generic actor argument discriminator."),
             },
@@ -225,6 +228,8 @@ internal static class GenericActorWireActionCodec
                 GenericActorWireCodecValues.SemanticId(form.FormId),
             GenericActorActionArgument.ProjectileHeadingArgument heading =>
                 ActorWireValue.Enum(heading.Value),
+            GenericActorActionArgument.UpgradeTrackArgument track =>
+                GenericActorWireCodecValues.SemanticId(track.TrackId),
             _ => throw new InvalidOperationException(
                 "Unknown generic actor argument variant."),
         };
@@ -306,6 +311,13 @@ internal static class GenericActorWireActionCodec
                                 payload,
                                 1,
                                 ActorWireValue.Enum<ProjectileHeading>)),
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack =>
+                    new GenericActorActionLegality.ArgumentConstraint
+                        .UpgradeTrackConstraint(
+                            GenericActorWireCodecValues.Array(
+                                payload,
+                                1,
+                                GenericActorWireCodecValues.SemanticId)),
                 _ => throw new FormatException(
                     "Unknown generic actor constraint discriminator."),
             },
@@ -353,6 +365,14 @@ internal static class GenericActorWireActionCodec
                     GenericActorWireCodecValues.Array(
                         headings.AllowedValues,
                         ActorWireValue.Enum));
+                break;
+            case GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint tracks:
+                writer.Field(
+                    1,
+                    GenericActorWireCodecValues.Array(
+                        tracks.AllowedTrackIds,
+                        GenericActorWireCodecValues.SemanticId));
                 break;
             default:
                 throw new InvalidOperationException(

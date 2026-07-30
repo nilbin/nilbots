@@ -157,6 +157,8 @@ public sealed class GenericActorWasmProtocolTests
             99,
             [
                 new Sdk.GenericActorActionArgument
+                    .UpgradeTrackArgument("plate"),
+                new Sdk.GenericActorActionArgument
                     .ProjectileHeadingArgument(
                         Sdk.ProjectileHeading.NorthEast),
                 new Sdk.GenericActorActionArgument
@@ -208,6 +210,11 @@ public sealed class GenericActorWasmProtocolTests
                 Engine.GenericActorRuntimeActionArgument
                     .ProjectileHeadingArgument>(
                         decoded.Arguments[4]).Value);
+        Assert.Equal(
+            "plate",
+            Assert.IsType<
+                Engine.GenericActorRuntimeActionArgument
+                    .UpgradeTrackArgument>(decoded.Arguments[5]).TrackId);
     }
 
     [Fact]

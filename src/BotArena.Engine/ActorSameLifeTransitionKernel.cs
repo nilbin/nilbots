@@ -296,10 +296,18 @@ public sealed class ActorSameLifeTransitionKernel
             && assignment.AllowedFormIds.Contains(
                 source.FormId,
                 StringComparer.Ordinal);
+        // A body may carry the mode's declared upgrade headroom above its
+        // form's declared maximum; zero on every contract without a ladder.
         bool healthValid = _forms.TryGetValue(
                 source.FormId,
                 out ActorFormDefinition? form)
-            && source.Health <= form.MaxHealth;
+            && source.Health
+                <= checked(
+                    form.MaxHealth
+                    + FrontlineScrapEconomyDefinition.HeadroomOn(
+                        _definition.Rules.GameMode,
+                        FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                            .SpawnMaxHealthDelta));
         bool energyValid = form is not null
             && form.AttackProfileId is string attackProfileId
                 ? _attacks[attackProfileId].MaxEnergy == 0

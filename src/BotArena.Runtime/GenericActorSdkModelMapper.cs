@@ -91,7 +91,8 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.PreviousActionResolution),
             ToSdk(value.PendingSameLifeTransition),
             value.ClassId,
-            ToSdk(value.RouteCooldowns));
+            ToSdk(value.RouteCooldowns),
+            value.CarriedScrap);
 
     private static Sdk.GenericActorContext.ObservedAllyState ToSdk(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -107,7 +108,8 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.PreviousActionResolution),
             ToSdk(value.PendingSameLifeTransition),
             value.ClassId,
-            ToSdk(value.RouteCooldowns));
+            ToSdk(value.RouteCooldowns),
+            value.CarriedScrap);
 
     private static ImmutableArray<
         Sdk.GenericActorContext.ObservedRouteCooldown> ToSdk(
@@ -200,7 +202,8 @@ internal static class GenericActorSdkModelMapper
             value.Health,
             ToSdk(value.PendingSameLifeTransition),
             value.ObservedBy.Select(ToSdk),
-            value.ClassId);
+            value.ClassId,
+            value.CarriedScrap);
 
     private static Sdk.GenericActorContext.ObservedTile ToSdk(
         GenericActorRuntimeObservation.ObservedTile value) =>
@@ -421,9 +424,19 @@ internal static class GenericActorSdkModelMapper
                     mode.HoldOwnerTeamId,
                     mode.HoldEndsAtTick,
                     mode.SecondaryOwnerTeamId,
-                    mode.SecondaryClaimProgress),
+                    mode.SecondaryClaimProgress,
+                    [.. mode.ScrapTeams.Select(ToSdk)],
+                    [.. mode.ScrapPiles.Select(ToSdk)]),
             _ => throw UnknownUnion(value),
         };
+
+    private static Sdk.GenericActorContext.ScrapTeamState ToSdk(
+        GenericActorRuntimeObservation.ScrapTeamState value) =>
+        new(value.TeamId, value.Bank, value.TierLevels);
+
+    private static Sdk.GenericActorContext.ScrapPile ToSdk(
+        GenericActorRuntimeObservation.ScrapPile value) =>
+        new(ToSdk(value.Position), value.Amount, value.ExpiresAtTick);
 
     private static Sdk.GenericActorActionLegality ToSdk(
         GenericActorRuntimeActionLegality value) =>
@@ -461,6 +474,10 @@ internal static class GenericActorSdkModelMapper
                 new Sdk.GenericActorActionLegality.ArgumentConstraint
                     .ProjectileHeadingConstraint(
                         constraint.AllowedValues.Select(ToSdk)),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UpgradeTrackConstraint constraint =>
+                new Sdk.GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint(constraint.AllowedTrackIds),
             _ => throw UnknownUnion(value),
         };
 
@@ -525,6 +542,9 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeActionArgument.ProjectileHeadingArgument argument =>
                 new Sdk.GenericActorActionArgument.ProjectileHeadingArgument(
                     ToSdk(argument.Value)),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument argument =>
+                new Sdk.GenericActorActionArgument.UpgradeTrackArgument(
+                    argument.TrackId),
             _ => throw UnknownUnion(value),
         };
 
@@ -549,6 +569,9 @@ internal static class GenericActorSdkModelMapper
             Sdk.GenericActorActionArgument.ProjectileHeadingArgument argument =>
                 new GenericActorRuntimeActionArgument.ProjectileHeadingArgument(
                     ToEngine(argument.Value)),
+            Sdk.GenericActorActionArgument.UpgradeTrackArgument argument =>
+                new GenericActorRuntimeActionArgument.UpgradeTrackArgument(
+                    argument.TrackId),
             _ => throw UnknownUnion(value),
         };
 

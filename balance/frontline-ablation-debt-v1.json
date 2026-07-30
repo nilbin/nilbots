@@ -191,6 +191,84 @@
       "status": "open",
       "currentInterpretation": "The channel arm alone is an implicit striker buff (range 8 + cadence 2 + off-heading bends + fan interrupts). Pre-registered siege predictions: bvs +0.05..+0.20, fvs -0.20..-0.35, bvf +0.10..+0.25; tripwire: any pair below +0.15.",
       "requiredIsolation": "The wave-8 2x2 (swell/siege/forge/bastion) attribution cells; compare siege-only deltas against these bands before reading bastion."
+    },
+    {
+      "id": "scrap-vein-schedule",
+      "status": "open",
+      "currentInterpretation": "The deposit factor is a bundle: the site addresses (11,1)/(11,13), first tick 120, cadence 80, last tick 360, amount 6, and the choice to spawn BOTH sites on every event are registered as one lever.",
+      "requiredIsolation": "Vary cadence and amount separately at fixed sites; run a one-site-alternating level; report banked-scrap-per-team and errand round-trip cost per variant."
+    },
+    {
+      "id": "scrap-carry-model",
+      "status": "open",
+      "currentInterpretation": "Carried-with-assay is four levers in one rule: assay 1, carry cap 6, home-pad banking, and drop-on-death. Pure-instant and pure-carry are the unbuilt ends of the same axis.",
+      "requiredIsolation": "Run pure-instant and pure-carry as separately fingerprinted levels; vary the assay at fixed capacity; report interception rate and scrap-lost-to-decay."
+    },
+    {
+      "id": "scrap-wreckage-yield",
+      "status": "open",
+      "currentInterpretation": "Wreck = 1 simultaneously prices kills, feeds the ignore-the-veins path, and dampens the fabricator (the class that supplies the most corpses to its opponent).",
+      "requiredIsolation": "Run wreck = 0 as a level; report the share of each team's bank arriving through wreck vs deposit, and capture completions per match."
+    },
+    {
+      "id": "scrap-upgrade-ladder",
+      "status": "open",
+      "currentInterpretation": "Three tracks, a FLAT 10 per tier, 2-per-track and 3-total caps are one bundle. Flat pricing is itself a claim: deep (2 in one track) and broad (1 in each of three) cost the same 30 at every point in the match, so tier 2 is never a discount for being ahead.",
+      "requiredIsolation": "Vary cost at fixed caps; run each track alone as its own level; report tier-vector distributions and time-to-first-purchase."
+    },
+    {
+      "id": "scrap-upgrade-scope",
+      "status": "open",
+      "currentInterpretation": "Promoted to a three-level axis on the owner's interest: prime-only (v1, amplification 1.00x by construction), all-bodies (needs class-aware pricing - the fabricator gets 1.27x more upgraded body-tick per scrap under wane and 1.45x under full at the same price), and per-track (the design favourite for v2: plate all-bodies, edge and optic prime-only, ~1.1x without any price table).",
+      "requiredIsolation": "Run all three levels at a fixed ladder; report upgraded-body-ticks per scrap by class, tier-vector distributions, and - the gate - all three class edges, since this axis is a fabricator lever whichever way it is set."
+    },
+    {
+      "id": "scrap-pile-decay",
+      "status": "open",
+      "currentInterpretation": "Pile lifetime 80 simultaneously bounds the published collection, damps stockpiling, and sets the recovery window for ground briefly lost. It is exactly one cadence, so at most one cycle of deposits is ever live.",
+      "requiredIsolation": "Vary decay alone; report scrap-evaporated per match and live-pile counts."
+    },
+    {
+      "id": "scrap-observation-completeness",
+      "status": "open",
+      "currentInterpretation": "Publishing EVERY pile leaks enemy deaths the perception union would otherwise have hidden. It is symmetric and small (a pile says a body died here within 80 ticks, not which one), and the alternative is a race you cannot see.",
+      "requiredIsolation": "Build the fog-limited level (pile amounts on ObservedTile beside SpawnReservation) and compare interception rate and doctrine sensitivity to observed enemies."
+    },
+    {
+      "id": "scrap-invest-caster-scope",
+      "status": "open",
+      "currentInterpretation": "Any live body, any tile, no positional requirement is one permissive bundle. Prime-only would add a denial vector (freeze their economy by killing one body) and a forge tile would double-tax an errand that already costs a round trip; neither is measured.",
+      "requiredIsolation": "Run Prime-only and at-a-forge-tile levels separately; report casts per match and time-from-affordable-to-bought."
+    },
+    {
+      "id": "scrap-flat-control-arm",
+      "status": "open",
+      "currentInterpretation": "THE DESIGNATED CONTROL for the invest action, built and shipped as --economy scrap-flat: same deposits, same carrying, same wreckage, same ladder, same prices, but the bank auto-buys greedily in declared track order with no verb and no action cost.",
+      "requiredIsolation": "If scrap-flat measures the same as scrap on both the balance edges and the pacing gates, the allocation decision is inert and the entire new action family is unjustified. Run it beside scrap in the wave-8 read; report invest casts per match, time-to-first-tier, and the three class edges."
+    },
+    {
+      "id": "scrap-fabricator-amplification",
+      "status": "open",
+      "currentInterpretation": "The economy lands three dampers on the fabricator at once - a fixed deposit pot that one harvester already services, prime-only upgrade scope, and wreckage flowing to its opponent - so its net position is unattributable to any one of them.",
+      "requiredIsolation": "Report bank composition, harvester body-tick share, and the bvf/fvs edges per five-slot variant; a Prime-only-EARNING level is the registered fallback if the read disagrees."
+    },
+    {
+      "id": "scrap-optic-vision-shape-interaction",
+      "status": "open",
+      "currentInterpretation": "OPTIC is gap-preserving on the acquisition reading (every class reaches see-as-far-as-you-shoot at tier 2) but not on an AREA reading: an omnidirectional disc at 4->6 grows observed area 16->36 (+125%) against a quadrant's 36->64 (+78%), so it tilts toward the bulwark.",
+      "requiredIsolation": "Report observed-area and target-acquisition deltas per class per tier; it is the one place v1 knowingly takes a risk."
+    },
+    {
+      "id": "scrap-tempo-track",
+      "status": "open",
+      "currentInterpretation": "Fire cadence is CUT from v1 rather than abandoned: an additive -1 to everyone widens the class gap by ratio (striker/bulwark rate 1.5 -> 2.0) and would erase the entire bulwark-versus-striker duel asymmetry the bvs leg is priced on - and would do so because BOTH teams bought it.",
+      "requiredIsolation": "If it ships later it needs class-aware PRICING (the general law: effects are never class-aware, prices may be exactly where the effect is ratio-asymmetric). Measure it on its own arm, never inside the v1 ladder."
+    },
+    {
+      "id": "scrap-drone-tier-3",
+      "status": "open",
+      "currentInterpretation": "The purchasable ally is deferred to v2 with a build-ready spec, not dropped: one extra ALWAYS-predeclared dormant slot per team, unlocked by a tier-3 purchase costing 20 outside the 3-tier cap, 1 HP, no attack profile, objective weight 0, movement only, omnidirectional vision 5, cannot carry scrap, arriving on the home pad 10 ticks after purchase, one per match.",
+      "requiredIsolation": "Two prerequisites first: a typed form capability making enemy projectiles PASS THROUGH the form (otherwise a bullet-absorbing body is a free screen and body count stops being the fabricator's monopoly), and five registered topology profiles with the drone slot always declared so topology is constant whether or not it is bought."
     }
   ]
 }

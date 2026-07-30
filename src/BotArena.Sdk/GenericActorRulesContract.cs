@@ -253,7 +253,114 @@ public sealed class GenericActorRulesContract
         /// neutral owner.
         /// </summary>
         public FrontlineSecondaryControl? SecondaryControl { get; init; }
+
+        /// <summary>
+        /// The declared BATTLEFIELD ECONOMY, or <see langword="null"/> when
+        /// this mode has none — which is every ruleset authored before the
+        /// capability existed and every one that does not select it. Read it
+        /// before assuming there is loose scrap on the map: the deposit
+        /// addresses, the schedule, what a pile is worth, how much a body may
+        /// carry, where a load banks, and the whole upgrade ladder with its
+        /// prices are all static contract facts you can plan against before
+        /// tick zero. What is NOT here is what is happening right now — the
+        /// banks, the tiers, and the live piles are observation state.
+        /// </summary>
+        public FrontlineScrapEconomy? ScrapEconomy { get; init; }
     }
+
+    /// <summary>
+    /// A battlefield economy: scheduled deposits, wreckage at death tiles, a
+    /// carried resource banked at home, and a team store that converts the
+    /// bank into typed modifiers on the bodies you already field.
+    /// <para>A tier is resolved at the point of use against the form
+    /// catalog's declared number, so nothing here replaces a form: effective
+    /// gun travel is the profile's declared travel plus the tier's step, and
+    /// both operands are published.</para>
+    /// </summary>
+    /// <param name="VeinSites">
+    /// Deposit tile addresses, in declared order. They live in the rules
+    /// rather than the map, so the map is unchanged by the arm.
+    /// </param>
+    /// <param name="VeinFirstSpawnTick">First scheduled deposit tick.</param>
+    /// <param name="VeinSpawnIntervalTicks">Ticks between deposits.</param>
+    /// <param name="VeinLastSpawnTick">Last scheduled deposit tick.</param>
+    /// <param name="VeinAmount">Scrap in one deposit.</param>
+    /// <param name="WreckAmount">
+    /// Scrap a destroyed body leaves at its death tile, merged with whatever
+    /// it was carrying — so a killed carrier is one pile worth wreck + load.
+    /// </param>
+    /// <param name="AssayAmount">
+    /// Scrap banked instantly on stepping onto a pile, before the remainder
+    /// is loaded. It is the floor under every trip.
+    /// </param>
+    /// <param name="CarryCapacity">Most scrap one body may carry.</param>
+    /// <param name="PileLifetimeTicks">
+    /// Ticks a pile survives; it is gone the first tick
+    /// <c>tick &gt;= expiresAtTick</c>.
+    /// </param>
+    /// <param name="MaxSimultaneousPiles">Hard bound on live piles.</param>
+    /// <param name="BankRegionIds">
+    /// Each team's banking region, indexed by team ID. A body of that team
+    /// standing on one of its tiles banks its whole load automatically, with
+    /// no action and no cost.
+    /// </param>
+    /// <param name="UpgradeScope">
+    /// Exact scope policy ID. <c>prime-slot-lives-only</c> applies every tier
+    /// to every life of the team's Prime slot and to nothing else.
+    /// </param>
+    /// <param name="MaxTotalTiers">
+    /// Hard cap on the tiers one team may hold across all tracks.
+    /// </param>
+    /// <param name="PurchaseMode">
+    /// Exact purchase policy ID. <c>invest-action</c> means a live body
+    /// spends its action on the <c>invest</c> verb;
+    /// <c>automatic-greedy-declared-order</c> means the bank buys by itself
+    /// and no verb exists.
+    /// </param>
+    /// <param name="Tracks">The ladder, in declared order.</param>
+    public sealed record FrontlineScrapEconomy(
+        ImmutableArray<ScrapVeinSite> VeinSites,
+        int VeinFirstSpawnTick,
+        int VeinSpawnIntervalTicks,
+        int VeinLastSpawnTick,
+        int VeinAmount,
+        int WreckAmount,
+        int AssayAmount,
+        int CarryCapacity,
+        int PileLifetimeTicks,
+        int MaxSimultaneousPiles,
+        ImmutableArray<string> BankRegionIds,
+        string UpgradeScope,
+        int MaxTotalTiers,
+        string PurchaseMode,
+        ImmutableArray<ScrapUpgradeTrack> Tracks);
+
+    /// <summary>One declared deposit address.</summary>
+    /// <param name="X">Column.</param>
+    /// <param name="Y">Row.</param>
+    public sealed record ScrapVeinSite(int X, int Y);
+
+    /// <summary>
+    /// One purchasable track. Its position in the declared track list is the
+    /// position its tier occupies in every published tier vector.
+    /// </summary>
+    /// <param name="TrackId">Stable identifier; the <c>invest</c> argument.</param>
+    /// <param name="Effect">
+    /// Exact effect policy ID: <c>mobile-attack-travel-tiles-delta</c>,
+    /// <c>spawn-max-health-delta</c>, or <c>vision-range-delta</c>.
+    /// </param>
+    /// <param name="PerTierMagnitude">Integer step one tier adds.</param>
+    /// <param name="MaxTier">Deepest reachable tier on this track.</param>
+    /// <param name="TierCosts">
+    /// Price of tier 1, tier 2, … in order. Its length is
+    /// <paramref name="MaxTier"/>.
+    /// </param>
+    public sealed record ScrapUpgradeTrack(
+        string TrackId,
+        string Effect,
+        int PerTierMagnitude,
+        int MaxTier,
+        ImmutableArray<int> TierCosts);
 
     /// <summary>
     /// A capturable SIDE objective that is not part of the frontline chain.
@@ -1242,6 +1349,12 @@ public sealed class GenericActorRulesContract
         SameLifeTransition = 5,
         /// <summary>Replace the source life with descendant lives.</summary>
         Replication = 6,
+        /// <summary>
+        /// Spend mode-owned resources. It moves the mode's own state and
+        /// nothing on the board, but it still costs the casting body its
+        /// action for the tick.
+        /// </summary>
+        ModeInvestment = 7,
     }
 
     /// <summary>Closed discriminator for typed action arguments and constraints.</summary>
@@ -1257,6 +1370,8 @@ public sealed class GenericActorRulesContract
         FormTarget = 3,
         /// <summary>Absolute projectile heading sector.</summary>
         ProjectileHeading = 4,
+        /// <summary>One declared upgrade track of a mode's store.</summary>
+        UpgradeTrack = 5,
     }
 
     /// <summary>Projectile traversal representation.</summary>

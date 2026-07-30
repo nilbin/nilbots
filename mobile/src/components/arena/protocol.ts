@@ -141,6 +141,18 @@ export type ArenaFrontlineResult = {
     secondaryOwnerTeamId?: number | null;
     /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
     secondaryClaimProgress?: number;
+    /** Both teams' bank and tier vector under a declared scrap economy. */
+    scrapTeams?: {
+      teamId: number;
+      bank: number;
+      tierLevels: number[];
+    }[];
+    /** Live piles of loose scrap, ordered by (y, x). */
+    scrapPiles?: {
+      position: { x: number; y: number };
+      amount: number;
+      expiresAtTick: number;
+    }[];
   };
   scores: {
     teamKey: string;
@@ -238,6 +250,18 @@ export type ArenaModeState =
       secondaryOwnerTeamId?: number | null;
       /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
       secondaryClaimProgress?: number;
+      /** Both teams' bank and tier vector under a declared scrap economy. */
+      scrapTeams?: {
+        teamId: number;
+        bank: number;
+        tierLevels: number[];
+      }[];
+      /** Live piles of loose scrap, ordered by (y, x). */
+      scrapPiles?: {
+        position: { x: number; y: number };
+        amount: number;
+        expiresAtTick: number;
+      }[];
     }
   | {
       kind: string;

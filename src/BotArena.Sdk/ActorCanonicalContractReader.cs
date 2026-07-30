@@ -690,6 +690,15 @@ public static class ActorCanonicalContractReader
         bool hasSecondaryControl = element.TryGetProperty(
             "secondaryControl",
             out JsonElement secondaryControl);
+        bool hasScrapEconomy = element.TryGetProperty(
+            "scrapEconomy",
+            out JsonElement scrapEconomy);
+        if (hasSecondaryControl && hasScrapEconomy)
+        {
+            throw new FormatException(
+                "A canonical Frontline mode declares a side objective or a "
+                + "scrap economy, never both.");
+        }
         ExactObject(
             element,
             [
@@ -701,6 +710,9 @@ public static class ActorCanonicalContractReader
                 "capture",
                 .. hasSecondaryControl
                     ? new[] { "secondaryControl" }
+                    : [],
+                .. hasScrapEconomy
+                    ? new[] { "scrapEconomy" }
                     : [],
             ]);
         RulesContract.Victory victory =
@@ -720,7 +732,124 @@ public static class ActorCanonicalContractReader
             SecondaryControl = hasSecondaryControl
                 ? ReadFrontlineSecondaryControl(secondaryControl)
                 : null,
+            ScrapEconomy = hasScrapEconomy
+                ? ReadFrontlineScrapEconomy(scrapEconomy)
+                : null,
         };
+    }
+
+    private static RulesContract.FrontlineScrapEconomy
+        ReadFrontlineScrapEconomy(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "veinSites",
+            "veinFirstSpawnTick",
+            "veinSpawnIntervalTicks",
+            "veinLastSpawnTick",
+            "veinAmount",
+            "wreckAmount",
+            "assayAmount",
+            "carryCapacity",
+            "pileLifetimeTicks",
+            "maxSimultaneousPiles",
+            "bankRegionIds",
+            "upgradeScope",
+            "maxTotalTiers",
+            "purchaseMode",
+            "tracks");
+        ImmutableArray<RulesContract.ScrapVeinSite> veinSites =
+            Array(Property(element, "veinSites"), ReadScrapVeinSite);
+        ImmutableArray<string> bankRegionIds =
+            Array(Property(element, "bankRegionIds"), Id);
+        ImmutableArray<RulesContract.ScrapUpgradeTrack> tracks =
+            Array(Property(element, "tracks"), ReadScrapUpgradeTrack);
+        int firstTick = Int(element, "veinFirstSpawnTick");
+        int interval = Int(element, "veinSpawnIntervalTicks");
+        int lastTick = Int(element, "veinLastSpawnTick");
+        if (veinSites.Length == 0
+            || veinSites.Distinct().Count() != veinSites.Length
+            || bankRegionIds.Length == 0
+            || bankRegionIds.Distinct(StringComparer.Ordinal).Count()
+                != bankRegionIds.Length
+            || tracks.Length == 0
+            || tracks
+                .Select(track => track.TrackId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() != tracks.Length
+            || firstTick < 0
+            || interval <= 0
+            || lastTick < firstTick
+            || (lastTick - firstTick) % interval != 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline scrap economy declares distinct vein "
+                + "sites, distinct banking regions, distinct tracks, and a "
+                + "schedule whose last tick sits on its cadence.");
+        }
+        return new RulesContract.FrontlineScrapEconomy(
+            veinSites,
+            firstTick,
+            interval,
+            lastTick,
+            Int(element, "veinAmount"),
+            Int(element, "wreckAmount"),
+            Int(element, "assayAmount"),
+            Int(element, "carryCapacity"),
+            Int(element, "pileLifetimeTicks"),
+            Int(element, "maxSimultaneousPiles"),
+            bankRegionIds,
+            EnumId(element, "upgradeScope", "prime-slot-lives-only"),
+            Int(element, "maxTotalTiers"),
+            EnumId(
+                element,
+                "purchaseMode",
+                "invest-action",
+                "automatic-greedy-declared-order"),
+            tracks);
+    }
+
+    private static RulesContract.ScrapVeinSite ReadScrapVeinSite(
+        JsonElement element)
+    {
+        ExactObject(element, "x", "y");
+        return new RulesContract.ScrapVeinSite(
+            Int(element, "x"),
+            Int(element, "y"));
+    }
+
+    private static RulesContract.ScrapUpgradeTrack ReadScrapUpgradeTrack(
+        JsonElement element)
+    {
+        ExactObject(
+            element,
+            "trackId",
+            "effect",
+            "perTierMagnitude",
+            "maxTier",
+            "tierCosts");
+        int maxTier = Int(element, "maxTier");
+        ImmutableArray<int> tierCosts =
+            Array(Property(element, "tierCosts"), Int);
+        if (maxTier <= 0
+            || tierCosts.Length != maxTier
+            || tierCosts.Any(cost => cost <= 0))
+        {
+            throw new FormatException(
+                "A canonical scrap track prices every tier it declares, "
+                + "positively.");
+        }
+        return new RulesContract.ScrapUpgradeTrack(
+            Id(element, "trackId"),
+            EnumId(
+                element,
+                "effect",
+                "mobile-attack-travel-tiles-delta",
+                "spawn-max-health-delta",
+                "vision-range-delta"),
+            Int(element, "perTierMagnitude"),
+            maxTier,
+            tierCosts);
     }
 
     private static RulesContract.FrontlineSecondaryControl
@@ -2670,6 +2799,7 @@ public static class ActorCanonicalContractReader
             "same-life-transition" =>
                 RulesContract.ActionKind.SameLifeTransition,
             "replication" => RulesContract.ActionKind.Replication,
+            "mode-investment" => RulesContract.ActionKind.ModeInvestment,
             string value => throw Unsupported("action kind", value),
         };
 
@@ -2686,6 +2816,8 @@ public static class ActorCanonicalContractReader
                 RulesContract.ActionParameterKind.FormTarget,
             "projectile-heading" =>
                 RulesContract.ActionParameterKind.ProjectileHeading,
+            "upgrade-track" =>
+                RulesContract.ActionParameterKind.UpgradeTrack,
             string value => throw Unsupported(
                 "action parameter kind",
                 value),

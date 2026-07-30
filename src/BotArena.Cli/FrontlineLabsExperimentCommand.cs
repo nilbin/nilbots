@@ -49,6 +49,7 @@ public static class FrontlineLabsExperimentCommand
             "volley",
             "side-objective",
             "capture",
+            "economy",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -311,8 +312,33 @@ public static class FrontlineLabsExperimentCommand
                 + "(or run two class-declaring projects), or compose it with "
                 + "a --pendulum level.");
         }
+        // The economy is a real arm on every pair too: the deposits, the
+        // wreckage, and the ladder are the same whatever chassis are in the
+        // cell, so it is never inert-omitted and it needs a cell to sit in.
+        // It is mutually exclusive with --side-objective, because both claim
+        // the side lanes' attention and a cell carrying both could attribute
+        // neither.
+        FrontlineLabsEconomyArm economyArm = OptionalEconomyArm(options);
+        if (economyArm != FrontlineLabsEconomyArm.None
+            && sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            throw new InvalidOperationException(
+                "--economy and --side-objective both claim the side lanes' "
+                + "attention, so they cannot run in the same cell: pick one.");
+        }
+        if (economyArm != FrontlineLabsEconomyArm.None
+            && classPair is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new InvalidOperationException(
+                "--economy adds a resource both teams fight over, so it "
+                + "needs a cell to sit in: pass --classes <a>-vs-<b> (or run "
+                + "two class-declaring projects), or compose it with a "
+                + "--pendulum level.");
+        }
         bool pendulumCell =
             captureArm != FrontlineLabsCaptureArm.Frozen
+            || economyArm != FrontlineLabsEconomyArm.None
             || pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
             || skills != FrontlineLabsSkillKit.None
@@ -361,7 +387,8 @@ public static class FrontlineLabsExperimentCommand
                 cooldownArm,
                 volleyArm,
                 sideObjective,
-                captureArm);
+                captureArm,
+                economyArm);
         }
         else if (captureThreshold is int threshold)
         {
@@ -462,6 +489,17 @@ public static class FrontlineLabsExperimentCommand
             Console.WriteLine(
                 "Side objective:    muster — the owner's PRIME respawns "
                 + "rally forward; nobody else does");
+        }
+        if (economyArm != FrontlineLabsEconomyArm.None)
+        {
+            Console.WriteLine(
+                economyArm == FrontlineLabsEconomyArm.Scrap
+                    ? "Economy:           scrap — veins at (11,1)/(11,13) on "
+                        + "120/200/280/360; wrecks drop 1; carry, bank at "
+                        + "home, invest in edge/plate/optic"
+                    : "Economy:           scrap-flat (CONTROL) — same veins, "
+                        + "carrying, and ladder, but the bank buys greedily "
+                        + "by itself and no invest verb exists");
         }
         if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly)
         {
@@ -898,6 +936,33 @@ public static class FrontlineLabsExperimentCommand
             "channel" => FrontlineLabsCaptureArm.Channel,
             _ => throw new InvalidOperationException(
                 $"Unknown --capture arm '{value}' (use frozen or channel)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered battlefield-economy arm (DECISIONS #187,
+    /// <c>docs/DESIGN-SCRAP-ECONOMY-2026-07-30.md</c>). Omitting the option —
+    /// or naming <c>none</c> — declares no economy and adds no ruleset
+    /// suffix. <c>scrap</c> is the arm: scheduled deposits in both side
+    /// lanes, a wreck at every death tile, carried-with-assay banking at your
+    /// own home pad, and an <c>invest</c> verb that spends the team bank on
+    /// edge, plate, or optic. <c>scrap-flat</c> is its pre-registered
+    /// falsification control: the same economy with the bank buying greedily
+    /// by itself and no verb at all.
+    /// </summary>
+    private static FrontlineLabsEconomyArm OptionalEconomyArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("economy", out string? value))
+            return FrontlineLabsEconomyArm.None;
+        return value.ToLowerInvariant() switch
+        {
+            "none" => FrontlineLabsEconomyArm.None,
+            "scrap" => FrontlineLabsEconomyArm.Scrap,
+            "scrap-flat" => FrontlineLabsEconomyArm.ScrapFlat,
+            _ => throw new InvalidOperationException(
+                $"Unknown --economy arm '{value}' (use none, scrap or "
+                + "scrap-flat)."),
         };
     }
 

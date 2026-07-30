@@ -21,6 +21,37 @@ internal interface IGenericActorMatchModeDriver
 
     GenericActorModeProjection Project(
         GenericActorModeWorldView world);
+
+    /// <summary>
+    /// The upgrade tracks one team may legally buy the next tier of right
+    /// now, in declared order. Empty for every mode that owns no store, which
+    /// is what keeps the mode-investment action's legality mask closed on a
+    /// contract that does not declare it.
+    /// <para>This and <see cref="TryInvest"/> are the mode driver's first
+    /// ACTION surface: until the scrap economy it only observed post-combat
+    /// world state. Modes owning verbs is the direction, and it is why the
+    /// seam widened here rather than in the session.</para>
+    /// </summary>
+    IReadOnlyList<string> InvestableTracks(int teamId);
+
+    /// <summary>
+    /// Spends one tier for the acting body's team, in the action phase.
+    /// Returns false when the mode owns no store, the track is unknown, the
+    /// bank no longer covers it, or a cap is reached — the caller then blocks
+    /// the action exactly as it blocks any other unavailable verb.
+    /// </summary>
+    /// <param name="tick">The tick being resolved.</param>
+    /// <param name="actor">The casting body.</param>
+    /// <param name="trackId">The requested track.</param>
+    bool TryInvest(int tick, ActorIdentity actor, string trackId);
+
+    /// <summary>
+    /// The typed stat modifiers this mode currently applies to one body.
+    /// <see cref="GenericActorModeStatModifiers.None"/> for every mode that
+    /// applies none, so every historical contract resolves its declared form
+    /// stats unchanged.
+    /// </summary>
+    GenericActorModeStatModifiers StatModifiersFor(ActorIdentity actor);
 }
 
 internal abstract record GenericActorModeState
@@ -183,7 +214,8 @@ internal sealed record GenericActorModeTickInput
 {
     public GenericActorModeTickInput(
         int tick,
-        IReadOnlyCollection<GenericActorModeDamageContact> damageContacts)
+        IReadOnlyCollection<GenericActorModeDamageContact> damageContacts,
+        IReadOnlyCollection<FrontlineScrapDestruction>? destructions = null)
     {
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
@@ -197,8 +229,23 @@ internal sealed record GenericActorModeTickInput
                 nameof(damageContacts));
         }
 
+        FrontlineScrapDestruction[] deaths = [.. destructions ?? []];
+        if (deaths.Any(death => death is null)
+            || deaths
+                .Select(death => death.ActorId)
+                .Distinct()
+                .Count() != deaths.Length)
+        {
+            throw new ArgumentException(
+                "Mode destructions must be non-null and name each life once.",
+                nameof(destructions));
+        }
+
         Tick = tick;
         DamageContacts = contacts.ToImmutableArray();
+        Destructions = deaths
+            .OrderBy(death => death.ActorId)
+            .ToImmutableArray();
     }
 
     public int Tick { get; }
@@ -210,6 +257,15 @@ internal sealed record GenericActorModeTickInput
     {
         get;
     }
+
+    /// <summary>
+    /// Lives destroyed this tick with the tile they died on, in canonical
+    /// order. A mode that places anything at a death site needs the
+    /// destruction itself rather than the contact that caused it — the
+    /// contact names where the bolt was, the destruction names where the body
+    /// was. Empty for every mode that places nothing.
+    /// </summary>
+    public ImmutableArray<FrontlineScrapDestruction> Destructions { get; }
 }
 
 internal sealed record GenericActorModeScoreChange
@@ -271,13 +327,17 @@ internal sealed record GenericActorModeProjection
 {
     public GenericActorModeProjection(
         GenericActorRuntimeObservation.ScoreboardState scoreboard,
-        GenericActorRuntimeObservation.ModeObservationState mode)
+        GenericActorRuntimeObservation.ModeObservationState mode,
+        IReadOnlyDictionary<ActorIdentity, int>? carriedScrapByActor = null)
     {
         ArgumentNullException.ThrowIfNull(scoreboard);
         ArgumentNullException.ThrowIfNull(mode);
 
         Scoreboard = scoreboard;
         Mode = mode;
+        CarriedScrapByActor = carriedScrapByActor is null
+            ? ImmutableDictionary<ActorIdentity, int>.Empty
+            : carriedScrapByActor.ToImmutableDictionary();
     }
 
     public GenericActorRuntimeObservation.ScoreboardState Scoreboard
@@ -285,6 +345,17 @@ internal sealed record GenericActorModeProjection
         get;
     }
     public GenericActorRuntimeObservation.ModeObservationState Mode { get; }
+
+    /// <summary>
+    /// Mode state that annotates BODIES rather than teams: what each live body
+    /// is carrying, which the host stamps onto self, ally, and enemy states.
+    /// Empty for every mode that annotates nothing, and a body carrying
+    /// nothing is simply absent.
+    /// </summary>
+    public ImmutableDictionary<ActorIdentity, int> CarriedScrapByActor
+    {
+        get;
+    }
 }
 
 internal enum GenericActorModeCompletionKind

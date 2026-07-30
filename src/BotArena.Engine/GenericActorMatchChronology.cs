@@ -1707,8 +1707,10 @@ public sealed record GenericActorMatchChronology
                                 != activationArrival
                             || activationLife.Facing
                                 != activationSpawn.Facing
-                            || activationLife.Health
-                                != activationForm.MaxHealth
+                            || !IsSpawnHealthInBand(
+                                definition,
+                                activationLife.Health,
+                                activationForm)
                             || activationLife.Cooldown != 0
                             || activationLife.Energy != activationEnergy
                             || activationLife.SpawnedAtTick
@@ -1748,8 +1750,10 @@ public sealed record GenericActorMatchChronology
                                 activationSpawned.FormId,
                                 activationFormId,
                                 StringComparison.Ordinal)
-                            || activationSpawned.Health
-                                != activationForm.MaxHealth
+                            || !IsSpawnHealthInBand(
+                                definition,
+                                activationSpawned.Health,
+                                activationForm)
                             || activationSpawned.Position
                                 != activationArrival
                             || activationSpawned.SourceTransitionId
@@ -1870,7 +1874,10 @@ public sealed record GenericActorMatchChronology
                             StringComparison.Ordinal)
                         || life.Position != arrival
                         || life.Facing != spawn.Facing
-                        || life.Health != form.MaxHealth
+                        || !IsSpawnHealthInBand(
+                            definition,
+                            life.Health,
+                            form)
                         || life.Cooldown != 0
                         || life.Energy != expectedEnergy
                         || life.SpawnedAtTick != tickStart.Tick
@@ -1904,7 +1911,10 @@ public sealed record GenericActorMatchChronology
                             spawned.FormId,
                             pending.TargetFormId,
                             StringComparison.Ordinal)
-                        || spawned.Health != form.MaxHealth
+                        || !IsSpawnHealthInBand(
+                            definition,
+                            spawned.Health,
+                            form)
                         || spawned.Position != arrival
                         || spawned.SourceTransitionId is not null
                         || spawned.SourceOperationId is not null)
@@ -2937,7 +2947,10 @@ public sealed record GenericActorMatchChronology
                 StringComparison.Ordinal)
             || child.Position != pendingFact.Pending.ReservedPosition
             || child.Facing != outputFacing
-            || child.Health != outputForm.MaxHealth
+            || !IsSpawnHealthInBand(
+                definition,
+                child.Health,
+                outputForm)
             || child.Cooldown != 0
             || child.Energy != outputEnergy
             || child.SpawnedAtTick != tickStart.Tick
@@ -6387,6 +6400,29 @@ public sealed record GenericActorMatchChronology
         && ReplicationReservationsSemanticallyEqual(
             left.SplitReservation,
             right.SplitReservation);
+
+    /// <summary>
+    /// Whether a fresh life's health is a legal spawn value. A body arrives at
+    /// its form's declared maximum plus whatever the mode's own declared
+    /// upgrade ladder adds to that slot — never less, and never more than the
+    /// ladder's headroom. This generic layer checks the BAND because the tier
+    /// vector is mode state; the exact value is re-derived per team and per
+    /// tick by the mode's own chronology evidence, which also proves the bank
+    /// the tier was bought with. On every contract that declares no ladder the
+    /// headroom is zero and this is the historical equality verbatim.
+    /// </summary>
+    private static bool IsSpawnHealthInBand(
+        ActorResolvedMatchDefinition definition,
+        int health,
+        ActorFormDefinition form) =>
+        health >= form.MaxHealth
+        && health
+            <= checked(
+                form.MaxHealth
+                + FrontlineScrapEconomyDefinition.HeadroomOn(
+                    definition.Rules.GameMode,
+                    FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                        .SpawnMaxHealthDelta));
 
     private static bool LifeSnapshotsSemanticallyEqual(
         GenericActorWorldSnapshot.LifeSnapshot left,

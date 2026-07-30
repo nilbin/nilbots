@@ -10,4 +10,12 @@ public enum ActorActionKind
     Fabrication = 4,
     SameLifeTransition = 5,
     Replication = 6,
+
+    /// <summary>
+    /// A verb the MODE owns rather than the world: it moves the mode's own
+    /// state and nothing on the board. Additive append (DECISIONS #156's
+    /// discipline), so every contract that declares no such action behaves
+    /// exactly as it always has.
+    /// </summary>
+    ModeInvestment = 7,
 }

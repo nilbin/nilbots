@@ -13,6 +13,7 @@ internal static class GenericActorDynamicTestFixture
             "test-action",
             99,
             [
+                new GenericActorActionArgument.UpgradeTrackArgument("plate"),
                 new GenericActorActionArgument.ProjectileHeadingArgument(
                     ProjectileHeading.NorthEast),
                 new GenericActorActionArgument.FormTargetArgument("turret"),
@@ -86,6 +87,8 @@ internal static class GenericActorDynamicTestFixture
             allowedByForm: true,
             available: true,
             [
+                new GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint(["plate", "edge"]),
                 new GenericActorActionLegality.ArgumentConstraint
                     .ProjectileHeadingConstraint(
                         [

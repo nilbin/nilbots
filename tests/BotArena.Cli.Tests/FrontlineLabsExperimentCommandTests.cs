@@ -581,6 +581,128 @@ public sealed class FrontlineLabsExperimentCommandTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The battlefield economy through the CLI: its own ruleset on the SAME
+    /// map (the deposit addresses are rules facts, not map regions), the
+    /// registered composite in the shipped cell, the control level spelling
+    /// itself, the mutual exclusion with the side objective, and the
+    /// needs-a-cell guard.
+    /// </summary>
+    [Fact]
+    public void EconomyArm_MintsScrapKeepsTheMapAndRefusesTheSideObjective()
+    {
+        JsonElement plain = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement scrap = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--economy",
+                "scrap",
+            ]);
+
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-scrap",
+            scrap.GetProperty("rulesetId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("rulesFingerprint").GetString(),
+            scrap.GetProperty("rulesFingerprint").GetString());
+        // The one concrete improvement over the side objective: no new map
+        // generation, so the arm stays fingerprint-comparable to every arm
+        // measured to date.
+        Assert.Equal(
+            plain.GetProperty("mapId").GetString(),
+            scrap.GetProperty("mapId").GetString());
+        Assert.Equal(
+            plain.GetProperty("mapFingerprint").GetString(),
+            scrap.GetProperty("mapFingerprint").GetString());
+
+        // The control level is its own ruleset, never a registered composite.
+        // It spells `flat` rather than the flag's own `scrap-flat`: the
+        // composite it appends to already names the economy, and the extra
+        // characters do not fit beside the worst class pair.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-flat",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--economy",
+                    "scrap-flat",
+                ]).GetProperty("rulesetId").GetString());
+
+        // The shipped game: swell + channel + scrap is `bastion`.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-bastion-facing-locked",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--movement",
+                    "facing-locked",
+                    "--pendulum",
+                    "keel",
+                    "--skills",
+                    "kit",
+                    "--bend",
+                    "universal",
+                    "--stance-ground",
+                    "open",
+                    "--aim",
+                    "offset",
+                    "--cooldown",
+                    "ticking",
+                    "--volley",
+                    "salvo",
+                    "--capture",
+                    "channel",
+                    "--economy",
+                    "scrap",
+                ]).GetProperty("rulesetId").GetString());
+
+        // Both side-lane arms in one cell is refused, as is a cell-free arm
+        // and an unknown level.
+        Assert.Contains(
+            "cannot run in the same cell",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--side-objective",
+                        "muster",
+                        "--economy",
+                        "scrap",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "needs a cell to sit in",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--economy",
+                        "scrap",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use none, scrap or scrap-flat",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--economy",
+                        "forge",
+                    ])).Message,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PendulumArms_ComposeIntoTheFourPhaseOneFactorLevels()
     {

@@ -46,6 +46,11 @@ public sealed class GenericActorActionCodecTests
             Assert.IsType<
                 GenericActorActionArgument.ProjectileHeadingArgument>(
                     decoded.Arguments[4]).Value);
+        Assert.Equal(
+            "plate",
+            Assert.IsType<
+                GenericActorActionArgument.UpgradeTrackArgument>(
+                    decoded.Arguments[5]).TrackId);
     }
 
     [Fact]
@@ -82,6 +87,12 @@ public sealed class GenericActorActionCodecTests
                 GenericActorActionLegality.ArgumentConstraint
                     .FormTargetConstraint>(
                         decoded.Constraints[3]).AllowedFormIds.ToArray());
+        Assert.Equal(
+            ["edge", "plate"],
+            Assert.IsType<
+                GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint>(
+                        decoded.Constraints[5]).AllowedTrackIds.ToArray());
 
         var empty = new GenericActorActionLegality.ArgumentConstraint
             .ProjectileHeadingConstraint([]);
