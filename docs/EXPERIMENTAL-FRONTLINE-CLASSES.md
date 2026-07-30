@@ -399,6 +399,20 @@ carry it — the volley aims by facing, the turret aims absolutely.
 `rig` + aim is registered as `sail`; the whole tuned candidate game
 (rig + aim + wane) is `crew`.
 
+### Cooldown clock (DECISIONS #180)
+
+`--cooldown ticking` moves the attack cooldown onto TIME: it decrements
+every tick in every form, so a gunless stance (the shell) or a windup no
+longer freezes your gun's recovery — the hidden stance tax a wave-6
+author measured is gone on this arm. Everything else about cooldowns is
+unchanged: one counter per body, firing sets it to the firing gun's
+declared `cooldownTicks`, transitions carry it without refill, attacks
+are legal only at zero, and it is public in observations. The contract
+declares the clock at `rules.tickResolution.cooldownClock`
+(`advances-with-time`; absent means the historical armed-form clock).
+The whole open game on the ticking clock is the registered identity
+**`tide`** (`sail-open-tick` where no fabricator is in the cell).
+
 ### Stance ground (round 3)
 
 `--stance-ground free` drops the `transition-placement-forbidden` tag kind

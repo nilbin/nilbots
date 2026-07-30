@@ -45,6 +45,7 @@ public static class FrontlineLabsExperimentCommand
             "five-slots",
             "stance-ground",
             "aim",
+            "cooldown",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -258,6 +259,15 @@ public static class FrontlineLabsExperimentCommand
                 + "it needs a class pair: pass --classes <a>-vs-<b> or run "
                 + "two class-declaring projects.");
         }
+        FrontlineLabsCooldownArm cooldownArm = OptionalCooldownArm(options);
+        if (cooldownArm != FrontlineLabsCooldownArm.Frozen
+            && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--cooldown is registered for the class game; pass "
+                + "--classes <a>-vs-<b> or run two class-declaring "
+                + "projects.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
@@ -302,7 +312,8 @@ public static class FrontlineLabsExperimentCommand
                 bendEnvelope,
                 fiveSlots,
                 stanceGround,
-                aim);
+                aim,
+                cooldownArm);
         }
         else if (captureThreshold is int threshold)
         {
@@ -738,6 +749,28 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --bend '{value}' "
                 + "(use striker-only or universal)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered cooldown-clock arm (DECISIONS #180). Omitting
+    /// the option — or naming <c>frozen</c> — keeps the historical clock
+    /// (an unarmed form freezes the remaining cooldown) and adds no
+    /// ruleset suffix. <c>ticking</c> advances the cooldown with time in
+    /// every form.
+    /// </summary>
+    private static FrontlineLabsCooldownArm OptionalCooldownArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("cooldown", out string? value))
+            return FrontlineLabsCooldownArm.Frozen;
+        return value.ToLowerInvariant() switch
+        {
+            "frozen" => FrontlineLabsCooldownArm.Frozen,
+            "ticking" => FrontlineLabsCooldownArm.Ticking,
+            _ => throw new InvalidOperationException(
+                $"Unknown --cooldown arm '{value}' (use frozen or "
+                + "ticking)."),
         };
     }
 

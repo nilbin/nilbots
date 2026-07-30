@@ -5473,7 +5473,16 @@ public sealed record GenericActorMatchChronology
         if (skipUpdate)
             return (before.Cooldown, before.Energy);
         if (source.AttackProfileId is not string attackProfileId)
-            return (before.Cooldown, null);
+        {
+            // Mirrors the session's unarmed branch: the historical clock
+            // freezes the cooldown; advances-with-time (#180) keeps it
+            // running through unarmed forms.
+            return (definition.Rules.TickResolution.CooldownClock
+                    == ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesWithTime
+                ? Math.Max(0, before.Cooldown - 1)
+                : before.Cooldown, null);
+        }
         ActorAttackProfileDefinition attack =
             definition.Rules.AttackProfiles.Single(profile =>
                 string.Equals(

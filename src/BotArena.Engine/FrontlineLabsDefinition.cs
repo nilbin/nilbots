@@ -388,8 +388,23 @@ public static class FrontlineLabsDefinition
             FrontlineLabsFiveSlotVariant.Full,
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
-        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
     {
+        if (!Enum.IsDefined(cooldown))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cooldown),
+                cooldown,
+                "Unknown Frontline Labs cooldown arm.");
+        }
+        if (cooldown != FrontlineLabsCooldownArm.Frozen && classes is null)
+        {
+            throw new ArgumentException(
+                "The cooldown clock is registered for the class game; pass "
+                + "a class pair.",
+                nameof(cooldown));
+        }
         if (!Enum.IsDefined(aim))
         {
             throw new ArgumentOutOfRangeException(
@@ -549,7 +564,8 @@ public static class FrontlineLabsDefinition
                 bendEnvelope,
                 fiveSlots,
                 effectiveGround,
-                aim),
+                aim,
+                cooldown),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -567,7 +583,8 @@ public static class FrontlineLabsDefinition
             skills: effectiveSkills,
             bendEnvelope: bendEnvelope,
             stanceGround: effectiveGround,
-            aim: aim);
+            aim: aim,
+            cooldown: cooldown);
     }
 
     /// <summary>
@@ -737,7 +754,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsFiveSlotVariant.Full,
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
-        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -794,6 +812,17 @@ public static class FrontlineLabsDefinition
                     ? ["sail"]
                     : [.. arms, "aim"];
             }
+        }
+        if (cooldown == FrontlineLabsCooldownArm.Ticking)
+        {
+            // `tide` = the whole tuned game on the ticking clock — the
+            // fabricator mirror cannot spell its factors plus `tick`
+            // inside the budget. A mirror resolves the open ground inert
+            // (its arms spell `crew`), so both spellings of the same
+            // requested game carry the one registered token.
+            arms = arms is ["deck"] or ["crew"]
+                ? ["tide"]
+                : [.. arms, "tick"];
         }
         string[] tokens =
         [
@@ -1097,7 +1126,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsBendEnvelopeArm.StrikerOnly,
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
-        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1116,7 +1146,8 @@ public static class FrontlineLabsDefinition
             skills,
             bendEnvelope,
             stanceGround,
-            aim);
+            aim,
+            cooldown);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1203,7 +1234,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsBendEnvelopeArm bendEnvelope,
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
-        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1222,7 +1254,8 @@ public static class FrontlineLabsDefinition
                 skills,
                 bendEnvelope,
                 stanceGround,
-                aim);
+                aim,
+                cooldown);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1552,7 +1585,9 @@ public static class FrontlineLabsDefinition
             fabricationTransitions,
         IEnumerable<ActorSameLifeTransitionDefinition> sameLifeTransitions,
         IEnumerable<ActorReplicationTransitionDefinition>
-            replicationTransitions) =>
+            replicationTransitions,
+        FrontlineLabsCooldownArm cooldown =
+            FrontlineLabsCooldownArm.Frozen) =>
         new(
             rulesetId,
             new ActorRulesLimits(
@@ -1624,7 +1659,12 @@ public static class FrontlineLabsDefinition
                 observationsUsePreTickState: true,
                 decisionsResolveAsJointStep: true,
                 ActorDamageResolutionDefinition.CanonicalJointV1,
-                ActorTickResolutionDefinition.CreateSupportedPhases()));
+                ActorTickResolutionDefinition.CreateSupportedPhases(),
+                cooldown == FrontlineLabsCooldownArm.Ticking
+                    ? ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesWithTime
+                    : ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesOnlyWithAnArmedForm));
 
     /// <summary>
     /// Expands one or two class chassis into the complete per-class form,
@@ -1646,7 +1686,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsBendEnvelopeArm bendEnvelope,
         FrontlineLabsStanceGroundArm stanceGround =
             FrontlineLabsStanceGroundArm.Strict,
-        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight)
+        FrontlineLabsAimArm aim = FrontlineLabsAimArm.Straight,
+        FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -2055,7 +2096,8 @@ public static class FrontlineLabsDefinition
             actions,
             fabrications,
             sameLifeTransitions,
-            replicationTransitions: []);
+            replicationTransitions: [],
+            cooldown);
     }
 
     private static ActorFormTransitionDefinition AnchorRoute(

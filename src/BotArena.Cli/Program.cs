@@ -245,6 +245,7 @@ static int CommandHelp(string command)
                    [--five-slots full|trim|boom|drag|moor|wane]
                    [--stance-ground strict|free|open]
                    [--aim straight|offset]
+                   [--cooldown frozen|ticking]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -360,6 +361,10 @@ static int CommandHelp(string command)
             grammar had dropped it by conflation, never by ruling. Specials
             are untouched. Needs a class pair. rig + aim is registered as
             `sail`, and the whole tuned game (rig + aim + wane) as `crew`.
+            --cooldown ticking advances a body's attack cooldown with TIME
+            in every form (DECISIONS #180): a gunless stance or windup no
+            longer freezes gun recovery. General for all classes. The open
+            game on the ticking clock is registered as `tide`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

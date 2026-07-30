@@ -803,6 +803,13 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "matchCompletionPrecedence",
             Id(tick.MatchCompletionPrecedence));
+        // Inert-omitted (#156): the historical clock writes nothing, so
+        // every pre-existing contract keeps its exact bytes.
+        if (tick.CooldownClock != ActorTickResolutionDefinition
+                .CooldownClockKind.AdvancesOnlyWithAnArmedForm)
+        {
+            writer.WriteString("cooldownClock", Id(tick.CooldownClock));
+        }
         writer.WritePropertyName("damageResolution");
         WriteDamageResolution(writer, tick.DamageResolution);
         writer.WritePropertyName("phases");

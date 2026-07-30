@@ -536,6 +536,11 @@ internal static class ActorContractCanonicalIds
         ActorTickResolutionDefinition.MatchCompletionPrecedenceKind
                 .FaultEligibilityShortCircuitThenModeEarlyThenEligibleTimeout =>
             "fault-eligibility-short-circuit-then-mode-early-then-eligible-timeout",
+        ActorTickResolutionDefinition.CooldownClockKind
+                .AdvancesOnlyWithAnArmedForm =>
+            "advances-only-with-an-armed-form",
+        ActorTickResolutionDefinition.CooldownClockKind.AdvancesWithTime =>
+            "advances-with-time",
         ActorTickResolutionPhase.ResolveTickStartLifecycle =>
             "resolve-tick-start-lifecycle",
         ActorTickResolutionPhase.FreezeObservations => "freeze-observations",

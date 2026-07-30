@@ -2056,8 +2056,16 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorAttackProfileDefinition? attack = AttackFor(life);
             if (attack is null)
             {
-                // A same-life transition into an unarmed form keeps the
-                // remaining cooldown as inert state.
+                // Historically an unarmed form keeps the remaining cooldown
+                // as inert state — time stops for the gun. Under the
+                // advances-with-time clock (#180) the cooldown keeps
+                // running, so a stance or windup no longer pauses recovery.
+                if (_definition.Rules.TickResolution.CooldownClock
+                    == ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesWithTime)
+                {
+                    life.Cooldown = Math.Max(0, life.Cooldown - 1);
+                }
                 life.Energy = null;
                 continue;
             }

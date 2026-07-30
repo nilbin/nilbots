@@ -160,9 +160,14 @@ public static class ToolchainInfo
     /// version raises the submission source cap from 256 KB to 2 MB (owner
     /// ruling: the cap had become the binding constraint on contract-driven
     /// authorship).
+    /// 0.9.23 registers the cooldown-clock arm (`--cooldown ticking`,
+    /// contract fact `tickResolution.cooldownClock`, composite `tide` =
+    /// the open game on the ticking clock): the attack cooldown advances
+    /// with time in every form, ending the gunless-stance freeze (#180).
+    /// Inert-omitted, so every existing ruleset keeps its exact bytes.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.22";
+    public const string CliVersion = "0.9.23";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

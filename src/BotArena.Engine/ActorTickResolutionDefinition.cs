@@ -33,8 +33,13 @@ public sealed record ActorTickResolutionDefinition
         bool observationsUsePreTickState,
         bool decisionsResolveAsJointStep,
         ActorDamageResolutionDefinition damageResolution,
-        IReadOnlyList<ActorTickResolutionPhase> phases)
+        IReadOnlyList<ActorTickResolutionPhase> phases,
+        CooldownClockKind cooldownClock =
+            CooldownClockKind.AdvancesOnlyWithAnArmedForm)
     {
+        if (!Enum.IsDefined(cooldownClock))
+            throw new ArgumentOutOfRangeException(nameof(cooldownClock));
+        CooldownClock = cooldownClock;
         if (!observationsUsePreTickState)
         {
             throw new ArgumentException(
@@ -70,6 +75,25 @@ public sealed record ActorTickResolutionDefinition
     public bool DecisionsResolveAsJointStep { get; }
     public ActorDamageResolutionDefinition DamageResolution { get; }
     public ImmutableArray<ActorTickResolutionPhase> Phases { get; }
+
+    /// <summary>
+    /// Whose clock a gun's cooldown runs on (DECISIONS #180). The
+    /// historical rule ties it to the armed form: a life standing in a
+    /// form without an attack profile keeps its remaining cooldown as
+    /// inert state — time stops for the gun, the hidden stance tax a
+    /// wave-6 author measured (entered at cooldown 3, still 2 at tick
+    /// 100). AdvancesWithTime decrements every tick regardless of form,
+    /// so a stance or windup no longer pauses recovery. The default is
+    /// the historical rule and is omitted from canonical bytes, so every
+    /// contract authored before this field keeps its exact fingerprints.
+    /// </summary>
+    public CooldownClockKind CooldownClock { get; }
+
+    public enum CooldownClockKind
+    {
+        AdvancesOnlyWithAnArmedForm = 0,
+        AdvancesWithTime = 1,
+    }
     public MovementActionResolutionKind MovementActionResolution =>
         MovementActionResolutionKind
             .SubmittedAbsoluteCardinalOneTileFacingUnchanged;
