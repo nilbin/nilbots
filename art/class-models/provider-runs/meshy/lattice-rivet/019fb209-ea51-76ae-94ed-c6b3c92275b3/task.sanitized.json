@@ -1,0 +1,38 @@
+{
+  "id": "019fb209-ea51-76ae-94ed-c6b3c92275b3",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Restrained stylized PBR modular projectile head: pale neutral ceramic plates, graphite lattice and truss structure, muted copper-value hardware, crisp seams, chamfered edges, and subtle wear. Preserve the joined split rear rails and completely open diamond aperture. Keep all colors team-neutral for runtime projectile-mask tint. No fixed cyan, red, or orange; no text, logos, decals, baked shadows, floor lighting, trail, halo, tumble, impact, fabrication scene, child unit, or motion effects.",
+  "texture_image_url": "",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785398425185,
+  "progress": 100,
+  "started_at": 1785398425283,
+  "finished_at": 1785398626143,
+  "expires_at": 1785657826143,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb209-ea51-76ae-94ed-c6b3c92275b3/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 30
+}
