@@ -373,7 +373,7 @@ identity (after the arm tokens) and mints its own fingerprints.
 | Variant | Lever | Contract effect |
 | --- | --- | --- |
 | `full` | none (default) | the phase-2 measured arm, byte-identical: unlocks 60/180/**300/420**, ordinary children rebuild at **15**, extra at **30** |
-| `trim` | slot count | the fifth slot is dropped; the fourth keeps its 300 unlock |
+| `trim` | slot count | the fifth slot is dropped; the fourth keeps its 300 unlock. Mints its own topology profiles (`…-asymmetric-slots-4-3-v1`, `…-four-slots-v1` in a mirror) |
 | `boom` | schedule | extra slots swing late: **360/480** on the class's own 120-tick cadence |
 | `drag` | rebuild economy | ordinary children rebuild at **30** (the baseline clock) instead of the class's native 15; the schedule is untouched |
 

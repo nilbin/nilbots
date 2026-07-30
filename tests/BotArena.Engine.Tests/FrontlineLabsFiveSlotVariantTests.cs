@@ -174,6 +174,35 @@ public sealed class FrontlineLabsFiveSlotVariantTests
     }
 
     [Fact]
+    public void TrimMintsItsOwnTopologyProfiles()
+    {
+        Assert.Equal(
+            FrontlineLabsDefinition.TrimAsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(
+                Arm(FrontlineLabsFiveSlotVariant.Trim).Topology));
+        Assert.Equal(
+            FrontlineLabsDefinition.TrimMirrorTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(
+                FrontlineLabsDefinition.CreatePendulumExperiment(
+                    Keel,
+                    (FrontlineLabsClassDefinition.Fabricator,
+                        FrontlineLabsClassDefinition.Fabricator),
+                    movementCoupling: ActorMovementFacingCoupling.FacingLocked,
+                    skills: WholeKit,
+                    bendEnvelope: FrontlineLabsBendEnvelopeArm.Universal,
+                    fiveSlots: FrontlineLabsFiveSlotVariant.Trim).Topology));
+        // The other variants keep the five-slot shapes.
+        Assert.Equal(
+            FrontlineLabsDefinition.AsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(
+                Arm(FrontlineLabsFiveSlotVariant.Boom).Topology));
+        Assert.Equal(
+            FrontlineLabsDefinition.AsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.TopologyProfileIdFor(
+                Arm(FrontlineLabsFiveSlotVariant.Drag).Topology));
+    }
+
+    [Fact]
     public void AVariantRefusesACellWithoutTheSkill()
     {
         ArgumentException refusal = Assert.Throws<ArgumentException>(() =>

@@ -41,6 +41,19 @@ public static class FrontlineLabsDefinition
     public const string FiveSlotMirrorTopologyProfileId =
         "two-team-one-controller-five-slots-v1";
 
+    /// <summary>
+    /// The Trim tuning variant's shapes (DECISIONS #171): a four-slot
+    /// fabricator against a three-slot class, and the four-slot mirror. A
+    /// profile ID names a topology, so the trimmed arm mints its own two
+    /// rather than reusing the five-slot pair it tunes.
+    /// </summary>
+    public const string TrimAsymmetricSlotsTopologyProfileId =
+        "two-team-one-controller-asymmetric-slots-4-3-v1";
+
+    /// <inheritdoc cref="TrimAsymmetricSlotsTopologyProfileId"/>
+    public const string TrimMirrorTopologyProfileId =
+        "two-team-one-controller-four-slots-v1";
+
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
     public const string ClassesSeedProfileId =
@@ -90,6 +103,8 @@ public static class FrontlineLabsDefinition
             [3, 3] => TopologyProfileId,
             [5, 5] => FiveSlotMirrorTopologyProfileId,
             [5, 3] => AsymmetricSlotsTopologyProfileId,
+            [4, 4] => TrimMirrorTopologyProfileId,
+            [4, 3] => TrimAsymmetricSlotsTopologyProfileId,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(topology),
                 string.Join("/", counts),
