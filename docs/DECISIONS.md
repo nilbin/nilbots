@@ -4102,6 +4102,56 @@ owner's constraints as hard requirements (side lanes must measurably
 matter; upgrades must not re-open the #184 triangle; body count stays
 the fabricator's monopoly). Wave 8 is held until the SCRAP ruling.
 
+## 187. The channel game: capture reworked, SCRAP adopted, ruled under delegation
+
+The part-2 analysis (memo parts 2–3) proved the owner's breach-rush
+worry FROM THE CONTRACT: under current capture math, sending any body
+to a vein concedes ~one capture, (stay, stay) is the unique
+equilibrium, and SCRAP alone measures null — the economy cannot be
+fixed by tuning the economy. The owner's own capture-channel proposal
+fixes it, and he delegated the ruling ("AFK you decide"). Ruled, per
+his stated criteria:
+
+- **`--capture channel` adopted** (composite `siege` = swell +
+  channel): capture GAIN counts only bodies that did not change tile
+  this tick (denial counts all); damage to a controlling body ON the
+  objective reverts the controller's work on this run by the damage
+  amount (poke delays, sustained control denies; a screened solo
+  channeler completes in 8, unscreened dies; 2 kiting defenders hold
+  3); threshold 15 → 8 as the paired `channel-speed` factor; stacking
+  scales gain with stationary weight CAPPED AT 2 (fabricator's extras
+  buy screens and denial, never speed); whole-run revert (per-body is
+  degenerate under the cap); ERODING is also a channel; recapture via
+  erosion multiplier N=4 lands the full range in the owner's 1.0–1.25×
+  band; ratchet hold NOT re-tuned (diagnostic registered). Zero new
+  observation facts — every rule moves captureProgress/claimingTeamId
+  in their exact published shape.
+- **`--economy scrap` adopted with the significance fixes** (`forge` =
+  swell + scrap; `bastion` = the full game): veins 6 scrap at ticks
+  120/200/280/360, wreckage 1/death, carried-with-assay (cap 6, pile
+  life 80), invest action, edge/plate/optic at a FLAT 10 per tier
+  (deep = broad = 30, no volume discounts), prime-only scope in v1
+  with per-track scope (plate-to-all-bodies) registered as the v2
+  favorite and the all-bodies fabricator amplification (1.27–1.45×)
+  on the record.
+- **No drone in v1** — three structural blockers (a bolt-absorbing,
+  tile-denying free screen is body count by another name under the
+  channel; topology-identity fault; unmeasurable in this window).
+  Registered `scrap-drone-tier-3` with a build-ready v2 spec.
+- **One deviation from the analysis's shipping plan, reasoned**: it
+  recommended two sequenced waves (8a siege, 8b bastion). Ruled
+  instead: ONE authoring wave briefed on the full bastion game, with
+  the balance read run as the pre-registered 2×2 attribution
+  (swell/siege/forge/bastion — the arms inert-omit, so one cohort
+  plays all four cells). The forced ordering the analysis proved is
+  about ADOPTION knowledge, which the 2×2 delivers; the owner
+  commissioned one "proper round for all", and a bastion-trained
+  cohort still prices siege cells (recorded as a stale-doctrine-style
+  confound on the forge cell).
+- Pre-registered predictions held to: siege alone moves bvs toward
+  +0.05…+0.20 and squeezes the bulwark from both sides — the floor
+  watch (any pair below +0.15) is the wave-8 tripwire.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
