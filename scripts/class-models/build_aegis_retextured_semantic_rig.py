@@ -1329,7 +1329,7 @@ def output_markdown(validation: dict[str, Any]) -> str:
 
 Verdict: **{'PASS' if validation['passed'] else 'FAIL'}**
 
-Source task: `{validation['source']['taskId']}`  
+Source task: `{validation['source']['taskId']}`
 Source SHA-256: `{validation['source']['sha256']}`
 
 ## Checks

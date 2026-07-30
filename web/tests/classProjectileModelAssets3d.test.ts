@@ -258,4 +258,3 @@ for (const candidate of candidates) {
     );
   });
 }
-
