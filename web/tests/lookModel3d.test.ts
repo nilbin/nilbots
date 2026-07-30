@@ -22,9 +22,6 @@ test('only the approved Striker mobile body resolves to an authored class GLB', 
     'aegis-tortoise-shell',
     'aegis-tortoise-turret',
     'lattice-loom',
-    'trident-spark',
-    'rebound-diamond',
-    'lattice-rivet',
   ])
     assert.equal(modelSpec(id), null, id);
 });

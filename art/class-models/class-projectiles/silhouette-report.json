@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/class-models/compare-class-projectile-runtime.mjs",
+  "maskThreshold": 16,
+  "results": {
+    "trident-spark": {
+      "canonicalSvgSha256": "b44365017f788d9ba8ff207f04976ee244f488493699d9214d2fd8a767b25f59",
+      "modelGlbSha256": "7775011b33450bcd782f5ffcc5e67923641be19b0b4c46d59b2d08712cd1a82c",
+      "topRenderSha256": "e9e2d60bc877d49905e1f12a6b530fecf10928cb043e8b53397efa555bdc9f97",
+      "topPlanform": {
+        "method": "orthographic alpha; uniform longest-span normalization and translation only",
+        "iou": 0.9669165659008464,
+        "coverage": 0.9992502249325202,
+        "precision": 0.9676185866408519,
+        "translationPixels": [
+          0,
+          0
+        ],
+        "canonicalAperturesPixels": [],
+        "modelAperturesPixels": []
+      }
+    },
+    "rebound-diamond": {
+      "canonicalSvgSha256": "7aa2a8621dbd75fa135135a2573b35aebcc140d46afc35b8cf4ae16f35d34dd7",
+      "modelGlbSha256": "6dbb7f123d77ab3a69d470e2480df5e5e717a43f130878f66aab8b83727049a9",
+      "topRenderSha256": "c5c2e5fa819b746ad625c683d9d8da36e617d3246683751a77253c2abf623edf",
+      "topPlanform": {
+        "method": "orthographic alpha; uniform longest-span normalization and translation only",
+        "iou": 0.9742063930981086,
+        "coverage": 0.9973728909523271,
+        "precision": 0.9767127237241899,
+        "translationPixels": [
+          0,
+          1
+        ],
+        "canonicalAperturesPixels": [
+          12022
+        ],
+        "modelAperturesPixels": [
+          12009
+        ]
+      }
+    },
+    "lattice-rivet": {
+      "canonicalSvgSha256": "e5f86e1d2c33816ab807132ced9274871854b2881ee2d47978d8ce980248a3ab",
+      "modelGlbSha256": "73606f2a94c9d848f2dab8c9a4b81214643eef06c2d15481e277e8cc14c92354",
+      "topRenderSha256": "dad1d61f795eeb6003145304f930fba4f8e724309505e1eef044d4a54ab07128",
+      "topPlanform": {
+        "method": "orthographic alpha; uniform longest-span normalization and translation only",
+        "iou": 0.9787573021773766,
+        "coverage": 0.9984424730818717,
+        "precision": 0.9802539724752344,
+        "translationPixels": [
+          0,
+          0
+        ],
+        "canonicalAperturesPixels": [
+          3441
+        ],
+        "modelAperturesPixels": [
+          3472
+        ]
+      }
+    }
+  }
+}

@@ -377,6 +377,30 @@ Do not introduce slot-owned selection except the existing legacy fallback.
    `extras.nilbotsRole = "projectile-mask"`. Compact texture maps may retain
    grooves and surface breakup, but renderer-owned team tint and emissive
    response must remain intact.
+7. When a provider master has useful material/form evidence but failed
+   topology, rebuild from the canonical SVG rather than repairing identity by
+   eye. Construct the exact outer planform and authored apertures at one tile,
+   then add contained depth and surface detail. Independently compare a strict
+   orthographic top-render alpha to the SVG using uniform longest-span
+   normalization and translation only—never mirror, rotate, or non-uniformly
+   warp to improve the score. Gate silhouette IoU, coverage, precision, and
+   aperture count; inspect side/front/rear/gameplay views separately because a
+   top pass cannot detect stacked bodies or a bad depth class.
+8. Author projectile PBR color and emission as neutral grayscale value masks,
+   since WebGL multiplies every head surface by the owning team paint. Feed the
+   same grayscale structure into base color and emission so grooves remain
+   visible after runtime tint instead of becoming a flat emissive slab. Mark
+   every material `projectile-mask`; include tangents, compact normal and
+   metallic/roughness maps, and structural tests for dimensions, bounds,
+   triangle/byte budgets, and exact export hashes. Check in the deterministic
+   recipe and editable `.blend`, but remove Blender `.blend1` backups.
+9. Treat fixed-camera and 16–28 px DCC renders as local art gates only. Final
+   approval requires a fresh, hash-verified native replay at a pinned
+   replay/tick/viewport/camera/renderer with the intended map presentation
+   explicit in its header. The combined evidence board must show the genuine
+   head with renderer-owned trail/glow, its authored flight cue, both teams,
+   and exact hit, miss, and deflection terminals. An isolated beauty render,
+   overlay, fallback theme, partial board, or toy layout cannot approve it.
 
 Projectile appearance belongs to the bot beside its chassis and accent. The
 bot record snapshots it into each match and replay. Legacy or missing IDs use
