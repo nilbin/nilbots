@@ -1,0 +1,37 @@
+{
+  "id": "019fb30c-b8e4-7da7-9103-d1f49af0d585",
+  "type": "image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Restrained stylized PBR whole radial emplacement: matte graphite-navy hard-surface armor, weathered bronze cardinal plates, crisp panel seams, dark gunmetal locks and restrained wear. Preserve exactly four equal bounded cyan cardinal inlays; keep the cyan reactor as separate class energy. No extra cyan, glow spill, text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic.",
+  "texture_image_url": "",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785415384261,
+  "progress": 100,
+  "started_at": 1785415384275,
+  "finished_at": 1785415578589,
+  "expires_at": 1785674778589,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fb30c-b8e4-7da7-9103-d1f49af0d585/output/texture_0_emission.png"
+    }
+  ],
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 15
+}

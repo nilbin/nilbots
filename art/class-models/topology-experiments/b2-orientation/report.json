@@ -1,0 +1,134 @@
+{
+  "schema": "nilbots-b2-orientation-review-1",
+  "status": "review-only",
+  "source": {
+    "fileName": "raw-model.glb",
+    "sha256": "6fd79e66b0211241c2ef1e1f6b048634d39074f81cd1e4b4a535e97629b7e05f",
+    "bytes": 23539976,
+    "unchangedAfterNormalizationAndAudit": true,
+    "frozenAudit": "sandbox/topology-audits/t2-top-b2-audit"
+  },
+  "inspection": {
+    "approvedCrossVisibleInSourceAuditView": "side.png",
+    "edgeProfileVisibleInSourceAuditView": "top.png",
+    "sourceDccCrossPlane": "X/Z",
+    "sourceDccThicknessAxis": "Y",
+    "sourceApprovedSurfaceNormal": "-Y",
+    "targetDccCrossPlane": "X/Y",
+    "targetDccUp": "+Z",
+    "operationClassification": "axis correction only; no design inference"
+  },
+  "sourceBoundsWorldDcc": {
+    "minimum": [
+      -0.5,
+      -0.089844003,
+      -0.482421994
+    ],
+    "maximum": [
+      0.5,
+      0.093262002,
+      0.478516012
+    ],
+    "span": [
+      1.0,
+      0.183106005,
+      0.960937977
+    ]
+  },
+  "normalization": {
+    "rightHandedRotation": {
+      "axis": "+X",
+      "degrees": -90,
+      "sourceApprovedSurfaceNormal": [
+        0,
+        -1,
+        0
+      ],
+      "targetApprovedSurfaceNormal": [
+        0,
+        0,
+        1
+      ]
+    },
+    "horizontalCentering": "rotated X/Y AABB center to origin",
+    "floorPlacement": "rotated minimum Z to zero",
+    "uniformScale": 1.0,
+    "targetPlanformSpan": 1.0,
+    "normalizedBoundsWorldDcc": {
+      "minimum": [
+        -0.5,
+        -0.480468988,
+        0.0
+      ],
+      "maximum": [
+        0.5,
+        0.480468988,
+        0.183106005
+      ],
+      "span": [
+        1.0,
+        0.960937977,
+        0.183106005
+      ]
+    }
+  },
+  "preservation": {
+    "method": "Blender-inspected transform written as the sole glTF mesh-node matrix",
+    "jsonChangeScope": "one mesh-node matrix only",
+    "binaryChunkByteIdentical": true,
+    "binaryChunkSha256BeforeAndAfter": "525557baee3909255fee0ea8e45ae5d7486ac200aee9292f8b64e9700ef46e73",
+    "localGeometryFingerprintBeforeAndAfter": "a87bb15facb8bfd2dcd9e8a764ae2f95f5720b60cae9a0872af225573a792d86",
+    "uvFingerprintBeforeAndAfter": "08d329059ba5a299c3471a54bc87c56193ae75a133a1b0891fcc439b73d7bf88",
+    "geometryRedesigned": false,
+    "materialsModified": false,
+    "pbrTexturesModified": false,
+    "uvsModified": false
+  },
+  "output": {
+    "reviewGlb": "var/class-models/topology-experiments/b2-orientation/build-c/corrected.glb",
+    "normalizationReport": "var/class-models/topology-experiments/b2-orientation/build-c/normalization-report.json",
+    "sha256": "8d410d9d335091e3d304dd3cfd4554fd46f3f1e0112f402b2918be081cc0497e",
+    "bytes": 23539996,
+    "documentCounts": {
+      "nodes": 1,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "images": 4,
+      "textures": 4,
+      "animations": 0,
+      "skins": 0,
+      "cameras": 0
+    },
+    "meshCounts": {
+      "vertices": 16114,
+      "edges": 25741,
+      "faces": 12096,
+      "triangles": 12096,
+      "uvLayers": 1,
+      "materialSlots": 1,
+      "rawIndexedConnectedComponents": 2531,
+      "weldedConnectedComponents": 282,
+      "weldedBoundaryEdges": 854,
+      "weldedNonManifoldEdges": 5
+    }
+  },
+  "determinism": {
+    "secondBuild": "var/class-models/topology-experiments/b2-orientation/build-d/corrected.glb",
+    "glbByteIdentical": true,
+    "normalizationReportByteIdentical": true
+  },
+  "correctedFrozenAudit": {
+    "directory": "sandbox/topology-audits/t2-top-b2-corrected-audit",
+    "inputSha256": "8d410d9d335091e3d304dd3cfd4554fd46f3f1e0112f402b2918be081cc0497e",
+    "sourceTopNowAppearsIn": "top.png",
+    "edgeProfileNowAppearsIn": "side.png",
+    "fixedViews": {
+      "top.png": "947dc7158d7ed86e9b637fc306f9beb45e9174031e6d869d8f9f1fa1e5965e1a",
+      "side.png": "63f14fe8163a917caf6ed9d613d68aad3407bae972e75d154455383c21b5f566",
+      "front-three-quarter.png": "0663da0578d89cb46e115287c62f57aa8bb867ee99da99c4a5e16f2e03a7454d",
+      "rear-three-quarter.png": "75cb21eb1ef1a78514212cf9a4e239f90fb5a001f7a3c5b5b088674ea2c9a66f",
+      "gameplay-58.png": "aabf9a4391d2fa7c9835ad878e058bc7fbde9cc092010d884bd42fa711602781"
+    }
+  }
+}

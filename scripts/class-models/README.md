@@ -70,3 +70,51 @@ Run the focused offline checks with:
 ```sh
 python3 scripts/class-models/test_meshy_multi_image.py
 ```
+
+## Meshy T2 Smart Topology experiment
+
+`meshy_smart_topology.py` is a separate, narrower Image-to-3D experiment
+runner. It has two named owner-approved Aegis Tortoise Turret inputs:
+`oblique` (B1) and `top` (B2). It validates the selected input's exact
+repository path, 1254×1254 PNG header, and SHA-256. A new invocation requires
+an explicit trial, is offline without `--submit`, and does not read Keychain,
+build a data URI, or make a network request:
+
+```sh
+python3 scripts/class-models/meshy_smart_topology.py --trial oblique
+python3 scripts/class-models/meshy_smart_topology.py --trial top
+```
+
+The fixed request pins Meshy T2 Smart Topology, 15,000 target polygons, PBR 4K
+texturing, the existing Turret texture prompt byte-for-byte, and GLB output.
+The T2-unsupported `image_enhancement` and `remove_lighting` fields are omitted.
+The succeeded B1 oblique and B2 top records remain resumable without another
+POST. Their original submission shape required the named trial and both
+explicit paid flags:
+
+```sh
+python3 scripts/class-models/meshy_smart_topology.py \
+  --trial top --submit --max-credits 15
+```
+
+The committed ledger caps the experiment at three calls/45 credits and rejects
+a duplicate named trial. B1 and B2 consumed two calls/30 credits; the third
+call remains unspent. B1 is retained as a visually liked alternate/future
+store-skin candidate, but no store wiring occurs here. Its raw provider model's
+206 unnamed welded components were not assumed to be parts: the separate
+`t2-semantic-grouping` deterministic Blender experiment measures and assigns
+them once to a hub plus four rigid arms, preserves every textured source
+triangle, and exports real `Turret_Deploy`/`Turret_Recoil` clips. B2 required a
+recorded deterministic axis correction before fixed-view review. Sanitized run
+records and provider previews go under
+`art/class-models/topology-experiments/runs/meshy/<task-id>/`; the raw GLB and
+separately returned PBR maps go only under ignored
+`var/class-models/topology-experiments/meshy/<task-id>/`, with paths, sizes, and
+hashes retained in provenance. A recorded task is resumable with
+`--resume-run`.
+
+Run its offline guardrail suite with:
+
+```sh
+python3 scripts/class-models/test_meshy_smart_topology.py
+```

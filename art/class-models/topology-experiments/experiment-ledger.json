@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "meshy-smart-topology-turret-v1",
+  "provider": "Meshy",
+  "status": "two-trials-complete-offline-animation-proof-passed",
+  "updatedAt": "2026-07-30T14:17:47Z",
+  "approvedInput": {
+    "assetId": "aegis-tortoise-turret",
+    "role": "front-three-quarter",
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/03-front-three-quarter.png",
+    "sha256": "404b12a82bf21a0b22f492bac2190ec4b5562cf1ae18a8baf23d4b204a029bb4",
+    "width": 1254,
+    "height": 1254,
+    "mediaType": "image/png",
+    "ownerApproved": true
+  },
+  "trials": {
+    "oblique": {
+      "candidate": "B1",
+      "assetId": "aegis-tortoise-turret",
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/03-front-three-quarter.png",
+      "sha256": "404b12a82bf21a0b22f492bac2190ec4b5562cf1ae18a8baf23d4b204a029bb4",
+      "width": 1254,
+      "height": 1254,
+      "mediaType": "image/png",
+      "ownerApproved": true,
+      "status": "visually-liked-retained",
+      "verdict": "Visually liked and viable as an alternate or future store Turret skin candidate. Retain the result. It is not an exact drop-in default and is not animation-ready: dorsal identity drift remains and the audit found 206 unnamed shells."
+    },
+    "top": {
+      "candidate": "B2",
+      "assetId": "aegis-tortoise-turret",
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+      "sha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2",
+      "width": 1254,
+      "height": 1254,
+      "mediaType": "image/png",
+      "ownerApproved": true,
+      "status": "retained-default-fidelity-candidate",
+      "motivation": "Controlled fidelity trial using the owner-preferred approved inferred-3D top shot after B1 drifted in dorsal identity.",
+      "verdict": "Visually strong fourfold result and closer default-family dorsal read than B1. Retain it. Meshy returned the cross on the X/Z plane; the deterministic B2 orientation recipe changes only the mesh-node matrix, preserves binary geometry, UVs, materials, and PBR, and restores +Z-up fixed views."
+    }
+  },
+  "request": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "texture_prompt": "Restrained stylized PBR whole radial emplacement: matte graphite-navy hard-surface armor, weathered bronze cardinal plates, crisp panel seams, dark gunmetal locks and restrained wear. Preserve exactly four equal bounded cyan cardinal inlays; keep the cyan reactor as separate class energy. No extra cyan, glow spill, text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "unsupportedT2FieldsOmitted": [
+    "image_enhancement",
+    "remove_lighting"
+  ],
+  "budget": {
+    "maxCalls": 3,
+    "maxCredits": 45,
+    "callsSubmitted": 2,
+    "creditsCommitted": 30,
+    "creditsConsumed": 30
+  },
+  "firstGate": {
+    "candidate": "B1",
+    "assetId": "aegis-tortoise-turret",
+    "maxCalls": 1,
+    "maxCredits": 15,
+    "status": "reviewed-b2-complete",
+    "expansionAuthorized": true,
+    "expansionAuthorizedAt": "2026-07-30T12:42:02Z",
+    "expansionBasis": "The owner explicitly liked B1, asked whether the T2 result can be animated, requested a consistent flow for the model family, and had already approved the inferred-3D top input. B2 is authorized only to test input-view fidelity; the third call remains reserved.",
+    "reviewVerdict": "B1 is visually liked and retained as an alternate/future store Turret skin candidate. B2 used the approved top view and improved the dorsal/default-family read. A deterministic B1 semantic-grouping pass subsequently proved that its loose components can be converted into rigid named groups and real clips without changing the provider surface."
+  },
+  "calls": [
+    {
+      "callIndex": 1,
+      "candidate": "B",
+      "assetId": "aegis-tortoise-turret",
+      "taskId": "019fb2f9-5ef2-7641-a4e6-0f59134f5c31",
+      "status": "SUCCEEDED",
+      "submittedAt": "2026-07-30T12:21:52.325244Z",
+      "balanceBefore": 740,
+      "expectedCredits": 15,
+      "maxCredits": 15,
+      "consumedCredits": 15,
+      "input": {
+        "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/03-front-three-quarter.png",
+        "sha256": "404b12a82bf21a0b22f492bac2190ec4b5562cf1ae18a8baf23d4b204a029bb4"
+      },
+      "runRecord": "art/class-models/topology-experiments/runs/meshy/019fb2f9-5ef2-7641-a4e6-0f59134f5c31",
+      "rawArtifactDirectory": "var/class-models/topology-experiments/meshy/019fb2f9-5ef2-7641-a4e6-0f59134f5c31",
+      "durableArtifactDirectory": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb2f9-5ef2-7641-a4e6-0f59134f5c31",
+      "durableArtifactVerifiedAt": "2026-07-30T14:17:47Z",
+      "finishedAt": "2026-07-30T12:25:48.546739Z",
+      "balanceAfter": 725
+    },
+    {
+      "callIndex": 2,
+      "candidate": "B2",
+      "trial": "top",
+      "assetId": "aegis-tortoise-turret",
+      "taskId": "019fb30c-b8e4-7da7-9103-d1f49af0d585",
+      "status": "SUCCEEDED",
+      "submittedAt": "2026-07-30T12:43:00.567489Z",
+      "balanceBefore": 725,
+      "expectedCredits": 15,
+      "maxCredits": 15,
+      "consumedCredits": 15,
+      "input": {
+        "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+        "sha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2"
+      },
+      "runRecord": "art/class-models/topology-experiments/runs/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585",
+      "rawArtifactDirectory": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585",
+      "durableArtifactDirectory": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb30c-b8e4-7da7-9103-d1f49af0d585",
+      "durableArtifactVerifiedAt": "2026-07-30T14:17:47Z",
+      "finishedAt": "2026-07-30T12:46:34.951227Z",
+      "balanceAfter": 710
+    }
+  ],
+  "postProcessingEvidence": {
+    "b1SemanticGrouping": {
+      "status": "offline-proof-passed",
+      "directory": "art/class-models/topology-experiments/t2-semantic-grouping",
+      "sourceSha256": "f9388c05e54bcf1603b7f901eefe0dedcaf7c636a384dcd039d4fe433e03dd1c",
+      "sourceWeldedComponents": 206,
+      "sourceTriangles": 14352,
+      "groups": [
+        "Hub",
+        "Arm_NE",
+        "Arm_NW",
+        "Arm_SW",
+        "Arm_SE"
+      ],
+      "triangleUvFingerprintPreserved": true,
+      "animatedGlbSha256": "5fe60176625b562b0c8a34d7aa12962289ec209911df84f2b4c37d2c23786224",
+      "animations": [
+        "Turret_Deploy",
+        "Turret_Recoil"
+      ],
+      "khronosErrors": 0,
+      "khronosWarnings": 0,
+      "deterministicGlbRerun": true,
+      "remainingGates": [
+        "owner motion review",
+        "runtime team-color mutation and glow",
+        "recorded event binding",
+        "native replay and map-clearance review",
+        "lean on-demand transfer tier"
+      ]
+    },
+    "b2Orientation": {
+      "status": "axis-correction-passed",
+      "directory": "art/class-models/topology-experiments/b2-orientation",
+      "sourceSha256": "6fd79e66b0211241c2ef1e1f6b048634d39074f81cd1e4b4a535e97629b7e05f",
+      "correctedGlbSha256": "8d410d9d335091e3d304dd3cfd4554fd46f3f1e0112f402b2918be081cc0497e",
+      "operation": "-90 degrees around +X as the sole mesh-node matrix",
+      "binaryGeometryUvMaterialPbrPreserved": true,
+      "deterministicGlbRerun": true,
+      "remainingGates": [
+        "owner matched-view comparison",
+        "semantic grouping decision",
+        "runtime team-color and native replay review"
+      ]
+    }
+  },
+  "paths": [
+    {
+      "id": "control",
+      "name": "Current static direct Turret result",
+      "kind": "control",
+      "stages": {
+        "concept": "Owner-approved Aegis Tortoise Turret concept, clean views, and exact top-form authority.",
+        "provider": "No new provider call; use the current static direct result as the runtime baseline.",
+        "blender": "Retain the current deterministic static-direct processing and recorded source.",
+        "runtime": "Mount as the whole Turret once, using the current class-model renderer contract.",
+        "review": "Capture identical top, side, oblique, and gameplay-camera frames.",
+        "validation": "Record silhouette, side profile, PBR, team-accent isolation, GLB, scale, anchors, and frame-budget evidence.",
+        "decisionGate": "Baseline only; retain until a candidate wins the full runtime comparison."
+      },
+      "status": "baseline-ready"
+    },
+    {
+      "id": "A",
+      "name": "Standard Multi-Image Turret",
+      "kind": "candidate",
+      "stages": {
+        "concept": "Use the approved clean-v1 four-view Turret package and exact top-form authority.",
+        "provider": "Reuse Standard Multi-Image task 019fb232-6e09-787f-85cc-dbaea29fb9b6 and its original exact texture prompt; no new call.",
+        "blender": "Apply deterministic axis, scale, origin, naming, semantic team-accent isolation, and conservative cleanup without identity redesign.",
+        "runtime": "Load on demand in the same whole-Turret mount and camera used by the control.",
+        "review": "Compare control and A from top, side, oblique, and actual gameplay distance, including neutral/red/blue team states.",
+        "validation": "Record identity, native parts/segmentation, topology, UV/PBR, accent masks, anchors, conformance, bytes, and frame cost.",
+        "decisionGate": "Serve as the provider-model-mode comparison for candidate B."
+      },
+      "status": "existing-provider-result"
+    },
+    {
+      "id": "B",
+      "name": "T2 Smart Topology controlled input-view trials",
+      "kind": "candidate",
+      "stages": {
+        "concept": "B1 uses the pinned owner-approved clean-v1 front-three-quarter PNG; B2 uses the pinned owner-approved inferred-3D top PNG. No other input changes.",
+        "provider": "Run each named trial at most once with fixed Meshy T2 Smart Topology at 15,000 target polygons, the Standard Multi-Image texture prompt byte-for-byte, textured PBR 4K, and GLB output.",
+        "blender": "Apply the same deterministic normalization as A first; inspect native parts and segmentation before any rebuild.",
+        "runtime": "Load on demand in the same whole-Turret mount, camera, lighting, and scale envelope as control and A.",
+        "review": "Compare control, A, B1 oblique, and B2 top at matched top, side, oblique, and gameplay frames with neutral/red/blue team states. B1 remains a liked retained alternate even if B2 becomes the default-fidelity candidate.",
+        "validation": "Test identity preservation, native parts/segmentation, true depth, topology, UV/PBR maps, accent masks, pivots, anchors, recoil clearance, GLB conformance, bytes, and frame cost.",
+        "decisionGate": "B1 used one call/15 credits. B2 remains blocked until the B1 verdict is recorded and expansion is explicitly authorized; duplicate trial calls are forbidden."
+      },
+      "status": "b1-animation-proof-passed-b2-retained"
+    },
+    {
+      "id": "C",
+      "name": "Winning provider result plus Blender functional retopology",
+      "kind": "candidate",
+      "stages": {
+        "concept": "Use the approved concept and exact top-form authority.",
+        "provider": "Use the reviewed production winner of A, B1, or B2 only as shape, normal, UV, and material evidence.",
+        "blender": "Rebuild clean animation-ready hub, cardinal arms, locks, team inlays, and class-energy parts while projecting only reviewed detail.",
+        "runtime": "Export separated deterministic modules with explicit pivots, deployment behavior, and fire/recoil anchors.",
+        "review": "Review identity before animation, then recoil, deployment, team glow, and projectile-origin motion in game.",
+        "validation": "Require manifold topology, stable normals/tangents, semantic materials, no cover clipping, valid anchors, bounded bytes, and matched captures.",
+        "decisionGate": "Proceed only when A, B1, or B2 has strong identity/materials but inadequate functional topology."
+      },
+      "status": "not-started"
+    },
+    {
+      "id": "D",
+      "name": "Deterministic Blender reconstruction",
+      "kind": "candidate",
+      "stages": {
+        "concept": "Treat the approved 3D concept, clean views, and SVG silhouette as immutable design authorities.",
+        "provider": "No paid provider call; provider models may be viewed only as non-authoritative reference.",
+        "blender": "Build true-depth hard-surface geometry, UVs, PBR materials, semantic accents, pivots, anchors, and animations deterministically.",
+        "runtime": "Export through the same normalized GLB and on-demand loading contract.",
+        "review": "Compare form fidelity and material richness against provider-led candidates in identical frames.",
+        "validation": "Require reproducible source, clean topology, exact silhouette tolerances, animation clearance, semantic materials, and runtime budgets.",
+        "decisionGate": "Prefer when deterministic editability and functional correctness outweigh provider-detail gains."
+      },
+      "status": "not-started"
+    },
+    {
+      "id": "E",
+      "name": "Human technical-artist production pass",
+      "kind": "candidate",
+      "stages": {
+        "concept": "Package the approved concept, clean views, SVG authority, and all accepted/rejected comparison evidence.",
+        "provider": "Use accepted provider output only as optional reference or texture donor, never as unreviewed authority.",
+        "blender": "A technical artist creates the production topology, UV/PBR treatment, semantic team accents, pivots, anchors, and animation source.",
+        "runtime": "Integrate with the same renderer contract, scale envelope, camera, and load-on-demand policy.",
+        "review": "Run owner review at concept, graybox, textured, animation, and in-game gates.",
+        "validation": "Run the complete deterministic geometry, visual, animation, collision, conformance, byte, and performance gauntlet.",
+        "decisionGate": "Escalate when automated paths cannot jointly achieve identity, topology, materials, and runtime behavior."
+      },
+      "status": "not-started"
+    }
+  ],
+  "rejectedPaths": [
+    {
+      "name": "Meshy Auto Split",
+      "reason": "Automatic semantic part boundaries are not reliable enough for the Turret's exact hub, four arms, locks, team inlays, pivots, and recoil contract."
+    },
+    {
+      "name": "Meshy vehicle auto-rig",
+      "reason": "A generic vehicle rig does not describe the radial deployment, recoil, fire-anchor, planted-lock, and whole-object mount behavior required by this asset."
+    }
+  ]
+}

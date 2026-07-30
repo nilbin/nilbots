@@ -1,0 +1,103 @@
+{
+  "schema": "nilbots-t2-semantic-grouping-validation-1",
+  "verdict": "usable-for-rigid-animation-review",
+  "shippingStatus": "art-side-non-shipping-candidate",
+  "source": {
+    "sha256Before": "f9388c05e54bcf1603b7f901eefe0dedcaf7c636a384dcd039d4fe433e03dd1c",
+    "sha256After": "f9388c05e54bcf1603b7f901eefe0dedcaf7c636a384dcd039d4fe433e03dd1c",
+    "unchanged": true,
+    "vertices": 18274,
+    "triangles": 14352,
+    "weldedComponentCount": 206
+  },
+  "grouping": {
+    "triangleConservationPassed": true,
+    "groupedTriangleTotal": 14352,
+    "armTriangleCounts": {
+      "NE": 2217,
+      "NW": 2154,
+      "SW": 2139,
+      "SE": 2146
+    },
+    "armBalanceRatio": 0.964817321,
+    "reportedHubArmBoundaryAmbiguousComponentCount": 34,
+    "reportedHubArmBoundaryAmbiguousTriangleFraction": 0.092460981,
+    "blockingCrossArmAmbiguousTriangleFraction": 0.0,
+    "positionUvTriangleMultisetPreserved": true,
+    "positionUvTriangleMultisetSha256": "aaed67bc22e6c1ea5e559043b7c6d129bc9c69539ea617fee959f05c5b07140d"
+  },
+  "outputs": {
+    "groupedGlb": {
+      "path": "build/t2-turret-grouped.glb",
+      "sha256": "f85f8dc6b922dabeb04b7f37f24f52bc187c14c791fb7e584a11670cff86bd9f",
+      "bytes": 28122648,
+      "triangles": 14352,
+      "materials": 1,
+      "skins": 0,
+      "animations": 0
+    },
+    "animatedGlb": {
+      "path": "build/t2-turret-animated-overlay.glb",
+      "sha256": "5fe60176625b562b0c8a34d7aa12962289ec209911df84f2b4c37d2c23786224",
+      "bytes": 28613440,
+      "triangles": 15552,
+      "materials": 3,
+      "skins": 1,
+      "joints": 5,
+      "animations": 2
+    },
+    "report": {
+      "path": "build/report.json",
+      "sha256": "8ddc5a0c5e3fc23931406584b3743f907b31c466c6e09d265787a2e0050c680e"
+    }
+  },
+  "animations": {
+    "Turret_Deploy": {
+      "durationSeconds": 1.0,
+      "channels": 4,
+      "keyframesAcrossChannels": 12
+    },
+    "Turret_Recoil": {
+      "durationSeconds": 0.5,
+      "channels": 4,
+      "keyframesAcrossChannels": 16
+    },
+    "forbiddenMotionPresent": false
+  },
+  "semanticMaterials": {
+    "NB_TEAM_ACCENT": "team-accent",
+    "NB_CLASS_ENERGY": "class-energy",
+    "sourceAtlasRecolored": false
+  },
+  "khronosValidation": {
+    "tool": "gltf-transform validate",
+    "version": "4.2.1",
+    "networkUsed": false,
+    "groupedGlb": {
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "hints": 0
+    },
+    "animatedGlb": {
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "hints": 0
+    }
+  },
+  "determinism": {
+    "blender": "5.2.0 LTS",
+    "independentProcessCount": 2,
+    "glbsByteIdentical": true,
+    "reportByteIdentical": true,
+    "blendByteIdentical": false,
+    "reviewPngCount": 17,
+    "reviewPngByteIdenticalCount": 4,
+    "maximumChangedPixelsPerReviewPng": 5,
+    "pixelsPerReviewPng": 589824,
+    "maximumReviewPngChannelDelta": 16,
+    "assetDeterminismPassed": true,
+    "note": "The deterministic Python recipe and GLBs are canonical; the editable Blend container and GPU review raster bytes are not."
+  }
+}

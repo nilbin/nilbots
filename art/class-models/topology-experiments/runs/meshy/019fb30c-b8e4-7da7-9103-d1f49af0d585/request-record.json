@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "runnerId": "nilbots-meshy-smart-topology-v1",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/image-to-3d",
+  "taskId": "019fb30c-b8e4-7da7-9103-d1f49af0d585",
+  "assetId": "aegis-tortoise-turret",
+  "trial": "top",
+  "candidate": "B2",
+  "purpose": "Run controlled B2 input-view trial top to test whether Meshy T2 Smart Topology preserves the approved Turret identity and produces useful native parts, segmentation, and topology without changing request settings or texture prompt.",
+  "ownerApprovedInput": true,
+  "submittedAt": "2026-07-30T12:43:00.567489Z",
+  "balanceBefore": 725,
+  "expectedCredits": 15,
+  "maxCredits": 15,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+      "bytes": 1365442,
+      "sha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2",
+      "width": 1254,
+      "height": 1254,
+      "mediaType": "image/png"
+    }
+  ],
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "texture_prompt": "Restrained stylized PBR whole radial emplacement: matte graphite-navy hard-surface armor, weathered bronze cardinal plates, crisp panel seams, dark gunmetal locks and restrained wear. Preserve exactly four equal bounded cyan cardinal inlays; keep the cyan reactor as separate class energy. No extra cyan, glow spill, text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "unsupportedT2FieldsOmitted": [
+    "image_enhancement",
+    "remove_lighting"
+  ],
+  "sourceExperimentLedger": {
+    "file": "art/class-models/topology-experiments/experiment-ledger.json",
+    "sha256BeforeSubmission": "17ec8291ab948478cf60416795c316a279d6dc2fe0d929da3d8adee43b2b269e"
+  },
+  "rawArtifactDirectory": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "imageTo3dApi": "https://docs.meshy.ai/en/api/image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "The raw GLB is ignored under var and is only a provider base-mesh experiment. Preserve it in durable artifact storage before deleting the worktree.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T12:46:25.744650Z",
+  "consumedCreditsObserved": 15,
+  "finishedAt": "2026-07-30T12:46:34.950444Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 710,
+  "consumedCredits": 15,
+  "consumedCreditsSource": "task",
+  "artifacts": [
+    {
+      "bytes": 23539976,
+      "sha256": "6fd79e66b0211241c2ef1e1f6b048634d39074f81cd1e4b4a535e97629b7e05f",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false,
+      "storage": "ignored-raw",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/raw-model.glb"
+    },
+    {
+      "bytes": 167141,
+      "sha256": "17db434e686ae9c170bff6d5c8feec61a7bfe0904cdebd48a4fe1c095443815a",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "tracked-preview",
+      "file": "art/class-models/topology-experiments/runs/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/provider-preview.png"
+    },
+    {
+      "bytes": 22067962,
+      "sha256": "12eaf59f7ceb238ef9122f58ae6b96c96de01fde24814d9055595d731bfd95e2",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "ignored-pbr-map",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/texture-0-base-color.png"
+    },
+    {
+      "bytes": 1184597,
+      "sha256": "23ba5abc6831f5a939cf41f2be4a4c8d6e5d0517ea989869f32da83091d196b1",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "ignored-pbr-map",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/texture-0-metallic.png"
+    },
+    {
+      "bytes": 1220804,
+      "sha256": "be2bb6560fed477487611e63a0c1c538cba31bfdecac4e40c38e50036ec8cf8a",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "ignored-pbr-map",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/texture-0-roughness.png"
+    },
+    {
+      "bytes": 29493096,
+      "sha256": "e209c2feb6fea7ec21b5884781caedb1128c8093371e20f4b346c228d27cb199",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "ignored-pbr-map",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/texture-0-normal.png"
+    },
+    {
+      "bytes": 317923,
+      "sha256": "8c198f0ad99c55617788c6b399d2031af41e641fc53c2a7f351979f87535f311",
+      "contentType": "image/png",
+      "reusedExisting": false,
+      "storage": "ignored-pbr-map",
+      "file": "var/class-models/topology-experiments/meshy/019fb30c-b8e4-7da7-9103-d1f49af0d585/texture-0-emission.png"
+    }
+  ]
+}
