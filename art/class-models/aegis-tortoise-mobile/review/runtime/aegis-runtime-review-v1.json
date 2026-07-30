@@ -1,6 +1,20 @@
 {
   "version": 1,
   "generatedBy": "scripts/render-aegis-runtime-review.mjs",
+  "reviewStatus": "rejected",
+  "approvalEvidence": false,
+  "approvalClaim": null,
+  "rejection": {
+    "reason": "The source replay had header.presentation=null, so the viewer used its implicit Control Room fallback. The captures therefore cannot support a Frontline map/theme review.",
+    "sourceHeaderPresentation": null,
+    "actualTheme": "implicit control-room fallback",
+    "notEvidenceFor": [
+      "Frontline V4 runtime theme",
+      "Frontline map/theme approval"
+    ],
+    "remainingUse": "Historical Aegis GLB loader, animation-phase and forced-fallback diagnostics only.",
+    "replacement": "Pending an explicitly presented Frontline V4 runtime-theme candidate."
+  },
   "replay": {
     "generatedWith": "dotnet run --project src/BotArena.Cli/BotArena.Cli.csproj -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/iron-root --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/iron-root --runtime in-process --seed 42 --out /tmp/nilbots-aegis-runtime-review-mirror",
     "fileName": "replay.json",
