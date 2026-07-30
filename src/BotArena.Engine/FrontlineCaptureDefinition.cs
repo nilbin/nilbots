@@ -34,6 +34,76 @@ public sealed record FrontlineCaptureGainPhaseDefinition
 }
 
 /// <summary>
+/// How hostile damage taken by the controlling team interrupts the ground it
+/// is currently taking. The whole block is absent — and writes no canonical
+/// bytes at all — on every ruleset that does not declare a capture channel,
+/// which is what keeps every historical fingerprint byte-exact.
+/// </summary>
+/// <param name="Kind">Exact interrupt mechanism.</param>
+/// <param name="RevertPerDamagePoint">
+/// Work reverted per point of actual health removed. One under the shipped
+/// channel: the damage amount is already authoritative and already published
+/// per projectile, so the interrupt scales with the weapon for free.
+/// </param>
+/// <param name="Scope">Which bodies' damage reverts anything.</param>
+/// <param name="Granularity">
+/// Whether one hit reverts the controller's whole run or only the hit body's
+/// contribution.
+/// </param>
+public sealed record FrontlineClaimInterruptDefinition(
+    FrontlineClaimInterruptDefinition.ClaimInterruptKind Kind,
+    int RevertPerDamagePoint,
+    FrontlineClaimInterruptDefinition.ClaimInterruptScopeKind Scope,
+    FrontlineClaimInterruptDefinition.ClaimInterruptGranularityKind
+        Granularity)
+{
+    /// <summary>The shipped channel interrupt, spelled out.</summary>
+    public static FrontlineClaimInterruptDefinition DamageRevertsWork { get; } =
+        new(
+            ClaimInterruptKind.DamageToControllerOnObjectiveRevertsWork,
+            RevertPerDamagePoint: 1,
+            ClaimInterruptScopeKind
+                .ControllingTeamBodiesOnActiveObjectiveRegion,
+            ClaimInterruptGranularityKind.WholeRun);
+
+    public enum ClaimInterruptKind
+    {
+        /// <summary>
+        /// Hostile damage taken by a controlling-team body inside the scope
+        /// reverts the controller's work on THIS RUN by the damage amount,
+        /// floored at zero work. Reverting work rather than the raw claim is
+        /// what makes it impossible for being shot to complete a capture for
+        /// the team doing the shooting: a full revert restores the position
+        /// exactly as the controller found it and never goes past it.
+        /// </summary>
+        DamageToControllerOnObjectiveRevertsWork = 0,
+    }
+
+    public enum ClaimInterruptScopeKind
+    {
+        /// <summary>
+        /// Only bodies of the controlling team standing on the active
+        /// objective region. Damage absorbed off the objective reverts
+        /// nothing, which is the single scoping choice that makes escorting a
+        /// channeler the intended play: a screen absorbs bolts for free.
+        /// </summary>
+        ControllingTeamBodiesOnActiveObjectiveRegion = 0,
+    }
+
+    public enum ClaimInterruptGranularityKind
+    {
+        /// <summary>
+        /// One hit reverts the controller's whole run, whichever in-scope body
+        /// took it. Per-body reverting is degenerate under a capped
+        /// multiplier — with three channelers and a cap of two, hitting one
+        /// body leaves the multiplier at two and the hit has no effect at all
+        /// — so it is a registered alternative rather than a shipped value.
+        /// </summary>
+        WholeRun = 0,
+    }
+}
+
+/// <summary>
 /// Rules-owned Frontline pressure, decay, and redeploy tuning. Its typed fixed
 /// policies keep objective control, timeout ranking, and completion
 /// precedence explicit rather than hiding them in a mode implementation.
@@ -56,7 +126,10 @@ public sealed record FrontlineCaptureDefinition
         RedeployPolicyKind redeployPolicy =
             RedeployPolicyKind
                 .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause,
-        int ratchetHoldTicks = 0)
+        int ratchetHoldTicks = 0,
+        int stationaryGainMultiplierCap = 0,
+        int opposingErosionMultiplier = 0,
+        FrontlineClaimInterruptDefinition? claimInterrupt = null)
     {
         if (threshold <= 0)
             throw new ArgumentOutOfRangeException(nameof(threshold));
@@ -93,6 +166,39 @@ public sealed record FrontlineCaptureDefinition
                 nameof(ratchetHoldTicks),
                 ratchetHoldTicks,
                 "A hold duration is positive exactly when the redeploy policy holds a high-water mark; every other policy leaves it inert at zero.");
+        }
+        // The channel's three settings travel with the channel policy and
+        // with nothing else: they are one coherent change to how ground is
+        // taken and kept, so declaring any of them without the policy — or
+        // the policy without them — is a contract that cannot be resolved.
+        // Every other control policy leaves all three inert and absent, which
+        // is what keeps historical rulesets byte-exact.
+        bool channel = controlPolicy
+            == ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds;
+        bool channelDeclared =
+            stationaryGainMultiplierCap > 0
+            && opposingErosionMultiplier > 0
+            && claimInterrupt is not null;
+        bool channelInert =
+            stationaryGainMultiplierCap == 0
+            && opposingErosionMultiplier == 0
+            && claimInterrupt is null;
+        if (channel ? !channelDeclared : !channelInert)
+        {
+            throw new ArgumentException(
+                "A stationary multiplier cap, an opposing erosion multiplier, and a claim interrupt are declared together exactly when the control policy channels a capture; every other policy leaves all three inert and absent.",
+                nameof(controlPolicy));
+        }
+        if (claimInterrupt is not null
+            && (!Enum.IsDefined(claimInterrupt.Kind)
+                || !Enum.IsDefined(claimInterrupt.Scope)
+                || !Enum.IsDefined(claimInterrupt.Granularity)
+                || claimInterrupt.RevertPerDamagePoint <= 0))
+        {
+            throw new ArgumentException(
+                "A Frontline claim interrupt names declared policies and reverts a positive amount per damage point.",
+                nameof(claimInterrupt));
         }
         FrontlineCaptureGainPhaseDefinition[] schedule =
             gainSchedule?.ToArray() ?? [];
@@ -145,6 +251,9 @@ public sealed record FrontlineCaptureDefinition
         DecayClock = decayClock;
         RedeployPolicy = redeployPolicy;
         RatchetHoldTicks = ratchetHoldTicks;
+        StationaryGainMultiplierCap = stationaryGainMultiplierCap;
+        OpposingErosionMultiplier = opposingErosionMultiplier;
+        ClaimInterrupt = claimInterrupt;
     }
 
     public int Threshold { get; }
@@ -164,6 +273,33 @@ public sealed record FrontlineCaptureDefinition
     /// and canonical bytes omit it while it is inert.
     /// </summary>
     public int RatchetHoldTicks { get; }
+
+    /// <summary>
+    /// The largest gain multiplier stationary surplus can buy. Inert (zero)
+    /// for every control policy except the channel, and canonical bytes omit
+    /// it while it is inert. The cap is what simultaneously honours "more
+    /// bodies capture faster" and denies a body-count class a stacking
+    /// payoff for its third, fourth, and fifth channeler: those bodies buy
+    /// screens and denial weight, which is positional, not arithmetic.
+    /// </summary>
+    public int StationaryGainMultiplierCap { get; }
+
+    /// <summary>
+    /// How many times faster an opposing claim erodes than a fresh claim
+    /// builds. Inert (zero) for every control policy except the channel, and
+    /// canonical bytes omit it while it is inert. It is the one integer that
+    /// prices recapture: flipping a standing claim costs
+    /// <c>ceil(claim / (multiplier * gain)) + threshold</c> ticks against a
+    /// fresh capture's <c>threshold</c>.
+    /// </summary>
+    public int OpposingErosionMultiplier { get; }
+
+    /// <summary>
+    /// How hostile damage interrupts the controller, or null when no
+    /// interrupt is declared at all. Canonical bytes omit the whole block
+    /// while it is absent.
+    /// </summary>
+    public FrontlineClaimInterruptDefinition? ClaimInterrupt { get; }
 
     /// <summary>
     /// Resolves the phase visible at one authoritative tick. Static rulesets
@@ -237,6 +373,28 @@ public sealed record FrontlineCaptureDefinition
         /// </summary>
         NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral
             = 1,
+
+        /// <summary>
+        /// The capture channel. A team's CLAIM weight sums the positive form
+        /// objective weights of its bodies that did not change tile this
+        /// tick; its DENIAL weight sums all of them. The team whose claim
+        /// weight strictly exceeds the opponent's denial weight controls,
+        /// with the gain multiplied by that difference and capped at
+        /// <see cref="StationaryGainMultiplierCap"/>; otherwise no team
+        /// controls and the declared decay clock applies. While an opposing
+        /// claim stands the controller erodes it at
+        /// <see cref="OpposingErosionMultiplier"/> times gain, still only to
+        /// neutral and still without carrying overshoot into its own claim;
+        /// with no opposing claim it builds at gain. The declared
+        /// <see cref="ClaimInterrupt"/> then reverts the controller's work on
+        /// the current run.
+        /// <para>Stillness is positional, not intentional: a body that
+        /// requested a move and was blocked did not move, and rotating,
+        /// shooting, or starting a transform never breaks it. A life with no
+        /// previous position counts as stationary.</para>
+        /// </summary>
+        StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+            = 2,
     }
 
     public enum TimeoutPolicyKind

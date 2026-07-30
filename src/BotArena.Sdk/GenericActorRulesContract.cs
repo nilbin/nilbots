@@ -367,6 +367,30 @@ public sealed class GenericActorRulesContract
         public int RatchetHoldTicks { get; init; }
 
         /// <summary>
+        /// The largest gain multiplier stationary surplus can buy, when
+        /// <see cref="ControlPolicy"/> channels a capture. Zero means the
+        /// field is inert and absent from the contract: extra bodies on the
+        /// point scale gain without any ceiling.
+        /// </summary>
+        public int StationaryGainMultiplierCap { get; init; }
+
+        /// <summary>
+        /// How many times faster an opposing claim erodes than a fresh claim
+        /// builds, when <see cref="ControlPolicy"/> channels a capture. Zero
+        /// means the field is inert and absent from the contract: erosion
+        /// runs at plain gain, so flipping a standing claim costs the claim
+        /// plus a full fresh capture.
+        /// </summary>
+        public int OpposingErosionMultiplier { get; init; }
+
+        /// <summary>
+        /// How hostile damage interrupts the team currently taking ground,
+        /// or null when the ruleset declares no interrupt at all — in which
+        /// case nothing a body takes on the point costs its team progress.
+        /// </summary>
+        public FrontlineClaimInterrupt? ClaimInterrupt { get; init; }
+
+        /// <summary>
         /// Resolves the active phase from the authoritative observation tick.
         /// Static rulesets return a synthetic <c>default</c> phase.
         /// </summary>
@@ -392,6 +416,31 @@ public sealed class GenericActorRulesContract
             return active;
         }
     }
+
+    /// <summary>
+    /// How hostile damage taken by the team currently taking ground reverts
+    /// what it has taken. Present only on a ruleset that declares an
+    /// interrupt; absent means damage on the point costs nothing.
+    /// </summary>
+    /// <param name="Kind">Exact interrupt-mechanism ID.</param>
+    /// <param name="RevertPerDamagePoint">
+    /// Progress reverted per point of health actually removed, so the
+    /// interrupt scales with the weapon that landed it.
+    /// </param>
+    /// <param name="Scope">
+    /// Which bodies' damage reverts anything. Under the shipped channel only
+    /// controlling-team bodies standing on the active objective region count,
+    /// which is why a screening body absorbs bolts for free.
+    /// </param>
+    /// <param name="Granularity">
+    /// Whether one hit reverts the controller's whole run or only the hit
+    /// body's contribution.
+    /// </param>
+    public sealed record FrontlineClaimInterrupt(
+        string Kind,
+        int RevertPerDamagePoint,
+        string Scope,
+        string Granularity);
 
     /// <summary>
     /// One deterministic capture-gain phase, ordered by

@@ -279,6 +279,12 @@ function validateRankings(
 const RATCHET_REDEPLOY_POLICY =
   'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
 
+/// The one control policy that channels a capture, and therefore the only one
+/// that carries a stationary multiplier cap, an opposing erosion multiple, and
+/// a claim interrupt. All three ride together or not at all.
+const CHANNEL_CONTROL_POLICY =
+  'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
+
 function validateContract(
   value: unknown,
   path: string,
@@ -620,6 +626,15 @@ function validateContract(
     // the engine writes a hold duration only for the high-water-mark
     // redeploy policy, so its presence is itself part of the contract.
     const hasRatchetHold = own(captureValue, 'ratchetHoldTicks');
+    // The capture channel's three trailing settings, with the same
+    // discipline: the engine writes them only for the channel control
+    // policy, so their presence is itself part of the contract.
+    const hasStackCap = own(captureValue, 'stationaryGainMultiplierCap');
+    const hasErosionMultiplier = own(
+      captureValue,
+      'opposingErosionMultiplier',
+    );
+    const hasClaimInterrupt = own(captureValue, 'claimInterrupt');
     const capture = exact(
       captureValue,
       capturePath,
@@ -642,6 +657,9 @@ function validateContract(
         'redeployPolicy',
         ...(hasRatchetHold ? ['ratchetHoldTicks'] : []),
         'redeployTickArithmetic',
+        ...(hasStackCap ? ['stationaryGainMultiplierCap'] : []),
+        ...(hasErosionMultiplier ? ['opposingErosionMultiplier'] : []),
+        ...(hasClaimInterrupt ? ['claimInterrupt'] : []),
       ],
       fail,
     );
@@ -753,6 +771,7 @@ function validateContract(
       controlPolicy: [
         'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
         'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral',
+        CHANNEL_CONTROL_POLICY,
       ],
       decayClock: [
         'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
@@ -782,6 +801,53 @@ function validateContract(
         `${capturePath}.ratchetHoldTicks`,
         'is carried by exactly the high-water-mark redeploy policy',
       );
+    }
+    const channels = capture.controlPolicy === CHANNEL_CONTROL_POLICY;
+    if (
+      hasStackCap !== channels ||
+      hasErosionMultiplier !== channels ||
+      hasClaimInterrupt !== channels
+    ) {
+      fail(
+        `${capturePath}.claimInterrupt`,
+        'the stationary cap, the erosion multiple, and the interrupt are carried by exactly the channel control policy',
+      );
+    }
+    if (channels) {
+      for (const key of [
+        'stationaryGainMultiplierCap',
+        'opposingErosionMultiplier',
+      ]) {
+        integer(capture[key], `${capturePath}.${key}`, fail);
+        if ((capture[key] as number) <= 0) {
+          fail(`${capturePath}.${key}`, 'must be positive');
+        }
+      }
+      const interruptPath = `${capturePath}.claimInterrupt`;
+      const interrupt = exact(
+        object(capture.claimInterrupt, interruptPath, fail),
+        interruptPath,
+        ['kind', 'revertPerDamagePoint', 'scope', 'granularity'],
+        fail,
+      );
+      integer(
+        interrupt.revertPerDamagePoint,
+        `${interruptPath}.revertPerDamagePoint`,
+        fail,
+      );
+      if ((interrupt.revertPerDamagePoint as number) <= 0) {
+        fail(`${interruptPath}.revertPerDamagePoint`, 'must be positive');
+      }
+      const interruptPolicies = {
+        kind: 'damage-to-controller-on-objective-reverts-work',
+        scope: 'controlling-team-bodies-on-active-objective-region',
+        granularity: 'whole-run',
+      } as const;
+      for (const [key, expected] of Object.entries(interruptPolicies)) {
+        if (interrupt[key] !== expected) {
+          fail(`${interruptPath}.${key}`, `expected ${expected}`);
+        }
+      }
     }
     if (own(mode, 'secondaryControl')) {
       const secondaryPath = `${modePath}.secondaryControl`;

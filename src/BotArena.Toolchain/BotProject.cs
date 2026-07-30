@@ -218,9 +218,32 @@ public static class ToolchainInfo
     /// `gameMode.secondaryControl` block is inert-omitted, so every existing
     /// ruleset — the hosted `frontline-labs-1` included — keeps its exact
     /// fingerprints. Replay-v3 Frontline mode states grow the same two keys.
+    /// 0.9.27 registers the CAPTURE CHANNEL (`--capture channel`, composite
+    /// `siege` = swell + channel, DECISIONS #187 /
+    /// `docs/DESIGN-SCRAP-ECONOMY-2026-07-30.md` parts 2–3). Taking ground
+    /// becomes a channel: capture gain counts only bodies that did not
+    /// change tile this tick while denial counts all of them, hostile damage
+    /// to a CONTROLLING body standing ON the objective reverts that team's
+    /// work on the current run by the damage amount (never past where the
+    /// run began, and damage to a body OFF the objective reverts nothing —
+    /// which is what makes screening the channeler the intended play), the
+    /// stationary gain multiplier is capped at 2, an opposing claim erodes
+    /// at 4× build speed, and the paired `channel-speed` factor moves the
+    /// threshold 15 → 8. It carries SDK/Guest 0.10.10, because the contract
+    /// grows three trailing additive capture facts
+    /// (`stationaryGainMultiplierCap`, `opposingErosionMultiplier`,
+    /// `claimInterrupt`) plus one appended `controlPolicy` value. All three
+    /// are inert-omitted together, so every existing ruleset — the hosted
+    /// `frontline-labs-1` included — keeps its exact fingerprints; frozen
+    /// pre-0.10.10 artifacts fault on a contract that CARRIES them until
+    /// rebuilt, which is the accepted #170 consequence. ZERO new observation
+    /// facts: every channel rule moves `captureProgress` and
+    /// `claimingTeamId` in their exact published shape, so a frozen artifact
+    /// that never reads the contract still plays a channel cell — it simply
+    /// cannot tell why the number moved.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.26";
+    public const string CliVersion = "0.9.27";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -297,7 +320,21 @@ public static class ToolchainInfo
     // The site's regions, latch threshold, effect, and rally scope are
     // contract data on GenericActorRulesContract.FrontlineGameMode
     // .SecondaryControl, which is null unless the mode declares one.
-    public const string SdkVersion = "0.10.9";
+    // 0.10.10: the canonical contract reader accepts the capture channel's
+    // three trailing additive facts on gameMode.capture —
+    // StationaryGainMultiplierCap, OpposingErosionMultiplier, and the
+    // ClaimInterrupt block (kind, revertPerDamagePoint, scope,
+    // granularity) — plus the appended ControlPolicy value that carries
+    // them. All three ride together or not at all, exactly like the
+    // ratchet's hold, so a ruleset that does not channel spends no bytes on
+    // any of them and an explicitly inert encoding is refused. Nothing on
+    // the OBSERVATION moves: the channel resolves control, stacking,
+    // erosion, and the interrupt entirely through captureProgress and
+    // claimingTeamId, which keep their exact published shape and meaning.
+    // Read the policy and the three settings from the contract rather than
+    // assuming a threshold or a multiplier — a channel cell's threshold is
+    // 8, not 15, and its gain multiplier stops at 2.
+    public const string SdkVersion = "0.10.10";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.10.6";
     // Compiler invocation/container changes that affect artifact bytes without changing

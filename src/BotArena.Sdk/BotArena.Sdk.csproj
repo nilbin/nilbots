@@ -3,7 +3,7 @@
   <Import Project="../ToolchainAssembly.props" />
   <PropertyGroup>
     <PackageId>BotArena.Sdk</PackageId>
-    <Version>0.10.9</Version>
+    <Version>0.10.10</Version>
     <!-- Ship XML docs beside the DLL: the SDK is the whole player API, and without
          this file every member is undocumented in IntelliSense (player-test finding).
          CS1591 stays off — the doc-comment coverage rule is review, not the compiler. -->

@@ -859,6 +859,19 @@ public static class ActorCanonicalContractReader
         bool hasRatchetHold = element.TryGetProperty(
             "ratchetHoldTicks",
             out JsonElement ratchetHoldTicks);
+        // The capture channel's three trailing additive facts, with the same
+        // discipline again: the writer emits them only for the channel
+        // control policy, so an absent block means "no channel" and an
+        // explicitly inert one is a second, non-canonical encoding.
+        bool hasStackCap = element.TryGetProperty(
+            "stationaryGainMultiplierCap",
+            out JsonElement stationaryGainMultiplierCap);
+        bool hasErosionMultiplier = element.TryGetProperty(
+            "opposingErosionMultiplier",
+            out JsonElement opposingErosionMultiplier);
+        bool hasClaimInterrupt = element.TryGetProperty(
+            "claimInterrupt",
+            out JsonElement claimInterrupt);
         ExactObject(
             element,
             [
@@ -880,6 +893,13 @@ public static class ActorCanonicalContractReader
                 "redeployPolicy",
                 .. hasRatchetHold ? new[] { "ratchetHoldTicks" } : [],
                 "redeployTickArithmetic",
+                .. hasStackCap
+                    ? new[] { "stationaryGainMultiplierCap" }
+                    : [],
+                .. hasErosionMultiplier
+                    ? new[] { "opposingErosionMultiplier" }
+                    : [],
+                .. hasClaimInterrupt ? new[] { "claimInterrupt" } : [],
             ]);
         int hold = hasRatchetHold ? Int(element, "ratchetHoldTicks") : 0;
         bool ratchetPolicy = string.Equals(
@@ -890,6 +910,24 @@ public static class ActorCanonicalContractReader
         {
             throw new FormatException(
                 "A canonical Frontline capture carries a positive ratchetHoldTicks exactly when its redeploy policy holds a high-water mark, and omits it otherwise.");
+        }
+        bool channelPolicy = string.Equals(
+            Semantic(element, "controlPolicy"),
+            ChannelControlPolicyId,
+            StringComparison.Ordinal);
+        int stackCap = hasStackCap
+            ? Int(element, "stationaryGainMultiplierCap")
+            : 0;
+        int erosionMultiplier = hasErosionMultiplier
+            ? Int(element, "opposingErosionMultiplier")
+            : 0;
+        if (hasStackCap != channelPolicy
+            || hasErosionMultiplier != channelPolicy
+            || hasClaimInterrupt != channelPolicy
+            || channelPolicy && (stackCap <= 0 || erosionMultiplier <= 0))
+        {
+            throw new FormatException(
+                "A canonical Frontline capture carries a positive stationaryGainMultiplierCap, a positive opposingErosionMultiplier, and a claimInterrupt exactly when its control policy channels a capture, and omits all three otherwise.");
         }
         return new RulesContract.FrontlineCapture(
             Int(element, "threshold"),
@@ -913,7 +951,41 @@ public static class ActorCanonicalContractReader
                 ? Array(schedule, ReadFrontlineCaptureGainPhase)
                 : [],
             RatchetHoldTicks = hold,
+            StationaryGainMultiplierCap = stackCap,
+            OpposingErosionMultiplier = erosionMultiplier,
+            ClaimInterrupt = hasClaimInterrupt
+                ? ReadFrontlineClaimInterrupt(claimInterrupt)
+                : null,
         };
+    }
+
+    private static RulesContract.FrontlineClaimInterrupt
+        ReadFrontlineClaimInterrupt(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "kind",
+            "revertPerDamagePoint",
+            "scope",
+            "granularity");
+        int revertPerDamagePoint = Int(element, "revertPerDamagePoint");
+        if (revertPerDamagePoint <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline claim interrupt reverts a positive "
+                + "amount per damage point.");
+        }
+        return new RulesContract.FrontlineClaimInterrupt(
+            EnumId(
+                element,
+                "kind",
+                "damage-to-controller-on-objective-reverts-work"),
+            revertPerDamagePoint,
+            EnumId(
+                element,
+                "scope",
+                "controlling-team-bodies-on-active-objective-region"),
+            EnumId(element, "granularity", "whole-run"));
     }
 
     /// <summary>
@@ -922,6 +994,13 @@ public static class ActorCanonicalContractReader
     /// </summary>
     private const string RatchetRedeployPolicyId =
         "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks";
+
+    /// <summary>
+    /// The one control policy that owns a stack cap, an erosion multiple, and
+    /// a claim interrupt. Named here for the same reason.
+    /// </summary>
+    private const string ChannelControlPolicyId =
+        "stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds";
 
     private static RulesContract.FrontlineCaptureGainPhase
         ReadFrontlineCaptureGainPhase(JsonElement element)

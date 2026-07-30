@@ -114,13 +114,11 @@ internal sealed class FrontlineActorMatchModeDriver
             previousMode = ProjectControl(previousControl);
         ImmutableHashSet<Position> activeTiles =
             _objectiveTiles[previousControl.ActivePositionIndex];
-        ImmutableDictionary<int, int> objectiveWeightByTeam =
-            WeightOn(world, activeTiles);
 
         FrontlineControlStepResult step = _kernel.ApplyJointTick(
             previousControl,
             input.Tick,
-            objectiveWeightByTeam,
+            Presence(world, input, activeTiles),
             WeightOn(world, _secondarySiteTiles));
         _control = step.State;
         FrontlineScoreState scores = _kernel.CreateScoreState(_control);
@@ -206,14 +204,53 @@ internal sealed class FrontlineActorMatchModeDriver
     }
 
     /// <summary>
+    /// This tick's reading of the active objective. A ruleset that does not
+    /// channel gets exactly today's objective weight and nothing else; a
+    /// channeled one additionally gets the stationary part of that weight and
+    /// the hostile damage that landed on the region, which are the two facts
+    /// the channel resolves control and the interrupt from.
+    /// </summary>
+    private FrontlineObjectivePresence Presence(
+        GenericActorModeWorldView world,
+        GenericActorModeTickInput input,
+        ImmutableHashSet<Position> activeTiles)
+    {
+        ImmutableDictionary<int, int> denial = WeightOn(world, activeTiles);
+        if (_gameMode.Capture.ControlPolicy
+            != FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds)
+        {
+            return new FrontlineObjectivePresence(denial);
+        }
+
+        return new FrontlineObjectivePresence(
+            denial,
+            WeightOn(world, activeTiles, stationaryOnly: true),
+            input.DamageContacts
+                .Where(contact =>
+                    contact.IsHostile
+                    && activeTiles.Contains(contact.TargetPosition)
+                    && contact.ActualHealthRemoved > 0)
+                .GroupBy(contact => contact.TargetTeamId)
+                .OrderBy(group => group.Key)
+                .ToImmutableDictionary(
+                    group => group.Key,
+                    group => group.Sum(contact =>
+                        contact.ActualHealthRemoved)));
+    }
+
+    /// <summary>
     /// Positive objective weight each scoring team currently has standing on
     /// a tile set, from the post-damage active lives. Zero-weight forms — an
     /// anchored turret — never appear, which is why fortifying forfeits a
-    /// side site exactly as it forfeits the front.
+    /// side site exactly as it forfeits the front. Under
+    /// <paramref name="stationaryOnly"/> the sum counts only bodies that held
+    /// their tile this tick.
     /// </summary>
     private ImmutableDictionary<int, int> WeightOn(
         GenericActorModeWorldView world,
-        ImmutableHashSet<Position> tiles) =>
+        ImmutableHashSet<Position> tiles,
+        bool stationaryOnly = false) =>
         tiles.IsEmpty
             ? ImmutableDictionary<int, int>.Empty
             : world.ActiveLives
@@ -222,7 +259,8 @@ internal sealed class FrontlineActorMatchModeDriver
                         life.FormId,
                         out int objectiveWeight)
                     && objectiveWeight > 0
-                    && tiles.Contains(life.Position))
+                    && tiles.Contains(life.Position)
+                    && (!stationaryOnly || life.IsStationary))
                 .GroupBy(life => life.ActorId.TeamId)
                 .OrderBy(group => group.Key)
                 .ToImmutableDictionary(

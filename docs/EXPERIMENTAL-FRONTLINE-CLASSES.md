@@ -585,3 +585,152 @@ carries a registered identity per shape: `tide` + muster is **`ensign`**,
 `swell` + muster is **`banner`**, and the tuned open game on the ticking clock
 without the fabricator's `wane` (`sail-tick-open`) + muster is **`pennant`**.
 Smaller cells spell their factors and append `muster`.
+
+## Capture: the channel
+
+`--capture channel` (DECISIONS #187) changes what taking ground *is*. Every
+other arm in this brief adds a capability beside the front; this one rewrites
+the front itself, for both teams, whatever classes are in the cell. If your bot
+has a capture routine, this arm invalidates it.
+
+### What changed
+
+- **Standing still is what captures.** Your team's **claim weight** counts only
+  your bodies on the active objective **whose tile did not change this tick**.
+  Your **denial weight** counts all of them. You control the point when your
+  claim weight *strictly exceeds* the enemy's denial weight — so a defender
+  who keeps moving still subtracts from your total, while an attacker who takes
+  a step contributes nothing to it that tick.
+- **Stillness is positional, not intentional.** A move you requested and were
+  *blocked* on did not move. Rotating, shooting, entering a stance, and
+  anchoring never break it. A life with no previous position — the tick it
+  spawns — counts as stationary. You can aim and fight while you channel; this
+  is not sit-still-and-pray.
+- **Gain scales with your surplus, and stops at 2.** The multiplier is
+  `min(cap, claimWeight − enemyDenialWeight)`, and the cap is **2**. Two
+  stationary bodies against a dead defence take a point twice as fast; the
+  third, fourth, and fifth buy you nothing extra in speed.
+- **Taking damage on the point costs you progress.** Hostile damage to a body
+  of the **controlling** team standing **on the objective region** reverts that
+  team's work on the current run, one point of progress per point of health
+  removed. One hit reverts the whole run's work, not one body's share.
+- **Damage off the objective reverts nothing.** This is the whole design.
+- **Retaking ground is also a channel**, at **4×** speed against a standing
+  enemy claim — see *Erosion and recapture* below.
+- **The threshold is 8, not 15.** That is the paired `channel-speed` factor:
+  each channeling tick is riskier, so it pays more. It also rescales the
+  `territorial-progress` score channel by 8/15, because that channel is
+  `advance × (index − centre) × threshold` plus the signed claim. Nothing about
+  ranking changes; historical numbers need the factor applied before you
+  compare them.
+
+Decay is untouched. Under `keel`'s clock an empty or contested tick still
+preserves the claim exactly, and the damage revert is a **separate** erosion
+path that neither consumes nor resets `decayTicksElapsed`. The redeploy pause
+(5) and the ratchet hold (40) are untouched too.
+
+### Read your contract, don't assume
+
+Everything above is contract data on `rules.gameMode.capture`:
+
+| field | what it tells you |
+| --- | --- |
+| `controlPolicy` | `stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-…` is the channel. Any other value and none of this section applies |
+| `threshold` | what a capture costs. **8** on this arm, 15 everywhere else — read it |
+| `stationaryGainMultiplierCap` | the ceiling on the gain multiplier (2) |
+| `opposingErosionMultiplier` | how many times faster an enemy claim erodes than a fresh claim builds (4) |
+| `claimInterrupt` | `kind`, `revertPerDamagePoint`, `scope`, `granularity` — the interrupt, spelled out |
+
+The last three and the `claimInterrupt` block are **absent** on every ruleset
+that does not channel, exactly like `ratchetHoldTicks` on a ruleset without a
+ratchet. Absent means the mechanic does not exist for that match; a bot that
+branches on presence never has to know which arm it is in.
+
+**There are no new observation facts.** `captureProgress` and `claimingTeamId`
+on the Frontline mode observation keep their exact published shape and meaning,
+and every rule above moves those same two numbers. A revert is simply
+`captureProgress` going down. You always know why your *own* claim moved,
+because damage to your own bodies is always visible to you; an enemy claim's
+movement is partial information exactly as it always was.
+
+### The escort pattern
+
+A screen is a body standing on the firing line to your channeler, **off** the
+objective region. It works because the collision model already does it:
+`projectilesStopOnFirstEnemyActor` means the screen physically eats a bolt
+aimed at your channeler, and `alliedProjectileContact: pass-through` means it
+does not block your own return fire. Nothing new was added for this — the arm
+gives an existing behaviour a purpose.
+
+The arithmetic, at threshold 8 and gain 1:
+
+| situation | net stationary | gain | outcome |
+| --- | --- | --- | --- |
+| solo channeler, screens on both live headings | 1 | 1.0 | **8 ticks** (9 if one bolt leaks) |
+| solo channeler, unscreened, two pokers on it | 1 | 1.0 vs ~1.2 reverted | **never completes**, and it dies |
+| 2 channelers + 1 screen, defence dead | 3 → capped 2 | 2.0 | **4 ticks** |
+| 3 stationary attackers vs 2 kiting defenders on the point | 1 | 1.0 vs ~1.2 | **two hold three** |
+| 3 v 3, all stationary | 0 | — | stall, exactly as before |
+
+So the tick-by-tick decision is: **against a broken defence, stack; against a
+live one, screen.** That is a read on published state — how many enemy bodies
+are alive, on what headings, and whether a fan entry is off cooldown
+(`routeCooldowns` publishes exactly that).
+
+Two consequences worth planning for. A **turret** has objective weight zero, so
+it contributes neither claim nor denial — but its gun is cooldown 1 at travel
+8 on eight absolute headings, which is −1 progress per tick against any
+channeler it can see. One turret with a clear heading denies a solo channel
+outright. And a **salvo fan** is three lanes of damage 2: against spread
+stationary bodies one cast can revert up to 6, which at threshold 8 is three
+quarters of a capture.
+
+### The interrupt, exactly
+
+- It is scoped to bodies of the **controlling** team standing **on the active
+  objective region** at the moment the damage lands. Nothing else reverts
+  anything.
+- It reverts **work on this run**, not the raw claim. A run is one team's
+  continuous stretch of control; it ends the moment nobody controls, and on any
+  completed capture. A full revert puts the number back exactly where the
+  controller found it and never past it — so **being shot can never complete a
+  capture for the team doing the shooting.**
+- It lands **after** the tick's gain. A bolt that arrives on the tick a capture
+  would have completed denies that capture.
+- Damage that destroys the body still counts: it landed while the body was
+  standing there.
+
+### Erosion and recapture
+
+While an enemy claim stands, controlling the point **erodes** it at
+`4 × gain × multiplier` per tick instead of building your own. Erosion is a
+channel too — same stillness gate, same cap, same interrupt — because a kiting
+body that could wipe a built claim in two ticks while dodging would make a
+built claim worth nothing.
+
+On reaching zero the enemy claim clears and **you start no claim of your own on
+that tick**; overshoot is discarded. So a full flip from a maximal standing
+enemy claim is 2 erode ticks + 8 build ticks = **10**, against a fresh
+capture's 8 — 1.25×, sliding toward 1.0× the smaller the standing claim is.
+
+If you are interrupted mid-erosion you lose your erosion progress, and the
+enemy's claim can climb back — but **never above where it stood when you took
+control**. Taking ground back is a channel that needs a screen, exactly like
+taking it forward.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum keel --skills kit \
+  --bend universal --volley salvo --capture channel \
+  --seed 42 --runtime wasm --out /tmp/siege
+```
+
+The arm needs a cell to sit in: a class pair (explicit or manifest-declared) or
+a `--pendulum` level. It is a **real arm on every pair** — never inert-omitted,
+because it changes capture for both teams whatever classes are present. The
+candidate game plus the channel carries a registered identity per shape:
+`swell` + channel is **`siege`**, `tide` + channel is **`sap`**, and the tuned
+open game on the ticking clock without the fabricator's `wane`
+(`sail-tick-open`) + channel is **`mantlet`**. Smaller cells spell their
+factors and append `channel`.

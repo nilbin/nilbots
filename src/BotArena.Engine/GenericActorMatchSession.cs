@@ -49,6 +49,9 @@ public sealed class GenericActorMatchSession : IDisposable
         _eventProjectionStates = [];
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
+    private ImmutableDictionary<ActorIdentity, Position>
+        _positionsAtPreviousTickEnd =
+            ImmutableDictionary<ActorIdentity, Position>.Empty;
     private GenericActorMatchPreparedTick? _preparedTick;
     private GenericActorMatchTickStart? _preparedChronologyTick;
     private long _nextAuthoritativeFactOrdinal;
@@ -150,6 +153,11 @@ public sealed class GenericActorMatchSession : IDisposable
         }
 
         _priorResolvedEvents = initialEvents.ToImmutable();
+        // The deployed world is the "end of the previous tick" tick 0 reads
+        // against, which is also exactly what the replay validator sees in
+        // the initial frame — so the two derivations of stillness agree from
+        // the first tick rather than from the second.
+        RememberPositions();
         _host.RecordInitial(
             new GenericActorMatchInitialFrame(
                 SnapshotWorld(),
@@ -502,6 +510,7 @@ public sealed class GenericActorMatchSession : IDisposable
         }
 
         _priorResolvedEvents = authoritativeEvents;
+        RememberPositions();
         _preparedTick = null;
         _preparedChronologyTick = null;
         return new GenericActorMatchStepResult(
@@ -1865,7 +1874,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     contact.SourceTeamId,
                     target.ActorId.TeamId,
                     actual,
-                    destroyed));
+                    destroyed,
+                    target.Position));
                 events.Add(EmitSpatial(
                     Tick,
                     GenericActorRuntimeObservation.EventKind.Damage,
@@ -3855,8 +3865,25 @@ public sealed class GenericActorMatchSession : IDisposable
                     life.ActorId,
                     life.FormId,
                     life.Position,
-                    life.Health))
+                    life.Health,
+                    _positionsAtPreviousTickEnd.TryGetValue(
+                        life.ActorId,
+                        out Position previous)
+                        ? previous
+                        : null))
                 .ToImmutableArray());
+
+    /// <summary>
+    /// Remembers where every surviving life stands at the end of a resolved
+    /// tick, which is what the next tick's stillness reading compares
+    /// against. A life created after this snapshot — a respawn, a
+    /// fabrication, a Split descendant — is simply absent, which is exactly
+    /// "no previous position", and a destroyed life drops out with its slot.
+    /// </summary>
+    private void RememberPositions() =>
+        _positionsAtPreviousTickEnd = _lives.Values.ToImmutableDictionary(
+            life => life.ActorId,
+            life => life.Position);
 
     private GenericActorRuntimeObservation.EventPayload.LifeSpawned
         SpawnPayload(LifeState life)

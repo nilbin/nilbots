@@ -479,6 +479,109 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void CaptureArm_MintsTheChannelAndNeedsACellToSitIn()
+    {
+        JsonElement plain = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement channel = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--capture",
+                "channel",
+            ]);
+
+        // A capture-core change mints its own ruleset and its own
+        // fingerprints, on the same map — the front is a rules fact.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-channel",
+            channel.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            plain.GetProperty("mapId").GetString(),
+            channel.GetProperty("mapId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("rulesFingerprint").GetString(),
+            channel.GetProperty("rulesFingerprint").GetString());
+
+        // Naming the baseline explicitly changes nothing at all.
+        Assert.Equal(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--capture",
+                    "frozen",
+                ]).GetProperty("matchContractFingerprint").GetString());
+
+        // It composes with a pendulum level without a class pair, and the
+        // whole candidate game plus the channel is the registered `siege`.
+        Assert.Equal(
+            "frontline-labs-1-experiment-keel-channel",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--pendulum",
+                    "keel",
+                    "--capture",
+                    "channel",
+                ]).GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-siege-facing-locked",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--movement",
+                    "facing-locked",
+                    "--pendulum",
+                    "keel",
+                    "--skills",
+                    "kit",
+                    "--bend",
+                    "universal",
+                    "--aim",
+                    "offset",
+                    "--stance-ground",
+                    "open",
+                    "--cooldown",
+                    "ticking",
+                    "--volley",
+                    "salvo",
+                    "--capture",
+                    "channel",
+                ]).GetProperty("rulesetId").GetString());
+
+        // A channel with no cell to sit in is refused, and an unknown level
+        // names the ones that exist.
+        Assert.Contains(
+            "needs a cell to sit in",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--capture",
+                        "channel",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use frozen or channel",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--capture",
+                        "keystone",
+                    ])).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PendulumArms_ComposeIntoTheFourPhaseOneFactorLevels()
     {
         JsonElement control = PrintedContract(

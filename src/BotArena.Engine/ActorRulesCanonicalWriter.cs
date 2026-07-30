@@ -342,6 +342,38 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "redeployTickArithmetic",
             Id(capture.RedeployTickArithmetic));
+        // The capture channel's three settings, trailing and inert-omitted
+        // together, exactly like the ratchet's hold and the mode's side
+        // objective: a ruleset that does not channel writes no bytes for any
+        // of them, so every historical contract — the immutable hosted
+        // frontline-labs-1 included — keeps its exact rules, match, and
+        // aggregate fingerprints.
+        if (capture.StationaryGainMultiplierCap != 0)
+        {
+            writer.WriteNumber(
+                "stationaryGainMultiplierCap",
+                capture.StationaryGainMultiplierCap);
+        }
+        if (capture.OpposingErosionMultiplier != 0)
+        {
+            writer.WriteNumber(
+                "opposingErosionMultiplier",
+                capture.OpposingErosionMultiplier);
+        }
+        if (capture.ClaimInterrupt is { } claimInterrupt)
+        {
+            writer.WritePropertyName("claimInterrupt");
+            writer.WriteStartObject();
+            writer.WriteString("kind", Id(claimInterrupt.Kind));
+            writer.WriteNumber(
+                "revertPerDamagePoint",
+                claimInterrupt.RevertPerDamagePoint);
+            writer.WriteString("scope", Id(claimInterrupt.Scope));
+            writer.WriteString(
+                "granularity",
+                Id(claimInterrupt.Granularity));
+            writer.WriteEndObject();
+        }
         writer.WriteEndObject();
     }
 

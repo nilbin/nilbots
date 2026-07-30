@@ -135,6 +135,26 @@ public sealed class FrontlineModeKernel
             ImmutableDictionary<int, int>.Empty);
 
     /// <summary>
+    /// Applies one post-combat objective update from a full channel presence
+    /// reading. Every non-channel control policy consumes only the denial
+    /// weight, which is exactly today's objective weight, so this overload is
+    /// arithmetically identical to the others for them.
+    /// </summary>
+    public FrontlineControlStepResult ApplyJointTick(
+        FrontlineControlState state,
+        int tick,
+        FrontlineObjectivePresence presence,
+        IReadOnlyDictionary<int, int> secondarySiteWeightByTeam)
+    {
+        ArgumentNullException.ThrowIfNull(presence);
+        return ApplyPresenceJointTick(
+            state,
+            tick,
+            presence,
+            secondarySiteWeightByTeam);
+    }
+
+    /// <summary>
     /// Applies one post-combat objective update, and — for a mode that
     /// declares a side objective — one secondary-control latch update from
     /// the positive objective weight present on the site's tiles.
@@ -153,6 +173,20 @@ public sealed class FrontlineModeKernel
         IReadOnlyDictionary<int, int> objectiveWeightByTeam,
         IReadOnlyDictionary<int, int> secondarySiteWeightByTeam)
     {
+        ArgumentNullException.ThrowIfNull(objectiveWeightByTeam);
+        return ApplyPresenceJointTick(
+            state,
+            tick,
+            new FrontlineObjectivePresence(objectiveWeightByTeam),
+            secondarySiteWeightByTeam);
+    }
+
+    private FrontlineControlStepResult ApplyPresenceJointTick(
+        FrontlineControlState state,
+        int tick,
+        FrontlineObjectivePresence presence,
+        IReadOnlyDictionary<int, int> secondarySiteWeightByTeam)
+    {
         ArgumentNullException.ThrowIfNull(secondarySiteWeightByTeam);
         if (secondarySiteWeightByTeam.Any(pair =>
                 !_teamIdSet.Contains(pair.Key) || pair.Value <= 0))
@@ -166,7 +200,7 @@ public sealed class FrontlineModeKernel
         FrontlineControlStepResult result = ApplyPrimaryJointTick(
             state,
             tick,
-            objectiveWeightByTeam);
+            presence);
         FrontlineSecondaryControlState? secondary = ApplySecondaryControl(
             state.SecondaryControl,
             secondarySiteWeightByTeam);
@@ -215,10 +249,12 @@ public sealed class FrontlineModeKernel
     private FrontlineControlStepResult ApplyPrimaryJointTick(
         FrontlineControlState state,
         int tick,
-        IReadOnlyDictionary<int, int> objectiveWeightByTeam)
+        FrontlineObjectivePresence presence)
     {
         ValidateState(state);
-        ArgumentNullException.ThrowIfNull(objectiveWeightByTeam);
+        ArgumentNullException.ThrowIfNull(presence);
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam =
+            presence.DenialWeightByTeam;
         if (state.WinnerTeamId is not null)
         {
             throw new InvalidOperationException(
@@ -242,25 +278,67 @@ public sealed class FrontlineModeKernel
         {
             throw new ArgumentException(
                 "Frontline objective weights must be positive and reference only topology teams.",
-                nameof(objectiveWeightByTeam));
+                nameof(presence));
         }
+        ValidateChannelPresence(presence);
 
         if (tick < state.ControlResumesAtTick)
         {
             return new FrontlineControlStepResult(
-                state with { NextTick = tick + 1 },
+                state with { NextTick = tick + 1, ChannelRun = null },
                 Transition: null);
         }
 
-        (int? teamId, int pressureMultiplier) =
-            ResolveControl(objectiveWeightByTeam);
-        return teamId is int controllingTeamId
-            ? ApplyControl(
+        (int? teamId, int pressureMultiplier) = ResolveControl(presence);
+        if (teamId is not int controllingTeamId)
+            return ApplyNonSoleControl(state, tick);
+        return _gameMode.Capture.ControlPolicy
+            == FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+            ? ApplyChannelControl(
                 state,
                 tick,
                 controllingTeamId,
-                pressureMultiplier)
-            : ApplyNonSoleControl(state, tick);
+                pressureMultiplier,
+                presence.HostileDamageOnObjectiveByTeam
+                    .GetValueOrDefault(controllingTeamId))
+            : ApplyControl(
+                state,
+                tick,
+                controllingTeamId,
+                pressureMultiplier);
+    }
+
+    /// <summary>
+    /// A channel needs a stillness reading and a damage reading; every other
+    /// policy must not carry one, because a caller that supplied one would be
+    /// silently ignored.
+    /// </summary>
+    private void ValidateChannelPresence(FrontlineObjectivePresence presence)
+    {
+        bool channel = _gameMode.Capture.ControlPolicy
+            == FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds;
+        if (channel != presence.IsChannelReading)
+        {
+            throw new ArgumentException(
+                "A channeled capture reads stationary claim weight and on-objective damage; every other control policy reads objective weight alone.",
+                nameof(presence));
+        }
+        if (!channel)
+            return;
+        if (presence.StationaryClaimWeightByTeam.Any(pair =>
+                !_teamIdSet.Contains(pair.Key)
+                || pair.Value <= 0
+                || pair.Value
+                    > presence.DenialWeightByTeam.GetValueOrDefault(pair.Key))
+            || presence.HostileDamageOnObjectiveByTeam.Any(pair =>
+                !_teamIdSet.Contains(pair.Key) || pair.Value <= 0))
+        {
+            throw new ArgumentException(
+                "Stationary claim weight is a positive subset of a team's objective weight, and on-objective damage is positive.",
+                nameof(presence));
+        }
     }
 
     public FrontlineScoreState CreateScoreState(
@@ -343,8 +421,10 @@ public sealed class FrontlineModeKernel
     }
 
     private (int? TeamId, int PressureMultiplier) ResolveControl(
-        IReadOnlyDictionary<int, int> objectiveWeightByTeam)
+        FrontlineObjectivePresence presence)
     {
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam =
+            presence.DenialWeightByTeam;
         switch (_gameMode.Capture.ControlPolicy)
         {
             case FrontlineCaptureDefinition.ControlPolicyKind
@@ -365,11 +445,120 @@ public sealed class FrontlineModeKernel
                 return firstWeight > secondWeight
                     ? (firstTeamId, checked(firstWeight - secondWeight))
                     : (secondTeamId, checked(secondWeight - firstWeight));
+            case FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds:
+                // Stillness gates GAIN, not denial: a defender may kite
+                // inside the region and still subtract, while an attacker
+                // that changed tile this tick contributes nothing to the
+                // claim. Both teams run the same rules; the asymmetry is
+                // between the two jobs. At most one team can satisfy the
+                // strict comparison, because claim weight never exceeds its
+                // own team's denial weight.
+                int cap = _gameMode.Capture.StationaryGainMultiplierCap;
+                int channelFirstTeamId = _teamIds[0];
+                int channelSecondTeamId = _teamIds[1];
+                int firstClaim = presence.StationaryClaimWeightByTeam
+                    .GetValueOrDefault(channelFirstTeamId);
+                int secondClaim = presence.StationaryClaimWeightByTeam
+                    .GetValueOrDefault(channelSecondTeamId);
+                int firstDenial = objectiveWeightByTeam
+                    .GetValueOrDefault(channelFirstTeamId);
+                int secondDenial = objectiveWeightByTeam
+                    .GetValueOrDefault(channelSecondTeamId);
+                if (firstClaim > secondDenial)
+                {
+                    return (
+                        channelFirstTeamId,
+                        Math.Min(cap, checked(firstClaim - secondDenial)));
+                }
+                return secondClaim > firstDenial
+                    ? (
+                        channelSecondTeamId,
+                        Math.Min(cap, checked(secondClaim - firstDenial)))
+                    : (null, 0);
             default:
                 throw new InvalidOperationException(
                     "Unknown Frontline control policy.");
         }
     }
+
+    /// <summary>
+    /// One channeled control tick: erode an opposing claim at the declared
+    /// multiple, or build at gain, and then let the declared interrupt take
+    /// back the work this run has done.
+    /// <para>Order matters and is deliberate: the gain lands first and the
+    /// revert lands second, so a bolt that arrives on the tick a capture
+    /// would have completed denies it. That is the whole point of the
+    /// mechanism — poke delays, sustained control denies.</para>
+    /// </summary>
+    private FrontlineControlStepResult ApplyChannelControl(
+        FrontlineControlState state,
+        int tick,
+        int teamId,
+        int gainMultiplier,
+        long hostileDamageOnObjective)
+    {
+        if (gainMultiplier <= 0)
+            throw new ArgumentOutOfRangeException(nameof(gainMultiplier));
+        FrontlineCaptureDefinition capture = _gameMode.Capture;
+        int signed = SignedProgress(state, teamId);
+        // The run's starting position: where this controller found the
+        // number. A hit can undo work back to here and never past it, so
+        // being shot can never complete a capture for the team shooting.
+        int runStart = state.ChannelRun is { } run && run.TeamId == teamId
+            ? run.StartSignedProgress
+            : signed;
+        long gain = checked(
+            (long)capture.GainPhaseAtTick(tick).GainPerSoleTeamTick
+            * gainMultiplier);
+        long moved = signed < 0
+            // Erosion still only reaches neutral and still discards
+            // overshoot: the controller starts no claim of its own on the
+            // tick the opposing claim clears.
+            ? Math.Min(
+                0L,
+                checked(signed + gain * capture.OpposingErosionMultiplier))
+            : checked(signed + gain);
+        long reverted = Math.Max(
+            runStart,
+            checked(
+                moved
+                - hostileDamageOnObjective
+                    * capture.ClaimInterrupt!.RevertPerDamagePoint));
+        if (reverted >= capture.Threshold)
+            return CompleteCapture(state, tick, teamId);
+
+        int value = (int)reverted;
+        return new FrontlineControlStepResult(
+            state with
+            {
+                NextTick = tick + 1,
+                ClaimingTeamId = value switch
+                {
+                    0 => null,
+                    > 0 => teamId,
+                    _ => _teamIds.Single(other => other != teamId),
+                },
+                CaptureProgress = Math.Abs(value),
+                DecayTicksElapsed = 0,
+                ChannelRun = new FrontlineChannelRun(teamId, runStart),
+            },
+            Transition: null);
+    }
+
+    /// <summary>
+    /// The standing claim read from one team's side: positive is that team's
+    /// own claim, negative is the opponent's, zero is a neutral objective.
+    /// </summary>
+    private static int SignedProgress(
+        FrontlineControlState state,
+        int teamId) =>
+        state.ClaimingTeamId switch
+        {
+            null => 0,
+            int claimant when claimant == teamId => state.CaptureProgress,
+            _ => -state.CaptureProgress,
+        };
 
     private FrontlineControlStepResult ApplyControl(
         FrontlineControlState state,
@@ -433,10 +622,18 @@ public sealed class FrontlineModeKernel
             Transition: null);
     }
 
+    /// <summary>
+    /// A tick nobody controls ends the run: the next controller finds the
+    /// number wherever this tick left it, which is the reading that makes
+    /// "never past the position the controller found" mean what it says.
+    /// </summary>
     private FrontlineControlStepResult ApplyNonSoleControl(
         FrontlineControlState state,
         int tick)
     {
+        state = state.ChannelRun is null
+            ? state
+            : state with { ChannelRun = null };
         FrontlineCaptureDefinition capture = _gameMode.Capture;
         if (capture.DecayClock
             == FrontlineCaptureDefinition.DecayClockKind
@@ -505,6 +702,11 @@ public sealed class FrontlineModeKernel
         int tick,
         int teamId)
     {
+        // A completed push resets the claim, so it also ends the run: the
+        // next controller starts from the reset number.
+        state = state.ChannelRun is null
+            ? state
+            : state with { ChannelRun = null };
         int delta = _advanceByTeam[teamId];
         int breachEdge = delta > 0
             ? _gameMode.FrontlinePositionCount - 1
@@ -737,6 +939,16 @@ public sealed class FrontlineModeKernel
                         && secondary.ClaimingTeamId is not null
                     || secondary.ClaimTicks
                         >= secondaryControl!.CaptureThresholdTicks)
+            // A run exists only under the channel, only for a real scoring
+            // team, and only at a position the claim can actually hold.
+            || state.ChannelRun is not null
+                && capture.ControlPolicy
+                    != FrontlineCaptureDefinition.ControlPolicyKind
+                        .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+            || state.ChannelRun is { } channelRun
+                && (!_teamIdSet.Contains(channelRun.TeamId)
+                    || Math.Abs((long)channelRun.StartSignedProgress)
+                        >= capture.Threshold)
             || state.RatchetHold is not null && !ratchetPolicy
             || state.RatchetHold is { } hold
                 && (!_teamIdSet.Contains(hold.TeamId)

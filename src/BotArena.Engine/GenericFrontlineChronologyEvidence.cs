@@ -68,6 +68,12 @@ internal static class GenericFrontlineChronologyEvidence
         }
 
         GenericFrontlineEndReason? terminalReason = null;
+        // The stillness reading is re-derived from the recorded bodies, not
+        // trusted: the previous boundary's positions are the only thing a
+        // "did not change tile" claim can mean, so a document that credits
+        // gain to a body it also recorded moving cannot reconcile.
+        ImmutableDictionary<ActorIdentity, Position> previousPositions =
+            PositionsOf(initialFrame.State);
         for (int index = 0; index < ticks.Count; index++)
         {
             GenericActorMatchTickFrame frame = ticks[index];
@@ -94,16 +100,16 @@ internal static class GenericFrontlineChronologyEvidence
                 ImmutableHashSet<Position> activeTiles = regionTiles[
                     binding.OrderedObjectiveRegionIds[
                         previous.ActivePositionIndex]];
-                ImmutableDictionary<int, int> objectiveWeightByTeam =
-                    ObjectiveWeightAtModePhase(
-                    definition,
-                    frame,
-                    objectiveWeights,
-                    activeTiles);
                 control = kernel.ApplyJointTick(
                         previous,
                         frame.Tick,
-                        objectiveWeightByTeam,
+                        Presence(
+                            definition,
+                            gameMode,
+                            frame,
+                            objectiveWeights,
+                            activeTiles,
+                            previousPositions),
                         // Re-derived from the same recorded bodies as the
                         // front, so a replay cannot claim a latch the rules
                         // would not have produced.
@@ -146,6 +152,7 @@ internal static class GenericFrontlineChronologyEvidence
                 throw Invalid(
                     "no frame may follow fault eligibility, base breach, or the maximum-tick boundary");
             }
+            previousPositions = PositionsOf(frame.PostState);
         }
 
         if (result is null)
@@ -225,12 +232,83 @@ internal static class GenericFrontlineChronologyEvidence
         }
     }
 
+    /// <summary>
+    /// This tick's objective reading, re-derived from the recorded document.
+    /// A non-channel ruleset reads the post-combat objective weight exactly
+    /// as it always has. A channeled one additionally re-derives which of
+    /// those bodies held their tile — by comparing the previous authoritative
+    /// boundary's positions to this one's — and how much hostile damage the
+    /// recorded Damage facts put on the active region. Neither is taken from
+    /// anything the document could assert directly, which is what makes an
+    /// impossible channel history unreconcilable: gain credited to a body the
+    /// same document recorded moving, a revert with no damage fact behind it,
+    /// or a multiplier past the declared cap all produce a different control
+    /// state than the boundary the document published.
+    /// </summary>
+    private static FrontlineObjectivePresence Presence(
+        ActorResolvedMatchDefinition definition,
+        FrontlineGameModeDefinition gameMode,
+        GenericActorMatchTickFrame frame,
+        IReadOnlyDictionary<string, int> objectiveWeights,
+        IReadOnlySet<Position> activeTiles,
+        IReadOnlyDictionary<ActorIdentity, Position> previousPositions)
+    {
+        ImmutableDictionary<int, int> denial = ObjectiveWeightAtModePhase(
+            definition,
+            frame,
+            objectiveWeights,
+            activeTiles);
+        if (gameMode.Capture.ControlPolicy
+            != FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds)
+        {
+            return new FrontlineObjectivePresence(denial);
+        }
+
+        return new FrontlineObjectivePresence(
+            denial,
+            ObjectiveWeightAtModePhase(
+                definition,
+                frame,
+                objectiveWeights,
+                activeTiles,
+                previousPositions),
+            frame.Events
+                .Where(item =>
+                    item.Kind
+                    == GenericActorRuntimeObservation.EventKind.Damage)
+                .Select(item =>
+                    (GenericActorRuntimeObservation.EventPayload.Damage)
+                        item.Payload)
+                .Where(payload =>
+                    payload.Amount > 0
+                    && payload.SourceTeamId
+                        != payload.TargetActorId.TeamId
+                    && activeTiles.Contains(payload.Position))
+                .GroupBy(payload => payload.TargetActorId.TeamId)
+                .OrderBy(group => group.Key)
+                .ToImmutableDictionary(
+                    group => group.Key,
+                    group => group.Sum(payload => (long)payload.Amount)));
+    }
+
+    /// <summary>
+    /// Where each recorded life stands at one authoritative boundary.
+    /// </summary>
+    private static ImmutableDictionary<ActorIdentity, Position> PositionsOf(
+        GenericActorWorldSnapshot snapshot) =>
+        snapshot.ActiveLives.ToImmutableDictionary(
+            life => life.ActorId,
+            life => life.Position);
+
     private static ImmutableDictionary<int, int>
         ObjectiveWeightAtModePhase(
         ActorResolvedMatchDefinition definition,
         GenericActorMatchTickFrame frame,
         IReadOnlyDictionary<string, int> objectiveWeights,
-        IReadOnlySet<Position> activeTiles)
+        IReadOnlySet<Position> activeTiles,
+        IReadOnlyDictionary<ActorIdentity, Position>? stationaryAgainst =
+            null)
     {
         Dictionary<ActorIdentity, string> endClockSourceForms = frame.Events
             .Where(item =>
@@ -269,7 +347,12 @@ internal static class GenericFrontlineChronologyEvidence
             })
             .Where(item =>
                 item.Weight > 0
-                && activeTiles.Contains(item.Life.Position))
+                && activeTiles.Contains(item.Life.Position)
+                && (stationaryAgainst is null
+                    || !stationaryAgainst.TryGetValue(
+                        item.Life.ActorId,
+                        out Position previous)
+                    || previous == item.Life.Position))
             .GroupBy(item => item.Life.ActorId.TeamId)
             .OrderBy(group => group.Key)
             .ToImmutableDictionary(

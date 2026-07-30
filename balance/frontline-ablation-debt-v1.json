@@ -113,6 +113,84 @@
       "currentInterpretation": "MUSTER is the first effect of the shared FrontlineSecondaryControlDefinition capability, whose other registered effects (RELAY, BATTERY, KILN, ...) differ only in what owning the site does. Any improvement measured on MUSTER is therefore ambiguous between the EFFECT and the family's shared parts: a contested site existing at all, the map opening that puts it there, and one body's attendance being priced.",
       "requiredIsolation": "Carry RELAY - the same site, the same latch, the same map, paying a trickle of TerritorialProgress instead - as the designated control arm, and measure it rather than asserting its failure mode. RELAY is the family's L2 hypothesis made falsifiable: because Frontline ranks timeouts on territorial progress alone, a team that takes the relay and refuses to fight should win by clock. If it does, the family's other effects are the reason anything improved; if it does not, the L2 argument that shaped every effect in the memo is wrong and the slate needs rereading.",
       "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-speed",
+      "status": "open",
+      "currentInterpretation": "The capture channel ships threshold 8 with gain 1 as ONE paired claim about how much a risky tick must pay: threshold and gain are not separable claims about the same thing, and 8 was derived from the 18-tick Prime automatic return rather than measured. A channel result therefore cannot distinguish 'stillness-gated gain works' from 'captures at this speed work'.",
+      "requiredIsolation": "Vary threshold alone at fixed gain (6, 8, 10, 12, and the unchanged 15) inside the channel arm, and report time-from-first-kill-to-capture against the 18-tick respawn window, screened-versus-unscreened completion share, and captures per match. Territorial progress scales with threshold, so every cross-threshold comparison applies the scale factor before it compares anything.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-interrupt-setting",
+      "status": "open",
+      "currentInterpretation": "Revert-equals-damage bundles three things in one rule: that an interrupt exists at all, its magnitude, and its per-weapon scaling (a salvo fan bolt reverts 2, a turret bolt 1). It also bundles the scope that makes screening work \u2014 damage OFF the objective reverts nothing \u2014 with the revert itself. Full reset and pause-for-M were rejected on arithmetic (one poker with a clear heading denies the objective for the whole match), not measured.",
+      "requiredIsolation": "Run a flat revert-1-per-hit level and a pause-1-tick level as separately fingerprinted arms at a fixed threshold, plus an interrupt-free channel level so the interrupt's existence is falsifiable. Report progress reverted per match and per weapon, progress-reverted against progress-gained (failure mode 8, poke-lock, is that ratio exceeding 1), and screen-adjacency share. Whole-run versus per-body granularity is the separate `channel-stack-interrupt` level.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-stack-cap",
+      "status": "open",
+      "currentInterpretation": "Capping the stationary gain multiplier at 2 simultaneously honours 'more bots capturing at once capture faster' and denies a body-count class a stacking payoff for its third, fourth, and fifth channeler. The cap is also what makes whole-run revert non-degenerate, so the cap and the interrupt granularity are entangled: under the cap, per-body reverting makes a three-body stack immune to interruption outright.",
+      "requiredIsolation": "Run an uncapped level and a cap-1 level at a fixed threshold and interrupt. Report captures per match, mean channelers per capture, mean screens per capture, and the bulwark-versus-fabricator edge \u2014 the leg the cap exists to protect.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "recapture-cost",
+      "status": "open",
+      "currentInterpretation": "One integer \u2014 the opposing erosion multiplier, shipped at 4 \u2014 sets the whole recapture price. At threshold 8 a full flip costs 2 erode ticks plus 8 build ticks against a fresh capture's 8, i.e. 1.25x, sliding toward 1.0x as the standing claim shrinks. The owner's acceptance criterion is that band: recaptures must cost 1.0-1.25x a fresh capture. The derivation is arithmetic, not measured, and it assumes the documented 'erosion reaches neutral without starting a claim on the same tick' invariant stays in place.",
+      "requiredIsolation": "Run N in {1, 2, 4, 8} plus the overshoot-carry variant (which overturns that invariant and reaches 1.13x). Report flip cost as a multiple of fresh capture cost MEASURED FROM REPLAY rather than derived, lead changes per match, and time at each position index. Acceptance is the 1.0-1.25x band.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-ratchet-retune",
+      "status": "open",
+      "currentInterpretation": "The 40-tick ratchet hold was calibrated against the measured advance-reversal latency (respawn 18 plus transit 12), not against the capture clock, and neither respawn nor transit moves under the channel. But the channel makes captures follow kills, so holds now fire in bursts and more completed enemy captures land inside a live hold and are spent. Forty may be absorbing more offence than it was priced to absorb. It was deliberately NOT re-tuned.",
+      "requiredIsolation": "Do not pull this lever pre-emptively. The diagnostic is SPENT CAPTURES PER MATCH (captures denied by a live hold): if it exceeds roughly one per hold on average, try 25-30 as its own fingerprinted level; if it stays near the keel baseline, 40 is still correct and the swingier pendulum arrived without the hold moving.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "objective-keystone",
+      "status": "open",
+      "currentInterpretation": "The registered ALTERNATIVE mechanism for the same 2-versus-3 problem the channel was adopted to solve: one derived tile per objective region granting +1 objective weight to whoever stands on it (the region tile with the most adjacent walls, ties broken by smallest Chebyshev distance to the map centre, then lowest y, then lowest x). It fixes the arithmetic \u2014 two defenders holding the keystone stall three attackers \u2014 without changing what the front IS, produces a one-tile scramble rather than a formation, and hands a guarding form a weight-2 fortress tile. It is declared in the rules rather than the map, so the map fingerprint does not move. NOT BUILT.",
+      "requiredIsolation": "It is the fallback if the channel's wave read shows stalls (failure mode 8, poke-lock, or failure mode 9, rush over-nerfed). Run it alone against the channel arm and against the unmodified front, at a fixed threshold, and report captures per match, stall share, and flank-approach share. Building it is one field on the capture definition and one branch in the objective-weight sum, with zero new observation facts.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-stillness-rule",
+      "status": "open",
+      "currentInterpretation": "The channel gates gain on positional stillness (moved-this-tick contributes nothing); reduced-gain-while-moving variants were analyzed (memo P2.4) but only the binary rule ships.",
+      "requiredIsolation": "A factorial leg comparing binary stillness vs fractional gain-while-moving on the siege arm, same cohort."
+    },
+    {
+      "id": "channel-shell-interaction",
+      "status": "open",
+      "currentInterpretation": "A shelled bulwark channeling blanks frontal pokes but breaks on its third deflection ~2 ticks short of an 8-tick channel \u2014 depth-not-dominance is an analytical claim, unmeasured.",
+      "requiredIsolation": "Siege cells with shell-carrying bulwarks vs two-heading pokers; measure completed channels by shelled vs unshelled channelers."
+    },
+    {
+      "id": "channel-salvo-interrupt",
+      "status": "open",
+      "currentInterpretation": "The fan reverts up to 6 against a threshold-8 channel \u2014 the salvo doubles as the premier interrupt; bundled with the channel adoption.",
+      "requiredIsolation": "Siege x volley cast/salvo 2x2 (the byte-pinned cast alternative separates chassis from fan at zero engineering cost)."
+    },
+    {
+      "id": "channel-turret-denial",
+      "status": "open",
+      "currentInterpretation": "The turret (cooldown 1) denies a solo channel outright (-1/tick vs +1); predicted to give the turret its first real job, unmeasured against a 0.13% usage baseline.",
+      "requiredIsolation": "Turret-usage and channel-denial counts in the wave-8 siege read vs the swell baseline."
+    },
+    {
+      "id": "channel-stack-interrupt",
+      "status": "open",
+      "currentInterpretation": "Whole-run revert under the stack cap was chosen over per-body revert (degenerate: a hit on one of three stacked drops weight 3->2, still capped at 2, doing nothing).",
+      "requiredIsolation": "A per-body-revert enum level built and run as a factorial leg if stacking dominates the wave-8 read."
+    },
+    {
+      "id": "channel-striker-role",
+      "status": "open",
+      "currentInterpretation": "The channel arm alone is an implicit striker buff (range 8 + cadence 2 + off-heading bends + fan interrupts). Pre-registered siege predictions: bvs +0.05..+0.20, fvs -0.20..-0.35, bvf +0.10..+0.25; tripwire: any pair below +0.15.",
+      "requiredIsolation": "The wave-8 2x2 (swell/siege/forge/bastion) attribution cells; compare siege-only deltas against these bands before reading bastion."
     }
   ]
 }

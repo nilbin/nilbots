@@ -57,6 +57,18 @@ internal static class ActorContractCanonicalIds
         FrontlineCaptureDefinition.ControlPolicyKind
                   .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral =>
               "net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral",
+        FrontlineCaptureDefinition.ControlPolicyKind
+                  .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds =>
+              "stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds",
+        FrontlineClaimInterruptDefinition.ClaimInterruptKind
+                .DamageToControllerOnObjectiveRevertsWork =>
+            "damage-to-controller-on-objective-reverts-work",
+        FrontlineClaimInterruptDefinition.ClaimInterruptScopeKind
+                .ControllingTeamBodiesOnActiveObjectiveRegion =>
+            "controlling-team-bodies-on-active-objective-region",
+        FrontlineClaimInterruptDefinition.ClaimInterruptGranularityKind
+                .WholeRun =>
+            "whole-run",
         FrontlineCaptureDefinition.TimeoutPolicyKind
                 .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers =>
             "signed-position-threshold-plus-claim-zero-draw-no-tiebreakers",

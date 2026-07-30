@@ -85,6 +85,51 @@ public static class FrontlineLabsDefinition
     /// </summary>
     public const int RatchetHoldTicksDefault = 40;
 
+    /// <summary>
+    /// The capture channel's paired speed factor, registered as
+    /// <c>channel-speed</c>. Gain per sole stationary team tick stays 1 and
+    /// the multiplier arithmetic is untouched; one number moves, because
+    /// threshold and gain are not separable claims about the same thing.
+    /// <para>Eight is derived from the post-fight window every class shares —
+    /// the 18-tick Prime automatic return. A SCREENED solo channeler
+    /// completes in 8 and in 9 with one leaked bolt, both of which fit inside
+    /// 18 with room for the approach; an unscreened one never completes. At
+    /// 10 a single leaked bolt runs into the next reinforcement wave, and at
+    /// 6 a screened channel finishes before a defender can rotate onto a
+    /// firing heading, which deletes the poke counterplay the whole
+    /// mechanism exists to create.</para>
+    /// <para>Territorial progress is <c>advance × (index − centre) ×
+    /// threshold</c>, so the reported score channel rescales by 8/15 under
+    /// this arm. Nothing about ranking changes; historical numbers need the
+    /// scale factor applied before comparison.</para>
+    /// </summary>
+    public const int ChannelCaptureThreshold = 8;
+
+    /// <summary>
+    /// The channel's stationary gain-multiplier cap, registered as
+    /// <c>channel-stack-cap</c>. Stacking pays — two stationary channelers
+    /// against a dead defence capture in 4 ticks rather than 8 — but bodies
+    /// three, four, and five buy no additional speed at all, which keeps
+    /// "extra bodies buy extra tempo" out of a design that has already
+    /// convicted that loop once.
+    /// </summary>
+    public const int ChannelStationaryGainMultiplierCap = 2;
+
+    /// <summary>
+    /// The channel's opposing-erosion multiplier, registered as
+    /// <c>recapture-cost</c>. Flipping a standing claim costs
+    /// <c>ceil(claim / 4) + threshold</c> ticks against a fresh capture's
+    /// threshold, which puts the whole range of recapture costs inside the
+    /// owner's stated 1.0–1.25× band: 10 ticks against 8 at a full standing
+    /// claim (1.25×), sliding to 1.0× as the standing claim shrinks. Erosion
+    /// still stops at neutral and still discards overshoot, so the
+    /// documented "no own claim on the crossing tick" invariant is preserved.
+    /// </summary>
+    public const int ChannelOpposingErosionMultiplier = 4;
+
+    /// <summary>The capture channel's plain arm token.</summary>
+    public const string ChannelArmToken = "channel";
+
     /// <summary>Canonical IDs are capped at 64 characters.</summary>
     private const int MaxRulesetIdLength = 64;
 
@@ -400,8 +445,16 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None)
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen)
     {
+        if (!Enum.IsDefined(capture))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(capture),
+                capture,
+                "Unknown Frontline Labs capture arm.");
+        }
         if (!Enum.IsDefined(sideObjective))
         {
             throw new ArgumentOutOfRangeException(
@@ -511,6 +564,15 @@ public static class FrontlineLabsDefinition
                 + ". Pick a cell containing the owning class.",
                 nameof(skills));
         }
+        // The channel carries its own paired threshold. A caller that leaves
+        // the threshold alone gets the arm's shipped 8; a caller that names
+        // one is running the channel-speed ablation level, which spells its
+        // number in the identity exactly as a numbers-only level always has.
+        captureThreshold =
+            capture == FrontlineLabsCaptureArm.Channel
+            && captureThreshold == DefaultCaptureThreshold
+                ? ChannelCaptureThreshold
+                : captureThreshold;
         if (captureThreshold <= 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -533,6 +595,20 @@ public static class FrontlineLabsDefinition
                 + "and mirror bot assignments instead of swapping teams.",
                 nameof(classes));
         }
+        // The channel changes capture for everyone, so it is a real arm on
+        // every cell — never inert-omitted the way a class-scoped tuning is
+        // — and it needs a cell to sit in for the same reason the side
+        // objective does.
+        if (capture != FrontlineLabsCaptureArm.Frozen
+            && classes is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new ArgumentException(
+                "The capture channel reworks the front both teams are "
+                + "fighting over, so it needs a cell to sit in: pass a class "
+                + "pair, or compose it with a pendulum level.",
+                nameof(capture));
+        }
         if (pendulum == FrontlineLabsPendulumArm.None
             && captureThreshold == DefaultCaptureThreshold
             && primeRespawnTicks == DefaultPrimeRespawnTicks
@@ -540,6 +616,7 @@ public static class FrontlineLabsDefinition
             && effectiveSkills == FrontlineLabsSkillKit.None
             && bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
             && sideObjective == FrontlineLabsSideObjectiveArm.None
+            && capture == FrontlineLabsCaptureArm.Frozen
             && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
             throw new ArgumentOutOfRangeException(
@@ -600,12 +677,13 @@ public static class FrontlineLabsDefinition
                 aim,
                 cooldown,
                 effectiveVolley,
-                sideObjective),
+                sideObjective,
+                capture),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
             remoteFabrication: false,
-            controlPolicy: ControlPolicy(pendulum),
+            controlPolicy: ControlPolicy(pendulum, capture),
             duelMapArm: mapArm,
             seedProfileId: classes is null ? null : ClassesSeedProfileId,
             classes: classes is { } cell
@@ -725,9 +803,20 @@ public static class FrontlineLabsDefinition
             .Single(entry => entry.Skill == skill)
             .Id;
 
+    /// <summary>
+    /// The control policy for one cell. The capture channel is itself a
+    /// control policy, so it REPLACES whichever presence rule the pendulum
+    /// selected — contest-majority's surplus scaling carries over, now
+    /// applied to stationary claim weight against total denial weight, and in
+    /// the everyone-stationary limit below the cap the two agree exactly.
+    /// </summary>
     private static FrontlineCaptureDefinition.ControlPolicyKind ControlPolicy(
-        FrontlineLabsPendulumArm pendulum) =>
-        pendulum.HasFlag(FrontlineLabsPendulumArm.ContestMajority)
+        FrontlineLabsPendulumArm pendulum,
+        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen) =>
+        capture == FrontlineLabsCaptureArm.Channel
+            ? FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+        : pendulum.HasFlag(FrontlineLabsPendulumArm.ContestMajority)
             ? FrontlineCaptureDefinition.ControlPolicyKind
                 .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral
             : FrontlineCaptureDefinition.ControlPolicyKind
@@ -748,6 +837,18 @@ public static class FrontlineLabsDefinition
                 .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks
             : FrontlineCaptureDefinition.RedeployPolicyKind
                 .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause;
+
+    /// <summary>
+    /// One channel setting, or its inert zero when the cell does not channel.
+    /// </summary>
+    private static int ChannelSetting(
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
+        int value) =>
+        controlPolicy
+            == FrontlineCaptureDefinition.ControlPolicyKind
+                .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+            ? value
+            : 0;
 
     private static int RatchetHoldTicks(
         FrontlineLabsPendulumArm pendulum) =>
@@ -823,7 +924,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None)
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -942,11 +1044,42 @@ public static class FrontlineLabsDefinition
             arms = flagged.Arms;
             tuning = flagged.Tuning;
         }
+        if (capture == FrontlineLabsCaptureArm.Channel)
+        {
+            // The channel re-mints the whole game, exactly as `swell`
+            // re-minted `tide` and the flags re-minted `swell`: it is a
+            // capture-CORE change, so a cell carrying it is not the cell it
+            // was. `siege` is the registered composite for swell + channel
+            // (DECISIONS #187). The strikerless cells inert-omit the fan and
+            // therefore spell a longer game, which does not fit beside the
+            // worst class pair and `facing-locked` — the muster arm's exact
+            // problem and its exact answer, three registered tokens for the
+            // three shapes the candidate game takes. `sap` is the tuned game
+            // on the ticking clock (undermining, not storming) and `mantlet`
+            // is the open-ground spelling (the sapper's screen, which the
+            // channel is precisely the mechanism for). Everything smaller
+            // spells its factors and appends `channel`.
+            (string[] Arms, string[] Tuning) channeled =
+                (arms, tuning) switch
+                {
+                    (["swell"], _) => (new[] { "siege" }, []),
+                    (["tide"], _) => (new[] { "sap" }, []),
+                    (["sail", "tick"], ["open"]) =>
+                        (new[] { "mantlet" }, []),
+                    _ => ([.. arms, ChannelArmToken], tuning),
+                };
+            arms = channeled.Arms;
+            tuning = channeled.Tuning;
+        }
         string[] tokens =
         [
             .. arms,
             .. tuning,
-            .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
+            .. NumbersToken(
+                    captureThreshold,
+                    primeRespawnTicks,
+                    composed,
+                    capture)
                 is { Length: > 0 } numbers
                 ? new[] { numbers }
                 : [],
@@ -1151,12 +1284,17 @@ public static class FrontlineLabsDefinition
     private static string NumbersToken(
         int captureThreshold,
         int primeRespawnTicks,
-        bool composed) =>
+        bool composed,
+        FrontlineLabsCaptureArm capture) =>
         string.Join(
             "-",
             new[]
             {
-                captureThreshold == DefaultCaptureThreshold
+                // The channel carries its own baseline threshold as a PAIRED
+                // factor, so the shipped 8 spells nothing extra and only a
+                // channel-speed ablation level (a threshold that is not the
+                // arm's own) mints a numbers token.
+                captureThreshold == BaselineCaptureThreshold(capture)
                     ? string.Empty
                     : composed
                         ? $"c{captureThreshold}"
@@ -1167,6 +1305,23 @@ public static class FrontlineLabsDefinition
                         ? $"r{primeRespawnTicks}"
                         : $"respawn-{primeRespawnTicks}",
             }.Where(token => token.Length > 0));
+
+    /// <summary>
+    /// The capture threshold one capture arm treats as its own baseline. The
+    /// channel's is the <c>channel-speed</c> factor's 8; every other arm's is
+    /// the hosted contract's 15.
+    /// </summary>
+    public static int BaselineCaptureThreshold(
+        FrontlineLabsCaptureArm capture) =>
+        capture switch
+        {
+            FrontlineLabsCaptureArm.Frozen => DefaultCaptureThreshold,
+            FrontlineLabsCaptureArm.Channel => ChannelCaptureThreshold,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(capture),
+                capture,
+                "Unknown Frontline Labs capture arm."),
+        };
 
     /// <summary>
     /// Content-identified ruleset ID for a class pair, optionally composed
@@ -1384,7 +1539,8 @@ public static class FrontlineLabsDefinition
                 aim,
                 cooldown,
                 volley,
-                sideObjective);
+                sideObjective,
+                controlPolicy);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1762,7 +1918,22 @@ public static class FrontlineLabsDefinition
                     controlPolicy,
                     DecayClock(pendulum),
                     RedeployPolicy(pendulum),
-                    RatchetHoldTicks(pendulum)),
+                    RatchetHoldTicks(pendulum),
+                    // The channel's three settings travel with the channel
+                    // policy and are absent everywhere else, so a ruleset
+                    // that does not channel writes no bytes for them.
+                    ChannelSetting(
+                        controlPolicy,
+                        ChannelStationaryGainMultiplierCap),
+                    ChannelSetting(
+                        controlPolicy,
+                        ChannelOpposingErosionMultiplier),
+                    controlPolicy
+                        == FrontlineCaptureDefinition.ControlPolicyKind
+                            .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds
+                        ? FrontlineClaimInterruptDefinition
+                            .DamageRevertsWork
+                        : null),
                 SecondaryControl(sideObjective)),
             lifecycle,
             forms,
@@ -1824,7 +1995,10 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCooldownArm cooldown = FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsVolleyArm volleyArm = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None)
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -2243,7 +2417,7 @@ public static class FrontlineLabsDefinition
             rulesetId,
             captureThreshold,
             captureGainSchedule: null,
-            ControlPolicy(pendulum),
+            controlPolicy,
             pendulum,
             seedProfileId,
             new ActorLifecycleDefinition(

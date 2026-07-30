@@ -248,6 +248,7 @@ static int CommandHelp(string command)
                    [--cooldown frozen|ticking]
                    [--volley cast|salvo]
                    [--side-objective none|muster]
+                   [--capture frozen|channel]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -396,7 +397,32 @@ static int CommandHelp(string command)
             approach headings, so it is a real arm on every pair rather than
             an inert-omitted one, and it needs a class pair or a --pendulum
             level to sit in. tide + muster is registered as `ensign`, and
-            swell + muster as `hoist`.
+            swell + muster as `banner`.
+            --capture channel makes TAKING GROUND a channel (DECISIONS #187).
+            Capture gain counts only bodies that did NOT change tile this
+            tick; denial counts all of them, so a defender may kite inside
+            the region and still subtract while an attacker that stepped
+            contributes nothing. Stillness is positional: a blocked move did
+            not move, and rotating, shooting, or starting a transform never
+            breaks it. Hostile damage to a CONTROLLING body standing ON the
+            objective reverts that team's work on the current run by the
+            damage amount — never past where the run began, so being shot can
+            never complete a capture for the shooter — while damage to a body
+            OFF the objective reverts nothing, which is what makes screening
+            a channeler the intended play. Gain scales with net stationary
+            weight but is CAPPED AT 2, so extra channelers buy screens and
+            denial rather than speed. Eroding an enemy claim is a channel
+            too, at 4x build speed, which puts a full flip at 10 ticks
+            against a fresh capture's 8. The paired `channel-speed` factor
+            moves the threshold 15 -> 8. It publishes no new observation
+            fact: every rule above moves captureProgress and claimingTeamId
+            in their exact published shape — read the policy, the cap, the
+            erosion multiple, and the interrupt from the contract's
+            gameMode.capture (controlPolicy, stationaryGainMultiplierCap,
+            opposingErosionMultiplier, claimInterrupt) instead of assuming
+            them. It is a real arm on every pair and needs a class pair or a
+            --pendulum level to sit in. swell + channel is registered as
+            `siege`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

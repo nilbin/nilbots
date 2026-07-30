@@ -142,7 +142,8 @@ internal sealed record GenericActorModeActiveLife
         ActorIdentity actorId,
         string formId,
         Position position,
-        long health)
+        long health,
+        Position? positionAtPreviousTickEnd = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(formId);
         if (health <= 0)
@@ -152,12 +153,30 @@ internal sealed record GenericActorModeActiveLife
         FormId = formId;
         Position = position;
         Health = health;
+        PositionAtPreviousTickEnd = positionAtPreviousTickEnd;
     }
 
     public ActorIdentity ActorId { get; }
     public string FormId { get; }
     public Position Position { get; }
     public long Health { get; }
+
+    /// <summary>
+    /// Where this life stood at the end of the previous tick, or null when it
+    /// had no previous tick. A mode that gates anything on stillness compares
+    /// it to <see cref="Position"/>; a life with no previous position counts
+    /// as stationary.
+    /// </summary>
+    public Position? PositionAtPreviousTickEnd { get; }
+
+    /// <summary>
+    /// True when this life did not change tile this tick. Positional, not
+    /// intentional: a requested move that was blocked did not move, and
+    /// rotating, shooting, or starting a transform never breaks it.
+    /// </summary>
+    public bool IsStationary =>
+        PositionAtPreviousTickEnd is not { } previous
+        || previous == Position;
 }
 
 internal sealed record GenericActorModeTickInput

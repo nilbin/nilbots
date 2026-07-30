@@ -176,7 +176,8 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     redeployPauseTicks: number;
     controlPolicy:
       | 'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral'
-      | 'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
+      | 'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral'
+      | 'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
     timeoutPolicy:
       'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
     territorialProgressFormula:
@@ -197,6 +198,21 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     ratchetHoldTicks?: number;
     redeployTickArithmetic:
       'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
+    /**
+     * The capture channel's three settings. Additive and inert-omitted
+     * together with the ratchet hold's discipline: a ruleset that does not
+     * channel writes no bytes for any of them, so every historical contract
+     * keeps its exact fingerprint. They are carried by exactly the channel
+     * control policy.
+     */
+    stationaryGainMultiplierCap?: number;
+    opposingErosionMultiplier?: number;
+    claimInterrupt?: {
+      kind: 'damage-to-controller-on-objective-reverts-work';
+      revertPerDamagePoint: number;
+      scope: 'controlling-team-bodies-on-active-objective-region';
+      granularity: 'whole-run';
+    };
   };
   /**
    * The declared side objective. Additive and inert-omitted: a mode without

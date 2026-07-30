@@ -48,6 +48,7 @@ public static class FrontlineLabsExperimentCommand
             "cooldown",
             "volley",
             "side-objective",
+            "capture",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -296,8 +297,23 @@ public static class FrontlineLabsExperimentCommand
                 + "<a>-vs-<b> (or run two class-declaring projects), or "
                 + "compose it with a --pendulum level.");
         }
+        // The channel reworks capture for BOTH teams whatever chassis they
+        // are, so — like the side objective — it is a real arm on every pair
+        // rather than an inert-omitted one, and it needs a cell to sit in.
+        FrontlineLabsCaptureArm captureArm = OptionalCaptureArm(options);
+        if (captureArm != FrontlineLabsCaptureArm.Frozen
+            && classPair is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new InvalidOperationException(
+                "--capture channel reworks the front both teams fight over, "
+                + "so it needs a cell to sit in: pass --classes <a>-vs-<b> "
+                + "(or run two class-declaring projects), or compose it with "
+                + "a --pendulum level.");
+        }
         bool pendulumCell =
-            pendulum != FrontlineLabsPendulumArm.None
+            captureArm != FrontlineLabsCaptureArm.Frozen
+            || pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
             || skills != FrontlineLabsSkillKit.None
             || bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly
@@ -344,7 +360,8 @@ public static class FrontlineLabsExperimentCommand
                 aim,
                 cooldownArm,
                 volleyArm,
-                sideObjective);
+                sideObjective,
+                captureArm);
         }
         else if (captureThreshold is int threshold)
         {
@@ -856,6 +873,31 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --side-objective arm '{value}' (use none or "
                 + "muster)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered capture arm (DECISIONS #187,
+    /// <c>docs/DESIGN-SCRAP-ECONOMY-2026-07-30.md</c> parts 2–3). Omitting
+    /// the option — or naming <c>frozen</c> — keeps today's capture and adds
+    /// no ruleset suffix. <c>channel</c> makes taking ground a channel: only
+    /// bodies that held their tile this tick add gain (denial still counts
+    /// all of them), the multiplier is capped at 2, an opposing claim erodes
+    /// at 4× build speed, damage to a controlling body ON the objective
+    /// reverts the controller's work on that run, and the paired
+    /// <c>channel-speed</c> factor moves the threshold from 15 to 8.
+    /// </summary>
+    private static FrontlineLabsCaptureArm OptionalCaptureArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("capture", out string? value))
+            return FrontlineLabsCaptureArm.Frozen;
+        return value.ToLowerInvariant() switch
+        {
+            "frozen" => FrontlineLabsCaptureArm.Frozen,
+            "channel" => FrontlineLabsCaptureArm.Channel,
+            _ => throw new InvalidOperationException(
+                $"Unknown --capture arm '{value}' (use frozen or channel)."),
         };
     }
 

@@ -26,7 +26,36 @@ public sealed record FrontlineControlState(
     /// claim, and this record keeps the authoritative claimant/tick pair.
     /// </summary>
     public FrontlineSecondaryControlState? SecondaryControl { get; init; }
+
+    /// <summary>
+    /// The channel run currently in progress, or null when nobody is
+    /// channeling. Only the channel control policy ever sets it. It exists so
+    /// the interrupt can revert WORK rather than the raw claim: the run
+    /// remembers where the controller found the number, and no amount of
+    /// damage can push the number past that point in the opponent's favour.
+    /// <para>It is authoritative kernel state and is deliberately NOT
+    /// published: <c>captureProgress</c> and <c>claimingTeamId</c> keep their
+    /// exact published shape and meaning, and every channel rule moves those
+    /// same two facts.</para>
+    /// </summary>
+    public FrontlineChannelRun? ChannelRun { get; init; }
 }
+
+/// <summary>
+/// One controller's continuous stretch of control, and the signed claim it
+/// found when the stretch began. The sign is read from the controller's own
+/// side: positive is the controller's own standing claim, negative is the
+/// opponent's, and zero is a neutral objective. Work done on the run is
+/// exactly the distance the signed number has travelled since
+/// <see cref="StartSignedProgress"/>, so reverting work is one clamp.
+/// </summary>
+/// <param name="TeamId">The team currently controlling.</param>
+/// <param name="StartSignedProgress">
+/// The signed claim, from that team's side, on the tick control began.
+/// </param>
+public sealed record FrontlineChannelRun(
+    int TeamId,
+    int StartSignedProgress);
 
 /// <summary>
 /// The side objective's authoritative latch: who owns it, who is currently
