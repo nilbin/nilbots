@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lattice-loom",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "review-ready-provider-blocked",
+  "sourceSheet": {
+    "path": "art/class-models/concept-targets/lattice-loom-3d-concept-v2/approval-sheet.png",
+    "sha256": "c208e69e8099e3b88f521a3af02471fada686161300215553d210244c25d9036",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "art/class-look-concepts/fabricator/lattice-loom/concept.png",
+    "sha256": "cd1d47fa5cbcaf488aa0c1ee06f7f7bf03767577daa216110d0c3bd9088a8ab5",
+    "kind": "rich-2d-visual"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "east": "+X",
+    "worldUp": "+Y",
+    "directional": true
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/01-top.png",
+      "width": 745,
+      "height": 660,
+      "crop": {
+        "height": 660,
+        "width": 745,
+        "offsetY": 20,
+        "offsetX": 35
+      },
+      "sha256": "dd621b4313917a38bb920bcb22b79aa7c68728d4c91db29fb1b3e12195df1412"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/02-side.png",
+      "width": 770,
+      "height": 260,
+      "crop": {
+        "height": 260,
+        "width": 770,
+        "offsetY": 690,
+        "offsetX": 30
+      },
+      "sha256": "e65853d39e0556a907e71f12659fc3b6604fbf524ff2295ed96ba3b43521e4b5"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/03-front-three-quarter.png",
+      "width": 756,
+      "height": 545,
+      "crop": {
+        "height": 545,
+        "width": 756,
+        "offsetY": 95,
+        "offsetX": 780
+      },
+      "sha256": "6a058ae5ec2e75d8361afa945a6f3d81f200f3b97a50de2079102c978d82a94d"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/lattice-loom/selected-v2/04-rear-three-quarter.png",
+      "width": 680,
+      "height": 310,
+      "crop": {
+        "height": 310,
+        "width": 680,
+        "offsetY": 650,
+        "offsetX": 815
+      },
+      "sha256": "0cd1a8d2500014df3b5ab41eab3f89e258150a8d3c66b7b4b9656b2b27a64398"
+    }
+  ],
+  "blockers": [
+    "Views are native non-square crops below the required 1254x1254 provider size and 1040px source-detail gate.",
+    "Studio cast/contact shadows remain and must be removed while preserving ceramic, truss hardware, and enclosed negative spaces.",
+    "Clean triangular truss gaps and extend fork tips to the rich-2D endpoints without warping.",
+    "Apply only the runtime SVG's four valid team regions; remove unsupported north/south V3 strips.",
+    "Re-run the strict rich-2D top overlay after final flattening."
+  ],
+  "providerSubmission": {
+    "allowed": false
+  }
+}

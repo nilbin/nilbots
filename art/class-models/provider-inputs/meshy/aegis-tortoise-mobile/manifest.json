@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-mobile",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "review-ready-provider-blocked",
+  "sourceSheet": {
+    "path": "art/class-models/concept-targets/aegis-tortoise-3d-concept-v2/approval-sheet.png",
+    "sha256": "d1acf3d6af2ed71c64146a843f7564c99ede0b9384b26c28515218f4f57c3be7",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "art/class-look-concepts/bulwark/aegis-tortoise/concept.png",
+    "sha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+    "kind": "rich-2d-visual"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "east": "+X",
+    "worldUp": "+Y",
+    "directional": true
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/01-top.png",
+      "width": 700,
+      "height": 610,
+      "crop": {
+        "height": 610,
+        "width": 700,
+        "offsetY": 20,
+        "offsetX": 60
+      },
+      "sha256": "b02dd61edd6ed936e8fe620f2e495c770491ead9b635921428195df00df3f59f"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/02-side.png",
+      "width": 700,
+      "height": 320,
+      "crop": {
+        "height": 320,
+        "width": 700,
+        "offsetY": 650,
+        "offsetX": 35
+      },
+      "sha256": "c506e36fc0770f64b54247b9c33da5f62e328faa947032ffa5ad1f28c2fac667"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/03-front-three-quarter.png",
+      "width": 740,
+      "height": 510,
+      "crop": {
+        "height": 510,
+        "width": 740,
+        "offsetY": 90,
+        "offsetX": 760
+      },
+      "sha256": "a07e3a7f7bc24ddf739ca24d2d3cffeb2b97952c1d6c45989378dbdc58d0329a"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-mobile/selected-v2/04-rear-three-quarter.png",
+      "width": 710,
+      "height": 375,
+      "crop": {
+        "height": 375,
+        "width": 710,
+        "offsetY": 610,
+        "offsetX": 775
+      },
+      "sha256": "b6cebc28b29d5002bc8480d63286ad2cb5de457292164c51784fb2d24c9b3fdf"
+    }
+  ],
+  "blockers": [
+    "Views are native non-square crops below the required 1254x1254 provider size and 1040px source-detail gate.",
+    "Studio cast/contact shadows remain and must be removed without erasing neutral gun or leg hardware.",
+    "Restore the west-centre semantic team inlay; forward shield slits and core remain authored class energy.",
+    "Re-run the strict rich-2D top overlay after final flattening."
+  ],
+  "providerSubmission": {
+    "allowed": false
+  }
+}
