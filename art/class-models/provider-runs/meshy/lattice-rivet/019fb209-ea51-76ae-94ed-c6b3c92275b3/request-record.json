@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb209-ea51-76ae-94ed-c6b3c92275b3",
+  "assetId": "lattice-rivet",
+  "purpose": "Generate one static high-detail Lattice Rivet projectile-head reconstruction master with its joined rear rails and open diamond aperture for deterministic cleanup and projectile-mask material authoring.",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-30T08:00:21.339977Z",
+  "balanceBefore": 830,
+  "expectedCredits": 30,
+  "maxCredits": 30,
+  "inputs": [
+    {
+      "role": "top",
+      "file": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/01-top.png",
+      "bytes": 591563,
+      "sha256": "726b6dbf068efdf173c001d1bbaa2c99fe588e4b758de5508d420e205f682d54",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "side",
+      "file": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/02-side.png",
+      "bytes": 291156,
+      "sha256": "1c4c9f6ab355aa2161450262807769ca1a9994867d788acf32e6086869637510",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "front-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/03-front-three-quarter.png",
+      "bytes": 819649,
+      "sha256": "d2e2cd851b6d66c0655fc71f1721b9cca8b4bb5d88c213273d3ed2225d704d37",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "role": "rear-three-quarter",
+      "file": "art/class-models/provider-inputs/meshy/lattice-rivet/clean-v1/04-rear-three-quarter.png",
+      "bytes": 799801,
+      "sha256": "efa5571b8296133f9d86554e683213e002ccb3229a79af0c50c8449366ab39b2",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Restrained stylized PBR modular projectile head: pale neutral ceramic plates, graphite lattice and truss structure, muted copper-value hardware, crisp seams, chamfered edges, and subtle wear. Preserve the joined split rear rails and completely open diamond aperture. Keep all colors team-neutral for runtime projectile-mask tint. No fixed cyan, red, or orange; no text, logos, decals, baked shadows, floor lighting, trail, halo, tumble, impact, fabrication scene, child unit, or motion effects."
+  },
+  "sourcePackage": {
+    "manifest": "art/class-models/provider-inputs/meshy/lattice-rivet/manifest.json",
+    "sha256": "555fe29276afb13c92c01530d14cd25e693288b10ef3fff6f889d5d434c73bdc",
+    "status": "provider-ready"
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "account": "current-login-account",
+    "valueRecorded": false
+  },
+  "officialDocs": {
+    "multiImageApi": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "balanceApi": "https://docs.meshy.ai/en/api/balance",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "terms": "https://www.meshy.ai/terms-of-use",
+    "checkedOn": "2026-07-30"
+  },
+  "assetRetentionNote": "Meshy output URLs expire; provider output is downloaded immediately and URLs are not storage.",
+  "lastStatus": "SUCCEEDED",
+  "lastProgress": 100,
+  "lastPolledAt": "2026-07-30T08:03:49.240948Z",
+  "consumedCreditsObserved": 30,
+  "finishedAt": "2026-07-30T08:04:00.870231Z",
+  "status": "SUCCEEDED",
+  "balanceAfter": 800,
+  "consumedCredits": 30,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 40265884,
+      "sha256": "f62409fd1d8bf3cafaaa92a29cd8e3eb9cfe072d51368c7ce1a63c253f030774",
+      "contentType": "application/octet-stream",
+      "reusedExisting": false
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 101293,
+      "sha256": "2c1c10265b587aa0622bf4f08b49e293e49e2b1e5b36e2bcf7f9016f5f042c29",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 30585606,
+      "sha256": "71cfc37dc14316d178ee31c132c989251e36bcd1434fa6acbc013131d70710c3",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 134684,
+      "sha256": "d76e33610715f53c2fa7369aba5dc837367f8080ba4dacf66bd21231e5f9428c",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1547259,
+      "sha256": "1a3862f2138364e91fa4d0dfc9f3d1e2ebe55e044ffca927f379ae936107f1a5",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33512872,
+      "sha256": "6da1b12bfbd0cbdbebcce47009a1803e0f5093af3fc5e83537653a1eba332ada",
+      "contentType": "image/png",
+      "reusedExisting": false
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 82592,
+      "sha256": "e8f7604313fd6133220401fd2857c9b37b5ab61bd30b1392e5605243c4d73b84",
+      "contentType": "image/png",
+      "reusedExisting": false
+    }
+  ]
+}
