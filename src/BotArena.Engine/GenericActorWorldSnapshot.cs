@@ -793,13 +793,27 @@ public sealed class GenericActorWorldSnapshot
         {
             ActorAttackProfileDefinition profile =
                 profiles[projectile.AttackProfileId];
+            // A bolt's committed path was traced at LAUNCH with the firing
+            // body's settled travel ladder, and the snapshot carries no
+            // ladder history — but the bolt itself does: its conserved
+            // reach (remaining + spent) minus the profile's declared base
+            // IS the launch-time extra, already clamped to the mode's
+            // declared headroom by the reach bounds above. Re-tracing with
+            // the raw profile instead aborted every match whose team fired
+            // after buying the travel tier (wave-8 finding, three authors
+            // independently). Zero on every ladderless contract, so this
+            // collapses to the historical exact re-trace there.
+            int inferredExtraTravelTiles = checked(
+                projectile.RemainingTiles + projectile.NextPathIndex)
+                - profile.Projectile.MaxTravelTiles;
             ImmutableArray<Position> expectedPath =
                 GenericActorProjectilePath.Trace(
                     definition.Map,
                     projectile.Origin,
                     projectile.LaunchHeading,
                     profile,
-                    projectile.ShotProgram);
+                    projectile.ShotProgram,
+                    inferredExtraTravelTiles);
             if (!projectile.CommittedPath.SequenceEqual(expectedPath))
             {
                 throw new ArgumentException(

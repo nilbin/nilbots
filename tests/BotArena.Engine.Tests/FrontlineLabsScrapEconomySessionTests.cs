@@ -533,6 +533,70 @@ public sealed class FrontlineLabsScrapEconomySessionTests
         }
     }
 
+    /// <summary>
+    /// Regression for the wave-8 abort (four authors independently): a bolt
+    /// launched down an OPEN lane after the edge tier settles carries a
+    /// committed path one tile longer than the raw profile's trace, and the
+    /// world-snapshot validator used to re-trace with the raw profile and
+    /// fault the whole match ("A retained projectile must preserve its
+    /// exact resolved committed path"). The earlier edge probe fired into a
+    /// near wall, so its truncated trace was identical either way and the
+    /// defect slipped through. This one buys edge, walks the lane east, and
+    /// fires along ~15 open tiles with the bolt alive across snapshot
+    /// boundaries — the match must complete and validate.
+    /// </summary>
+    [Fact]
+    public void TheEdgeTierDoesNotAbortAMatchWithALongBoltInFlight()
+    {
+        int purchaseTick = PurchaseTick(Run("edge").Chronology);
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.None,
+                (FrontlineLabsClassDefinition.Bulwark,
+                    FrontlineLabsClassDefinition.Bulwark),
+                economy: FrontlineLabsEconomyArm.Scrap);
+        GenericActorMatchChronology run =
+            FrontlineLabsSkillArmTestFixture.Run(
+                definition,
+                (start, observation) =>
+                {
+                    if (start.ActorId.TeamId != 0)
+                        return GenericDeathmatchSessionTestFixture.Wait();
+                    if (observation.Self.ActorId.UnitId == Idle)
+                        return Invest(observation, "edge");
+                    if (observation.Self.ActorId.UnitId != Harvester
+                        || observation.Self.ActorId.LifeId != 0)
+                        return GenericDeathmatchSessionTestFixture.Wait();
+                    if (observation.Tick <= purchaseTick)
+                        return Harvest(observation);
+                    // Post-purchase: hold the open north lane and fire east
+                    // down it — facing-locked, so the eastward step arms the
+                    // eastward gun.
+                    if (observation.Self.Position.Y > 1)
+                        return GenericDeathmatchSessionTestFixture.Move(
+                            Direction.North);
+                    if (observation.Self.Position.X < 5)
+                        return GenericDeathmatchSessionTestFixture.Move(
+                            Direction.East);
+                    return FrontlineLabsSkillArmTestFixture.Allows(
+                        observation,
+                        "shoot-straight")
+                        ? FrontlineLabsSkillArmTestFixture.ShootStraight()
+                        : GenericDeathmatchSessionTestFixture.Wait();
+                });
+
+        // The purchase happened and at least one post-purchase eastward bolt
+        // lived past its launch tick — the exact shape that used to abort.
+        Assert.True(PurchaseTick(run) > 0, "the probe never bought edge");
+        Assert.Contains(
+            run.Ticks,
+            frame => frame.Tick > purchaseTick
+                && frame.PostState.Projectiles.Any(projectile =>
+                    projectile.OwnerActorId.TeamId == 0
+                    && projectile.CommittedPath.Length
+                        > frame.Tick - projectile.SpawnedAtTick));
+    }
+
     private static int PurchaseTick(GenericActorMatchChronology run) =>
         run.Ticks
             .First(frame =>
