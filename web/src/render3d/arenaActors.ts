@@ -1113,7 +1113,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
    * `projectile-deflected` contact instead. Treating every clip as muzzle recoil left the
    * authored Shell animation unreachable in real matches even though it bound correctly.
    */
-  const semanticRecoilStarts = new Map<ReplayActorLifeKey, number[]>();
+  type SemanticRecoilStart = {
+    at: number;
+    shellDeflection: boolean;
+  };
+  const semanticRecoilStarts = new Map<
+    ReplayActorLifeKey,
+    SemanticRecoilStart[]
+  >();
   for (const tick of replay.ticks)
     for (const event of tick.events) {
       const recoilActor = isAttackEvent(event.type)
@@ -1129,7 +1136,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // A volley can carry several same-owner shot events at one tick. It is one physical
       // recoil, not one mixer reset per projectile lane. The same dedupe also makes a
       // simultaneous multi-contact Shell impact one authored response.
-      if (starts.at(-1) !== start) starts.push(start);
+      const previous = starts.at(-1);
+      if (previous?.at === start)
+        previous.shellDeflection ||= event.type === 'projectile-deflected';
+      else
+        starts.push({
+          at: start,
+          shellDeflection: event.type === 'projectile-deflected',
+        });
       semanticRecoilStarts.set(recoilActor.actorKey, starts);
     }
 
@@ -1163,23 +1177,51 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   ): number | null => {
     const starts = semanticRecoilStarts.get(actorKey);
     if (!starts) return null;
-    let start: number | null = null;
+    let start: SemanticRecoilStart | null = null;
     for (const candidate of starts) {
-      if (candidate > time) break;
+      if (candidate.at > time) break;
       start = candidate;
     }
     if (start === null) return null;
-    const recoilStart = start;
+    const recoilStart = start.at;
     const progress = (time - recoilStart) / SEMANTIC_RECOIL_TICKS;
     if (progress < 0 || progress > 1) return null;
 
     const transitions = formTimelines.get(actorKey) ?? [];
+    /**
+     * A Shell can deflect on the last authoritative tick before `mobilize`.
+     *
+     * The defensive hardware remains plainly deployed during the first half of the exact
+     * reverse clip. Dropping its additive recoil at the transition boundary made the
+     * strongest part of the response last only 110 ms and snapped it to rest under the
+     * bright deflection arc. Carry only this defensive recoil through that mechanically
+     * continuous half; once the reverse reaches the existing stance/body handover, the
+     * Shell no longer owns visible geometry and the overlay must stop. Attack recoil and
+     * Tower transitions retain their original interruption rules.
+     */
+    const carriesShellRecoil = (segment: FormSegment): boolean => {
+      if (
+        !start.shellDeflection ||
+        segment.stationary ||
+        segment.sourceShape !== 'stance' ||
+        segment.shape !== 'mobile' ||
+        time < segment.at ||
+        time >= segment.at + segment.span
+      )
+        return false;
+      const reverseProgress = Math.max(
+        0,
+        Math.min((time - segment.at) / segment.span, 1),
+      );
+      return easeInOut(1 - reverseProgress) > STANCE_HANDOVER;
+    };
     const interrupted = transitions.some(
       (segment) =>
         segment.at <= time &&
         segment.at < recoilStart + SEMANTIC_RECOIL_TICKS &&
         segment.at + segment.span > recoilStart &&
-        (segment.at >= recoilStart || !segment.stationary),
+        (segment.at >= recoilStart || !segment.stationary) &&
+        !carriesShellRecoil(segment),
     );
     if (interrupted) return null;
     const transitioning = transitions.some(
@@ -1187,7 +1229,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         segment.at <= time &&
         segment.at + segment.span > time &&
         segment.at < recoilStart + SEMANTIC_RECOIL_TICKS &&
-        segment.at + segment.span > recoilStart,
+        segment.at + segment.span > recoilStart &&
+        !carriesShellRecoil(segment),
     );
     return transitioning ? null : progress;
   };

@@ -267,6 +267,38 @@ function withShellDeflection(source: ReplayModel): ReplayModel {
   return model;
 }
 
+/**
+ * Deflect in Shell, then begin the exact Shell → Mobile reverse one tick later.
+ *
+ * This is the native Bulwark cadence: a one-tick stance can defend and immediately
+ * mobilize, while its authored plates are still visibly collapsing through the first
+ * half of the reverse.
+ */
+function withShellDeflectionThenMobilize(
+  source: ReplayModel,
+): ReplayModel {
+  const model = withShellDeflection(source);
+  const shell = model.ticks[9].events.find(
+    (event) =>
+      event.type === 'form-transition-started' &&
+      event.sourceActor?.actorKey === TRANSFORMING_ACTOR,
+  );
+  assert.ok(shell);
+  model.ticks[11].events.push({
+    ...structuredClone(shell),
+    eventId: 'synthetic:semantic-shell-mobilize',
+    tick: 11,
+    fromFormId: 'child-mobile-aegis-shell',
+    toFormId: 'child-mobile',
+    formTransitionStartedAtTick: 11,
+    formTransitionCompletesAtTick: 11,
+  });
+  for (const actor of model.ticks[11].after.actors)
+    if (actor.actorKey === TRANSFORMING_ACTOR)
+      actor.formId = 'child-mobile';
+  return model;
+}
+
 /** Defensive-looking contacts on ordinary Mobile/Tower forms must not borrow Shell recoil. */
 function withNonShellDeflections(source: ReplayModel): ReplayModel {
   const model = structuredClone(source) as ReplayModel;
@@ -423,6 +455,57 @@ test('Shell recoil follows an incoming deflection and preserves authored recover
   close(rig.recoil.position.x, recovering);
 
   actors.update(11.61, null, false);
+  close(rig.recoil.position.x, 0);
+
+  actors.dispose();
+});
+
+test('Shell recoil survives early reverse, scrubs purely, and stops at the mobile handover', () => {
+  const actors = buildActors(
+    withShellDeflectionThenMobilize(frontline),
+  );
+  const rig = semanticRig();
+  install(actors, TRANSFORMING_UNIT, rig);
+
+  actors.update(10.7, null, false);
+  assert.ok(rig.recoil.position.x < -0.5);
+
+  // The reverse begins at tick 11. At 11.2 the authored Shell is still above the
+  // renderer's exact 50% stance/body handover, so its defensive recovery continues
+  // concurrently with the collapsing plate mechanism.
+  actors.update(11.2, null, false);
+  assert.ok(rig.shell.position.x > 5);
+  assert.ok(
+    rig.recoil.position.x < -0.5,
+    `Shell recovery remains visible during early reverse (${rig.recoil.position.x})`,
+  );
+  const earlyReverse = {
+    shell: rig.shell.position.x,
+    recoil: rig.recoil.position.x,
+  };
+
+  // Absolute replay sampling: history and direction do not change either channel.
+  actors.update(10.2, null, false);
+  actors.update(11.2, null, false);
+  close(rig.shell.position.x, earlyReverse.shell);
+  close(rig.recoil.position.x, earlyReverse.recoil);
+
+  actors.update(11.49, null, false);
+  assert.ok(rig.shell.position.x > 5);
+  assert.ok(
+    Math.abs(rig.recoil.position.x) > 0.1,
+    'the authored recovery remains present immediately before handover',
+  );
+
+  // At the exact existing handover the semantic Shell no longer owns visible geometry.
+  // No recoil tail may leak into the Mobile half of the reverse or reappear later.
+  actors.update(11.5, null, false);
+  close(rig.recoil.position.x, 0);
+  actors.update(11.8, null, false);
+  close(rig.recoil.position.x, 0);
+  actors.update(11.2, null, false);
+  close(rig.recoil.position.x, earlyReverse.recoil);
+  actors.update(11.8, null, false);
   close(rig.recoil.position.x, 0);
 
   actors.dispose();
