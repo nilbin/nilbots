@@ -17,6 +17,19 @@ audited high-detail provider masters. Neither raw master is a runtime asset:
   targeted fork/truss correction, semantic material isolation, and runtime
   optimization.
 
+Bulwark's distinct Shell and whole-Turret forms now have separately charged
+raw masters and a fixed Blender 5.2 audit as well. Both reconstruct their
+corrected concept inputs strongly, but exact welding proves each is one
+watertight manifold rather than usable rigid parts:
+
+- Shell reaches 90.56% top IoU to the corrected concept input, 84.81% to the
+  exact form SVG, and is 17.1% too thin in side profile. Preserve its visual
+  evidence while rebuilding named guard and support hierarchies.
+- Whole Turret reaches 95.62% top IoU to the corrected concept input, 83.98%
+  to the exact form SVG, and 99.84% fourfold rotational IoU. Rebuild one
+  canonical arm/support hierarchy at exact 90-degree increments around one
+  singular hub; the completed whole object is mounted once.
+
 The tasks, exact inputs, hashes, PBR maps, audit overlays, and raw verdicts are
 recorded under `provider-inputs/meshy/` and `provider-runs/meshy/`. The raw
 GLBs remain ignored recoverable masters; only reviewed derivatives may enter

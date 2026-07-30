@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-shell",
+  "label": "Aegis Tortoise Shell",
+  "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0",
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/raw-model.glb",
+    "bytes": 51000780,
+    "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+    "preservedUnmodified": true
+  },
+  "provenance": {
+    "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/request-record.json",
+    "durableArtifactSetMatchesRecord": true,
+    "checkedArtifacts": [
+      {
+        "file": "raw-model.glb",
+        "bytes": 51000780,
+        "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+        "recordBytes": 51000780,
+        "recordSha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+        "matches": true
+      },
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 28696588,
+        "sha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75",
+        "recordBytes": 28696588,
+        "recordSha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75",
+        "matches": true
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 636928,
+        "sha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8",
+        "recordBytes": 636928,
+        "recordSha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8",
+        "matches": true
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1611814,
+        "sha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91",
+        "recordBytes": 1611814,
+        "recordSha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91",
+        "matches": true
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 33028364,
+        "sha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239",
+        "recordBytes": 33028364,
+        "recordSha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239",
+        "matches": true
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 464514,
+        "sha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5",
+        "recordBytes": 464514,
+        "recordSha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5",
+        "matches": true
+      }
+    ],
+    "providerPreviewUsedForVerdict": false,
+    "paidCallsMade": 0
+  },
+  "normalization": {
+    "sourceFacing": "-x",
+    "sourceUp": "+y",
+    "targetFacing": "+x",
+    "targetUp": "+y",
+    "dccReviewUp": "+z",
+    "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+    "uniformScale": 0.5264959264796834,
+    "normalizedBounds": {
+      "minimum": [
+        -0.5,
+        -0.37171587347984314,
+        0
+      ],
+      "maximum": [
+        0.5,
+        0.37171587347984314,
+        0.2552568316459656
+      ],
+      "span": [
+        1,
+        0.7434317469596863,
+        0.2552568316459656
+      ]
+    },
+    "authoredPlanformSpanTiles": 1
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 414315,
+    "triangles": 788278,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "topology": {
+    "indexedSeamIslands": 346,
+    "weldedUniquePositions": 394005,
+    "weldedEdges": 1182417,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateTrianglesAfterWeld": 0,
+    "weldedComponentDetails": [
+      {
+        "component": 1,
+        "weldedVertices": 394005,
+        "triangles": 788278,
+        "bounds": {
+          "minimum": [
+            -0.5000000054046628,
+            -0.37171588535351036,
+            -2.0607302531061578e-9
+          ],
+          "maximum": [
+            0.5000000066590918,
+            0.3717158610523416,
+            0.25525681207658124
+          ],
+          "span": [
+            1.0000000120637547,
+            0.743431746405852,
+            0.2552568141373115
+          ]
+        },
+        "centroid": [
+          0.02269440347353655,
+          0.0002559425217833216,
+          0.12501868469775068
+        ],
+        "planformCoverage": {
+          "longitudinalX": 1,
+          "lateralY": 1
+        },
+        "heightZ": 0.2552568141373115,
+        "surfaceArea": 2.8929773359072257,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "watertight": true
+      }
+    ],
+    "reportedAxes": {
+      "longitudinal": "x",
+      "lateral": "y",
+      "height": "z"
+    },
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  },
+  "silhouette": {
+    "method": "centered bounds, uniform scale and translation only; no rotation, reflection, deformation, or non-uniform warp",
+    "exactSvgTop": {
+      "authority": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+      "authoritySha256": "935cd10f6ecbe6b006e14011218d0619160f89b78e6b20c6b6a0d7469dc03d81",
+      "iou": 0.8481024316174022,
+      "coverage": 0.9027632892014791,
+      "precision": 0.9333645199854462,
+      "translationPixels": [
+        -8,
+        0
+      ]
+    },
+    "correctedConceptTop": {
+      "authority": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/01-top.png",
+      "authoritySha256": "d39111631efa577b5efdfa16811da6a03d4a9aa8714def29ee455cf7681e26e4",
+      "iou": 0.9056087518146104,
+      "coverage": 0.9306556617636071,
+      "precision": 0.9711393523571912,
+      "translationPixels": [
+        -6,
+        -2
+      ]
+    },
+    "approvedSide": {
+      "authority": "art/class-models/provider-inputs/meshy/aegis-tortoise-shell/clean-v1/02-side.png",
+      "authoritySha256": "98e0fed13fe0edbf613150763df7d1d53700769148a44ab54112d8e5f72c9e3f",
+      "iou": 0.8390012484394507,
+      "cleanHeightToLength": 0.30816831683168316,
+      "modelHeightToLength": 0.25552825552825553,
+      "heightDrift": -0.17081594190027927,
+      "translationPixels": [
+        3,
+        -8
+      ]
+    },
+    "fourfoldRotationalIou": null
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasTeamAccentMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 28696588,
+        "sha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 464514,
+        "sha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 636928,
+        "sha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 33028364,
+        "sha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1611814,
+        "sha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91",
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "sourceTextureColorStats": {
+      "baseColor": {
+        "sampledPixels": 262144,
+        "meanSaturation": 0.23620776247083167,
+        "stronglyChromaticFraction": 0.2666740417480469,
+        "strongCyanFraction": 0.04204559326171875
+      },
+      "emission": {
+        "sampledPixels": 262144,
+        "meanSaturation": 0.035165868990738904,
+        "stronglyChromaticFraction": 0.024852752685546875,
+        "strongCyanFraction": 0.02477264404296875
+      }
+    },
+    "teamNeutral": false,
+    "directlyTintable": false,
+    "semanticExpectation": "three team inlays: two shield-edge bars and one west-centre panel; central core is fixed class energy",
+    "verdict": "one fused material with baked cyan and no team-accent semantic role; offline semantic material authoring is mandatory"
+  },
+  "rigging": {
+    "segmentationViability": "not-directly-segmentable-single-watertight-manifold",
+    "retopoRiggingViability": "viable-visual-and-material-reference-for-authored-rebuild",
+    "rawSkins": 0,
+    "rawAnimations": 0,
+    "rawMorphTargets": 0
+  },
+  "runtime": {
+    "installed": false,
+    "currentSpriteScale": 1.2,
+    "authoredCandidateProduced": false
+  },
+  "correctionPrescription": [
+    "return the final blockout to the exact East-facing SVG outer planform: restore the north/south rear lobes, trim provider-only west pod and shield-shoulder protrusions, and preserve the hard +/-45-degree guard edges, open other three quadrants, and no muzzle",
+    "retain the approved low planted side class; do not globally scale or flatten the raw shell to repair local contour drift",
+    "author a new named root, directional guard hierarchy, and planted support hierarchy because exact welding proves the raw mesh has no separable rigid parts",
+    "retopologize and rebake the approved top armor and side mechanics with tangents instead of rigging the 788k-triangle provider manifold",
+    "isolate only the two shield bars and west-centre panel as neutral team-accent; preserve the central reactor as class energy"
+  ],
+  "verdict": "accepted-high-detail-shell-form-reference-requires-authored-retopo-and-rig"
+}

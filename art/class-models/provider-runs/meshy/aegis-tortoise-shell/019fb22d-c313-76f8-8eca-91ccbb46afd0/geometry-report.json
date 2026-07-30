@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-shell",
+  "label": "Aegis Tortoise Shell",
+  "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0",
+  "auditTool": {
+    "name": "Blender",
+    "version": "5.2.0",
+    "script": "scripts/class-models/audit-bulwark-form-masters.py"
+  },
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/raw-model.glb",
+    "bytes": 51000780,
+    "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+    "preservedUnmodified": true
+  },
+  "provenance": {
+    "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0/request-record.json",
+    "durableMasterMatchesRecord": true,
+    "providerPreviewUsedForVerdict": false,
+    "paidCallsMade": 0
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 414315,
+    "triangles": 788278,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasTeamAccentMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 28696588,
+        "sha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 464514,
+        "sha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 636928,
+        "sha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 33028364,
+        "sha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1611814,
+        "sha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91",
+        "width": 2048,
+        "height": 2048
+      }
+    ]
+  },
+  "presentation": {
+    "currentSpriteScale": 1.2,
+    "directional": true,
+    "turretHasNoPrivilegedFacing": false
+  },
+  "normalization": {
+    "sourceFacing": "-x",
+    "sourceUp": "+y",
+    "targetFacing": "+x",
+    "targetUp": "+y",
+    "dccReviewUp": "+z",
+    "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+    "uniformScale": 0.5264959264796834,
+    "normalizedBounds": {
+      "minimum": [
+        -0.5,
+        -0.37171587347984314,
+        0.0
+      ],
+      "maximum": [
+        0.5,
+        0.37171587347984314,
+        0.2552568316459656
+      ],
+      "span": [
+        1.0,
+        0.7434317469596863,
+        0.2552568316459656
+      ]
+    },
+    "authoredPlanformSpanTiles": 1.0
+  },
+  "topology": {
+    "indexedSeamIslands": 346,
+    "weldedUniquePositions": 394005,
+    "weldedEdges": 1182417,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateTrianglesAfterWeld": 0,
+    "weldedComponentDetails": [
+      {
+        "component": 1,
+        "weldedVertices": 394005,
+        "triangles": 788278,
+        "bounds": {
+          "minimum": [
+            -0.5000000054046628,
+            -0.37171588535351036,
+            -2.0607302531061578e-09
+          ],
+          "maximum": [
+            0.5000000066590918,
+            0.3717158610523416,
+            0.25525681207658124
+          ],
+          "span": [
+            1.0000000120637547,
+            0.743431746405852,
+            0.2552568141373115
+          ]
+        },
+        "centroid": [
+          0.02269440347353655,
+          0.0002559425217833216,
+          0.12501868469775068
+        ],
+        "planformCoverage": {
+          "longitudinalX": 1.0,
+          "lateralY": 1.0
+        },
+        "heightZ": 0.2552568141373115,
+        "surfaceArea": 2.8929773359072257,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "watertight": true
+      }
+    ],
+    "reportedAxes": {
+      "longitudinal": "x",
+      "lateral": "y",
+      "height": "z"
+    },
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  }
+}

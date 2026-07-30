@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-turret",
+  "label": "Aegis Tortoise whole Turret",
+  "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/raw-model.glb",
+    "bytes": 50525092,
+    "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+    "preservedUnmodified": true
+  },
+  "provenance": {
+    "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/request-record.json",
+    "durableArtifactSetMatchesRecord": true,
+    "checkedArtifacts": [
+      {
+        "file": "raw-model.glb",
+        "bytes": 50525092,
+        "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+        "recordBytes": 50525092,
+        "recordSha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+        "matches": true
+      },
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 32855923,
+        "sha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae",
+        "recordBytes": 32855923,
+        "recordSha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae",
+        "matches": true
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 1002711,
+        "sha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf",
+        "recordBytes": 1002711,
+        "recordSha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf",
+        "matches": true
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1755276,
+        "sha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20",
+        "recordBytes": 1755276,
+        "recordSha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20",
+        "matches": true
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 34909212,
+        "sha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559",
+        "recordBytes": 34909212,
+        "recordSha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559",
+        "matches": true
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 539286,
+        "sha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba",
+        "recordBytes": 539286,
+        "recordSha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba",
+        "matches": true
+      }
+    ],
+    "providerPreviewUsedForVerdict": false,
+    "paidCallsMade": 0
+  },
+  "normalization": {
+    "sourceFacing": "+x",
+    "sourceUp": "+y",
+    "targetFacing": "+x",
+    "targetUp": "+y",
+    "dccReviewUp": "+z",
+    "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+    "uniformScale": 0.5264898133048542,
+    "normalizedBounds": {
+      "minimum": [
+        -0.5,
+        -0.4999552369117737,
+        7.450580596923828e-9
+      ],
+      "maximum": [
+        0.5,
+        0.4999552369117737,
+        0.23589849472045898
+      ],
+      "span": [
+        1,
+        0.9999104738235474,
+        0.23589849472045898
+      ]
+    },
+    "authoredPlanformSpanTiles": 1
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 318052,
+    "triangles": 604506,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "topology": {
+    "indexedSeamIslands": 275,
+    "weldedUniquePositions": 302193,
+    "weldedEdges": 906759,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateTrianglesAfterWeld": 0,
+    "weldedComponentDetails": [
+      {
+        "component": 1,
+        "weldedVertices": 302193,
+        "triangles": 604506,
+        "bounds": {
+          "minimum": [
+            -0.499999981880606,
+            -0.49995523226544236,
+            5.734581698391139e-9
+          ],
+          "maximum": [
+            0.4999999819353107,
+            0.4999552322620815,
+            0.23589850042043992
+          ],
+          "span": [
+            0.9999999638159167,
+            0.9999104645275239,
+            0.23589849468585822
+          ]
+        },
+        "centroid": [
+          -0.0006975405743658243,
+          -0.00018837804560922045,
+          0.11833963930853292
+        ],
+        "planformCoverage": {
+          "longitudinalX": 1,
+          "lateralY": 1
+        },
+        "heightZ": 0.23589849468585822,
+        "surfaceArea": 1.8855368065346525,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "watertight": true
+      }
+    ],
+    "reportedAxes": {
+      "longitudinal": "x",
+      "lateral": "y",
+      "height": "z"
+    },
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  },
+  "silhouette": {
+    "method": "centered bounds, uniform scale and translation only; no rotation, reflection, deformation, or non-uniform warp",
+    "exactSvgTop": {
+      "authority": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+      "authoritySha256": "f2a471ce82285a8bba848e193e4d3a3e4d23567ddf6da2777f811c230a12dd04",
+      "iou": 0.8398083499408573,
+      "coverage": 0.8487777648563787,
+      "precision": 0.9875732022818545,
+      "translationPixels": [
+        0,
+        0
+      ]
+    },
+    "correctedConceptTop": {
+      "authority": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+      "authoritySha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2",
+      "iou": 0.956164918038044,
+      "coverage": 0.9871051041606317,
+      "precision": 0.9682591658457907,
+      "translationPixels": [
+        1,
+        8
+      ]
+    },
+    "approvedSide": {
+      "authority": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/02-side.png",
+      "authoritySha256": "87fe51f18efedb8f1b5160899715bdd6c4efb34d19b1a04738db6492a908adc2",
+      "iou": 0.825706814839026,
+      "cleanHeightToLength": 0.26081582200247216,
+      "modelHeightToLength": 0.23832923832923833,
+      "heightDrift": -0.08621633266183015,
+      "translationPixels": [
+        4,
+        -6
+      ]
+    },
+    "fourfoldRotationalIou": 0.9983559925154396
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasTeamAccentMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 32855923,
+        "sha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 539286,
+        "sha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 1002711,
+        "sha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 34909212,
+        "sha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1755276,
+        "sha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20",
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "sourceTextureColorStats": {
+      "baseColor": {
+        "sampledPixels": 262144,
+        "meanSaturation": 0.21745109759821424,
+        "stronglyChromaticFraction": 0.2577857971191406,
+        "strongCyanFraction": 0.034824371337890625
+      },
+      "emission": {
+        "sampledPixels": 262144,
+        "meanSaturation": 0.030032205225429886,
+        "stronglyChromaticFraction": 0.020145416259765625,
+        "strongCyanFraction": 0.020145416259765625
+      }
+    },
+    "teamNeutral": false,
+    "directlyTintable": false,
+    "semanticExpectation": "four equal top cardinal team inlays; central core is fixed class energy; no cyan under-arm panels",
+    "verdict": "one fused material with baked cyan and no team-accent semantic role; offline semantic material authoring is mandatory"
+  },
+  "rigging": {
+    "segmentationViability": "not-directly-segmentable-single-watertight-manifold",
+    "retopoRiggingViability": "viable-visual-and-material-reference-for-fourfold-authored-rebuild",
+    "rawSkins": 0,
+    "rawAnimations": 0,
+    "rawMorphTargets": 0
+  },
+  "runtime": {
+    "installed": false,
+    "currentSpriteScale": 1.08,
+    "authoredCandidateProduced": false
+  },
+  "correctionPrescription": [
+    "retain one singular hub, four equal cardinal arms, four diagonal shoulder webs, and no privileged front; expand all four diagonal shoulder-web footprints and trim all four terminal pod tips equally to the exact SVG contour under strict fourfold symmetry",
+    "rebuild one canonical arm/support hierarchy and rotate authored copies by exact 90-degree increments around one hub; mount the resulting whole turret once at runtime",
+    "reconstruct the approved compact planted locks and underbody instead of rigging the fused provider lower structure",
+    "remove the four unintended cyan under-arm faces visible in side/oblique review; isolate only the four top bars as neutral team-accent and keep the reactor as class energy",
+    "retopologize and rebake with tangents; author anchor/deploy and fire response only on named rebuilt parts"
+  ],
+  "verdict": "accepted-high-detail-radial-top-reference-requires-authored-symmetric-rebuild"
+}

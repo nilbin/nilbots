@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "blender": {
+    "version": "5.2.0",
+    "binary": "var/toolchains/Blender-5.2.0.app/Contents/MacOS/Blender"
+  },
+  "sourcePolicy": "durable raw provider masters preserved; provider previews are provenance only and never verdict evidence",
+  "normalization": "per-master inspected source up/facing; +X target facing, +Y runtime up, one-tile authored planform; uniform scale and translation only",
+  "masters": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0",
+      "sourceSha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec",
+      "exactSvgTopIou": 0.8481024316174022,
+      "correctedConceptTopIou": 0.9056087518146104,
+      "approvedSideIouApprox": 0.8390012484394507,
+      "sideHeightDrift": -0.17081594190027927,
+      "fourfoldRotationalIou": null,
+      "weldedComponents": 1,
+      "triangles": 788278,
+      "materials": 1,
+      "hasTeamAccentMaterial": false,
+      "verdict": "accepted-high-detail-shell-form-reference-requires-authored-retopo-and-rig",
+      "segmentationViability": "not-directly-segmentable-single-watertight-manifold",
+      "retopoRiggingViability": "viable-visual-and-material-reference-for-authored-rebuild"
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+      "sourceSha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+      "exactSvgTopIou": 0.8398083499408573,
+      "correctedConceptTopIou": 0.956164918038044,
+      "approvedSideIouApprox": 0.825706814839026,
+      "sideHeightDrift": -0.08621633266183015,
+      "fourfoldRotationalIou": 0.9983559925154396,
+      "weldedComponents": 1,
+      "triangles": 604506,
+      "materials": 1,
+      "hasTeamAccentMaterial": false,
+      "verdict": "accepted-high-detail-radial-top-reference-requires-authored-symmetric-rebuild",
+      "segmentationViability": "not-directly-segmentable-single-watertight-manifold",
+      "retopoRiggingViability": "viable-visual-and-material-reference-for-fourfold-authored-rebuild"
+    }
+  ],
+  "authoredCandidatesProduced": 0,
+  "runtimeOrFrontendEdits": 0,
+  "paidCallsMade": 0
+}

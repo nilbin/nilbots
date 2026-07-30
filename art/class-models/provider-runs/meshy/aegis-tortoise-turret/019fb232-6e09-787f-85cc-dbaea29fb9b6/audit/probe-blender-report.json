@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-turret",
+  "label": "Aegis Tortoise whole Turret",
+  "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+  "auditTool": {
+    "name": "Blender",
+    "version": "5.2.0",
+    "script": "scripts/class-models/audit-bulwark-form-masters.py"
+  },
+  "source": {
+    "storagePath": "var/model-artifacts/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/raw-model.glb",
+    "bytes": 50525092,
+    "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+    "preservedUnmodified": true
+  },
+  "provenance": {
+    "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/request-record.json",
+    "durableMasterMatchesRecord": true,
+    "providerPreviewUsedForVerdict": false,
+    "paidCallsMade": 0
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 318052,
+    "triangles": 604506,
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticRoles": [],
+    "hasTeamAccentMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "emission",
+      "metallicRoughness",
+      "normal"
+    ],
+    "losslessProviderMaps": [
+      {
+        "file": "texture-0-base-color.png",
+        "bytes": 32855923,
+        "sha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-emission.png",
+        "bytes": 539286,
+        "sha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-metallic.png",
+        "bytes": 1002711,
+        "sha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "file": "texture-0-normal.png",
+        "bytes": 34909212,
+        "sha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559",
+        "width": 4096,
+        "height": 4096
+      },
+      {
+        "file": "texture-0-roughness.png",
+        "bytes": 1755276,
+        "sha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20",
+        "width": 2048,
+        "height": 2048
+      }
+    ]
+  },
+  "presentation": {
+    "currentSpriteScale": 1.08,
+    "directional": false,
+    "turretHasNoPrivilegedFacing": true
+  },
+  "normalizationProbes": {
+    "up-+z-facing-+x": {
+      "sourceFacing": "+x",
+      "sourceUp": "+z",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5264898133048542,
+      "normalizedBounds": {
+        "minimum": [
+          -0.5,
+          -0.11794924736022949,
+          4.231705208468384e-09
+        ],
+        "maximum": [
+          0.5,
+          0.11794924736022949,
+          0.9999104738235474
+        ],
+        "span": [
+          1.0,
+          0.23589849472045898,
+          0.9999104738235474
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    },
+    "up-+z-facing--x": {
+      "sourceFacing": "-x",
+      "sourceUp": "+z",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5264898133048542,
+      "normalizedBounds": {
+        "minimum": [
+          -0.4999999701976776,
+          -0.11794924736022949,
+          4.231705208468384e-09
+        ],
+        "maximum": [
+          0.5,
+          0.11794924736022949,
+          0.9999104738235474
+        ],
+        "span": [
+          1.0,
+          0.23589849472045898,
+          0.9999104738235474
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    },
+    "up-+y-facing-+x": {
+      "sourceFacing": "+x",
+      "sourceUp": "+y",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5264898133048542,
+      "normalizedBounds": {
+        "minimum": [
+          -0.5,
+          -0.4999552369117737,
+          7.450580596923828e-09
+        ],
+        "maximum": [
+          0.5,
+          0.4999552369117737,
+          0.23589849472045898
+        ],
+        "span": [
+          1.0,
+          0.9999104738235474,
+          0.23589849472045898
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    },
+    "up-+y-facing--x": {
+      "sourceFacing": "-x",
+      "sourceUp": "+y",
+      "targetFacing": "+x",
+      "targetUp": "+y",
+      "dccReviewUp": "+z",
+      "operation": "fixed source-up correction; optional fixed 180-degree yaw; uniform scale and translation only",
+      "uniformScale": 0.5264898133048542,
+      "normalizedBounds": {
+        "minimum": [
+          -0.4999999701976776,
+          -0.4999552369117737,
+          7.450580596923828e-09
+        ],
+        "maximum": [
+          0.5,
+          0.4999552369117737,
+          0.23589849472045898
+        ],
+        "span": [
+          1.0,
+          0.9999104738235474,
+          0.23589849472045898
+        ]
+      },
+      "authoredPlanformSpanTiles": 1.0
+    }
+  }
+}

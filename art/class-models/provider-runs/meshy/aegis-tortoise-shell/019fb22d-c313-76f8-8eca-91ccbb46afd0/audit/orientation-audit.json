@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-shell",
+  "method": "two observed Meshy source-up conventions, both longitudinal facings, longest-span normalization, uniform scale and translation only",
+  "authority": {
+    "path": "web/src/assets/class-looks/aegis-tortoise-shell/sprite.svg",
+    "sha256": "935cd10f6ecbe6b006e14011218d0619160f89b78e6b20c6b6a0d7469dc03d81",
+    "bounds": {
+      "left": 119,
+      "top": 173,
+      "right": 1023,
+      "bottom": 850,
+      "width": 905,
+      "height": 678
+    }
+  },
+  "candidates": {
+    "up-+z-facing-+x": {
+      "iou": 0.35454772926310524,
+      "coverage": 0.35617598781367593,
+      "precision": 0.9872702442831064,
+      "translationPixels": [
+        1,
+        2
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 408,
+        "right": 918,
+        "bottom": 615,
+        "width": 814,
+        "height": 208
+      }
+    },
+    "up-+z-facing--x": {
+      "iou": 0.35522802975281126,
+      "coverage": 0.35653795783551984,
+      "precision": 0.9897631641382776,
+      "translationPixels": [
+        8,
+        8
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 408,
+        "right": 918,
+        "bottom": 615,
+        "width": 814,
+        "height": 208
+      }
+    },
+    "up-+y-facing-+x": {
+      "iou": 0.835769710731007,
+      "coverage": 0.8956294633543058,
+      "precision": 0.9259527800517159,
+      "translationPixels": [
+        8,
+        1
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 209,
+        "right": 918,
+        "bottom": 814,
+        "width": 814,
+        "height": 606
+      }
+    },
+    "up-+y-facing--x": {
+      "iou": 0.8481024316174022,
+      "coverage": 0.9027632892014791,
+      "precision": 0.9333645199854462,
+      "translationPixels": [
+        -8,
+        0
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 209,
+        "right": 918,
+        "bottom": 814,
+        "width": 814,
+        "height": 606
+      }
+    }
+  },
+  "bestCandidate": "up-+y-facing--x",
+  "inspectedCandidate": "up-+y-facing--x",
+  "inspectedCandidateIsBest": true,
+  "note": "Shell facing is identity-bearing: the physical guard must end on target +X."
+}

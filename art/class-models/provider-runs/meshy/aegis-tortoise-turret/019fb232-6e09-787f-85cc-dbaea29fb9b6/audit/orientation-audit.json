@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-turret",
+  "method": "two observed Meshy source-up conventions, both longitudinal facings, longest-span normalization, uniform scale and translation only",
+  "authority": {
+    "path": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+    "sha256": "f2a471ce82285a8bba848e193e4d3a3e4d23567ddf6da2777f811c230a12dd04",
+    "bounds": {
+      "left": 71,
+      "top": 71,
+      "right": 952,
+      "bottom": 952,
+      "width": 882,
+      "height": 882
+    }
+  },
+  "candidates": {
+    "up-+z-facing-+x": {
+      "iou": 0.2786292849351312,
+      "coverage": 0.2792254913362019,
+      "precision": 0.9923949972307871,
+      "translationPixels": [
+        0,
+        0
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 415,
+        "right": 918,
+        "bottom": 608,
+        "width": 814,
+        "height": 194
+      }
+    },
+    "up-+z-facing--x": {
+      "iou": 0.2786518470725577,
+      "coverage": 0.27924874985463427,
+      "precision": 0.9923874231303312,
+      "translationPixels": [
+        0,
+        1
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 415,
+        "right": 918,
+        "bottom": 608,
+        "width": 814,
+        "height": 194
+      }
+    },
+    "up-+y-facing-+x": {
+      "iou": 0.8398083499408573,
+      "coverage": 0.8487777648563787,
+      "precision": 0.9875732022818545,
+      "translationPixels": [
+        0,
+        0
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 105,
+        "right": 918,
+        "bottom": 918,
+        "width": 814,
+        "height": 814
+      }
+    },
+    "up-+y-facing--x": {
+      "iou": 0.8397972122436674,
+      "coverage": 0.8487684614490058,
+      "precision": 0.987570395187283,
+      "translationPixels": [
+        0,
+        0
+      ],
+      "sourceBounds": {
+        "left": 105,
+        "top": 105,
+        "right": 918,
+        "bottom": 918,
+        "width": 814,
+        "height": 814
+      }
+    }
+  },
+  "bestCandidate": "up-+y-facing-+x",
+  "inspectedCandidate": "up-+y-facing-+x",
+  "inspectedCandidateIsBest": true,
+  "note": "Whole Turret is fourfold-radial and has no privileged facing; +X is a canonical storage choice."
+}
