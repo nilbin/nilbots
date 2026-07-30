@@ -150,6 +150,19 @@ const STANCE_POOL_SPREAD = 0.45;
 const RING_HOLD = 0.25;
 const TURRET_TAKEOVER = 0.6;
 
+/** The point in a replay tick at which launch/impact presentation begins. */
+const SHOT_PRESENTATION_START = 0.45;
+/** Existing generic kick window. Kept unchanged for non-semantic models. */
+const GENERIC_RECOIL_TICKS = 0.45;
+/**
+ * Authored rigid recoil needs enough screen time to show both kick and recovery.
+ *
+ * At the presentation clock's five ticks per second this is about 230 ms: still sharp,
+ * but long enough for a 22–34-frame Blender clip not to be crushed into the old 90 ms
+ * generic impulse.
+ */
+const SEMANTIC_RECOIL_TICKS = 1.15;
+
 /**
  * The eight tiles around a bot. A wall in any of them cancels the drift outright.
  *
@@ -1092,6 +1105,20 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   for (const timeline of formTimelines.values())
     timeline.sort((left, right) => left.at - right.at);
 
+  /** Exact attack launch times per actor life, used only by authored recoil clips. */
+  const semanticRecoilStarts = new Map<ReplayActorLifeKey, number[]>();
+  for (const tick of replay.ticks)
+    for (const event of tick.events) {
+      if (!isAttackEvent(event.type) || !event.sourceActor) continue;
+      const starts =
+        semanticRecoilStarts.get(event.sourceActor.actorKey) ?? [];
+      const start = tick.tick + SHOT_PRESENTATION_START;
+      // A volley can carry several same-owner shot events at one tick. It is one physical
+      // recoil, not one mixer reset per projectile lane.
+      if (starts.at(-1) !== start) starts.push(start);
+      semanticRecoilStarts.set(event.sourceActor.actorKey, starts);
+    }
+
   /** The transition covering the playhead for this life, or null before its first one. */
   const segmentAt = (
     actorKey: ReplayActorLifeKey,
@@ -1105,6 +1132,50 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       current = segment;
     }
     return current;
+  };
+
+  /**
+   * Absolute progress through the latest authored recoil, or null outside its window.
+   *
+   * A form transition interrupts the recovery once the transition actually begins. The
+   * future is never consulted early, so scrubbing to a pre-transition instant still shows
+   * the recoil that was true then. A deploy already settling when a legal shot launches
+   * merely delays sampling until that settle completes; a transition away, or one begun
+   * after launch, cancels the remaining recovery so it cannot reappear near its tail.
+   */
+  const semanticRecoilAt = (
+    actorKey: ReplayActorLifeKey,
+    time: number,
+  ): number | null => {
+    const starts = semanticRecoilStarts.get(actorKey);
+    if (!starts) return null;
+    let start: number | null = null;
+    for (const candidate of starts) {
+      if (candidate > time) break;
+      start = candidate;
+    }
+    if (start === null) return null;
+    const recoilStart = start;
+    const progress = (time - recoilStart) / SEMANTIC_RECOIL_TICKS;
+    if (progress < 0 || progress > 1) return null;
+
+    const transitions = formTimelines.get(actorKey) ?? [];
+    const interrupted = transitions.some(
+      (segment) =>
+        segment.at <= time &&
+        segment.at < recoilStart + SEMANTIC_RECOIL_TICKS &&
+        segment.at + segment.span > recoilStart &&
+        (segment.at >= recoilStart || !segment.stationary),
+    );
+    if (interrupted) return null;
+    const transitioning = transitions.some(
+      (segment) =>
+        segment.at <= time &&
+        segment.at + segment.span > time &&
+        segment.at < recoilStart + SEMANTIC_RECOIL_TICKS &&
+        segment.at + segment.span > recoilStart,
+    );
+    return transitioning ? null : progress;
   };
 
   const botsByUnit = new Map(
@@ -1301,7 +1372,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     ] as const;
     // Beams and impacts land in the second half of the tick, after movement has settled —
     // the same window the flat renderer uses, so a hit lands at the same instant in both.
-    const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
+    const shotProgress = Math.max(
+      0,
+      Math.min(
+        (fraction - SHOT_PRESENTATION_START) /
+          GENERIC_RECOIL_TICKS,
+        1,
+      ),
+    );
 
     /**
      * Where a bot is, splined through the tiles either side of the one it is crossing.
@@ -1481,9 +1559,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           : semanticRecoilForm === 'stance'
             ? semanticCapabilities.stanceRecoil
             : semanticCapabilities.emplacedRecoil);
+      const semanticRecoilProgress = semanticRecoilAt(
+        pose.actorKey,
+        time,
+      );
       const semanticRecoil: SemanticRecoilSample | undefined =
-        firing && hasSemanticRecoil
-          ? { form: semanticRecoilForm, progress: shotProgress }
+        hasSemanticRecoil && semanticRecoilProgress !== null
+          ? {
+              form: semanticRecoilForm,
+              progress: semanticRecoilProgress,
+            }
           : undefined;
       const semanticActive =
         semanticModel !== undefined &&
@@ -1521,7 +1606,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const semanticEmplacedPulse =
         semanticActive &&
         emplacing &&
-        semanticRecoil === undefined &&
+        !hasSemanticRecoil &&
         firing
           ? Math.sin(shotProgress * Math.PI) * 0.045
           : 0;
@@ -1684,7 +1769,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // fallback is the radial pulse assigned above instead.
       const kick = firing &&
         (!semanticActive ||
-          (semanticRecoil === undefined && !emplacing))
+          (!hasSemanticRecoil && !emplacing))
         ? Math.sin(shotProgress * Math.PI) * 0.14
         : 0;
       const mobileMotion = botLocomotionAt(

@@ -274,6 +274,22 @@ test('semantic Tower deploy is replay-driven and isolated per bot instance', () 
   );
   close(towerParts.body.position.x, 0);
 
+  // The authored recovery persists into the next replay tick. At 5 ticks/second this is
+  // the difference between a readable ~230 ms action and crushing 34 source frames into
+  // the generic renderer's 90 ms impulse.
+  actors.update(11.3, null, false);
+  assert.ok(
+    towerRig.recoil.position.x < -0.5,
+    `Tower is still recovering cross-tick (${towerRig.recoil.position.x})`,
+  );
+  const crossTickRecovery = towerRig.recoil.position.x;
+  actors.update(10.7, null, false);
+  actors.update(11.3, null, false);
+  close(towerRig.recoil.position.x, crossTickRecovery);
+
+  actors.update(11.61, null, false);
+  close(towerRig.recoil.position.x, 0);
+
   actors.dispose();
 });
 
@@ -289,9 +305,14 @@ test('mobilize samples the exact Tower clip backward without a body swap', () =>
   // The tick-10 mobilize has the same 1.5-tick span in reverse.
   actors.update(10.75, null, false);
   close(rig.tower.position.y, forwardHalf);
+  close(rig.recoil.position.x, 0);
   assert.equal(parts.body.visible, true);
   assert.equal(parts.turret.visible, false);
 
+  // The tick-10 shot fixture overlaps this synthetic mobilize. Once the reverse
+  // transition interrupts its recoil, the tail must not reappear after deploy completes.
+  actors.update(11.55, null, false);
+  close(rig.recoil.position.x, 0);
   actors.update(11.6, null, false);
   close(rig.tower.position.y, 0);
   assert.equal(parts.body.visible, true);
