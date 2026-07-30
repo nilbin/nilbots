@@ -45,25 +45,42 @@ hand-edit its outputs.
 
 ## Concept-to-model fidelity gates
 
-Treat 3D as a depth interpretation of an approved 2D identity, not another
-concept pass.
+Choose the visual authority before concept work:
 
-1. Before modeling, add an art-side fidelity brief naming the canonical 2D
-   asset, intended gameplay read, required silhouette and negative-space
-   anchors, rule-bearing hardware, material/color regions, team-accent
-   regions, and cues the look must not promise. Distinguish fantasy from
-   mechanics explicitly: for example, a low-hover ground skimmer may visibly
-   levitate through a small air gap, underbody glow, tight shadow, and gentle
-   bob without using the altitude, banking, rotors, or vertical traversal that
-   promise player-controlled flight.
-2. Approve the canonical East-facing 2D look first. Derive a top, side, front,
-   and gameplay-oblique model sheet from it. The top view must include a
-   same-scale silhouette overlay; invented side and underside structure may
-   explain depth but must not redesign the approved planform. When an
-   image-to-3D service expects camera-consistent views, use separately approved
-   inferred-3D top and rear renders rather than pretending the flat 2D sprite
-   is a photograph from those cameras. Keep the 2D sprite as the identity and
-   overlay target; never admit an unapproved inferred view as a new concept.
+- **3D-first is the default for a new modeled bot, form family, skin family,
+  or projectile.** Develop and approve the editable 3D model from a
+  rule-and-identity brief. Once accepted, that model is the canonical visual
+  source. Derive the East-facing 2D gameplay avatar, site/store renders,
+  thumbnails, and semantic team mask from the same pinned scene and camera;
+  do not ask an image model to redraw them.
+- **2D-first remains valid for legacy identities, map/theme work, and looks
+  that intentionally have no model.** When upgrading one of those looks, the
+  approved 2D asset constrains the migration until a 3D candidate passes and
+  the owner explicitly promotes the editable model to visual authority.
+
+The runtime still retains a 2D representation for Canvas, mobile, CLI,
+loading, store/site surfaces, and WebGL failure. “3D-first” changes the
+authoring source, not that fallback contract. A texture-bearing model normally
+derives a transparent raster avatar plus a separate lossless semantic
+team-mask pass; keep the previous SVG authoritative until the consuming
+runtime supports that mask pair.
+
+1. Before modeling, add an art-side fidelity brief naming the current
+   authority (3D-first brief or legacy 2D asset), intended gameplay read,
+   required silhouette and negative-space anchors, rule-bearing hardware,
+   material/color regions, team-accent regions, and cues the look must not
+   promise. Distinguish fantasy from mechanics explicitly: for example, a
+   low-hover ground skimmer may visibly levitate through a small air gap,
+   underbody glow, tight shadow, and gentle bob without using the altitude,
+   banking, rotors, or vertical traversal that promise player-controlled
+   flight.
+2. For a 3D-first family, approve the untextured editable model from strict
+   top, side, front, rear, and gameplay-oblique views before material polish.
+   For a 2D-first migration, derive those same camera-consistent views from
+   the approved East-facing look; the top view must include a same-scale
+   silhouette overlay. Invented side and underside structure may explain depth
+   but must not redesign the constrained planform. Never pretend a flat sprite
+   is a camera photograph or admit an unapproved inferred view as authority.
 3. Build an untextured blockout and stop. Compare it with the 2D silhouette at
    the renderer's top/game camera, including footprint, center of mass, major
    proportions, negative spaces, and weapon/form hardware. Return a failed
@@ -277,10 +294,11 @@ this with a runtime hue-key shader.
    choosing another.
 5. Inspect the look at gameplay size facing all four directions and during
    movement, recoil, damage, destruction, fogging, and panel rendering.
-6. After the 2D look and fidelity brief are approved, a WebGL companion may add
-   genuine modeled depth. Keep `sprite.svg` or `sprite.png` canonical for the
-   site, Canvas2D, mobile, CLI, loading, and fallback; the model supplements
-   that identity and never replaces it.
+6. A legacy 2D-first look may add a WebGL companion after its 2D look and
+   fidelity brief are approved. A new 3D-first look instead derives its
+   `sprite.png`, store/site renders, and semantic mask from the accepted
+   editable model and pinned cameras. In both cases keep a 2D runtime asset for
+   site, Canvas2D, mobile, CLI, loading, and fallback.
 7. Build the companion as authored geometry, not a shallow extrusion of the
    sprite. Preserve the 2D silhouette and rule-bearing hardware, then model the
    hull, armor layers, recesses, joints, vents, and weapon volumes that explain

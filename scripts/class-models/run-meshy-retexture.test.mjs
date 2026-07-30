@@ -335,6 +335,7 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
     assert.equal(record.creditCeilingVerified, true);
     assert.equal(record.observedBalanceDelta, 10);
     assert.equal(record.artifacts.length, 7);
+    assert.equal(record.state, "ARCHIVED");
 
     const runDirectory = join(
       outputRoot,
@@ -349,6 +350,14 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
       join(runDirectory, "task.sanitized.json"),
       "utf8",
     );
+    const requestRecord = JSON.parse(requestRecordText);
+    const requestIntent = JSON.parse(
+      await readFile(join(runDirectory, "request-intent.json"), "utf8"),
+    );
+    assert.equal(requestRecord.state, "ARCHIVED");
+    assert.equal(requestIntent.state, "ARCHIVED");
+    assert.equal(Object.hasOwn(requestRecord, "resumable"), false);
+    assert.equal(Object.hasOwn(requestRecord, "resumeArguments"), false);
     assert.equal(requestRecordText.includes("test-key-that-must-not-be-written"), false);
     assert.equal(requestRecordText.includes(";base64,"), false);
     assert.equal(taskRecordText.includes("Signature=secret"), false);
@@ -374,6 +383,186 @@ test("executes one mocked paid POST and archives resumable sanitized provenance"
     );
   } finally {
     await rm(conceptDirectory, { recursive: true, force: true });
+    await rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
+test("records a terminal provider failure as non-resumable in both ledgers", async () => {
+  const repositoryRoot = resolve(import.meta.dirname, "../..");
+  const nonce = randomUUID();
+  const outputRootRelative =
+    `art/class-models/provider-runs/.retexture-runner-failed-${nonce}`;
+  const outputRoot = join(repositoryRoot, outputRootRelative);
+  const taskId = "retexture-failed";
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    calls.push({ url: String(url), method });
+    if (String(url).endsWith("/balance")) {
+      return jsonResponse({ balance: 100 });
+    }
+    if (String(url).endsWith("/retexture") && method === "POST") {
+      return jsonResponse({ result: taskId });
+    }
+    if (
+      String(url).endsWith(`/retexture/${encodeURIComponent(taskId)}`)
+    ) {
+      return jsonResponse({
+        id: taskId,
+        type: "retexture",
+        status: "FAILED",
+        progress: 100,
+        consumed_credits: 0,
+        task_error: { message: "mock provider texture failure" },
+      });
+    }
+    throw new Error(`Unexpected mock request: ${method} ${url}`);
+  };
+
+  try {
+    await assert.rejects(
+      main(
+        [
+          "--input-task-id",
+          "accepted-smart-task",
+          "--look-id",
+          "runner-test",
+          "--purpose",
+          "offline terminal failure proof",
+          "--text-style-prompt",
+          "stylized matte fortress game asset",
+          "--output-root",
+          outputRootRelative,
+          "--execute",
+        ],
+        {
+          fetchImpl,
+          readApiKeyImpl: () => "test-key-that-must-not-be-written",
+        },
+      ),
+      /finished with status FAILED/u,
+    );
+
+    const runDirectory = join(
+      outputRoot,
+      "runner-test",
+      taskDirectorySegment(taskId),
+    );
+    const requestRecord = JSON.parse(
+      await readFile(join(runDirectory, "request-record.json"), "utf8"),
+    );
+    const requestIntent = JSON.parse(
+      await readFile(join(runDirectory, "request-intent.json"), "utf8"),
+    );
+    assert.equal(requestRecord.state, "FAILED");
+    assert.equal(requestRecord.status, "FAILED");
+    assert.equal(requestRecord.resumable, false);
+    assert.equal(Object.hasOwn(requestRecord, "resumeArguments"), false);
+    assert.equal(requestIntent.state, "FAILED");
+    assert.equal(Object.hasOwn(requestIntent, "resumeArguments"), false);
+    assert.equal(
+      calls.filter((call) => call.method === "POST").length,
+      1,
+    );
+    await assert.rejects(
+      readFile(join(outputRoot, ".meshy-paid-call.lock", "owner.json")),
+      /ENOENT/u,
+    );
+  } finally {
+    await rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
+test("keeps a failed resume attempt resumable in both ledgers", async () => {
+  const repositoryRoot = resolve(import.meta.dirname, "../..");
+  const nonce = randomUUID();
+  const outputRootRelative =
+    `art/class-models/provider-runs/.retexture-runner-resume-${nonce}`;
+  const outputRoot = join(repositoryRoot, outputRootRelative);
+  const taskId = "retexture-resumable";
+  const lookId = "runner-test";
+  const runDirectory = join(
+    outputRoot,
+    lookId,
+    taskDirectorySegment(taskId),
+  );
+  const calls = [];
+
+  await mkdir(runDirectory, { recursive: true });
+  await writeFile(
+    join(runDirectory, "request-record.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      state: "RESUMABLE",
+      taskId,
+      lookId,
+      purpose: "offline resume error proof",
+      balanceBefore: 100,
+      artifacts: [],
+    }),
+  );
+  await writeFile(
+    join(runDirectory, "request-intent.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      state: "RESUMABLE",
+      taskId,
+      lookId,
+    }),
+  );
+
+  const fetchImpl = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    calls.push({ url: String(url), method });
+    if (
+      String(url).endsWith(`/retexture/${encodeURIComponent(taskId)}`)
+    ) {
+      return jsonResponse({ message: "mock task lookup outage" }, 404);
+    }
+    if (String(url).endsWith("/balance")) {
+      return jsonResponse({ balance: 100 });
+    }
+    throw new Error(`Unexpected mock request: ${method} ${url}`);
+  };
+
+  try {
+    await assert.rejects(
+      main(
+        [
+          "--resume",
+          taskId,
+          "--look-id",
+          lookId,
+          "--output-root",
+          outputRootRelative,
+          "--execute",
+        ],
+        {
+          fetchImpl,
+          readApiKeyImpl: () => "test-key-that-must-not-be-written",
+        },
+      ),
+      /mock task lookup outage/u,
+    );
+
+    const requestRecord = JSON.parse(
+      await readFile(join(runDirectory, "request-record.json"), "utf8"),
+    );
+    const requestIntent = JSON.parse(
+      await readFile(join(runDirectory, "request-intent.json"), "utf8"),
+    );
+    assert.equal(requestRecord.state, "RESUMABLE");
+    assert.equal(requestRecord.resumable, true);
+    assert.deepEqual(
+      requestRecord.resumeArguments,
+      requestIntent.resumeArguments,
+    );
+    assert.equal(requestIntent.state, "RESUMABLE");
+    assert.equal(
+      calls.filter((call) => call.method === "POST").length,
+      0,
+    );
+  } finally {
     await rm(outputRoot, { recursive: true, force: true });
   }
 });

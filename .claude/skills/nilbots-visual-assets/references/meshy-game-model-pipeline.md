@@ -7,6 +7,23 @@ outside the repository.
 
 The facts below were verified on 2026-07-30.
 
+## Choose the art authority
+
+For a new Nilbots family that is intended to have real 3D depth, make the
+accepted editable 3D scene the visual authority. Concept art and generated
+views are inputs to the brief and approval process; they stop being separate
+runtime identities once the model is accepted. Render the East-facing 2D
+avatar, store/site imagery, thumbnails, and a lossless semantic team-mask pass
+from pinned Blender cameras in that same scene. This keeps the WebGL model and
+2D surfaces visually identical and makes later skins material/kit variants of
+one family master.
+
+Existing 2D-first class art remains a migration constraint until its first 3D
+master passes silhouette, rule-hardware, material, gameplay-camera, and owner
+approval gates. Do not silently replace a shipped 2D identity with a generated
+model. Keep the old sprite as the fallback authority until the derived raster
+plus semantic-mask runtime contract is implemented and reviewed.
+
 ## Choose the provider surface
 
 Prefer Smart Topology T2 for a new real-time asset:

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T18:42:11.633Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise",
+  "purpose": "Meshy 6 2k Cold Bastion broad-value matte source candidate",
+  "inputTaskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "14ced89872ecb2c4143427800c44c392a036eeb8c27f51f0a06149aa21f8eaa2",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized matte top-down game asset. Preserve broad near-black hull and pale shield zones: 70% charcoal/graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Crisp seams, powder-coated armor, high roughness, low metalness, flat albedo with no baked highlights. Only the reactor and forward slits glow neutral white; keep three rear/west inset panels clean neutral white for later team masking. No white hull, chrome, mirrors, glossy clearcoat, marble, photoreal wear, micro-scratches, dirt noise, text, logos, decals, blue/red team color, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "input_task_id": "019fb42a-e3ed-7f18-a54e-795edf685815",
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "text_style_prompt": "Stylized matte top-down game asset. Preserve broad near-black hull and pale shield zones: 70% charcoal/graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Crisp seams, powder-coated armor, high roughness, low metalness, flat albedo with no baked highlights. Only the reactor and forward slits glow neutral white; keep three rear/west inset panels clean neutral white for later team masking. No white hull, chrome, mirrors, glossy clearcoat, marble, photoreal wear, micro-scratches, dirt noise, text, logos, decals, blue/red team color, or baked lighting. Preserve geometry."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 665,
+  "submittedAt": "2026-07-30T18:42:12.207Z",
+  "taskId": "019fb455-88da-751a-8bb4-f4f40301c8d2",
+  "finishedAt": "2026-07-30T18:44:14.456Z"
+}

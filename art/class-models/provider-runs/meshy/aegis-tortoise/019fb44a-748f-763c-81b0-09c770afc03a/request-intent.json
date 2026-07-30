@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-30T18:30:05.583Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise",
+  "purpose": "Meshy 6 2k Cold Bastion matte text-controlled comparison",
+  "inputTaskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "2cc105c51d23709a5560cf358a6c78ebd02d60611018b06fd894a331c36d8ba9",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized hard-surface game asset for a top-down arena. Broad cold ash-gray tungsten armor plates, charcoal-black structural frame, and dark gunmetal mechanisms in clear fortress-like value groups. Matte powder-coated armor and high-roughness satin metal, restrained edge highlights, sparse broad wear only. Neutral-white bounded reactor and inset light panels. No bronze, copper, gold, warm tint, blue or red team color, chrome, mirror reflections, glossy clearcoat, photoreal micro-scratches, dirt noise, labels, decals, logos, or baked lighting. Preserve the original geometry and panel boundaries."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "input_task_id": "019fb42a-e3ed-7f18-a54e-795edf685815",
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "text_style_prompt": "Stylized hard-surface game asset for a top-down arena. Broad cold ash-gray tungsten armor plates, charcoal-black structural frame, and dark gunmetal mechanisms in clear fortress-like value groups. Matte powder-coated armor and high-roughness satin metal, restrained edge highlights, sparse broad wear only. Neutral-white bounded reactor and inset light panels. No bronze, copper, gold, warm tint, blue or red team color, chrome, mirror reflections, glossy clearcoat, photoreal micro-scratches, dirt noise, labels, decals, logos, or baked lighting. Preserve the original geometry and panel boundaries."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 675,
+  "submittedAt": "2026-07-30T18:30:06.150Z",
+  "taskId": "019fb44a-748f-763c-81b0-09c770afc03a",
+  "finishedAt": "2026-07-30T18:32:18.453Z"
+}

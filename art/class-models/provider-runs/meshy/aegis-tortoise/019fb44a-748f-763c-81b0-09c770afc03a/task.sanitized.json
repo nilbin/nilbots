@@ -1,0 +1,36 @@
+{
+  "id": "019fb44a-748f-763c-81b0-09c770afc03a",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized hard-surface game asset for a top-down arena. Broad cold ash-gray tungsten armor plates, charcoal-black structural frame, and dark gunmetal mechanisms in clear fortress-like value groups. Matte powder-coated armor and high-roughness satin metal, restrained edge highlights, sparse broad wear only. Neutral-white bounded reactor and inset light panels. No bronze, copper, gold, warm tint, blue or red team color, chrome, mirror reflections, glossy clearcoat, photoreal micro-scratches, dirt noise, labels, decals, logos, or baked lighting. Preserve the original geometry and panel boundaries.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785436208255,
+  "progress": 100,
+  "started_at": 1785436208494,
+  "finished_at": 1785436338120,
+  "expires_at": 1785695538120,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb44a-748f-763c-81b0-09c770afc03a/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 10
+}

@@ -849,6 +849,7 @@ async function completeKnownTask({
   requestRecord.artifacts = Array.isArray(requestRecord.artifacts)
     ? requestRecord.artifacts
     : [];
+  requestRecord.state = "POLLING";
   delete requestRecord.runnerError;
   delete requestRecord.resumeArguments;
   delete requestRecord.resumable;
@@ -926,6 +927,7 @@ async function completeKnownTask({
 
   try {
     requestRecord.balanceAfter = await observeBalance(apiKey, fetchImpl);
+    delete requestRecord.balanceAfterError;
     requestRecord.observedBalanceDelta = Number.isFinite(
       requestRecord.balanceBefore,
     )
@@ -949,9 +951,22 @@ async function completeKnownTask({
 
   if (runnerError) {
     requestRecord.runnerError = sanitizeErrorMessage(runnerError?.message);
-    requestRecord.resumable = true;
-    requestRecord.resumeArguments = resumeArguments(requestRecord);
+    const canResume =
+      !terminalTask || terminalTask.status === "SUCCEEDED";
+    requestRecord.state =
+      terminalTask?.status === "FAILED"
+        ? "FAILED"
+        : terminalTask?.status === "CANCELED"
+          ? "CANCELED"
+          : "RESUMABLE";
+    requestRecord.resumable = canResume;
+    if (canResume) {
+      requestRecord.resumeArguments = resumeArguments(requestRecord);
+    } else {
+      delete requestRecord.resumeArguments;
+    }
   } else {
+    requestRecord.state = "ARCHIVED";
     delete requestRecord.runnerError;
     delete requestRecord.resumable;
     delete requestRecord.resumeArguments;
@@ -1142,18 +1157,38 @@ async function createTask({
   } catch (error) {
     if (taskId) {
       const currentIntent = (await readJsonIfPresent(intentPath)) ?? intent;
+      const recordedRun =
+        (await readJsonIfPresent(
+          join(currentDirectory, "request-record.json"),
+        )) ?? {};
       currentIntent.state =
-        currentIntent.state === "ARCHIVED" ? "ARCHIVED" : "RESUMABLE";
+        recordedRun.state ??
+        (currentIntent.state === "ARCHIVED" ? "ARCHIVED" : "RESUMABLE");
       currentIntent.runnerError = sanitizeErrorMessage(error?.message);
-      currentIntent.resumeArguments = [
-        "scripts/class-models/run-meshy-retexture.mjs",
-        "--resume",
-        taskId,
-        "--look-id",
-        options.lookId,
-        "--execute",
-      ];
+      const canResume =
+        recordedRun.resumable === true ||
+        !["ARCHIVED", "FAILED", "CANCELED"].includes(recordedRun.state);
+      if (canResume) {
+        currentIntent.resumeArguments = [
+          "scripts/class-models/run-meshy-retexture.mjs",
+          "--resume",
+          taskId,
+          "--look-id",
+          options.lookId,
+          "--execute",
+        ];
+      } else {
+        delete currentIntent.resumeArguments;
+      }
       await atomicWriteJson(intentPath, currentIntent);
+    } else if (
+      !["REJECTED", "REJECTED_LOCALLY", "SUBMISSION_UNKNOWN"].includes(
+        intent.state,
+      )
+    ) {
+      intent.state = "REJECTED_LOCALLY";
+      intent.runnerError = sanitizeErrorMessage(error?.message);
+      await atomicWriteJson(intentPath, intent);
     }
     throw error;
   } finally {
@@ -1181,21 +1216,43 @@ async function resumeTask({
     throw new Error("Existing run record belongs to a different Meshy task.");
   }
   const apiKey = readApiKeyImpl(options.keychainService);
-  const record = await completeKnownTask({
-    taskId,
-    lookId: options.lookId,
-    purpose:
-      existingRecord.purpose ??
-      options.purpose ??
-      "Resume existing Meshy retexture task",
-    runDirectory,
-    apiKey,
-    keychainService: options.keychainService,
-    baseRecord: existingRecord,
-    fetchImpl,
-  });
-
   const intentPath = join(runDirectory, "request-intent.json");
+  const requestRecordPath = join(runDirectory, "request-record.json");
+  let record;
+  try {
+    record = await completeKnownTask({
+      taskId,
+      lookId: options.lookId,
+      purpose:
+        existingRecord.purpose ??
+        options.purpose ??
+        "Resume existing Meshy retexture task",
+      runDirectory,
+      apiKey,
+      keychainService: options.keychainService,
+      baseRecord: existingRecord,
+      fetchImpl,
+    });
+  } catch (error) {
+    const intent = await readJsonIfPresent(intentPath);
+    if (intent) {
+      const recordedRun =
+        (await readJsonIfPresent(requestRecordPath)) ?? {};
+      intent.state = recordedRun.state ?? "RESUMABLE";
+      intent.runnerError = sanitizeErrorMessage(error?.message);
+      if (recordedRun.resumable === true) {
+        intent.resumeArguments = resumeArguments({
+          taskId,
+          lookId: options.lookId,
+        });
+      } else {
+        delete intent.resumeArguments;
+      }
+      await atomicWriteJson(intentPath, intent);
+    }
+    throw error;
+  }
+
   const intent = await readJsonIfPresent(intentPath);
   if (intent) {
     intent.state = "ARCHIVED";

@@ -62,3 +62,10 @@ balance/private/
 art/frontline-map-models/provider-runs/**/raw-model.glb
 art/frontline-map-models/provider-runs/**/texture-*.png
 art/frontline-map-models/provider-runs/**/task.raw.json
+
+# Class-model provider masters are retained in the local artifact store. Commit
+# compact provenance, hashes, previews, and review renders only.
+art/class-models/provider-runs/**/raw-model.glb
+art/class-models/provider-runs/**/raw-retextured-model.glb
+art/class-models/provider-runs/**/texture-*.png
+art/class-models/provider-runs/**/task.raw.json

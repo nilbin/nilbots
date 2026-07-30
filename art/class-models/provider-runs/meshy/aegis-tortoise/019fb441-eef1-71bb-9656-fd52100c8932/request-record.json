@@ -1,0 +1,106 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb441-eef1-71bb-9656-fd52100c8932",
+  "lookId": "aegis-tortoise",
+  "purpose": "Meshy 6 2k Cold Bastion material gate for grouped Bulwark Mobile",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 262065,
+      "sha256": "e3d2e95930cb759452e351cd633bfc1d73fd51c0371de75cc10ecd217fd8a333",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 9376064,
+      "sha256": "1b10881f6cbcae17781fa4f8bc40a240dcf15e6900a9990283e6e11b63aaaea3",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 6786202,
+      "sha256": "81f7cb0254116d6d2d86fc5e95a3d7c8ab2894aa17b92e5fabdb786bbdac21f4",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 249004,
+      "sha256": "6fd2bddf82231073aacf517398f43690ea6ed0f19dc2944512fe53be7863a88a",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 593825,
+      "sha256": "1c828e7bb0af857e97c078a43b68ec906bd61538b935211083fc18a4a676b8b7",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 7731926,
+      "sha256": "6fcf10bbe76b91ba67361c0755d8264afcc4dbdd13f59f4102a4e5f6dd5c45e3",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1341105,
+      "sha256": "df0b9ffe53c1c36c9436838215b1b349b2d5b6520add7c80731ee84efc0ffbbd",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T18:20:47.502Z",
+  "balanceBefore": 685,
+  "inputTaskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "style": {
+    "kind": "image",
+    "file": "art/class-models/concept-targets/meshy-aegis-smart-v1/03-front-three-quarter.png",
+    "bytes": 1612009,
+    "sha256": "7a027764138846639e6e158a4b4f8e724dcc96e8004961f6a865cd01ce20e8a4",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254,
+    "transport": "local-png-data-uri"
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "input_task_id": "019fb42a-e3ed-7f18-a54e-795edf685815",
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "image_style_url": "<redacted-data-uri>"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "39ba75b1bcae6cf07182c8a10f8d0703c34d736c5cc08f82b45385d1f89cce93",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T18:22:43.654Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-30T18:22:43.662Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 675,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

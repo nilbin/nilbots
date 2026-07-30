@@ -1,0 +1,684 @@
+{
+  "acceptanceInputs": {
+    "gameScale": {
+      "authoredMaximumPlanformSpanTiles": 1.0,
+      "coordinateNote": "Blender import space is +Z up. The audit normalizes the maximum horizontal X/Y span to one before multiplying authored span and runtime scale. This is footprint evidence only; it does not prove semantic +X facing or wall clearance at every yaw.",
+      "liveBoundsBlenderTiles": {
+        "maximum": [
+          0.500000119,
+          0.497058988,
+          0.230881989
+        ],
+        "minimum": [
+          -0.500000119,
+          -0.497058988,
+          -1.3e-08
+        ],
+        "span": [
+          1.000000238,
+          0.994117975,
+          0.230882004
+        ]
+      },
+      "liveMaximumPlanformSpanTiles": 1.0,
+      "nominalLiveMaximumPlanformSpanPixels": 64.0,
+      "nominalPixelsPerTile": 64.0,
+      "runtimeScale": 1.0
+    },
+    "note": "No acceptance verdict is computed. Review semantic facing, named identity anchors, forbidden cues, side/depth class, part boundaries, and the actual gameplay replay separately.",
+    "passFail": null,
+    "topSilhouette": {
+      "acceptanceThreshold": null,
+      "alphaThresholdGreaterThan": 0.00392156862745098,
+      "candidate": {
+        "bytes": 215117,
+        "fileName": "top-silhouette.png",
+        "sha256": "1576e1a70b665e3e83bb269172534277cc4d024360f909554a46a3f861a70181",
+        "sourceDimensions": [
+          768,
+          768
+        ],
+        "sourceOccupiedPixels": 299737
+      },
+      "canonical": {
+        "bytes": 1610976,
+        "fileName": "concept.png",
+        "sha256": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+        "sourceDimensions": [
+          1254,
+          1254
+        ],
+        "sourceOccupiedPixels": 739686
+      },
+      "comparisonCanvas": [
+        768,
+        768
+      ],
+      "method": "alpha greater than 1/255; independently center each occupied bounding box and uniformly scale its maximum span to 620 pixels on a 768-square canvas; nearest-pixel rasterization; compare all four candidate quarter-turns without selecting semantic facing",
+      "normalizedMaximumSpanPixels": 620,
+      "note": "These measurements are acceptance inputs only. Inspect the fixed views to identify the real +X-facing quarter-turn and evaluate named anchors independently.",
+      "rotations": [
+        {
+          "candidateAreaDelta": 0.002092869,
+          "candidateBounds": [
+            74,
+            76,
+            693,
+            691
+          ],
+          "candidateClockwiseYawDegrees": 0,
+          "candidateInsideCanonical": 0.955434264,
+          "candidatePixelCount": 299737,
+          "canonicalBounds": [
+            74,
+            87,
+            693,
+            680
+          ],
+          "canonicalCoverage": 0.957433862,
+          "canonicalPixelCount": 299111,
+          "centroidDeltaPixels": [
+            -0.617054219,
+            -0.724350702
+          ],
+          "intersectionOverUnion": 0.916503717,
+          "intersectionPixelCount": 286379,
+          "overlay": {
+            "bytes": 9224,
+            "file": "top-silhouette-overlay-yaw-000.png",
+            "sha256": "a6fd2c173b25f9a38b279b295ef2d224fc3b4382914333a10787e29a54a8c92c"
+          },
+          "unionPixelCount": 312469
+        },
+        {
+          "candidateAreaDelta": 0.002092869,
+          "candidateBounds": [
+            76,
+            74,
+            691,
+            693
+          ],
+          "candidateClockwiseYawDegrees": 90,
+          "candidateInsideCanonical": 0.897423408,
+          "candidatePixelCount": 299737,
+          "canonicalBounds": [
+            74,
+            87,
+            693,
+            680
+          ],
+          "canonicalCoverage": 0.899301597,
+          "canonicalPixelCount": 299111,
+          "centroidDeltaPixels": [
+            7.764787196,
+            -7.404156665
+          ],
+          "intersectionOverUnion": 0.815477616,
+          "intersectionPixelCount": 268991,
+          "overlay": {
+            "bytes": 10075,
+            "file": "top-silhouette-overlay-yaw-090.png",
+            "sha256": "10c766f97ee4110256a811f2b74b6eb40cf09e76ce5ccc57babe92a911efd96e"
+          },
+          "unionPixelCount": 329857
+        },
+        {
+          "candidateAreaDelta": 0.002092869,
+          "candidateBounds": [
+            74,
+            76,
+            693,
+            691
+          ],
+          "candidateClockwiseYawDegrees": 180,
+          "candidateInsideCanonical": 0.888932631,
+          "candidatePixelCount": 299737,
+          "canonicalBounds": [
+            74,
+            87,
+            693,
+            680
+          ],
+          "canonicalCoverage": 0.89079305,
+          "canonicalPixelCount": 299111,
+          "centroidDeltaPixels": [
+            14.444593159,
+            0.977684749
+          ],
+          "intersectionOverUnion": 0.801577608,
+          "intersectionPixelCount": 266446,
+          "overlay": {
+            "bytes": 9705,
+            "file": "top-silhouette-overlay-yaw-180.png",
+            "sha256": "7aa35f2b6ad800e81e270849d13e120141149a3e8866577d269adcdede78ea54"
+          },
+          "unionPixelCount": 332402
+        },
+        {
+          "candidateAreaDelta": 0.002092869,
+          "candidateBounds": [
+            76,
+            74,
+            691,
+            693
+          ],
+          "candidateClockwiseYawDegrees": 270,
+          "candidateInsideCanonical": 0.896719457,
+          "candidatePixelCount": 299737,
+          "canonicalBounds": [
+            74,
+            87,
+            693,
+            680
+          ],
+          "canonicalCoverage": 0.898596173,
+          "canonicalPixelCount": 299111,
+          "centroidDeltaPixels": [
+            6.062751745,
+            7.657490712
+          ],
+          "intersectionOverUnion": 0.81431705,
+          "intersectionPixelCount": 268780,
+          "overlay": {
+            "bytes": 10098,
+            "file": "top-silhouette-overlay-yaw-270.png",
+            "sha256": "462870d0375af7f2d3f1941e63670832499e9ef84fa37d6e51cd2fa807822515"
+          },
+          "unionPixelCount": 330068
+        }
+      ],
+      "semanticFacingSelected": false
+    }
+  },
+  "auditSchema": "nilbots-smart-geometry-audit-2",
+  "auditToolVersion": "2.0.0",
+  "blender": {
+    "background": true,
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "matchesExpectedMajorMinor": true,
+    "version": "5.2.0 LTS"
+  },
+  "geometry": {
+    "components": {
+      "componentsAtLeastOnePercentOfTriangles": 29,
+      "count": 122,
+      "largestTriangleShare": 0.136297095,
+      "note": "Connected components are geometric observations, not semantic parts. Inspect boundaries before assigning pivots or hierarchy.",
+      "topEightByTriangles": [
+        {
+          "boundaryEdges": 303,
+          "boundsCenterWorldDcc": [
+            0.390686572,
+            -0.003921479,
+            -0.000979923
+          ],
+          "boundsSpanWorldDcc": [
+            1.202941298,
+            1.862745285,
+            0.359804094
+          ],
+          "componentIndex": 0,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 9.439780079,
+          "triangles": 1769,
+          "vertices": 1462
+        },
+        {
+          "boundaryEdges": 0,
+          "boundsCenterWorldDcc": [
+            -0.258088559,
+            -0.028431505,
+            -0.001470529
+          ],
+          "boundsSpanWorldDcc": [
+            0.358333051,
+            0.405882984,
+            0.456863046
+          ],
+          "componentIndex": 1,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 1.80891211,
+          "triangles": 394,
+          "vertices": 360
+        },
+        {
+          "boundaryEdges": 0,
+          "boundsCenterWorldDcc": [
+            0.208823532,
+            0.843137562,
+            -0.00367637
+          ],
+          "boundsSpanWorldDcc": [
+            0.798039138,
+            0.301961064,
+            0.169117019
+          ],
+          "componentIndex": 2,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 0.312220823,
+          "triangles": 392,
+          "vertices": 274
+        },
+        {
+          "boundaryEdges": 39,
+          "boundsCenterWorldDcc": [
+            -0.458823621,
+            0.754902124,
+            -0.007536891
+          ],
+          "boundsSpanWorldDcc": [
+            0.211765051,
+            0.235294044,
+            0.062868014
+          ],
+          "componentIndex": 3,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 0.083140852,
+          "triangles": 353,
+          "vertices": 239
+        },
+        {
+          "boundaryEdges": 0,
+          "boundsCenterWorldDcc": [
+            0.208333552,
+            -0.843137562,
+            0.000734866
+          ],
+          "boundsSpanWorldDcc": [
+            0.783333182,
+            0.301961064,
+            0.164216012
+          ],
+          "componentIndex": 4,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 0.307111925,
+          "triangles": 346,
+          "vertices": 230
+        },
+        {
+          "boundaryEdges": 22,
+          "boundsCenterWorldDcc": [
+            -0.402083606,
+            -0.472549081,
+            -0.002451055
+          ],
+          "boundsSpanWorldDcc": [
+            0.725245178,
+            0.674510121,
+            0.36274606
+          ],
+          "componentIndex": 5,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 1.285246402,
+          "triangles": 342,
+          "vertices": 309
+        },
+        {
+          "boundaryEdges": 28,
+          "boundsCenterWorldDcc": [
+            -0.471569091,
+            -0.707843065,
+            -0.007046612
+          ],
+          "boundsSpanWorldDcc": [
+            0.209803998,
+            0.305882037,
+            0.056495007
+          ],
+          "componentIndex": 6,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 0,
+          "surfaceAreaWorld": 0.096626105,
+          "triangles": 304,
+          "vertices": 203
+        },
+        {
+          "boundaryEdges": 55,
+          "boundsCenterWorldDcc": [
+            -0.723529696,
+            -0.690196097,
+            -0.003676586
+          ],
+          "boundsSpanWorldDcc": [
+            0.32549113,
+            0.380392075,
+            0.250491023
+          ],
+          "componentIndex": 7,
+          "mesh": "mesh_node",
+          "nonManifoldEdges": 5,
+          "surfaceAreaWorld": 0.361607373,
+          "triangles": 268,
+          "vertices": 242
+        }
+      ]
+    },
+    "faces": 12979,
+    "images": 4,
+    "materialSlots": 1,
+    "materials": 1,
+    "meshObjects": 1,
+    "orientation": {
+      "blenderImportUp": "+Z",
+      "expectedNilbotsFacingInBlender": "+X",
+      "expectedNilbotsUpInBlender": "+Z",
+      "note": "Geometry dimensions cannot prove semantic facing; compare fixed views with the approved source.",
+      "semanticFacingInferred": false,
+      "sourceGlTfUp": "+Y"
+    },
+    "orientationAdjustment": {
+      "deformation": false,
+      "determinant3x3": 1.0,
+      "matrix": [
+        [
+          -1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "operation": "premultiply every imported root world transform by exact rigid quarter-turn matrices: import-space X first, then world-space Z",
+      "rootObjectsTransformed": [
+        "mesh_node"
+      ],
+      "sourceGlbModified": false,
+      "xDegrees": -90,
+      "zDegrees": 180
+    },
+    "rawIndexedConnectedComponents": 561,
+    "renderNormalization": {
+      "normalizedBoundsWorldDcc": {
+        "aabbVolume": 0.229524005,
+        "center": [
+          0.0,
+          0.0,
+          0.115440987
+        ],
+        "maximum": [
+          0.500000119,
+          0.497058988,
+          0.230881989
+        ],
+        "minimum": [
+          -0.500000119,
+          -0.497058988,
+          -1.3e-08
+        ],
+        "span": [
+          1.000000238,
+          0.994117975,
+          0.230882004
+        ]
+      },
+      "operation": "one uniform transform: center the source world AABB in the horizontal plane, put its minimum Z on the floor, and scale its maximum X/Y span to exactly one audit unit",
+      "perModelCameraFraming": false,
+      "rootObjectsTransformed": [
+        "mesh_node"
+      ],
+      "sourceBoundsWorldDcc": {
+        "aabbVolume": 1.836192497,
+        "center": [
+          0.0,
+          0.0,
+          -1.5e-08
+        ],
+        "maximum": [
+          1.000000238,
+          0.994118094,
+          0.230882019
+        ],
+        "minimum": [
+          -1.000000238,
+          -0.994118094,
+          -0.230882049
+        ],
+        "span": [
+          2.000000477,
+          1.988236189,
+          0.461764067
+        ]
+      },
+      "targetPlanformSpan": 1.0,
+      "uniformScale": 0.499999881
+    },
+    "sourceBoundsWorldDcc": {
+      "aabbVolume": 1.836192497,
+      "center": [
+        0.0,
+        0.0,
+        -1.5e-08
+      ],
+      "maximum": [
+        1.000000238,
+        0.994118094,
+        0.230882019
+      ],
+      "minimum": [
+        -1.000000238,
+        -0.994118094,
+        -0.230882049
+      ],
+      "span": [
+        2.000000477,
+        1.988236189,
+        0.461764067
+      ]
+    },
+    "sourceFloorOffset": -0.230882049,
+    "sourceHeightToPlanform": 0.230881979,
+    "sourcePlanformSpan": 2.000000477,
+    "triangles": 12979,
+    "vertices": 10236,
+    "weldedConnectedComponents": 122
+  },
+  "input": {
+    "bytes": 8997380,
+    "fileName": "raw-retextured-model.glb",
+    "sha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da"
+  },
+  "renders": {
+    "rig": {
+      "castShadows": true,
+      "colorManagement": {
+        "exposure": -1.0,
+        "look": "AgX - Medium High Contrast",
+        "viewTransform": "AgX"
+      },
+      "eeveeRenderSamples": 1,
+      "fixedCameraFraming": true,
+      "gameplayPitchDegreesAboveGround": 58.0,
+      "id": "nilbots-neutral-topology-audit-v1",
+      "pngCanonicalization": "strip nondeterministic metadata, decode all source filters, quantize ordinary RGB to six bits and dark RGB to four bits without changing alpha, and encode one fixed-filter zlib-9 IDAT",
+      "renderEngine": "BLENDER_EEVEE",
+      "resolution": [
+        768,
+        768
+      ]
+    },
+    "topSilhouette": {
+      "bytes": 215117,
+      "file": "top-silhouette.png",
+      "orthoScale": 1.24000001,
+      "sha256": "1576e1a70b665e3e83bb269172534277cc4d024360f909554a46a3f861a70181"
+    },
+    "views": {
+      "front": {
+        "bytes": 48512,
+        "cameraLocation": [
+          3.0,
+          0.0,
+          0.180000007
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.180000007
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "front.png",
+        "orthoScale": 1.24000001,
+        "sha256": "1bb988b9467b5dd98f02e099bee130fe38181e167f38b2e22dd00b30aa8b7ec9"
+      },
+      "frontThreeQuarter": {
+        "bytes": 145306,
+        "cameraLocation": [
+          2.400000095,
+          -2.400000095,
+          1.700000048
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.150000006
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "front-three-quarter.png",
+        "orthoScale": 1.340000033,
+        "sha256": "217a23a894cef3d08fddcbd954acddb15c91a363efef7fb0b1f93bcadc58a014"
+      },
+      "gameplay58": {
+        "bytes": 348384,
+        "cameraLocation": [
+          -0.079999998,
+          0.996248245,
+          1.59433043
+        ],
+        "cameraTarget": [
+          0.02,
+          0.0,
+          0.129999995
+        ],
+        "cameraType": "PERSP",
+        "fieldOfViewDegrees": 42.000001169,
+        "file": "gameplay-58.png",
+        "orthoScale": null,
+        "sha256": "d9c236e3cee8fdb0d8852d5e9799507307ac055fefbbea7fd156823e2cd524dd"
+      },
+      "rear": {
+        "bytes": 56798,
+        "cameraLocation": [
+          -3.0,
+          0.0,
+          0.180000007
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.180000007
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "rear.png",
+        "orthoScale": 1.24000001,
+        "sha256": "a4e045705cbce9afe2d2cf3d4f1bf134d27e514b760ec3c7c113d357d9b35db4"
+      },
+      "rearThreeQuarter": {
+        "bytes": 121187,
+        "cameraLocation": [
+          -2.420000076,
+          2.380000114,
+          1.700000048
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.150000006
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "rear-three-quarter.png",
+        "orthoScale": 1.340000033,
+        "sha256": "c18321d46b7e1c41f64507a64483d14ba4d509db97e4ef827bfbe1f11029f0f7"
+      },
+      "side": {
+        "bytes": 54895,
+        "cameraLocation": [
+          0.0,
+          -3.0,
+          0.180000007
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.180000007
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "side.png",
+        "orthoScale": 1.24000001,
+        "sha256": "a91fd777eb6a37653e05bab97a4edb27e1af53b5f9b467dfce813c65839495ef"
+      },
+      "top": {
+        "bytes": 280301,
+        "cameraLocation": [
+          0.0,
+          0.0,
+          3.0
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cameraType": "ORTHO",
+        "fieldOfViewDegrees": null,
+        "file": "top.png",
+        "orthoScale": 1.24000001,
+        "sha256": "7de3dda3d9b6e1c5b489acafd4b9e5cf0c37aa00efa8592e613d6b35b2080659"
+      }
+    }
+  },
+  "schema": "nilbots-smart-geometry-report-1",
+  "sourceDocument": {
+    "assetVersion": "2.0",
+    "counts": {
+      "accessors": 5,
+      "animations": 0,
+      "bufferViews": 9,
+      "buffers": 1,
+      "cameras": 0,
+      "images": 4,
+      "materials": 1,
+      "meshes": 1,
+      "nodes": 1,
+      "primitives": 1,
+      "samplers": 4,
+      "scenes": 1,
+      "skins": 0,
+      "textures": 4
+    },
+    "extensionsRequired": [],
+    "extensionsUsed": [],
+    "generator": "meshy-scene"
+  },
+  "toolVersion": "1.0.0"
+}

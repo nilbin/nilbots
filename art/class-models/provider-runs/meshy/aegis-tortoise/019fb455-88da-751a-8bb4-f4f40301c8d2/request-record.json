@@ -1,0 +1,100 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb455-88da-751a-8bb4-f4f40301c8d2",
+  "lookId": "aegis-tortoise",
+  "purpose": "Meshy 6 2k Cold Bastion broad-value matte source candidate",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 234523,
+      "sha256": "8d1a6e9e19eb76798275447437b3329b1ae7dc9c2ead0dadac4cde7ffe11f1c3",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 8997380,
+      "sha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 6376353,
+      "sha256": "edbe9c46e30181af5c5e11b8376af163ad3b5b46f148d4d41e7b76427109df40",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 514642,
+      "sha256": "29d82277dc5a4a9483ae8147e49d568e260ccd0de805e687506d05635f656852",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1389171,
+      "sha256": "4f0a643eb0b614c9912b0e7960c74444a2a5433acd07051cd06ec8bd172af763",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 7537049,
+      "sha256": "5f7bbcd82ec793606d7545cc594fb4d821c729738955e38081cf4f78629eec3d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1460916,
+      "sha256": "28f9dae9e0c225ffa3b256948c2ce40b1e50b969368138faa5b2785b1e6fa48c",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-30T18:42:12.207Z",
+  "balanceBefore": 665,
+  "inputTaskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized matte top-down game asset. Preserve broad near-black hull and pale shield zones: 70% charcoal/graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Crisp seams, powder-coated armor, high roughness, low metalness, flat albedo with no baked highlights. Only the reactor and forward slits glow neutral white; keep three rear/west inset panels clean neutral white for later team masking. No white hull, chrome, mirrors, glossy clearcoat, marble, photoreal wear, micro-scratches, dirt noise, text, logos, decals, blue/red team color, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "input_task_id": "019fb42a-e3ed-7f18-a54e-795edf685815",
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "text_style_prompt": "Stylized matte top-down game asset. Preserve broad near-black hull and pale shield zones: 70% charcoal/graphite, 25% cold mid-gunmetal, at most 5% pale ash-gray insets. Crisp seams, powder-coated armor, high roughness, low metalness, flat albedo with no baked highlights. Only the reactor and forward slits glow neutral white; keep three rear/west inset panels clean neutral white for later team masking. No white hull, chrome, mirrors, glossy clearcoat, marble, photoreal wear, micro-scratches, dirt noise, text, logos, decals, blue/red team color, or baked lighting. Preserve geometry."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "14ced89872ecb2c4143427800c44c392a036eeb8c27f51f0a06149aa21f8eaa2",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-30T18:44:14.448Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-30T18:44:14.456Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 655,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}
