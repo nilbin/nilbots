@@ -52,9 +52,16 @@ export {
   loadReplayJson,
   loadReplayObject,
 } from '../../src/replayIngress';
-export { buildActors } from '../../src/render3d/arenaActors';
+export {
+  buildActors,
+  installMobileModel,
+} from '../../src/render3d/arenaActors';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';
-export { lookModel, modelSpec } from '../../src/render3d/lookModel';
+export {
+  isGenuineLookModel,
+  lookModel,
+  modelSpec,
+} from '../../src/render3d/lookModel';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {
   arenaModeParticipantsReady,

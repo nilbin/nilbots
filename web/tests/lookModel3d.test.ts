@@ -5,9 +5,18 @@ import {
   presentationBotLook,
 } from './.harness/harness.entry.js';
 
-test('unapproved class models remain on the SVG-extrusion fallback path', () => {
+test('only the approved Striker mobile body resolves to an authored class GLB', () => {
+  assert.deepEqual(modelSpec('trident-wasp'), {
+    version: 1,
+    id: 'trident-wasp',
+    file: 'model.glb',
+    kind: 'bot',
+    part: 'whole',
+    facing: '+x',
+    up: '+y',
+  });
+
   for (const id of [
-    'trident-wasp',
     'trident-wasp-volley',
     'aegis-tortoise',
     'aegis-tortoise-shell',
@@ -29,7 +38,7 @@ test('the canonical Striker looks keep low-hover independent of a GLB', () => {
     presentationBotLook('trident-wasp-volley').locomotionCue,
     'low-hover',
   );
-  assert.equal(modelSpec('trident-wasp'), null);
+  assert.equal(modelSpec('trident-wasp')?.kind, 'bot');
   assert.equal(modelSpec('trident-wasp-volley'), null);
 });
 

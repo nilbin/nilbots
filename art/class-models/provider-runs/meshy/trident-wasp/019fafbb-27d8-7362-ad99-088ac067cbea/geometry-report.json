@@ -1,0 +1,81 @@
+{
+  "fileBytes": 43310652,
+  "asset": {
+    "generator": "pygltflib@v1.16.5",
+    "version": "2.0"
+  },
+  "sceneCount": 1,
+  "nodeCount": 1,
+  "meshCount": 1,
+  "primitives": 1,
+  "vertices": 245924,
+  "triangles": 468626,
+  "bounds": {
+    "min": [
+      -0.9501349925994873,
+      -0.5301399827003479,
+      -0.36739400029182434
+    ],
+    "max": [
+      0.9486550092697144,
+      0.5280920267105103,
+      0.3655009865760803
+    ]
+  },
+  "span": [
+    1.8987900018692017,
+    1.0582320094108582,
+    0.7328949868679047
+  ],
+  "materialCount": 1,
+  "materials": [
+    {
+      "index": 0,
+      "name": null,
+      "alphaMode": "OPAQUE",
+      "doubleSided": true,
+      "hasBaseColorTexture": true,
+      "hasMetallicRoughnessTexture": true,
+      "hasNormalTexture": true,
+      "hasEmissiveTexture": true,
+      "emissiveFactor": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "textureCount": 4,
+  "imageInfo": [
+    {
+      "index": 0,
+      "name": null,
+      "mimeType": "image/jpeg",
+      "bytes": 12759662,
+      "dimensions": null
+    },
+    {
+      "index": 1,
+      "name": null,
+      "mimeType": "image/jpeg",
+      "bytes": 2300222,
+      "dimensions": null
+    },
+    {
+      "index": 2,
+      "name": null,
+      "mimeType": "image/jpeg",
+      "bytes": 14273510,
+      "dimensions": null
+    },
+    {
+      "index": 3,
+      "name": null,
+      "mimeType": "image/jpeg",
+      "bytes": 481594,
+      "dimensions": null
+    }
+  ],
+  "extensionsUsed": [],
+  "extensionsRequired": []
+}

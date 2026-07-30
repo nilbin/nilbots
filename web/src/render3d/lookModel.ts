@@ -31,6 +31,9 @@ interface RegisteredModel {
 }
 
 type AssetKind = LookModelSpec['kind'];
+type LookModelSource = 'gltf' | 'fallback';
+
+const MODEL_SOURCE_KEY = 'nilbotsModelSource';
 
 /*
  * Keep these imports in render3d. The hosted viewer loads this tree only after WebGL is
@@ -86,6 +89,11 @@ export function modelSpec(id: string): LookModelSpec | null {
   return models.get(id)?.spec ?? null;
 }
 
+/** Whether this representation came from an authored GLB rather than the SVG fallback. */
+export function isGenuineLookModel(model: THREE.Object3D): boolean {
+  return model.userData[MODEL_SOURCE_KEY] === 'gltf';
+}
+
 /**
  * Resolve one look to an independently paintable model.
  *
@@ -112,7 +120,9 @@ export async function lookModel(
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
   try {
-    return instantiate(raw, paint, teamAccent);
+    const model = instantiate(raw, paint, teamAccent);
+    markModelSource(model, 'gltf');
+    return model;
   } catch {
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
   }
@@ -129,10 +139,19 @@ async function fallbackModel(
   try {
     // chassisModel owns its URL-level parse cache just like rawModel. Clone here too, so
     // callers can treat both paths identically and never reparent or repaint cached state.
-    return instantiate(fallback, paint, teamAccent);
+    const model = instantiate(fallback, paint, teamAccent);
+    markModelSource(model, 'fallback');
+    return model;
   } catch {
     return null;
   }
+}
+
+function markModelSource(
+  model: THREE.Object3D,
+  source: LookModelSource,
+): void {
+  model.userData[MODEL_SOURCE_KEY] = source;
 }
 
 function rawModel(url: string): Promise<THREE.Group | null> {

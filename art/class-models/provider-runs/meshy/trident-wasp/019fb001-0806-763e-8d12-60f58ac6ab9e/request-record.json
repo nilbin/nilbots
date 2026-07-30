@@ -1,0 +1,103 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fb001-0806-763e-8d12-60f58ac6ab9e",
+  "lookId": "trident-wasp",
+  "purpose": "Owner-approved clean-input Striker v2 body proof",
+  "ownerApproved": true,
+  "submittedAt": "2026-07-29T22:31:25.209Z",
+  "balanceBefore": 1040,
+  "inputs": [
+    {
+      "file": "01-top.png",
+      "bytes": 1809536,
+      "sha256": "39c65768e05880d46f430c62542ac7aced9b4b721ee942b327d17d2c10ca681e"
+    },
+    {
+      "file": "02-side.png",
+      "bytes": 1103629,
+      "sha256": "e91b7fdeeb591c3400101758fb415258eb7b5d75ff30b23c8758520658b79149"
+    },
+    {
+      "file": "03-front-three-quarter.png",
+      "bytes": 1554423,
+      "sha256": "69ddad1a5043975e6b2d6aadfdb29ada599f41d6ba3befd5391593c5cc9faf60"
+    },
+    {
+      "file": "04-rear-three-quarter.png",
+      "bytes": 1874725,
+      "sha256": "6aaa912e9c428c68d47eb92ab9bfd01f51b9a85bdc5f430f3639ea311606fc78"
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "texture_prompt": "Matte graphite-black hard-surface armor with weathered bronze panels, crisp panel seams and recessed vents, cyan emissive team-accent inlays, and warm amber engine/core emission. Controlled PBR metallic and roughness response. Keep cyan confined to sharply bounded inlay surfaces with no cyan spill elsewhere. No text, logos, labels, decals, or baked lighting.",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": true,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sourceGate": {
+    "report": "art/class-models/concept-targets/meshy-striker-v2-candidate/SILHOUETTE-REPORT.md",
+    "topSilhouetteIoU": 0.948478044
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "finishedAt": "2026-07-29T22:36:35.840Z",
+  "balanceAfter": 1010,
+  "consumedCredits": 30,
+  "assetRetentionNote": "Meshy non-Enterprise API output was downloaded immediately; provider URLs are not storage.",
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 47634564,
+      "sha256": "1ed650a12ae891722130dfa525867d07f160c297841872b57544dd29ec5cae85",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 98065,
+      "sha256": "a8c8bcb2d4c50132021ef0ecf8d583d7e35137910f83a90b974addca1ecc65e8",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 29738630,
+      "sha256": "1b6a520d07f3f5162fc01b08abbfff940d3b19f6b809fd2c4cb03ed192a48aab",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1571362,
+      "sha256": "d8483bf284039c8ee9b95f724348972ff4873bd9e2851600459cbd4eee6c05c1",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1553977,
+      "sha256": "c58699a7b810af72a2984d752cf4b4c5f62d101c685b55b984fb0ee890a6f506",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33536055,
+      "sha256": "b9e716882b45aeb8909cd575f19eeeb73c9ccfd0469bd0f57632be34c66a29c2",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 1051771,
+      "sha256": "d6e68913d9d9527405f2efbfbfc8c67fdae8ebd41e38e0d3c0ff5f8d1f3b22de",
+      "contentType": "image/png"
+    }
+  ]
+}

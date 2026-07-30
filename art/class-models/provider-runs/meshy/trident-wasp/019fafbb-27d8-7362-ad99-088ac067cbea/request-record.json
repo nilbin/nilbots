@@ -1,0 +1,98 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fafbb-27d8-7362-ad99-088ac067cbea",
+  "lookId": "trident-wasp",
+  "purpose": "Unapproved Striker multiview base-mesh proof",
+  "submittedAt": "2026-07-29T21:15:08.300Z",
+  "finishedAt": "2026-07-29T21:19:02.137Z",
+  "balanceBefore": 1100,
+  "balanceAfter": 1070,
+  "consumedCredits": 30,
+  "inputs": [
+    {
+      "file": "../../../concept-targets/meshy-striker-v1/01-top.png",
+      "bytes": 601297,
+      "sha256": "932a4bff1cb9b9c74f346190eec9da2465af80b55fb8c8c48eb9f4dce4ebcef4"
+    },
+    {
+      "file": "../../../concept-targets/meshy-striker-v1/02-side.png",
+      "bytes": 260863,
+      "sha256": "2e01604ddccea5dad605a1469769fde4b70a22b8f80d753138757b6c602e01e0"
+    },
+    {
+      "file": "../../../concept-targets/meshy-striker-v1/03-front.png",
+      "bytes": 252161,
+      "sha256": "fc911b2bd416edbf20ca40b11ec9f4284bf2c9ac146f47ea5aa05e82a425eb26"
+    },
+    {
+      "file": "../../../concept-targets/meshy-striker-v1/04-three-quarter.png",
+      "bytes": 363683,
+      "sha256": "e4fbe0e2dfc8835af4c379bba5b8e886842abe0be4543b254fef21d417449410"
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "texture_prompt": "Preserve the exact graphite-black and weathered-bronze hard-surface vehicle design in all references. Preserve fine panel seams, recessed vents, cyan illuminated accent inlays, and warm amber engine and core emission. No added weapons, landing gear, text, logos, supports, background, or new ornamentation.",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "assetRetentionNote": "Meshy documents non-Enterprise API retention as at most three days; outputs were downloaded immediately.",
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 43310652,
+      "sha256": "c7f16f1f0fa1bd2207906b7d028297ed677e102ea5f48dcdf05b018b58f64436",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 145302,
+      "sha256": "eea1ccbbdc313fb0b95aa97b2793501552de4a06d725d66a035ec8197cbc290c",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 30018329,
+      "sha256": "55eb417f0b8ffb76fa7a2872f6b8c76aecee2fe1418dbdc70fbf34148784d0cc",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1430666,
+      "sha256": "3e4112842c1ba8b79ddc6bd60b813e93bbe2472aeb26e00993e72ee7ca1429df",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1470820,
+      "sha256": "bfd9b4936eb09936cfdfe7f24bdd05d38414e6155da8087b938d6d8bb621af57",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33851584,
+      "sha256": "baf2ad926af32da937309e7c4d5cb2d5d44691ba33851b6c6be2dfa80f1d4474",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 948629,
+      "sha256": "1b263943e6a00da0ccb6facad4d3eeb2b721ede8a98fa7dba2d2f3d14740d229",
+      "contentType": "image/png"
+    }
+  ]
+}

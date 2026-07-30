@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "trident-wasp",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y"
+}

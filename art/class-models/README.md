@@ -1,20 +1,49 @@
 # Frontline 3D class-model vertical slice
 
-No class or class-projectile 3D model is approved. Runtime look packages contain
-no `model.glb` or `model3d.json`; WebGL intentionally uses the canonical SVG
+The Striker mobile body is the first accepted generated-geometry vertical
+slice. Its reviewed runtime derivative is staged beside
+`web/src/assets/class-looks/trident-wasp/sprite.svg`; every other class body,
+stance, emplacement, and class projectile still uses the canonical SVG
 extrusion fallback.
 
-## Approved Striker inputs
+The companion supplements rather than replaces the SVG. WebGL discovers and
+downloads the separate GLB only when the 3D renderer resolves that look. The
+site, Canvas2D, mobile, CLI, loading state, and failed-model path remain on the
+canonical 2D asset.
 
-The only approved 3D-direction material retained from the first pass is under
-`concept-targets/`:
+## Accepted Striker result
 
-- `striker-oblique-target-v1.png`;
-- `striker-model-sheet-v1.png`;
-- pinned model-sheet SHA-256
-  `7209a6afc3e58bcc37b2b5c710da167c8ee563656251e6de8fbe74c20305f683`;
-- the canonical `trident-wasp/sprite.svg`, which remains authoritative where
-  the generated reference differs.
+The clean multiview v2 inputs and fidelity evidence are under
+`concept-targets/meshy-striker-v2-candidate/`. The accepted geometry came from
+Meshy task `019fb00c-9e8d-723b-9485-49706e307cb9` with image enhancement
+disabled:
+
+- rigidly normalized top-planform IoU: `95.673%`;
+- accepted deliberate deviation: a taller, more rectilinear side profile;
+- runtime GLB: `4,588,820` bytes, `88,989` triangles, two primitives;
+- runtime SHA-256:
+  `17c1998906729ebe70d8653c8b18b588ac3acfbeb521698737a266279147c07e`;
+- one renderer-owned `team-accent` material with shared normal and
+  metallic/roughness detail;
+- blue/orange replay review, semantic structural checks, WebGL review build,
+  and the web test suite pass.
+
+The team split is a deterministic offline derivative of the accepted fused
+material. It preserves geometry, UVs, transforms, facing, and the complete
+triangle multiset while neutralizing cyan in the hull maps. The renderer owns
+team tint, bounded emissive response, and the floor glow.
+
+The GLB has no validation errors and two generated-tangent-space portability
+warnings, one per normal-mapped primitive. Three.js renders the derivative
+correctly; the landing record must explicitly accept that target-renderer
+basis or add authored tangents before claiming broader renderer portability.
+
+The GLB's authored span is `1.12` tiles. The current Striker look then applies
+`1.18 × 0.9 = 1.062`, so its effective live span is `1.18944` tiles. Frontline
+clearance must use that live value rather than the GLB span. The approved
+direction is to preserve the larger look and give open wall edges a
+presentation-only setback; actor-owned idle/recoil motion remains a separate
+wall-aware clamp problem.
 
 ## Rejected procedural evidence
 
@@ -38,13 +67,18 @@ All generated GLBs, Blender files, textures, previews, build reports, and
 procedural model generators from those failed experiments were removed so the
 approach cannot be mistaken for a production pipeline.
 
-## Next route
+## Remaining landing work
 
-The next Striker attempt is an unproven multiview-AI-to-human vertical slice.
-A service output is only a base mesh. A human modeler or technical artist must
-correct form and silhouette, retopologize, author UV/PBR materials, isolate the
-team-color material, set axes/pivots/scale, and pass the normal gameplay-camera
-and fallback gates before any runtime companion is considered.
+Before merging, retain the deterministic team-accent script/config/report
+outside ignored scratch space, record the tangent-space decision, rebase onto
+Fable's current integration tip, and rerun the full web and production/CLI
+builds. The Frontline map branch owns the corrected live-span wall-clearance
+proof and modular wall implementation; it does not change gameplay collision.
 
 Striker's shallow `low-hover` is canonical presentation metadata in
 `look.json`, independent of whether an approved GLB ever exists.
+
+The default `trident-spark` projectile has not been submitted to Meshy. It is a
+separate object, input review, task, and credit charge after this chassis
+landing; its trail, floor glow, travel, impact, hitbox, and team tint remain
+renderer-owned.

@@ -1,0 +1,46 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 43529728,
+    "sha256": "1ffa4868b74cff369b52ae2ad00c7ed4b7577092efa677c4b3d17858365819c9"
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 265464,
+    "triangles": 509094,
+    "boundsMin": [
+      -0.9507,
+      -0.52117,
+      -0.35845
+    ],
+    "boundsMax": [
+      0.94859,
+      0.51915,
+      0.35625
+    ],
+    "sourceFacing": "-x",
+    "sourceUp": "+z"
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticTeamMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "metallicRoughness",
+      "normal",
+      "emission"
+    ]
+  },
+  "reviewDerivatives": {
+    "lean": {
+      "bytes": 2471936,
+      "sha256": "c735fb63da6a1fef5a0a2e9568f8a836100a09fda325b1e41563f66fddd15efb",
+      "vertices": 46241,
+      "triangles": 76364,
+      "textureResolution": 1024,
+      "approvedForRuntime": false
+    }
+  }
+}

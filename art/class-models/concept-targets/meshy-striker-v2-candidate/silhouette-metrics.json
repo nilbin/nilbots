@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "inputs": {
+    "canonical": {
+      "file": "../../../../web/src/assets/class-looks/trident-wasp/sprite.svg",
+      "sha256": "ea20b27fcd73a55f6489b8872df1b2be793e1564fe19505fe90ad764701a6a0a"
+    },
+    "candidate": {
+      "file": "01-top.png",
+      "sha256": "39c65768e05880d46f430c62542ac7aced9b4b721ee942b327d17d2c10ca681e"
+    }
+  },
+  "method": {
+    "analysisCanvas": {
+      "width": 1254,
+      "height": 1254
+    },
+    "canonicalRasterization": {
+      "alphaThreshold": 128
+    },
+    "candidateSegmentation": {
+      "borderFramePixels": 16,
+      "medianBackgroundRgb": [
+        123,
+        122,
+        123
+      ],
+      "perChannelTolerance": 12,
+      "connectivity": "4-connected border background, largest 8-connected foreground"
+    },
+    "alignment": {
+      "orientation": "unchanged; both inputs face East/right",
+      "scale": "uniform candidate scale to canonical outer-silhouette bounding-box width",
+      "translation": "bounding-box centers aligned; no rotation, anisotropic fit, or IoU optimization",
+      "candidateScaleFactor": 1.014760148,
+      "placedCandidateOrigin": {
+        "x": 142,
+        "y": 290
+      }
+    },
+    "overlayLegend": {
+      "overlap": "#dae1e8",
+      "canonicalOnly": "#ff488b",
+      "candidateOnly": "#00dcff",
+      "background": "#12161d"
+    }
+  },
+  "measurements": {
+    "canonicalBoundingBox": {
+      "minX": 142,
+      "minY": 274,
+      "maxX": 1241,
+      "maxY": 979,
+      "width": 1100,
+      "height": 706,
+      "area": 485914
+    },
+    "candidateBoundingBoxBeforeAlignment": {
+      "minX": 111,
+      "minY": 265,
+      "maxX": 1194,
+      "maxY": 928,
+      "width": 1084,
+      "height": 664,
+      "area": 481934
+    },
+    "candidateAlignedBoundingBoxSize": {
+      "width": 1100,
+      "height": 674
+    },
+    "canonicalAspectRatio": 1.558074,
+    "candidateAspectRatio": 1.63253,
+    "candidateHeightDeltaAtEqualWidthPercent": -4.533,
+    "intersectionPixels": 478179,
+    "unionPixels": 504154,
+    "canonicalOnlyPixels": 7735,
+    "candidateOnlyPixels": 18240,
+    "canonicalAreaPixels": 485914,
+    "alignedCandidateAreaPixels": 496419,
+    "intersectionOverUnion": 0.948478044,
+    "canonicalCoverage": 0.984081545,
+    "candidateCoverage": 0.963256846,
+    "intersectionOverUnionPercent": 94.848,
+    "canonicalCoveragePercent": 98.408,
+    "candidateCoveragePercent": 96.326,
+    "alignedCandidateAreaDeltaPercent": 2.162,
+    "centroidDeltaPixels": {
+      "x": 7.218,
+      "y": 4.035
+    }
+  }
+}

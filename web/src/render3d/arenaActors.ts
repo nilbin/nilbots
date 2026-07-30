@@ -29,7 +29,11 @@ import {
   maxHealthForActor,
   replayMaxHealth,
 } from '../replayMetadata';
-import { lookModel, modelSpec } from './lookModel';
+import {
+  isGenuineLookModel,
+  lookModel,
+  modelSpec,
+} from './lookModel';
 import { CAMERA_PITCH } from './arenaScene';
 
 /**
@@ -206,6 +210,30 @@ export interface ArenaActors {
   /** Which bot, if any, is under a ray cast from the camera. */
   pick: (raycaster: THREE.Raycaster) => ReplayStableUnitKey | null;
   dispose: () => void;
+}
+
+/**
+ * Replace the loading stand-ins with the resolved chassis representation.
+ *
+ * The small facing wedge is renderer-owned legacy hardware. SVG-derived solids need it
+ * because a raised camera can otherwise lose their facing, while an authored GLB already
+ * carries its own prow and directional silhouette. Unknown model sources keep the wedge:
+ * that is the conservative fallback and preserves the pre-GLB rendering floor.
+ */
+export function installMobileModel(
+  body: THREE.Group,
+  model: THREE.Group,
+  placeholders: {
+    hull: THREE.Object3D;
+    lid: THREE.Object3D;
+    facingMarker: THREE.Object3D;
+  },
+): void {
+  body.add(model);
+  body.remove(placeholders.hull);
+  body.remove(placeholders.lid);
+  if (isGenuineLookModel(model))
+    body.remove(placeholders.facingMarker);
 }
 
 export function buildActors(replay: ReplayModel): ArenaActors {
@@ -670,9 +698,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (!live || !model) return;
       model.scale.setScalar(size);
       registerModelMaterials(model);
-      body.add(model);
-      body.remove(hull);
-      body.remove(lid);
+      installMobileModel(body, model, {
+        hull,
+        lid,
+        facingMarker: nose,
+      });
     });
 
     // Following a bot lights *the bot*, not a ring drawn near it.
