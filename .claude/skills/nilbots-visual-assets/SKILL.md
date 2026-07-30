@@ -128,6 +128,11 @@ review, and optimization remain separate required stages.
    changes the approved body class even when the top passes. The clean Striker
    v2 trial caught a reversed result only through the facing check and found
    `95.67%` top IoU after the rigid correction.
+   Never accept the provider thumbnail as this evidence. Measure the downloaded
+   GLB itself, and report top and side independently. The Aegis trial retained
+   `97.06%` rich-2D top IoU while making the side roughly `41%` too thick and
+   collapsing its walking supports; that is a successful armor reference and
+   a failed animation-ready body at the same time.
 7. Prompting may confine a team color to clean, bounded inlays, but it does not
    create semantic runtime ownership. For a clean fused result, prefer a
    deterministic offline texture mask and face split over a runtime hue-key
@@ -187,6 +192,17 @@ method.
    top, strict side, front three-quarter, and rear three-quarter view. The top
    view is derived from the approved 3D concept and must pass a same-scale
    overlay against the canonical 2D planform before upload.
+   Treat background cleanup as an identity-critical edit. Never classify all
+   achromatic or shadow-valued pixels as background: that can erase graphite
+   mechanics, pale ceramic, legs, and truss openings while still passing
+   dimensions and border tests. Prefer a scene-only edit onto a distinctive
+   chroma field, classify only that chroma, and seed every intended aperture.
+   For a strict-SVG projectile top, rigidly align the authoritative SVG mask
+   and force only pixels outside its outer silhouette and inside its authored
+   holes to the neutral field; do not warp the inferred 3D surface content.
+   Inspect every final view at original resolution. Exact dimensions, opacity,
+   border color, margin, and scale consistency are necessary but cannot prove
+   that hardware survived.
 4. Keep geometry requirements visible and mutually consistent in the source
    images. Meshy's `texture_prompt` describes surface appearance; prohibitions
    such as “no landing gear” or “thin hull” in that field are not a documented
@@ -219,10 +235,29 @@ method.
    Authorization header.
 9. Download every output immediately. Meshy's non-Enterprise API retention is
    short and must not be treated as storage. Keep raw provider output
-   art-side; only a corrected, reviewed derivative may enter a runtime look.
+   art-side; copy the ignored master and lossless maps into durable project
+   artifact storage before deleting a worktree. Only a corrected, reviewed
+   derivative may enter a runtime look.
 10. A default projectile is a second, separately charged task after its bot
-   proof passes. Its input shows only the projectile head; Nilbots continues
-   to own trail, glow pool, travel, impact, hitbox, and team tint.
+    proof passes. Its input shows only the projectile head; Nilbots continues
+    to own trail, glow pool, travel, impact, hitbox, and team tint.
+
+After download, record mesh/primitive/material counts, triangles, vertices,
+axis and facing, bounds, skins, animations, morphs, tangents, validation, and
+topology before attempting part animation. Loose indexed islands may be only
+UV/normal seams: weld exact coincident positions and recompute connectivity
+before calling them separable parts. A single welded manifold requires an
+authored cut/rebuild and named pivots; do not parent arbitrary seam islands.
+Provider tasks may disagree on axes even in one batch, so normalize every
+asset from measurement rather than copying the preceding task's transform.
+
+Use Blender after the provider has supplied useful identity/material evidence,
+not as a reason to accept provider topology. Retopologize and rebuild
+rule-bearing functional parts, isolate semantic materials, add named rigid
+parts or a skin, author deterministic clips, rebake, add tangents, optimize,
+and rerun the fixed-view/gameplay gates. Preserve the provider master as
+reference; never animate an inseparable high-poly manifold merely because it
+looks complete from above.
 
 #### Fused team-accent extraction
 
@@ -432,5 +467,6 @@ tangents as a portability decision: generate tangents for portable assets or
 record and test the target renderer's derivative tangent-space support rather
 than ignoring the validator warning.
 When engine, replay, map, or submission contracts changed, also run
-`bash scripts/test.sh`. Record new durable presentation choices in
-`docs/DECISIONS.md`.
+`bash scripts/test.sh`. Record new durable presentation choices for the
+integration owner, but do not mint or renumber `docs/DECISIONS.md` entries on
+parallel feature branches.

@@ -1,0 +1,81 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 53023148,
+    "sha256": "dcb22bd3975bb767c5206a92918a59d6ef92cb338e7bad8463c2040edf274534"
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 422224,
+    "triangles": 808258,
+    "sourceFacing": "-x",
+    "sourceUp": "+z",
+    "skins": 0,
+    "animations": 0,
+    "morphTargets": 0,
+    "tangentAccessors": 0
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticTeamMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "metallicRoughness",
+      "normal",
+      "emission"
+    ]
+  },
+  "topology": {
+    "indexedSeamIslands": 268,
+    "weldedUniquePositions": 404069,
+    "weldedEdges": 1212387,
+    "weldedComponents": 1,
+    "boundaryEdges": 0,
+    "nonManifoldEdges": 0,
+    "verdict": "single-watertight-manifold-not-logical-parts"
+  },
+  "silhouette": {
+    "normalization": "fixed 180-degree yaw; uniform scale and translation only",
+    "rawTopIoUToCleanInput": 0.9699,
+    "rawTopOuterIoUToCleanInput": 0.9701,
+    "rawTopIoUToRich2dAuthority": 0.9706,
+    "rawTopOuterIoUToRich2dAuthority": 0.9706,
+    "cleanSideAspect": 3.345,
+    "rawSideAspect": 2.373,
+    "rawSideIoUToCleanInputApprox": 0.72,
+    "sideThicknessDriftApprox": 0.41,
+    "topVerdict": "passed-planform",
+    "sideVerdict": "failed-walkable-lower-chassis"
+  },
+  "identity": {
+    "preserved": [
+      "C-shaped forward shield",
+      "twin bronze shield plates",
+      "central reactor",
+      "embedded cannon",
+      "rear corner pods",
+      "navy and bronze material hierarchy",
+      "cyan class-energy slits"
+    ],
+    "requiredCorrection": [
+      "reconstruct the approved low lower chassis",
+      "reconstruct and separate four articulated rigid leg hierarchies",
+      "restore a clean side-profile cannon projection",
+      "author the missing west-centre semantic team inlay",
+      "split semantic team material from class-energy cyan",
+      "retopologize, rebake, author tangents, and optimize"
+    ]
+  },
+  "validation": {
+    "khronosErrors": 0,
+    "warnings": [
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+    ],
+    "information": [
+      "NODE_MATRIX_DEFAULT"
+    ]
+  },
+  "verdict": "accepted-high-detail-armor-master-not-runtime-or-animation-ready"
+}
