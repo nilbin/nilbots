@@ -229,6 +229,31 @@ method.
    proof passes. Its input shows only the projectile head; Nilbots continues
    to own trail, glow pool, travel, impact, hitbox, and team tint.
 
+After download, record mesh/primitive/material counts, triangles, vertices,
+axis and facing, bounds, skins, animations, morphs, tangents, validation, and
+topology before attempting part animation. Loose indexed islands may be only
+UV/normal seams: weld exact coincident positions and recompute connectivity
+before calling them separable parts. A single welded manifold requires an
+authored cut/rebuild and named pivots; do not parent arbitrary seam islands.
+Provider tasks may disagree on axes even in one batch, so normalize every
+asset from measurement rather than copying the preceding task's transform.
+A strong top silhouette can also hide complete geometry duplicated along the
+depth axis. Always inspect strict side and gameplay oblique views and record
+each exact-position-welded component's bounds, triangles, watertightness, and
+planform coverage. Delete a duplicate layer only when those measurements prove
+the components are independent and the retained component is a complete
+approved body; do not average, flatten, bridge, or globally scale stacked
+copies into one. Re-run the side/depth gate after deletion and rebuild the
+retained underside when its own profile still misses the approved reference.
+
+Use Blender after the provider has supplied useful identity/material evidence,
+not as a reason to accept provider topology. Retopologize and rebuild
+rule-bearing functional parts, isolate semantic materials, add named rigid
+parts or a skin, author deterministic clips, rebake, add tangents, optimize,
+and rerun the fixed-view/gameplay gates. Preserve the provider master as
+reference; never animate an inseparable high-poly manifold merely because it
+looks complete from above.
+
 #### Fused team-accent extraction
 
 Use this only when a reviewed generated mesh has one fused material but clean,

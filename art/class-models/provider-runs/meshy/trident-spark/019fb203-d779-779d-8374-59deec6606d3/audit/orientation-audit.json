@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "assetId": "trident-spark",
+  "method": "longest-planform-span normalization, centered bounds, uniform scale and translation only",
+  "authority": {
+    "path": "web/src/assets/class-projectile-looks/trident-spark/sprite.svg",
+    "sha256": "b44365017f788d9ba8ff207f04976ee244f488493699d9214d2fd8a767b25f59",
+    "bounds": {
+      "left": 172,
+      "top": 280,
+      "right": 923,
+      "bottom": 743,
+      "width": 752,
+      "height": 464
+    },
+    "apertures": {
+      "count": 0,
+      "areasPixels": [],
+      "largestAreaToObject": 0
+    }
+  },
+  "candidates": {
+    "+x": {
+      "iou": 0.9298122022209451,
+      "coverage": 0.9445682538686085,
+      "precision": 0.9834763681998523,
+      "translationPixels": [
+        -2,
+        0
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 263,
+        "right": 931,
+        "bottom": 760,
+        "width": 840,
+        "height": 498
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 0,
+        "areasPixels": [],
+        "largestAreaToObject": 0
+      }
+    },
+    "-x": {
+      "iou": 0.41671581392394724,
+      "coverage": 0.5766345459681722,
+      "precision": 0.6004144170054776,
+      "translationPixels": [
+        8,
+        1
+      ],
+      "sourceBounds": {
+        "left": 92,
+        "top": 263,
+        "right": 931,
+        "bottom": 760,
+        "width": 840,
+        "height": 498
+      },
+      "normalizationScale": 0.9761904761904762,
+      "apertures": {
+        "count": 0,
+        "areasPixels": [],
+        "largestAreaToObject": 0
+      }
+    }
+  },
+  "recommendedSourceFacing": "+x",
+  "inspectedSourceFacing": "+x",
+  "sourceFacingAgreement": true
+}
