@@ -3,6 +3,8 @@ import type { ReplayModel } from '../replayModel';
 import { arenaTheme, type ArenaTheme } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
 import { wallShapes } from './wallSolids';
+import { buildWallDetails } from './wallDetails';
+import { themeMaterialImage } from './themeMaterialAssets';
 
 /**
  * The arena as actual geometry.
@@ -74,9 +76,19 @@ export function buildArena(replay: ReplayModel): ArenaScene {
 
   const disposables: { dispose: () => void }[] = [];
 
-  scene.add(...lights(mapWidth, mapHeight, disposables));
+  scene.add(...lights(theme, mapWidth, mapHeight, disposables));
   scene.add(floor(theme, mapWidth, mapHeight, disposables));
-  for (const mesh of walls(replay, theme, disposables)) scene.add(mesh);
+  const layout = wallLayout(replay, theme);
+  for (const mesh of walls(replay, theme, layout, disposables))
+    scene.add(mesh);
+  scene.add(
+    buildWallDetails(
+      layout,
+      theme,
+      WALL_OPEN_EDGE_INSET,
+      disposables,
+    ),
+  );
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
@@ -98,11 +110,16 @@ export function buildArena(replay: ReplayModel): ArenaScene {
  * real geometry.
  */
 function lights(
+  theme: ArenaTheme,
   mapWidth: number,
   mapHeight: number,
   disposables: { dispose: () => void }[],
 ): THREE.Object3D[] {
-  const key = new THREE.DirectionalLight(0xe8f1ff, 4.4);
+  const lighting = theme.environment3d.lighting;
+  const key = new THREE.DirectionalLight(
+    lighting.keyColor,
+    lighting.keyIntensity,
+  );
   key.position.set(mapWidth * 0.55, mapWidth * 0.85, mapHeight * 0.75);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -118,10 +135,16 @@ function lights(
   key.shadow.bias = -0.0015;
   key.shadow.normalBias = 0.02;
 
-  const ambient = new THREE.AmbientLight(0x6f8bb0, 2.4);
+  const ambient = new THREE.AmbientLight(
+    lighting.ambientColor,
+    lighting.ambientIntensity,
+  );
   // A dim fill from the opposite side so wall faces turned away from the key are readable
   // rather than silhouettes.
-  const fill = new THREE.DirectionalLight(0x4d7099, 1.5);
+  const fill = new THREE.DirectionalLight(
+    lighting.fillColor,
+    lighting.fillIntensity,
+  );
   fill.position.set(-mapWidth * 0.6, mapWidth * 0.4, -mapHeight * 0.5);
 
   disposables.push(key, ambient, fill);
@@ -153,6 +176,7 @@ function floor(
   // not look like the flat viewer: same texture, completely different texel density and no
   // continuity from one tile to the next.
   const texture = fromImage(theme.floorTexture);
+  const floorMaterial = theme.environment3d.floor;
   const material = new THREE.MeshStandardMaterial({
     map: texture,
     // The albedo doubles as relief. Every one of these textures is a photographed or baked
@@ -160,10 +184,10 @@ function floor(
     // so reading its luminance as height gives the real thing back a shape that responds to
     // the key light, instead of a photograph of shading lying flat under a different one.
     bumpMap: texture,
-    bumpScale: 1.6,
+    bumpScale: floorMaterial.bumpScale,
     color: tintMultiplier(theme.palette.floorTint),
-    roughness: 0.86,
-    metalness: 0.12,
+    roughness: floorMaterial.roughness,
+    metalness: floorMaterial.metalness,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
@@ -187,28 +211,9 @@ function floor(
 function walls(
   replay: ReplayModel,
   theme: ArenaTheme,
+  layout: WallLayout,
   disposables: { dispose: () => void }[],
 ): THREE.Mesh[] {
-  const layout = new WallLayout(
-    replay,
-    validFamily(
-      replay.map.presentation?.boundaryWall ?? undefined,
-      theme,
-      theme.walls.defaults.boundary,
-    ),
-    validFamily(
-      replay.map.presentation?.interiorWall ?? undefined,
-      theme,
-      theme.walls.defaults.interior,
-    ),
-    (family) =>
-      validFamily(
-        family,
-        theme,
-        theme.walls.defaults.interior,
-      ),
-  );
-
   const byFamily = new Map<string, { x: number; y: number }[]>();
   const capsByFamily = new Map<string, THREE.BufferGeometry[]>();
   for (const wall of layout.walls()) {
@@ -216,14 +221,20 @@ function walls(
       .push({ x: wall.x, y: wall.y });
 
     const family = theme.walls.families.get(wall.family)!;
+    const upper = family.geometry3d.upperProfile;
 
     // Preserve atlas gutter only across same-family joins. A different wall family meets
     // on the grid boundary; open floor receives the universal live-bot clearance.
     const { contentPixels, gutterPixels } = theme.walls.atlas;
     const gutter = gutterPixels / contentPixels;
     const cellGutter = gutterPixels / (contentPixels + gutterPixels * 2);
-    const connectedHalf = 0.5 + gutter - WALL_CHAMFER;
-    const openHalf = 0.5 - WALL_OPEN_EDGE_INSET - WALL_CHAMFER;
+    const capChamfer = upper?.chamfer ?? WALL_CHAMFER;
+    const connectedHalf = 0.5 + gutter - capChamfer;
+    const openHalf =
+      0.5 -
+      WALL_OPEN_EDGE_INSET -
+      (upper?.inset ?? 0) -
+      capChamfer;
     const edge = (
       dx: number,
       dy: number,
@@ -275,6 +286,10 @@ function walls(
     const family = theme.walls.families.get(familyId);
     if (!family) continue;
     const height = family.geometry3d.height;
+    const upper = family.geometry3d.upperProfile;
+    const bodyHeight = upper === null
+      ? height
+      : height - upper.height;
     const shapes = wallShapes(tiles, {
       cornerRadius: family.geometry3d.cornerRadius,
       // ExtrudeGeometry's bevel reaches outside its source outline. Compensate here so the
@@ -288,7 +303,7 @@ function walls(
     // along the top edge. `curveSegments` is what the corner arcs are drawn with; three is
     // enough to round a corner at this scale and cheap enough to spend on every wall.
     const geometry = new THREE.ExtrudeGeometry(shapes, {
-      depth: height - WALL_CHAMFER,
+      depth: bodyHeight - WALL_CHAMFER,
       bevelEnabled: true,
       bevelThickness: WALL_CHAMFER,
       bevelSize: WALL_CHAMFER,
@@ -301,6 +316,16 @@ function walls(
     projectWorldUvs(geometry, replay.map.width, replay.map.height);
 
     const texture = sprite(family?.materialTexture ?? null, THREE.RepeatWrapping);
+    const normalMap = sprite(
+      themeMaterialImage(theme.id, family.material3d.normalMap),
+      THREE.RepeatWrapping,
+      THREE.NoColorSpace,
+    );
+    const roughnessMap = sprite(
+      themeMaterialImage(theme.id, family.material3d.roughnessMap),
+      THREE.RepeatWrapping,
+      THREE.NoColorSpace,
+    );
     // Albedo on every face, including the top. The topology atlas is *not* a standalone
     // texture — the 2D renderer fills with the material and then draws the atlas over it as
     // a transparent overlay — so using it alone here produced dark outlines floating on
@@ -309,11 +334,15 @@ function walls(
       map: texture,
       // Same trick as the floor: the wall material's own plates and seams become relief,
       // so the surface has form under the light instead of a picture of form.
-      bumpMap: texture,
-      bumpScale: 2.2,
+      normalMap,
+      normalScale: new THREE.Vector2(
+        family.material3d.normalScale,
+        family.material3d.normalScale,
+      ),
       color: tintMultiplier(theme.palette.wallTint),
-      roughness: 0.88,
-      metalness: 0.2,
+      roughnessMap,
+      roughness: family.material3d.roughness,
+      metalness: family.material3d.metalness,
     });
 
     const mesh = new THREE.Mesh(geometry, body);
@@ -326,6 +355,42 @@ function walls(
     mesh.receiveShadow = true;
     meshes.push(mesh);
     disposables.push(geometry, body);
+    if (normalMap) disposables.push(normalMap);
+    if (roughnessMap) disposables.push(roughnessMap);
+
+    if (upper !== null) {
+      const upperShapes = wallShapes(tiles, {
+        cornerRadius: family.geometry3d.cornerRadius,
+        openEdgeInset:
+          WALL_OPEN_EDGE_INSET + upper.inset + upper.chamfer,
+        isWall: (x, y) => layout.familyAt(x, y) !== null,
+      });
+      const upperGeometry = new THREE.ExtrudeGeometry(upperShapes, {
+        depth: upper.height - upper.chamfer,
+        bevelEnabled: true,
+        bevelThickness: upper.chamfer,
+        bevelSize: upper.chamfer,
+        bevelSegments: 2,
+        curveSegments: 4,
+      });
+      upperGeometry.rotateX(-Math.PI / 2);
+      upperGeometry.translate(0, bodyHeight, 0);
+      projectWorldUvs(
+        upperGeometry,
+        replay.map.width,
+        replay.map.height,
+      );
+      const upperMesh = new THREE.Mesh(upperGeometry, body);
+      upperMesh.userData.kind = 'arena-wall-upper-profile';
+      upperMesh.userData.family = familyId;
+      upperMesh.userData.height = upper.height;
+      upperMesh.userData.inset = upper.inset;
+      upperMesh.userData.chamfer = upper.chamfer;
+      upperMesh.castShadow = true;
+      upperMesh.receiveShadow = true;
+      meshes.push(upperMesh);
+      disposables.push(upperGeometry);
+    }
 
     const caps = capsByFamily.get(familyId) ?? [];
     if (caps.length > 0 && family?.edgeAtlasTexture) {
@@ -458,8 +523,9 @@ function mergeGeometries(parts: readonly THREE.BufferGeometry[]): THREE.BufferGe
 function sprite(
   image: HTMLImageElement | null,
   wrap: THREE.Wrapping = THREE.ClampToEdgeWrapping,
+  colorSpace: THREE.ColorSpace = THREE.SRGBColorSpace,
 ): THREE.Texture | null {
-  const texture = fromImage(image);
+  const texture = fromImage(image, colorSpace);
   if (!texture) return null;
   texture.wrapS = wrap;
   texture.wrapT = wrap;
@@ -477,10 +543,13 @@ function sprite(
  *
  * One listener per texture makes the timing irrelevant.
  */
-function fromImage(image: HTMLImageElement | null): THREE.Texture | null {
+function fromImage(
+  image: HTMLImageElement | null,
+  colorSpace: THREE.ColorSpace = THREE.SRGBColorSpace,
+): THREE.Texture | null {
   if (!image) return null;
   const texture = new THREE.Texture(image);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.colorSpace = colorSpace;
   texture.anisotropy = 8;
   if (image.complete && image.naturalWidth > 0) {
     texture.needsUpdate = true;
@@ -492,4 +561,26 @@ function fromImage(image: HTMLImageElement | null): THREE.Texture | null {
 
 function validFamily(candidate: string | undefined, theme: ArenaTheme, fallback: string): string {
   return candidate && theme.walls.families.has(candidate) ? candidate : fallback;
+}
+
+function wallLayout(replay: ReplayModel, theme: ArenaTheme): WallLayout {
+  return new WallLayout(
+    replay,
+    validFamily(
+      replay.map.presentation?.boundaryWall ?? undefined,
+      theme,
+      theme.walls.defaults.boundary,
+    ),
+    validFamily(
+      replay.map.presentation?.interiorWall ?? undefined,
+      theme,
+      theme.walls.defaults.interior,
+    ),
+    (family) =>
+      validFamily(
+        family,
+        theme,
+        theme.walls.defaults.interior,
+      ),
+  );
 }

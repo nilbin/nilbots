@@ -12,6 +12,35 @@
     "edgeQuality": 95,
     "assetBudgetBytes": 5000000
   },
+  "runtime3d": {
+    "packagePath": "web/src/assets/themes/ember-forge/pbr",
+    "materialMaps": [
+      {
+        "source": "walls/perimeter/normal.png",
+        "runtime": "wall-perimeter-normal.webp",
+        "size": 512,
+        "quality": 92
+      },
+      {
+        "source": "walls/perimeter/roughness.png",
+        "runtime": "wall-perimeter-roughness.webp",
+        "size": 512,
+        "quality": 90
+      },
+      {
+        "source": "walls/cover/normal.png",
+        "runtime": "wall-cover-normal.webp",
+        "size": 512,
+        "quality": 92
+      },
+      {
+        "source": "walls/cover/roughness.png",
+        "runtime": "wall-cover-roughness.webp",
+        "size": 512,
+        "quality": 90
+      }
+    ]
+  },
   "wallFamilies": {
     "perimeter": {
       "source": "walls/perimeter/source.png",

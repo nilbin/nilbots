@@ -21,17 +21,20 @@ public sealed class FrontlineLabsPlaylistDefinition
 
     private FrontlineLabsPlaylistDefinition(
         ActorResolvedMatchDefinition match,
+        GenericActorReplayPresentation replayPresentation,
         string canonicalDefinition,
         string definitionFingerprint,
         string provenance)
     {
         Match = match;
+        ReplayPresentation = replayPresentation;
         CanonicalDefinition = canonicalDefinition;
         DefinitionFingerprint = definitionFingerprint;
         Provenance = provenance;
     }
 
     public ActorResolvedMatchDefinition Match { get; }
+    public GenericActorReplayPresentation ReplayPresentation { get; }
     public string CanonicalDefinition { get; }
     public string DefinitionFingerprint { get; }
     public string Provenance { get; }
@@ -53,6 +56,8 @@ public sealed class FrontlineLabsPlaylistDefinition
     {
         ActorResolvedMatchDefinition match =
             FrontlineLabsDefinition.Create();
+        GenericActorReplayPresentation replayPresentation =
+            FrontlineLabsReplayPresentation.Create(match);
         string resolvedMatchJson =
             ActorContractManifestSerializer.ToCanonicalJson(match);
         string resolvedMatchFingerprint =
@@ -102,6 +107,7 @@ public sealed class FrontlineLabsPlaylistDefinition
 
         return new FrontlineLabsPlaylistDefinition(
             match,
+            replayPresentation,
             canonicalDefinition,
             Sha256(canonicalDefinition),
             provenance);

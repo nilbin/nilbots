@@ -24,6 +24,15 @@ public sealed class FrontlineLabsPlaylistDefinitionTests
             canonical.RootElement
                 .GetProperty("executionEngineVersion")
                 .GetString());
+        Assert.Equal(
+            FrontlineLabsReplayPresentation.ThemeId,
+            definition.ReplayPresentation.ThemeId);
+        Assert.Equal(
+            FrontlineLabsReplayPresentation.BoundaryWallFamily,
+            definition.ReplayPresentation.Map?.BoundaryWall);
+        Assert.Equal(
+            FrontlineLabsReplayPresentation.InteriorWallFamily,
+            definition.ReplayPresentation.Map?.InteriorWall);
     }
 
     [Fact]

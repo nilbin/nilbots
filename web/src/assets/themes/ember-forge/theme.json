@@ -1,6 +1,21 @@
 {
   "id": "ember-forge",
   "label": "Ember Forge",
+  "environment3d": {
+    "lighting": {
+      "keyColor": "#f1d4c0",
+      "keyIntensity": 3.6,
+      "ambientColor": "#5d6670",
+      "ambientIntensity": 1.8,
+      "fillColor": "#8c5d42",
+      "fillIntensity": 0.75
+    },
+    "floor": {
+      "bumpScale": 0.045,
+      "roughness": 0.95,
+      "metalness": 0.16
+    }
+  },
   "textures": {
     "floor": "floor-forge.webp"
   },
@@ -22,7 +37,27 @@
         "shadowAtlas": "wall-perimeter-shadows.webp",
         "geometry3d": {
           "height": 0.72,
-          "cornerRadius": 0.23
+          "cornerRadius": 0.23,
+          "upperProfile": {
+            "height": 0.19,
+            "inset": 0.025,
+            "chamfer": 0.035
+          },
+          "details": {
+            "panelEvery": 3,
+            "ventEvery": 4,
+            "clampEvery": 5,
+            "panelColor": "#6d594d",
+            "clampColor": "#8e5c3e",
+            "ventColor": "#e2732f"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-perimeter-normal.webp",
+          "roughnessMap": "pbr/wall-perimeter-roughness.webp",
+          "normalScale": 0.55,
+          "roughness": 0.92,
+          "metalness": 0.18
         }
       },
       "cover": {
@@ -32,7 +67,27 @@
         "shadowAtlas": "wall-cover-shadows.webp",
         "geometry3d": {
           "height": 0.46,
-          "cornerRadius": 0.31
+          "cornerRadius": 0.31,
+          "upperProfile": {
+            "height": 0.14,
+            "inset": 0.04,
+            "chamfer": 0.03
+          },
+          "details": {
+            "panelEvery": 3,
+            "ventEvery": 5,
+            "clampEvery": 7,
+            "panelColor": "#7d684f",
+            "clampColor": "#80543d",
+            "ventColor": "#d7662b"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-cover-normal.webp",
+          "roughnessMap": "pbr/wall-cover-roughness.webp",
+          "normalScale": 0.45,
+          "roughness": 0.94,
+          "metalness": 0.14
         }
       }
     }

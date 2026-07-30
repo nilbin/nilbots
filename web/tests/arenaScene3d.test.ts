@@ -34,7 +34,10 @@ function withEmberPresentation(source: ReplayModel): ReplayModel {
 
 function wallsByKind(
   scene: THREE.Scene,
-  kind: 'arena-wall-body' | 'arena-wall-caps',
+  kind:
+    | 'arena-wall-body'
+    | 'arena-wall-caps'
+    | 'arena-wall-upper-profile',
 ): Map<string, THREE.Mesh> {
   const result = new Map<string, THREE.Mesh>();
   scene.traverse((node) => {
@@ -44,6 +47,17 @@ function wallsByKind(
       typeof node.userData.family === 'string'
     )
       result.set(node.userData.family, node);
+  });
+  return result;
+}
+
+function objectByKind(
+  scene: THREE.Scene,
+  kind: string,
+): THREE.Object3D | null {
+  let result: THREE.Object3D | null = null;
+  scene.traverse((node) => {
+    if (result === null && node.userData.kind === kind) result = node;
   });
   return result;
 }
@@ -91,34 +105,51 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
     const arena = buildArena(withEmberPresentation(replay));
     const bodies = wallsByKind(arena.scene, 'arena-wall-body');
     const caps = wallsByKind(arena.scene, 'arena-wall-caps');
+    const profiles = wallsByKind(
+      arena.scene,
+      'arena-wall-upper-profile',
+    );
 
     assert.deepEqual([...bodies.keys()].sort(), ['cover', 'perimeter']);
     assert.deepEqual([...caps.keys()].sort(), ['cover', 'perimeter']);
+    assert.deepEqual([...profiles.keys()].sort(), ['cover', 'perimeter']);
     assert.equal(bodies.get('perimeter')!.userData.height, 0.72);
     assert.equal(bodies.get('perimeter')!.userData.cornerRadius, 0.23);
     assert.equal(bodies.get('cover')!.userData.height, 0.46);
     assert.equal(bodies.get('cover')!.userData.cornerRadius, 0.31);
+    assert.equal(profiles.get('perimeter')!.userData.height, 0.19);
+    assert.equal(profiles.get('perimeter')!.userData.inset, 0.025);
+    assert.equal(profiles.get('cover')!.userData.height, 0.14);
+    assert.equal(profiles.get('cover')!.userData.inset, 0.04);
 
     for (const wall of [...bodies.values(), ...caps.values()])
       assert.equal(wall.userData.openEdgeInset, WALL_OPEN_EDGE_INSET);
 
-    const coverBody = bodies.get('cover')!;
+    const coverProfile = profiles.get('cover')!;
     const coverCaps = caps.get('cover')!;
-    const bodyPosition = coverBody.geometry.attributes.position as THREE.BufferAttribute;
-    const bodyNormal = coverBody.geometry.attributes.normal as THREE.BufferAttribute;
+    const profilePosition =
+      coverProfile.geometry.attributes.position as THREE.BufferAttribute;
+    const profileNormal =
+      coverProfile.geometry.attributes.normal as THREE.BufferAttribute;
     const topBounds = positionBounds(
-      coverBody.geometry,
+      coverProfile.geometry,
       (vertex) =>
-        bodyNormal.getY(vertex) > 0.999 &&
-        Math.abs(bodyPosition.getY(vertex) - 0.46) < 1e-6,
+        profileNormal.getY(vertex) > 0.999 &&
+        Math.abs(profilePosition.getY(vertex) - 0.46) < 1e-6,
     );
     const capBounds = positionBounds(coverCaps.geometry);
 
     // The two exposed sides of Frontline's cover columns prove the cap ends on the
     // extrusion's planar top. Its old bounds ended at 3.14462 / 11.85538: a 0.055-tile
     // unsupported square lip over the chamfer.
-    assertNear(capBounds.min.x, 3 + WALL_OPEN_EDGE_INSET + 0.055);
-    assertNear(capBounds.max.x, 12 - WALL_OPEN_EDGE_INSET - 0.055);
+    assertNear(
+      capBounds.min.x,
+      3 + WALL_OPEN_EDGE_INSET + 0.04 + 0.03,
+    );
+    assertNear(
+      capBounds.max.x,
+      12 - WALL_OPEN_EDGE_INSET - 0.04 - 0.03,
+    );
     assertNear(capBounds.min.x, topBounds.min.x);
     assertNear(capBounds.max.x, topBounds.max.x);
     assertNear(capBounds.min.z, topBounds.min.z);
@@ -142,8 +173,14 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
           ),
         );
       if (
-        Math.abs(quad.min.x - (3 + WALL_OPEN_EDGE_INSET + 0.055)) < 1e-6 &&
-        Math.abs(quad.max.x - (4 - WALL_OPEN_EDGE_INSET - 0.055)) < 1e-6 &&
+        Math.abs(
+          quad.min.x -
+            (3 + WALL_OPEN_EDGE_INSET + 0.04 + 0.03),
+        ) < 1e-6 &&
+        Math.abs(
+          quad.max.x -
+            (4 - WALL_OPEN_EDGE_INSET - 0.04 - 0.03),
+        ) < 1e-6 &&
         Math.abs(quad.min.z - 1) < 1e-6
       ) {
         targetOffset = offset;
@@ -164,6 +201,16 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
     assertNear(Math.max(...localUs), 0.875);
     assertNear(Math.min(...localVs), 0);
     assertNear(Math.max(...localVs), 0.875);
+
+    const details = objectByKind(arena.scene, 'arena-wall-details');
+    assert.ok(details);
+    assert.ok(details.userData.detailCount > 0);
+    assert.ok(
+      objectByKind(
+        arena.scene,
+        'arena-wall-vent-emission',
+      ),
+    );
 
     arena.dispose();
   } finally {

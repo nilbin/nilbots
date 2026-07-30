@@ -15,6 +15,7 @@ public interface IHostedGenericMatchDefinition
     string ExecutionPolicyId { get; }
     string ExecutionEngineVersion { get; }
     ActorResolvedMatchDefinition Match { get; }
+    GenericActorReplayPresentation? ReplayPresentation { get; }
 
     void Validate(Playlist playlist, PlaylistVersion version);
 }

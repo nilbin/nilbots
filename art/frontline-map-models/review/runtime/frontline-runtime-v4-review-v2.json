@@ -1,0 +1,137 @@
+{
+  "boards": {
+    "conceptAndAutoFit": "art/frontline-map-models/review/runtime/frontline-runtime-v4-concept-autofit-v2.png",
+    "gameplayViews": "art/frontline-map-models/review/runtime/frontline-runtime-v4-gameplay-views-v2.png"
+  },
+  "rawCaptures": {
+    "baselineAuto": "art/frontline-map-models/review/runtime/frontline-runtime-v4-before-autofit-v2.png",
+    "candidateAuto": "art/frontline-map-models/review/runtime/frontline-runtime-v4-after-autofit-v2.png",
+    "baselineWhole": "art/frontline-map-models/review/runtime/frontline-runtime-v4-before-whole-v2.png",
+    "candidateWhole": "art/frontline-map-models/review/runtime/frontline-runtime-v4-after-whole-v2.png",
+    "candidateMinimum": "art/frontline-map-models/review/runtime/frontline-runtime-v4-after-8-tile-v2.png",
+    "fallbackWhole": "art/frontline-map-models/review/runtime/frontline-runtime-v4-canvas-fallback-v2.png"
+  },
+  "sourceReplay": {
+    "durableId": "frontline-v4-native-cli-fabricator-vs-fabricator-seed-104729",
+    "generatedPath": "sandbox/frontline-v4-runtime-review/native-cli-c111/replay.json",
+    "bytes": 30008568,
+    "sha256": "534ffe61961c86d6d1e07c02b56b3f721ecb392f13fcec0e360e4a3bfe88da68",
+    "canonicalReplayHash": "8d2153a991bae77bf6f7d56242c5e20eb217ab02d71acb44c6c51ee6cb5291cf",
+    "replayVersion": 3,
+    "mapId": "frontline-labs-01-classes",
+    "dimensions": {
+      "width": 23,
+      "height": 15
+    },
+    "ticks": 500,
+    "command": "nilbots experiment frontline-labs --bot <AlphaProject> --opponent <BetaProject> --seed 104729 --runtime in-process --classes fabricator-vs-fabricator --out sandbox/frontline-v4-runtime-review/native-cli-c111",
+    "verification": "nilbots verify: OK — canonical replay v3 content, contract, and hash verify."
+  },
+  "reviewDocument": {
+    "partial": false,
+    "replayHash": "8d2153a991bae77bf6f7d56242c5e20eb217ab02d71acb44c6c51ee6cb5291cf",
+    "result": {
+      "completionReason": "max-ticks",
+      "endTick": 499
+    },
+    "ticks": 500,
+    "time": 6,
+    "activeLives": 2,
+    "projectiles": 2,
+    "presentation": {
+      "themeId": "ember-forge",
+      "map": {
+        "boundaryWall": "perimeter",
+        "interiorWall": "cover",
+        "wallGroups": []
+      },
+      "forms": [
+        {
+          "formId": "fabricator-child",
+          "lookId": "lattice-loom",
+          "projectileLookId": "lattice-rivet"
+        },
+        {
+          "formId": "fabricator-prime",
+          "lookId": "lattice-loom",
+          "projectileLookId": "lattice-rivet"
+        }
+      ]
+    },
+    "provenance": "Fresh native CLI replay; no review-time replay or presentation mutation."
+  },
+  "runtimeEvidence": {
+    "baselineDist": "sandbox/frontline-v4-runtime-review/baseline-dist-c111/site",
+    "candidateDist": "web/dist-review",
+    "conceptPath": "art/frontline-map-models/concepts/frontline-ember-forge-matte-living-bastion-v4.png",
+    "viewport": {
+      "width": 1600,
+      "height": 1000,
+      "deviceScaleFactor": 1
+    },
+    "cameraPitchDegrees": 58,
+    "captures": [
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 771831,
+        "actualTime": 6,
+        "cameraFrame": "auto-fit",
+        "renderer": "WebGL"
+      },
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 696566,
+        "actualTime": 6,
+        "cameraFrame": "auto-fit",
+        "renderer": "WebGL"
+      },
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 686949,
+        "actualTime": 6,
+        "cameraFrame": "whole-arena",
+        "renderer": "WebGL"
+      },
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 615887,
+        "actualTime": 6,
+        "cameraFrame": "whole-arena",
+        "renderer": "WebGL"
+      },
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 428847,
+        "actualTime": 6,
+        "cameraFrame": "8-tile-minimum",
+        "renderer": "WebGL"
+      },
+      {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578,
+        "bytes": 757019,
+        "actualTime": 6,
+        "cameraFrame": "whole-arena",
+        "renderer": "Canvas2D fallback"
+      }
+    ],
+    "providerCalls": 0
+  }
+}

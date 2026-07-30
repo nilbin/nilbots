@@ -42,6 +42,77 @@ public sealed class GenericActorReplayDocumentTests
     }
 
     [Fact]
+    public void Create_PresentationChangesReplayButNotGameplayContract()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture.Definition(
+                "head-to-head",
+                new GenericDeathmatchSessionTestFixture.Options
+                {
+                    MaxTicks = 3,
+                });
+        using GenericActorMatchSession session = Session(definition);
+        session.Run();
+
+        GenericActorReplayDocument plain =
+            GenericActorReplayDocument.Create(session);
+        var presentation = new GenericActorReplayPresentation(
+            "ember-forge",
+            new GenericActorReplayPresentation.MapPresentation(
+                "perimeter",
+                "cover",
+                [
+                    new GenericActorReplayPresentation.WallGroup(
+                        "damaged-cover",
+                        [new Position(3, 2)]),
+                ]),
+            [
+                new GenericActorReplayPresentation.FormPresentation(
+                    definition.Rules.Forms[0].Id,
+                    "trident-wasp",
+                    "trident-spark"),
+            ]);
+        GenericActorReplayDocument themed =
+            GenericActorReplayDocument.Create(session, presentation);
+        using JsonDocument plainDocument =
+            JsonDocument.Parse(plain.CanonicalJson);
+        using JsonDocument themedDocument =
+            JsonDocument.Parse(themed.CanonicalJson);
+
+        Assert.NotEqual(plain.ReplayHash, themed.ReplayHash);
+        Assert.Equal(
+            plainDocument.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetRawText(),
+            themedDocument.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetRawText());
+        JsonElement projected = themedDocument.RootElement
+            .GetProperty("header")
+            .GetProperty("presentation");
+        Assert.Equal(
+            "ember-forge",
+            projected.GetProperty("themeId").GetString());
+        Assert.Equal(
+            "perimeter",
+            projected.GetProperty("map")
+                .GetProperty("boundaryWall")
+                .GetString());
+        Assert.Equal(
+            "trident-wasp",
+            projected.GetProperty("forms")[0]
+                .GetProperty("lookId")
+                .GetString());
+        Assert.True(
+            GenericActorReplayDocument.VerifyHash(
+                themed.CanonicalJson,
+                out string? failure),
+            failure);
+    }
+
+    [Fact]
     public void CreatePartialPrefix_PreservesOpeningAndRedactsTerminalFacts()
     {
         ActorResolvedMatchDefinition definition =
