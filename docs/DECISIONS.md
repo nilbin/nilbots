@@ -3617,6 +3617,66 @@ healthiest cross-class edge yet measured. The owner watchability
 gallery (the phase-2 human gate) proceeds on this evidence; the
 leave-one-skill-out arms stay registered for the tuning pass.
 
+## 172. The tuning pass: wane adopted; the stance-ground lever measured and returned
+
+Three pre-registered rounds executed the #171 consequence ("the first
+tuning knob is the five-slot schedule"), every round with fresh seeds,
+a sealed holdout consumed after mains, and a written selection rule so
+no knob could be shopped after the numbers.
+
+**Round 1** (`frontline-five-slot-tuning-v1`, arms trim/boom/drag vs
+full): a clean lever split, replicated on the holdout. Dropping the
+fifth slot moved only the bulwark edge (−0.800 → −0.600); the baseline
+30-tick rebuild clock moved only the striker edge (+0.667 → +0.133 —
+volley farming finally sticks, the counter-play the fan was built for)
+but stalled the fabricator mirror (9/10 capped); the late schedule
+moved nothing. Registered outcome: adopt nothing, compose.
+
+**Round 2** (`frontline-five-slot-tuning-2-v1`, composites moor =
+trim+drag and wane = trim + a half-step 22-tick rebuild, plus the
+kit-minus-five-slots diagnostic column): moor inherited the mirror
+stall (7/10 capped, do-no-harm fail); wane passed every health gate
+and put fabricator-vs-striker in the band, leaving
+bulwark-vs-fabricator at −0.467 against the 0.40 gate on that round's
+seeds. The diagnostic column exonerated the shell (shell-alone
+−0.067, at the keel anchor) and measured volley-alone at +0.333 —
+in band by itself.
+
+**Round 3** (`frontline-stance-ground-v1`, owner-directed): the
+`--stance-ground free` arm drops the anchor-forbidden tag kind from
+the VOLLEY and AEGIS SHELL entries only (turret anchors keep it; an
+objectives-without-corridor level is a map-format question, deferred),
+CliVersion 0.9.19, strict pinned byte-identical. Measured pooled with
+its holdout: **free backfires on bulwark-vs-fabricator** (−0.300 →
+−0.700) — freed placement means more shell raises in worse spots, and
+an immobile deflector on an objective is what a swarm envelops; the
+shell's value is opponent-shaped. Meanwhile free pulls
+bulwark-vs-striker toward the band (+0.644 → +0.533, the striker
+exploits freed volley ground), leaves fabricator-vs-striker unmoved
+(+0.300, in band; strict-authored doctrine uses the corridor only
+opportunistically), and mildly improves bulwark-mirror pacing.
+Registered fallback fires: **wane alone is adopted**; the
+stance-ground question returns to the owner with these numbers.
+
+**The adopted tuned default for future phases is `rig` + `wane`**
+(keel + kit + universal bend + four slots at 60/180/300 + 22-tick
+ordinary rebuild). Pooling every post-registration wane measurement
+(rounds 2–3 mains + holdouts, n=60 per edge, four fresh seed sets):
+bulwark-vs-fabricator **−0.383**, fabricator-vs-striker **+0.383** —
+both inside the 0.40 gate and the band, with per-round seed drift
+(−0.467/−0.300 and +0.467/+0.300) disclosed rather than averaged
+away. The registered arms and their identities stay immutable; `full`
+remains the phase-2 measured arm.
+
+Open items recorded, not decided: bulwark-vs-striker rides above the
+band on rig cells (+0.644 strict, phase-2 rig-only ~+0.60) — the one
+place the freed stance ground measurably helped — so a striker-side
+stance-ground revisit or a shell-decline-vs-bulwark doctrine note is
+live; the shell-break budget question shifts from "does it fire" to
+"is ~3 right when one fan pays most of it"; and the drafted
+turret-cycling/cooldown capability work stays parked where #171 left
+it.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -177,6 +177,14 @@ a future swarm class.
 
 ## Drafted for the post-phase-2 tuning pass (owner direction, 2026-07-30)
 
+- **RESOLVED (#172): `wane` adopted** — four slots at 60/180/300 with a
+  22-tick ordinary rebuild; both fabricator edges inside the band on
+  the pooled evidence (−0.383 / +0.383, n=60 each). The stance-ground
+  lever was measured on owner direction and returned: freeing the
+  forbidden tiles backfires on bulwark-vs-fabricator (the shell is
+  opponent-shaped — more raises in worse spots against a swarm) while
+  measurably helping bulwark-vs-striker toward the band from the
+  striker side. Remaining opens live in #172.
 - **Five-slot schedule is the first knob (measured, #171).** Phase 2's
   factorial replicated fabricator dominance on both seed sets
   (−0.833/−0.833 over bulwark, +0.778/+0.667 over striker, mains/
