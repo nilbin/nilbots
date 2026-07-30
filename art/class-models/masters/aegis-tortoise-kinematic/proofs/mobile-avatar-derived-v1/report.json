@@ -1,0 +1,299 @@
+{
+  "blender": {
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "version": "5.2.0 LTS"
+  },
+  "camera": {
+    "depthTieBiasDegreesFromExactTop": 0.03443047,
+    "depthTieBiasXY": [
+      0.0015,
+      -0.001
+    ],
+    "facingLabel": "East",
+    "floorOrShadowRendered": false,
+    "location": [
+      0.06316408,
+      -0.001,
+      3.0
+    ],
+    "modelFacingAxis": "+X",
+    "orthoScale": 1.53,
+    "projection": "ORTHO",
+    "screenRightAxis": [
+      0.99999988,
+      1.7e-07,
+      -0.0005
+    ],
+    "screenUpAxis": [
+      0.0,
+      0.99999994,
+      0.00033333
+    ],
+    "target": [
+      0.06166407,
+      0.0,
+      0.0
+    ]
+  },
+  "checks": {
+    "acceptedSiblingRuntimeGlbHashMatches": true,
+    "acceptedSourceBlendHashMatches": true,
+    "authoritativeRootFound": true,
+    "avatarBytesMatchIndependentPinnedReruns": true,
+    "avatarIsTransparentRgba512": true,
+    "avatarUsesCanonicalSixtyFiveToSeventyFivePercentSpan": true,
+    "cameraPresentsPositiveXAsScreenRight": true,
+    "cameraPresentsPositiveYAsScreenUp": true,
+    "cyclesCpuSingleThreadFixedSeed": true,
+    "exactMeshCount": true,
+    "exactSemanticTeamMeshSet": true,
+    "exactlyTwoDerivedPngOutputs": true,
+    "fourPacked2kPbrImages": true,
+    "pinnedBlender52": true,
+    "semanticClipSetPreservedInSource": true,
+    "sourceAtAnimationRestPose": true,
+    "sourceHashMatchesBeforeOpen": true,
+    "sourceHashUnchangedAfterRender": true,
+    "teamMaskBytesMatchIndependentPinnedReruns": true,
+    "teamMaskIsNonemptyAndRestrained": true,
+    "teamMaskIsTransparentLosslessRgba512": true,
+    "teamMaskNeverEscapesVisibleAvatar": true
+  },
+  "determinism": {
+    "enforcedOnEveryRun": true,
+    "expectedAvatarSha256": "ef4d734bdded4143311aedee470c886095b48aa9165892ba0dda541710d822f9",
+    "expectedTeamAccentMaskSha256": "f0744106106fe30319020f23ff9c56d0158710f3a177b046fd6958a442b7ee21",
+    "method": "two independent fresh pinned Blender 5.2 processes using single-thread CPU Cycles, 16 samples, fixed seed zero, no adaptive sampling, and no denoiser produced byte-identical metadata-free PNG payloads before archive"
+  },
+  "limitations": [
+    "This archive candidate is not wired into Canvas, mobile, CLI, site, store, or WebGL fallback rendering.",
+    "The avatar carries the source authority's neutral semantic emitters. Runtime team colour belongs to the separate mask."
+  ],
+  "operation": {
+    "networkCalls": 0,
+    "outputOverwritePolicy": "new directory only",
+    "providerCalls": 0,
+    "purpose": "archive-only 2D derivation; existing SVG/runtime contracts remain authoritative until the mask pair is intentionally wired",
+    "runtimeFilesModified": false,
+    "sourceModified": false
+  },
+  "outputs": {
+    "avatar": {
+      "bytes": 133393,
+      "mediaType": "image/png",
+      "path": "art/class-models/masters/aegis-tortoise-kinematic/proofs/mobile-avatar-derived-v1/bulwark-mobile-avatar-512.png",
+      "sha256": "ef4d734bdded4143311aedee470c886095b48aa9165892ba0dda541710d822f9"
+    },
+    "teamAccentMask": {
+      "bytes": 1918,
+      "mediaType": "image/png",
+      "path": "art/class-models/masters/aegis-tortoise-kinematic/proofs/mobile-avatar-derived-v1/bulwark-mobile-team-accent-mask-512.png",
+      "sha256": "f0744106106fe30319020f23ff9c56d0158710f3a177b046fd6958a442b7ee21"
+    }
+  },
+  "passed": true,
+  "pose": {
+    "activeActionObjects": [],
+    "allNlaTracksMuted": true,
+    "semanticForm": "Mobile",
+    "sourceFrame": 1,
+    "worldBounds": {
+      "maximum": [
+        0.61200005,
+        0.46600002,
+        0.53353888
+      ],
+      "minimum": [
+        -0.4886719,
+        -0.46600002,
+        0.05366987
+      ],
+      "span": [
+        1.10067201,
+        0.93200004,
+        0.47986901
+      ]
+    }
+  },
+  "raster": {
+    "adaptiveSampling": false,
+    "animatedSeed": false,
+    "avatar": {
+      "alphaLevelCount": 78,
+      "maximumAlpha": 255,
+      "maximumSpanFraction": 0.72265625,
+      "minimumAlpha": 0,
+      "occupiedBoundsInclusive": [
+        71,
+        99,
+        440,
+        412
+      ],
+      "occupiedPixelsAboveOne": 93004,
+      "occupiedSpanPixels": [
+        370,
+        314
+      ],
+      "resolution": [
+        512,
+        512
+      ],
+      "transparentRgbIsZero": true
+    },
+    "denoising": false,
+    "device": "CPU",
+    "outputResolution": [
+      512,
+      512
+    ],
+    "renderEngine": "CYCLES",
+    "samples": 16,
+    "seed": 0,
+    "supersampling": "fixed 2x2 straight-alpha-aware box downsample; final avatar RGB is stabilized to 6-bit steps and 4-bit steps below 80",
+    "teamAccentMask": {
+      "alphaLevelCount": 95,
+      "encoding": "lossless metadata-free RGBA PNG; white RGB only where straight 8-bit semantic coverage alpha is nonzero",
+      "maximumAlpha": 255,
+      "maximumSpanFraction": 0.51757812,
+      "minimumAlpha": 0,
+      "occlusionMethod": "all body geometry renders black and all semantic role geometry renders white in one depth-tested emission pass",
+      "occupiedBoundsInclusive": [
+        281,
+        123,
+        318,
+        387
+      ],
+      "occupiedPixelsAboveOne": 1600,
+      "occupiedSpanPixels": [
+        38,
+        265
+      ],
+      "pixelsOutsideVisibleAvatar": 0,
+      "resolution": [
+        512,
+        512
+      ],
+      "transparentRgbIsZero": true,
+      "visibleRolePixelRatioToAvatar": 0.01720356
+    },
+    "threads": 1,
+    "workingResolution": [
+      1024,
+      1024
+    ]
+  },
+  "reproduction": {
+    "command": "python3 scripts/class-models/derive_bulwark_avatar.py --input-blend art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-textured-authority.blend --expected-source-sha256 b6827956ff032dbf01564e26706f19400305b1245bedee4c65960bddc448df23 --output-dir sandbox/bulwark-avatar-derivation-<new>",
+    "outputDirectory": "art/class-models/masters/aegis-tortoise-kinematic/proofs/mobile-avatar-derived-v1"
+  },
+  "schema": "nilbots-bulwark-avatar-derivation-report-1",
+  "source": {
+    "animationRest": {
+      "activeActionObjects": [],
+      "allNlaTracksMuted": true,
+      "clipNames": [
+        "Mobile_Recoil",
+        "PodPlant_HoverSettle",
+        "Shell_Deploy",
+        "Shell_Recoil",
+        "Tower_Deploy",
+        "Tower_Recoil",
+        "Tower_Recoil_01",
+        "Tower_Recoil_02",
+        "Tower_Recoil_03",
+        "Tower_Recoil_04",
+        "Tower_Recoil_05",
+        "Tower_Recoil_06",
+        "Tower_Recoil_07",
+        "Tower_Recoil_08"
+      ],
+      "frame": 1,
+      "nlaTrackCount": 72
+    },
+    "bodyMeshObjectCount": 27,
+    "bytes": 6737878,
+    "meshObjectCount": 31,
+    "packedPbrImages": [
+      {
+        "name": "NB_Donor_baseColor",
+        "packed": true,
+        "size": [
+          2048,
+          2048
+        ],
+        "source": "FILE"
+      },
+      {
+        "name": "NB_Donor_emissive",
+        "packed": true,
+        "size": [
+          2048,
+          2048
+        ],
+        "source": "FILE"
+      },
+      {
+        "name": "NB_Donor_metallicRoughness",
+        "packed": true,
+        "size": [
+          2048,
+          2048
+        ],
+        "source": "FILE"
+      },
+      {
+        "name": "NB_Donor_normal",
+        "packed": true,
+        "size": [
+          2048,
+          2048
+        ],
+        "source": "FILE"
+      }
+    ],
+    "path": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-textured-authority.blend",
+    "rootObject": "AUTH_AegisTortoise_Kinematic_Master",
+    "rootWorldMatrix": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "runtimeGlb": {
+      "bytes": 8024032,
+      "path": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-textured-animated.glb",
+      "sha256": "a169822ef3c3b98ab854257e3c637e00f50900e53cfb3f51dfd8910d7ec4df8b"
+    },
+    "sha256": "b6827956ff032dbf01564e26706f19400305b1245bedee4c65960bddc448df23",
+    "teamAccentMeshObjects": [
+      "TeamAccent.Shell.NorthInner.Emitter",
+      "TeamAccent.Shell.NorthOuter.Emitter",
+      "TeamAccent.Shell.SouthInner.Emitter",
+      "TeamAccent.Shell.SouthOuter.Emitter"
+    ]
+  },
+  "toolVersion": "1.0.0"
+}
