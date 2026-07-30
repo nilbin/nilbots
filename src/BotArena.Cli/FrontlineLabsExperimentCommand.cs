@@ -42,6 +42,7 @@ public static class FrontlineLabsExperimentCommand
             "skills",
             "bend",
             "five-slots",
+            "stance-ground",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -242,6 +243,18 @@ public static class FrontlineLabsExperimentCommand
                 + "carry it: pass a class pair containing the fabricator and "
                 + "a --skills selection that includes five-slots.");
         }
+        FrontlineLabsStanceGroundArm stanceGround =
+            OptionalStanceGround(options);
+        if (stanceGround != FrontlineLabsStanceGroundArm.Strict
+            && !skills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
+            && !skills.HasFlag(FrontlineLabsSkillKit.BulwarkAegisShell))
+        {
+            throw new InvalidOperationException(
+                "--stance-ground frees the VOLLEY and AEGIS SHELL entry "
+                + "placements, so the cell must carry a skill stance: pass "
+                + "a class pair containing the striker or the bulwark and a "
+                + "--skills selection that includes its stance.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
@@ -284,7 +297,8 @@ public static class FrontlineLabsExperimentCommand
                     ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks,
                 skills,
                 bendEnvelope,
-                fiveSlots);
+                fiveSlots,
+                stanceGround);
         }
         else if (captureThreshold is int threshold)
         {
@@ -710,6 +724,28 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --bend '{value}' "
                 + "(use striker-only or universal)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered stance-ground arm (DECISIONS #171 tuning,
+    /// round 3). Omitting the option — or naming <c>strict</c> — keeps
+    /// today's placement rule and adds no ruleset suffix. <c>free</c> drops
+    /// the forbidden tag kind from the VOLLEY and AEGIS SHELL entry routes
+    /// only; turret anchors keep it.
+    /// </summary>
+    private static FrontlineLabsStanceGroundArm OptionalStanceGround(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("stance-ground", out string? value))
+            return FrontlineLabsStanceGroundArm.Strict;
+        return value.ToLowerInvariant() switch
+        {
+            "strict" => FrontlineLabsStanceGroundArm.Strict,
+            "free" => FrontlineLabsStanceGroundArm.Free,
+            _ => throw new InvalidOperationException(
+                $"Unknown --stance-ground arm '{value}' (use strict or "
+                + "free)."),
         };
     }
 

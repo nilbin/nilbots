@@ -7,7 +7,7 @@
     <ToolCommandName>nilbots</ToolCommandName>
     <PackageId>Nilbots</PackageId>
     <!-- Lockstep with ToolchainInfo.CliVersion (PackagedCliVersionTests). -->
-    <Version>0.9.18</Version>
+    <Version>0.9.19</Version>
     <Authors>nilbin</Authors>
     <Description>Build, test, replay, and submit C# bots for the nilbots programming game.</Description>
     <PackageProjectUrl>https://nilbots.com</PackageProjectUrl>

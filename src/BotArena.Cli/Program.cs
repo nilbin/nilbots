@@ -243,6 +243,7 @@ static int CommandHelp(string command)
                    [--skills none|kit|volley|shell|five-slots]
                    [--bend striker-only|universal]
                    [--five-slots full|trim|boom|drag|moor|wane]
+                   [--stance-ground strict|free]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -342,6 +343,11 @@ static int CommandHelp(string command)
             levers round 1 measured working on different edges — moor is
             trim + drag, wane is trim + a half-step 22-tick rebuild. Every
             variant mints its own suffixed ruleset identity.
+            --stance-ground free drops the transition-placement-forbidden
+            tag kind from the VOLLEY and AEGIS SHELL entry routes, so a
+            skill stance can rise on objective tiles and in the central
+            corridor; turret anchor routes keep the tag. Needs a skill
+            stance in the cell. wane + free is registered as `berth`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

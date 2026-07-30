@@ -385,8 +385,17 @@ public static class FrontlineLabsDefinition
         FrontlineLabsBendEnvelopeArm bendEnvelope =
             FrontlineLabsBendEnvelopeArm.StrikerOnly,
         FrontlineLabsFiveSlotVariant fiveSlots =
-            FrontlineLabsFiveSlotVariant.Full)
+            FrontlineLabsFiveSlotVariant.Full,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict)
     {
+        if (!Enum.IsDefined(stanceGround))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(stanceGround),
+                stanceGround,
+                "Unknown Frontline Labs stance-ground arm.");
+        }
         if (!Enum.IsDefined(fiveSlots))
         {
             throw new ArgumentOutOfRangeException(
@@ -495,6 +504,18 @@ public static class FrontlineLabsDefinition
                 + "includes five-slots.",
                 nameof(fiveSlots));
         }
+        if (stanceGround != FrontlineLabsStanceGroundArm.Strict
+            && !effectiveSkills.HasFlag(FrontlineLabsSkillKit.StrikerVolley)
+            && !effectiveSkills.HasFlag(
+                FrontlineLabsSkillKit.BulwarkAegisShell))
+        {
+            throw new ArgumentException(
+                "A stance-ground arm frees the VOLLEY and AEGIS SHELL entry "
+                + "placements, so it needs a skill stance active in the "
+                + "cell: pass a class pair containing the striker or the "
+                + "bulwark and a skill selection that includes its stance.",
+                nameof(stanceGround));
+        }
 
         return CreateResolved(
             PendulumRulesetId(
@@ -505,7 +526,8 @@ public static class FrontlineLabsDefinition
                 primeRespawnTicks,
                 effectiveSkills,
                 bendEnvelope,
-                fiveSlots),
+                fiveSlots,
+                stanceGround),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -521,7 +543,8 @@ public static class FrontlineLabsDefinition
             pendulum: pendulum,
             primeRespawnTicks: primeRespawnTicks,
             skills: effectiveSkills,
-            bendEnvelope: bendEnvelope);
+            bendEnvelope: bendEnvelope,
+            stanceGround: stanceGround);
     }
 
     /// <summary>
@@ -688,16 +711,33 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSkillKit skills,
         FrontlineLabsBendEnvelopeArm bendEnvelope,
         FrontlineLabsFiveSlotVariant fiveSlots =
-            FrontlineLabsFiveSlotVariant.Full)
+            FrontlineLabsFiveSlotVariant.Full,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
+        // The tuning tokens ride after the arm tokens. `wane` + `free`
+        // overflows the worst class cell by one factor, so the combination
+        // is registered under one token, exactly as keel and helm/veer/rig
+        // were: `berth` — moored on the ground it holds.
+        string[] tuning =
+            fiveSlots == FrontlineLabsFiveSlotVariant.Wane
+                && stanceGround == FrontlineLabsStanceGroundArm.Free
+            ? ["berth"]
+            :
+            [
+                .. FiveSlotToken(fiveSlots) is { Length: > 0 } variant
+                    ? new[] { variant }
+                    : [],
+                .. stanceGround == FrontlineLabsStanceGroundArm.Free
+                    ? new[] { "free" }
+                    : [],
+            ];
         string[] tokens =
         [
             .. ArmTokens(pendulum, skills, bendEnvelope, classes, composed),
-            .. FiveSlotToken(fiveSlots) is { Length: > 0 } variant
-                ? new[] { variant }
-                : [],
+            .. tuning,
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
                 ? new[] { numbers }
@@ -993,7 +1033,9 @@ public static class FrontlineLabsDefinition
         int primeRespawnTicks = DefaultPrimeRespawnTicks,
         FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None,
         FrontlineLabsBendEnvelopeArm bendEnvelope =
-            FrontlineLabsBendEnvelopeArm.StrikerOnly)
+            FrontlineLabsBendEnvelopeArm.StrikerOnly,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1010,7 +1052,8 @@ public static class FrontlineLabsDefinition
             pendulum,
             primeRespawnTicks,
             skills,
-            bendEnvelope);
+            bendEnvelope,
+            stanceGround);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1094,7 +1137,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsPendulumArm pendulum,
         int primeRespawnTicks,
         FrontlineLabsSkillKit skills,
-        FrontlineLabsBendEnvelopeArm bendEnvelope)
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1111,7 +1156,8 @@ public static class FrontlineLabsDefinition
                 pendulum,
                 primeRespawnTicks,
                 skills,
-                bendEnvelope);
+                bendEnvelope,
+                stanceGround);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1532,7 +1578,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsPendulumArm pendulum,
         int primeRespawnTicks,
         FrontlineLabsSkillKit skills,
-        FrontlineLabsBendEnvelopeArm bendEnvelope)
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -1802,13 +1850,15 @@ public static class FrontlineLabsDefinition
                         $"{StanceRouteToken(entry)}-{entry.Id}-prime",
                         entry.PrimeFormId,
                         entry.PrimeStanceFormId,
-                        entry.StanceEntryWindupTicks));
+                        entry.StanceEntryWindupTicks,
+                        stanceGround));
                 sameLifeTransitions.Add(
                     StanceRoute(
                         $"{StanceRouteToken(entry)}-{entry.Id}-child",
                         entry.ChildFormId,
                         entry.ChildStanceFormId,
-                        entry.StanceEntryWindupTicks));
+                        entry.StanceEntryWindupTicks,
+                        stanceGround));
                 ActorAutomaticReturnTriggerDefinition automaticReturn =
                     StanceAutomaticReturn(entry);
                 sameLifeTransitions.Add(
@@ -1995,7 +2045,9 @@ public static class FrontlineLabsDefinition
         string transitionId,
         string sourceFormId,
         string stanceFormId,
-        int windupTicks) =>
+        int windupTicks,
+        FrontlineLabsStanceGroundArm stanceGround =
+            FrontlineLabsStanceGroundArm.Strict) =>
         new(
             transitionId,
             "transform",
@@ -2018,11 +2070,17 @@ public static class FrontlineLabsDefinition
                 ActorSameLifePlacementDefinition
                     .LegalityEvaluationKind.QueueAndCompletionTileTags,
                 requiredTileTags: [],
+                // The free stance-ground arm drops the tag kind from the
+                // SKILL stances only; turret anchor routes keep it (the
+                // weight-zero fortress-on-point question stays closed).
                 forbiddenTileTags:
-                [
-                    ActorMapTileTagDefinition.TileTagKind
-                        .TransitionPlacementForbidden,
-                ],
+                    stanceGround == FrontlineLabsStanceGroundArm.Free
+                        ? []
+                        :
+                        [
+                            ActorMapTileTagDefinition.TileTagKind
+                                .TransitionPlacementForbidden,
+                        ],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
             irreversibleForLife: false);

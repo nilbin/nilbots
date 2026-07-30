@@ -383,3 +383,13 @@ Read the actual unlock ticks and rebuild delays from your slots' lifecycle
 assignments and profiles rather than assuming this table: a variant cell
 is an ordinary contract, and a bot that hardcodes 60/180/300/420 plays the
 `boom` arm one unlock early.
+
+### Stance ground (round 3)
+
+`--stance-ground free` drops the `transition-placement-forbidden` tag kind
+from the VOLLEY and AEGIS SHELL entry routes: a skill stance can rise on
+objective tiles and in the central corridor. Turret anchor routes keep the
+tag. Read your entry route's `placement` from the contract — under this
+arm its `forbiddenTileTags` is empty, and stance legality on a tile you
+hold means the shell can guard the point it is capturing. `wane` + `free`
+is registered as the composite identity `berth`.

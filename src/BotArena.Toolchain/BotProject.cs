@@ -130,9 +130,15 @@ public static class ToolchainInfo
     /// (trim + a half-step 22-tick rebuild) after round 1 measured the two
     /// single levers fixing different edges. Existing rulesets stay
     /// byte-identical; artifact bytes and cache keys are unchanged.
+    /// 0.9.19 registers the stance-ground arm (`--stance-ground free`, and
+    /// wane + free as the composite `berth`): the VOLLEY and AEGIS SHELL
+    /// entry routes drop the transition-placement-forbidden tag kind, so a
+    /// skill stance can rise on objective tiles and in the corridor; turret
+    /// anchors keep the tag. Pure route data — existing rulesets stay
+    /// byte-identical.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.18";
+    public const string CliVersion = "0.9.19";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
