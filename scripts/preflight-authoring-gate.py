@@ -70,7 +70,7 @@ PROJECT_IGNORE = shutil.ignore_patterns(
     "out", "evidence", "bin", "obj", ".git", "*.wasm"
 )
 ACTION_MOVE = {"move"}
-ACTION_SHOOT = {"shoot", "shoot-direction"}
+ACTION_SHOOT = {"shoot", "shoot-straight", "shoot-direction"}
 
 
 class GateError(Exception):
@@ -197,10 +197,33 @@ class Check:
 
 
 def analyze_replay(path: Path, max_idle_streak: int) -> dict[str, Any]:
-    """Per-team action mix, faults, and idle streaks from a replay v3."""
+    """Per-team action mix, faults, and idle streaks from a replay v3.
+
+    A wait while standing on the ACTIVE objective is capturing or
+    contesting — the win condition, not idleness — so it never extends
+    an idle streak. Only off-objective waiting counts as frozen.
+    """
     document = json.loads(path.read_text(encoding="utf-8"))
     teams: dict[int, dict[str, Any]] = {}
     idle_run: dict[int, int] = {}
+
+    contract = document.get("header", {}).get("contract", {})
+    regions = {
+        region["regionId"]: {tuple(tile) for tile in region["tiles"]}
+        for region in contract.get("map", {}).get("regions", [])
+    }
+    binding = (
+        contract.get("modeMapBinding", {}).get("orderedObjectiveRegionIds")
+        or []
+    )
+
+    def active_objective_tiles(tick: dict[str, Any]) -> set:
+        index = (tick.get("postState", {}).get("mode", {}) or {}).get(
+            "activePositionIndex"
+        )
+        if index is None or not (0 <= index < len(binding)):
+            return set()
+        return regions.get(binding[index], set())
 
     def team(team_id: int) -> dict[str, Any]:
         return teams.setdefault(
@@ -218,6 +241,12 @@ def analyze_replay(path: Path, max_idle_streak: int) -> dict[str, Any]:
         )
 
     for tick in document["ticks"]:
+        objective = active_objective_tiles(tick)
+        holding: dict[int, bool] = {}
+        for life in tick.get("postState", {}).get("activeLives", []):
+            position = life.get("position") or {}
+            if (position.get("x"), position.get("y")) in objective:
+                holding[life["actorId"]["teamId"]] = True
         acted: dict[int, bool] = {}
         for turn in tick["actorTurns"]:
             team_id = turn["actorId"]["teamId"]
@@ -245,7 +274,10 @@ def analyze_replay(path: Path, max_idle_streak: int) -> dict[str, Any]:
             acted[team_id] = acted.get(team_id, False) or action_id != "wait"
         for team_id, did_act in acted.items():
             row = team(team_id)
-            idle_run[team_id] = 0 if did_act else idle_run.get(team_id, 0) + 1
+            productive = did_act or holding.get(team_id, False)
+            idle_run[team_id] = (
+                0 if productive else idle_run.get(team_id, 0) + 1
+            )
             row["maxIdleStreak"] = max(row["maxIdleStreak"], idle_run[team_id])
 
     initial = document.get("initialFrame") or {}
