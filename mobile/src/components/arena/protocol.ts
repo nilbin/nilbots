@@ -180,6 +180,20 @@ export type ArenaFrontlineObjective = {
   captureProgress: number;
   captureThreshold: number;
   controlResumesAtTick: number;
+  /** Rules-resolved team applying positive capture pressure; never ownership. */
+  captureTeamId: number | null;
+  /** Whether the capture policy resolves present objective weight as a contest. */
+  captureContested: boolean;
+  /** Whether redeployment currently prevents pressure from changing the meter. */
+  capturePaused: boolean;
+  /** Exact replay-v3 ratchet owner; null when no hold is live. */
+  holdOwnerTeamId: number | null;
+  /** Exact replay-v3 expiry tick; null when no hold is live. */
+  holdEndsAtTick: number | null;
+  /** Presentation countdown derived from the exact expiry and current tick. */
+  holdRemainingTicks: number | null;
+  /** Contract-declared ratchet duration, when this ruleset has one. */
+  holdDurationTicks: number | null;
   winnerTeamId: number | null;
   phase: string;
 };

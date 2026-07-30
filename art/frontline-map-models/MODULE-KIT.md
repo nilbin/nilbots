@@ -36,9 +36,8 @@ family is semantic, not a material swap:
   service ceramics.
 
 One or two art variants per canonical class may break repetition. Variant
-selection is a stable hash of the snapshotted map presentation, family,
-coordinates, and mask. It may not use frame time, replay seed, or unpinned
-randomness.
+selection is a stable hash of family, coordinates, topology mask, and detail
+side. It may not use map ID, frame time, replay seed, or unpinned randomness.
 
 ## Footprint and connector contract
 
@@ -64,24 +63,28 @@ preserve the atlas rim, but a small diagonal corner overhang remains. Treat a
 shaped or nine-slice cap as a follow-up rather than claiming that corner case
 is solved.
 
-Initial gameplay-scale envelope:
+Promoted gameplay-scale envelope:
 
-| Family | Body height | Cap/profile variation | Edge radius |
-| --- | ---: | ---: | ---: |
-| Perimeter | 0.68–0.74 tile | at most 0.06 tile | 0.18–0.24 tile |
-| Cover | 0.40–0.48 tile | at most 0.05 tile | 0.22–0.31 tile |
+| Family | Total height | Upper profile | Upper inset / chamfer | Edge radius |
+| --- | ---: | ---: | ---: | ---: |
+| Perimeter | 0.72 tile | 0.19 tile | 0.025 / 0.035 tile | 0.23 tile |
+| Cover | 0.46 tile | 0.14 tile | 0.040 / 0.030 tile | 0.31 tile |
 
-The renderer may use a hybrid: a continuous outline-derived substrate for
-seam-free collision truth plus instanced caps, ribs, clamps, vents, and
-service panels. That substrate is rebuilt from map data at load time; it is
+The renderer uses a hybrid: a continuous outline-derived substrate for
+seam-free collision truth, a narrower rounded upper extrusion, topology caps,
+and deterministic instanced/decal-like clamps, vents, and service panels.
+Details remain inside the narrowest profile and do not purchase clearance by
+changing gameplay. The substrate is rebuilt from map data at load time; it is
 not a stored whole-map mesh.
 
 ## Continuous floor
 
 The floor is not a Meshy object and is never subdivided into gameplay-cell
 meshes. The existing Ember Forge material is mapped once across the arena.
-Future depth comes from its PBR normal/height/roughness treatment and
-presentation-only flat overlays:
+The promoted WebGL treatment is deliberately dry and shallow: roughness
+`0.95`, metalness `0.16`, and albedo-as-bump `0.045`. A stronger bump turns
+baked rust, wear, and light into false physical relief. Future true
+normal/roughness sources and presentation-only flat overlays may add:
 
 - dusty traffic polish;
 - quenched blue/brown heat bloom;

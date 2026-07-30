@@ -60,14 +60,14 @@ Authored spawn and objective tiles reach the same `0.500` minimum. A
 spawn-only or objective-only exception would therefore leave identical
 clipping elsewhere.
 
-## Current renderer contribution
+## Baseline renderer contribution
 
-The current body uses a `0.055` outward bevel. A geometry-bounds probe of the
-real `ExtrudeGeometry` parameters measured a nominal `[1, 2]` wall cell at
+The pre-relief body used a `0.055` outward bevel. A geometry-bounds probe of
+those real `ExtrudeGeometry` parameters measured a nominal `[1, 2]` wall cell at
 `[0.945, 2.055]`; the open-floor clearance is therefore `0.445`, for a
 `-0.17962` chassis margin.
 
-The topology cap's current span is:
+The pre-relief topology cap span was:
 
 ```text
 1 + 2 × (32 gutter px / 192 content px) - 2 × 0.055 = 1.223333
@@ -120,6 +120,20 @@ The review proof uses the approved 1.12-source-span Striker GLB read-only,
 applies the real `1.062` actor scale, and does not copy or promote it. It
 renders the real map and Ember Forge materials at the exact 58-degree camera.
 No Meshy call was made for clearance.
+
+## Promoted V4 profile
+
+The runtime now applies this contract to both the continuous lower body and
+the manifest-owned upper profile. Perimeter and cover upper extrusions add
+their own inset and chamfer on open sides; topology caps use the same upper
+profile extents and content-edge UV mapping. Deterministic service panels,
+vents, and clamps stay coplanar with side faces or inside the narrowest upper
+profile, so they do not consume the proved `0.020` live-Striker safety margin.
+
+`review/runtime/frontline-runtime-v4-gameplay-views-v2.png` includes the
+supported eight-tile, 58-degree close view used to inspect those shoulders and
+open-edge gaps. The whole-arena and Canvas panels use the same native replay
+tick and keep all gameplay authority unchanged.
 
 ## Cosmetic-motion boundary
 

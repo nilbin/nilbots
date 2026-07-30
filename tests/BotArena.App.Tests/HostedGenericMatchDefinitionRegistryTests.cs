@@ -94,6 +94,7 @@ public sealed class HostedGenericMatchDefinitionRegistryTests
         public string ExecutionEngineVersion =>
             BotArenaVersions.GenericActorEngineVersion;
         public ActorResolvedMatchDefinition Match { get; } = match;
+        public GenericActorReplayPresentation? ReplayPresentation => null;
 
         public void Validate(
             Playlist playlist,

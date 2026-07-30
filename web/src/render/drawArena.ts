@@ -43,10 +43,15 @@ import {
   type BotPose,
 } from './interpolate';
 import { arenaViewport, type ArenaFrame } from './arenaCamera';
+import { frontlineCaptureVisual } from './frontlineCaptureVisual';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { WallLayout } from './wallTopology';
 import { drawFogMask } from './fogMask';
 import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
+import {
+  createPresenter,
+  type ReplayPresenter,
+} from '../replayPresentation';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -80,6 +85,7 @@ const projectileAngle: Record<ReplayProjectileHeading, number> = {
 
 const tintedProjectileSprites = new Map<string, HTMLCanvasElement>();
 const maxTintedProjectileSprites = 32;
+const canvasPresenters = new WeakMap<ReplayModel, ReplayPresenter>();
 
 function tintedProjectileSprite(
   look: ProjectileLook,
@@ -188,6 +194,17 @@ export function drawArena(
   const fraction =
     tickCount === 0 ? 0 : Math.max(0, Math.min(time - tick, 1));
   const currentTick = replay.ticks[tick];
+  let presenter = canvasPresenters.get(replay);
+  if (!presenter) {
+    presenter = createPresenter(replay);
+    canvasPresenters.set(replay, presenter);
+  }
+  const tickPresentation =
+    tickCount === 0 ? null : presenter.at(tick);
+  const captureVisual =
+    tickPresentation === null
+      ? null
+      : frontlineCaptureVisual(tickPresentation);
   const poses = posesAt(replay, time);
   // Lives that materialized at the start of this tick, by the life they belong to, so the
   // body pass can condense the chassis and the effect pass can ring it without either
@@ -436,7 +453,203 @@ export function drawArena(
     const active = frontline.positions.find(
       (position) => position.positionIndex === activePositionIndex,
     );
-    if (active) drawZoneTiles(active.tiles);
+    if (active) {
+      drawZoneTiles(active.tiles);
+      drawFrontlineCaptureState(active.tiles);
+    }
+  }
+
+  /**
+   * Exact Frontline claim/erosion/ratchet state over the theme-owned field.
+   *
+   * The neutral zone material remains underneath. Team colour is applied only
+   * at render time, progress is arc length, an eroder gets a separate moving
+   * outer arc without receiving premature filled credit, and a live ratchet
+   * gets a whole-footprint owner wash plus a countdown arc.
+   */
+  function drawFrontlineCaptureState(
+    tiles: readonly { x: number; y: number }[],
+  ): void {
+    if (!captureVisual || tiles.length === 0) return;
+
+    // TickPresentation accents are already contrast-corrected by
+    // playerAccent. Sampling and correcting them again here washed dark team
+    // oranges toward white, defeating the ownership cue this layer exists to
+    // provide.
+    const claimAccent = captureVisual.claimantAccent;
+    const challengerAccent = captureVisual.challengerAccent;
+    const holdAccent = captureVisual.holdAccent;
+    const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.2);
+
+    const shape = new Path2D();
+    for (const point of tiles) {
+      shape.rect(
+        px(point.x) + tile * 0.075,
+        py(point.y) + tile * 0.075,
+        tile * 0.85,
+        tile * 0.85,
+      );
+    }
+
+    const ownershipAccent = holdAccent ?? claimAccent;
+    if (ownershipAccent) {
+      const alpha =
+        captureVisual.state === 'holding'
+          ? 0.16 + pulse * 0.1
+          : captureVisual.state === 'contested'
+            ? 0.045
+            : 0.055 + captureVisual.progressFraction * 0.06;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = hexWithAlpha(ownershipAccent, alpha);
+      ctx.fill(shape);
+      ctx.restore();
+    }
+    if (captureVisual.contested) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = hexWithAlpha(
+        '#f4c477',
+        0.055 + pulse * 0.045,
+      );
+      ctx.fill(shape);
+      ctx.restore();
+    }
+
+    // A solid exterior in the hold owner's colour is the at-a-glance
+    // ownership cue. Erosion instead puts the challenger on the exterior while
+    // the incumbent keeps the stored-progress arc.
+    const boundaryAccent =
+      captureVisual.state === 'holding'
+        ? holdAccent
+        : captureVisual.contested
+          ? '#f4c477'
+          : captureVisual.state === 'eroding'
+            ? challengerAccent
+            : claimAccent;
+    if (boundaryAccent) {
+      const occupied = new Set(
+        tiles.map((point) => `${point.x},${point.y}`),
+      );
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = hexWithAlpha(
+        boundaryAccent,
+        captureVisual.state === 'holding' ? 0.95 : 0.72,
+      );
+      ctx.shadowColor = boundaryAccent;
+      ctx.shadowBlur = Math.max(4, tile * 0.14);
+      ctx.lineWidth = Math.max(
+        2,
+        tile * (captureVisual.state === 'holding' ? 0.055 : 0.04),
+      );
+      const edge = (
+        fromX: number,
+        fromY: number,
+        toX: number,
+        toY: number,
+      ) => {
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      };
+      for (const point of tiles) {
+        const left = px(point.x) + tile * 0.075;
+        const right = px(point.x + 1) - tile * 0.075;
+        const top = py(point.y) + tile * 0.075;
+        const bottom = py(point.y + 1) - tile * 0.075;
+        if (!occupied.has(`${point.x},${point.y - 1}`))
+          edge(left, top, right, top);
+        if (!occupied.has(`${point.x + 1},${point.y}`))
+          edge(right, top, right, bottom);
+        if (!occupied.has(`${point.x},${point.y + 1}`))
+          edge(left, bottom, right, bottom);
+        if (!occupied.has(`${point.x - 1},${point.y}`))
+          edge(left, top, left, bottom);
+      }
+      ctx.restore();
+    }
+
+    for (const point of tiles) {
+      const x = px(point.x) + tile / 2;
+      const y = py(point.y) + tile / 2;
+      if (claimAccent && captureVisual.progressFraction > 0) {
+        drawCaptureArc(
+          x,
+          y,
+          tile * 0.315,
+          captureVisual.progressFraction,
+          claimAccent,
+          tile * 0.07,
+          -Math.PI / 2,
+          0.92,
+        );
+      }
+      if (
+        captureVisual.progressDirection === 'eroding' &&
+        challengerAccent
+      ) {
+        drawCaptureArc(
+          x,
+          y,
+          tile * 0.405,
+          0.24,
+          challengerAccent,
+          tile * 0.05,
+          -Math.PI / 2 - time * Math.PI * 0.72,
+          0.7 + pulse * 0.26,
+        );
+      }
+      if (captureVisual.state === 'holding' && holdAccent) {
+        ctx.save();
+        ctx.setLineDash([
+          Math.max(3, tile * 0.08),
+          Math.max(2, tile * 0.05),
+        ]);
+        drawCaptureArc(
+          x,
+          y,
+          tile * 0.475,
+          captureVisual.holdFraction,
+          holdAccent,
+          tile * 0.055,
+          -Math.PI / 2 + time * Math.PI * 0.18,
+          0.74 + pulse * 0.24,
+        );
+        ctx.restore();
+      }
+    }
+  }
+
+  function drawCaptureArc(
+    x: number,
+    y: number,
+    radius: number,
+    fractionOfCircle: number,
+    color: string,
+    width: number,
+    startsAt: number,
+    alpha: number,
+  ): void {
+    if (fractionOfCircle <= 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = hexWithAlpha(color, alpha);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = Math.max(5, tile * 0.18);
+    ctx.lineWidth = Math.max(2, width);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(
+      x,
+      y,
+      radius,
+      startsAt,
+      startsAt + Math.PI * 2 * Math.min(1, fractionOfCircle),
+    );
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawZoneTiles(

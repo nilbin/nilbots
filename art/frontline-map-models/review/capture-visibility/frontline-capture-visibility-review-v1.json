@@ -1,0 +1,440 @@
+{
+  "boards": {
+    "webgl": "art/frontline-map-models/review/capture-visibility/frontline-capture-visibility-webgl-v1.png",
+    "canvas": "art/frontline-map-models/review/capture-visibility/frontline-capture-visibility-canvas-v1.png"
+  },
+  "nativeSource": {
+    "replay": "sandbox/frontline-capture-visibility/native-fabricator/replay.json",
+    "bytes": 24857382,
+    "sha256": "0abc08abe0a014bbacb686ff6d77940ff8464fefb5ea50b6742c418e61ac5d00",
+    "canonicalReplayHash": "0b536affaf1a17755fdd0a7f3e20472c23c3f7f44f132507cbc0d08ebf61ebc5",
+    "replayVersion": 3,
+    "partial": false,
+    "mapId": "frontline-labs-01-classes",
+    "dimensions": {
+      "width": 23,
+      "height": 15
+    },
+    "ticks": 500,
+    "presentation": {
+      "themeId": "ember-forge",
+      "map": {
+        "boundaryWall": "perimeter",
+        "interiorWall": "cover",
+        "wallGroups": []
+      },
+      "forms": [
+        {
+          "formId": "fabricator-child",
+          "lookId": "lattice-loom",
+          "projectileLookId": "lattice-rivet"
+        },
+        {
+          "formId": "fabricator-prime",
+          "lookId": "lattice-loom",
+          "projectileLookId": "lattice-rivet"
+        }
+      ]
+    },
+    "verification": "nilbots verify: OK — canonical replay v3 content, contract, and hash verify.",
+    "generation": {
+      "command": "dotnet run --project src/BotArena.Cli -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-5-2026-07-30/ledger-fly --opponent arena-bots/frontline-labs/classes-wave-5-2026-07-30/spark-line --seed 104729 --classes fabricator-vs-fabricator --movement facing-locked --pendulum keel --skills kit --bend universal --five-slots wane --stance-ground open --aim offset --runtime in-process --out sandbox/frontline-capture-visibility/native-fabricator --viewer",
+      "runtime": "in-process diagnostic generic-actor runtime; canonical replay-v3 verified separately",
+      "viewerOptIn": "--viewer",
+      "viewer": "sandbox/frontline-capture-visibility/native-fabricator/viewer.html",
+      "viewerBytes": 29864439,
+      "viewerSha256": "5e7069a08d948b507009ebd568e6c1ec756cf3adf1d252e820386390093c9e68"
+    }
+  },
+  "nativeStates": {
+    "neutral": {
+      "label": "NEUTRAL",
+      "detail": "no claimant · no inferred owner",
+      "tick": 0,
+      "nextTick": 1,
+      "activePositionIndex": 2,
+      "claimingTeamId": null,
+      "captureProgressBefore": 0,
+      "captureProgress": 0,
+      "holdOwnerTeamId": null,
+      "holdEndsAtTick": null,
+      "holdRemainingTicks": null,
+      "captureTeamId": null,
+      "captureContested": false,
+      "capturePaused": false,
+      "teamWeights": [],
+      "presentTeamIds": []
+    },
+    "building": {
+      "label": "BUILDING",
+      "detail": "team 0 · incumbent arc 5/15",
+      "tick": 15,
+      "nextTick": 16,
+      "activePositionIndex": 2,
+      "claimingTeamId": 0,
+      "captureProgressBefore": 4,
+      "captureProgress": 5,
+      "holdOwnerTeamId": null,
+      "holdEndsAtTick": null,
+      "holdRemainingTicks": null,
+      "captureTeamId": 0,
+      "captureContested": false,
+      "capturePaused": false,
+      "teamWeights": [
+        [
+          0,
+          1
+        ]
+      ],
+      "presentTeamIds": [
+        0
+      ]
+    },
+    "contested": {
+      "label": "CONTESTED",
+      "detail": "stored team 1 claim 1/15 · both teams present",
+      "tick": 8,
+      "nextTick": 9,
+      "activePositionIndex": 2,
+      "claimingTeamId": 1,
+      "captureProgressBefore": 1,
+      "captureProgress": 1,
+      "holdOwnerTeamId": null,
+      "holdEndsAtTick": null,
+      "holdRemainingTicks": null,
+      "captureTeamId": null,
+      "captureContested": true,
+      "capturePaused": false,
+      "teamWeights": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "presentTeamIds": [
+        0,
+        1
+      ]
+    },
+    "net-control": {
+      "label": "WEIGHTED NET CONTROL",
+      "detail": "team 0 weight 2:1 · progresses 7→8 with both teams present",
+      "tick": 138,
+      "nextTick": 139,
+      "activePositionIndex": 3,
+      "claimingTeamId": 0,
+      "captureProgressBefore": 7,
+      "captureProgress": 8,
+      "holdOwnerTeamId": 0,
+      "holdEndsAtTick": 166,
+      "holdRemainingTicks": 27,
+      "captureTeamId": 0,
+      "captureContested": false,
+      "capturePaused": false,
+      "teamWeights": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "presentTeamIds": [
+        0,
+        1
+      ]
+    },
+    "erosion": {
+      "label": "INCUMBENT EROSION",
+      "detail": "team 0 owns 4/15 · team 1 erodes without credit",
+      "tick": 110,
+      "nextTick": 111,
+      "activePositionIndex": 2,
+      "claimingTeamId": 0,
+      "captureProgressBefore": 5,
+      "captureProgress": 4,
+      "holdOwnerTeamId": null,
+      "holdEndsAtTick": null,
+      "holdRemainingTicks": null,
+      "captureTeamId": 1,
+      "captureContested": false,
+      "capturePaused": false,
+      "teamWeights": [
+        [
+          1,
+          1
+        ]
+      ],
+      "presentTeamIds": [
+        1
+      ]
+    },
+    "early-hold": {
+      "label": "POST-ADVANCE RATCHET",
+      "detail": "team 0 owner · 40/40 ticks remain · position 3",
+      "tick": 25,
+      "nextTick": 26,
+      "activePositionIndex": 3,
+      "claimingTeamId": null,
+      "captureProgressBefore": 14,
+      "captureProgress": 0,
+      "holdOwnerTeamId": 0,
+      "holdEndsAtTick": 66,
+      "holdRemainingTicks": 40,
+      "captureTeamId": null,
+      "captureContested": false,
+      "capturePaused": true,
+      "teamWeights": [],
+      "presentTeamIds": []
+    },
+    "late-hold": {
+      "label": "LATE RATCHET + CHALLENGE",
+      "detail": "team 0 owner · 1/40 remains · team 1 builds 12/15",
+      "tick": 64,
+      "nextTick": 65,
+      "activePositionIndex": 3,
+      "claimingTeamId": 1,
+      "captureProgressBefore": 10,
+      "captureProgress": 12,
+      "holdOwnerTeamId": 0,
+      "holdEndsAtTick": 66,
+      "holdRemainingTicks": 1,
+      "captureTeamId": 1,
+      "captureContested": false,
+      "capturePaused": false,
+      "teamWeights": [
+        [
+          1,
+          2
+        ]
+      ],
+      "presentTeamIds": [
+        1
+      ]
+    }
+  },
+  "capture": {
+    "viewport": {
+      "width": 1600,
+      "height": 1000,
+      "deviceScaleFactor": 1
+    },
+    "cameraPitchDegrees": 58,
+    "cameraMode": "production whole-arena Fit off",
+    "replayMutation": false,
+    "captures": [
+      {
+        "id": "neutral-webgl",
+        "tick": 0,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-neutral-webgl-v1.png",
+        "bytes": 661239,
+        "sha256": "7ce1fb4964241ffe0ce916e98a5362c44bd9f564fec0ff39d38e95bfe3c864f9",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "contested-webgl",
+        "tick": 8,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-contested-webgl-v1.png",
+        "bytes": 616575,
+        "sha256": "7f4a568bd6bedc5a37b5e33e94e89f4d2b9b92b13fa6ac6657d207f1416480ce",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "building-webgl",
+        "tick": 15,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-building-webgl-v1.png",
+        "bytes": 613749,
+        "sha256": "313050cc1f4da24ef93eb535e9eb3910a9af3a85b4ee06f4112b275dc7c985d2",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "early-hold-webgl",
+        "tick": 25,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-early-hold-webgl-v1.png",
+        "bytes": 613684,
+        "sha256": "c2d628408379caa1698493b9edb5bba1d79c6ca3b9ab5e86f277041fe6f5c7ed",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "late-hold-webgl",
+        "tick": 64,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-late-hold-webgl-v1.png",
+        "bytes": 618795,
+        "sha256": "3efc2680d51b63556e698828fa6b8b8967850a4e544b705280d2a9ecd70d8531",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "erosion-webgl",
+        "tick": 110,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-erosion-webgl-v1.png",
+        "bytes": 617679,
+        "sha256": "0c16bfc11124a76569139866c5296f1b318ad4c8e135c83b5e662c399bd6ed14",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "net-control-webgl",
+        "tick": 138,
+        "renderer": "WebGL",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-net-control-webgl-v1.png",
+        "bytes": 618426,
+        "sha256": "92ae320d0ceb71f9ae7984cc3522b77edeb37d0e41b2d747ccc1be41cb2dd6d7",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "neutral-canvas",
+        "tick": 0,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-neutral-canvas-v1.png",
+        "bytes": 792247,
+        "sha256": "c95c55f9d51c8c6c16f4669f86592fcc2ec2d0f9d3ba91b88a017efdf7e55e6b",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "contested-canvas",
+        "tick": 8,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-contested-canvas-v1.png",
+        "bytes": 757540,
+        "sha256": "0d81b8b3795bb0986b4e00c9bbca8808d10afac8297658108f2390fd5de97eaf",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "building-canvas",
+        "tick": 15,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-building-canvas-v1.png",
+        "bytes": 755660,
+        "sha256": "afc77bbe86b71d6010485de8847c62c3545fc626c513d13199b01a07961d8548",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "early-hold-canvas",
+        "tick": 25,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-early-hold-canvas-v1.png",
+        "bytes": 757161,
+        "sha256": "45b59af91d1ecf98b48fe851ba4541a43eda0bd85f18680252cf94aa8e13999d",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "late-hold-canvas",
+        "tick": 64,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-late-hold-canvas-v1.png",
+        "bytes": 765429,
+        "sha256": "dc614fd1b970a0ebd4b9deb09144f03dec5e8137e345c9ae2e7db4ba12fd437c",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "erosion-canvas",
+        "tick": 110,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-erosion-canvas-v1.png",
+        "bytes": 761756,
+        "sha256": "7755af0538a726c4c4032e36be13442c6e1baded38d2a7ddd6416d90f4713b54",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      {
+        "id": "net-control-canvas",
+        "tick": 138,
+        "renderer": "Canvas2D fallback",
+        "path": "sandbox/frontline-capture-visibility/captures/frontline-capture-net-control-canvas-v1.png",
+        "bytes": 765706,
+        "sha256": "55f7be3645f47a39384153e79e2bc19a960ff99fab84ce423fb7b6ab64349628",
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      }
+    ]
+  },
+  "approvedV4Lock": {
+    "mergeCommit": "572095091fc36e87385368a98aadbfdd28069838",
+    "files": {
+      "maps/experimental/frontline-01.json": {
+        "bytes": 2539,
+        "sha256": "82de6df9ffe0b9a7131285840e7e23a1ca867f19272e4d2f58723f71fd7b7ef7",
+        "unchangedFromApprovedV4Merge": true
+      },
+      "web/src/assets/themes/ember-forge/theme.json": {
+        "bytes": 2643,
+        "sha256": "1d2645f9f97dd908472066748cac4d491efc13097e2edcc4d3f4d6b71be3c62f",
+        "unchangedFromApprovedV4Merge": true
+      },
+      "web/src/render/arenaCamera.ts": {
+        "bytes": 18730,
+        "sha256": "810f1d252e60855719b832de6c21cefa124ce62e89f85ea3d09dfec19aaf4c68",
+        "unchangedFromApprovedV4Merge": true
+      },
+      "web/src/render3d/arenaScene.ts": {
+        "bytes": 22668,
+        "sha256": "70f5ddee0568043fd7587bd765b305a30b602cacfd2e15ec9b5902b0ac8bc4d4",
+        "unchangedFromApprovedV4Merge": true
+      },
+      "web/src/render3d/wallDetails.ts": {
+        "bytes": 10094,
+        "sha256": "4ae98889a3ce1401554a95febf35b0e05f5af59d7012c714831685462a2d06f0",
+        "unchangedFromApprovedV4Merge": true
+      },
+      "art/themes/ember-forge/art.json": {
+        "bytes": 2366,
+        "sha256": "2d86732ad6a91ee360f0d4a50b0887f9779b168408581472e9ace05c935d3eca",
+        "unchangedFromApprovedV4Merge": true
+      }
+    },
+    "allUnchanged": true,
+    "statement": "Ground, wall geometry/material configuration, map proportions, spacing, collision, and camera remain byte-for-byte unchanged from the approved V4 merge. Only flat renderer overlays and shared presentation were changed."
+  },
+  "providerCalls": 0
+}

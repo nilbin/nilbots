@@ -42,6 +42,23 @@ export interface FrontlineControlPresentation {
   captureProgress: number;
   captureThreshold: number;
   controlResumesAtTick: number;
+  /**
+   * Rules-resolved team applying positive capture pressure this tick.
+   * Null means no team has positive pressure; it never implies ownership.
+   */
+  captureTeamId: number | null;
+  /** True when the capture policy resolves present objective weight as a contest. */
+  captureContested: boolean;
+  /** True while redeployment prevents capture pressure from changing the meter. */
+  capturePaused: boolean;
+  /** Exact replay-v3 ratchet owner; null when no hold is live. */
+  holdOwnerTeamId: number | null;
+  /** Exact replay-v3 expiry tick; null when no hold is live. */
+  holdEndsAtTick: number | null;
+  /** Presentation-only countdown derived from holdEndsAtTick and nextTick. */
+  holdRemainingTicks: number | null;
+  /** Contract-declared ratchet duration, when this ruleset has one. */
+  holdDurationTicks: number | null;
   winnerTeamId: number | null;
   phase: string;
 }
@@ -303,11 +320,37 @@ function objectiveAt(
         ? replay.result.winnerTeamId
         : null;
     const winnerTeamId = objective.winnerTeamId ?? terminalWinner;
+    const holdOwnerTeamId = objective.holdOwnerTeamId ?? null;
+    const holdEndsAtTick = objective.holdEndsAtTick ?? null;
+    const holdRemainingTicks =
+      holdEndsAtTick === null
+        ? null
+        : Math.max(0, holdEndsAtTick - objective.nextTick);
+    const holdDurationTicks = ratchetHoldDuration(replay);
+    const captureControl = frontlineCaptureControl(
+      replay,
+      tick.after,
+      objective.activePositionIndex,
+    );
+    const capturePaused =
+      objective.controlResumesAtTick > objective.nextTick;
+    const holdPhase =
+      holdOwnerTeamId === null || holdRemainingTicks === null
+        ? null
+        : `${teamName(replay, holdOwnerTeamId)} RATCHET · ` +
+          `${holdRemainingTicks} ${
+            holdRemainingTicks === 1 ? 'TICK' : 'TICKS'
+          }`;
     let phase: string;
     if (winnerTeamId !== null) {
       phase = `${teamName(replay, winnerTeamId)} BREACHES`;
     } else if (objective.controlResumesAtTick > objective.nextTick) {
-      phase = `REDEPLOYMENT · RESUMES TICK ${objective.controlResumesAtTick}`;
+      phase =
+        holdPhase === null
+          ? `REDEPLOYMENT · RESUMES TICK ${objective.controlResumesAtTick}`
+          : `${holdPhase} · REDEPLOY T${objective.controlResumesAtTick}`;
+    } else if (holdPhase !== null) {
+      phase = holdPhase;
     } else if (objective.claimingTeamId === null) {
       phase = 'FRONTLINE NEUTRAL';
     } else {
@@ -327,6 +370,13 @@ function objectiveAt(
       captureProgress: objective.captureProgress,
       captureThreshold: threshold,
       controlResumesAtTick: objective.controlResumesAtTick,
+      captureTeamId: captureControl.teamId,
+      captureContested: captureControl.contested,
+      capturePaused,
+      holdOwnerTeamId,
+      holdEndsAtTick,
+      holdRemainingTicks,
+      holdDurationTicks,
       winnerTeamId,
       phase,
     };
@@ -399,6 +449,87 @@ function objectiveAt(
       teamName(replay, orderedTeams[1]?.teamId ?? 1),
     ],
   };
+}
+
+function ratchetHoldDuration(replay: ReplayModel): number | null {
+  if (replay.contract.kind !== 'v3-generic') return null;
+  const mode = replay.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline') return null;
+  return mode.capture.ratchetHoldTicks ?? null;
+}
+
+/**
+ * Resolve objective presence through the replay's declared capture policy.
+ *
+ * Binary Frontline counts each positive-weight team once, so any second team
+ * contests. Net-control Frontline instead compares summed objective weight:
+ * a team has positive pressure only when its weight exceeds every opponent's
+ * combined weight. Keeping this rules-derived value in the shared presenter
+ * prevents both renderers from mistaking a native 2:1 push for a frozen 1:1
+ * contest.
+ */
+function frontlineCaptureControl(
+  replay: ReplayModel,
+  world: ReplayWorldSnapshot,
+  activePositionIndex: number,
+): { teamId: number | null; contested: boolean } {
+  const tiles = replay.map.frontline?.positions.find(
+    (position) =>
+      position.positionIndex === activePositionIndex,
+  )?.tiles;
+  if (!tiles || tiles.length === 0)
+    return { teamId: null, contested: false };
+
+  const footprint = new Set(
+    tiles.map((position) => `${position.x},${position.y}`),
+  );
+  const weights = new Map<number, number>();
+  for (const actor of world.actors) {
+    if (
+      actor.status !== 'active' ||
+      !footprint.has(`${actor.position.x},${actor.position.y}`)
+    )
+      continue;
+    const weight =
+      replay.forms.find((form) => form.formId === actor.formId)
+        ?.objectiveWeight ?? 1;
+    if (weight <= 0) continue;
+    weights.set(
+      actor.identity.teamId,
+      (weights.get(actor.identity.teamId) ?? 0) + weight,
+    );
+  }
+
+  const present = [...weights.entries()].filter(
+    ([, weight]) => weight > 0,
+  );
+  if (present.length === 0)
+    return { teamId: null, contested: false };
+
+  const mode =
+    replay.contract.kind === 'v3-generic'
+      ? replay.contract.rawContract.rules.gameMode
+      : null;
+  const netControl =
+    mode?.kind === 'frontline' &&
+    mode.capture.controlPolicy ===
+      'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
+  if (!netControl) {
+    return present.length === 1
+      ? { teamId: present[0]![0], contested: false }
+      : { teamId: null, contested: true };
+  }
+
+  const totalWeight = present.reduce(
+    (total, [, weight]) => total + weight,
+    0,
+  );
+  const positive = present.filter(
+    ([, weight]) => weight > totalWeight - weight,
+  );
+  return positive.length === 1
+    ? { teamId: positive[0]![0], contested: false }
+    : { teamId: null, contested: present.length > 1 };
 }
 
 type LegacyZone = {

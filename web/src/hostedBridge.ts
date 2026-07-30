@@ -242,7 +242,10 @@ export function tickBridgeMessage(
     type: 'tick' as const,
     bridgeVersion: version,
     tick: presentation.tick,
-    objective: presentation.objective,
+    objective:
+      version === 2
+        ? bridge2Objective(presentation.objective)
+        : presentation.objective,
     units: presentation.units,
     ...(version === 3
       ? {
@@ -250,6 +253,24 @@ export function tickBridgeMessage(
           mode: world?.mode ?? null,
         }
       : {}),
+  };
+}
+
+function bridge2Objective(objective: TickPresentation['objective']) {
+  if (objective?.kind !== 'frontline') return objective;
+  // Bridge v2 is the frozen v1/v2 contract. Shared presentation may grow for
+  // bridge v3 and native UI, but those fields must not silently add JSON keys
+  // to an older host contract.
+  return {
+    kind: objective.kind,
+    activePositionIndex: objective.activePositionIndex,
+    positionCount: objective.positionCount,
+    claimingTeamId: objective.claimingTeamId,
+    captureProgress: objective.captureProgress,
+    captureThreshold: objective.captureThreshold,
+    controlResumesAtTick: objective.controlResumesAtTick,
+    winnerTeamId: objective.winnerTeamId,
+    phase: objective.phase,
   };
 }
 

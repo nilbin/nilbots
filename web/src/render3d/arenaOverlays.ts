@@ -5,6 +5,7 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
+import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
 import { arrivalsAt, spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
@@ -379,33 +380,116 @@ function buildObjective(
 
       const boundaryGeometry = tileBoundaryGeometry(position.tiles, 0.075, 0.05);
       const signalGeometry = captureSignalGeometry(position.tiles);
-      const signalMaterial = new THREE.MeshBasicMaterial({
+      const boundaryMaterial = new THREE.MeshBasicMaterial({
         color: new THREE.Color('#b8844f'),
         transparent: true,
         opacity: 0.055,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
-      const boundary = new THREE.Mesh(boundaryGeometry, signalMaterial);
+      const boundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
       boundary.position.y = 0.021;
+      boundary.userData.kind = 'frontline-capture-boundary';
       field.add(boundary);
+      const signalMaterial = boundaryMaterial.clone();
       const signal = new THREE.Mesh(signalGeometry, signalMaterial);
       signal.position.y = 0.023;
+      signal.userData.kind = 'frontline-capture-signal';
       field.add(signal);
+
+      // Whole-footprint tint makes a captured ratchet team-readable before
+      // the eye has to parse a small signal. It remains flat and translucent,
+      // so bots win and no raised collision is implied.
+      const ownershipGeometry = tiledInsetGeometry(position.tiles, 0.115);
+      const ownershipMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#b8844f'),
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const ownership = new THREE.Mesh(
+        ownershipGeometry,
+        ownershipMaterial,
+      );
+      ownership.position.y = 0.018;
+      ownership.userData.kind = 'frontline-capture-ownership';
+      field.add(ownership);
+
+      // Every authored tile gets the same progress arc. Instancing keeps the
+      // draw count bounded while drawRange turns the exact 0..threshold value
+      // into length instead of the old, ambiguous opacity change.
+      const progressGeometry = captureProgressGeometry(0.285, 0.345);
+      const progressMaterial = captureArcMaterial();
+      const progress = captureRingInstances(
+        position.tiles,
+        progressGeometry,
+        progressMaterial,
+      );
+      progress.position.y = 0.031;
+      progress.userData.kind = 'frontline-capture-progress';
+      field.add(progress);
+
+      // During erosion this short counter-rotating challenger arc sits outside
+      // the incumbent's stored-progress arc. It deliberately grants no filled
+      // challenger credit before the authoritative claimant flips.
+      const erosionGeometry = captureProgressGeometry(0.385, 0.43);
+      setCaptureArcFraction(erosionGeometry, 0.24);
+      const erosionMaterial = captureArcMaterial();
+      const erosion = captureRingInstances(
+        position.tiles,
+        erosionGeometry,
+        erosionMaterial,
+      );
+      erosion.position.y = 0.034;
+      erosion.userData.kind = 'frontline-capture-erosion';
+      field.add(erosion);
+
+      // The outer ratchet arc counts down from the contract-declared hold
+      // duration and pulses in the exact hold owner's runtime accent.
+      const holdGeometry = captureProgressGeometry(0.455, 0.505);
+      const holdMaterial = captureArcMaterial();
+      const hold = captureRingInstances(
+        position.tiles,
+        holdGeometry,
+        holdMaterial,
+      );
+      hold.position.y = 0.037;
+      hold.userData.kind = 'frontline-capture-hold';
+      field.add(hold);
 
       group.add(field);
       disposables.push(
         bedGeometry,
         bedMaterial,
         boundaryGeometry,
+        boundaryMaterial,
         signalGeometry,
         signalMaterial,
+        ownershipGeometry,
+        ownershipMaterial,
+        progressGeometry,
+        progressMaterial,
+        erosionGeometry,
+        erosionMaterial,
+        holdGeometry,
+        holdMaterial,
       );
       return {
         positionIndex: position.positionIndex,
         field,
         bedMaterial,
+        boundaryMaterial,
         signalMaterial,
+        ownershipMaterial,
+        progress,
+        progressGeometry,
+        progressMaterial,
+        erosion,
+        erosionMaterial,
+        hold,
+        holdGeometry,
+        holdMaterial,
       };
     });
 
@@ -419,70 +503,149 @@ function buildObjective(
         entry.field.userData.active = false;
         entry.field.userData.state = 'inactive';
         entry.bedMaterial.opacity = 0.11;
+        entry.boundaryMaterial.opacity = 0.055;
+        entry.boundaryMaterial.color.set('#b8844f');
         entry.signalMaterial.opacity = 0.055;
         entry.signalMaterial.color.set('#b8844f');
+        entry.ownershipMaterial.opacity = 0;
+        entry.progressMaterial.opacity = 0;
+        entry.erosionMaterial.opacity = 0;
+        entry.holdMaterial.opacity = 0;
       }
       return;
     }
     const activePositionIndex = objective.activePositionIndex;
-    const presentTeams = new Set(
-      presentation.units
-        .filter(
-          (unit) => unit.status === 'active' && unit.holdingObjective,
-        )
-        .map((unit) => unit.teamId),
-    );
-    const contested = presentTeams.size > 1;
-    const claimingAccent =
-      objective?.claimingTeamId === null ||
-      objective?.claimingTeamId === undefined
-        ? null
-        : presentation.units.find(
-            (unit) => unit.teamId === objective.claimingTeamId,
-          )?.accent ?? null;
-    const solePresentTeamId =
-      presentTeams.size === 1 ? [...presentTeams][0] : null;
-    const presenceAccent =
-      solePresentTeamId === null
-        ? null
-        : presentation.units.find(
-            (unit) => unit.teamId === solePresentTeamId,
-          )?.accent ?? null;
-    const progress =
-      objective.captureThreshold > 0
-        ? Math.min(1, objective.captureProgress / objective.captureThreshold)
-        : 0;
+    const visual = frontlineCaptureVisual(presentation);
+    if (!visual) return;
     const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.2);
 
     for (const entry of entries) {
       const active = entry.positionIndex === activePositionIndex;
-      const state = !active
-        ? 'inactive'
-        : contested
-          ? 'contested'
-          : claimingAccent
-            ? 'claiming'
-            : 'neutral';
+      const state = active ? visual.state : 'inactive';
       entry.field.userData.active = active;
       entry.field.userData.state = state;
       entry.field.userData.captureProgress = active
         ? objective.captureProgress
         : 0;
+      entry.field.userData.captureFraction = active
+        ? visual.progressFraction
+        : 0;
+      entry.field.userData.progressDirection = active
+        ? visual.progressDirection
+        : 'none';
+      entry.field.userData.claimantTeamId = active
+        ? visual.claimantTeamId
+        : null;
+      entry.field.userData.challengerTeamId =
+        active && visual.progressDirection === 'eroding'
+          ? visual.challengerTeamId
+          : null;
+      entry.field.userData.holdOwnerTeamId = active
+        ? visual.holdOwnerTeamId
+        : null;
+      entry.field.userData.holdEndsAtTick = active
+        ? visual.holdEndsAtTick
+        : null;
+      entry.field.userData.holdRemainingTicks = active
+        ? visual.holdRemainingTicks
+        : null;
       entry.bedMaterial.opacity = active ? 0.2 : 0.11;
+      entry.boundaryMaterial.opacity = !active
+        ? 0.055
+        : visual.state === 'holding'
+          ? 0.82
+          : visual.state === 'eroding'
+            ? 0.66
+            : visual.state === 'contested'
+              ? 0.58 + pulse * 0.18
+              : visual.claimantAccent
+                ? 0.48
+                : 0.28;
       entry.signalMaterial.opacity = !active
         ? 0.055
-        : contested
-          ? 0.46 + pulse * 0.18
-          : claimingAccent || presenceAccent
-            ? 0.32 + progress * 0.28
-            : 0.25;
+        : visual.state === 'holding'
+          ? 0.72 + pulse * 0.2
+          : visual.contested
+            ? 0.46 + pulse * 0.18
+            : visual.claimantAccent
+              ? 0.38 + visual.progressFraction * 0.32
+              : 0.25;
+      const boundaryAccent =
+        visual.state === 'eroding'
+          ? visual.challengerAccent
+          : visual.state === 'holding'
+            ? visual.holdAccent
+            : visual.claimantAccent;
+      entry.boundaryMaterial.color.set(
+        active &&
+          visual.state === 'holding' &&
+          boundaryAccent
+          ? boundaryAccent
+          : active && visual.contested
+            ? '#f4c477'
+            : active && boundaryAccent
+              ? boundaryAccent
+              : '#b8844f',
+      );
       entry.signalMaterial.color.set(
-        active && contested
+        active && visual.contested
           ? '#f4c477'
-          : active && (claimingAccent || presenceAccent)
-            ? (claimingAccent ?? presenceAccent)!
+          : active &&
+              (visual.holdAccent || visual.claimantAccent)
+            ? (visual.holdAccent ?? visual.claimantAccent)!
             : '#b8844f',
       );
+
+      const ownershipAccent =
+        visual.holdAccent ?? visual.claimantAccent;
+      entry.ownershipMaterial.color.set(
+        ownershipAccent ?? '#b8844f',
+      );
+      entry.ownershipMaterial.opacity = !active
+        ? 0
+        : visual.state === 'holding'
+          ? 0.2 + pulse * 0.1
+          : visual.claimantAccent
+            ? visual.state === 'contested'
+              ? 0.065
+              : 0.07 + visual.progressFraction * 0.07
+            : 0;
+
+      setCaptureArcFraction(
+        entry.progressGeometry,
+        active ? visual.progressFraction : 0,
+      );
+      entry.progressMaterial.color.set(
+        visual.claimantAccent ?? '#b8844f',
+      );
+      entry.progressMaterial.opacity =
+        active && visual.progressFraction > 0
+          ? visual.contested
+            ? 0.72
+            : 0.9
+          : 0;
+
+      entry.erosionMaterial.color.set(
+        visual.challengerAccent ?? '#b8844f',
+      );
+      entry.erosionMaterial.opacity =
+        active && visual.progressDirection === 'eroding'
+          ? 0.68 + pulse * 0.24
+          : 0;
+      entry.erosion.rotation.y = -time * Math.PI * 0.72;
+
+      setCaptureArcFraction(
+        entry.holdGeometry,
+        active ? visual.holdFraction : 0,
+      );
+      entry.holdMaterial.color.set(
+        visual.holdAccent ?? '#b8844f',
+      );
+      entry.holdMaterial.opacity =
+        active && visual.state === 'holding'
+          ? 0.72 + pulse * 0.26
+          : 0;
+      entry.hold.rotation.y = time * Math.PI * 0.18;
     }
   };
 
@@ -713,6 +876,70 @@ function captureSignalGeometry(
   const geometry = mergeQuads(parts);
   for (const part of parts) part.dispose();
   return geometry;
+}
+
+const CAPTURE_ARC_SEGMENTS = 64;
+
+function captureProgressGeometry(
+  innerRadius: number,
+  outerRadius: number,
+): THREE.RingGeometry {
+  const geometry = new THREE.RingGeometry(
+    innerRadius,
+    outerRadius,
+    CAPTURE_ARC_SEGMENTS,
+  );
+  geometry.rotateX(-Math.PI / 2);
+  setCaptureArcFraction(geometry, 0);
+  return geometry;
+}
+
+function captureArcMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#b8844f'),
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+}
+
+function captureRingInstances(
+  tiles: readonly ReplayPosition[],
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+): THREE.InstancedMesh {
+  const instances = new THREE.InstancedMesh(
+    geometry,
+    material,
+    tiles.length,
+  );
+  const matrix = new THREE.Matrix4();
+  tiles.forEach((tile, index) => {
+    matrix.makeTranslation(tile.x + 0.5, 0, tile.y + 0.5);
+    instances.setMatrixAt(index, matrix);
+  });
+  instances.instanceMatrix.needsUpdate = true;
+  return instances;
+}
+
+function setCaptureArcFraction(
+  geometry: THREE.BufferGeometry,
+  fraction: number,
+): void {
+  const segmentCount =
+    fraction <= 0
+      ? 0
+      : Math.max(
+          1,
+          Math.min(
+            CAPTURE_ARC_SEGMENTS,
+            Math.ceil(fraction * CAPTURE_ARC_SEGMENTS),
+          ),
+        );
+  // RingGeometry emits two triangles (six indices) per angular segment.
+  geometry.setDrawRange(0, segmentCount * 6);
 }
 
 /**
