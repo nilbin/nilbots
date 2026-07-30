@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "verdict": "pass",
+  "productionAsset": {
+    "path": "web/src/assets/class-looks/aegis-tortoise/model.glb",
+    "bytes": 8024032,
+    "sha256": "a169822ef3c3b98ab854257e3c637e00f50900e53cfb3f51dfd8910d7ec4df8b",
+    "semanticClips": [
+      "Shell_Deploy",
+      "Tower_Deploy",
+      "Mobile_Recoil",
+      "Shell_Recoil",
+      "Tower_Recoil"
+    ]
+  },
+  "sourceReplay": {
+    "kind": "native Frontline CLI replay",
+    "fileSha256": "2970acb64ff4fa9dc05636ce972e8dfea62d241d0736cde09be51e1179060213",
+    "replayHash": "5822f97b3edeaaab81ccd22f501e124f5f14183bacdd70b0f26a3463d6de60fa",
+    "matchContractFingerprint": "74ce5fa119c0195538976dd65bf93e65bbc5be890e1650a46f95acb04b8710cf",
+    "rulesFingerprint": "965db907f322d9384a10a55a171f6ff5adc809a6c7db0c902b7232f0bb89a2a1",
+    "mapId": "frontline-labs-01-classes",
+    "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+    "ticks": 500,
+    "themeId": "ember-forge",
+    "rulesetId": "frontline-labs-1-bulwark-vs-bulwark-rig-facing-locked",
+    "seed": "480013",
+    "participants": [
+      {
+        "teamId": 0,
+        "accent": "#8fa3b0"
+      },
+      {
+        "teamId": 1,
+        "accent": "#7f8c3a"
+      }
+    ],
+    "generatedWith": "dotnet run --project src/BotArena.Cli/BotArena.Cli.csproj -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-5-2026-07-30/gate-stone --opponent arena-bots/frontline-labs/classes-wave-5-2026-07-30/iron-root --seed 480013 --runtime in-process --classes bulwark-vs-bulwark --movement facing-locked --pendulum keel --skills kit --bend universal",
+    "cliVerification": "pass",
+    "archivedHere": false
+  },
+  "runtime": {
+    "semanticAnimationCodeCommit": "8ae1af5",
+    "sampling": "absolute replay time",
+    "buildCommand": "npm run build:review",
+    "buildResult": "pass",
+    "renderer": "production WebGL renderer",
+    "browser": "headless system Chrome with SwiftShader",
+    "viewportCssPixels": {
+      "width": 1600,
+      "height": 1000
+    },
+    "arenaCanvasPixels": {
+      "width": 926,
+      "height": 578
+    },
+    "cameraPitchDegrees": 58,
+    "fieldOfViewOverlay": false
+  },
+  "captureScales": {
+    "wholeArena41px": {
+      "autoFit": false,
+      "derivation": "The unchanged production whole-arena camera fits the complete 23 by 15 Frontline map into the 926 by 578 canvas. The selected Mobile body spans approximately 41 source pixels at tick 219.95. Contact sheets crop 112 source pixels around it and enlarge that crop two times for inspection; the bot itself is not rendered at a larger source scale."
+    },
+    "actionFollow": {
+      "autoFit": true,
+      "derivation": "The unchanged production action-follow camera follows the selected team. Contact sheets use broad crops from the native 926 by 578 canvas so camera motion and nearby rules cues remain visible."
+    }
+  },
+  "sequences": {
+    "shellDeployAndReverse": [
+      219.95,
+      220,
+      220.15,
+      220.3,
+      220.45,
+      220.6,
+      220.75,
+      220.9,
+      221,
+      221.15,
+      221.3,
+      221.45,
+      221.6,
+      221.75,
+      221.9,
+      222
+    ],
+    "mobileRecoil": [
+      222.4,
+      222.45,
+      222.55,
+      222.65,
+      222.75,
+      222.85,
+      222.95,
+      223.05,
+      223.15,
+      223.3,
+      223.45,
+      223.6
+    ],
+    "towerDeploy": [
+      224.95,
+      225,
+      225.2,
+      225.4,
+      225.6,
+      225.8,
+      226,
+      226.2,
+      226.4,
+      226.6,
+      226.8,
+      227
+    ],
+    "towerRecoil": [
+      226.4,
+      226.45,
+      226.55,
+      226.65,
+      226.75,
+      226.85,
+      226.95,
+      227.05,
+      227.15,
+      227.3,
+      227.45,
+      227.6
+    ],
+    "towerReverse": [
+      288.95,
+      289,
+      289.2,
+      289.4,
+      289.6,
+      289.8,
+      290,
+      290.2,
+      290.4,
+      290.6
+    ],
+    "shellDeflectionRecoilAndReverse": [
+      292.95,
+      293,
+      293.2,
+      293.4,
+      293.6,
+      293.8,
+      294,
+      294.2,
+      294.4,
+      294.45,
+      294.55,
+      294.65,
+      294.75,
+      294.85,
+      294.95,
+      295,
+      295.2,
+      295.4,
+      295.6,
+      295.8,
+      296
+    ]
+  },
+  "results": {
+    "shellDeployForward": "pass",
+    "shellDeployReverse": "pass",
+    "towerDeployForward": "pass",
+    "towerDeployReverse": "pass",
+    "mobileRecoil": "pass",
+    "shellRecoil": "pass",
+    "towerRecoil": "pass",
+    "scrubDeterminism": "pass",
+    "genericDoubleMotion": false,
+    "shellRecoveryPolicy": "Deflection recoil remains additive during the early Shell-to-Mobile reverse while eased Shell progress is above the existing 0.5 stance handover. It is absent at and after handover and cannot reappear in the Mobile tail.",
+    "gameplayScaleReadability": "pass",
+    "textureAndMapIntegration": "pass",
+    "teamAccentOwnership": "renderer-owned; this native replay uses submitted slate and olive accents. The sibling static blue, orange, and neutral proofs validate the same four texture-free semantic surfaces."
+  },
+  "artifactManifest": {
+    "path": "SHA256SUMS",
+    "entries": 24,
+    "sha256": "f6cf2eceaa7ff5145fe63f6d099c75f5dbef1d693a0a94ce46beff76bdcc6082"
+  }
+}

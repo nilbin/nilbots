@@ -95,6 +95,15 @@ native 41px sheets, short GIF loops, UV layout, and team-accent proofs. The
 complete machine-readable evidence is in
 `validation/validation-report.json`.
 
+`proofs/runtime/` is the separate in-game acceptance pass. It samples the
+exact textured production GLB from a CLI-verified 500-tick Bulwark-versus-
+Bulwark replay on `frontline-labs-01-classes`, through the production WebGL
+renderer and Ember Forge map. It includes the full forward and reverse Shell
+and Tower sequences plus Mobile, Shell, and Tower recoil at both the whole-
+arena approximately 41px footprint and normal action-follow framing.
+`proofs/runtime/runtime-validation-report.json` pins the replay, model,
+camera, sample times, Shell recovery handover policy, and proof manifest.
+
 Rebuild into a fresh repository-relative directory with the shared pinned
 Blender 5.2 toolchain:
 
