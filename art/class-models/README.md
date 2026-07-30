@@ -11,6 +11,13 @@ downloads the separate GLB only when the 3D renderer resolves that look. The
 site, Canvas2D, mobile, CLI, loading state, and failed-model path remain on the
 canonical 2D asset.
 
+The Aegis Tortoise mobile Bulwark correction is staged under
+`aegis-tortoise-mobile/` as an art-side handoff only. It preserves the approved
+generated upper carapace, reconstructs and rigs four short walking legs, and
+retains a lean GLB plus editable Blend source and measured review evidence.
+It is intentionally absent from runtime assets until replay-time action
+selection/seeking and a draw-call optimization pass exist.
+
 ## Accepted Striker result
 
 The clean multiview v2 inputs and fidelity evidence are under

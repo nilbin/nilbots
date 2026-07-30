@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "asset": "aegis-tortoise-mobile",
+  "method": {
+    "blender": "5.2.0 LTS fbe6228777e7",
+    "recipe": "build_aegis_tortoise.py",
+    "runs": 2,
+    "process": "independent --background --factory-startup invocations",
+    "pinnedProviderGlbSha256": "dcb22bd3975bb767c5206a92918a59d6ef92cb338e7bad8463c2040edf274534",
+    "exportUvCanonicalizationDecimals": 6
+  },
+  "exports": {
+    "rich": {
+      "bytes": 22217724,
+      "sha256Run1": "4d3ec7d1bcb043ec1808a313bb931609aa8f079fdf7b6f248fed41514346773d",
+      "sha256Run2": "4d3ec7d1bcb043ec1808a313bb931609aa8f079fdf7b6f248fed41514346773d",
+      "exactByteMatch": true
+    },
+    "lean": {
+      "bytes": 6346356,
+      "sha256Run1": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66",
+      "sha256Run2": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66",
+      "exactByteMatch": true
+    }
+  },
+  "editableSource": {
+    "file": "source/aegis-tortoise-editable.blend",
+    "bytes": 25823993,
+    "sha256": "99ffea9c717a2ba4f457265a9d5c3560a0a0adc18d3255e0a7f295a961c81df0",
+    "hashGate": false,
+    "reason": "Native compressed Blend serialization is not byte-stable across saves; deterministic GLB exports are the artifact hash gate.",
+    "verifiedActions": [
+      "Aegis_Idle",
+      "Aegis_Walk"
+    ],
+    "verifiedBones": 15,
+    "verifiedSemanticTeamObjects": 3
+  }
+}

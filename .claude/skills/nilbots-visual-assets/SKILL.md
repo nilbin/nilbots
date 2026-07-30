@@ -166,6 +166,35 @@ review, and optimization remain separate required stages.
    deterministic or human rework was required, and compare quality, time,
    triangles, materials, textures, and first-use bytes with the fallback.
 
+#### Deterministic articulated correction
+
+When a generated master passes the top identity gate but fuses or collapses
+the lower locomotion hardware, preserve the passing region instead of globally
+warping the whole mesh.
+
+1. Pin and hash the raw master and every visual authority. Apply inspected axis
+   conversions as explicit mesh-space transforms in a recorded order; do not
+   rely on a combined DCC Euler whose effective order can change the result.
+2. Physically bisect and cap only the failed source region. Rebuild the lower
+   chassis, weapon projection, joints, and contact hardware as named rigid
+   parts with named pivots. Repeat the fixed top and side gates after the
+   reconstruction; a repaired side cannot spend the approved top silhouette.
+3. Use an in-place `root`/`body`/weapon/limb hierarchy and separately named
+   idle and locomotion actions. Pin planted contact frames and compare the
+   animation from the gameplay camera as well as the side. A generated
+   walking chassis may enter runtime only after the replay renderer selects
+   the intended clip and seeks it from normalized replay time; otherwise its
+   articulated silhouette will visibly slide.
+4. Keep class energy and team identity separate. Put bounded team surfaces on
+   a single material carrying `extras.nilbotsRole = "team-accent"` and give
+   their nodes matching semantic extras. Preserve fixed class-energy surfaces;
+   the renderer-owned floor glow remains part of fast team readability.
+5. Retain the editable DCC source and deterministic recipe, a lean runtime
+   candidate, fixed authority/team/animation boards, build metrics, and a
+   structural GLB report. Treat primitive/draw-call consolidation, authored
+   tangent portability, and renderer animation support as independent landing
+   gates rather than hiding them in a general visual verdict.
+
 #### Meshy 6 pilot recipe
 
 The measured provider trial uses Meshy 6 Multi-Image to 3D. This pins a

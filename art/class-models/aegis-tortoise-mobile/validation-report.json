@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "asset": "aegis-tortoise-mobile",
+  "file": {
+    "name": "aegis-tortoise-lean.glb",
+    "bytes": 6346356,
+    "sha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66"
+  },
+  "verdict": "pass-with-recorded-warnings",
+  "errors": [],
+  "warnings": [
+    "1 normal-mapped primitive(s) rely on renderer-generated tangents"
+  ],
+  "structure": {
+    "nodes": 65,
+    "meshes": 49,
+    "primitives": 49,
+    "indexedTriangles": 99343,
+    "materials": 7,
+    "textures": 4,
+    "images": 4,
+    "accessors": 157,
+    "animations": [
+      {
+        "name": "Aegis_Idle",
+        "channels": 45,
+        "samplers": 45
+      },
+      {
+        "name": "Aegis_Walk",
+        "channels": 45,
+        "samplers": 45
+      }
+    ],
+    "skins": 1,
+    "skinJoints": 15,
+    "skinConsumerNodes": 0,
+    "semanticTeamMaterials": 1,
+    "semanticTeamNodes": 3,
+    "cameras": 0,
+    "lights": 0,
+    "extensionsUsed": [
+      "KHR_materials_emissive_strength"
+    ],
+    "extensionsRequired": []
+  },
+  "portability": {
+    "normalMappedPrimitivesWithoutTangents": [
+      {
+        "mesh": "Armor.ProviderMaster.Rich.Mesh",
+        "primitive": 0,
+        "material": "Material_0"
+      }
+    ],
+    "note": "Nilbots targets Three.js; broader glTF portability still requires authored tangents or a recorded generated-tangent basis."
+  }
+}

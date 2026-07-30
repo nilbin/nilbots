@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "asset": "aegis-tortoise-mobile",
+  "method": {
+    "direction": "fixed East/+X",
+    "allowedTransform": "uniform scale and rigid translation only",
+    "rotation": false,
+    "reflection": false,
+    "nonUniformWarp": false,
+    "canvas": 512,
+    "normalizedMaximumSpan": 420
+  },
+  "top": {
+    "authority": "art/class-look-concepts/bulwark/aegis-tortoise/concept.png",
+    "candidate": "review/rich/top.png",
+    "iou": 0.956874327157346,
+    "outerIou": 0.956874327157346,
+    "centroidResidualPixels": 0.6376579027796867,
+    "gate": "pass"
+  },
+  "side": {
+    "authority": "art/class-models/aegis-tortoise-mobile/references/approved-clean-side.png",
+    "candidate": "review/rich/side.png",
+    "iou": 0.7812436748004048,
+    "outerIou": 0.7983996043965924,
+    "centroidResidualPixels": 0.49552812587588,
+    "targetAspect": 3.345,
+    "candidateAspect": 3.350942,
+    "aspectDrift": 0.001776382660687581,
+    "gate": "pass"
+  },
+  "budgets": {
+    "rich": {
+      "bytes": 22217724,
+      "sha256": "4d3ec7d1bcb043ec1808a313bb931609aa8f079fdf7b6f248fed41514346773d",
+      "triangles": 228266,
+      "vertices": 122798,
+      "textures": {
+        "base-color": [
+          2048,
+          2048
+        ],
+        "emission": [
+          1024,
+          1024
+        ],
+        "metallic-roughness": [
+          1024,
+          1024
+        ],
+        "normal": [
+          2048,
+          2048
+        ]
+      }
+    },
+    "lean": {
+      "bytes": 6346356,
+      "sha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66",
+      "triangles": 99343,
+      "vertices": 57714,
+      "textures": {
+        "base-color": [
+          1024,
+          1024
+        ],
+        "emission": [
+          512,
+          512
+        ],
+        "metallic-roughness": [
+          512,
+          512
+        ],
+        "normal": [
+          1024,
+          1024
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "fixedAuthorityComparison": "fixed-authority-comparison.png",
+    "topOverlay": "top-silhouette-overlay.png",
+    "sideOverlay": "side-silhouette-overlay.png",
+    "teamAndTier": "team-and-tier-comparison.png",
+    "walkCycleSide": "walk-cycle-side.png",
+    "walkCycleGameplay": "walk-cycle-gameplay.png"
+  }
+}

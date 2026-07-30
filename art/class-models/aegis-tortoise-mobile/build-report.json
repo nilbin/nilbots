@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "asset": "aegis-tortoise-mobile",
+  "verdictAtBuildTime": "review-candidate-not-runtime",
+  "source": {
+    "providerTask": "019fb1d5-0c4f-7716-8b86-048ad5d8b066",
+    "providerFiles": {
+      "raw-model.glb": "dcb22bd3975bb767c5206a92918a59d6ef92cb338e7bad8463c2040edf274534",
+      "texture-0-base-color.png": "797bc36310418edee66008a2cbaf14224186462087edc48bf6fb35a7b737aa33",
+      "texture-0-emission.png": "72932ace044bf9ca70b401c66c5e51deb06dcea46a2e636f0434c32dd80c9b91",
+      "texture-0-metallic.png": "328ed8ad97dbb40efb2cbcd83ebc51c818a6fadb8eae3e30c81991dbf55ae3c0",
+      "texture-0-normal.png": "cdbcf51cde3264f85f0c4f5ec48eef6605541017440d8b4d2d103afbd58f86de",
+      "texture-0-roughness.png": "e714ad9640e6ca6f6df0e43d12c6c808e74390c8ab4589a009fdb3a5273b93e5"
+    },
+    "authorityHashes": {
+      "rich2d": "22e41a0925f1b88497ff55265bebb249b21da004c9a2559a5f1d0f70db95fbd5",
+      "runtimeSvg": "0e4e5c3c9ea91feec349f7516d6f1de09ac674aac7f2243d6af8845b92fc45f9",
+      "cleanTop": "d806e4ba3517fb8e09ed02ca41636dbb04d31e92b92a5d792b648574768aec18",
+      "cleanSide": "5b74bdd48413aedf63a6f7a37e3d33f8f29355c8985a18c23f437ccaa0ef008f",
+      "cleanFrontThreeQuarter": "279ab86b4b370706628db23edde62b959b28e85a8a372dd5046307e6efb3687e",
+      "cleanRearThreeQuarter": "8e2067220e89b98e526c0cc3ca3c129bcbdb6becb571ca22c20db121067aa54f"
+    }
+  },
+  "recipe": {
+    "authoredPlanformSpan": 1.12,
+    "targetTotalHeight": 0.33482810164424515,
+    "armorCutZ": 0.118,
+    "richArmorTriangleTarget": 220000,
+    "leanArmorTriangleTarget": 92000,
+    "nonUniformWarp": false,
+    "locomotion": "heavy compact diagonal four-leg gait"
+  },
+  "rig": {
+    "armature": "Aegis.Tortoise.Rig",
+    "bones": [
+      "root",
+      "body",
+      "cannon",
+      "hip_fl",
+      "knee_fl",
+      "ankle_fl",
+      "hip_fr",
+      "knee_fr",
+      "ankle_fr",
+      "hip_rl",
+      "knee_rl",
+      "ankle_rl",
+      "hip_rr",
+      "knee_rr",
+      "ankle_rr"
+    ],
+    "actions": {
+      "idle": {
+        "name": "Aegis_Idle",
+        "frameRange": [
+          1,
+          49
+        ]
+      },
+      "walk": {
+        "name": "Aegis_Walk",
+        "frameRange": [
+          1,
+          25
+        ]
+      }
+    }
+  },
+  "tiers": [
+    {
+      "tier": "rich",
+      "glb": {
+        "path": "aegis-tortoise-rich.glb",
+        "bytes": 22217724,
+        "sha256": "4d3ec7d1bcb043ec1808a313bb931609aa8f079fdf7b6f248fed41514346773d"
+      },
+      "geometry": {
+        "objects": 49,
+        "vertices": 122798,
+        "triangles": 228266,
+        "boundsBlenderZUp": {
+          "min": [
+            -0.559963,
+            -0.536172,
+            0.000598
+          ],
+          "max": [
+            0.560018,
+            0.538664,
+            0.334827
+          ]
+        },
+        "planformSpan": 1.119981,
+        "totalHeight": 0.334229,
+        "sideAspect": 3.350942
+      },
+      "textures": {
+        "base-color": [
+          2048,
+          2048
+        ],
+        "emission": [
+          1024,
+          1024
+        ],
+        "metallic-roughness": [
+          1024,
+          1024
+        ],
+        "normal": [
+          2048,
+          2048
+        ]
+      },
+      "materials": [
+        {
+          "name": "Material_0"
+        },
+        {
+          "name": "NB_CLASS_ENERGY_CYAN"
+        },
+        {
+          "name": "NB_FOOT_CONTACT"
+        },
+        {
+          "name": "NB_GRAPHITE_MECHANICAL"
+        },
+        {
+          "name": "NB_NAVY_ARMOR"
+        },
+        {
+          "name": "NB_TEAM_ACCENT",
+          "nilbotsRole": "team-accent"
+        },
+        {
+          "name": "NB_WEATHERED_BRONZE"
+        }
+      ]
+    },
+    {
+      "tier": "lean",
+      "glb": {
+        "path": "aegis-tortoise-lean.glb",
+        "bytes": 6346356,
+        "sha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66"
+      },
+      "geometry": {
+        "objects": 49,
+        "vertices": 57714,
+        "triangles": 99343,
+        "boundsBlenderZUp": {
+          "min": [
+            -0.559946,
+            -0.536177,
+            0.000598
+          ],
+          "max": [
+            0.560018,
+            0.53865,
+            0.334874
+          ]
+        },
+        "planformSpan": 1.119964,
+        "totalHeight": 0.334276,
+        "sideAspect": 3.350421
+      },
+      "textures": {
+        "base-color": [
+          1024,
+          1024
+        ],
+        "emission": [
+          512,
+          512
+        ],
+        "metallic-roughness": [
+          512,
+          512
+        ],
+        "normal": [
+          1024,
+          1024
+        ]
+      },
+      "materials": [
+        {
+          "name": "Material_0"
+        },
+        {
+          "name": "NB_CLASS_ENERGY_CYAN"
+        },
+        {
+          "name": "NB_FOOT_CONTACT"
+        },
+        {
+          "name": "NB_GRAPHITE_MECHANICAL"
+        },
+        {
+          "name": "NB_NAVY_ARMOR"
+        },
+        {
+          "name": "NB_TEAM_ACCENT",
+          "nilbotsRole": "team-accent"
+        },
+        {
+          "name": "NB_WEATHERED_BRONZE"
+        }
+      ]
+    }
+  ],
+  "editableBlend": {
+    "path": "aegis-tortoise-editable.blend",
+    "bytes": 25823993,
+    "sha256": "99ffea9c717a2ba4f457265a9d5c3560a0a0adc18d3255e0a7f295a961c81df0",
+    "state": "rich tier with packed review textures and both actions"
+  }
+}
