@@ -175,6 +175,28 @@ DASH. Dead: barricade (dominated), surge (treadmill accelerant),
 lance-as-line (free dodge), energy (#47/#48). Split stays parked for
 a future swarm class.
 
+## Drafted for the post-phase-2 tuning pass (owner direction, 2026-07-30)
+
+- **Turret cycling**: anchor/mobilize becomes unlimited per life with a
+  cooldown **per unit slot** (never per life — free respawns make
+  per-life cooldowns die-to-reset exploitable; slot-level state
+  survives the body and the slot machinery already carries clocks).
+  Removes the invisible once-per-life "spent" state and lets the
+  fortress migrate with the keel front. Balance note: bulwark's legs
+  are already rising under keel — this rides the edge band, not a
+  hunch.
+- **Cooldowns as a general typed capability**: the pricing vocabulary
+  completes — windups make each use punishable, cooldowns make POWER
+  affordable by bounding frequency, which is the prerequisite for the
+  higher-power skill tier the owner is drafting. Design law carried
+  over: cooldowns are PUBLICLY readable (remaining ticks in the
+  observation — an opponent reads the push window the way they read a
+  windup; a private cooldown is the bend mistake again). Engineering:
+  the machinery the adoption pass deferred — typed cooldown on the
+  transition route, slot-level last-used state, legality gating,
+  readable remaining ticks, full mirror set. Build window: after the
+  wave-4 freeze, never mid-wave.
+
 ## Design guards (owner rulings)
 
 - **No skill may reintroduce facing-decoupled movement.** Strafe is dead
