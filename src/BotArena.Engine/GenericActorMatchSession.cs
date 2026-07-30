@@ -1600,17 +1600,25 @@ public sealed class GenericActorMatchSession : IDisposable
             // projectile count. Each bolt is an ordinary projectile with its
             // own ID, Attack event, path, and traversal; the volley shape only
             // decides the headings and the launch order, and the IDs follow
-            // that order contiguously (ActorAttackVolleyDefinition).
-            foreach (ProjectileHeading heading in VolleyHeadings(
-                         profile,
-                         resolvedHeading))
+            // that order contiguously (ActorAttackVolleyDefinition). The whole
+            // fan's identities are reserved before any bolt flies: a bolt's
+            // launch traversal can contact a projectile guard, and the
+            // deflection mints the return's identity at contact — reserving
+            // up front keeps the contract's contiguous-ascending-in-launch-
+            // order promise true through a mid-fan deflection.
+            ProjectileHeading[] headings =
+                [.. VolleyHeadings(profile, resolvedHeading)];
+            long firstProjectileId = _nextProjectileId;
+            _nextProjectileId = checked(_nextProjectileId + headings.Length);
+            for (int bolt = 0; bolt < headings.Length; bolt++)
             {
+                ProjectileHeading heading = headings[bolt];
                 ImmutableArray<Position> path = TraceProjectilePath(
                     shooter.Position,
                     heading,
                     profile,
                     program);
-                long projectileId = checked(_nextProjectileId++);
+                long projectileId = firstProjectileId + bolt;
                 var projectile = new ProjectileState(
                     projectileId,
                     shooter.ParticipantId,

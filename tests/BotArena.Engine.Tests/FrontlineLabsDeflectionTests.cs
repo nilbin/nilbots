@@ -186,9 +186,9 @@ public sealed class FrontlineLabsDeflectionTests
     }
 
     /// <summary>
-    /// Launch order is identity order across the whole match: a return takes
-    /// the identity issued immediately after the bolt it consumed, and no
-    /// identity is ever reused.
+    /// Launch order is identity order across the whole match: a return's
+    /// identity is minted at contact, after the consumed bolt's whole attack
+    /// reserved its block, and no identity is ever reused.
     /// </summary>
     [Fact]
     public void ReturnedIdentitiesFollowTheSessionLaunchOrder()
@@ -261,6 +261,135 @@ public sealed class FrontlineLabsDeflectionTests
     /// the enemy prime is standing in its shell; team 1's prime walks to
     /// <see cref="ShellTile"/>, turns west, and shells. Everything else waits.
     /// </summary>
+    /// <summary>
+    /// A fan cast point-blank into a raised shell: the centre bolt contacts
+    /// the guard during its own launch traversal, so the return's identity is
+    /// minted while the fan is still launching. The fan's identities are
+    /// reserved as one block before any bolt flies precisely so that mint
+    /// cannot gap them — the contract promises
+    /// contiguous-ascending-in-launch-order, and the phase-2 factorial's
+    /// cross-class cells are where that promise first met a shell.
+    /// </summary>
+    [Fact]
+    public void AMidFanDeflectionCannotGapTheVolleysIdentities()
+    {
+        string stance = FrontlineLabsClassDefinition.Striker
+            .PrimeStanceFormId;
+        string shell = FrontlineLabsClassDefinition.Bulwark
+            .PrimeStanceFormId;
+        var guardTile = new Position(
+            11,
+            FrontlineLabsSkillArmTestFixture.StanceRowY);
+        var casterTile = new Position(
+            12,
+            FrontlineLabsSkillArmTestFixture.StanceRowY);
+        GenericActorMatchChronology chronology =
+            FrontlineLabsSkillArmTestFixture.Run(
+                FrontlineLabsSkillArmTestFixture.Arm(
+                    FrontlineLabsClassDefinition.Bulwark,
+                    FrontlineLabsClassDefinition.Striker,
+                    FrontlineLabsSkillKit.StrikerVolley
+                        | FrontlineLabsSkillKit.BulwarkAegisShell),
+                (_, observation) =>
+                {
+                    if (observation.Self.ActorId.UnitId != 0)
+                        return GenericDeathmatchSessionTestFixture.Wait();
+                    if (observation.Self.ActorId.TeamId == 1)
+                    {
+                        if (observation.Self.FormId == stance)
+                        {
+                            return FrontlineLabsSkillArmTestFixture.Allows(
+                                observation,
+                                "shoot-straight")
+                                ? FrontlineLabsSkillArmTestFixture
+                                    .ShootStraight()
+                                : GenericDeathmatchSessionTestFixture.Wait();
+                        }
+                        GenericActorRuntimeDecision? walk =
+                            FrontlineLabsSkillArmTestFixture.WalkTo(
+                                observation,
+                                casterTile);
+                        if (walk is not null)
+                            return walk;
+                        if (observation.Self.Facing != Direction.West)
+                        {
+                            return GenericDeathmatchSessionTestFixture.Rotate(
+                                Direction.West);
+                        }
+                        return observation.Enemies.Any(enemy =>
+                                string.Equals(
+                                    enemy.FormId,
+                                    shell,
+                                    StringComparison.Ordinal))
+                            && FrontlineLabsSkillArmTestFixture.Allows(
+                                observation,
+                                "transform")
+                            ? GenericDeathmatchSessionTestFixture.Transform(
+                                stance)
+                            : GenericDeathmatchSessionTestFixture.Wait();
+                    }
+                    GenericActorRuntimeDecision? approach =
+                        FrontlineLabsSkillArmTestFixture.WalkTo(
+                            observation,
+                            guardTile);
+                    if (approach is not null)
+                        return approach;
+                    if (observation.Self.Facing != Direction.East)
+                    {
+                        return GenericDeathmatchSessionTestFixture.Rotate(
+                            Direction.East);
+                    }
+                    if (observation.Self.FormId == shell)
+                        return GenericDeathmatchSessionTestFixture.Wait();
+                    return FrontlineLabsSkillArmTestFixture.Allows(
+                        observation,
+                        "transform")
+                        ? GenericDeathmatchSessionTestFixture.Transform(shell)
+                        : GenericDeathmatchSessionTestFixture.Wait();
+                });
+
+        bool exercised = false;
+        foreach (GenericActorMatchTickFrame frame in chronology.Ticks)
+        {
+            ImmutableArray<
+                    GenericActorRuntimeObservation.EventPayload
+                        .ProjectileDeflected>
+                deflections =
+                    FrontlineLabsSkillArmTestFixture.Deflections(frame);
+            foreach (IGrouping<
+                         ActorIdentity,
+                         GenericActorRuntimeObservation.EventPayload.Attack>
+                     fan in FrontlineLabsSkillArmTestFixture.Attacks(frame)
+                         .GroupBy(attack => attack.ActorId)
+                         .Where(group => group.Count() == 3))
+            {
+                long[] identities =
+                    [.. fan.Select(attack => attack.ProjectileId)];
+                for (int index = 1; index < identities.Length; index++)
+                {
+                    Assert.Equal(
+                        identities[index - 1] + 1,
+                        identities[index]);
+                }
+                foreach (GenericActorRuntimeObservation.EventPayload
+                             .ProjectileDeflected item
+                         in deflections.Where(item =>
+                             identities.Contains(item.ProjectileId)))
+                {
+                    exercised = true;
+                    // Minted mid-fan at contact, yet landing after the
+                    // whole reserved block.
+                    Assert.True(
+                        item.DeflectedProjectileId > identities.Max());
+                }
+            }
+        }
+        Assert.True(
+            exercised,
+            "no fan bolt was deflected on its own launch tick — the probe "
+            + "no longer reproduces the mid-fan mint");
+    }
+
     private static GenericActorMatchChronology RunShellProbe()
     {
         string shell = FrontlineLabsClassDefinition.Bulwark

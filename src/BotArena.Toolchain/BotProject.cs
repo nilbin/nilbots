@@ -112,9 +112,18 @@ public static class ToolchainInfo
     /// unchanged and no new contract profile was minted. Replay-v3 documents
     /// grow four `classId` keys and one `spawnReservation` key, so a replay
     /// recorded before this version is not interchangeable with one after.
+    /// 0.9.16 fixes the volley/deflection identity interleave the phase-2
+    /// factorial's cross-class cells surfaced: a fan bolt deflected during
+    /// its own launch traversal minted the return's identity mid-fan, so the
+    /// session violated its own contract promise of
+    /// contiguous-ascending-in-launch-order volley identities and the
+    /// chronology validator (correctly) rejected the match. The fan's
+    /// identity block is now reserved before any bolt flies. No previously
+    /// valid replay changes: single-bolt attacks allocate identically, and
+    /// every affected match faulted rather than producing a replay.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.15";
+    public const string CliVersion = "0.9.16";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
