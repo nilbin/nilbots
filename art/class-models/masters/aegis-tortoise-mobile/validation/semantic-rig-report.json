@@ -1,0 +1,2348 @@
+{
+  "schema": "nilbots-aegis-retextured-semantic-rig-1",
+  "toolVersion": "1.0.0",
+  "passed": true,
+  "blender": {
+    "version": "5.2.0 LTS",
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "background": true
+  },
+  "source": {
+    "provider": "Meshy",
+    "endpoint": "POST /openapi/v1/retexture",
+    "taskId": "019fb455-88da-751a-8bb4-f4f40301c8d2",
+    "inputTaskId": "019fb42a-e3ed-7f18-a54e-795edf685815",
+    "requestFingerprint": "14ced89872ecb2c4143427800c44c392a036eeb8c27f51f0a06149aa21f8eaa2",
+    "status": "SUCCEEDED",
+    "state": "ARCHIVED",
+    "consumedCredits": 10,
+    "sourceSha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+    "path": "art/class-models/provider-runs/meshy/aegis-tortoise/019fb455-88da-751a-8bb4-f4f40301c8d2/raw-retextured-model.glb",
+    "recordPath": "art/class-models/provider-runs/meshy/aegis-tortoise/019fb455-88da-751a-8bb4-f4f40301c8d2/request-record.json",
+    "bytes": 8997380,
+    "sha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+    "vertices": 10236,
+    "faces": 12979,
+    "triangles": 12979,
+    "sourceGlbIndexedTriangles": 12979,
+    "blenderImportTriangleDelta": 0,
+    "loops": 38937,
+    "uvLayers": [
+      "UVMap"
+    ],
+    "materials": [
+      "material"
+    ],
+    "glb": {
+      "bytes": 8997380,
+      "sha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+      "generator": "meshy-scene",
+      "nodes": 1,
+      "meshes": 1,
+      "primitives": 1,
+      "triangles": 12979,
+      "materials": [
+        {
+          "index": 0,
+          "name": "material",
+          "doubleSided": true,
+          "textureRoles": {
+            "baseColor": true,
+            "metallicRoughness": true,
+            "normal": true,
+            "emissive": true,
+            "occlusion": false
+          },
+          "textureRoleCount": 4
+        }
+      ],
+      "textures": 4,
+      "images": [
+        {
+          "index": 0,
+          "name": "base_color",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 2786418,
+          "sha256": "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d"
+        },
+        {
+          "index": 1,
+          "name": "metallic_roughness",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 2256157,
+          "sha256": "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1"
+        },
+        {
+          "index": 2,
+          "name": "normal",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 3025755,
+          "sha256": "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c"
+        },
+        {
+          "index": 3,
+          "name": "emissive",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 279746,
+          "sha256": "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a"
+        }
+      ],
+      "animations": [],
+      "animationNames": [],
+      "nodeExtras": {}
+    }
+  },
+  "transform": {
+    "orientationOperation": "M = Rz(180) @ Rx(-90)",
+    "orientationMatrix": [
+      [
+        -1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "orientationDeterminant3x3": 1.0,
+    "normalizationOperation": "one uniform max-planform-span scale, XY centering, and Z-floor translation after rigid orientation",
+    "normalizationMatrix": [
+      [
+        0.5,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.5,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.5,
+        0.115441002
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "uniformScale": 0.5,
+    "translationAfterScale": [
+      0.0,
+      0.0,
+      0.115441002
+    ],
+    "targetPlanformSpan": 1.0,
+    "orientedBounds": {
+      "minimum": [
+        -1.0,
+        -0.994117975,
+        -0.230882004
+      ],
+      "maximum": [
+        1.0,
+        0.994117975,
+        0.230882004
+      ],
+      "center": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "span": [
+        2.0,
+        1.98823595,
+        0.461764008
+      ]
+    },
+    "normalizedFloorAlignedBounds": {
+      "minimum": [
+        -0.500000119,
+        -0.497059047,
+        -2e-08
+      ],
+      "maximum": [
+        0.500000119,
+        0.497059047,
+        0.230882019
+      ],
+      "center": [
+        0.0,
+        0.0,
+        0.115441002
+      ],
+      "span": [
+        1.000000238,
+        0.994118094,
+        0.230882034
+      ]
+    },
+    "deformation": false
+  },
+  "classification": {
+    "method": "priority-ordered deterministic welded-component bounds rules",
+    "rawIndexedComponents": 561,
+    "weldedComponents": 122,
+    "componentAssignments": {
+      "0": {
+        "group": "ChassisCarrier",
+        "rule": "explicit invariant: dominant C-shaped carrier"
+      },
+      "1": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "2": {
+        "group": "ShieldTrim_North",
+        "rule": "north detached trim envelope; full north armor remains on carrier"
+      },
+      "3": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "4": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "5": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "6": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "7": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "8": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "9": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "10": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "11": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "12": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "13": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "14": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "15": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "16": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "17": {
+        "group": "GunBarrels",
+        "rule": "centroid in +X bore corridor; narrow Y span"
+      },
+      "18": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "19": {
+        "group": "GunBarrels",
+        "rule": "centroid in +X bore corridor; narrow Y span"
+      },
+      "20": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "21": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "22": {
+        "group": "GunBarrels",
+        "rule": "centroid in +X bore corridor; narrow Y span"
+      },
+      "23": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "24": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "25": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "26": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "27": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "28": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "29": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "30": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "31": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "32": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "33": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "34": {
+        "group": "ShieldTrim_North",
+        "rule": "north detached trim envelope; full north armor remains on carrier"
+      },
+      "35": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "36": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "37": {
+        "group": "ShieldTrim_North",
+        "rule": "north detached trim envelope; full north armor remains on carrier"
+      },
+      "38": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "39": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "40": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "41": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "42": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "43": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "44": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "45": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "46": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "47": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "48": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "49": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "50": {
+        "group": "ShieldTrim_North",
+        "rule": "north detached trim envelope; full north armor remains on carrier"
+      },
+      "51": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "52": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "53": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "54": {
+        "group": "ShieldTrim_North",
+        "rule": "north detached trim envelope; full north armor remains on carrier"
+      },
+      "55": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "56": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "57": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "58": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "59": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "60": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "61": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "62": {
+        "group": "ShieldLobe_South",
+        "rule": "south armor lobe envelope"
+      },
+      "63": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "64": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "65": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "66": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "67": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "68": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "69": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "70": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "71": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "72": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "73": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "74": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "75": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "76": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "77": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "78": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "79": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "80": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "81": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "82": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "83": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "84": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "85": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "86": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "87": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "88": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "89": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "90": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "91": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "92": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "93": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "94": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "95": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "96": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "97": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "98": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "99": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "100": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "101": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "102": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "103": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "104": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "105": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "106": {
+        "group": "Pod_NorthInner",
+        "rule": "rear perimeter north-inner band"
+      },
+      "107": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "108": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "109": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "110": {
+        "group": "ChassisCarrier",
+        "rule": "fallback: load-bearing carrier or connector"
+      },
+      "111": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "112": {
+        "group": "GunBarrels",
+        "rule": "centroid in +X bore corridor; narrow Y span"
+      },
+      "113": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "114": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "115": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "116": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "117": {
+        "group": "CrownReactor",
+        "rule": "central crown/reactor envelope"
+      },
+      "118": {
+        "group": "Pod_SouthInner",
+        "rule": "rear perimeter south-inner band"
+      },
+      "119": {
+        "group": "Pod_NorthOuter",
+        "rule": "rear perimeter north-outer band"
+      },
+      "120": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      },
+      "121": {
+        "group": "Pod_SouthOuter",
+        "rule": "rear perimeter south-outer band"
+      }
+    },
+    "prunedComponents": [],
+    "prunedFaces": 0,
+    "prunedTriangles": 0
+  },
+  "groups": {
+    "ChassisCarrier": {
+      "componentCount": 14,
+      "componentIndices": [
+        0,
+        32,
+        38,
+        40,
+        41,
+        43,
+        46,
+        61,
+        63,
+        67,
+        75,
+        94,
+        96,
+        110
+      ],
+      "vertices": 2133,
+      "faces": 2662,
+      "triangles": 2662,
+      "loops": 7986,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.191176549,
+          -0.467647046,
+          0.012744999
+        ],
+        "maximum": [
+          0.49607861,
+          0.463725567,
+          0.214705542
+        ],
+        "center": [
+          0.152451038,
+          -0.001960739,
+          0.113725267
+        ],
+        "span": [
+          0.687255144,
+          0.931372643,
+          0.201960549
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pivotRationale": "carrier origin",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "ShieldTrim_North": {
+      "componentCount": 5,
+      "componentIndices": [
+        2,
+        34,
+        37,
+        50,
+        54
+      ],
+      "vertices": 572,
+      "faces": 736,
+      "triangles": 736,
+      "loops": 2208,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.095098019,
+          0.207843035,
+          0.022549033
+        ],
+        "maximum": [
+          0.500000119,
+          0.497059047,
+          0.207353055
+        ],
+        "center": [
+          0.20245105,
+          0.352451026,
+          0.114951044
+        ],
+        "span": [
+          0.595098138,
+          0.289216012,
+          0.184804022
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.095098019,
+        0.352451026,
+        0.114951044
+      ],
+      "pivotRationale": "rear/inner hinge edge",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "ShieldLobe_South": {
+      "componentCount": 6,
+      "componentIndices": [
+        4,
+        16,
+        39,
+        42,
+        58,
+        62
+      ],
+      "vertices": 581,
+      "faces": 843,
+      "triangles": 843,
+      "loops": 2529,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.09166652,
+          -0.497059047,
+          0.021077946
+        ],
+        "maximum": [
+          0.484314114,
+          -0.120588005,
+          0.207352966
+        ],
+        "center": [
+          0.196323797,
+          -0.308823526,
+          0.114215456
+        ],
+        "span": [
+          0.575980663,
+          0.376471043,
+          0.18627502
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.09166652,
+        -0.308823526,
+        0.114215456
+      ],
+      "pivotRationale": "rear/inner hinge edge",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "GunBarrels": {
+      "componentCount": 4,
+      "componentIndices": [
+        17,
+        19,
+        22,
+        112
+      ],
+      "vertices": 412,
+      "faces": 536,
+      "triangles": 536,
+      "loops": 1608,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          0.143137529,
+          -0.064461008,
+          0.04460749
+        ],
+        "maximum": [
+          0.45294112,
+          0.082843006,
+          0.183823511
+        ],
+        "center": [
+          0.298039317,
+          0.009190999,
+          0.114215501
+        ],
+        "span": [
+          0.309803605,
+          0.147304013,
+          0.139216021
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        0.143137529,
+        0.009190999,
+        0.114215501
+      ],
+      "pivotRationale": "barrel rear rail",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "CrownReactor": {
+      "componentCount": 15,
+      "componentIndices": [
+        1,
+        20,
+        30,
+        52,
+        53,
+        70,
+        71,
+        72,
+        78,
+        82,
+        83,
+        85,
+        88,
+        116,
+        117
+      ],
+      "vertices": 1080,
+      "faces": 1182,
+      "triangles": 1182,
+      "loops": 3546,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.286274552,
+          -0.184313521,
+          -2e-08
+        ],
+        "maximum": [
+          0.081372522,
+          0.211764529,
+          0.230882019
+        ],
+        "center": [
+          -0.102451012,
+          0.013725504,
+          0.115441002
+        ],
+        "span": [
+          0.367647082,
+          0.39607805,
+          0.230882034
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.102451012,
+        0.013725504,
+        0.115441002
+      ],
+      "pivotRationale": "reactor center",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "Pod_NorthOuter": {
+      "componentCount": 24,
+      "componentIndices": [
+        3,
+        8,
+        9,
+        11,
+        12,
+        14,
+        18,
+        26,
+        27,
+        33,
+        44,
+        55,
+        56,
+        57,
+        59,
+        66,
+        76,
+        97,
+        99,
+        100,
+        103,
+        107,
+        109,
+        119
+      ],
+      "vertices": 2015,
+      "faces": 2730,
+      "triangles": 2730,
+      "loops": 8190,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.500000119,
+          0.030882496,
+          0.023039021
+        ],
+        "maximum": [
+          -0.015380003,
+          0.463725567,
+          0.205882043
+        ],
+        "center": [
+          -0.257690072,
+          0.247304037,
+          0.114460528
+        ],
+        "span": [
+          0.484620124,
+          0.432843059,
+          0.182843029
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.257690072,
+        0.247304037,
+        0.023039021
+      ],
+      "pivotRationale": "pod footprint center at component minimum Z",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "Pod_NorthInner": {
+      "componentCount": 13,
+      "componentIndices": [
+        28,
+        29,
+        31,
+        35,
+        49,
+        73,
+        74,
+        79,
+        80,
+        81,
+        86,
+        104,
+        106
+      ],
+      "vertices": 688,
+      "faces": 873,
+      "triangles": 873,
+      "loops": 2619,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.476470619,
+          -0.057598006,
+          0.024999995
+        ],
+        "maximum": [
+          -0.150980532,
+          0.156863019,
+          0.200000018
+        ],
+        "center": [
+          -0.313725591,
+          0.049632505,
+          0.112500004
+        ],
+        "span": [
+          0.325490087,
+          0.214461029,
+          0.175000027
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.313725591,
+        0.049632505,
+        0.024999995
+      ],
+      "pivotRationale": "pod footprint center at component minimum Z",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "Pod_SouthInner": {
+      "componentCount": 19,
+      "componentIndices": [
+        24,
+        25,
+        36,
+        47,
+        51,
+        68,
+        77,
+        84,
+        87,
+        90,
+        91,
+        92,
+        93,
+        108,
+        111,
+        113,
+        114,
+        115,
+        118
+      ],
+      "vertices": 841,
+      "faces": 984,
+      "triangles": 984,
+      "loops": 2952,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.478431612,
+          -0.183333516,
+          0.008823481
+        ],
+        "maximum": [
+          -0.150000036,
+          0.164706022,
+          0.21617651
+        ],
+        "center": [
+          -0.314215839,
+          -0.009313747,
+          0.112499997
+        ],
+        "span": [
+          0.328431576,
+          0.348039538,
+          0.207353026
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.314215839,
+        -0.009313747,
+        0.008823481
+      ],
+      "pivotRationale": "pod footprint center at component minimum Z",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    },
+    "Pod_SouthOuter": {
+      "componentCount": 22,
+      "componentIndices": [
+        5,
+        6,
+        7,
+        10,
+        13,
+        15,
+        21,
+        23,
+        45,
+        48,
+        60,
+        64,
+        65,
+        69,
+        89,
+        95,
+        98,
+        101,
+        102,
+        105,
+        120,
+        121
+      ],
+      "vertices": 1914,
+      "faces": 2433,
+      "triangles": 2433,
+      "loops": 7299,
+      "boundsNormalizedFloorAligned": {
+        "minimum": [
+          -0.482353121,
+          -0.469608068,
+          0.023528961
+        ],
+        "maximum": [
+          -0.019730506,
+          -0.067647003,
+          0.204901978
+        ],
+        "center": [
+          -0.2510418,
+          -0.268627524,
+          0.114215471
+        ],
+        "span": [
+          0.462622613,
+          0.401961058,
+          0.181373015
+        ]
+      },
+      "pivotNormalizedFloorAligned": [
+        -0.2510418,
+        -0.268627524,
+        0.023528961
+      ],
+      "pivotRationale": "pod footprint center at component minimum Z",
+      "materials": [
+        "material"
+      ],
+      "uvLayers": [
+        "UVMap"
+      ]
+    }
+  },
+  "motionEvidence": {
+    "PodPlant_HoverSettle": {
+      "clip": "PodPlant_HoverSettle",
+      "evaluationSource": "actual authored NLA curves; only this same-named track was unmuted and Blender scene.frame_set evaluated each pinned frame",
+      "camera": "fixed gameplay58",
+      "frameRange": [
+        1,
+        60
+      ],
+      "stages": [
+        {
+          "frame": 1,
+          "stage": "rest",
+          "label": "REST F01"
+        },
+        {
+          "frame": 22,
+          "stage": "planted",
+          "label": "PLANTED F22"
+        },
+        {
+          "frame": 60,
+          "stage": "rest-return",
+          "label": "REST F60"
+        }
+      ],
+      "frames": [
+        {
+          "file": "frame-0001-rest.png",
+          "sha256": "438ecb42299905a56ad2ea2f7bf29064fbced2407044b4480518900f6fa204b2",
+          "bytes": 372910,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/podplant-hoversettle/frame-0001-rest.png",
+          "frame": 1,
+          "stage": "rest",
+          "label": "REST F01",
+          "evaluatedLocalLocations": {
+            "HoverSettle_Pivot": [
+              0.0,
+              0.0,
+              0.119999997
+            ],
+            "Pod_NorthOuter_Pivot": [
+              -0.257690072,
+              0.247304037,
+              0.023039021
+            ],
+            "Pod_NorthInner_Pivot": [
+              -0.313725591,
+              0.049632505,
+              0.024999995
+            ],
+            "Pod_SouthInner_Pivot": [
+              -0.314215839,
+              -0.009313747,
+              0.008823481
+            ],
+            "Pod_SouthOuter_Pivot": [
+              -0.2510418,
+              -0.268627524,
+              0.023528961
+            ]
+          },
+          "stageIndex": 0
+        },
+        {
+          "file": "frame-0022-planted.png",
+          "sha256": "4635aec36305379d1c45c551ca8b3e23de7c5729c1c93917d7b78e4159559d70",
+          "bytes": 353156,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/podplant-hoversettle/frame-0022-planted.png",
+          "frame": 22,
+          "stage": "planted",
+          "label": "PLANTED F22",
+          "evaluatedLocalLocations": {
+            "HoverSettle_Pivot": [
+              0.0,
+              0.0,
+              0.039999999
+            ],
+            "Pod_NorthOuter_Pivot": [
+              -0.257690072,
+              0.247304037,
+              -0.039999999
+            ],
+            "Pod_NorthInner_Pivot": [
+              -0.313725591,
+              0.049632505,
+              -0.039999999
+            ],
+            "Pod_SouthInner_Pivot": [
+              -0.314215839,
+              -0.009313747,
+              -0.039999999
+            ],
+            "Pod_SouthOuter_Pivot": [
+              -0.2510418,
+              -0.268627524,
+              -0.039999999
+            ]
+          },
+          "stageIndex": 1
+        },
+        {
+          "file": "frame-0060-rest-return.png",
+          "sha256": "438ecb42299905a56ad2ea2f7bf29064fbced2407044b4480518900f6fa204b2",
+          "bytes": 372910,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/podplant-hoversettle/frame-0060-rest-return.png",
+          "frame": 60,
+          "stage": "rest-return",
+          "label": "REST F60",
+          "evaluatedLocalLocations": {
+            "HoverSettle_Pivot": [
+              0.0,
+              0.0,
+              0.119999997
+            ],
+            "Pod_NorthOuter_Pivot": [
+              -0.257690072,
+              0.247304037,
+              0.023039021
+            ],
+            "Pod_NorthInner_Pivot": [
+              -0.313725591,
+              0.049632505,
+              0.024999995
+            ],
+            "Pod_SouthInner_Pivot": [
+              -0.314215839,
+              -0.009313747,
+              0.008823481
+            ],
+            "Pod_SouthOuter_Pivot": [
+              -0.2510418,
+              -0.268627524,
+              0.023528961
+            ]
+          },
+          "stageIndex": 2
+        }
+      ],
+      "contactSheet": {
+        "file": "podplant-hoversettle-gameplay-58-contact-sheet.png",
+        "relativeFile": "podplant-hoversettle-gameplay-58-contact-sheet.png",
+        "bytes": 765521,
+        "sha256": "450cd393b27327a683ecb46de5134b7e7f4b3ad9825ba35aa3472d3e87052822",
+        "width": 2316,
+        "height": 808,
+        "labels": [
+          "REST F01",
+          "PLANTED F22",
+          "REST F60"
+        ],
+        "format": "lossless labeled PNG frame strip"
+      },
+      "startMatchesAuthoredRest": true,
+      "middleMatchesAuthoredTarget": true,
+      "returnsExactlyToStart": true,
+      "restFrameRenderHashesMatch": true,
+      "returnToStartMaxAbsDelta": 0.0,
+      "formatChoice": "Lossless labeled PNG frame strip plus individual canonical PNG frames; GIF omitted because the pinned Blender toolchain has no GIF encoder and lossless audit frames are deterministic."
+    },
+    "GunRecoil": {
+      "clip": "GunRecoil",
+      "evaluationSource": "actual authored NLA curves; only this same-named track was unmuted and Blender scene.frame_set evaluated each pinned frame",
+      "camera": "fixed gameplay58",
+      "frameRange": [
+        1,
+        16
+      ],
+      "stages": [
+        {
+          "frame": 1,
+          "stage": "rest",
+          "label": "REST F01"
+        },
+        {
+          "frame": 7,
+          "stage": "recoil",
+          "label": "RECOIL F07"
+        },
+        {
+          "frame": 16,
+          "stage": "rest-return",
+          "label": "REST F16"
+        }
+      ],
+      "frames": [
+        {
+          "file": "frame-0001-rest.png",
+          "sha256": "438ecb42299905a56ad2ea2f7bf29064fbced2407044b4480518900f6fa204b2",
+          "bytes": 372910,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/gunrecoil/frame-0001-rest.png",
+          "frame": 1,
+          "stage": "rest",
+          "label": "REST F01",
+          "evaluatedLocalLocations": {
+            "GunBarrels_Pivot": [
+              0.143137529,
+              0.009190999,
+              0.114215501
+            ]
+          },
+          "stageIndex": 0
+        },
+        {
+          "file": "frame-0007-recoil.png",
+          "sha256": "095b1fb69d2e871a4ffd4e35d7af934936ade38e17fa921cb7f934d28421fc66",
+          "bytes": 372417,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/gunrecoil/frame-0007-recoil.png",
+          "frame": 7,
+          "stage": "recoil",
+          "label": "RECOIL F07",
+          "evaluatedLocalLocations": {
+            "GunBarrels_Pivot": [
+              0.108137533,
+              0.009190999,
+              0.114215501
+            ]
+          },
+          "stageIndex": 1
+        },
+        {
+          "file": "frame-0016-rest-return.png",
+          "sha256": "438ecb42299905a56ad2ea2f7bf29064fbced2407044b4480518900f6fa204b2",
+          "bytes": 372910,
+          "cameraType": "PERSP",
+          "cameraLocation": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTarget": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "orthoScale": null,
+          "fieldOfViewDegrees": 42.000001169,
+          "transparentBackground": false,
+          "relativeFile": "motion/gunrecoil/frame-0016-rest-return.png",
+          "frame": 16,
+          "stage": "rest-return",
+          "label": "REST F16",
+          "evaluatedLocalLocations": {
+            "GunBarrels_Pivot": [
+              0.143137529,
+              0.009190999,
+              0.114215501
+            ]
+          },
+          "stageIndex": 2
+        }
+      ],
+      "contactSheet": {
+        "file": "gunrecoil-gameplay-58-contact-sheet.png",
+        "relativeFile": "gunrecoil-gameplay-58-contact-sheet.png",
+        "bytes": 451566,
+        "sha256": "d93ecf93420d0b5ac18a4a3ddedaf97f55b20c29f63217bab560d40576028eaf",
+        "width": 2316,
+        "height": 808,
+        "labels": [
+          "REST F01",
+          "RECOIL F07",
+          "REST F16"
+        ],
+        "format": "lossless labeled PNG frame strip"
+      },
+      "startMatchesAuthoredRest": true,
+      "middleMatchesAuthoredTarget": true,
+      "returnsExactlyToStart": true,
+      "restFrameRenderHashesMatch": true,
+      "returnToStartMaxAbsDelta": 0.0,
+      "formatChoice": "Lossless labeled PNG frame strip plus individual canonical PNG frames; GIF omitted because the pinned Blender toolchain has no GIF encoder and lossless audit frames are deterministic."
+    }
+  },
+  "preservation": {
+    "sourceFacePayloadSha256": "9888ca4462acf4378cebf26294877f9886cd660aa53ae6d3dec2138c0bec7f3b",
+    "regroupedFacePayloadSha256": "9888ca4462acf4378cebf26294877f9886cd660aa53ae6d3dec2138c0bec7f3b",
+    "regroupedVertices": 10236,
+    "regroupedFaces": 12979,
+    "regroupedTriangles": 12979,
+    "regroupedLoops": 38937,
+    "packedSourceImages": {
+      "emissive": true,
+      "metallic_roughness": true,
+      "normal": true,
+      "base_color": true
+    },
+    "sourceTexturePayloadHashes": {
+      "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d": 1,
+      "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1": 1,
+      "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c": 1,
+      "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a": 1
+    },
+    "outputTexturePayloadHashes": {
+      "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a": 1,
+      "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c": 1,
+      "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d": 1,
+      "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1": 1
+    },
+    "sourcePbrTextureRoles": [
+      {
+        "baseColor": true,
+        "metallicRoughness": true,
+        "normal": true,
+        "emissive": true,
+        "occlusion": false
+      }
+    ],
+    "outputPbrTextureRoles": [
+      {
+        "baseColor": true,
+        "metallicRoughness": true,
+        "normal": true,
+        "emissive": true,
+        "occlusion": false
+      }
+    ]
+  },
+  "clips": {
+    "blendNla": {
+      "HoverSettle_Pivot": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "muted": true,
+          "strips": [
+            {
+              "name": "PodPlant_HoverSettle",
+              "frameStart": 1.0,
+              "frameEnd": 60.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 60.0,
+              "action": "PodPlant_HoverSettle__HoverSettle_Pivot"
+            }
+          ]
+        }
+      ],
+      "GunBarrels_Pivot": [
+        {
+          "name": "GunRecoil",
+          "muted": true,
+          "strips": [
+            {
+              "name": "GunRecoil",
+              "frameStart": 1.0,
+              "frameEnd": 16.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 16.0,
+              "action": "GunRecoil__GunBarrels_Pivot"
+            }
+          ]
+        }
+      ],
+      "Pod_NorthOuter_Pivot": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "muted": true,
+          "strips": [
+            {
+              "name": "PodPlant_HoverSettle",
+              "frameStart": 1.0,
+              "frameEnd": 60.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 60.0,
+              "action": "PodPlant_HoverSettle__Pod_NorthOuter_Pivot"
+            }
+          ]
+        }
+      ],
+      "Pod_NorthInner_Pivot": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "muted": true,
+          "strips": [
+            {
+              "name": "PodPlant_HoverSettle",
+              "frameStart": 1.0,
+              "frameEnd": 60.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 60.0,
+              "action": "PodPlant_HoverSettle__Pod_NorthInner_Pivot"
+            }
+          ]
+        }
+      ],
+      "Pod_SouthInner_Pivot": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "muted": true,
+          "strips": [
+            {
+              "name": "PodPlant_HoverSettle",
+              "frameStart": 1.0,
+              "frameEnd": 60.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 60.0,
+              "action": "PodPlant_HoverSettle__Pod_SouthInner_Pivot"
+            }
+          ]
+        }
+      ],
+      "Pod_SouthOuter_Pivot": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "muted": true,
+          "strips": [
+            {
+              "name": "PodPlant_HoverSettle",
+              "frameStart": 1.0,
+              "frameEnd": 60.0,
+              "actionFrameStart": 1.0,
+              "actionFrameEnd": 60.0,
+              "action": "PodPlant_HoverSettle__Pod_SouthOuter_Pivot"
+            }
+          ]
+        }
+      ]
+    },
+    "PodPlant_HoverSettle": {
+      "frames": [
+        1,
+        60
+      ],
+      "fps": 30,
+      "movingNodes": [
+        "HoverSettle_Pivot",
+        "Pod_NorthOuter_Pivot",
+        "Pod_NorthInner_Pivot",
+        "Pod_SouthInner_Pivot",
+        "Pod_SouthOuter_Pivot"
+      ],
+      "rendererOwnership": "must be sampled from replay transition truth"
+    },
+    "GunRecoil": {
+      "frames": [
+        1,
+        16
+      ],
+      "fps": 30,
+      "movingNodes": [
+        "GunBarrels_Pivot"
+      ],
+      "translationBlender": [
+        -0.035,
+        0.0,
+        0.0
+      ],
+      "rendererOwnership": "must be sampled from an authoritative shot"
+    }
+  },
+  "outputs": {
+    "blend": {
+      "file": "aegis-retextured-semantic-rig.blend",
+      "bytes": 9014893,
+      "sha256": "0634c13e01f2b4324e606b17756d88f67cec922b8654a1ec8e040403597c47bb"
+    },
+    "glb": {
+      "file": "aegis-retextured-semantic-rig.glb",
+      "bytes": 8773392,
+      "sha256": "f91a49d19045e9746afea7296ae44a66f9b1fecc10699ce2941044e277f14bde",
+      "generator": "Khronos glTF Blender I/O v5.2.39",
+      "nodes": 20,
+      "meshes": 9,
+      "primitives": 9,
+      "triangles": 12979,
+      "materials": [
+        {
+          "index": 0,
+          "name": "material",
+          "doubleSided": true,
+          "textureRoles": {
+            "baseColor": true,
+            "metallicRoughness": true,
+            "normal": true,
+            "emissive": true,
+            "occlusion": false
+          },
+          "textureRoleCount": 4
+        }
+      ],
+      "textures": 4,
+      "images": [
+        {
+          "index": 0,
+          "name": "emissive",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 279746,
+          "sha256": "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a"
+        },
+        {
+          "index": 1,
+          "name": "normal",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 3025755,
+          "sha256": "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c"
+        },
+        {
+          "index": 2,
+          "name": "base_color",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 2786418,
+          "sha256": "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d"
+        },
+        {
+          "index": 3,
+          "name": "metallic_roughness",
+          "mimeType": "image/jpeg",
+          "uri": null,
+          "bytes": 2256157,
+          "sha256": "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1"
+        }
+      ],
+      "animations": [
+        {
+          "name": "PodPlant_HoverSettle",
+          "channels": 5,
+          "samplers": 5
+        },
+        {
+          "name": "GunRecoil",
+          "channels": 1,
+          "samplers": 1
+        }
+      ],
+      "animationNames": [
+        "PodPlant_HoverSettle",
+        "GunRecoil"
+      ],
+      "nodeExtras": {
+        "ChassisCarrier_Geometry": {
+          "semantic_group": "ChassisCarrier",
+          "source_component_ids": [
+            0,
+            32,
+            38,
+            40,
+            41,
+            43,
+            46,
+            61,
+            63,
+            67,
+            75,
+            94,
+            96,
+            110
+          ],
+          "source_face_count": 2662,
+          "source_triangle_count": 2662,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "ChassisCarrier_Pivot": {
+          "semantic_group": "ChassisCarrier",
+          "source_component_ids": [
+            0,
+            32,
+            38,
+            40,
+            41,
+            43,
+            46,
+            61,
+            63,
+            67,
+            75,
+            94,
+            96,
+            110
+          ],
+          "pivot_rationale": "carrier origin"
+        },
+        "CrownReactor_Geometry": {
+          "semantic_group": "CrownReactor",
+          "source_component_ids": [
+            1,
+            20,
+            30,
+            52,
+            53,
+            70,
+            71,
+            72,
+            78,
+            82,
+            83,
+            85,
+            88,
+            116,
+            117
+          ],
+          "source_face_count": 1182,
+          "source_triangle_count": 1182,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "CrownReactor_Pivot": {
+          "semantic_group": "CrownReactor",
+          "source_component_ids": [
+            1,
+            20,
+            30,
+            52,
+            53,
+            70,
+            71,
+            72,
+            78,
+            82,
+            83,
+            85,
+            88,
+            116,
+            117
+          ],
+          "pivot_rationale": "reactor center"
+        },
+        "GunBarrels_Geometry": {
+          "semantic_group": "GunBarrels",
+          "source_component_ids": [
+            17,
+            19,
+            22,
+            112
+          ],
+          "source_face_count": 536,
+          "source_triangle_count": 536,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "GunBarrels_Pivot": {
+          "semantic_group": "GunBarrels",
+          "source_component_ids": [
+            17,
+            19,
+            22,
+            112
+          ],
+          "pivot_rationale": "barrel rear rail"
+        },
+        "Pod_NorthInner_Geometry": {
+          "semantic_group": "Pod_NorthInner",
+          "source_component_ids": [
+            28,
+            29,
+            31,
+            35,
+            49,
+            73,
+            74,
+            79,
+            80,
+            81,
+            86,
+            104,
+            106
+          ],
+          "source_face_count": 873,
+          "source_triangle_count": 873,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "Pod_NorthInner_Pivot": {
+          "semantic_group": "Pod_NorthInner",
+          "source_component_ids": [
+            28,
+            29,
+            31,
+            35,
+            49,
+            73,
+            74,
+            79,
+            80,
+            81,
+            86,
+            104,
+            106
+          ],
+          "pivot_rationale": "pod footprint center at component minimum Z"
+        },
+        "Pod_NorthOuter_Geometry": {
+          "semantic_group": "Pod_NorthOuter",
+          "source_component_ids": [
+            3,
+            8,
+            9,
+            11,
+            12,
+            14,
+            18,
+            26,
+            27,
+            33,
+            44,
+            55,
+            56,
+            57,
+            59,
+            66,
+            76,
+            97,
+            99,
+            100,
+            103,
+            107,
+            109,
+            119
+          ],
+          "source_face_count": 2730,
+          "source_triangle_count": 2730,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "Pod_NorthOuter_Pivot": {
+          "semantic_group": "Pod_NorthOuter",
+          "source_component_ids": [
+            3,
+            8,
+            9,
+            11,
+            12,
+            14,
+            18,
+            26,
+            27,
+            33,
+            44,
+            55,
+            56,
+            57,
+            59,
+            66,
+            76,
+            97,
+            99,
+            100,
+            103,
+            107,
+            109,
+            119
+          ],
+          "pivot_rationale": "pod footprint center at component minimum Z"
+        },
+        "Pod_SouthInner_Geometry": {
+          "semantic_group": "Pod_SouthInner",
+          "source_component_ids": [
+            24,
+            25,
+            36,
+            47,
+            51,
+            68,
+            77,
+            84,
+            87,
+            90,
+            91,
+            92,
+            93,
+            108,
+            111,
+            113,
+            114,
+            115,
+            118
+          ],
+          "source_face_count": 984,
+          "source_triangle_count": 984,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "Pod_SouthInner_Pivot": {
+          "semantic_group": "Pod_SouthInner",
+          "source_component_ids": [
+            24,
+            25,
+            36,
+            47,
+            51,
+            68,
+            77,
+            84,
+            87,
+            90,
+            91,
+            92,
+            93,
+            108,
+            111,
+            113,
+            114,
+            115,
+            118
+          ],
+          "pivot_rationale": "pod footprint center at component minimum Z"
+        },
+        "Pod_SouthOuter_Geometry": {
+          "semantic_group": "Pod_SouthOuter",
+          "source_component_ids": [
+            5,
+            6,
+            7,
+            10,
+            13,
+            15,
+            21,
+            23,
+            45,
+            48,
+            60,
+            64,
+            65,
+            69,
+            89,
+            95,
+            98,
+            101,
+            102,
+            105,
+            120,
+            121
+          ],
+          "source_face_count": 2433,
+          "source_triangle_count": 2433,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "Pod_SouthOuter_Pivot": {
+          "semantic_group": "Pod_SouthOuter",
+          "source_component_ids": [
+            5,
+            6,
+            7,
+            10,
+            13,
+            15,
+            21,
+            23,
+            45,
+            48,
+            60,
+            64,
+            65,
+            69,
+            89,
+            95,
+            98,
+            101,
+            102,
+            105,
+            120,
+            121
+          ],
+          "pivot_rationale": "pod footprint center at component minimum Z"
+        },
+        "ShieldLobe_South_Geometry": {
+          "semantic_group": "ShieldLobe_South",
+          "source_component_ids": [
+            4,
+            16,
+            39,
+            42,
+            58,
+            62
+          ],
+          "source_face_count": 843,
+          "source_triangle_count": 843,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "ShieldLobe_South_Pivot": {
+          "semantic_group": "ShieldLobe_South",
+          "source_component_ids": [
+            4,
+            16,
+            39,
+            42,
+            58,
+            62
+          ],
+          "pivot_rationale": "rear/inner hinge edge"
+        },
+        "ShieldTrim_North_Geometry": {
+          "semantic_group": "ShieldTrim_North",
+          "source_component_ids": [
+            2,
+            34,
+            37,
+            50,
+            54
+          ],
+          "source_face_count": 736,
+          "source_triangle_count": 736,
+          "source_uv_layers": [
+            "UVMap"
+          ],
+          "provider_material_preserved": true
+        },
+        "ShieldTrim_North_Pivot": {
+          "semantic_group": "ShieldTrim_North",
+          "source_component_ids": [
+            2,
+            34,
+            37,
+            50,
+            54
+          ],
+          "pivot_rationale": "rear/inner hinge edge"
+        },
+        "HoverSettle_Pivot": {
+          "semantic_role": "hover-settle",
+          "rest_height": 0.12,
+          "planted_height": 0.04
+        },
+        "BulwarkMobile_Root": {
+          "nilbots_schema": "nilbots-aegis-retextured-semantic-rig-1",
+          "source_task_id": "019fb455-88da-751a-8bb4-f4f40301c8d2",
+          "source_input_task_id": "019fb42a-e3ed-7f18-a54e-795edf685815",
+          "source_sha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+          "facing_axis_blender": "+X",
+          "up_axis_blender": "+Z",
+          "orientation_correction": "Rz(180) @ Rx(-90)",
+          "uniform_normalization_scale": 0.5,
+          "target_planform_span": 1.0,
+          "source_faces_preserved": 12979,
+          "source_triangles_preserved": 12979,
+          "semantic_group_count": 9,
+          "semantic_clips": [
+            "PodPlant_HoverSettle",
+            "GunRecoil"
+          ]
+        }
+      }
+    },
+    "renders": {
+      "top": {
+        "file": "fixed-top.png",
+        "sha256": "369d9ed9fd8f132fd38fe1554988bfaf25af8a1d37b1da66dcb9c4fa09c3f8ce",
+        "bytes": 280920,
+        "cameraType": "ORTHO",
+        "cameraLocation": [
+          0.0,
+          0.0,
+          3.0
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "orthoScale": 1.24000001,
+        "fieldOfViewDegrees": null,
+        "transparentBackground": false
+      },
+      "gameplay58": {
+        "file": "gameplay-58.png",
+        "sha256": "438ecb42299905a56ad2ea2f7bf29064fbced2407044b4480518900f6fa204b2",
+        "bytes": 372910,
+        "cameraType": "PERSP",
+        "cameraLocation": [
+          -0.079999998,
+          0.996248245,
+          1.59433043
+        ],
+        "cameraTarget": [
+          0.02,
+          0.0,
+          0.129999995
+        ],
+        "orthoScale": null,
+        "fieldOfViewDegrees": 42.000001169,
+        "transparentBackground": false
+      },
+      "side": {
+        "file": "fixed-side.png",
+        "sha256": "67a0c061ef4d88f1fbe392f175e6b1a99bb737ef890d3327b90132a34ca9271b",
+        "bytes": 57060,
+        "cameraType": "ORTHO",
+        "cameraLocation": [
+          0.0,
+          -3.0,
+          0.180000007
+        ],
+        "cameraTarget": [
+          0.0,
+          0.0,
+          0.180000007
+        ],
+        "orthoScale": 1.24000001,
+        "fieldOfViewDegrees": null,
+        "transparentBackground": false
+      }
+    }
+  },
+  "checks": {
+    "sourceHashMatchesExpected": true,
+    "sourceTaskMatchesArchivedRecord": true,
+    "inputGeometryTaskMatchesArchivedRecord": true,
+    "exactRigidCorrectionRz180AtRxMinus90": true,
+    "orientationDeterminantOne": true,
+    "oneUniformNormalization": true,
+    "normalizedPlanformSpanMatchesTarget": true,
+    "normalizedPlanformCentered": true,
+    "normalizedFloorAtZero": true,
+    "exactly122WeldedComponents": true,
+    "rawIndexedComponentsDoNotUndercutWeldedTopology": true,
+    "allComponentsAssignedExactlyOnce": true,
+    "allNineSemanticGroupsPresent": true,
+    "allSourceFacesPreservedExactlyOnce": true,
+    "allBlenderImportedTrianglesPreserved": true,
+    "allSourceVerticesPartitionedExactlyOnce": true,
+    "allSourceLoopsPreserved": true,
+    "uvAndFaceMaterialPayloadPreserved": true,
+    "uvLayerNamesPreserved": true,
+    "providerMaterialSlotsPreserved": true,
+    "sourcePbrTextureRolesPreserved": true,
+    "sourceTexturePayloadsPreservedInGlb": true,
+    "sourceImagesPackedInEditableBlend": true,
+    "semanticGlbHasNineMeshes": true,
+    "blendNlaStripsHaveExpectedOwnersAndRanges": true,
+    "bothNamedNlaClipsInGlb": true,
+    "motionEvidenceUsesActualAuthoredNlaCurves": true,
+    "motionEvidenceMatchesAuthoredRestAndTargets": true,
+    "motionEvidenceReturnsExactlyToRest": true,
+    "motionContactSheetsAndFramesWritten": true,
+    "rootProvenanceExtrasExported": true,
+    "semanticExtrasExported": true,
+    "fixedTopGameplaySideRendersWritten": true,
+    "blendAndGlbWritten": true
+  },
+  "limitations": [
+    "The nine groups reproduce the proven deterministic centroid/bounds classification. Several tiny trim islands near group envelopes remain semantic judgments rather than provider-authored labels.",
+    "The archived retexture has 561 indexed islands rather than the untextured proof's 142; UV/material seam re-indexing is expected. Coincident-position welding still reproduces exactly 122 source components.",
+    "The archived retexture contains 12979 indexed triangles, compared with the earlier untextured proof's 12984. Blender imports 12979 of the retexture triangles and the semantic export retains every one of those imported faces/triangles.",
+    "This is a textured Mobile-base proof. The dominant carrier still owns the visible north armor surface, so Shell and Tower remain separate future add-on kits rather than body-lobe morphs.",
+    "PodPlant_HoverSettle proves four independent rigid pod clusters and reversible ground contact; it does not add telescoping piston geometry or authorize autonomous playback.",
+    "GunRecoil is a rigid rail translation into the existing carrier socket and still needs a final close-range clearance review.",
+    "No semantic team-accent material is authored in this stage. The provider PBR material and all source texture payloads are retained without tint ownership changes."
+  ]
+}

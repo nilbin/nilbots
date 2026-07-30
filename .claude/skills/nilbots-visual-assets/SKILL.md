@@ -152,13 +152,18 @@ small rigid form kits over unrelated whole-model replacements.
    equal radial weapon vanes for the non-facing Tower. The Shell leaves the
    other three quadrants visibly open. The Tower has no privileged nose and
    each vane may recoil independently.
-5. Start new game-model trials with Meshy Smart Topology T2 or a later
-   equivalent that offers explicit face-count control and native parts. Treat
-   every generated segment only as a candidate mechanical mesh. Accept it when
-   its boundary follows the approved seam and it has enough closed geometry to
-   rotate without exposing a hole. Run a high-detail Standard result only
-   after a measured Smart failure that could benefit from a visual or texture
-   donor; do not pay for both by default.
+5. Choose geometry ownership from the required motion. For a mobile body with
+   no authored part motion, start with Meshy Smart Topology T2 or a later
+   equivalent that offers explicit face-count control and native parts. For a
+   stance/form family whose plates must trace through a mechanical transition,
+   make the Blender kinematic blockout the geometry authority and use
+   generation primarily as a material/texture donor after the pivots, hidden
+   faces, sockets, and endpoints pass. Treat every generated segment only as a
+   candidate mechanical mesh. Accept it when its boundary follows the approved
+   seam and it has enough closed geometry to rotate without exposing a hole.
+   Run a high-detail Standard result only after a measured Smart failure that
+   could benefit from a visual or texture donor; do not pay for both by
+   default.
 6. Meshy's programmatic Rigging and Animation APIs are not the custom
    hard-surface animator. They currently rig standard textured humanoid bipeds
    and apply a preset action-library ID to that rig; do not submit a Nilbots

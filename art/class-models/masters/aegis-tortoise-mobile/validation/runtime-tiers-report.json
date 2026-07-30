@@ -1,0 +1,2507 @@
+{
+  "artifacts": [
+    {
+      "bytes": 8941692,
+      "kind": "glb",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/model.glb",
+      "sha256": "9a56529d5ee6daabf7d44402655784bcca7f665dac1eaa29a11f00d1c7357ee8"
+    },
+    {
+      "bytes": 179425,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/neutral-gameplay.png",
+      "sha256": "39b69a26218e472ba6bec9439d0e3ce0aeb55a0915ae10413d22f68e330fdfdd"
+    },
+    {
+      "bytes": 16930,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-gameplay-140.png",
+      "sha256": "30dc9fdac9f3693e96f2de483af3429cf6ea1ef9009e1c82e9f30a0c112db006"
+    },
+    {
+      "bytes": 2105,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-gameplay-41.png",
+      "sha256": "0063ae68a11a959ff7c5b5748576791788eb4a82463e9972e0d41fee7ce38273"
+    },
+    {
+      "bytes": 150774,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/neutral-top.png",
+      "sha256": "5a445c735cce895e0f59a358c6186156ea34ec21e0e645d8dbc5c96a80243844"
+    },
+    {
+      "bytes": 13771,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-top-140.png",
+      "sha256": "58e1115e907e883824e3c0201c578a944a67eac7c9b0ab87e48ef0285b363991"
+    },
+    {
+      "bytes": 1730,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-top-41.png",
+      "sha256": "0d5daa095983a7e202249daca693c273974403ab2fa5da6d6a631b9bad2e232d"
+    },
+    {
+      "bytes": 179276,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/blue-gameplay.png",
+      "sha256": "36b231e62c81aeaad81bbe94a31d7618c0c7ed6ba1e250905b83d768adf86348"
+    },
+    {
+      "bytes": 16912,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-gameplay-140.png",
+      "sha256": "98301d9267ebc30aa455cd05ff2d4b410169b2fb89ca6e6fb71e458364bec193"
+    },
+    {
+      "bytes": 2110,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-gameplay-41.png",
+      "sha256": "2912f765e14e75a8f6461727ca85246aa9e4b794bae04c58f6562fda50cd1cfc"
+    },
+    {
+      "bytes": 150734,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/blue-top.png",
+      "sha256": "ec0842e2b9fada24f44364a887bc63401078976ad8798b020dc19a2dc32b50ed"
+    },
+    {
+      "bytes": 13776,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-top-140.png",
+      "sha256": "589001c6ec2e2ece12e2bb82aef4327103e3c8609b35982f31c2bb4f97b0ae72"
+    },
+    {
+      "bytes": 1730,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-top-41.png",
+      "sha256": "1ba472f8b4349459a48778ebaa9e6697c26181262ce15e1f8f64df029ee06b40"
+    },
+    {
+      "bytes": 179661,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/orange-gameplay.png",
+      "sha256": "733783deb4edff1072ca6bd967871919b1f74de5a7f2f221f75f04bedd50cbaf"
+    },
+    {
+      "bytes": 16945,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-gameplay-140.png",
+      "sha256": "4722f6fb59e3ed8f8031f4ccdd9190c0fb2f82f4cf8cbc9d478159e303899fe4"
+    },
+    {
+      "bytes": 2119,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-gameplay-41.png",
+      "sha256": "448e07345f4f6db6ceff6f43e0dd95094ef83fa6e16045732080603c6c8ef2d8"
+    },
+    {
+      "bytes": 151173,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/orange-top.png",
+      "sha256": "31b0375103f96db164e1da6062e71e7886803dac3da04474e5be11527b8028a8"
+    },
+    {
+      "bytes": 13820,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-top-140.png",
+      "sha256": "014ed76c54f1cc116891e1c19a0cc2e78a7816e679ff283bcf1ac9c24a78f361"
+    },
+    {
+      "bytes": 1740,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-top-41.png",
+      "sha256": "5fb6557d01dd96644abbc05b477a0553c64176e27fbc03f9e939309481e5cdf5"
+    },
+    {
+      "bytes": 902612,
+      "kind": "glb",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/model.glb",
+      "sha256": "ddd44d449c89d2d18a757065d8c2735ed46f4e9ee427210835c7f26af6e977c3"
+    },
+    {
+      "bytes": 170773,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/neutral-gameplay.png",
+      "sha256": "d21c0e40244768368cb20df497c9c8912c73ca157a7e60f484b5afd460b92a8b"
+    },
+    {
+      "bytes": 16865,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-gameplay-140.png",
+      "sha256": "49df32ce1543a484ffcbec4d3e90aaa6a941f85e428ec1e459af3626b97bbdd0"
+    },
+    {
+      "bytes": 2096,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-gameplay-41.png",
+      "sha256": "b01baa26a70c24bf52cfa3cd172d3d747e460821aea45b68b1a511d225036f52"
+    },
+    {
+      "bytes": 137572,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/neutral-top.png",
+      "sha256": "dbd5693c184b7af4d55e5de383c4dfd7fb82f2df9f1f50f6782e2956b53e8c6c"
+    },
+    {
+      "bytes": 13705,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-top-140.png",
+      "sha256": "544eab58ef4f5040f4d68e478ebc31ecf50394fbb55e1897a1d965491430c33e"
+    },
+    {
+      "bytes": 1703,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-top-41.png",
+      "sha256": "8493cb99e790b7aa4f272fa00edfa62e4845f96ce6c583ffb70b1fb9a775dfec"
+    },
+    {
+      "bytes": 170631,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/blue-gameplay.png",
+      "sha256": "355246ebf7a3a7d4f34f668d9f76d0aa9d8d29fc91b1286ee8bdf52385ea62e9"
+    },
+    {
+      "bytes": 16849,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-gameplay-140.png",
+      "sha256": "fd243ea8b428dda39e5a94af21bcd33b2bb8804a4bc1e9064c15398660e3d8df"
+    },
+    {
+      "bytes": 2100,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-gameplay-41.png",
+      "sha256": "adfcb73376ee63d23d3d9445917b325ce68c26f117aba16469e9af9d5982f24a"
+    },
+    {
+      "bytes": 137543,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/blue-top.png",
+      "sha256": "d88f1382c69c7192da510282ad637420816e17549f2870f14be2c7ac74d286c9"
+    },
+    {
+      "bytes": 13713,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-top-140.png",
+      "sha256": "96485c2fcf3e7bc4eaac741e67f99c6dbe3e313ae2416581620379d49f3c0d0f"
+    },
+    {
+      "bytes": 1701,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-top-41.png",
+      "sha256": "d8f5995ad74085ad70664b2994d5cfa87c1b6712aee83bb3b79d579dd0d8f8c6"
+    },
+    {
+      "bytes": 171005,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/orange-gameplay.png",
+      "sha256": "a30d4bbfb98dc7d4ddb645fcc7f5e18d7c2e9fe8826e5a59140c78e3efb93e27"
+    },
+    {
+      "bytes": 16883,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-gameplay-140.png",
+      "sha256": "9cb9dbf5f31546bf6d7166e8251d16fd1165ba9ff73f39830b71b05403376a4c"
+    },
+    {
+      "bytes": 2109,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-gameplay-41.png",
+      "sha256": "7dfed9eaa125b3d3c1526bdb81e8eb1c95e4eba237c9ef6ea442123703a754dd"
+    },
+    {
+      "bytes": 137975,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/orange-top.png",
+      "sha256": "99d60a3620ae065d6f05db3ab86989df0a5290594cf14eafca332c431e8e62cb"
+    },
+    {
+      "bytes": 13754,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-top-140.png",
+      "sha256": "f120408ffb87ad220c27836b6e901a0fa2fcc873acbf12f0f91067087b30abc4"
+    },
+    {
+      "bytes": 1709,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-top-41.png",
+      "sha256": "e4d48e6da83bf9a897c5dffe9c820dcd17ff4c97fdb69af37caec4749863f4d7"
+    },
+    {
+      "bytes": 685744,
+      "kind": "glb",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/model.glb",
+      "sha256": "0d083a34c6d5a947882273dce0b7d18d10364bdf9e36f437c0c94e7f2b4d5c8c"
+    },
+    {
+      "bytes": 164287,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/neutral-gameplay.png",
+      "sha256": "5880af8d97699c7dd023d8d128ac4e01856c06c856dbb37200ccd2e0d788537a"
+    },
+    {
+      "bytes": 16817,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-gameplay-140.png",
+      "sha256": "b30c7cc619a3fb40e18597c6b2ade81c5ae1f554501ad2916e39a544ee8829c6"
+    },
+    {
+      "bytes": 2095,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-gameplay-41.png",
+      "sha256": "19da40eed3ddc674f6075e45f88562721573107a449d5ec1c820f6b33c78d423"
+    },
+    {
+      "bytes": 128385,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/neutral-top.png",
+      "sha256": "e55b920bd3de724af765a5a1582c453d1159218479e501e7a2058adb3e66338e"
+    },
+    {
+      "bytes": 13545,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-top-140.png",
+      "sha256": "3e31540b2c8d51ae793c11690176c40e4da299cb6b26faad8306ee00fa10c3f0"
+    },
+    {
+      "bytes": 1689,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-top-41.png",
+      "sha256": "4a24a456957b0f0d516a19aeca99d99bc14408a464fb93b5daa7467935769892"
+    },
+    {
+      "bytes": 164117,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/blue-gameplay.png",
+      "sha256": "ecbe835d7a9c2bb30f0dbe09fc9974ba3cfc71899e6c948b75567a53084b9988"
+    },
+    {
+      "bytes": 16805,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-gameplay-140.png",
+      "sha256": "527a057456dee9b10e057d338b194eb1f87dead5b7a5aa7f5966919c06670ac2"
+    },
+    {
+      "bytes": 2096,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-gameplay-41.png",
+      "sha256": "49dd942752df728cb6ade0901f5596a2f2b7d4fffe23b7216228517702756c9a"
+    },
+    {
+      "bytes": 128347,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/blue-top.png",
+      "sha256": "835321cc27f43e726719bd08fee90b63b735685544b2a9dd9e688e0907d6f3c3"
+    },
+    {
+      "bytes": 13550,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-top-140.png",
+      "sha256": "1fe6e83750842b98221b77ef99511a0ba113f5ff92a57ec9b5f496144d9c7713"
+    },
+    {
+      "bytes": 1690,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-top-41.png",
+      "sha256": "72cf058c028df05e145703bca5235240393d14a4250743e2e70b0f1a09bbf2fc"
+    },
+    {
+      "bytes": 164514,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/orange-gameplay.png",
+      "sha256": "842a1ea9154865342ed8021542b489f5bba6f132d553325ff8c21536d59be01c"
+    },
+    {
+      "bytes": 16837,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-gameplay-140.png",
+      "sha256": "847090b03afb78c8eb2376b13b05291ab435ef4f19b6d88b8a455a047c53d449"
+    },
+    {
+      "bytes": 2105,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-gameplay-41.png",
+      "sha256": "a16c4e7711b6df184c2e34af926ebd92ba137b23bb0ebf5caccbab1dbef2abbd"
+    },
+    {
+      "bytes": 128807,
+      "kind": "fixed-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/orange-top.png",
+      "sha256": "dd8421a37d9b878ef13b8f82f6f88925b83865f9827570eaa16c3e72d2704b92"
+    },
+    {
+      "bytes": 13596,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-top-140.png",
+      "sha256": "fe3954ff8f0edf100ff418183f7e64ea0aa99f60b7a5227f1af346ea32c8e656"
+    },
+    {
+      "bytes": 1699,
+      "kind": "gameplay-scale-render",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-top-41.png",
+      "sha256": "efc59528b61ca98710e74ffc4d347065a3f6be07ed36b661ddc902850ec516b0"
+    },
+    {
+      "bytes": 88544,
+      "kind": "comparison-sheet",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/gameplay-140.png",
+      "sha256": "1afa581ed84df578cf735ef6d845ecba4c2df6b7048ee3ac624235657955dcc2"
+    },
+    {
+      "bytes": 3915,
+      "kind": "comparison-sheet",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/gameplay-41.png",
+      "sha256": "172b5980a128940d0e2a619e632999b153494b6abcc652d79f16f7209f4694f7"
+    },
+    {
+      "bytes": 89738,
+      "kind": "comparison-sheet",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/top-140.png",
+      "sha256": "16935a86eae6ac958bbe37f862c8c3ecf79d3d256b567436d90dd27c5e01356f"
+    },
+    {
+      "bytes": 3776,
+      "kind": "comparison-sheet",
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/top-41.png",
+      "sha256": "f307a718ee04d65df341222bd0b8618396325b57bcf928b44a086b987610668b"
+    },
+    {
+      "bytes": 962,
+      "kind": "report",
+      "path": "sandbox/bulwark-runtime-from-archived-master/report.md",
+      "sha256": "02569f18d573b307d2faa281b6e0a4139fec954be6505f921cab9d780262537c"
+    }
+  ],
+  "blender": {
+    "background": true,
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "version": "5.2.0 LTS"
+  },
+  "checks": {
+    "allRequestedComparisonSheetsWritten": true,
+    "allTierGatesPass": true,
+    "identicalAccentTrianglesAcrossTiers": true,
+    "identicalBodyTrianglesAcrossTiers": true,
+    "identicalGroupTrianglesAcrossTiers": true,
+    "identicalNodesMeshesPrimitivesMaterialsAcrossTiers": true
+  },
+  "comparisons": {
+    "gameplay-140": {
+      "cellDimensions": [
+        140,
+        140
+      ],
+      "columnOrder": [
+        "source-2k",
+        "runtime-1k",
+        "comparison-512"
+      ],
+      "dimensions": [
+        420,
+        420
+      ],
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/gameplay-140.png",
+      "rowOrder": [
+        "neutral",
+        "blue",
+        "orange"
+      ]
+    },
+    "gameplay-41": {
+      "cellDimensions": [
+        41,
+        41
+      ],
+      "columnOrder": [
+        "source-2k",
+        "runtime-1k",
+        "comparison-512"
+      ],
+      "dimensions": [
+        123,
+        123
+      ],
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/gameplay-41.png",
+      "rowOrder": [
+        "neutral",
+        "blue",
+        "orange"
+      ]
+    },
+    "top-140": {
+      "cellDimensions": [
+        140,
+        140
+      ],
+      "columnOrder": [
+        "source-2k",
+        "runtime-1k",
+        "comparison-512"
+      ],
+      "dimensions": [
+        420,
+        420
+      ],
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/top-140.png",
+      "rowOrder": [
+        "neutral",
+        "blue",
+        "orange"
+      ]
+    },
+    "top-41": {
+      "cellDimensions": [
+        41,
+        41
+      ],
+      "columnOrder": [
+        "source-2k",
+        "runtime-1k",
+        "comparison-512"
+      ],
+      "dimensions": [
+        123,
+        123
+      ],
+      "path": "sandbox/bulwark-runtime-from-archived-master/comparisons/top-41.png",
+      "rowOrder": [
+        "neutral",
+        "blue",
+        "orange"
+      ]
+    }
+  },
+  "method": {
+    "animations": "stripped from all runtime comparison derivatives",
+    "bindPoseFrame": 1,
+    "cameras": "render-only; never exported",
+    "gameplayCamera": "42-degree perspective at 58 degrees above ground",
+    "glbFacing": "+X",
+    "glbFloor": "Y=0",
+    "glbUp": "+Y",
+    "lights": "render-only; never exported",
+    "mapTiering": [
+      {
+        "dimensions": [
+          2048,
+          2048
+        ],
+        "id": "source-2k",
+        "imageFormat": "AUTO",
+        "jpegQuality": 100
+      },
+      {
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "id": "runtime-1k",
+        "imageFormat": "JPEG",
+        "jpegQuality": 92
+      },
+      {
+        "dimensions": [
+          512,
+          512
+        ],
+        "id": "comparison-512",
+        "imageFormat": "JPEG",
+        "jpegQuality": 90
+      }
+    ],
+    "networkCalls": 0,
+    "offline": true,
+    "providerCalls": 0,
+    "teamColorOwnership": "neutral texture-free material with extras.nilbotsRole='team-accent'; renderer owns tint/glow",
+    "topCamera": "strict orthographic"
+  },
+  "passed": true,
+  "schema": "nilbots-bulwark-runtime-package-1",
+  "source": {
+    "bytes": 9021002,
+    "path": "art/class-models/masters/aegis-tortoise-mobile/aegis-tortoise-mobile.blend",
+    "sha256": "be2ccebf9fc2fc5165e3a6297b5668eb2c1ee78b713e926e765ca9df9bc68027",
+    "visualAuthority": "editable accented Bulwark Mobile art master"
+  },
+  "tiers": {
+    "comparison-512": {
+      "checks": {
+        "accentGeometryPreserved": true,
+        "allBodyMapsMatchTierDimensions": true,
+        "allBodyPbrRolesPresent": true,
+        "allNineBodyGroupsPresent": true,
+        "bodyGeometryPreservedPerGroup": true,
+        "declaredPlusXFacingVerifiedByGunBarrels": true,
+        "exactlyOneTeamAccentMaterial": true,
+        "floorAtGlbYZero": true,
+        "glbUsesPlusYUpExportContract": true,
+        "noAnimations": true,
+        "noCameras": true,
+        "noLights": true,
+        "planformCentered": true,
+        "teamAccentMaterialTextureFree": true,
+        "teamAccentSurfaceExtrasPreserved": true,
+        "teamAccentSurfacesPresent": true,
+        "validGlbV2": true
+      },
+      "glb": {
+        "accentMeshExtras": 4,
+        "accentNodes": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentPrimitiveExtras": 4,
+        "accentTriangles": 112,
+        "animations": 0,
+        "bodyTriangles": 12979,
+        "boundsGlbPlusYUp": {
+          "center": [
+            0.0,
+            0.115441021,
+            0.0
+          ],
+          "maximum": [
+            0.500000119,
+            0.230882041,
+            0.497059047
+          ],
+          "minimum": [
+            -0.500000119,
+            0.0,
+            -0.497059047
+          ],
+          "span": [
+            1.000000238,
+            0.230882041,
+            0.994118094
+          ]
+        },
+        "bytes": 685744,
+        "cameras": 0,
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "groupTriangles": {
+          "ChassisCarrier": 2662,
+          "CrownReactor": 1182,
+          "GunBarrels": 536,
+          "Pod_NorthInner": 873,
+          "Pod_NorthOuter": 2730,
+          "Pod_SouthInner": 984,
+          "Pod_SouthOuter": 2433,
+          "ShieldLobe_South": 843,
+          "ShieldTrim_North": 736
+        },
+        "images": 4,
+        "materials": [
+          {
+            "doubleSided": true,
+            "index": 0,
+            "name": "material",
+            "nilbotsRole": null,
+            "textureFree": false,
+            "textureRoles": {
+              "baseColor": {
+                "bytes": 41620,
+                "dimensions": [
+                  512,
+                  512
+                ],
+                "imageIndex": 2,
+                "imageName": "base_color",
+                "mimeType": "image/jpeg",
+                "sha256": "0b690239fa2fa4bec560df0de210e9004143a0d4ae6ec144ba3f2c2d6ab4a43e",
+                "textureIndex": 2
+              },
+              "emissive": {
+                "bytes": 10748,
+                "dimensions": [
+                  512,
+                  512
+                ],
+                "imageIndex": 0,
+                "imageName": "emissive",
+                "mimeType": "image/jpeg",
+                "sha256": "b3243794019c45383859f0dc2e147ab26f892eb2c7c4ae20e7075b8b7fb5a452",
+                "textureIndex": 0
+              },
+              "metallicRoughness": {
+                "bytes": 28751,
+                "dimensions": [
+                  512,
+                  512
+                ],
+                "imageIndex": 3,
+                "imageName": "metallic_roughness",
+                "mimeType": "image/jpeg",
+                "sha256": "0e2a010b2de1c086234303058905433dfc5722db02bad9da9807905472d2ea36",
+                "textureIndex": 3
+              },
+              "normal": {
+                "bytes": 11075,
+                "dimensions": [
+                  512,
+                  512
+                ],
+                "imageIndex": 1,
+                "imageName": "normal",
+                "mimeType": "image/jpeg",
+                "sha256": "14ab1122c98b0c8b9f74c18f1ed09623a87b6f3ce9de3fffbe27bcf333839c43",
+                "textureIndex": 1
+              },
+              "occlusion": null
+            }
+          },
+          {
+            "doubleSided": true,
+            "index": 1,
+            "name": "Nilbots Team Accent",
+            "nilbotsRole": "team-accent",
+            "textureFree": true,
+            "textureRoles": {
+              "baseColor": null,
+              "emissive": null,
+              "metallicRoughness": null,
+              "normal": null,
+              "occlusion": null
+            }
+          }
+        ],
+        "meshes": 13,
+        "nodes": 24,
+        "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/model.glb",
+        "primitives": 13,
+        "sha256": "0d083a34c6d5a947882273dce0b7d18d10364bdf9e36f437c0c94e7f2b4d5c8c",
+        "teamAccentExtrasInjection": {
+          "binPayloadPreservedSha256": "f1f63f0495384ae378c0b2c29c3dc87cab010167813a37dc5c9d3f45e894ebf1",
+          "materialCount": 1,
+          "meshCount": 4,
+          "nodeCount": 4,
+          "primitiveCount": 4
+        },
+        "textures": 4,
+        "triangles": 13091
+      },
+      "imageEncoding": {
+        "format": "JPEG",
+        "jpegQuality": 90
+      },
+      "mapSize": 512,
+      "passed": true,
+      "purpose": "lean gameplay comparison tier",
+      "renders": {
+        "blue-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/blue-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "blue-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "blue-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/blue-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "blue-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/blue-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "neutral-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/neutral-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "neutral-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "neutral-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/neutral-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "neutral-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/neutral-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "orange-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/orange-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "orange-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "orange-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/gameplay-scale/orange-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "orange-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/comparison-512/renders/orange-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        }
+      },
+      "sourceGeometry": {
+        "accentObjects": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentTriangles": 112,
+        "bodyTriangles": 12979,
+        "boundsBlenderBindPose": {
+          "center": [
+            0.0,
+            0.0,
+            0.115441024
+          ],
+          "maximum": [
+            0.500000119,
+            0.497059047,
+            0.230882049
+          ],
+          "minimum": [
+            -0.500000119,
+            -0.497059047,
+            0.0
+          ],
+          "span": [
+            1.000000238,
+            0.994118094,
+            0.230882049
+          ]
+        },
+        "facingEvidence": {
+          "centerXBlender": 0.335363229,
+          "declaredFacing": "+X",
+          "group": "GunBarrels"
+        },
+        "floorAlignmentTranslation": -0.119999975,
+        "groups": {
+          "ChassisCarrier": {
+            "materials": [
+              "material"
+            ],
+            "object": "ChassisCarrier_Geometry",
+            "triangles": 2662,
+            "vertices": 2133
+          },
+          "CrownReactor": {
+            "materials": [
+              "material"
+            ],
+            "object": "CrownReactor_Geometry",
+            "triangles": 1182,
+            "vertices": 1080
+          },
+          "GunBarrels": {
+            "materials": [
+              "material"
+            ],
+            "object": "GunBarrels_Geometry",
+            "triangles": 536,
+            "vertices": 412
+          },
+          "Pod_NorthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthInner_Geometry",
+            "triangles": 873,
+            "vertices": 688
+          },
+          "Pod_NorthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthOuter_Geometry",
+            "triangles": 2730,
+            "vertices": 2015
+          },
+          "Pod_SouthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthInner_Geometry",
+            "triangles": 984,
+            "vertices": 841
+          },
+          "Pod_SouthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthOuter_Geometry",
+            "triangles": 2433,
+            "vertices": 1914
+          },
+          "ShieldLobe_South": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldLobe_South_Geometry",
+            "triangles": 843,
+            "vertices": 581
+          },
+          "ShieldTrim_North": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldTrim_North_Geometry",
+            "triangles": 736,
+            "vertices": 572
+          }
+        }
+      }
+    },
+    "runtime-1k": {
+      "checks": {
+        "accentGeometryPreserved": true,
+        "allBodyMapsMatchTierDimensions": true,
+        "allBodyPbrRolesPresent": true,
+        "allNineBodyGroupsPresent": true,
+        "bodyGeometryPreservedPerGroup": true,
+        "declaredPlusXFacingVerifiedByGunBarrels": true,
+        "exactlyOneTeamAccentMaterial": true,
+        "floorAtGlbYZero": true,
+        "glbUsesPlusYUpExportContract": true,
+        "noAnimations": true,
+        "noCameras": true,
+        "noLights": true,
+        "planformCentered": true,
+        "teamAccentMaterialTextureFree": true,
+        "teamAccentSurfaceExtrasPreserved": true,
+        "teamAccentSurfacesPresent": true,
+        "validGlbV2": true
+      },
+      "glb": {
+        "accentMeshExtras": 4,
+        "accentNodes": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentPrimitiveExtras": 4,
+        "accentTriangles": 112,
+        "animations": 0,
+        "bodyTriangles": 12979,
+        "boundsGlbPlusYUp": {
+          "center": [
+            0.0,
+            0.115441021,
+            0.0
+          ],
+          "maximum": [
+            0.500000119,
+            0.230882041,
+            0.497059047
+          ],
+          "minimum": [
+            -0.500000119,
+            0.0,
+            -0.497059047
+          ],
+          "span": [
+            1.000000238,
+            0.230882041,
+            0.994118094
+          ]
+        },
+        "bytes": 902612,
+        "cameras": 0,
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "groupTriangles": {
+          "ChassisCarrier": 2662,
+          "CrownReactor": 1182,
+          "GunBarrels": 536,
+          "Pod_NorthInner": 873,
+          "Pod_NorthOuter": 2730,
+          "Pod_SouthInner": 984,
+          "Pod_SouthOuter": 2433,
+          "ShieldLobe_South": 843,
+          "ShieldTrim_North": 736
+        },
+        "images": 4,
+        "materials": [
+          {
+            "doubleSided": true,
+            "index": 0,
+            "name": "material",
+            "nilbotsRole": null,
+            "textureFree": false,
+            "textureRoles": {
+              "baseColor": {
+                "bytes": 130655,
+                "dimensions": [
+                  1024,
+                  1024
+                ],
+                "imageIndex": 2,
+                "imageName": "base_color",
+                "mimeType": "image/jpeg",
+                "sha256": "8ffaa8258be82d7b368ead6bc6c9b32756f2bae60ad796139fb1f4370a3160be",
+                "textureIndex": 2
+              },
+              "emissive": {
+                "bytes": 31605,
+                "dimensions": [
+                  1024,
+                  1024
+                ],
+                "imageIndex": 0,
+                "imageName": "emissive",
+                "mimeType": "image/jpeg",
+                "sha256": "8211b840b3e72d4786bf74a68b38466035745fd22d5e37c358e0824e6670e2a1",
+                "textureIndex": 0
+              },
+              "metallicRoughness": {
+                "bytes": 94439,
+                "dimensions": [
+                  1024,
+                  1024
+                ],
+                "imageIndex": 3,
+                "imageName": "metallic_roughness",
+                "mimeType": "image/jpeg",
+                "sha256": "322f800dc4ebb9d5b944145fc7da3c383b9508e1623eeea19738cb8d6029fade",
+                "textureIndex": 3
+              },
+              "normal": {
+                "bytes": 52360,
+                "dimensions": [
+                  1024,
+                  1024
+                ],
+                "imageIndex": 1,
+                "imageName": "normal",
+                "mimeType": "image/jpeg",
+                "sha256": "992b27ab7f0f58dba641297ea410332f80f777937d8cd158e50b95a7977982d3",
+                "textureIndex": 1
+              },
+              "occlusion": null
+            }
+          },
+          {
+            "doubleSided": true,
+            "index": 1,
+            "name": "Nilbots Team Accent",
+            "nilbotsRole": "team-accent",
+            "textureFree": true,
+            "textureRoles": {
+              "baseColor": null,
+              "emissive": null,
+              "metallicRoughness": null,
+              "normal": null,
+              "occlusion": null
+            }
+          }
+        ],
+        "meshes": 13,
+        "nodes": 24,
+        "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/model.glb",
+        "primitives": 13,
+        "sha256": "ddd44d449c89d2d18a757065d8c2735ed46f4e9ee427210835c7f26af6e977c3",
+        "teamAccentExtrasInjection": {
+          "binPayloadPreservedSha256": "88675d4791a974cfc579fdcac97de2ebda256156511ba90a2cda7dadad538b5d",
+          "materialCount": 1,
+          "meshCount": 4,
+          "nodeCount": 4,
+          "primitiveCount": 4
+        },
+        "textures": 4,
+        "triangles": 13091
+      },
+      "imageEncoding": {
+        "format": "JPEG",
+        "jpegQuality": 92
+      },
+      "mapSize": 1024,
+      "passed": true,
+      "purpose": "candidate on-demand runtime tier",
+      "renders": {
+        "blue-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/blue-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "blue-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "blue-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/blue-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "blue-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/blue-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "neutral-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/neutral-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "neutral-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "neutral-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/neutral-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "neutral-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/neutral-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "orange-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/orange-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "orange-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "orange-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/gameplay-scale/orange-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "orange-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/runtime-1k/renders/orange-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        }
+      },
+      "sourceGeometry": {
+        "accentObjects": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentTriangles": 112,
+        "bodyTriangles": 12979,
+        "boundsBlenderBindPose": {
+          "center": [
+            0.0,
+            0.0,
+            0.115441024
+          ],
+          "maximum": [
+            0.500000119,
+            0.497059047,
+            0.230882049
+          ],
+          "minimum": [
+            -0.500000119,
+            -0.497059047,
+            0.0
+          ],
+          "span": [
+            1.000000238,
+            0.994118094,
+            0.230882049
+          ]
+        },
+        "facingEvidence": {
+          "centerXBlender": 0.335363229,
+          "declaredFacing": "+X",
+          "group": "GunBarrels"
+        },
+        "floorAlignmentTranslation": -0.119999975,
+        "groups": {
+          "ChassisCarrier": {
+            "materials": [
+              "material"
+            ],
+            "object": "ChassisCarrier_Geometry",
+            "triangles": 2662,
+            "vertices": 2133
+          },
+          "CrownReactor": {
+            "materials": [
+              "material"
+            ],
+            "object": "CrownReactor_Geometry",
+            "triangles": 1182,
+            "vertices": 1080
+          },
+          "GunBarrels": {
+            "materials": [
+              "material"
+            ],
+            "object": "GunBarrels_Geometry",
+            "triangles": 536,
+            "vertices": 412
+          },
+          "Pod_NorthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthInner_Geometry",
+            "triangles": 873,
+            "vertices": 688
+          },
+          "Pod_NorthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthOuter_Geometry",
+            "triangles": 2730,
+            "vertices": 2015
+          },
+          "Pod_SouthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthInner_Geometry",
+            "triangles": 984,
+            "vertices": 841
+          },
+          "Pod_SouthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthOuter_Geometry",
+            "triangles": 2433,
+            "vertices": 1914
+          },
+          "ShieldLobe_South": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldLobe_South_Geometry",
+            "triangles": 843,
+            "vertices": 581
+          },
+          "ShieldTrim_North": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldTrim_North_Geometry",
+            "triangles": 736,
+            "vertices": 572
+          }
+        }
+      }
+    },
+    "source-2k": {
+      "checks": {
+        "accentGeometryPreserved": true,
+        "allBodyMapsMatchTierDimensions": true,
+        "allBodyPbrRolesPresent": true,
+        "allNineBodyGroupsPresent": true,
+        "bodyGeometryPreservedPerGroup": true,
+        "declaredPlusXFacingVerifiedByGunBarrels": true,
+        "exactlyOneTeamAccentMaterial": true,
+        "floorAtGlbYZero": true,
+        "glbUsesPlusYUpExportContract": true,
+        "noAnimations": true,
+        "noCameras": true,
+        "noLights": true,
+        "planformCentered": true,
+        "teamAccentMaterialTextureFree": true,
+        "teamAccentSurfaceExtrasPreserved": true,
+        "teamAccentSurfacesPresent": true,
+        "validGlbV2": true
+      },
+      "glb": {
+        "accentMeshExtras": 4,
+        "accentNodes": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentPrimitiveExtras": 4,
+        "accentTriangles": 112,
+        "animations": 0,
+        "bodyTriangles": 12979,
+        "boundsGlbPlusYUp": {
+          "center": [
+            0.0,
+            0.115441021,
+            0.0
+          ],
+          "maximum": [
+            0.500000119,
+            0.230882041,
+            0.497059047
+          ],
+          "minimum": [
+            -0.500000119,
+            0.0,
+            -0.497059047
+          ],
+          "span": [
+            1.000000238,
+            0.230882041,
+            0.994118094
+          ]
+        },
+        "bytes": 8941692,
+        "cameras": 0,
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "groupTriangles": {
+          "ChassisCarrier": 2662,
+          "CrownReactor": 1182,
+          "GunBarrels": 536,
+          "Pod_NorthInner": 873,
+          "Pod_NorthOuter": 2730,
+          "Pod_SouthInner": 984,
+          "Pod_SouthOuter": 2433,
+          "ShieldLobe_South": 843,
+          "ShieldTrim_North": 736
+        },
+        "images": 4,
+        "materials": [
+          {
+            "doubleSided": true,
+            "index": 0,
+            "name": "material",
+            "nilbotsRole": null,
+            "textureFree": false,
+            "textureRoles": {
+              "baseColor": {
+                "bytes": 2786418,
+                "dimensions": [
+                  2048,
+                  2048
+                ],
+                "imageIndex": 2,
+                "imageName": "base_color",
+                "mimeType": "image/jpeg",
+                "sha256": "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d",
+                "textureIndex": 2
+              },
+              "emissive": {
+                "bytes": 279746,
+                "dimensions": [
+                  2048,
+                  2048
+                ],
+                "imageIndex": 0,
+                "imageName": "emissive",
+                "mimeType": "image/jpeg",
+                "sha256": "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a",
+                "textureIndex": 0
+              },
+              "metallicRoughness": {
+                "bytes": 2256157,
+                "dimensions": [
+                  2048,
+                  2048
+                ],
+                "imageIndex": 3,
+                "imageName": "metallic_roughness",
+                "mimeType": "image/jpeg",
+                "sha256": "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1",
+                "textureIndex": 3
+              },
+              "normal": {
+                "bytes": 3025755,
+                "dimensions": [
+                  2048,
+                  2048
+                ],
+                "imageIndex": 1,
+                "imageName": "normal",
+                "mimeType": "image/jpeg",
+                "sha256": "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c",
+                "textureIndex": 1
+              },
+              "occlusion": null
+            }
+          },
+          {
+            "doubleSided": true,
+            "index": 1,
+            "name": "Nilbots Team Accent",
+            "nilbotsRole": "team-accent",
+            "textureFree": true,
+            "textureRoles": {
+              "baseColor": null,
+              "emissive": null,
+              "metallicRoughness": null,
+              "normal": null,
+              "occlusion": null
+            }
+          }
+        ],
+        "meshes": 13,
+        "nodes": 24,
+        "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/model.glb",
+        "primitives": 13,
+        "sha256": "9a56529d5ee6daabf7d44402655784bcca7f665dac1eaa29a11f00d1c7357ee8",
+        "teamAccentExtrasInjection": {
+          "binPayloadPreservedSha256": "73176ec6b352622cbf0a829595f74dae3e86532bd58acb0fc19bb4a41c774c09",
+          "materialCount": 1,
+          "meshCount": 4,
+          "nodeCount": 4,
+          "primitiveCount": 4
+        },
+        "textures": 4,
+        "triangles": 13091
+      },
+      "imageEncoding": {
+        "format": "AUTO",
+        "jpegQuality": 100
+      },
+      "mapSize": 2048,
+      "passed": true,
+      "purpose": "source-quality reference",
+      "renders": {
+        "blue-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "blue-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/blue-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "blue-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "blue-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/blue-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "blue-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/blue-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "neutral-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "neutral-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/neutral-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "neutral-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "neutral-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/neutral-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "neutral-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/neutral-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        },
+        "orange-gameplay-140": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-gameplay-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-41": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-gameplay-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "gameplay"
+        },
+        "orange-gameplay-512": {
+          "cameraLocationBlender": [
+            -0.079999998,
+            0.996248245,
+            1.59433043
+          ],
+          "cameraTargetBlender": [
+            0.02,
+            0.0,
+            0.129999995
+          ],
+          "cameraType": "PERSP",
+          "fieldOfViewDegrees": 42.000001169,
+          "orthoScale": null,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/orange-gameplay.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "gameplay"
+        },
+        "orange-top-140": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-top-140.png",
+          "size": [
+            140,
+            140
+          ],
+          "view": "top"
+        },
+        "orange-top-41": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/gameplay-scale/orange-top-41.png",
+          "size": [
+            41,
+            41
+          ],
+          "view": "top"
+        },
+        "orange-top-512": {
+          "cameraLocationBlender": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "cameraTargetBlender": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cameraType": "ORTHO",
+          "fieldOfViewDegrees": null,
+          "orthoScale": 1.24000001,
+          "path": "sandbox/bulwark-runtime-from-archived-master/source-2k/renders/orange-top.png",
+          "size": [
+            512,
+            512
+          ],
+          "view": "top"
+        }
+      },
+      "sourceGeometry": {
+        "accentObjects": [
+          "TeamAccent_Pod_NorthOuter",
+          "TeamAccent_Pod_SouthOuter",
+          "TeamAccent_Shield_North",
+          "TeamAccent_Shield_South"
+        ],
+        "accentTriangles": 112,
+        "bodyTriangles": 12979,
+        "boundsBlenderBindPose": {
+          "center": [
+            0.0,
+            0.0,
+            0.115441024
+          ],
+          "maximum": [
+            0.500000119,
+            0.497059047,
+            0.230882049
+          ],
+          "minimum": [
+            -0.500000119,
+            -0.497059047,
+            0.0
+          ],
+          "span": [
+            1.000000238,
+            0.994118094,
+            0.230882049
+          ]
+        },
+        "facingEvidence": {
+          "centerXBlender": 0.335363229,
+          "declaredFacing": "+X",
+          "group": "GunBarrels"
+        },
+        "floorAlignmentTranslation": -0.119999975,
+        "groups": {
+          "ChassisCarrier": {
+            "materials": [
+              "material"
+            ],
+            "object": "ChassisCarrier_Geometry",
+            "triangles": 2662,
+            "vertices": 2133
+          },
+          "CrownReactor": {
+            "materials": [
+              "material"
+            ],
+            "object": "CrownReactor_Geometry",
+            "triangles": 1182,
+            "vertices": 1080
+          },
+          "GunBarrels": {
+            "materials": [
+              "material"
+            ],
+            "object": "GunBarrels_Geometry",
+            "triangles": 536,
+            "vertices": 412
+          },
+          "Pod_NorthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthInner_Geometry",
+            "triangles": 873,
+            "vertices": 688
+          },
+          "Pod_NorthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_NorthOuter_Geometry",
+            "triangles": 2730,
+            "vertices": 2015
+          },
+          "Pod_SouthInner": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthInner_Geometry",
+            "triangles": 984,
+            "vertices": 841
+          },
+          "Pod_SouthOuter": {
+            "materials": [
+              "material"
+            ],
+            "object": "Pod_SouthOuter_Geometry",
+            "triangles": 2433,
+            "vertices": 1914
+          },
+          "ShieldLobe_South": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldLobe_South_Geometry",
+            "triangles": 843,
+            "vertices": 581
+          },
+          "ShieldTrim_North": {
+            "materials": [
+              "material"
+            ],
+            "object": "ShieldTrim_North_Geometry",
+            "triangles": 736,
+            "vertices": 572
+          }
+        }
+      }
+    }
+  },
+  "toolVersion": "1.0.0"
+}

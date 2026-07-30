@@ -1,0 +1,1451 @@
+{
+  "artAuthority": {
+    "avatar": {
+      "accentLook": "neutral",
+      "bytes": 147905,
+      "cameraLocation": [
+        0.0015,
+        -0.001,
+        3.0
+      ],
+      "cameraOrthoScale": 1.18,
+      "cameraType": "ORTHO",
+      "depthTieBias": {
+        "offsetXY": [
+          0.0015,
+          -0.001
+        ],
+        "purpose": "deterministic source coplanar depth ordering"
+      },
+      "facingLabel": "East",
+      "file": "art-top-avatar.png",
+      "modelFacingAxis": "+X",
+      "resolution": [
+        512,
+        512
+      ],
+      "screenRightAxis": "+X within 0.04 degrees",
+      "screenUpAxis": "+Y within 0.04 degrees",
+      "sha256": "0751015138985dff229dac87d03b6811a4285a9155560479dbe442e30b5be87b",
+      "transparentBackground": true
+    },
+    "teamMask": {
+      "alphaLevelCount": 2,
+      "bytes": 1662,
+      "cameraLocation": [
+        0.0015,
+        -0.001,
+        3.0
+      ],
+      "cameraOrthoScale": 1.18,
+      "cameraType": "ORTHO",
+      "encoding": "lossless RGBA PNG; straight 8-bit coverage alpha; white RGB where alpha > 0 and zero RGB under alpha zero",
+      "facingLabel": "East",
+      "file": "art-top-team-mask.png",
+      "hiddenBodyObjectCount": 9,
+      "maximumAlpha": 255,
+      "minimumAlpha": 0,
+      "modelFacingAxis": "+X",
+      "resolution": [
+        512,
+        512
+      ],
+      "role": "team-accent",
+      "screenRightAxis": "+X within 0.04 degrees",
+      "screenUpAxis": "+Y within 0.04 degrees",
+      "sha256": "4aa43524b260747c8b1ace919b41a023ef946b19ed560dab6285fbcf95e23205",
+      "transparentBackground": true,
+      "visibleObjects": [
+        "TeamAccent_Pod_NorthOuter",
+        "TeamAccent_Pod_SouthOuter",
+        "TeamAccent_Shield_North",
+        "TeamAccent_Shield_South"
+      ]
+    }
+  },
+  "blender": {
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "version": "5.2.0 LTS"
+  },
+  "checks": {
+    "accentWithinOneToThreePercentTopAreaTarget": true,
+    "allPanelsMoveWithPodPlantClip": true,
+    "allPanelsRigidToRequiredParents": true,
+    "allProjectionSamplesHit": true,
+    "blendAndGlbWritten": true,
+    "bodyAtLeastNinetyPercentProjectedRoleArea": true,
+    "exactlyFourDistinctPanelMeshes": true,
+    "exactlyFourExplicitPanelObjects": true,
+    "exactlyFourRoleMeshesInBlend": true,
+    "exactlyOneRoleMaterialInBlend": true,
+    "finalMaterialRestoredToNeutral": true,
+    "glbStructuralSemanticValidationPassed": true,
+    "oneMaterialSlotPerPanel": true,
+    "sixFixedNeutralBlueOrangeProofs": true,
+    "sourceHasBothNamedNlaClips": true,
+    "sourceHasRequiredGroupedRig": true,
+    "sourceHashMatchesBeforeAndAfterOpen": true,
+    "transparentEastTopAvatarAndSemanticMaskWritten": true
+  },
+  "glbRoleExtrasPatch": {
+    "material": "Nilbots Team Accent",
+    "materialIndex": 1,
+    "meshes": [
+      "TeamAccent_Pod_NorthOuter_Mesh",
+      "TeamAccent_Pod_SouthOuter_Mesh",
+      "TeamAccent_Shield_North_Mesh",
+      "TeamAccent_Shield_South_Mesh"
+    ],
+    "method": "deterministic GLB JSON-chunk rewrite; BIN and all non-JSON chunks preserved byte-for-byte",
+    "primitiveCount": 4
+  },
+  "glbValidation": {
+    "animations": [
+      {
+        "channels": 1,
+        "name": "GunRecoil",
+        "samplers": 1
+      },
+      {
+        "channels": 5,
+        "name": "PodPlant_HoverSettle",
+        "samplers": 5
+      }
+    ],
+    "bodyTextureImageSha256": [
+      "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1",
+      "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d",
+      "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a",
+      "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c"
+    ],
+    "counts": {
+      "accentTriangles": 112,
+      "bodyTriangles": 12979,
+      "images": 4,
+      "materials": 2,
+      "meshes": 13,
+      "nodes": 24,
+      "primitives": 13,
+      "textures": 4,
+      "triangles": 13091
+    },
+    "header": {
+      "bytes": 8782416,
+      "chunkAlignmentValid": true,
+      "chunkCount": 2,
+      "version": 2
+    },
+    "passed": true,
+    "roles": {
+      "baseColorFactor": [
+        0.479320168,
+        0.479320168,
+        0.479320168,
+        1.0
+      ],
+      "emissiveFactor": [
+        0.057518419,
+        0.057518419,
+        0.057518419
+      ],
+      "materialCount": 1,
+      "materialName": "Nilbots Team Accent",
+      "materialTextureReferences": {
+        "baseColorTexture": null,
+        "emissiveTexture": null,
+        "metallicRoughnessTexture": null,
+        "normalTexture": null,
+        "occlusionTexture": null
+      },
+      "meshCount": 4,
+      "meshNames": [
+        "TeamAccent_Pod_NorthOuter_Mesh",
+        "TeamAccent_Pod_SouthOuter_Mesh",
+        "TeamAccent_Shield_North_Mesh",
+        "TeamAccent_Shield_South_Mesh"
+      ],
+      "nodeParents": {
+        "TeamAccent_Pod_NorthOuter": "Pod_NorthOuter_Pivot",
+        "TeamAccent_Pod_SouthOuter": "Pod_SouthOuter_Pivot",
+        "TeamAccent_Shield_North": "ShieldTrim_North_Pivot",
+        "TeamAccent_Shield_South": "ShieldLobe_South_Pivot"
+      },
+      "primitiveCount": 4
+    },
+    "validator": "internal deterministic GLB 2.0 structural/semantic validator; no Khronos validator binary is pinned in this repository"
+  },
+  "limitations": [
+    "This stage authors rigid accent panels only; runtime loading and the existing SVG authority are intentionally unchanged.",
+    "The GLB gate is an internal structural/semantic validator because no pinned Khronos validator is present; it does not claim external conformance certification.",
+    "Blue and orange are proof renders only. The shipped GLB contains neutral equal-channel factors and no team texture."
+  ],
+  "material": {
+    "materialCountForRole": 1,
+    "name": "Nilbots Team Accent",
+    "neutralEmissionStrength": 0.12,
+    "neutralHexSrgb": "#b8b8b8",
+    "proofTeamLooks": {
+      "blueHexSrgb": "#38bdf8",
+      "orangeHexSrgb": "#fb923c",
+      "teamEmissionStrength": 0.72
+    },
+    "role": "team-accent",
+    "runtimeContract": "renderer clones the neutral standard material, reads userData.nilbotsRole, and supplies team base/emissive colour",
+    "shader": "Principled BSDF / glTF metallic-roughness",
+    "textureFree": true
+  },
+  "motion": {
+    "allMoveWithClip": true,
+    "allParentRigid": true,
+    "clip": "PodPlant_HoverSettle",
+    "panels": {
+      "TeamAccent_Pod_NorthOuter": {
+        "frames": [
+          {
+            "frame": 1,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.257690072,
+              0.247304037,
+              0.143039018
+            ]
+          },
+          {
+            "frame": 22,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.257690072,
+              0.247304037,
+              0.0
+            ]
+          },
+          {
+            "frame": 38,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.257690072,
+              0.247304037,
+              0.0
+            ]
+          },
+          {
+            "frame": 60,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.257690072,
+              0.247304037,
+              0.143039018
+            ]
+          }
+        ],
+        "maximumParentRelativeMatrixDelta": 0.0,
+        "maximumWorldTranslationDelta": 0.143039017,
+        "movesWithClip": true,
+        "parent": "Pod_NorthOuter_Pivot",
+        "parentRigid": true
+      },
+      "TeamAccent_Pod_SouthOuter": {
+        "frames": [
+          {
+            "frame": 1,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.2510418,
+              -0.268627524,
+              0.143528953
+            ]
+          },
+          {
+            "frame": 22,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.2510418,
+              -0.268627524,
+              0.0
+            ]
+          },
+          {
+            "frame": 38,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.2510418,
+              -0.268627524,
+              0.0
+            ]
+          },
+          {
+            "frame": 60,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.2510418,
+              -0.268627524,
+              0.143528953
+            ]
+          }
+        ],
+        "maximumParentRelativeMatrixDelta": 0.0,
+        "maximumWorldTranslationDelta": 0.143528955,
+        "movesWithClip": true,
+        "parent": "Pod_SouthOuter_Pivot",
+        "parentRigid": true
+      },
+      "TeamAccent_Shield_North": {
+        "frames": [
+          {
+            "frame": 1,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.095098019,
+              0.352451026,
+              0.234951049
+            ]
+          },
+          {
+            "frame": 22,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.095098019,
+              0.352451026,
+              0.154951036
+            ]
+          },
+          {
+            "frame": 38,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.095098019,
+              0.352451026,
+              0.154951036
+            ]
+          },
+          {
+            "frame": 60,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.095098019,
+              0.352451026,
+              0.234951049
+            ]
+          }
+        ],
+        "maximumParentRelativeMatrixDelta": 0.0,
+        "maximumWorldTranslationDelta": 0.080000014,
+        "movesWithClip": true,
+        "parent": "ShieldTrim_North_Pivot",
+        "parentRigid": true
+      },
+      "TeamAccent_Shield_South": {
+        "frames": [
+          {
+            "frame": 1,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.09166652,
+              -0.308823526,
+              0.234215453
+            ]
+          },
+          {
+            "frame": 22,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.09166652,
+              -0.308823526,
+              0.154215455
+            ]
+          },
+          {
+            "frame": 38,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.09166652,
+              -0.308823526,
+              0.154215455
+            ]
+          },
+          {
+            "frame": 60,
+            "parentRelativeMatrix": [
+              [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "worldTranslation": [
+              -0.09166652,
+              -0.308823526,
+              0.234215453
+            ]
+          }
+        ],
+        "maximumParentRelativeMatrixDelta": 0.0,
+        "maximumWorldTranslationDelta": 0.079999999,
+        "movesWithClip": true,
+        "parent": "ShieldLobe_South_Pivot",
+        "parentRigid": true
+      }
+    },
+    "sampleFrames": [
+      1,
+      22,
+      38,
+      60
+    ]
+  },
+  "operation": {
+    "facingAxisBlender": "+X",
+    "inputPathsPolicy": "repository-relative only",
+    "networkCalls": 0,
+    "outputOverwritePolicy": "new sandbox/var directory only",
+    "providerCalls": 0,
+    "sourceModified": false,
+    "upAxisBlender": "+Z"
+  },
+  "outputs": {
+    "art-avatar": {
+      "bytes": 147905,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/art-top-avatar.png",
+      "sha256": "0751015138985dff229dac87d03b6811a4285a9155560479dbe442e30b5be87b"
+    },
+    "art-team-mask": {
+      "bytes": 1662,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/art-top-team-mask.png",
+      "sha256": "4aa43524b260747c8b1ace919b41a023ef946b19ed560dab6285fbcf95e23205"
+    },
+    "blend": {
+      "bytes": 9021002,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/bulwark-mobile-team-accent.blend",
+      "sha256": "be2ccebf9fc2fc5165e3a6297b5668eb2c1ee78b713e926e765ca9df9bc68027"
+    },
+    "coverage-accent-mask": {
+      "bytes": 3562,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/coverage-accent-mask.png",
+      "sha256": "8a9ed961f2800a32c2f44269d2ab6570c173979a8b4adb0c0f68f8bab7d27cab"
+    },
+    "coverage-body-mask": {
+      "bytes": 219277,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/coverage-body-mask.png",
+      "sha256": "7e677b7d44bf06fad4a53925bc80e16cb2320fa75e6e24544d6269a066d5eaf4"
+    },
+    "glb": {
+      "bytes": 8782416,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/bulwark-mobile-team-accent.glb",
+      "sha256": "e2ef237f026a4198f8c91e490b2dcd0a1d3ae1f59cad43dac85cf7de46fe503c"
+    },
+    "render-blue-gameplay": {
+      "bytes": 370743,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/blue-gameplay.png",
+      "sha256": "833d4074137b1e9c22a4795ebc215a6527837e8445ff384632e304dd86a5a3f3"
+    },
+    "render-blue-top": {
+      "bytes": 288840,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/blue-top.png",
+      "sha256": "1d36e45a54d4216a117f20f53d7b5ce0b1198ae6a1ca1d4c7c79695bd6a44da7"
+    },
+    "render-neutral-gameplay": {
+      "bytes": 370761,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/neutral-gameplay.png",
+      "sha256": "53ab6e193b98a9d658e8ee3d8b7c07973ebe3bd2a4b8fcf43591ef30d4b3607f"
+    },
+    "render-neutral-top": {
+      "bytes": 288421,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/neutral-top.png",
+      "sha256": "e85c841d21ac09bc4bb4c1f0f463328f3443c4dfaa285a339781f7e2fefd0e20"
+    },
+    "render-orange-gameplay": {
+      "bytes": 370835,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/orange-gameplay.png",
+      "sha256": "514c0a1579b3a7a7e468fadbb80bf27b87083efd485b8901a93e4866dfe3cf44"
+    },
+    "render-orange-top": {
+      "bytes": 288535,
+      "path": "sandbox/bulwark-team-accent-primary-019fb455-determinism-a/renders/orange-top.png",
+      "sha256": "1ec1becf6d13431d8d59a47c78bf5f3fc616e345d68b841c687f372687e34dca"
+    }
+  },
+  "panels": [
+    {
+      "barAxisParentLocal": [
+        0.999995232,
+        -4.6815e-05,
+        0.003103316
+      ],
+      "barCrossAxisParentLocal": [
+        0.0,
+        0.999886274,
+        0.01508379
+      ],
+      "construction": "one center ray fit plus explicit chamfered solid in the fitted tangent plane; no independently projected patch vertices",
+      "dimensionsParentLocalXY": [
+        0.17,
+        0.021691201
+      ],
+      "faces": 10,
+      "fallbackProjectionGeometry": [
+        "ChassisCarrier_Geometry"
+      ],
+      "kind": "forward-shield-long",
+      "localMatrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "materialSlots": [
+        "Nilbots Team Accent"
+      ],
+      "mesh": "TeamAccent_Shield_North_Mesh",
+      "name": "TeamAccent_Shield_North",
+      "outlineVertices": 8,
+      "parent": "ShieldTrim_North_Pivot",
+      "primaryProjectionGeometry": "ShieldTrim_North_Geometry",
+      "projectionHitCounts": {
+        "ChassisCarrier_Geometry": 1
+      },
+      "projectionPolygonIndices": [
+        {
+          "polygon": 1196,
+          "surface": "ChassisCarrier_Geometry"
+        }
+      ],
+      "projectionRayDistances": [
+        0.373426348
+      ],
+      "projectionSamples": 1,
+      "solidThickness": 0.006,
+      "surfaceClearance": 0.0015,
+      "surfaceFitLocationParentLocal": [
+        0.345156908,
+        0.0,
+        0.088583708
+      ],
+      "surfaceFitNormalParentLocal": [
+        -0.003103669,
+        -0.015083716,
+        0.999881387
+      ],
+      "topBoundsParentLocal": {
+        "maximum": [
+          0.430133224,
+          0.010734975,
+          0.096494041
+        ],
+        "minimum": [
+          0.260134041,
+          -0.010961231,
+          0.095671602
+        ]
+      },
+      "triangles": 28
+    },
+    {
+      "barAxisParentLocal": [
+        0.986838758,
+        0.044995215,
+        0.155320838
+      ],
+      "barCrossAxisParentLocal": [
+        4e-09,
+        0.960508227,
+        -0.278251618
+      ],
+      "construction": "one center ray fit plus explicit chamfered solid in the fitted tangent plane; no independently projected patch vertices",
+      "dimensionsParentLocalXY": [
+        0.17,
+        0.028235328
+      ],
+      "faces": 10,
+      "fallbackProjectionGeometry": [
+        "ChassisCarrier_Geometry"
+      ],
+      "kind": "forward-shield-long",
+      "localMatrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "materialSlots": [
+        "Nilbots Team Accent"
+      ],
+      "mesh": "TeamAccent_Shield_South_Mesh",
+      "name": "TeamAccent_Shield_South",
+      "outlineVertices": 8,
+      "parent": "ShieldLobe_South_Pivot",
+      "primaryProjectionGeometry": "ShieldLobe_South_Geometry",
+      "projectionHitCounts": {
+        "ShieldLobe_South_Geometry": 1
+      },
+      "projectionPolygonIndices": [
+        {
+          "polygon": 431,
+          "surface": "ShieldLobe_South_Geometry"
+        }
+      ],
+      "projectionRayDistances": [
+        0.372845948
+      ],
+      "projectionSamples": 1,
+      "solidThickness": 0.006,
+      "surfaceClearance": 0.0015,
+      "surfaceFitLocationParentLocal": [
+        0.334068775,
+        0.0,
+        0.09284161
+      ],
+      "surfaceFitNormalParentLocal": [
+        -0.161706939,
+        0.274589509,
+        0.947866797
+      ],
+      "topBoundsParentLocal": {
+        "maximum": [
+          0.416737258,
+          0.019139238,
+          0.116028622
+        ],
+        "minimum": [
+          0.248974681,
+          -0.015020395,
+          0.083872601
+        ]
+      },
+      "triangles": 28
+    },
+    {
+      "barAxisParentLocal": [
+        0.998474836,
+        0.003586357,
+        0.05509359
+      ],
+      "barCrossAxisParentLocal": [
+        0.0,
+        0.997888029,
+        -0.064958237
+      ],
+      "construction": "one center ray fit plus explicit chamfered solid in the fitted tangent plane; no independently projected patch vertices",
+      "dimensionsParentLocalXY": [
+        0.135693626,
+        0.032463232
+      ],
+      "faces": 10,
+      "fallbackProjectionGeometry": [],
+      "kind": "rear-outer-pod-compact",
+      "localMatrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "materialSlots": [
+        "Nilbots Team Accent"
+      ],
+      "mesh": "TeamAccent_Pod_NorthOuter_Mesh",
+      "name": "TeamAccent_Pod_NorthOuter",
+      "outlineVertices": 8,
+      "parent": "Pod_NorthOuter_Pivot",
+      "primaryProjectionGeometry": "Pod_NorthOuter_Geometry",
+      "projectionHitCounts": {
+        "Pod_NorthOuter_Geometry": 1
+      },
+      "projectionPolygonIndices": [
+        {
+          "polygon": 2375,
+          "surface": "Pod_NorthOuter_Geometry"
+        }
+      ],
+      "projectionRayDistances": [
+        0.367864519
+      ],
+      "projectionSamples": 1,
+      "solidThickness": 0.006,
+      "surfaceClearance": 0.0015,
+      "surfaceFitLocationParentLocal": [
+        0.0,
+        0.0,
+        0.180664599
+      ],
+      "surfaceFitNormalParentLocal": [
+        -0.055210195,
+        0.064859152,
+        0.996365905
+      ],
+      "topBoundsParentLocal": {
+        "maximum": [
+          0.067329258,
+          0.016899159,
+          0.192500398
+        ],
+        "minimum": [
+          -0.068157405,
+          -0.015926272,
+          0.183774278
+        ]
+      },
+      "triangles": 28
+    },
+    {
+      "barAxisParentLocal": [
+        0.999832749,
+        -0.000920483,
+        0.01826526
+      ],
+      "barCrossAxisParentLocal": [
+        0.0,
+        0.998732626,
+        0.050331414
+      ],
+      "construction": "one center ray fit plus explicit chamfered solid in the fitted tangent plane; no independently projected patch vertices",
+      "dimensionsParentLocalXY": [
+        0.129534332,
+        0.030147079
+      ],
+      "faces": 10,
+      "fallbackProjectionGeometry": [],
+      "kind": "rear-outer-pod-compact",
+      "localMatrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "materialSlots": [
+        "Nilbots Team Accent"
+      ],
+      "mesh": "TeamAccent_Pod_SouthOuter_Mesh",
+      "name": "TeamAccent_Pod_SouthOuter",
+      "outlineVertices": 8,
+      "parent": "Pod_SouthOuter_Pivot",
+      "primaryProjectionGeometry": "Pod_SouthOuter_Geometry",
+      "projectionHitCounts": {
+        "Pod_SouthOuter_Geometry": 1
+      },
+      "projectionPolygonIndices": [
+        {
+          "polygon": 2106,
+          "surface": "Pod_SouthOuter_Geometry"
+        }
+      ],
+      "projectionRayDistances": [
+        0.36675328
+      ],
+      "projectionSamples": 1,
+      "solidThickness": 0.006,
+      "surfaceClearance": 0.0015,
+      "surfaceFitLocationParentLocal": [
+        -3e-08,
+        0.0,
+        0.177365825
+      ],
+      "surfaceFitNormalParentLocal": [
+        -0.018288441,
+        -0.050322987,
+        0.998565495
+      ],
+      "topBoundsParentLocal": {
+        "maximum": [
+          0.064619139,
+          0.01472997,
+          0.186664581
+        ],
+        "minimum": [
+          -0.064893529,
+          -0.015484815,
+          0.183045566
+        ]
+      },
+      "triangles": 28
+    }
+  ],
+  "passed": true,
+  "projectedArea": {
+    "accentMask": {
+      "bytes": 3562,
+      "file": "coverage-accent-mask.png",
+      "sha256": "8a9ed961f2800a32c2f44269d2ab6570c173979a8b4adb0c0f68f8bab7d27cab"
+    },
+    "accentPixels": 6347,
+    "accentToBodyRatio": 0.02117523,
+    "alphaThreshold": 0.00392156862745098,
+    "bodyMask": {
+      "bytes": 219277,
+      "file": "coverage-body-mask.png",
+      "sha256": "7e677b7d44bf06fad4a53925bc80e16cb2320fa75e6e24544d6269a066d5eaf4"
+    },
+    "bodyPixels": 299737,
+    "bodyRoleShare": 0.979263862,
+    "cameraOrthoScale": 1.24,
+    "method": "separate fixed orthographic +Z alpha masks at identical 768x768 framing; count alpha > 1/255; treat body and accent samples as separate projected role contributions",
+    "minimumBodyRoleShare": 0.9,
+    "passed": true,
+    "resolution": [
+      768,
+      768
+    ],
+    "targetAccentToBodyRatioRange": [
+      0.01,
+      0.03
+    ],
+    "withinRestrainedVisualTarget": true
+  },
+  "renders": {
+    "blue-gameplay": {
+      "accentEmissionStrength": 0.72,
+      "accentHexSrgb": "#38bdf8",
+      "bytes": 370743,
+      "cameraLocation": [
+        -0.079999998,
+        0.996248245,
+        1.59433043
+      ],
+      "cameraTarget": [
+        0.02,
+        0.0,
+        0.129999995
+      ],
+      "cameraType": "PERSP",
+      "fieldOfViewDegrees": 42.000001169,
+      "file": "blue-gameplay.png",
+      "orthoScale": null,
+      "sha256": "833d4074137b1e9c22a4795ebc215a6527837e8445ff384632e304dd86a5a3f3",
+      "transparentBackground": false
+    },
+    "blue-top": {
+      "accentEmissionStrength": 0.72,
+      "accentHexSrgb": "#38bdf8",
+      "bytes": 288840,
+      "cameraLocation": [
+        0.0015,
+        -0.001,
+        3.0
+      ],
+      "cameraTarget": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cameraType": "ORTHO",
+      "depthTieBiasDegreesFromExactTop": 0.034430474,
+      "depthTieBiasPurpose": "resolve source coplanar/collocated raster ties without a perceptible presentation-angle change",
+      "fieldOfViewDegrees": null,
+      "file": "blue-top.png",
+      "orthoScale": 1.24000001,
+      "sha256": "1d36e45a54d4216a117f20f53d7b5ce0b1198ae6a1ca1d4c7c79695bd6a44da7",
+      "transparentBackground": false
+    },
+    "neutral-gameplay": {
+      "accentEmissionStrength": 0.12,
+      "accentHexSrgb": "#b8b8b8",
+      "bytes": 370761,
+      "cameraLocation": [
+        -0.079999998,
+        0.996248245,
+        1.59433043
+      ],
+      "cameraTarget": [
+        0.02,
+        0.0,
+        0.129999995
+      ],
+      "cameraType": "PERSP",
+      "fieldOfViewDegrees": 42.000001169,
+      "file": "neutral-gameplay.png",
+      "orthoScale": null,
+      "sha256": "53ab6e193b98a9d658e8ee3d8b7c07973ebe3bd2a4b8fcf43591ef30d4b3607f",
+      "transparentBackground": false
+    },
+    "neutral-top": {
+      "accentEmissionStrength": 0.12,
+      "accentHexSrgb": "#b8b8b8",
+      "bytes": 288421,
+      "cameraLocation": [
+        0.0015,
+        -0.001,
+        3.0
+      ],
+      "cameraTarget": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cameraType": "ORTHO",
+      "depthTieBiasDegreesFromExactTop": 0.034430474,
+      "depthTieBiasPurpose": "resolve source coplanar/collocated raster ties without a perceptible presentation-angle change",
+      "fieldOfViewDegrees": null,
+      "file": "neutral-top.png",
+      "orthoScale": 1.24000001,
+      "sha256": "e85c841d21ac09bc4bb4c1f0f463328f3443c4dfaa285a339781f7e2fefd0e20",
+      "transparentBackground": false
+    },
+    "orange-gameplay": {
+      "accentEmissionStrength": 0.72,
+      "accentHexSrgb": "#fb923c",
+      "bytes": 370835,
+      "cameraLocation": [
+        -0.079999998,
+        0.996248245,
+        1.59433043
+      ],
+      "cameraTarget": [
+        0.02,
+        0.0,
+        0.129999995
+      ],
+      "cameraType": "PERSP",
+      "fieldOfViewDegrees": 42.000001169,
+      "file": "orange-gameplay.png",
+      "orthoScale": null,
+      "sha256": "514c0a1579b3a7a7e468fadbb80bf27b87083efd485b8901a93e4866dfe3cf44",
+      "transparentBackground": false
+    },
+    "orange-top": {
+      "accentEmissionStrength": 0.72,
+      "accentHexSrgb": "#fb923c",
+      "bytes": 288535,
+      "cameraLocation": [
+        0.0015,
+        -0.001,
+        3.0
+      ],
+      "cameraTarget": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cameraType": "ORTHO",
+      "depthTieBiasDegreesFromExactTop": 0.034430474,
+      "depthTieBiasPurpose": "resolve source coplanar/collocated raster ties without a perceptible presentation-angle change",
+      "fieldOfViewDegrees": null,
+      "file": "orange-top.png",
+      "orthoScale": 1.24000001,
+      "sha256": "1ec1becf6d13431d8d59a47c78bf5f3fc616e345d68b841c687f372687e34dca",
+      "transparentBackground": false
+    }
+  },
+  "schema": "nilbots-bulwark-team-accent-report-1",
+  "source": {
+    "bytes": 9014893,
+    "nlaTracks": {
+      "GunRecoil": [
+        "GunBarrels_Pivot"
+      ],
+      "PodPlant_HoverSettle": [
+        "HoverSettle_Pivot",
+        "Pod_NorthInner_Pivot",
+        "Pod_NorthOuter_Pivot",
+        "Pod_SouthInner_Pivot",
+        "Pod_SouthOuter_Pivot"
+      ]
+    },
+    "path": "sandbox/aegis-retextured-semantic-rig-primary-019fb455/aegis-retextured-semantic-rig.blend",
+    "rootProviderSourceSha256": "985c2a4e8c39cc3ffa12195950fdbdbe093c6a2387c2679b3511f9eee7b260da",
+    "rootSourceTaskId": "019fb455-88da-751a-8bb4-f4f40301c8d2",
+    "semanticGlb": {
+      "animations": [
+        {
+          "channels": 1,
+          "name": "GunRecoil",
+          "samplers": 1
+        },
+        {
+          "channels": 5,
+          "name": "PodPlant_HoverSettle",
+          "samplers": 5
+        }
+      ],
+      "bytes": 8773392,
+      "imageSha256": [
+        "5731aa9d8586084e0d7a61930b40c6b7b2ee03efffb14bf8ff9071c921afc2e1",
+        "7e414909b9bf3bf7c0b8d7958935051415364bc7e2fa4c608907aed1ea7c3c7d",
+        "a22ec3a4d0c7e7465d443c36c0d5652d614a307d4304b10715c837bcfc2c9b4a",
+        "dd0485a0266efd93824087e3e2b5debcebff296ef9c8b9d2dc982e67e3d0997c"
+      ],
+      "materials": 1,
+      "meshes": 9,
+      "path": "sandbox/aegis-retextured-semantic-rig-primary-019fb455/aegis-retextured-semantic-rig.glb",
+      "primitives": 9,
+      "sha256": "f91a49d19045e9746afea7296ae44a66f9b1fecc10699ce2941044e277f14bde",
+      "triangles": 12979
+    },
+    "sha256": "0634c13e01f2b4324e606b17756d88f67cec922b8654a1ec8e040403597c47bb"
+  },
+  "toolVersion": "1.0.0"
+}

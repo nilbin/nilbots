@@ -82,3 +82,24 @@ The default `trident-spark` projectile has not been submitted to Meshy. It is a
 separate object, input review, task, and credit charge after this chassis
 landing; its trail, floor glow, travel, impact, hitbox, and team tint remain
 renderer-owned.
+
+## Accepted Bulwark mobile result
+
+The accepted Bulwark mobile source now lives under
+`masters/aegis-tortoise-mobile/`. It establishes the production hybrid:
+
+1. approve provider geometry and PBR treatment at gameplay scale;
+2. partition the accepted mesh into deterministic semantic rigid groups;
+3. add small explicit team-accent surfaces under the correct pivots;
+4. retain the editable 2K Blender master and authored motion clips;
+5. package a stripped on-demand GLB at the lowest visually equivalent map
+   tier;
+6. derive the East-facing avatar and semantic mask from the accepted master.
+
+The runtime decision is a 512-map, 685,744-byte GLB. Its geometry, PBR roles,
+neutral team-accent contract, axis/floor contract, and absence of accidental
+animation/camera/light payloads pass the recorded structural gate. The 2K
+editable master remains the visual authority.
+
+This acceptance covers only the Bulwark mobile body. Shell and Tower remain
+separate planted forms pending their own add-on-kit treatment.

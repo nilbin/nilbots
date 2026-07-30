@@ -95,3 +95,87 @@ offline tests with:
 ```sh
 node --test scripts/class-models/run-meshy-retexture.test.mjs
 ```
+
+## Bulwark semantic team-accent postprocess
+
+`add_bulwark_team_accents.py` is the offline Blender stage after the reviewed
+retextured semantic-rig build. It does not call Meshy or any other provider.
+The public CLI accepts repository-relative paths only, requires the exact
+source `.blend` SHA-256, resolves the shared pinned Blender 5.2 toolchain, and
+refuses to overwrite an output directory:
+
+```sh
+python3 scripts/class-models/add_bulwark_team_accents.py \
+  --input-blend sandbox/<semantic-rig>/aegis-retextured-semantic-rig.blend \
+  --expected-source-sha256 <exact-lowercase-sha256> \
+  --output-dir sandbox/<new-team-accent-proof>
+```
+
+The stage adds four small, explicit chamfered emitter bars: two slim forward
+shield strips and two compact rear/outer pod strips. Each bar uses one
+center-ray surface fit and a clean tangent-plane solid; no independently
+projected patch vertices or inferred broad paint are created. The objects are
+direct children of `ShieldTrim_North_Pivot`, `ShieldLobe_South_Pivot`,
+`Pod_NorthOuter_Pivot`, and `Pod_SouthOuter_Pivot`, so the existing
+`PodPlant_HoverSettle` clip remains coherent without adding keys.
+
+All four meshes share exactly one neutral, texture-free Principled material.
+The material, each mesh, and each exported GLB primitive carry
+`nilbotsRole=team-accent`. Blender 5.2 does not emit primitive extras, so the
+stage deterministically patches only the GLB JSON chunk, preserves its BIN
+payload, and then validates chunk bounds, references, role counts, neutral
+factors, texture payload hashes, body triangle count, parent nodes, and both
+animation channel sets.
+
+Every successful run writes:
+
+- an editable neutral `.blend` and runtime-neutral `.glb`;
+- neutral, blue, and orange fixed top/gameplay proofs;
+- separate body/accent top masks and a numeric projected-area gate;
+- a 512×512 transparent, +X/East-facing top/avatar proof;
+- a separate lossless RGBA `team-accent` semantic mask;
+- a sorted, repository-relative `report.json` with exact artifact hashes.
+
+The blue/orange colours exist only in proof renders. The GLB retains equal
+neutral base/emissive factors for runtime recolouring. PBR top/avatar proofs
+use a recorded 0.034-degree camera bias to resolve exact source depth ties
+without a perceptible presentation-angle change; exact +Z masks remain
+unbiased. The editable `.blend` records its save location, so compare the GLB,
+masks, and proof payloads—not `.blend` bytes—across different output
+directories. Run the wrapper tests without Blender or network access:
+
+```sh
+python3 -m unittest scripts/class-models/test_add_bulwark_team_accents.py
+```
+
+## Bulwark runtime tier packager
+
+`package_bulwark_runtime.py` is the offline stage after an accented Mobile
+`.blend` is approved. It accepts only repository-relative paths, verifies the
+exact source SHA-256 before Blender starts, resolves pinned Blender 5.2, and
+refuses to overwrite an output directory:
+
+```sh
+python3 scripts/class-models/package_bulwark_runtime.py \
+  --input-blend sandbox/<approved-accent>/bulwark-mobile-team-accent.blend \
+  --expected-source-sha256 <exact-lowercase-sha256> \
+  --output-dir sandbox/<new-runtime-tier-proof>
+```
+
+One run exports 2K source, 1K runtime, and 512 comparison GLBs from the same
+frame-1 bind pose. Every derivative is `+X` facing, `+Y` up, floor-aligned at
+`Y=0`, and contains no camera, light, or animation. The gate preserves all
+nine semantic body groups, all body triangles and PBR roles, the four rigid
+emitter bars, and exactly one texture-free
+`extras.nilbotsRole=team-accent` material. Mesh and primitive role extras are
+restored deterministically after Blender export.
+
+The output includes neutral/blue/orange fixed top and 58-degree gameplay
+renders at 512, 140, and 41 pixels, cross-tier contact sheets, and a
+hash-pinned `report.json`. Choose the smallest tier whose PBR hierarchy and
+team bars survive those fixed gameplay views; retain 2K as source art. Run
+the wrapper boundary tests without Blender or network access:
+
+```sh
+python3 -m unittest scripts/class-models/test_package_bulwark_runtime.py
+```

@@ -202,6 +202,72 @@ Its Animation API applies preset action IDs to those rigs. The web app also
 offers humanoid/quadruped presets, but neither surface authors custom
 Mobile/Shell/Tower hard-surface choreography. Author that work in Blender.
 
+## Choose the hybrid route
+
+Pick the route before buying geometry. The deciding question is who must own
+the silhouette and moving seams:
+
+1. **Generated mobile body, deterministic semantic rig** — use Smart for a
+   visually distinctive rigid mobile whose required motion can be expressed by
+   rotating or translating clean connected components. Normalize, partition,
+   name, pivot, and validate those components in Blender. This is the proven
+   Bulwark mobile route.
+2. **Deterministic chassis and form kits, generated texture donor** — use
+   Blender for the complete mobile/Shell/Tower geometry when a transition must
+   be mechanically traceable. Lock the kinematic blockout first, unwrap one
+   non-overlapping atlas, then use Retexture or a generated sibling as a
+   material reference. This is the preferred route for future skills and
+   stances because provider inference cannot invent trustworthy hidden faces,
+   stowage, sockets, or pivots.
+3. **Generated donor plus DCC rebuild** — use a generated result only as a
+   proportion, surface, or texture donor when it has the right visual language
+   but the wrong topology. Rebuild the production mesh around the approved
+   silhouette rather than accumulating brittle cuts in a fused surface.
+4. **2.5D fallback** — retain the canonical SVG-derived renderer form when
+   genuine depth does not survive gameplay size or when a 3D route cannot meet
+   the rule/fallback/budget gates. It is a valid shipping fallback, not a
+   failed source model.
+
+Do not ask one provider task to solve mobile body, planted form, detached
+projectile, and texture together. They have different silhouettes, pivots,
+runtime lifecycles, and acceptance gates. A planted form may reuse the mobile
+core and material atlas, but its add-on kit must remain separately selectable
+and independently grounded.
+
+### Proven Bulwark mobile recipe
+
+The accepted Aegis Tortoise mobile demonstrates the first route from start to
+finish:
+
+1. A single approved elevated three-quarter input produced an untextured Smart
+   T2 candidate at the explicit 15,000-triangle ceiling.
+2. The corrected `+X` candidate passed a `91.65%` same-scale top-planform IoU
+   gate and a measured side-profile review before texture spend.
+3. Meshy 6 Retexture produced a 2K PBR source on the accepted geometry.
+4. Blender deterministically assigned every imported face, vertex, loop, UV,
+   and material payload to nine rigid semantic groups. The source textures and
+   `12,979` body triangles were preserved exactly.
+5. The editable master added only four small chamfered emitter bars under the
+   correct shield/pod pivots. They share one texture-free neutral
+   `team-accent` material and occupy `2.117523%` of the fixed top body area.
+   Broad projected team paint was rejected because it clipped, fragmented,
+   and overwhelmed class identity.
+6. `PodPlant_HoverSettle` and `GunRecoil` were authored and endpoint-checked in
+   the editable master. The present runtime derivative strips those clips
+   because the renderer does not yet sample GLTF actions; replay-time
+   `heavy-hover` remains renderer-owned.
+7. Deterministic packages retained the same `13,091` total triangles and all
+   four PBR roles at 2K, 1K, and 512 map sizes. At measured 140px and 41px
+   gameplay views the 512 tier was visually equivalent to 2K, so the
+   685,744-byte 512 GLB ships while the 2K `.blend` remains art authority.
+8. The transparent East-facing avatar and separate semantic team mask were
+   rendered from the accepted master after the 3D decision.
+
+The reusable lesson is not the 15k ceiling. Buy enough recoverable geometry to
+judge the silhouette and parts, then let gameplay-size evidence choose the
+runtime texture and geometry budget. Keep texture quality, semantic mechanics,
+renderer motion, and 2D derivation as separate deterministic gates.
+
 ## Projectiles and skins
 
 Generate a default projectile separately after its bot geometry path passes.
