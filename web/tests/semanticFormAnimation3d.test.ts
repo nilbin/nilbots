@@ -391,6 +391,30 @@ test('missing or unusable declared clips fail closed for generic fallback', () =
     ),
     null,
   );
+
+  const unbound = rigidRig();
+  assert.equal(
+    createSemanticFormAnimationSampler(
+      unbound.root,
+      [
+        unbound.clips[0],
+        new THREE.AnimationClip(
+          EMPLACED_DEPLOY_CLIP,
+          1,
+          [
+            new THREE.VectorKeyframeTrack(
+              'MissingTowerCrown.position',
+              [0, 1],
+              [0, 0, 0, 0, 1, 0],
+            ),
+          ],
+        ),
+      ],
+      contract,
+    ),
+    null,
+    'a named clip with an unbound mechanical part is still unusable',
+  );
 });
 
 test('disposal is idempotent and rejects later samples', () => {

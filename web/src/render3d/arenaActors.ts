@@ -35,11 +35,18 @@ import {
   replayMaxHealth,
 } from '../replayMetadata';
 import {
+  disposeSemanticLookAnimation,
   isGenuineLookModel,
   lookModel,
   modelSpec,
+  sampleSemanticLookAnimation,
+  semanticLookAnimationCapabilities,
 } from './lookModel';
 import { CAMERA_PITCH } from './arenaScene';
+import type {
+  SemanticRecoil,
+  SemanticRecoilSample,
+} from './semanticFormAnimation';
 
 /**
  * The things that move.
@@ -200,6 +207,13 @@ const IDLE_RISE = 0.022;
 const IDLE_ROLL = 0.055;
 const IDLE_YAW = 0.05;
 /**
+ * Deterministic phase for an authored mobile-rest clip.
+ *
+ * Replay time, never render delta, remains the clock: scrubbing returns the same pose and
+ * two instances do not synchronize because their stable identity phase is included.
+ */
+const SEMANTIC_REST_CYCLES_PER_TICK = 0.08;
+/**
  * How hard a bot drifts through a corner.
  *
  * A tile grid only ever asks for 90° turns, and taken flat that is a chassis snapping to a
@@ -244,6 +258,13 @@ export interface ArenaActors {
 }
 
 /**
+ * The one authored mobile hierarchy installed in each body, when it carries a complete
+ * semantic form rig. Kept outside Object3D.userData so mixers and scene objects never leak
+ * into serialization or Three's clone path.
+ */
+const semanticModelsByBody = new WeakMap<THREE.Group, THREE.Group>();
+
+/**
  * Replace the loading stand-ins with the resolved chassis representation.
  *
  * The small facing wedge is renderer-owned legacy hardware. SVG-derived solids need it
@@ -265,6 +286,10 @@ export function installMobileModel(
   body.remove(placeholders.lid);
   if (isGenuineLookModel(model))
     body.remove(placeholders.facingMarker);
+  if (semanticLookAnimationCapabilities(model))
+    semanticModelsByBody.set(body, model);
+  else
+    semanticModelsByBody.delete(body);
 }
 
 export function buildActors(replay: ReplayModel): ArenaActors {
@@ -726,13 +751,20 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       undefined,
       accent,
     ).then((model) => {
-      if (!live || !model) return;
+      if (!model) return;
+      if (!live) {
+        disposeSemanticLookAnimation(model);
+        return;
+      }
       model.scale.setScalar(size);
       registerModelMaterials(model);
       installMobileModel(body, model, {
         hull,
         lid,
         facingMarker: nose,
+      });
+      disposables.push({
+        dispose: () => disposeSemanticLookAnimation(model),
       });
     });
 
@@ -1330,6 +1362,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.anchorRing.visible = false;
       bot.scan.visible = false;
       bot.stance.visible = false;
+      if (bot.guardArc) bot.guardArc.visible = false;
       bot.highlight(false);
       bot.flash(0);
       // A life destroyed mid-windup would otherwise leave its charge burning on an empty
@@ -1423,18 +1456,79 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const stanceOut = stancing ? upright : 0;
       const stanceTakeover = stanceOut > STANCE_HANDOVER;
 
-      bot.body.visible = unfolding <= 0 && !stanceTakeover;
-      bot.turret.visible = unfolding > 0;
+      /*
+       * A semantic model owns the machine, not the rules cues around it.
+       *
+       * Binding happened only after the manifest and both required clips were validated,
+       * so a successful absolute sample is the exact point at which the generic body swap
+       * may stand down. Missing/bad clips never enter this branch: lookModel returned the
+       * sprite-derived fallback, and every line below behaves byte-for-behaviour as before.
+       */
+      const semanticModel = semanticModelsByBody.get(bot.body);
+      const semanticCapabilities =
+        semanticModel === undefined
+          ? null
+          : semanticLookAnimationCapabilities(semanticModel);
+      const semanticRecoilForm: SemanticRecoil = emplacing
+        ? 'emplaced'
+        : stancing
+          ? 'stance'
+          : 'mobile';
+      const hasSemanticRecoil =
+        semanticCapabilities !== null &&
+        (semanticRecoilForm === 'mobile'
+          ? semanticCapabilities.mobileRecoil
+          : semanticRecoilForm === 'stance'
+            ? semanticCapabilities.stanceRecoil
+            : semanticCapabilities.emplacedRecoil);
+      const semanticRecoil: SemanticRecoilSample | undefined =
+        firing && hasSemanticRecoil
+          ? { form: semanticRecoilForm, progress: shotProgress }
+          : undefined;
+      const semanticActive =
+        semanticModel !== undefined &&
+        semanticCapabilities !== null &&
+        sampleSemanticLookAnimation(semanticModel, {
+          transition: emplacing ? 'emplaced' : 'stance',
+          progress: upright,
+          ...(semanticCapabilities.mobileRest && upright === 0
+            ? {
+                mobileRestPhase:
+                  time * SEMANTIC_REST_CYCLES_PER_TICK +
+                  bot.motionPhase / (Math.PI * 2),
+              }
+            : {}),
+          ...(semanticRecoil === undefined
+            ? {}
+            : { recoil: semanticRecoil }),
+        });
+
+      bot.body.visible =
+        semanticActive || (unfolding <= 0 && !stanceTakeover);
+      bot.turret.visible = !semanticActive && unfolding > 0;
+      // Keep the stance root (and therefore its authored scale/grounding) alive for the
+      // exact guard-sector overlay. Only its generic machine children stand down.
       bot.stance.visible = stanceTakeover;
-      bot.body.rotation.z = (Math.PI / 2) * tipping;
-      bot.body.position.y = TURRET_LIFT * bot.size * tipping;
+      for (const child of bot.stance.children)
+        child.visible = !semanticActive || child === bot.guardArc;
+      bot.body.rotation.z =
+        semanticActive ? 0 : (Math.PI / 2) * tipping;
       // Charging up, then coming out — **the two halves cross at the same size**, which is
       // the whole of what stops the swap reading as a pop. The body swells into the
       // handover and the stance settles back out of it, so the only thing that changes at
       // the seam is which machine is being drawn.
       const gathering = Math.min(1, stanceOut / STANCE_HANDOVER);
+      const semanticEmplacedPulse =
+        semanticActive &&
+        emplacing &&
+        semanticRecoil === undefined &&
+        firing
+          ? Math.sin(shotProgress * Math.PI) * 0.045
+          : 0;
       bot.body.scale.setScalar(
-        stancing
+        semanticActive
+          ? 1 + semanticEmplacedPulse
+          : stancing
           ? 1 + (STANCE_CHARGE_SCALE - 1) * easeInOut(gathering)
           : 1,
       );
@@ -1584,7 +1678,13 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const rise =
         Math.sin(time * 2.3 + bot.motionPhase * 1.7) +
         Math.sin(time * 1.3 + bot.motionPhase) * 0.5;
-      const kick = firing
+      // Authored recoil wins when present. Mobile and directional forms retain the
+      // renderer's small backwards impulse when an otherwise valid rig does not declare
+      // one; an omnidirectional tower cannot honestly kick along chassis facing, so its
+      // fallback is the radial pulse assigned above instead.
+      const kick = firing &&
+        (!semanticActive ||
+          (semanticRecoil === undefined && !emplacing))
         ? Math.sin(shotProgress * Math.PI) * 0.14
         : 0;
       const mobileMotion = botLocomotionAt(
@@ -1623,7 +1723,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       bot.turret.scale.setScalar(
         TURRET_SCALE +
-          (firing ? Math.sin(shotProgress * Math.PI) * 0.045 : 0),
+          (!semanticActive && firing
+            ? Math.sin(shotProgress * Math.PI) * 0.045
+            : 0),
       );
 
       bot.body.position.x = -kick;
@@ -1631,7 +1733,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         (drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY) *
         mobileMotion.lateralScale;
       bot.body.position.y =
-        TURRET_LIFT * bot.size * tipping +
+        (semanticActive ? 0 : TURRET_LIFT * bot.size * tipping) +
         (bot.mobileLocomotionCue === null
           ? idle * rise * IDLE_RISE
           : mobileHover);

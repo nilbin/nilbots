@@ -188,7 +188,8 @@ export function createSemanticFormAnimationSampler(
     const matches = clipsByName.get(name);
     if (
       matches?.length !== 1 ||
-      !usableClip(matches[0])
+      !usableClip(matches[0]) ||
+      !clipTargetsHierarchy(root, matches[0])
     )
       return null;
     resolved.set(role, matches[0]);
@@ -310,12 +311,56 @@ function usableClip(clip: THREE.AnimationClip): boolean {
   )
     return false;
   return clip.tracks.every(
-    (track) =>
-      track.times.length > 0 &&
-      track.values.length > 0 &&
-      Array.from(track.times).every(Number.isFinite) &&
-      Array.from(track.values).every(Number.isFinite),
+    (track) => {
+      const times = Array.from(track.times);
+      const valueSize = track.getValueSize();
+      return (
+        times.length > 0 &&
+        Number.isInteger(valueSize) &&
+        valueSize > 0 &&
+        track.values.length === times.length * valueSize &&
+        times.every(
+          (time, index) =>
+            Number.isFinite(time) &&
+            (index === 0 || time >= times[index - 1]!),
+        ) &&
+        Array.from(track.values).every(Number.isFinite)
+      );
+    },
   );
+}
+
+/**
+ * Prove every rigid track resolves on this clone before an AnimationMixer is created.
+ *
+ * Three logs a missing PropertyBinding and continues, which would otherwise make a clip
+ * look successfully bound while silently leaving one hatch, shield or tower crown in the
+ * wrong form. Semantic form clips intentionally animate only object transforms: provider
+ * morph targets and material channels are texture-donor output, not mechanical authority.
+ */
+function clipTargetsHierarchy(
+  root: THREE.Object3D,
+  clip: THREE.AnimationClip,
+): boolean {
+  return clip.tracks.every((track) => {
+    try {
+      const parsed = THREE.PropertyBinding.parseTrackName(track.name);
+      if (
+        parsed.objectName ||
+        parsed.objectIndex ||
+        parsed.propertyIndex ||
+        (parsed.propertyName !== 'position' &&
+          parsed.propertyName !== 'quaternion' &&
+          parsed.propertyName !== 'scale')
+      )
+        return false;
+      return (
+        THREE.PropertyBinding.findNode(root, parsed.nodeName) !== null
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 function validSample(

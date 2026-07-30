@@ -2,6 +2,14 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { beginAsset } from '../render/assetReadiness';
 import { chassisModel } from './chassisModel';
+import {
+  createSemanticFormAnimationSampler,
+  validateSemanticFormClipContract,
+  type SemanticFormAnimationCapabilities,
+  type SemanticFormAnimationSample,
+  type SemanticFormAnimationSampler,
+  type SemanticFormClipContract,
+} from './semanticFormAnimation';
 
 /**
  * The small, renderer-only contract beside an authored GLB.
@@ -19,6 +27,7 @@ export interface LookModelSpec {
   facing: '+x';
   up: '+y';
   skillHardware?: 'volley' | 'aegis';
+  semanticAnimation?: SemanticFormClipContract;
 }
 
 export interface ModelledLook {
@@ -35,6 +44,11 @@ type AssetKind = LookModelSpec['kind'];
 type LookModelSource = 'gltf' | 'fallback';
 
 const MODEL_SOURCE_KEY = 'nilbotsModelSource';
+
+interface LoadedLookModel {
+  scene: THREE.Group;
+  animations: readonly THREE.AnimationClip[];
+}
 
 /*
  * Keep these imports in render3d. The hosted viewer loads this tree only after WebGL is
@@ -100,7 +114,11 @@ const models = registerModels([
 const loadingManager = new THREE.LoadingManager();
 
 const loader = new GLTFLoader(loadingManager);
-const rawModels = new Map<string, Promise<THREE.Group | null>>();
+const rawModels = new Map<string, Promise<LoadedLookModel | null>>();
+const semanticAnimations = new WeakMap<
+  THREE.Object3D,
+  SemanticFormAnimationSampler
+>();
 
 /** Return renderer metadata synchronously without starting a model download. */
 export function modelSpec(id: string): LookModelSpec | null {
@@ -130,6 +148,58 @@ export function lookModelSource(
 /** Whether this representation came from an authored GLB rather than the SVG fallback. */
 export function isGenuineLookModel(model: THREE.Object3D): boolean {
   return model.userData[MODEL_SOURCE_KEY] === 'gltf';
+}
+
+/**
+ * The semantic clips bound to this exact scene clone, if it has a complete contract.
+ *
+ * AnimationMixer state is instance-owned. Returning capabilities rather than inspecting
+ * the source GLB keeps actor code from mistaking cached clip data for a live binding.
+ */
+export function semanticLookAnimationCapabilities(
+  model: THREE.Object3D,
+): SemanticFormAnimationCapabilities | null {
+  return semanticAnimations.get(model)?.capabilities ?? null;
+}
+
+/** Sample one genuine model from absolute replay state. */
+export function sampleSemanticLookAnimation(
+  model: THREE.Object3D,
+  sample: SemanticFormAnimationSample,
+): boolean {
+  return semanticAnimations.get(model)?.sample(sample) ?? false;
+}
+
+/**
+ * Bind semantic clips to one already-cloned hierarchy.
+ *
+ * Exported as the narrow asset-preview/test seam: production `lookModel` calls the same
+ * function after cloning a loaded GLB. A failed bind never installs a partial sampler.
+ */
+export function bindSemanticLookAnimation(
+  model: THREE.Object3D,
+  clips: readonly THREE.AnimationClip[],
+  contract: SemanticFormClipContract,
+): boolean {
+  disposeSemanticLookAnimation(model);
+  const sampler = createSemanticFormAnimationSampler(
+    model,
+    clips,
+    contract,
+  );
+  if (!sampler) return false;
+  semanticAnimations.set(model, sampler);
+  return true;
+}
+
+/** Release the AnimationMixer owned by one model clone. */
+export function disposeSemanticLookAnimation(
+  model: THREE.Object3D,
+): void {
+  const sampler = semanticAnimations.get(model);
+  if (!sampler) return;
+  sampler.dispose();
+  semanticAnimations.delete(model);
 }
 
 /**
@@ -166,11 +236,21 @@ export async function lookModel(
   if (!raw)
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
+  let model: THREE.Group | null = null;
   try {
-    const model = instantiate(raw, paint, teamAccent);
+    model = instantiate(raw.scene, paint, teamAccent);
+    const contract = registered.spec.semanticAnimation;
+    if (
+      contract &&
+      !bindSemanticLookAnimation(model, raw.animations, contract)
+    ) {
+      disposeInstance(model);
+      return fallbackModel(look.imageUrl, paint, sector, teamAccent);
+    }
     markModelSource(model, 'gltf');
     return model;
   } catch {
+    if (model) disposeInstance(model);
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
   }
 }
@@ -201,7 +281,7 @@ function markModelSource(
   model.userData[MODEL_SOURCE_KEY] = source;
 }
 
-function rawModel(url: string): Promise<THREE.Group | null> {
+function rawModel(url: string): Promise<LoadedLookModel | null> {
   const existing = rawModels.get(url);
   if (existing) return existing;
 
@@ -211,12 +291,12 @@ function rawModel(url: string): Promise<THREE.Group | null> {
   const release = beginAsset();
   const loaded = loader
     .loadAsync(url)
-    .then(({ scene }) => {
+    .then(({ scene, animations }) => {
       let hasMesh = false;
       scene.traverse((node) => {
         if ((node as THREE.Mesh).isMesh) hasMesh = true;
       });
-      return hasMesh ? scene : null;
+      return hasMesh ? { scene, animations } : null;
     })
     .catch(() => null)
     .finally(release);
@@ -248,6 +328,21 @@ function instantiate(
   });
 
   return instance;
+}
+
+/** Dispose only clone-owned state; geometry, textures and raw GLTF state stay cached. */
+function disposeInstance(instance: THREE.Object3D): void {
+  disposeSemanticLookAnimation(instance);
+  const materials = new Set<THREE.Material>();
+  instance.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material])
+      materials.add(material);
+  });
+  for (const material of materials) material.dispose();
 }
 
 function instanceMaterial(
@@ -326,6 +421,10 @@ function validateSpec(
   const facing = input.facing;
   const up = input.up;
   const skillHardware = input.skillHardware;
+  const semanticAnimation = validateSemanticFormClipContract(
+    input.semanticAnimation,
+    `3D look '${typeof id === 'string' ? id : path}'`,
+  );
 
   if (version !== 1)
     throw new Error(`3D look manifest '${path}' has unsupported version.`);
@@ -361,6 +460,13 @@ function validateSpec(
     throw new Error(`3D projectile '${id}' cannot declare skill hardware.`);
   if (part === 'turret-arm' && skillHardware !== undefined)
     throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
+  if (
+    semanticAnimation !== undefined &&
+    (kind !== 'bot' || part !== 'whole')
+  )
+    throw new Error(
+      `3D look '${id}' can declare semantic animation only on a whole bot.`,
+    );
 
   return {
     version,
@@ -371,6 +477,7 @@ function validateSpec(
     facing,
     up,
     ...(skillHardware === undefined ? {} : { skillHardware }),
+    ...(semanticAnimation === undefined ? {} : { semanticAnimation }),
   };
 }
 

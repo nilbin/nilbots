@@ -69,10 +69,14 @@ export {
 } from '../../src/render3d/arenaScene';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';
 export {
+  bindSemanticLookAnimation,
+  disposeSemanticLookAnimation,
   isGenuineLookModel,
   lookModel,
   lookModelSource,
   modelSpec,
+  sampleSemanticLookAnimation,
+  semanticLookAnimationCapabilities,
 } from '../../src/render3d/lookModel';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {
