@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-turret",
+  "provider": "meshy",
+  "taskKind": "image-to-3d-multiview",
+  "status": "provider-ready",
+  "sourceSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/source-sheet.png",
+    "sha256": "40d060a84ec2d77d6f0f496526c4e08792a932408139d9a579b44acf494ac555",
+    "width": 1536,
+    "height": 1024
+  },
+  "approvedConceptSheet": {
+    "path": "art/class-models/concept-targets/aegis-tortoise-turret-3d-concept-v1/approval-sheet.png",
+    "sha256": "b3df8d605c734c7a078d63dd6d7b98848337c67755d4205b427ecd6c27cf4b0f",
+    "width": 1536,
+    "height": 1024
+  },
+  "identityCorrectionSheet": {
+    "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/identity-correction-source.png",
+    "sha256": "d0398fe70a42960ed0936b34ad94c4fb3f76bdeeac75c8c377f48c2876610a89",
+    "width": 1536,
+    "height": 1024
+  },
+  "topAuthority": {
+    "path": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+    "sha256": "f2a471ce82285a8bba848e193e4d3a3e4d23567ddf6da2777f811c230a12dd04",
+    "kind": "runtime-svg-exact-form-authority"
+  },
+  "orientation": {
+    "modelForward": "+X",
+    "imageRight": "+X",
+    "worldUp": "+Y"
+  },
+  "views": [
+    {
+      "role": "top",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/01-top.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "c9ca639173a8744ff1c0475da451eca29ef1ea8828fd1399289fb0facd577ca2"
+    },
+    {
+      "role": "side",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/02-side.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "87fe51f18efedb8f1b5160899715bdd6c4efb34d19b1a04738db6492a908adc2"
+    },
+    {
+      "role": "front-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/03-front-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "404b12a82bf21a0b22f492bac2190ec4b5562cf1ae18a8baf23d4b204a029bb4"
+    },
+    {
+      "role": "rear-three-quarter",
+      "path": "art/class-models/provider-inputs/meshy/aegis-tortoise-turret/clean-v1/04-rear-three-quarter.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "c848dd98a7172ae28e718651b31fd4a46c1488ddc663d62f80809f157a5dfebd"
+    }
+  ],
+  "blockers": [],
+  "providerSubmission": {
+    "allowed": true,
+    "expectedCredits": 30,
+    "purpose": "Generate the static high-detail whole Aegis Tortoise Turret master for Bulwark form segmentation, retopology, semantic team-material isolation, and deterministic anchor/fire rigging.",
+    "texturePrompt": "Restrained stylized PBR whole radial emplacement: matte graphite-navy hard-surface armor, weathered bronze cardinal plates, crisp panel seams, dark gunmetal locks and restrained wear. Preserve exactly four equal bounded cyan cardinal inlays; keep the cyan reactor as separate class energy. No extra cyan, glow spill, text, logos, labels, decals, baked shadows, floor lighting, added markings, or glossy toy plastic."
+  }
+}

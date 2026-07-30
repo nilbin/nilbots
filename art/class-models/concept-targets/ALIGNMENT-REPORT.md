@@ -6,6 +6,12 @@ This is the retained result of the rigid top-view audit used to gate the
 approved concepts. No provider task was submitted and no provider credits were
 spent.
 
+Shell and whole-Turret corrections were subsequently prepared as inferred-3D
+clean provider inputs without replacing their tops with flat SVG rasters. The
+follow-up rigid audit improved them to 88.57% and 85.85% IoU respectively;
+see `../provider-inputs/BULWARK-FORM-AUDIT.md`. The baseline below is retained
+unchanged so the improvement remains measurable.
+
 ## Method
 
 - Crop only the strict top panel from each approval sheet.
