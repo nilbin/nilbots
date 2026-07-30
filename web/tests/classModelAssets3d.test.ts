@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const modelPath = join(
+const strikerModelPath = join(
   dirname(fileURLToPath(import.meta.url)),
   '..',
   'src',
@@ -13,9 +13,23 @@ const modelPath = join(
   'trident-wasp',
   'model.glb',
 );
+const aegisModelPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'src',
+  'assets',
+  'class-looks',
+  'aegis-tortoise',
+  'model.glb',
+);
 
 interface GlbDocument {
   accessors?: { count?: number }[];
+  animations?: {
+    name?: string;
+    channels?: unknown[];
+    samplers?: unknown[];
+  }[];
   materials?: {
     name?: string;
     extras?: { nilbotsRole?: string };
@@ -36,6 +50,7 @@ interface GlbDocument {
       mode?: number;
     }[];
   }[];
+  skins?: { joints?: number[] }[];
 }
 
 function readGlbDocument(path: string): GlbDocument {
@@ -55,7 +70,7 @@ function readGlbDocument(path: string): GlbDocument {
 }
 
 test('the approved Striker GLB keeps hull detail and one renderer-owned team surface', () => {
-  const document = readGlbDocument(modelPath);
+  const document = readGlbDocument(strikerModelPath);
   const primitives = document.meshes?.flatMap(
     (mesh) => mesh.primitives ?? [],
   ) ?? [];
@@ -106,4 +121,25 @@ test('the approved Striker GLB keeps hull detail and one renderer-owned team sur
   assert.equal((hullIndexCount + accentIndexCount) % 3, 0);
   assert.ok(hullIndexCount > accentIndexCount);
   assert.ok(accentIndexCount > 0);
+});
+
+test('the approved Aegis GLB carries its exact rig clips and renderer-owned team surface', () => {
+  const document = readGlbDocument(aegisModelPath);
+  assert.deepEqual(
+    document.animations?.map((animation) => animation.name),
+    ['Aegis_Idle', 'Aegis_Walk'],
+  );
+  for (const animation of document.animations ?? []) {
+    assert.equal(animation.channels?.length, 45);
+    assert.equal(animation.samplers?.length, 45);
+  }
+  assert.equal(document.skins?.length, 1);
+  assert.equal(document.skins?.[0].joints?.length, 15);
+  assert.equal(
+    document.materials?.filter(
+      (material) =>
+        material.extras?.nilbotsRole === 'team-accent',
+    ).length,
+    1,
+  );
 });

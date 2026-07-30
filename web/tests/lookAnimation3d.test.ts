@@ -76,6 +76,16 @@ test('animation sampling is an absolute function of motion and phase', () => {
   assert.equal(seekLookAnimation(root, 'moving', 0.9), true);
   assert.equal(seekLookAnimation(root, 'idle', 0.25), true);
   assert.equal(part.position.x, 0.25);
+  assert.equal(seekLookAnimation(root, 'moving', 0.25), true);
+  assert.equal(part.position.x, 0.5);
+  assert.equal(seekLookAnimation(root, 'idle', 0.75), true);
+  assert.equal(part.position.x, 0.75);
+  assert.equal(seekLookAnimation(root, 'moving', 0.25), true);
+  assert.equal(
+    part.position.x,
+    0.5,
+    'returning from the idle clip restores the exact moving pose',
+  );
 
   // Normalized phases wrap in both directions.
   assert.equal(seekLookAnimation(root, 'moving', 1.25), true);

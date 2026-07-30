@@ -5,7 +5,7 @@ import {
   presentationBotLook,
 } from './.harness/harness.entry.js';
 
-test('only the approved Striker mobile body resolves to an authored class GLB', () => {
+test('approved animated and hovering mobile bodies resolve to authored class GLBs', () => {
   assert.deepEqual(modelSpec('trident-wasp'), {
     version: 1,
     id: 'trident-wasp',
@@ -15,10 +15,22 @@ test('only the approved Striker mobile body resolves to an authored class GLB', 
     facing: '+x',
     up: '+y',
   });
+  assert.deepEqual(modelSpec('aegis-tortoise'), {
+    version: 1,
+    id: 'aegis-tortoise',
+    file: 'model.glb',
+    kind: 'bot',
+    part: 'whole',
+    facing: '+x',
+    up: '+y',
+    animation: {
+      idleClip: 'Aegis_Idle',
+      movingClip: 'Aegis_Walk',
+    },
+  });
 
   for (const id of [
     'trident-wasp-volley',
-    'aegis-tortoise',
     'aegis-tortoise-shell',
     'aegis-tortoise-turret',
     'lattice-loom',

@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "generatedBy": "scripts/render-aegis-runtime-review.mjs",
+  "replay": {
+    "generatedWith": "dotnet run --project src/BotArena.Cli/BotArena.Cli.csproj -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/iron-root --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/iron-root --runtime in-process --seed 42 --out /tmp/nilbots-aegis-runtime-review-mirror",
+    "fileName": "replay.json",
+    "byteLength": 31802495,
+    "sha256": "69f102ae3779a5be16931b4346602f6f8cd3a45ba33216330f134c5416168a0b",
+    "replayHash": "6c0e818916c3e42e18fd06d7ba619e8bd0349a893a47195b28cb402135f556e1",
+    "gameRulesVersion": "frontline-labs-1-experiment-classes-bulwark-vs-bulwark",
+    "matchContractFingerprint": "a93ae9d8c40317028862ff316c7be0b5ace2a1876b6b1d3c2e6435562771386e",
+    "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+    "tickCount": 500,
+    "runtime": "in-process diagnostic",
+    "teams": [
+      {
+        "teamId": 0,
+        "classId": "bulwark"
+      },
+      {
+        "teamId": 1,
+        "classId": "bulwark"
+      }
+    ],
+    "participantAccents": [
+      "#7f8c3a",
+      "#7f8c3a"
+    ]
+  },
+  "frame": {
+    "tick": 5,
+    "phases": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "movement": [
+      {
+        "teamId": 0,
+        "formId": "bulwark-prime",
+        "facing": "east",
+        "open": {
+          "x": 8,
+          "y": 7
+        },
+        "close": {
+          "x": 9,
+          "y": 7
+        }
+      },
+      {
+        "teamId": 1,
+        "formId": "bulwark-prime",
+        "facing": "west",
+        "open": {
+          "x": 14,
+          "y": 7
+        },
+        "close": {
+          "x": 13,
+          "y": 7
+        }
+      }
+    ],
+    "idle": {
+      "time": 6.5,
+      "actors": [
+        {
+          "teamId": 0,
+          "formId": "bulwark-prime",
+          "facing": "east",
+          "open": {
+            "x": 9,
+            "y": 7
+          },
+          "close": {
+            "x": 9,
+            "y": 7
+          }
+        },
+        {
+          "teamId": 1,
+          "formId": "bulwark-prime",
+          "facing": "west",
+          "open": {
+            "x": 13,
+            "y": 7
+          },
+          "close": {
+            "x": 13,
+            "y": 7
+          }
+        }
+      ]
+    },
+    "cameraPitchDegrees": 58,
+    "autoFitCapture": true,
+    "closeCapture": {
+      "minSpanTiles": 8,
+      "method": "turn fit off, then use one supported wheel-zoom gesture after the camera settles"
+    },
+    "viewport": {
+      "width": 1600,
+      "height": 1000,
+      "deviceScaleFactor": 1
+    },
+    "canvas": {
+      "width": 926,
+      "height": 578,
+      "cssWidth": 926,
+      "cssHeight": 578
+    },
+    "teamAccentFallback": {
+      "team0": "#38bdf8",
+      "team1": "#fb923c"
+    }
+  },
+  "model": {
+    "source": "web/src/assets/class-looks/aegis-tortoise/model.glb",
+    "byteLength": 6346356,
+    "sha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66",
+    "builtAsset": "assets/model-CLEgOsx6.glb",
+    "animations": [
+      {
+        "name": "Aegis_Idle",
+        "channelCount": 45,
+        "samplerCount": 45
+      },
+      {
+        "name": "Aegis_Walk",
+        "channelCount": 45,
+        "samplerCount": 45
+      }
+    ],
+    "skinCount": 1,
+    "teamAccentMaterialCount": 1,
+    "candidateRequest": {
+      "status": 200,
+      "urlPath": "/assets/model-CLEgOsx6.glb",
+      "contentLength": 6346356
+    },
+    "forcedFallbackRequest": {
+      "status": 404,
+      "urlPath": "/assets/model-CLEgOsx6.glb",
+      "contentLength": 0
+    }
+  },
+  "assertions": {
+    "declaredClipsPresent": true,
+    "bothBulwarkTeamsMoveAcrossReviewedTick": true,
+    "bothBulwarkTeamsIdleAcrossReviewedTick": true,
+    "candidateAegisGlbServed": true,
+    "forcedAegisGlbRejected": true,
+    "glbAndSvgFallbackAreVisuallyDistinct": true,
+    "repeatedReplayPhaseIsRasterEquivalent": true,
+    "repeatedReplayPhaseDifference": {
+      "changedPixels": 0,
+      "totalPixels": 536154,
+      "changedPercent": 0,
+      "maxChannelDelta": 0,
+      "allowed": {
+        "changedPixels": 8,
+        "maxChannelDelta": 1
+      }
+    },
+    "exactReplayTimeSamplingTest": "web/tests/lookAnimation3d.test.ts asserts exact history-independent object transforms",
+    "pageErrors": {
+      "candidate": [],
+      "fallback": []
+    }
+  },
+  "screenshots": {
+    "auto": {
+      "file": "aegis-real-replay-auto-fit-v1.png",
+      "sha256": "9e7d10ee623b3e4475c001d7035bd829698f15271a76d41b829d25a4dd27804f"
+    },
+    "walk25": {
+      "file": "aegis-real-replay-walk-025-v1.png",
+      "sha256": "82b78ce414cebd49d3d8d4fe84f4b42830f26dca45d740fcafede0e17466f289"
+    },
+    "walk50": {
+      "file": "aegis-real-replay-walk-050-v1.png",
+      "sha256": "96dcb3fa383cf7ac7fc7de1402e283a5d11955e9b6a11c18b1a2643df0046233"
+    },
+    "walk75": {
+      "file": "aegis-real-replay-walk-075-v1.png",
+      "sha256": "c98085f9c972e5848e0530ec19d108016bf76208fc908e1d175ef3ca79d430bc"
+    },
+    "idle": {
+      "file": "aegis-real-replay-idle-v1.png",
+      "sha256": "0c82aa2736ba3e5fcea000f5fc7c3b10a9348e674eb70a604eb352bdcaf4841b"
+    },
+    "walk25Repeat": {
+      "file": "aegis-real-replay-walk-025-repeat-v1.png",
+      "sha256": "82b78ce414cebd49d3d8d4fe84f4b42830f26dca45d740fcafede0e17466f289"
+    },
+    "fallback": {
+      "file": "aegis-real-replay-svg-fallback-v1.png",
+      "sha256": "2e175dd5b2cbcca4b7932eaf338f6b015a7939d0c34b93e60d93f04f3090a7af"
+    },
+    "comparison": {
+      "file": "aegis-real-replay-glb-fallback-comparison-v1.png",
+      "sha256": "9fc69cbbd080417f7dc98020f833cbd435af52c54e5b65ef7983b46ffc20145f"
+    },
+    "phases": {
+      "file": "aegis-real-replay-walk-phases-v1.png",
+      "sha256": "706ee53aaa67b350619aa4d5300d13119fe5c0c523e687e53ee4f5478f9990dd"
+    }
+  },
+  "limitations": [
+    "The visual replay uses the fast in-process runtime. Its replay is engine-produced and deterministic, but it is not submission-equivalent WASM balance evidence.",
+    "The fallback case is forced by returning HTTP 404 for only the hashed Aegis GLB; every other candidate build asset is unchanged.",
+    "This stage covers the mobile Aegis body. The shell, turret and projectile remain on their canonical SVG-derived fallback until their own reviewed GLBs land.",
+    "The browser repeat uses an explicit SwiftShader raster floor of at most eight changed pixels and one 8-bit channel value; the underlying animation sampler is covered separately by exact numeric assertions."
+  ]
+}
