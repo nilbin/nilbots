@@ -3904,6 +3904,56 @@ investigation (a wave-5 freeze re-measured differently across the
 0.9.21→0.9.22 republish — determinism is the product; find the moved
 input).
 
+## 180. The ticking cooldown clock; tide is the working game
+
+Owner rulings executed as one window. The attack cooldown becomes a
+property of TIME instead of the armed form (`--cooldown ticking`,
+contract fact `tickResolution.cooldownClock`, inert-omitted): a gunless
+stance or windup no longer freezes gun recovery, ending the hidden
+stance tax gate-stone discovered in wave 5. Everything else about
+cooldowns is unchanged (one public counter per body, declared price per
+gun, shared across forms, reset on a new life). **`tide`** — the open
+game on the ticking clock — is the working game. Two catches recorded:
+the first tide sweep caught a canonical-order bug (the new field was
+emitted mid-object; canonical readers demand exact order — moved to
+trailing position, reader taught), and the first sweep also
+demonstrated the #170 consequence live (frozen pre-0.10.7 artifacts
+fault on tide contracts; the cohort was rebuilt from source).
+
+Coarse tide read (rebuilt wave-6 cohort; doctrine authored under the
+FROZEN clock, so this is a stale-doctrine lower bound):
+bulwark-vs-fabricator **+0.333 — still in band, undisturbed**;
+bulwark-vs-striker hardened +0.815 → **+1.000**;
+fabricator-vs-striker +1.000. The clock helps every stance user and
+helps the shell most (bulwarks now raise and come out with a live
+gun), so as a striker buff the hypothesis is REFUTED — it was adopted
+as a design-correctness ruling, not a balance lever, and stands. The
+striker conversation now has exactly two levers left on the record:
+class numbers (HP/vision/lethality) and granular asymmetric stance
+ground (the per-skill tile classes). A wave-7 doctrine pass would
+re-price everything above; per fast-iteration these numbers ship as
+provisional.
+
+## 181. Route cooldowns: the general skill-pricing capability
+
+Owner ruling ("we should add it — will be good to have going
+forward"): any same-life route may declare `cooldownTicks`
+(`sameLifeTransitions[].cooldownTicks`, inert-omitted). After the
+route COMPLETES, requesting it again from the same UNIT SLOT is
+refused while `tick < completionTick + cooldownTicks + 1`. The clock
+survives the body — die-to-reset, the exploit the original draft
+flagged, is closed by construction — and automatic returns are
+exempt, so a forced exit is never trapped by its own clock. Session
+gates the availability mask and the queue and stamps at completion;
+the chronology validator rejects impossible cooldown histories with a
+mirrored match-level pass; a live probe pins spacing = cooldown + 1
+and no deadlock. SDK 0.10.7 / CLI 0.9.24 carry both of this window's
+trailing additive contract facts. No skill declares a cooldown yet:
+this is the prerequisite for the higher-power skill tier, and the
+observation publication of remaining ticks is bound to the first
+skill that uses it (the readability law binds at first use). The
+`nilbots` symlink beside `botarena` also finally exists.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
