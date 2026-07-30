@@ -269,9 +269,12 @@ public static class FrontlineLabsExperimentCommand
                 + "--classes <a>-vs-<b> or run two class-declaring "
                 + "projects.");
         }
+        // Validated against the REQUESTED kit, not the class-effective one:
+        // the engine inert-omits salvo in a strikerless cell, so one
+        // uniform flag set works across every pair of a wave.
         FrontlineLabsVolleyArm volleyArm = OptionalVolleyArm(options);
         if (volleyArm != FrontlineLabsVolleyArm.Cast
-            && !skills.HasFlag(FrontlineLabsSkillKit.StrikerVolley))
+            && !requestedSkills.HasFlag(FrontlineLabsSkillKit.StrikerVolley))
         {
             throw new InvalidOperationException(
                 "--volley tunes the VOLLEY skill, so the cell must carry "
