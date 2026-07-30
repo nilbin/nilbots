@@ -1,0 +1,11 @@
+{
+  "name": "StillWater",
+  "entryType": "StillWater",
+  "sdkVersion": "0.10.6",
+  "class": "striker",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

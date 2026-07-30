@@ -1,0 +1,46 @@
+# ledger-fly revision 5 — freeze manifest
+# source-tree sha256: 55d746f0d75a74c69665be11b3f2d679fd47bef6b04668f33e50c7c86a77cd72
+# build cache key:    633592429c620903f11c66e742b6cd98866caf02f8c355a4713e50dac37df018
+# toolchain: nilbots CLI 0.9.21, SDK 0.10.6, NativeAOT-LLVM 10.0.0-rc.1.26306.1, WASI p1
+# primary cell: frontline-labs-1-fabricator-vs-fabricator-crew-facing-locked
+#   (the whole open game; `--stance-ground open` is inert-omitted in a
+#    fabricator mirror, so `deck` spells itself `crew` here — the flag set is
+#    identical and the cross-class probes below do resolve `deck`)
+# rules fingerprint: b28fb9d001d615b303efa11f1d676f42bcb3a76415966962ff1d698e1f0760fa
+#
+# source-tree hash construction: sha256 over the sorted submitted files, each
+# contributed as name, NUL, big-endian 8-byte length, bytes (same as revisions
+# 2, 3 and 4).
+
+567e9faff0546472153f773df504dd252de38a63c5b99a50a9c08b72bd192627  ArenaBasics.cs
+e60a25eab645a9d977d847051cc60ab386ffe9e271964bc40283f8c80743873d  Bearings.cs
+28bdce1328322aa8457ac7a11d7991d9f4f0e856543bbc81f237a6578c80537e  FabricationRoute.cs
+867c9fd603ecce39f54f672d5262abd8306e9eeae1076d98f5b26ffe797bd723  Field.cs
+45702aad6581aad11e2105c1b81d250aa0bd27756a8a2b2e6eba93df1cfb70cd  Gunnery.cs
+928e9e177546ece72a956873b60cdb18aa6642150063a6066e9b8bbd125505fc  Kinematics.cs
+d96faf4cd2f525d6a409abd861c3b36a7b7726cf5efc9aefc0941dda269082f8  Ledger.cs
+661ec7b6ffa6e361625593d7821baa228c420367c236e9a7034aba1f4dd78b4f  LedgerFly.cs
+8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573  LedgerFly.csproj
+686658c5d83e2ddf7c656f787e38258bdacf69583ebe8d1a17441084080b9bc4  MatchLens.cs
+a0424893079948b7145b3e57b972cfd21f4ceb7519a5b9ed9eb530ee98547a14  Ratchet.cs
+c3e6ddbd508bdb90e4b47e4306ab0b9200e71e4bab3e9c681cac7ec70c7ee3af  Stances.cs
+ca79e974a421862b5860c82d2cca293cfc8eb6b957d105ae76bcc6e876374e71  botarena.json
+
+# canonical artifact (final `nilbots build . --no-cache`), 3,460,884 bytes
+12165ad4ba9f157ff121e76f1632dbcbcf826ac19156da51e7ed1c789b4c1306  out/bot.wasm
+
+# qualification: suite frontline-qualification-5, profile
+# frontline-duel-depth-union-t4-v1, WASM, exit 0, tier T4,
+# balanceEvidenceEligible true, 36 verified probe replays
+f819ebb46415dd4738dbcd2a92684dedbfa807de03f20fdc8c2f8f85c9f538b1  evidence/t4/qualification.json
+ea8ea653952870ddf46e94a31c4f43576e4d8fc9bd8f26dab8948a751bf2681b  evidence/t4/prerequisite-t3/qualification.json
+b91cb79c36a9fa9e652c7166f30eb580b233c158f8ca55b49f7b19e4d7694998  evidence/t4/prerequisite-t3/prerequisite-t2/qualification.json
+
+# permitted material actually consulted
+d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e  docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md
+06ff461e3062e5a5b04455672a4deef9423987f6e80eaad10e089007d94c20e8  docs/FRONTLINE-LABS-RULES.md
+2333bd3c9f412e4e9439779ef3d5f2ca6bc8abae6f00973daf54f7e4c892de50  docs/EXPERIMENTAL-FRONTLINE-CLASSES.md (post mid-wave correction; see DX.md)
+567e9faff0546472153f773df504dd252de38a63c5b99a50a9c08b72bd192627  templates/botarena-generic-actor/ArenaBasics.cs (carried byte-identical)
+
+# sparring baseline: revision-4 source rebuilt --no-cache against SDK 0.10.6
+4501ec87fb32af6dfe6c523795fe8779b92ab07abf1c5959baf578d0571b9cc4  (rebuilt wave-4 predecessor bot.wasm)
