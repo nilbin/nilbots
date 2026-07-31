@@ -192,43 +192,90 @@ internal static class GenericActorWireObservationCodec
         int depth)
     {
         var reader = new ActorWireObjectReader(bytes, depth);
+        return GenericActorWireCodecValues.Decode(
+            () =>
+            {
+                SharedBodyState body = DecodeSharedBody(reader, depth);
+                return new GenericActorContext.ObservedSelfState(
+                    body.ActorId,
+                    body.Generation,
+                    body.FormId,
+                    body.Position,
+                    body.Facing,
+                    body.Health,
+                    body.Cooldown,
+                    body.Energy,
+                    body.PreviousActionResolution,
+                    body.PendingSameLifeTransition,
+                    body.ClassId,
+                    body.RouteCooldowns,
+                    body.CarriedScrap);
+            },
+            "self observation");
+    }
+
+    /// <summary>
+    /// Fields 1..13 of the SHARED body encoding, decoded once. Self, ally, and
+    /// the mind profile's own bodies all carry these exact fields in these exact
+    /// slots, which is what makes a mind body and a per-life self comparable
+    /// field by field rather than merely equivalent in spirit.
+    /// </summary>
+    internal readonly record struct SharedBodyState(
+        ActorIdentity ActorId,
+        int Generation,
+        string FormId,
+        Position Position,
+        Direction Facing,
+        int Health,
+        int Cooldown,
+        int? Energy,
+        GenericActorActionResolution? PreviousActionResolution,
+        GenericActorContext.PendingSameLifeTransition?
+            PendingSameLifeTransition,
+        string? ClassId,
+        ImmutableArray<GenericActorContext.ObservedRouteCooldown>
+            RouteCooldowns,
+        int CarriedScrap);
+
+    internal static SharedBodyState DecodeSharedBody(
+        ActorWireObjectReader reader,
+        int depth)
+    {
         byte[]? resolution = reader.Optional(9);
         byte[]? transition = reader.Optional(10);
         byte[]? classId = reader.Optional(11);
         byte[]? routeCooldowns = reader.Optional(12);
-        return GenericActorWireCodecValues.Decode(
-            () => new GenericActorContext.ObservedSelfState(
-                GenericActorWireCodecValues.DecodeIdentity(
-                    reader.Required(1),
+        return new SharedBodyState(
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(1),
+                depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 2),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(4),
+                depth + 1),
+            GenericActorWireCodecValues.Enum<Direction>(reader, 5),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.Int32(reader, 7),
+            GenericActorWireCodecValues.OptionalInt32(reader, 8),
+            resolution is null
+                ? null
+                : GenericActorWireActionCodec.DecodeResolution(
+                    resolution,
                     depth + 1),
-                GenericActorWireCodecValues.Int32(reader, 2),
-                GenericActorWireCodecValues.SemanticId(reader.Required(3)),
-                GenericActorWireCodecValues.DecodePosition(
-                    reader.Required(4),
+            transition is null
+                ? null
+                : DecodePendingTransition(
+                    transition,
                     depth + 1),
-                GenericActorWireCodecValues.Enum<Direction>(reader, 5),
-                GenericActorWireCodecValues.Int32(reader, 6),
-                GenericActorWireCodecValues.Int32(reader, 7),
-                GenericActorWireCodecValues.OptionalInt32(reader, 8),
-                resolution is null
-                    ? null
-                    : GenericActorWireActionCodec.DecodeResolution(
-                        resolution,
-                        depth + 1),
-                transition is null
-                    ? null
-                    : DecodePendingTransition(
-                        transition,
-                        depth + 1),
-                classId is null
-                    ? null
-                    : GenericActorWireCodecValues.SemanticId(classId),
-                DecodeRouteCooldowns(routeCooldowns, depth),
-                GenericActorWireCodecValues.OptionalInt32(reader, 13) ?? 0),
-            "self observation");
+            classId is null
+                ? null
+                : GenericActorWireCodecValues.SemanticId(classId),
+            DecodeRouteCooldowns(routeCooldowns, depth),
+            GenericActorWireCodecValues.OptionalInt32(reader, 13) ?? 0);
     }
 
-    private static byte[] EncodeAlly(
+    internal static byte[] EncodeAlly(
         GenericActorContext.ObservedAllyState value)
     {
         var writer = new ActorWireObjectWriter();
@@ -250,48 +297,34 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ObservedAllyState DecodeAlly(
+    internal static GenericActorContext.ObservedAllyState DecodeAlly(
         byte[] bytes,
         int depth)
     {
         var reader = new ActorWireObjectReader(bytes, depth);
-        byte[]? resolution = reader.Optional(9);
-        byte[]? transition = reader.Optional(10);
-        byte[]? classId = reader.Optional(11);
-        byte[]? routeCooldowns = reader.Optional(12);
         return GenericActorWireCodecValues.Decode(
-            () => new GenericActorContext.ObservedAllyState(
-                GenericActorWireCodecValues.DecodeIdentity(
-                    reader.Required(1),
-                    depth + 1),
-                GenericActorWireCodecValues.Int32(reader, 2),
-                GenericActorWireCodecValues.SemanticId(reader.Required(3)),
-                GenericActorWireCodecValues.DecodePosition(
-                    reader.Required(4),
-                    depth + 1),
-                GenericActorWireCodecValues.Enum<Direction>(reader, 5),
-                GenericActorWireCodecValues.Int32(reader, 6),
-                GenericActorWireCodecValues.Int32(reader, 7),
-                GenericActorWireCodecValues.OptionalInt32(reader, 8),
-                resolution is null
-                    ? null
-                    : GenericActorWireActionCodec.DecodeResolution(
-                        resolution,
-                        depth + 1),
-                transition is null
-                    ? null
-                    : DecodePendingTransition(
-                        transition,
-                        depth + 1),
-                classId is null
-                    ? null
-                    : GenericActorWireCodecValues.SemanticId(classId),
-                DecodeRouteCooldowns(routeCooldowns, depth),
-                GenericActorWireCodecValues.OptionalInt32(reader, 13) ?? 0),
+            () =>
+            {
+                SharedBodyState body = DecodeSharedBody(reader, depth);
+                return new GenericActorContext.ObservedAllyState(
+                    body.ActorId,
+                    body.Generation,
+                    body.FormId,
+                    body.Position,
+                    body.Facing,
+                    body.Health,
+                    body.Cooldown,
+                    body.Energy,
+                    body.PreviousActionResolution,
+                    body.PendingSameLifeTransition,
+                    body.ClassId,
+                    body.RouteCooldowns,
+                    body.CarriedScrap);
+            },
             "ally observation");
     }
 
-    private static void EncodeBody(
+    internal static void EncodeBody(
         ActorWireObjectWriter writer,
         ActorIdentity actorId,
         int generation,
@@ -595,7 +628,7 @@ internal static class GenericActorWireObservationCodec
                 reader.Required(6),
                 depth + 1));
 
-    private static byte[] EncodeParticipant(
+    internal static byte[] EncodeParticipant(
         GenericActorContext.ObservedParticipantStatus value)
     {
         var writer = new ActorWireObjectWriter();
@@ -613,7 +646,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ObservedParticipantStatus
+    internal static GenericActorContext.ObservedParticipantStatus
         DecodeParticipant(byte[] bytes, int depth)
     {
         var reader = new ActorWireObjectReader(bytes, depth);
@@ -630,7 +663,7 @@ internal static class GenericActorWireObservationCodec
             "participant observation");
     }
 
-    private static byte[] EncodeEnemy(
+    internal static byte[] EncodeEnemy(
         GenericActorContext.ObservedEnemyState value)
     {
         var writer = new ActorWireObjectWriter();
@@ -668,7 +701,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ObservedEnemyState DecodeEnemy(
+    internal static GenericActorContext.ObservedEnemyState DecodeEnemy(
         byte[] bytes,
         int depth)
     {
@@ -704,7 +737,7 @@ internal static class GenericActorWireObservationCodec
             "enemy observation");
     }
 
-    private static byte[] EncodeTile(
+    internal static byte[] EncodeTile(
         GenericActorContext.ObservedTile value)
     {
         var writer = new ActorWireObjectWriter();
@@ -725,7 +758,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ObservedTile DecodeTile(
+    internal static GenericActorContext.ObservedTile DecodeTile(
         byte[] bytes,
         int depth)
     {
@@ -751,7 +784,7 @@ internal static class GenericActorWireObservationCodec
             "tile observation");
     }
 
-    private static byte[] EncodeProjectile(
+    internal static byte[] EncodeProjectile(
         GenericActorContext.ObservedProjectile value)
     {
         var writer = new ActorWireObjectWriter();
@@ -785,7 +818,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ObservedProjectile DecodeProjectile(
+    internal static GenericActorContext.ObservedProjectile DecodeProjectile(
         byte[] bytes,
         int depth)
     {
@@ -820,7 +853,7 @@ internal static class GenericActorWireObservationCodec
             "projectile observation");
     }
 
-    private static byte[] EncodeScoreboard(
+    internal static byte[] EncodeScoreboard(
         GenericActorContext.ScoreboardState value)
     {
         var writer = new ActorWireObjectWriter();
@@ -828,7 +861,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.ScoreboardState DecodeScoreboard(
+    internal static GenericActorContext.ScoreboardState DecodeScoreboard(
         byte[] bytes,
         int depth)
     {

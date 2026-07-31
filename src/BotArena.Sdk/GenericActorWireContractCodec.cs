@@ -72,7 +72,7 @@ internal static class GenericActorWireContractCodec
         }
     }
 
-    private static byte[] EncodeOrigin(
+    internal static byte[] EncodeOrigin(
         GenericActorMatchStart.LifeOrigin origin)
     {
         var writer = new ActorWireObjectWriter();
@@ -99,7 +99,7 @@ internal static class GenericActorWireContractCodec
         return writer.ToArray();
     }
 
-    private static GenericActorMatchStart.LifeOrigin DecodeOrigin(
+    internal static GenericActorMatchStart.LifeOrigin DecodeOrigin(
         byte[] bytes,
         int depth)
     {

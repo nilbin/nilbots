@@ -302,11 +302,16 @@ public static class ToolchainInfo
     ///   `swarm`, `palisade`.
     /// NONE of this moves SDK or Guest bytes: it is all contract DATA — arm
     /// constants, a limits value, topology and lifecycle assignments, and one
-    /// new map generation — inside schemas that already exist, so SDK/Guest
-    /// stay at 0.10.10 and a frozen artifact from this window still
-    /// negotiates. A frozen artifact that hard-coded 500 ticks, four deposits
-    /// or a three-tier cap will simply play badly, which is the ordinary
-    /// contract-driven consequence.
+    /// new map generation — inside schemas that already exist, so a frozen
+    /// artifact from this window still negotiates. A frozen artifact that
+    /// hard-coded 500 ticks, four deposits or a three-tier cap will simply
+    /// play badly, which is the ordinary contract-driven consequence.
+    /// The window stays UNPUBLISHED and continues through the MIND profile's
+    /// SDK/Guest half (SDK 0.10.11). That half moves SDK and Guest bytes and
+    /// therefore invalidates every build-cache entry by design, but it changes
+    /// nothing a player can reach: no CLI command selects the mind profile and
+    /// no scaffold emits one until the CLI phase, so this version keeps its
+    /// number and grows a note rather than shipping a half-built surface.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.27";
@@ -415,9 +420,39 @@ public static class ToolchainInfo
     // contract carrying both. Read the ladder's prices and caps from the
     // contract and the affordable tracks from the legality mask; never price
     // a tier in the bot.
-    public const string SdkVersion = "0.10.10";
+    // 0.10.11: THE MIND. A second, parallel programming model lands beside
+    // the per-life one and does not replace it: IGenericMindBot with
+    // StartMatch/Think/EndMatch, MindContext (own Bodies with per-body
+    // legality plus MovedLastTick/PreviousPosition/LifeStartedTick/Origin, the
+    // complete own Slots table published EVERY tick, team perception and
+    // mode/economy/scoreboard delivered ONCE rather than per body, plus
+    // Random/TeamRandom/Debug), MindBody with the command surface
+    // (Command/Hold/SetRole - commands are WRITTEN onto bodies, never
+    // returned, and every own live body is pre-filled with Wait so forgetting
+    // one costs a tick rather than the match), MindSlot, MindStart, MindEnd,
+    // MindDecisions/MindCommand, and the public role tag.
+    // It is a fresh profile - generic-mind-match-1, runtime contract /
+    // MatchStart / observation / decision schemas all 1, runtime configuration
+    // 2.0 - while the RESOLVED MATCH CONTRACT schema is CARRIED at 2, because
+    // the rules, map, forms, actions, transitions, lifecycle, mode and economy
+    // are identical: the mind plays the same game, only the driver changed.
+    // generic-actor-match-2 is untouched and stays byte-exact.
+    // Nothing here is player-reachable yet; no CLI command or scaffold selects
+    // the profile. The version moves because the SDK's compile surface and the
+    // Guest's bytes both moved - which invalidates the build cache by design
+    // (DECISIONS #84) - and because an artifact built from this version
+    // attests BOTH profiles: GuestHost.RunDetected gives any existing
+    // IGenericActorBot a WrappedPerLifeMind facade, one sub-brain per live
+    // body with per-life memory semantics reproduced exactly, so a per-life
+    // bot becomes mind-profile-playable by rebuilding its sources with no
+    // edits. The one documented divergence is the sub-brain's private random
+    // seed, which is derived from the mind's participant-domain seed because
+    // the per-life seed is mixed from a match seed the mind is never handed.
+    public const string SdkVersion = "0.10.11";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.6";
+    // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
+    // the mind arm of the negotiation state machine, and WrappedPerLifeMind.
+    public const string GuestAdapterVersion = "0.10.11";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

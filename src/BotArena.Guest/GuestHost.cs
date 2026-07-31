@@ -30,12 +30,36 @@ public static class GuestHost
     /// </summary>
     public static int RunDetected<TBot>(Func<TBot> botFactory)
     {
+        DetectedFactories<TBot> detected = Detect(botFactory);
+        return RunCore(
+            detected.Legacy,
+            detected.Actor,
+            detected.GenericActor,
+            detected.Mind);
+    }
+
+    /// <summary>
+    /// The static capability analysis, factored out so the negotiation
+    /// consequences of an artifact's TYPE can be exercised without a WASM host.
+    /// A type reaches the mind profile either by implementing
+    /// <see cref="IGenericMindBot"/> or, for any existing
+    /// <see cref="IGenericActorBot"/>, through the wrap adapter the dispatcher
+    /// supplies — which is what makes the migration a rebuild.
+    /// </summary>
+    internal static DetectedFactories<TBot> Detect<TBot>(
+        Func<TBot> botFactory)
+    {
         ArgumentNullException.ThrowIfNull(botFactory);
         bool supportsLegacy = typeof(IBot).IsAssignableFrom(typeof(TBot));
         bool supportsActor = typeof(IActorBot).IsAssignableFrom(typeof(TBot));
         bool supportsGeneric =
             typeof(IGenericActorBot).IsAssignableFrom(typeof(TBot));
-        if (!supportsLegacy && !supportsActor && !supportsGeneric)
+        bool supportsMind =
+            typeof(IGenericMindBot).IsAssignableFrom(typeof(TBot));
+        if (!supportsLegacy
+            && !supportsActor
+            && !supportsGeneric
+            && !supportsMind)
         {
             throw new InvalidOperationException(
                 $"{typeof(TBot).FullName} does not implement a Nilbots bot interface.");
@@ -49,7 +73,7 @@ public static class GuestHost
                     "Bot factory returned null.");
         }
 
-        return RunCore(
+        return new DetectedFactories<TBot>(
             supportsLegacy
                 ? _ => (IBot)Create()
                 : null,
@@ -58,8 +82,17 @@ public static class GuestHost
                 : null,
             supportsGeneric
                 ? _ => (IGenericActorBot)Create()
+                : null,
+            supportsMind
+                ? _ => (IGenericMindBot)Create()
                 : null);
     }
+
+    internal sealed record DetectedFactories<TBot>(
+        Func<string, IBot>? Legacy,
+        Func<string, IActorBot>? Actor,
+        Func<string, IGenericActorBot>? GenericActor,
+        Func<string, IGenericMindBot>? Mind);
 
     /// <summary>Single-bot artifact (the normal player case).</summary>
     public static int Run(Func<IBot> botFactory) =>
@@ -116,6 +149,28 @@ public static class GuestHost
             botFactory);
 
     /// <summary>
+    /// Single mind artifact. One instance drives every body the participant
+    /// owns, for the whole match.
+    /// </summary>
+    public static int RunMind(Func<IGenericMindBot> botFactory) =>
+        RunCore(
+            legacyFactory: null,
+            actorFactory: null,
+            genericActorFactory: null,
+            _ => botFactory());
+
+    /// <summary>
+    /// Multi-bot mind artifact. The factory receives the framework-owned
+    /// selector carried beside MindStart.
+    /// </summary>
+    public static int RunMind(Func<string, IGenericMindBot> botFactory) =>
+        RunCore(
+            legacyFactory: null,
+            actorFactory: null,
+            genericActorFactory: null,
+            botFactory);
+
+    /// <summary>
     /// Framework/test artifact supporting both historical duel bots and
     /// entity bots. Player artifacts normally use one of the single-family
     /// overloads above.
@@ -131,7 +186,8 @@ public static class GuestHost
     private static unsafe int RunCore(
         Func<string, IBot>? legacyFactory,
         Func<string, IActorBot>? actorFactory,
-        Func<string, IGenericActorBot>? genericActorFactory)
+        Func<string, IGenericActorBot>? genericActorFactory,
+        Func<string, IGenericMindBot>? mindFactory = null)
     {
         // The first actor Hello is tiny. Preserve the historical 128 KiB
         // allocation for legacy-only artifacts and grow only after vNext
@@ -140,7 +196,8 @@ public static class GuestHost
         GuestSession? legacySession = null;
         var actorDispatcher = new ActorGuestDispatcher(
             actorFactory,
-            genericActorFactory);
+            genericActorFactory,
+            mindFactory);
         while (true)
         {
             int length;

@@ -216,6 +216,29 @@ public class DocDriftTests
     }
 
     [Fact]
+    public void SdkVersionNote_NamesTheMindApiItShipped()
+    {
+        // The version notes are how a frozen artifact's capabilities are read
+        // back years later. A version that moved because a whole programming
+        // model landed has to say so, by name, or the note is worse than
+        // absent.
+        string toolchain = ReadRepoFile("src", "BotArena.Toolchain", "BotProject.cs");
+        foreach (string token in new[]
+                 {
+                     "IGenericMindBot",
+                     "MindContext",
+                     "MindBody",
+                     "generic-mind-match-1",
+                     "WrappedPerLifeMind",
+                 })
+        {
+            Assert.True(
+                toolchain.Contains(token, StringComparison.Ordinal),
+                $"The SDK version notes never mention '{token}'.");
+        }
+    }
+
+    [Fact]
     public void SdkProjectVersion_MatchesToolchainVersion()
     {
         string toolchain = ReadRepoFile("src", "BotArena.Toolchain", "BotProject.cs");

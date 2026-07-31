@@ -274,6 +274,60 @@ internal static class ActorWireProtocol
         return GenericActorWireDecisionCodec.Decode(decoded.Payload);
     }
 
+    // ---- the MIND profile ------------------------------------------------
+    // MindStart, MindObservation and MindDecisions replace MatchStart,
+    // Observation and Decision FOR THIS PROFILE, riding the same framing
+    // message types with a different payload codec. That is the same shape the
+    // per-life generation already uses: framing is a protocol matter, message
+    // payloads are a profile matter, and the negotiated profile decides which
+    // codec reads the bytes.
+
+    public static byte[] EncodeMindStart(string botName, MindStart start)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.String(botName, 256));
+        writer.Field(2, GenericMindWireStartCodec.Encode(start));
+        return Frame(ActorWireMessageType.MatchStart, writer.ToArray());
+    }
+
+    public static ActorWireMindStart DecodeMindStart(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.MatchStart);
+        var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        return new ActorWireMindStart(
+            ActorWireValue.String(reader.Required(1), 256),
+            GenericMindWireStartCodec.Decode(reader.Required(2), 1));
+    }
+
+    public static byte[] EncodeMindObservation(MindContext observation) =>
+        Frame(
+            ActorWireMessageType.Observation,
+            GenericMindWireObservationCodec.Encode(observation));
+
+    public static MindContext DecodeMindObservation(
+        byte[] frame,
+        MindWaitAction waitAction)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.Observation);
+        return GenericMindWireObservationCodec.Decode(
+            decoded.Payload,
+            waitAction);
+    }
+
+    public static byte[] EncodeMindDecisions(MindDecisions decisions) =>
+        Frame(
+            ActorWireMessageType.Decision,
+            GenericMindWireDecisionCodec.Encode(decisions));
+
+    public static MindDecisions DecodeMindDecisions(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeGuestFrame(frame);
+        Require(decoded, ActorWireMessageType.Decision);
+        return GenericMindWireDecisionCodec.Decode(decoded.Payload);
+    }
+
     public static byte[] EncodeFault(string message)
     {
         var writer = new ActorWireObjectWriter();
@@ -501,6 +555,10 @@ internal readonly record struct ActorWireMatchStart(
 internal readonly record struct ActorWireGenericMatchStart(
     string BotName,
     GenericActorMatchStart Start);
+
+internal readonly record struct ActorWireMindStart(
+    string BotName,
+    MindStart Start);
 
 internal readonly record struct ActorWireReady(
     int SelectedMajor,

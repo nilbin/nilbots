@@ -17,6 +17,14 @@ public static class WasmArtifactValidator
 {
     public const long MaxArtifactBytes = 16 * 1024 * 1024;
     public const long MaxInitialMemoryBytes = 64 * 1024 * 1024;
+
+    /// <summary>
+    /// Runtime configuration 2.0's ceiling. The mind is the only instance its
+    /// participant owns and holds match-long belief state, so it gets twice the
+    /// per-life allowance — and per-participant peak memory still falls,
+    /// because one instance replaces one per live body.
+    /// </summary>
+    public const long MaxMindInitialMemoryBytes = 128L * 1024 * 1024;
     private const long WasmPageBytes = 64 * 1024;
 
     private static readonly HashSet<string> AllowedWasiFunctions =
@@ -49,7 +57,10 @@ public static class WasmArtifactValidator
         return Validate(module, bytes);
     }
 
-    public static WasmArtifactValidation Validate(Module module, long sizeBytes)
+    public static WasmArtifactValidation Validate(
+        Module module,
+        long sizeBytes,
+        long maxInitialMemoryBytes = MaxInitialMemoryBytes)
     {
         if (sizeBytes is <= 0 or > MaxArtifactBytes)
         {
@@ -105,19 +116,20 @@ public static class WasmArtifactValidator
         if (memory is null || memory.Is64Bit)
             throw new InvalidDataException("WASM artifact must export 32-bit memory.");
         long initialMemoryBytes = checked(memory.Minimum * WasmPageBytes);
-        if (initialMemoryBytes > MaxInitialMemoryBytes)
+        if (initialMemoryBytes > maxInitialMemoryBytes)
             throw new InvalidDataException(
-                $"WASM initial memory exceeds {MaxInitialMemoryBytes / 1024 / 1024} MiB.");
+                $"WASM initial memory exceeds {maxInitialMemoryBytes / 1024 / 1024} MiB.");
 
         return new WasmArtifactValidation(sizeBytes, initialMemoryBytes, imports);
     }
 
     internal static WasmArtifactValidation Validate(
         Module module,
-        ReadOnlySpan<byte> bytes)
+        ReadOnlySpan<byte> bytes,
+        long maxInitialMemoryBytes = MaxInitialMemoryBytes)
     {
         ValidateBinaryEnvelope(bytes);
-        return Validate(module, bytes.Length);
+        return Validate(module, bytes.Length, maxInitialMemoryBytes);
     }
 
     internal static byte[] ReadArtifact(string path)

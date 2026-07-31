@@ -484,7 +484,19 @@ public static class BotBuilder
             BotArenaVersions.GenericActorMatchStartSchemaVersion,
             BotArenaVersions.GenericActorObservationSchemaVersion,
             BotArenaVersions.GenericActorDecisionSchemaVersion,
-            BotArenaVersions.GenericActorMatchContractSchemaVersion)));
+            BotArenaVersions.GenericActorMatchContractSchemaVersion,
+            // The mind half of the artifact's identity. Every artifact built
+            // from this SDK attests BOTH profiles, so a change to the mind
+            // protocol, configuration or schemas changes what the artifact
+            // promises and must invalidate its cache entry — even on a source
+            // tree that never mentions a mind.
+            BotArenaVersions.GenericMindRuntimeProtocolVersion,
+            BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+            BotArenaVersions.GenericMindRuntimeContractVersion,
+            BotArenaVersions.GenericMindMatchStartSchemaVersion,
+            BotArenaVersions.GenericMindObservationSchemaVersion,
+            BotArenaVersions.GenericMindDecisionSchemaVersion,
+            BotArenaVersions.GenericMindMatchContractSchemaVersion)));
         // The two staged assemblies are compiled into the artifact, so they belong in
         // its identity. Version strings alone were a promise the code did not keep: an
         // Sdk edit without a GuestAdapterVersion bump kept serving the old artifact, and

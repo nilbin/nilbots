@@ -24,6 +24,39 @@ namespace BotArena.Sdk;
 public static class GenericMindWireFieldIds
 {
     /// <summary>
+    /// <c>MindStart</c> (host-&gt;guest), which replaces <c>MatchStart</c> for
+    /// this profile and rides the same framing message type — the profile
+    /// selects the payload codec, exactly as the per-life generation already
+    /// does. The memo spelled the observation and decision frames; this block
+    /// is allocated beside them so every mind field ID lives in one place.
+    /// <para>
+    /// Two things the per-life MatchStart carries are deliberately ABSENT: the
+    /// slot table's state (published every tick on
+    /// <see cref="MindObservation.Slots"/>) and the life origin (a per-BODY fact
+    /// on <see cref="MindBodyState.Origin"/>).
+    /// </para>
+    /// </summary>
+    public static class MindStart
+    {
+        public const ushort SchemaVersion = 1;
+        public const ushort RuntimeContractVersion = 2;
+        public const ushort ParticipantId = 3;
+        public const ushort TeamId = 4;
+        /// <summary>Derived in the PARTICIPANT domain, not the life domain.</summary>
+        public const ushort MindRandomSeed = 5;
+        /// <summary>The team seed, unchanged; only its consumer moved.</summary>
+        public const ushort TeamRandomSeed = 6;
+        /// <summary>
+        /// The Engine-authored canonical contract JSON, byte-identical to the
+        /// per-life generation's — which is what keeps the rules fingerprint
+        /// valid across both profiles.
+        /// </summary>
+        public const ushort Contract = 7;
+        /// <summary>Empty in head-to-head and free-for-all; the team-format hook.</summary>
+        public const ushort AlliedParticipantIds = 8;
+    }
+
+    /// <summary>
     /// <c>MindObservation</c> (host-&gt;guest), which replaces
     /// <c>Observation</c> for this profile. The 10..18 block is delivered ONCE
     /// per tick per participant instead of once per life — the union-once win
@@ -138,6 +171,13 @@ public static class GenericMindWireFieldIds
     {
         public const ushort SchemaVersion = 1;
         public const ushort Tick = 2;
+        /// <summary>
+        /// Optional MIND-scoped diagnostic text, at most 4 KiB. Allocated in P2
+        /// beside the P0 block: a mind reasons once per tick over the whole
+        /// army, so its diagnostics have no per-body home the way a per-life
+        /// bot's did.
+        /// </summary>
+        public const ushort DebugMessage = 3;
         public const ushort Commands = 10;
         /// <summary>
         /// RESERVED (§11). A non-empty submission is <c>Rejected</c> —
