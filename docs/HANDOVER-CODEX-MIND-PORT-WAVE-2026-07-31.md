@@ -43,8 +43,8 @@ which in the DX. Suggested starting lineages: vector-edge (striker),
 iron-root (bulwark), ledger-fly (fabricator). Name each new bot
 freshly (new codename) — these are new entrants, not revisions.
 
-Per lineage, ONE doctrine pass rebuilding it as a native
-`IGenericMindBot`, exploiting what only a mind can do:
+Per bot, ONE doctrine pass writing a native `IGenericMindBot`,
+exploiting what only a mind can do:
 
 - Persistent memory: scouting that survives death, enemy tracking,
   economy bookkeeping, tier-vector reading over time (`Recall` in the
@@ -53,10 +53,10 @@ Per lineage, ONE doctrine pass rebuilding it as a native
   escorted channels, courier scheduling, written directly over
   `mind.Bodies` — the ~600–700 lines of common-knowledge machinery each
   lineage carries are DELETED, not ported.
-- Keep each lineage's identity recognizable (pressure-duelist,
-  stance-tempo, flank-and-collapse, the wall, the fast breach, the
-  rotation discipline, the tempo engine, the ledger). Contract readers,
-  gunnery, and doctrine RULES transfer; their scaffolding does not.
+- If you start from a lineage, its contract readers, gunnery, and
+  doctrine RULES transfer freely; its scaffolding does not. You are
+  free to depart from the source doctrine wherever you can do better —
+  the wave's goal is the best mind bot per class, not fidelity.
 - Mechanical repairs free. Leave-one-out attribution per rule in DX,
   exactly as every prior wave.
 - Honesty requirement, adjusted for the three-bot wave: classes keep
