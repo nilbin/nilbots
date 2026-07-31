@@ -4404,6 +4404,22 @@ of the campaign contract: taste rulings on curated forks, and the
 felt-experience gate — galleries watched by the owner — as the only
 authority on "fun."
 
+## 197. The commission un-led: figure it out; one skill; fun to watch
+
+Owner refinement of #196, ruled before the handover freezes: do NOT
+lead Codex toward existing mechanisms ("don't want to lead it in too
+much with muster etc") — the enumerated dormant-mechanics shelf came
+out of the handover; the engine's shelved mechanisms are minable but
+nothing in the current game is a lead. "We need it to make a good
+game and figure it out itself." Three shape rulings ride along: ONE
+signature skill per class; human fun value is first-class — the game
+MUST BE FUN TO WATCH (under commander mode the product largely is
+watching replays, and the owner's gate is watching games); and Codex
+may design a DRASTICALLY different game than frontline, keeping the
+engine platform (deterministic tile arena, the mind architecture, the
+WASM pipeline, the harness) while treating everything frontline
+layered on top as disposable.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -7,16 +7,30 @@ FIRST; bot waves are authored after the game stabilizes.
 
 ## The commission, in the owner's frame
 
+- **Make a good game. Figure it out yourself.** The owner is
+  deliberately NOT leading you toward any existing mechanism, class,
+  or mode. You may design a DRASTICALLY different game than frontline
+  — the engine platform stays (deterministic tile arena, the mind
+  architecture, the WASM pipeline, the harness); everything frontline
+  layered on top of it is disposable.
 - **15-20 classes.** Fun variety. "We are NOT committed to any of the
-  existing classes." Each class some depth, but not too much.
+  existing classes." Each class some depth, but not too much — and
+  **ONE signature skill per class** (owner ruling on shape).
 - **A bigger map than the current frontline.**
 - **Core mechanics more interesting than today's** — the owner's
   verdict on record: "frontline feels a bit too dull."
+- **It must be FUN TO WATCH.** Human fun value is a first-class
+  requirement, not polish: under commander mode the product largely
+  IS watching replays (the morning report), and the owner's gate is
+  watching games. Design for legible drama on screen — a spectator
+  should see momentum, reversals, and why the winner won.
 - All of it serves **commander mode** (DECISIONS #195): the passive
   manager layer — sheets, gambits, per-sheet drawn plans, stable of
   ~5 from the roster, breadth-only rewards, the morning report.
   docs/DESIGN-COMMANDER-MODE-2026-07-31.md is the vision document;
-  read it before designing anything.
+  read it before designing anything. Its class-seed examples are
+  ILLUSTRATIVE ONLY — they are not a lead, and neither is anything
+  else in the current game.
 
 Reading order: this file -> DESIGN-COMMANDER-MODE-2026-07-31.md ->
 DECISIONS.md #188-#196 (the recent arc) ->
@@ -55,22 +69,23 @@ EVALUATION-METHODOLOGY.md + the balance-harness skill (how reads run).
 
 ## Campaign shape (adapt as evidence demands; keep the gates)
 
-- **Phase A — class-kit design wave.** Generate substantially more
-  than 20 candidate class kits (one-page briefs: fantasy, statline
-  band, signature mechanic, sheet-level choices it creates,
-  counter-play). Quarries: the dormant-mechanics shelf — anchor/
-  turret forms, Split, projectile deflection, MUSTER, ground healing
-  (possibly a medic kit), the optic/vision axis, team auras — plus
-  the wave-8 lineage sources (frozen, copy-out only) for doctrine
-  ideas, plus fresh invention. Cull to a recommended launch band with
-  honest reasoning. **GATE: the owner picks the roster.**
-- **Phase B — map + core-mechanics redesign.** A bigger authored map
+- **Phase A — the game concept + class roster.** Design the game
+  first — the core loop, the win conditions, what a spectator sees —
+  then the classes that live in it: candidate kits well beyond 20
+  (one-page briefs: fantasy, ONE signature skill, statline band, the
+  sheet-level choices it creates, counter-play, what it looks like on
+  screen), culled to a recommended launch band with honest reasoning.
+  Invent freely. The engine carries dormant mechanisms from earlier
+  design windows; you may mine or ignore them — the game design
+  comes first and mechanics serve it, never the reverse.
+  **GATE: the owner rules on the concept and picks the roster.**
+- **Phase B — map + core-mechanics design.** A bigger authored map
   (map generation 3 has named spawns and typed regions/tags — lanes
-  and theaters are authorable today) and a core-loop redesign brief
-  that answers the dullness verdict: what creates decisions per
-  minute at the sheet level and legible drama at the replay level.
-  Capture channels, the scrap economy, and rosters are all on the
-  table — "not committed" includes mechanics, not only classes.
+  and theaters are authorable today) and the mechanics brief that
+  answers the dullness verdict: what creates decisions per minute at
+  the sheet level and legible drama at the watch level. Everything
+  frontline does today — capture channels, the scrap economy,
+  rosters, the mode itself — is on the table.
   **GATE: owner rules on the mechanics brief.**
 - **Phase C — build.** Implement behind flags on the gen-3+
   experimental path, additive where the contract allows, minting new
@@ -104,10 +119,10 @@ infrastructure that survives ANY roster:
 
 ## Known sharp edges
 
-- **MUSTER x unified is an OWNER FORK, deliberately unresolved**:
-  MUSTER's whole effect was prime-scoped, so `--chassis unified`
-  REFUSES `--side-objective` rather than guess. Resolve it at Phase A
-  (MUSTER may return as a class kit or a re-ruled objective).
+- `--chassis unified` REFUSES `--side-objective`: the dormant MUSTER
+  objective's whole effect was prime-scoped and nothing prime-scoped
+  survives. A technical fact, not a design lead — it only matters if
+  your design happens to revive that mechanism.
 - `fabricator-vs-fabricator` + `facing-locked` + a price token
   overflows the 64-char ruleset-ID budget — that sweep cell needs a
   newly registered token.
