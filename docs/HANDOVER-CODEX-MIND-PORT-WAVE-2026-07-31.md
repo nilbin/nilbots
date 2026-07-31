@@ -145,3 +145,44 @@ pair, T4 status) — then NEXT. Codenames spelled out on first use.
   wave-8 doctrines use a tiny fraction of it; if a port trips the fuel
   fault, something is wrong with the port (an accidental loop), not the
   budget.
+
+## Part 2 — the doctrine pass (run AFTER the A/B read is reported)
+
+The port above deliberately changes nothing. Once its A/B is reported,
+the same eight lineages get their mind-NATIVE iteration — this is the
+"new versions of the current stable bots" the owner commissioned, and it
+is where the bots actually improve.
+
+- Budget per lineage: ONE doctrine pass exploiting what the mind alone
+  can do — persistent memory (scouting that survives death, enemy
+  tracking, economy bookkeeping across the match), match-long build
+  orders, coherent role choreography (assignments, escorted channels,
+  courier scheduling), and reading the enemy's tier vector over time.
+  Mechanical repairs free. Leave-one-out attribution per rule, exactly
+  as every prior wave's DX demanded.
+- The baseline each doctrine build measures against is ITS OWN Part-1
+  port (same architecture, old strategy) — that isolates the value of
+  mind-native thinking from the value of the architecture, completing
+  the three-step chain: wrapped (old world) → port (new world, old
+  ideas) → native (new world, new ideas).
+- Honesty requirement, stated because one agent authors all eight:
+  the campaign's per-author independence is gone in this wave. Do not
+  transfer ideas between lineages; keep each lineage's identity
+  (pressure-duelist, stance-tempo, flank-and-collapse, the wall, the
+  fast breach, the ledger, the tempo engine, the king) recognizably
+  itself; disclose in each DX where an idea's provenance is another
+  lineage's public results rather than this lineage's own line of
+  development. The read design tolerates shared authorship; it does not
+  tolerate eight copies of one doctrine.
+- Deliverables per lineage: freeze at
+  arena-bots/frontline-labs/mind-wave-2026-08/<name>/ with source,
+  artifact, README, DX (budget ledger + attribution + friction), the
+  reproducible-rebuild final act, and T4 on
+  frontline-mind-qualification-5.
+- The wave read: full class-pair matrix, native vs native, on the
+  warpath stack — the first balance triangle of the mind era — plus
+  native-vs-port deltas per lineage, the pacing diagnostic again, and
+  fan/economy/channel usage stats. Same report format as Part 1.
+- Compositions remain OUT of scope (P7 is read-gated and owner-ruled);
+  role tags, TeamRandom-for-allied-minds and intents remain reserved
+  or cosmetic exactly as the docs state.
