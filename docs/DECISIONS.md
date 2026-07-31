@@ -4435,6 +4435,27 @@ hard rule is only that Codex POSTS the gate report and WAITS at the
 two big ratification points (concept/roster; the felt-experience
 loop) rather than barreling into build on its own say-so.
 
+## 199. Arc Relay and the sixteen-class launch band are approved
+
+Gate 1 owner ruling (2026-08-01). **Arc Relay is the game.** The
+approved concept is the larger-map logistics-combat sport recorded in
+`docs/reports/GATE-1-CONCEPT-AND-ROSTER.md`: three separated neutral
+Wells produce physical Arc Cores; minds allocate, carry, hand off,
+escort, intercept, steal and bank them; deliveries charge visible
+reactor Pulses, and Pulses decide the match. The concept's
+**no-economy / no-score-to-power** stance is part of the ruling: no
+scrap ladder or required in-match upgrade economy, and scoring never
+grants stronger combat stats. Commander progression continues to
+unlock breadth rather than power.
+
+The recommended sixteen-class launch band is approved unchanged:
+Kestrel, Palisade, Towline, Patchbay, Lantern, Mortar, Minesmith,
+Hush, Relay, Switchback, Longshot, Mason, Sunder, Repulsor, Veil and
+Nest. The report's remaining alternates, holds and rejects stay
+registered exactly as recorded; a later season may widen the roster
+if the game first proves fun. Phase A is closed and its foundation is
+ratified for Phase B. This ruling does not itself begin implementation.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
