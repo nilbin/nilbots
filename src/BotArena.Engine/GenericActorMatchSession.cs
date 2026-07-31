@@ -3452,11 +3452,15 @@ public sealed class GenericActorMatchSession : IDisposable
                         deflection.Profile.ShotProgram.DefaultProgram
                             .BendCount)
                     : null;
-            // A returned bolt is the deflector's own shot from here on, so it
-            // carries the deflector's modifiers exactly as a fired one does.
-            int returnExtraTravel = _mode
-                .StatModifiersFor(deflection.Deflector.ActorId)
-                .AttackTravelTilesDelta;
+            // A returned bolt keeps the SHOOTER's declared kinematics with no
+            // ladder on top: the edge tier buys the mobile gun's range, not
+            // the parry's, and the return flies the attacker's profile — a
+            // deflector's mobile-gun tier grafted onto an enemy profile is
+            // incoherent, and the chronology validator rightly demands the
+            // raw fresh budget (wave-8 finding: the boosted return aborted
+            // every shell-plus-edge match; no completed measurement ever
+            // contained one).
+            const int returnExtraTravel = 0;
             var returned = new ProjectileState(
                 deflection.ProjectileId,
                 deflection.Deflector.ParticipantId,
