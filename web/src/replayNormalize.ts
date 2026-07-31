@@ -6341,6 +6341,8 @@ function v1ActorTurn(
             observedBy: [identity.actorKey],
             // Replay-v1 predates every battlefield economy.
             carriedScrap: 0,
+            // Per-life generations have no way to publish one.
+            roleTag: null,
           };
         }),
       visibleTiles: turn.visibleTiles
@@ -6619,6 +6621,8 @@ function observedActorFromState(
     // Authoritative world lives carry no load in any wire; only a replay-v3
     // observation publishes one.
     carriedScrap: 0,
+    // Per-life generations have no way to publish one.
+    roleTag: null,
   };
 }
 
@@ -7487,6 +7491,8 @@ function observationFromV2(
           enemy.pendingFormTransition,
         ),
         carriedScrap: 0,
+        // Per-life generations have no way to publish one.
+        roleTag: null,
         observedBy: [...enemy.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
@@ -7664,6 +7670,8 @@ function observedSelfFromV2(
     observedBy,
     // Internal replay-v2 predates the scrap economy.
     carriedScrap: 0,
+    // Per-life generations have no way to publish one.
+    roleTag: null,
   };
 }
 

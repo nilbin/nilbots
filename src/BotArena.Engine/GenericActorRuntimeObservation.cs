@@ -72,6 +72,16 @@ public sealed record GenericActorRuntimeObservation(
         /// whether another pile would fit.
         /// </summary>
         public int CarriedScrap { get; init; }
+
+        /// <summary>
+        /// The free-vocabulary label this body's MIND last attached to it
+        /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §12), or null
+        /// when it carries none. Entirely non-authoritative: the engine never
+        /// branches on it, it is never an action parameter, and it cannot
+        /// change a single point of simulation state. It is null for the whole
+        /// match on the per-life generation, which has no way to set one.
+        /// </summary>
+        public string? RoleTag { get; init; }
     }
 
     public sealed record ObservedAllyState(
@@ -105,6 +115,16 @@ public sealed record GenericActorRuntimeObservation(
         /// complete gameplay state, so an escort knows what it is escorting.
         /// </summary>
         public int CarriedScrap { get; init; }
+
+        /// <summary>
+        /// The free-vocabulary label this body's MIND last attached to it
+        /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §12), or null
+        /// when it carries none. Entirely non-authoritative: the engine never
+        /// branches on it, it is never an action parameter, and it cannot
+        /// change a single point of simulation state. It is null for the whole
+        /// match on the per-life generation, which has no way to set one.
+        /// </summary>
+        public string? RoleTag { get; init; }
     }
 
     /// <summary>
@@ -274,6 +294,16 @@ public sealed record GenericActorRuntimeObservation(
         /// every ruleset without a declared scrap economy.
         /// </summary>
         public int CarriedScrap { get; init; }
+
+        /// <summary>
+        /// The free-vocabulary label this body's MIND last attached to it
+        /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §12), or null
+        /// when it carries none. Entirely non-authoritative: the engine never
+        /// branches on it, it is never an action parameter, and it cannot
+        /// change a single point of simulation state. It is null for the whole
+        /// match on the per-life generation, which has no way to set one.
+        /// </summary>
+        public string? RoleTag { get; init; }
     }
 
     public sealed record ObservedTile(
@@ -427,6 +457,12 @@ public sealed record GenericActorRuntimeObservation(
         public sealed record RuntimeFault(
             GenericActorRuntimeFault Fault) : EventPayload;
 
+        /// <summary>
+        /// A participant-scoped mind fault carrying no actor identity (P3).
+        /// </summary>
+        public sealed record MindRuntimeFault(
+            GenericMindRuntimeFault Fault) : EventPayload;
+
         public sealed record Participant(
             int ParticipantId,
             int TeamId) : EventPayload;
@@ -532,6 +568,19 @@ public sealed record GenericActorRuntimeObservation(
         /// no existing replay or observation changes.
         /// </summary>
         ProjectileDeflected = 19,
+
+        /// <summary>
+        /// Additive append (P3, DECISIONS #191): a PARTICIPANT-SCOPED runtime
+        /// fault with no body to attribute it to. Under the mind profile the
+        /// faulting unit is the mind, and a mind still ticks on a tick it owns
+        /// nothing (§2.7) — so it can also trap on one. The per-body
+        /// <see cref="RuntimeFault"/> event has nowhere to land in that case,
+        /// and under a threshold-0 contract that silent frame is precisely the
+        /// moment a participant lost the match. Emitted ONLY when the mind
+        /// held no live body; a fault with bodies keeps publishing one per-body
+        /// event exactly as before, so no per-life replay changes.
+        /// </summary>
+        MindRuntimeFault = 20,
     }
 
     public sealed record ScoreboardState(

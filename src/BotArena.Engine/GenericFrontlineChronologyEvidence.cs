@@ -646,6 +646,7 @@ internal static class GenericFrontlineChronologyEvidence
             or GenericActorRuntimeObservation.EventKind.LifeSpawned
             or GenericActorRuntimeObservation.EventKind.LifeRetired
             or GenericActorRuntimeObservation.EventKind.RuntimeFault
+            or GenericActorRuntimeObservation.EventKind.MindRuntimeFault
             or GenericActorRuntimeObservation.EventKind
                 .ParticipantDisqualified
             or GenericActorRuntimeObservation.EventKind.LifecycleQueued

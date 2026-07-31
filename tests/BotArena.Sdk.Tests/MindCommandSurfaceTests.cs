@@ -149,6 +149,7 @@ public sealed class MindCommandSurfaceTests
                 null,
                 null),
             null,
+            0,
             [],
             new MindWaitAction(null, 0));
 

@@ -913,6 +913,14 @@ public sealed record GenericActorContext
         /// </param>
         /// <param name="classId">Immutable enemy chassis class, if declared.</param>
         /// <param name="carriedScrap">The enemy's visible load, or zero.</param>
+        /// <param name="roleTag">
+        /// The label the enemy's own mind published for this body, or null.
+        /// It is entirely non-authoritative and it is deliberately PUBLIC: a
+        /// label the engine never reads and the enemy can read is a free
+        /// deception channel, so a body tagged <c>screen</c> may well be the
+        /// channeler. Always null against a per-life opponent, which has no way
+        /// to set one.
+        /// </param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -922,7 +930,8 @@ public sealed record GenericActorContext
             PendingSameLifeTransition? pendingSameLifeTransition,
             IEnumerable<ActorIdentity> observedBy,
             string? classId = null,
-            int carriedScrap = 0)
+            int carriedScrap = 0,
+            string? roleTag = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
@@ -948,7 +957,17 @@ public sealed record GenericActorContext
                     classId,
                     nameof(classId));
             CarriedScrap = carriedScrap;
+            RoleTag = roleTag is null
+                ? null
+                : MindValueRules.RoleTag(roleTag, nameof(roleTag));
         }
+
+        /// <summary>
+        /// The label the enemy's own mind published for this body, or null.
+        /// Non-authoritative, public on purpose, and never to be trusted: it is
+        /// what the opponent SAYS this body's job is.
+        /// </summary>
+        public string? RoleTag { get; }
 
         /// <summary>Exact visible enemy body-life identity.</summary>
         public ActorIdentity ActorId { get; }
@@ -1950,6 +1969,71 @@ public sealed record GenericActorContext
                 kind == EventKind.RuntimeFault;
         }
 
+        /// <summary>
+        /// A participant-scoped MIND fault with no body to attribute it to.
+        /// Under a threshold-0 contract this is the frame on which a mind
+        /// forgot the match and lost it.
+        /// </summary>
+        public sealed record MindRuntimeFault : EventPayload
+        {
+            /// <summary>Creates a participant-scoped mind-fault payload.</summary>
+            /// <param name="participantId">Participant charged with the fault.</param>
+            /// <param name="teamId">Its scoring team.</param>
+            /// <param name="stage">Runtime lifecycle stage that faulted.</param>
+            /// <param name="faultCode">Stable, non-diagnostic fault category.</param>
+            /// <param name="cumulativeFaultCount">Count after this fault.</param>
+            /// <param name="disqualificationTriggered">
+            /// Whether this fault crossed the disqualification threshold.
+            /// </param>
+            public MindRuntimeFault(
+                int participantId,
+                int teamId,
+                GenericActorRuntimeFaultContext.FaultStage stage,
+                string faultCode,
+                long cumulativeFaultCount,
+                bool disqualificationTriggered)
+            {
+                if (participantId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(participantId));
+                }
+                if (teamId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(teamId));
+                if (cumulativeFaultCount < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(cumulativeFaultCount));
+                }
+                ParticipantId = participantId;
+                TeamId = teamId;
+                Stage = GenericActorDynamicValueRules.EnumValue(
+                    stage,
+                    nameof(stage));
+                FaultCode = GenericActorDynamicValueRules.SemanticId(
+                    faultCode,
+                    nameof(faultCode));
+                CumulativeFaultCount = cumulativeFaultCount;
+                DisqualificationTriggered = disqualificationTriggered;
+            }
+
+            /// <summary>Participant charged with the fault.</summary>
+            public int ParticipantId { get; }
+            /// <summary>Its scoring team.</summary>
+            public int TeamId { get; }
+            /// <summary>Runtime lifecycle stage that faulted.</summary>
+            public GenericActorRuntimeFaultContext.FaultStage Stage { get; }
+            /// <summary>Stable, non-diagnostic fault category.</summary>
+            public string FaultCode { get; }
+            /// <summary>Participant fault count after applying this fault.</summary>
+            public long CumulativeFaultCount { get; }
+            /// <summary>Whether this fault triggered disqualification.</summary>
+            public bool DisqualificationTriggered { get; }
+
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.MindRuntimeFault;
+        }
+
         /// <summary>A participant was disqualified from the match.</summary>
         public sealed record Participant : EventPayload
         {
@@ -2284,6 +2368,14 @@ public sealed record GenericActorContext
         /// every contract whose forms declare no guard.
         /// </summary>
         ProjectileDeflected = 19,
+
+        /// <summary>
+        /// A PARTICIPANT-SCOPED runtime fault with no body to attribute it
+        /// to. Only the mind profile can produce one — a mind ticks even on a
+        /// tick it owns nothing, so it can also trap on one — and no per-life
+        /// contract ever emits it.
+        /// </summary>
+        MindRuntimeFault = 20,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>

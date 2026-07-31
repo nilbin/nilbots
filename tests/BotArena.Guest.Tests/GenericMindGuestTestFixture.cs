@@ -59,7 +59,8 @@ internal static class GenericMindGuestTestFixture
         int health = 4,
         bool movedLastTick = false,
         int lifeStartedTick = 0,
-        string? roleTag = null) =>
+        string? roleTag = null,
+        ulong bodyRandomSeed = 0) =>
         new(
             new ActorIdentity(0, unitId, lifeId),
             generation: 0,
@@ -84,6 +85,7 @@ internal static class GenericMindGuestTestFixture
                 SourceTransitionId: null,
                 SourceOperationId: null),
             roleTag,
+            bodyRandomSeed,
             [
                 new GenericActorActionLegality(
                     "wait",
@@ -180,7 +182,14 @@ internal static class GenericMindGuestTestFixture
                     1,
                     runtimeFaultCount: 0,
                     disqualified: false),
-            ]);
+            ])
+        {
+            // The mind's own participant-domain stream. A sub-brain never draws
+            // from it — that is the whole point of publishing a per-body seed —
+            // but the context has to carry one.
+            Random = new GuestRandom(start.MindRandomSeed),
+            TeamRandom = new GuestTeamRandom(start.TeamRandomSeed),
+        };
     }
 
     public static byte[] MindHello() =>

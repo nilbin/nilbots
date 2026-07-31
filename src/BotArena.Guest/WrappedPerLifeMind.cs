@@ -33,20 +33,21 @@ namespace BotArena.Guest;
 /// observation reuses the per-life codecs verbatim for every nested type, this
 /// specialization moves references rather than rebuilding values.</para>
 ///
-/// <para><b>One documented divergence.</b> A per-life bot's private random
-/// stream is seeded host-side in the life domain from the match seed, which a
-/// mind is never given — its own seed is a one-way mix in the participant
-/// domain. A sub-brain is therefore seeded deterministically from the MIND's
-/// seed and its body's identity: still independent per body, still identical on
-/// replay, but NOT the same sequence the per-life profile would have produced.
-/// A wrapped bot that never draws from <c>context.Random</c> is unaffected;
-/// one that does will make different private tie-breaks. Nothing else about the
-/// wrap diverges.</para>
+/// <para><b>The random stream is EXACT, and that is P3's fix to a P2 flag.</b>
+/// A per-life bot's private stream is seeded host-side in the life domain from
+/// the match seed, which a mind's own participant-domain seed cannot
+/// reproduce. P2 therefore derived each sub-brain's seed from the mind's seed
+/// and the body's identity — independent per body and replay-stable, but NOT
+/// the sequence the per-life profile would have produced, so a wrapped bot that
+/// drew from <c>context.Random</c> made different private tie-breaks and the
+/// §7.2 null pin would have had to explain that away. The engine now publishes
+/// each body's own life seed on
+/// <see cref="MindBody.BodyRandomSeed"/> and the wrap hands it straight
+/// through, so a Random-drawing bot reproduces its per-life behaviour exactly.
+/// There is no remaining documented divergence.</para>
 /// </summary>
 internal sealed class WrappedPerLifeMind : IGenericMindBot
 {
-    private const ulong Step = 0x9E3779B97F4A7C15UL;
-
     private readonly Func<string, IGenericActorBot> _botFactory;
     private readonly string _botName;
     private readonly Dictionary<LifeKey, SubBrain> _subBrains = [];
@@ -92,7 +93,7 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
             }
 
             GenericActorDecision decision = brain.Tick(
-                Specialize(start, mind, body));
+                Specialize(start, mind, body, brain.Random));
             body.Command(
                 decision.ActionId,
                 decision.ActionCode,
@@ -116,10 +117,20 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
     /// <summary>
     /// Rebuilds the per-life observation for one body, field for field.
     /// </summary>
+    /// <param name="bodyRandom">
+    /// The sub-brain's OWN stream, seeded from
+    /// <see cref="MindBody.BodyRandomSeed"/>. A per-life bot's
+    /// <c>context.Random</c> is life-scoped, so handing it the mind's shared
+    /// stream would make every sub-brain draw from one sequence in body
+    /// iteration order — reproducing neither the per-life values nor their
+    /// independence. Null falls back to the mind's stream, which is only
+    /// correct for a bot that never draws.
+    /// </param>
     internal static GenericActorContext Specialize(
         MindStart start,
         MindContext mind,
-        MindBody body)
+        MindBody body,
+        IBotRandom? bodyRandom = null)
     {
         ArgumentNullException.ThrowIfNull(start);
         ArgumentNullException.ThrowIfNull(mind);
@@ -186,7 +197,7 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
             mind.Mode,
             body.ActionLegalities)
         {
-            Random = mind.Random,
+            Random = bodyRandom ?? mind.Random,
             TeamRandom = mind.TeamRandom,
             Debug = mind.Debug,
         };
@@ -203,43 +214,14 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
                 GenericActorContractVersions.RuntimeContractVersion,
             ActorId = body.ActorId,
             ParticipantId = start.ParticipantId,
-            ActorRandomSeed = DeriveSubBrainSeed(
-                start.MindRandomSeed,
-                body.ActorId),
+            // The body's OWN life-domain seed, published by the host. Not
+            // derived, not approximated: the exact value the per-life profile
+            // would have handed this life.
+            ActorRandomSeed = body.BodyRandomSeed,
             TeamRandomSeed = start.TeamRandomSeed,
             Origin = body.Origin,
             Contract = start.Contract,
         };
-
-    /// <summary>
-    /// One independent stream per wrapped body, derived from the MIND's seed
-    /// and the body's exact identity so that no two sub-brains — including a
-    /// slot's successive lives — ever share randomness. It cannot equal the
-    /// per-life profile's seed, which is mixed from the match seed the mind was
-    /// never handed; see the class remarks.
-    /// </summary>
-    internal static ulong DeriveSubBrainSeed(
-        ulong mindRandomSeed,
-        ActorIdentity actorId)
-    {
-        unchecked
-        {
-            ulong x = Mix(mindRandomSeed + Step);
-            x = Mix(x + (Step * ((ulong)actorId.TeamId + 1)));
-            x = Mix(x + (Step * ((ulong)actorId.UnitId + 1)));
-            return Mix(x + (Step * ((ulong)actorId.LifeId + 1)));
-        }
-    }
-
-    private static ulong Mix(ulong z)
-    {
-        unchecked
-        {
-            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
-            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
-            return z ^ (z >> 31);
-        }
-    }
 
     private readonly record struct LifeKey(int UnitId, int LifeId);
 
@@ -247,7 +229,18 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
     {
         private readonly IGenericActorBot _bot;
 
-        private SubBrain(IGenericActorBot bot) => _bot = bot;
+        private SubBrain(IGenericActorBot bot, IBotRandom random)
+        {
+            _bot = bot;
+            Random = random;
+        }
+
+        /// <summary>
+        /// This body's own life-scoped stream, seeded from the seed the host
+        /// published for it and advancing across that body's ticks exactly as
+        /// the per-life Guest's would.
+        /// </summary>
+        public IBotRandom Random { get; }
 
         public static SubBrain Create(
             IGenericActorBot bot,
@@ -256,7 +249,8 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
             SubBrain brain = new(
                 bot
                 ?? throw new InvalidOperationException(
-                    "Generic actor bot factory returned null."));
+                    "Generic actor bot factory returned null."),
+                new GuestRandom(start.ActorRandomSeed));
             brain._bot.StartLife(start);
             return brain;
         }

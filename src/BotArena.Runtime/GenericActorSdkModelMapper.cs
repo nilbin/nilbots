@@ -207,7 +207,8 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.PendingSameLifeTransition),
             value.ObservedBy.Select(ToSdk),
             value.ClassId,
-            value.CarriedScrap);
+            value.CarriedScrap,
+            value.RoleTag);
 
     internal static Sdk.GenericActorContext.ObservedTile ToSdk(
         GenericActorRuntimeObservation.ObservedTile value) =>
@@ -337,6 +338,16 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.EventPayload.RuntimeFault payload =>
                 new Sdk.GenericActorContext.EventPayload.RuntimeFault(
                     ToSdkRequired(payload.Fault)),
+            GenericActorRuntimeObservation.EventPayload.MindRuntimeFault
+                payload =>
+                new Sdk.GenericActorContext.EventPayload.MindRuntimeFault(
+                    payload.Fault.ParticipantId,
+                    payload.Fault.TeamId,
+                    (Sdk.GenericActorRuntimeFaultContext.FaultStage)
+                        payload.Fault.Stage,
+                    payload.Fault.FaultCode,
+                    payload.Fault.CumulativeFaultCount,
+                    payload.Fault.DisqualificationTriggered),
             GenericActorRuntimeObservation.EventPayload.Participant payload =>
                 new Sdk.GenericActorContext.EventPayload.Participant(
                     payload.ParticipantId,

@@ -289,6 +289,17 @@ export interface UnitPresentation {
    * still, or standing off it near a teammate who is.
    */
   channelRole: 'channeling' | 'screening' | null;
+  /**
+   * The free-vocabulary label this body's MIND published, or null.
+   *
+   * Unlike `channelRole` — which the viewer DERIVES from world state — this is
+   * what the author said the body's job is, in the author's own words. That is
+   * the whole reason it is worth rendering: a spectator reading
+   * `channeler / screen / screen / courier` understands the set-piece while it
+   * happens, and the vocabulary an author chose is the strategy made legible.
+   * Null for every per-life replay, which has no way to set one.
+   */
+  roleTag: string | null;
 }
 
 export interface TickPresentation {
@@ -502,6 +513,10 @@ function presentUnit(
         ? 0
         : Math.min(1, load.carried / load.capacity),
     channelRole: channel?.roles.get(unitKey) ?? null,
+    // From this body's own observation of itself, which under the mind is the
+    // mind's published label for it. Absent renders as nothing at all: an
+    // unlabelled body should look unlabelled, not broken.
+    roleTag: turn?.observation.self?.roleTag ?? null,
   };
 }
 

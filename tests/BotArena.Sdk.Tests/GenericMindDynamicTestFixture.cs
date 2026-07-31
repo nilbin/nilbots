@@ -19,7 +19,8 @@ internal static class GenericMindDynamicTestFixture
         bool movedLastTick = true,
         Position? previousPosition = null,
         string? roleTag = "channeler",
-        int carriedScrap = 5) =>
+        int carriedScrap = 5,
+        ulong bodyRandomSeed = 0xC0FF_EE00_1234_5678UL) =>
         new(
             actorId,
             generation: 2,
@@ -50,6 +51,7 @@ internal static class GenericMindDynamicTestFixture
                 "fabricate",
                 "fabricate:0:0:1:7"),
             roleTag,
+            bodyRandomSeed,
             [
                 GenericActorDynamicTestFixture.FullLegality(),
                 new GenericActorActionLegality(

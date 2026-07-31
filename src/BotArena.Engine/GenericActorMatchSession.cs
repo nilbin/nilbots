@@ -71,6 +71,22 @@ public sealed class GenericActorMatchSession : IDisposable
     private ImmutableDictionary<ActorIdentity, Position>
         _positionsAtPreviousMindObservation =
             ImmutableDictionary<ActorIdentity, Position>.Empty;
+
+    /// <summary>
+    /// The label each body's own mind last attached to it (§12). Sticky, so
+    /// one <c>SetRole</c> keeps publishing until the mind changes it; keyed by
+    /// LIFE, so a slot's next body starts unlabelled rather than inheriting its
+    /// predecessor's job.
+    /// <para>
+    /// It is deliberately readable by the whole projection rather than by the
+    /// owning mind alone, because the tag is published on VISIBLE ENEMIES too.
+    /// That is the design: the engine never reads the label, so a label the
+    /// enemy can read is a free deception channel and calling your channeler a
+    /// screen is a real move. Empty on the per-life generation, which has no
+    /// way to set one.
+    /// </para>
+    /// </summary>
+    private readonly Dictionary<ActorIdentity, string> _roleTags = [];
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
     private ImmutableDictionary<ActorIdentity, Position>
@@ -455,6 +471,25 @@ public sealed class GenericActorMatchSession : IDisposable
                 fault.ActorId.TeamId));
         }
 
+        // A mind that traps on a tick it owns NO body has no per-body event to
+        // ride on, and under the shipped threshold-0 allowance that silent
+        // frame is exactly the moment a participant lost the match. Publish it
+        // participant-scoped instead, team-private like every other fault, so
+        // the fact is visible in events and in the replay rather than only in
+        // the disqualification that follows it (P3, §4.7).
+        foreach (GenericMindRuntimeFault fault in
+                 mindTick?.Faults ?? [])
+        {
+            if (fault.ActorId is not null)
+                continue;
+            events.Add(EmitTeamPrivate(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.MindRuntimeFault,
+                new GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault(fault),
+                fault.TeamId));
+        }
+
         HashSet<int> newlyDisqualified =
             runtimeTick.NewlyDisqualifiedParticipantIds.ToHashSet();
         ApplyDisqualifications(
@@ -551,6 +586,8 @@ public sealed class GenericActorMatchSession : IDisposable
                         turn.SubmittedDecision,
                         resolutions[turn.ActorId].ToPublic()))
                 .ToImmutableArray();
+        ImmutableArray<GenericActorMatchMindTurn> mindTurns =
+            ProjectMindTurns(executedTick, tickStart, mindTick);
         GenericActorWorldSnapshot postState = SnapshotWorld();
         _host.RecordResolvedTick(
             new GenericActorMatchTickFrame(
@@ -558,7 +595,20 @@ public sealed class GenericActorMatchSession : IDisposable
                 actorTurns,
                 authoritativeEvents,
                 projectileTransitions.ToImmutable(),
-                postState));
+                postState,
+                mindTurns));
+        // The tags this tick's accepted commands set become NEXT tick's
+        // published labels; the observation the mind just answered was frozen
+        // before any of them were written, which is the same one-tick
+        // telegraph grammar a claim, a windup and a purchase already use.
+        foreach (GenericActorMatchMindTurn turn in mindTurns)
+            turn.ApplyRoleTags(_roleTags);
+        foreach (ActorIdentity dead in _roleTags.Keys
+                     .Where(actor => !_lives.ContainsKey(actor))
+                     .ToArray())
+        {
+            _roleTags.Remove(dead);
+        }
         GenericActorMatchResult? terminalResult = null;
         if (terminal is not null)
         {
@@ -586,6 +636,41 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             MindTurns = mindTick?.MindTurns ?? [],
         };
+    }
+
+    /// <summary>
+    /// Pairs each participant's frozen mind observation with what its runtime
+    /// did with it, producing the chronology's mind-era turn
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1). Empty on the
+    /// per-life generation, where there is nothing to pair.
+    /// </summary>
+    private static ImmutableArray<GenericActorMatchMindTurn> ProjectMindTurns(
+        int executedTick,
+        GenericActorMatchPreparedTick tickStart,
+        GenericMindRuntimeTickResult? mindTick)
+    {
+        if (mindTick is null)
+            return [];
+
+        Dictionary<int, GenericMindRuntimeObservation> byParticipant =
+            tickStart.MindObservations.ToDictionary(
+                observation => observation.ParticipantId);
+        return
+        [
+            .. mindTick.MindTurns
+                .OrderBy(turn => turn.ParticipantId)
+                .Select(turn => new GenericActorMatchMindTurn(
+                    executedTick,
+                    turn.ParticipantId,
+                    turn.TeamId,
+                    turn.TickFuelBudget,
+                    turn.LiveOwnBodyCount,
+                    byParticipant[turn.ParticipantId],
+                    turn.Commands,
+                    turn.ResolvedBodies,
+                    turn.RejectedIntents,
+                    turn.RuntimeFault)),
+        ];
     }
 
     /// <summary>Runs until one terminal rule completes and returns its result.</summary>
@@ -2467,6 +2552,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 life.ActorId.UnitId),
             CarriedScrap = modeProjection.CarriedScrapByActor
                 .GetValueOrDefault(life.ActorId),
+            RoleTag = _roleTags.GetValueOrDefault(life.ActorId),
         };
 
     /// <summary>
@@ -2539,6 +2625,14 @@ public sealed class GenericActorMatchSession : IDisposable
                             _participantClassIds[item.life.ParticipantId],
                         CarriedScrap = modeProjection.CarriedScrapByActor
                             .GetValueOrDefault(item.life.ActorId),
+                        // Public on purpose (§12.2): this game telegraphs
+                        // banks, tiers, claims, holds and death sites with no
+                        // visibility requirement at all, so a visible body's
+                        // declared job is a smaller leak than any of those --
+                        // and it is what makes the set-piece legible to a
+                        // spectator watching both sides' assignments.
+                        RoleTag = _roleTags.GetValueOrDefault(
+                            item.life.ActorId),
                     })
                 .ToImmutableArray();
         HashSet<ActorIdentity> visibleEnemyIds =
@@ -2788,8 +2882,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 life.ActorId.UnitId),
             CarriedScrap = modeProjection.CarriedScrapByActor
                 .GetValueOrDefault(life.ActorId),
-            // Reserved (§12): P2 ships SetRole, so no tag has ever been set.
-            RoleTag = null,
+            RoleTag = _roleTags.GetValueOrDefault(life.ActorId),
+            // P3's null-pin fix: the EXACT seed the per-life profile would
+            // have handed this life, so a wrapped bot drawing from
+            // context.Random reproduces its per-life behaviour rather than
+            // merely resembling it.
+            BodyRandomSeed = life.LifeStart.ActorRandomSeed,
         };
     }
 

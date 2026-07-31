@@ -150,6 +150,9 @@ public sealed record GenericActorAuthoritativeEvent
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 payload is GenericActorRuntimeObservation.EventPayload
                     .RuntimeFault,
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                payload is GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault,
             GenericActorRuntimeObservation.EventKind
                     .ParticipantDisqualified =>
                 payload is GenericActorRuntimeObservation.EventPayload

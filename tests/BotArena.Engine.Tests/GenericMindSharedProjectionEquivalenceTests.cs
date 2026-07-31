@@ -147,13 +147,65 @@ public sealed class GenericMindSharedProjectionEquivalenceTests
             minds.Step();
         }
 
-        // The per-tick chronology is where every observation, every accepted
-        // decision, every event and both authoritative world states live. If
-        // this text matches, the two profiles played the same game.
+        // The two documents can no longer be text-identical, and saying why
+        // sharpens rather than weakens the pin: a mind document carries
+        // mindTurns INSTEAD of N actorTurns by design (P3, §5.1), so the
+        // comparator is the §7.2 comparator — the WORLD is identical and the
+        // per-body accepted-action sequence is identical, while the turn
+        // record's shape is allowed to differ because that shape is the thing
+        // being changed.
         Assert.Equal(
-            NormalizedTicks(actors),
-            NormalizedTicks(minds));
+            NormalizedWorldTicks(actors),
+            NormalizedWorldTicks(minds));
+        Assert.Equal(
+            AcceptedActionSequence(actors),
+            AcceptedActionSequence(minds));
     }
+
+    /// <summary>
+    /// Every tick's boundary state, events and traversals — everything except
+    /// the turn record itself. This is the "identical authoritative world
+    /// states" half of the §7.2 comparator.
+    /// </summary>
+    private static string NormalizedWorldTicks(
+        GenericActorMatchSession session)
+    {
+        string json = ReplayV3Serializer.ToCanonicalJson(
+            ReplayV3Projection.Project(session.Chronology));
+        using JsonDocument document = JsonDocument.Parse(json);
+        var writer = new System.Text.StringBuilder();
+        foreach (JsonElement tick in
+                 document.RootElement.GetProperty("ticks").EnumerateArray())
+        {
+            foreach (string property in
+                     new[] { "tickStart", "events", "traversals", "postState" })
+            {
+                writer.Append(tick.GetProperty(property).GetRawText());
+            }
+        }
+        return Normalize(session, writer.ToString());
+    }
+
+    /// <summary>
+    /// The per-tick, per-body sequence of accepted actions, read out of
+    /// whichever turn kind the profile writes. This is the "identical accepted
+    /// actions" half of the comparator, and it is the half that would catch a
+    /// wrong reconstruction.
+    /// </summary>
+    private static string AcceptedActionSequence(
+        GenericActorMatchSession session) =>
+        string.Join(
+            "\n",
+            session.Chronology.Ticks.SelectMany(frame =>
+                frame.ActorTurns.Select(turn =>
+                    $"{frame.Tick} {turn.ActorId} "
+                    + $"{turn.ActionResolution.AcceptedAction.ActionId} "
+                    + string.Join(
+                        ",",
+                        turn.ActionResolution.AcceptedAction.Arguments
+                            .Select(argument => argument.ToString()))
+                    + $" {turn.ActionResolution.Outcome}")));
+
 
     private static void SameArray<T>(
         System.Collections.Immutable.ImmutableArray<T> expected,
@@ -171,15 +223,11 @@ public sealed class GenericMindSharedProjectionEquivalenceTests
     /// comparator rather than a SHA-256, and why the comparator must be
     /// explicit about what it normalizes.
     /// </summary>
-    private static string NormalizedTicks(GenericActorMatchSession session)
+    private static string Normalize(
+        GenericActorMatchSession session,
+        string text)
     {
-        string json = ReplayV3Serializer.ToCanonicalJson(
-            ReplayV3Projection.Project(session.Chronology));
-        using JsonDocument document = JsonDocument.Parse(json);
-        string ticks = document.RootElement
-            .GetProperty("ticks")
-            .GetRawText();
-        return ticks
+        return text
             // Differs by construction: the capability tuple rides inside the
             // fingerprinted contract, so a new profile relabels the match.
             .Replace(

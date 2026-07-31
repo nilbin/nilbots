@@ -14,6 +14,7 @@ import {
 import { playerAccent } from '../presentation/playerAccent';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { styleVariables } from '../presentation/styleVariables';
+import { roleTagColor } from '../presentation/roleTag';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -171,8 +172,20 @@ export default function BotPanel({
         )?.accent ?? null)
       : null;
 
+  // One mind drives every body a participant owns, so the cards below are its
+  // army rather than N independent programs. Saying so once, quietly, is the
+  // whole indicator: a spectator needs to know the role labels come from one
+  // author's plan, not from nine bodies agreeing.
+  const mindProfile =
+    replay.versions.actorRuntime?.family === 'generic-mind-match-1';
+
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
+      {mindProfile && (
+        <p className="lab px-0.5">
+          One mind per participant · roles are its own words
+        </p>
+      )}
       {objective?.kind === 'legacy-control' && (
         <div className="panel-quiet pad">
           <div className="flex items-baseline justify-between gap-3">
@@ -541,6 +554,28 @@ export default function BotPanel({
                       <span className="pill">{actionResult}</span>
                     </dd>
                   )}
+                </>
+              )}
+
+              {/* The mind's OWN word for this body's job, beside the derived
+                  "Doing" and "Objective" lines. Rendered only when a mind set
+                  one, because an unlabelled body should look unlabelled. */}
+              {unit.roleTag !== null && (
+                <>
+                  <dt className="lab">Role</dt>
+                  <dd className="t-body col-span-2">
+                    <span
+                      className="pill"
+                      style={{
+                        // Coloured by a stable hash of the tag, so `channeler`
+                        // is the same colour all match and across matches.
+                        color: roleTagColor(unit.roleTag),
+                        borderColor: roleTagColor(unit.roleTag),
+                      }}
+                    >
+                      {unit.roleTag}
+                    </span>
+                  </dd>
                 </>
               )}
 

@@ -94,8 +94,9 @@ public sealed class GenericMindSharedBodyEncodingTests
                 null,
                 null),
             roleTag: null,
+            bodyRandomSeed: 0,
             actionLegalities: [],
-            GenericMindDynamicTestFixture.Wait);
+            waitAction: GenericMindDynamicTestFixture.Wait);
         var self = new GenericActorContext.ObservedSelfState(
             body.ActorId,
             body.Generation,

@@ -212,6 +212,187 @@ public sealed record GenericActorMatchChronology
             }
             turn.ValidateAgainst(descriptor);
         }
+
+        ValidateMindEvidence(descriptor, ticks);
+    }
+
+    /// <summary>
+    /// The mind-profile chronology rules
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.3).
+    /// <para>
+    /// The profile decides the turn kind, and there is no mixed history: a
+    /// mind-profile chronology carries a turn for every ticking participant on
+    /// every tick, and a per-life chronology carries none at all. Beyond the
+    /// shape, one derived fact is checked here because it is the only place
+    /// with the whole history in view: a published role tag must be the last
+    /// tag the mind actually set for that body, re-derived from the accepted
+    /// commands. That is what stops a doctored document from narrating a
+    /// strategy that never happened.
+    /// </para>
+    /// </summary>
+    private static void ValidateMindEvidence(
+        GenericActorMatchDescriptor descriptor,
+        IReadOnlyCollection<GenericActorMatchTickFrame> ticks)
+    {
+        bool mindProfile =
+            descriptor.Definition.CapabilityVersions.IsMindProfile;
+        if (!mindProfile)
+        {
+            if (ticks.Any(frame => !frame.MindTurns.IsEmpty))
+            {
+                throw new ArgumentException(
+                    "A per-life contract profile cannot record mind turns.",
+                    nameof(ticks));
+            }
+            return;
+        }
+        if (ticks.Any(frame => frame.MindTurns.IsEmpty))
+        {
+            throw new ArgumentException(
+                "A mind-profile chronology must record one turn per ticking participant on every tick.",
+                nameof(ticks));
+        }
+
+        var tags = new Dictionary<ActorIdentity, string>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            foreach (GenericActorMatchMindTurn turn in frame.MindTurns)
+            {
+                if (!string.Equals(
+                        turn.Observation.MatchContractFingerprint,
+                        descriptor.MatchContractFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    throw new ArgumentException(
+                        "Every recorded mind observation must reference the chronology descriptor's exact contract.",
+                        nameof(ticks));
+                }
+                turn.ValidateAgainst(descriptor);
+                ValidateMindObservationAgainstState(frame, turn, tags);
+            }
+
+            // The tags this tick's accepted commands set are what the NEXT
+            // tick publishes; the observation was frozen before any of them
+            // were written.
+            foreach (GenericActorMatchMindTurn turn in frame.MindTurns)
+                turn.ApplyRoleTags(tags);
+
+            // A body that is gone takes its tag with it, so a slot's next life
+            // starts unlabelled rather than inheriting its predecessor's job.
+            HashSet<ActorIdentity> live = frame.PostState.ActiveLives
+                .Select(life => life.ActorId)
+                .ToHashSet();
+            foreach (ActorIdentity dead in
+                     tags.Keys.Where(actor => !live.Contains(actor)).ToArray())
+            {
+                tags.Remove(dead);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Re-derives one mind observation against the authoritative pre-tick
+    /// state: the bodies are exactly the participant's own live lives with
+    /// their exact published state, the slot table is the participant's own
+    /// slots in their authoritative state, the team-shared mode matches, and
+    /// every published role tag — on own bodies and on visible enemies alike —
+    /// is one the owning mind actually set.
+    /// </summary>
+    private static void ValidateMindObservationAgainstState(
+        GenericActorMatchTickFrame frame,
+        GenericActorMatchMindTurn turn,
+        IReadOnlyDictionary<ActorIdentity, string> tags)
+    {
+        GenericActorWorldSnapshot state = frame.TickStart.State;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            lives = state.ActiveLives.ToDictionary(life => life.ActorId);
+        ActorIdentity[] expectedBodies = state.ActiveLives
+            .Where(life => life.ParticipantId == turn.ParticipantId)
+            .Select(life => life.ActorId)
+            .Order()
+            .ToArray();
+        if (!turn.ResolvedBodies.SequenceEqual(expectedBodies))
+        {
+            throw new ArgumentException(
+                "A mind turn must resolve exactly its participant's own live bodies for that tick.",
+                nameof(frame));
+        }
+
+        foreach (GenericMindRuntimeObservation.ObservedBodyState body in
+                 turn.Observation.Bodies)
+        {
+            GenericActorWorldSnapshot.LifeSnapshot life =
+                lives[body.ActorId];
+            if (body.Generation != life.Generation
+                || !string.Equals(
+                    body.FormId,
+                    life.FormId,
+                    StringComparison.Ordinal)
+                || body.Position != life.Position
+                || body.Facing != life.Facing
+                || body.Health != life.Health
+                || body.Cooldown != life.Cooldown
+                || body.Energy != life.Energy
+                || body.LifeStartedTick != life.SpawnedAtTick
+                || !GenericActorMatchActorTurn
+                    .ActionResolutionsSemanticallyEqual(
+                        body.PreviousActionResolution,
+                        life.PreviousActionResolution))
+            {
+                throw new ArgumentException(
+                    "Every mind body must publish the exact authoritative pre-tick state.",
+                    nameof(frame));
+            }
+            RequirePublishedTag(body.RoleTag, body.ActorId, tags);
+        }
+
+        if (!turn.Observation.Slots
+            .Select(slot => (slot.TeamId, slot.UnitId))
+            .SequenceEqual(state.Slots
+                .Where(slot => slot.ParticipantId == turn.ParticipantId)
+                .Select(slot => (slot.TeamId, slot.UnitId))
+                .Order()))
+        {
+            throw new ArgumentException(
+                "A mind's published slot table must be exactly its own slots.",
+                nameof(frame));
+        }
+        if (turn.Observation.Mode != state.Mode)
+        {
+            throw new ArgumentException(
+                "A mind observation's mode must exactly match the authoritative pre-state.",
+                nameof(frame));
+        }
+        foreach (GenericActorRuntimeObservation.ObservedEnemyState enemy in
+                 turn.Observation.Enemies)
+        {
+            RequirePublishedTag(enemy.RoleTag, enemy.ActorId, tags);
+        }
+        foreach (GenericActorRuntimeObservation.ObservedAllyState ally in
+                 turn.Observation.Allies)
+        {
+            RequirePublishedTag(ally.RoleTag, ally.ActorId, tags);
+        }
+    }
+
+    private static void RequirePublishedTag(
+        string? published,
+        ActorIdentity actorId,
+        IReadOnlyDictionary<ActorIdentity, string> tags)
+    {
+        if (published is not null && !GenericMindRoleTag.IsValid(published))
+        {
+            throw new ArgumentException(
+                "A published role tag must be a canonical kebab label within the 24-byte cap.",
+                nameof(published));
+        }
+        string? expected = tags.GetValueOrDefault(actorId);
+        if (!string.Equals(published, expected, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Published role tag for '{actorId}' is not the last tag its mind set.",
+                nameof(published));
+        }
     }
 
     /// <summary>

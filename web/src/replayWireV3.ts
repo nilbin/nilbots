@@ -702,19 +702,21 @@ export interface ReplayV3WorldState {
   mode: ReplayV3ModeState;
 }
 
+export interface ReplayV3LifeOrigin {
+  reason: string;
+  generation: number;
+  parentActorId: ReplayV3ActorId | null;
+  sourceTransitionId: string | null;
+  sourceOperationId: string | null;
+}
+
 export interface ReplayV3LifeStart {
   schemaVersion: number;
   runtimeContractVersion: number;
   actorId: ReplayV3ActorId;
   participantId: number;
   actorRandomSeed: string;
-  origin: {
-    reason: string;
-    generation: number;
-    parentActorId: ReplayV3ActorId | null;
-    sourceTransitionId: string | null;
-    sourceOperationId: string | null;
-  };
+  origin: ReplayV3LifeOrigin;
   matchContractFingerprint: string;
   // Trailing additive key: the scoring team's shared random root, identical
   // for every life on the team. Absent only in a document written before the
@@ -745,6 +747,14 @@ export interface ReplayV3ObservedSelf {
    * so a document from a contract with no declared economy never carries it.
    */
   carriedScrap?: number;
+  /**
+   * The label this body's own mind last published for it. The canonical wire
+   * never writes it on `self` — a per-life bot cannot set one, and a mind body
+   * carries it on its own frame — so it exists here only because the mind
+   * specialization reuses this shape when it projects one mind turn into per-
+   * body turns for the viewer.
+   */
+  roleTag?: string;
 }
 
 export interface ReplayV3RouteCooldown {
@@ -765,6 +775,13 @@ export interface ReplayV3ObservedEnemy {
   classId: string | null;
   /** A visible enemy's load; present only while it is carrying. */
   carriedScrap?: number;
+  /**
+   * The label the enemy's own mind published for this body. Public on purpose
+   * and entirely non-authoritative, so it is what the opponent SAYS this body's
+   * job is; absent whenever nobody has tagged it, which is every per-life
+   * replay.
+   */
+  roleTag?: string;
 }
 
 export interface ReplayV3SpawnReservation {
@@ -901,6 +918,10 @@ export type ReplayV3EventPayload =
       fault: ReplayV3RuntimeFault;
     }
   | {
+      kind: 'mind-runtime-fault';
+      fault: ReplayV3MindRuntimeFault;
+    }
+  | {
       kind: 'participant';
       participantId: number;
       teamId: number;
@@ -965,6 +986,7 @@ export type ReplayV3EventKind =
   | 'life-spawned'
   | 'life-retired'
   | 'runtime-fault'
+  | 'mind-runtime-fault'
   | 'participant-disqualified'
   | 'lifecycle-queued'
   | 'lifecycle-cancelled'
@@ -1027,6 +1049,131 @@ export interface ReplayV3ActorTurn {
   actionResolution: ReplayV3ActionResolution;
 }
 
+/**
+ * One participant's complete tick under the mind profile: the union-once
+ * observation stored ONCE instead of once per body, every command the mind
+ * wrote with the host's admission verdict, and one resolution per own live
+ * body — including the bodies it never named, which carry the synthetic Wait.
+ */
+export interface ReplayV3MindTurn {
+  tick: number;
+  participantId: number;
+  teamId: number;
+  /** `250M + 200M x liveBodyCount`, as a decimal-safe string. */
+  fuelBudget: string;
+  liveBodyCount: number;
+  observation: ReplayV3MindObservation;
+  commands: ReplayV3MindCommand[];
+  resolutions: ReplayV3MindBodyResolution[];
+  /** Reserved inter-mind declarations; always empty in v1. */
+  intents: ReplayV3MindIntent[];
+  runtimeFault: ReplayV3MindRuntimeFault | null;
+}
+
+export type ReplayV3MindCommandOutcome = 'accepted' | 'rejected';
+
+export interface ReplayV3MindCommand {
+  unitId: number;
+  lifeId: number;
+  actionId: string;
+  actionCode: number;
+  arguments: (ReplayV3RawActionArgument | null)[] | null;
+  outcome: ReplayV3MindCommandOutcome;
+  /** Absent means "unchanged"; the empty string means "clear". */
+  roleTag?: string;
+  debugMessage: string | null;
+}
+
+export interface ReplayV3MindBodyResolution {
+  unitId: number;
+  lifeId: number;
+  submittedDecision: ReplayV3SubmittedDecision | null;
+  actionResolution: ReplayV3ActionResolution;
+}
+
+export interface ReplayV3MindIntent {
+  tagId: string;
+  value: string;
+}
+
+export interface ReplayV3MindAlliedIntent {
+  participantId: number;
+  tagId: string;
+  value: string;
+}
+
+/**
+ * A participant-scoped fault. `actorId` is null when the mind held no live
+ * body — a mind ticks on a tick it owns nothing, so it can also trap on one.
+ */
+export interface ReplayV3MindRuntimeFault {
+  participantId: number;
+  teamId: number;
+  actorId: ReplayV3ActorId | null;
+  stage: string;
+  faultCode: string;
+  cumulativeFaultCount: string;
+  disqualificationTriggered: boolean;
+}
+
+export interface ReplayV3MindObservation {
+  schemaVersion: number;
+  tick: number;
+  matchContractFingerprint: string;
+  participantId: number;
+  teamId: number;
+  bodies: ReplayV3MindBody[];
+  slots: ReplayV3MindSlot[];
+  teamUnits: {
+    teamId: number;
+    unitId: number;
+    state: ReplayV3UnitSlotState;
+  }[];
+  participants: ReplayV3ParticipantStatus[];
+  allies: ReplayV3ObservedAlly[];
+  enemies: ReplayV3ObservedEnemy[];
+  visibleTiles: ReplayV3ObservedTile[];
+  visibleProjectiles: ReplayV3ObservedProjectile[] | null;
+  visibleEvents: ReplayV3ObservedEvent[];
+  heardSounds: ReplayV3ObservedSound[] | null;
+  scoreboard: ReplayV3Scoreboard;
+  mode: ReplayV3ModeState;
+  alliedIntents: ReplayV3MindAlliedIntent[];
+}
+
+export interface ReplayV3MindBody {
+  actorId: ReplayV3ActorId;
+  generation: number;
+  formId: string;
+  position: ReplayV3Position;
+  facing: ReplayV3Direction;
+  health: number;
+  cooldown: number;
+  energy: number | null;
+  previousActionResolution: ReplayV3ActionResolution | null;
+  pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
+  classId: string | null;
+  previousPosition: ReplayV3Position | null;
+  movedLastTick: boolean;
+  lifeStartedTick: number;
+  origin: ReplayV3LifeOrigin;
+  /** The exact per-life stream seed this body would have been handed. */
+  bodyRandomSeed: string;
+  routeCooldowns?: ReplayV3RouteCooldown[];
+  carriedScrap?: number;
+  roleTag?: string;
+  actionLegalities: ReplayV3ActionLegality[];
+}
+
+export interface ReplayV3MindSlot {
+  teamId: number;
+  unitId: number;
+  state: ReplayV3UnitSlotState;
+  classId?: string;
+  candidateClassIds?: string[];
+  selectedClassId?: string;
+}
+
 export type ReplayV3EventAudience =
   | { kind: 'public' }
   | { kind: 'spatial'; primaryPosition: ReplayV3Position }
@@ -1087,10 +1234,16 @@ export interface ReplayV3TickStart {
   traversals: ReplayV3ProjectileTraversal[];
 }
 
+/**
+ * One resolved tick. A document carries EXACTLY ONE of `actorTurns` /
+ * `mindTurns`, decided by the header's contract profile — never inferred from
+ * the payload (docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md §5.1).
+ */
 export interface ReplayV3Tick {
   tick: number;
   tickStart: ReplayV3TickStart;
-  actorTurns: ReplayV3ActorTurn[];
+  actorTurns?: ReplayV3ActorTurn[];
+  mindTurns?: ReplayV3MindTurn[];
   events: ReplayV3AuthoritativeEvent[];
   traversals: ReplayV3ProjectileTraversal[];
   postState: ReplayV3WorldState;

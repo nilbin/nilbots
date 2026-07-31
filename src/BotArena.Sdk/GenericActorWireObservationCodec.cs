@@ -698,6 +698,15 @@ internal static class GenericActorWireObservationCodec
             writer,
             9,
             value.CarriedScrap == 0 ? null : value.CarriedScrap);
+        // Trailing additive field (§12.2): a visible enemy's declared job is
+        // published, and the key costs nothing when nobody has tagged one.
+        writer.Optional(
+            10,
+            value.RoleTag is null
+                ? null
+                : ActorWireValue.String(
+                    value.RoleTag,
+                    GenericMindContractVersions.MaxRoleTagUtf8Bytes));
         return writer.ToArray();
     }
 
@@ -708,6 +717,7 @@ internal static class GenericActorWireObservationCodec
         var reader = new ActorWireObjectReader(bytes, depth);
         byte[]? transition = reader.Optional(6);
         byte[]? classId = reader.Optional(8);
+        byte[]? roleTag = reader.Optional(10);
         return GenericActorWireCodecValues.Decode(
             () => new GenericActorContext.ObservedEnemyState(
                 GenericActorWireCodecValues.DecodeIdentity(
@@ -733,7 +743,12 @@ internal static class GenericActorWireObservationCodec
                 classId is null
                     ? null
                     : GenericActorWireCodecValues.SemanticId(classId),
-                GenericActorWireCodecValues.OptionalInt32(reader, 9) ?? 0),
+                GenericActorWireCodecValues.OptionalInt32(reader, 9) ?? 0,
+                roleTag is null
+                    ? null
+                    : ActorWireValue.String(
+                        roleTag,
+                        GenericMindContractVersions.MaxRoleTagUtf8Bytes)),
             "enemy observation");
     }
 

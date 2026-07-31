@@ -87,13 +87,27 @@ internal sealed record ReplayV3(
         ImmutableArray<LifeStart> LifeStarts,
         ImmutableArray<AuthoritativeEvent> Events);
 
+    /// <summary>
+    /// One resolved tick. A document carries EXACTLY ONE of
+    /// <paramref name="ActorTurns"/> / <paramref name="MindTurns"/>, decided by
+    /// the contract profile in its header — there is no mixed document and no
+    /// inference from the payload
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1).
+    /// </summary>
     internal sealed record TickFrame(
         int Tick,
         TickStart TickStart,
-        ImmutableArray<ActorTurn> ActorTurns,
         ImmutableArray<AuthoritativeEvent> Events,
         ImmutableArray<ProjectileTraversal> Traversals,
-        WorldState PostState);
+        WorldState PostState,
+        // Both turn kinds are OPTIONAL on the reader, and exactly one is
+        // present on any real document: the reader must be able to decode a
+        // per-life tick that has never heard of mind turns and a mind tick
+        // that deliberately has no actor turns. The canonical WRITER, and the
+        // envelope validator, are what refuse a document carrying neither or
+        // both.
+        ImmutableArray<ActorTurn> ActorTurns = default,
+        ImmutableArray<MindTurn> MindTurns = default);
 
     internal sealed record TickStart(
         int Tick,
@@ -110,6 +124,151 @@ internal sealed record ReplayV3(
         Observation Observation,
         SubmittedDecision? SubmittedDecision,
         ActionResolution ActionResolution);
+
+    /// <summary>
+    /// One participant's complete tick under the mind profile
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1): the
+    /// union-once observation delivered ONCE instead of once per body, every
+    /// command the mind wrote with the host's admission verdict, and one
+    /// resolution per own live body — including the bodies it never named,
+    /// which carry the synthetic Wait. That last part preserves the property
+    /// the per-life format had, that every body's tick is accounted for, which
+    /// both the validator and the ML story depend on.
+    /// </summary>
+    /// <param name="FuelBudget">
+    /// <c>250M + 200M x liveBodyCount</c>, a pure function of authoritative
+    /// tick-start state, so the validator re-derives it rather than trusting it
+    /// (§4.2).
+    /// </param>
+    internal sealed record MindTurn(
+        int Tick,
+        int ParticipantId,
+        int TeamId,
+        string FuelBudget,
+        int LiveBodyCount,
+        MindObservation Observation,
+        ImmutableArray<MindCommand> Commands,
+        ImmutableArray<MindBodyResolution> Resolutions,
+        ImmutableArray<MindIntent> Intents,
+        MindRuntimeFault? RuntimeFault);
+
+    /// <summary>
+    /// One command the mind wrote, with what the host did with it. Both halves
+    /// are recorded and neither is elided: a Rejected command naming a body
+    /// that died this tick is legitimate evidence, not a malformed document.
+    /// </summary>
+    internal sealed record MindCommand(
+        int UnitId,
+        int LifeId,
+        string ActionId,
+        int ActionCode,
+        ImmutableArray<RawActionArgument?> Arguments,
+        string Outcome,
+        string? RoleTag = null,
+        string? DebugMessage = null);
+
+    /// <summary>
+    /// One own live body's authoritative tick, in canonical
+    /// <c>(unitId, lifeId)</c> order.
+    /// </summary>
+    internal sealed record MindBodyResolution(
+        int UnitId,
+        int LifeId,
+        SubmittedDecision? SubmittedDecision,
+        ActionResolution ActionResolution);
+
+    /// <summary>RESERVED (§11.3): recorded and Rejected, never delivered.</summary>
+    internal sealed record MindIntent(
+        string TagId,
+        string Value);
+
+    /// <summary>
+    /// A participant-scoped fault. Its <paramref name="ActorId"/> is null when
+    /// the mind held no live body — a mind that traps on a tick it owns nothing
+    /// still traps, and under a threshold-0 contract that is the frame where it
+    /// forgot the match and lost it (§4.7).
+    /// </summary>
+    internal sealed record MindRuntimeFault(
+        int ParticipantId,
+        int TeamId,
+        ActorId? ActorId,
+        string Stage,
+        string FaultCode,
+        string CumulativeFaultCount,
+        bool DisqualificationTriggered);
+
+    /// <summary>
+    /// The exact mind observation, with the team-shared union carried once.
+    /// Every nested record is the existing per-life shape, unchanged, which is
+    /// what makes the null pin checkable field by field (§4.5).
+    /// </summary>
+    internal sealed record MindObservation(
+        int SchemaVersion,
+        int Tick,
+        string MatchContractFingerprint,
+        int ParticipantId,
+        int TeamId,
+        ImmutableArray<MindBody> Bodies,
+        ImmutableArray<MindSlot> Slots,
+        ImmutableArray<ObservedUnitSlot> TeamUnits,
+        ImmutableArray<ParticipantStatus> Participants,
+        ImmutableArray<ObservedAlly> Allies,
+        ImmutableArray<ObservedEnemy> Enemies,
+        ImmutableArray<ObservedTile> VisibleTiles,
+        ImmutableArray<ObservedProjectile>? VisibleProjectiles,
+        ImmutableArray<ObservedEvent> VisibleEvents,
+        ImmutableArray<ObservedSound>? HeardSounds,
+        Scoreboard Scoreboard,
+        ModeState Mode,
+        ImmutableArray<MindAlliedIntent> AlliedIntents);
+
+    /// <summary>
+    /// One body the mind commands: today's self field set plus the facts a mind
+    /// is entitled to and a per-life bot was not (§2.3), plus P3's
+    /// <paramref name="BodyRandomSeed"/> — the exact per-life stream this body
+    /// would have been handed, which is what makes a wrapped bot's private
+    /// tie-breaks reproduce rather than merely resemble.
+    /// </summary>
+    internal sealed record MindBody(
+        ActorId ActorId,
+        int Generation,
+        string FormId,
+        PositionValue Position,
+        string Facing,
+        int Health,
+        int Cooldown,
+        int? Energy,
+        ActionResolution? PreviousActionResolution,
+        PendingSameLifeTransition? PendingSameLifeTransition,
+        string? ClassId,
+        PositionValue? PreviousPosition,
+        bool MovedLastTick,
+        int LifeStartedTick,
+        LifeOrigin Origin,
+        string BodyRandomSeed,
+        ImmutableArray<ActionLegality> ActionLegalities,
+        ImmutableArray<RouteCooldown> RouteCooldowns = default,
+        int CarriedScrap = 0,
+        string? RoleTag = null);
+
+    /// <summary>
+    /// One of the mind's own stable slots, published EVERY TICK rather than
+    /// only at start (§13.2) — the single thing v1 must do to keep a draft
+    /// phase a feature rather than a migration.
+    /// </summary>
+    internal sealed record MindSlot(
+        int TeamId,
+        int UnitId,
+        UnitSlotState State,
+        string? ClassId = null,
+        ImmutableArray<string> CandidateClassIds = default,
+        string? SelectedClassId = null);
+
+    /// <summary>RESERVED (§11.1). Always empty in v1.</summary>
+    internal sealed record MindAlliedIntent(
+        int ParticipantId,
+        string TagId,
+        string Value);
 
     internal sealed record LifeStart(
         int SchemaVersion,
@@ -192,7 +351,11 @@ internal sealed record ReplayV3(
         PendingSameLifeTransition? PendingSameLifeTransition,
         string? ClassId,
         ImmutableArray<RouteCooldown> RouteCooldowns = default,
-        int CarriedScrap = 0);
+        int CarriedScrap = 0,
+        // Trailing additive key (#156 discipline, §12): written only when a
+        // mind has labelled the body, so every per-life document stays
+        // byte-identical.
+        string? RoleTag = null);
 
     /// <summary>
     /// One live slot-scoped route cooldown snapshot (#181/#182): the named
@@ -213,7 +376,10 @@ internal sealed record ReplayV3(
         PendingSameLifeTransition? PendingSameLifeTransition,
         ImmutableArray<ActorId> ObservedBy,
         string? ClassId,
-        int CarriedScrap = 0);
+        int CarriedScrap = 0,
+        // Public on visible enemies by design (§12.2), and trailing-additive
+        // so a document without one is byte-identical to yesterday's.
+        string? RoleTag = null);
 
     internal sealed record PendingSameLifeTransition(
         string TransitionId,
@@ -507,6 +673,14 @@ internal sealed record ReplayV3(
 
         internal sealed record RuntimeFaultValue(RuntimeFault Fault)
             : EventPayload("runtime-fault");
+
+        /// <summary>
+        /// A participant-scoped mind fault with no body to attribute it to
+        /// (P3, §4.7). Emitted only when the mind held no live body, so no
+        /// per-life document ever carries this payload.
+        /// </summary>
+        internal sealed record MindRuntimeFaultValue(MindRuntimeFault Fault)
+            : EventPayload("mind-runtime-fault");
 
         internal sealed record Participant(
             int ParticipantId,

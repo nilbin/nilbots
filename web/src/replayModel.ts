@@ -1044,6 +1044,17 @@ export interface ReplayObservedActor {
    * that follows the pickup.
    */
   carriedScrap: number;
+  /**
+   * The free-vocabulary label this body's MIND published for it, or null.
+   *
+   * Entirely non-authoritative — the engine never reads it — and public on
+   * visible enemies as well as own bodies, which is what makes it worth
+   * rendering: a spectator reading `channeler / screen / screen / courier`
+   * understands the set-piece without being taught the rules, and a
+   * deliberately wrong label is a real move. Null for every per-life replay,
+   * which has no way to set one.
+   */
+  roleTag: string | null;
 }
 
 export interface ReplayObservedTile {

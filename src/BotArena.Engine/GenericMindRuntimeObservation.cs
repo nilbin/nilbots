@@ -134,8 +134,35 @@ public sealed record GenericMindRuntimeObservation(
         /// <inheritdoc cref="GenericActorRuntimeObservation.ObservedSelfState.CarriedScrap"/>
         public int CarriedScrap { get; init; }
 
-        /// <summary>RESERVED (§12). Always null in v1.</summary>
+        /// <summary>
+        /// The label this mind last attached to this body (§12), or null when
+        /// it carries none. Sticky, free-vocabulary, and entirely
+        /// non-authoritative.
+        /// </summary>
         public string? RoleTag { get; init; }
+
+        /// <summary>
+        /// P3's addition, and the fix for the P2 null-pin flag: the EXACT
+        /// per-life <c>ActorRandomSeed</c> the per-life profile would have
+        /// handed this life, delivered to the mind that owns it.
+        /// <para>
+        /// A mind's own stream is derived in the participant domain and can
+        /// never reproduce it, so before this field a wrapped per-life bot that
+        /// drew from <c>context.Random</c> made different private tie-breaks on
+        /// the mind profile than on its own — a difference the §7.2 null pin
+        /// would have had to either explain away or fail on. Publishing the
+        /// life-domain seed per body makes the wrap exact instead: a body's
+        /// private stream is a per-BODY fact under the mind, exactly as its
+        /// origin is.
+        /// </para>
+        /// <para>
+        /// It leaks nothing a per-life bot did not already hold about itself —
+        /// it is that bot's own seed, delivered to its own controller — and it
+        /// is re-derivable by the validator from the match seed and the body's
+        /// identity, so a forged value is refused.
+        /// </para>
+        /// </summary>
+        public ulong BodyRandomSeed { get; init; }
     }
 
     /// <summary>

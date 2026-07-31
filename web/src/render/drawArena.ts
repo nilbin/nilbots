@@ -43,6 +43,7 @@ import {
   type Arrival,
   type BotPose,
 } from './interpolate';
+import { roleTagCaption, roleTagColor } from '../presentation/roleTag';
 import { arenaViewport, type ArenaFrame } from './arenaCamera';
 import { frontlineCaptureVisual } from './frontlineCaptureVisual';
 import { wallAtlasDestination } from './wallAtlasGeometry';
@@ -1418,6 +1419,47 @@ export function drawArena(
       if (pose.status !== 'active' || hiddenByFog(pose)) continue;
       drawCarriedScrap(pose);
     }
+    // Last, so a label is never painted over: the mind's own word for what
+    // this body is doing.
+    for (const pose of poses) {
+      if (pose.status !== 'active' || hiddenByFog(pose)) continue;
+      drawRoleTag(pose);
+    }
+  }
+
+  /**
+   * THE WATCHABILITY DELIVERABLE (§12.3). A small caption under each labelled
+   * body, coloured by a stable hash of the tag so `channeler` is the same
+   * colour all match and across matches — and drawn for VISIBLE ENEMIES too,
+   * because half the drama of a set-piece is seeing both sides' assignments
+   * and knowing one of them is wrong.
+   *
+   * Where a tag is absent nothing is drawn at all: an unlabelled body should
+   * look unlabelled, not broken.
+   */
+  function drawRoleTag(pose: BotPose): void {
+    const unit = tickPresentation?.units.find(
+      (candidate) => candidate.unitKey === pose.unitKey,
+    );
+    const tag = unit?.roleTag;
+    if (!tag) return;
+    const caption = roleTagCaption(tag);
+    const size = Math.max(7, Math.round(tile * 0.24));
+    const cx = px(pose.x) + tile / 2;
+    const cy = px(pose.y) + tile * 0.99;
+    ctx.save();
+    ctx.font = `${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    // A hairline of the field colour behind the glyphs, so the caption stays
+    // readable over a lit floor without a panel behind it.
+    ctx.lineWidth = Math.max(2, size * 0.34);
+    ctx.strokeStyle = 'rgba(2, 6, 12, 0.85)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(caption, cx, cy);
+    ctx.fillStyle = roleTagColor(tag);
+    ctx.fillText(caption, cx, cy);
+    ctx.restore();
   }
 
   /**

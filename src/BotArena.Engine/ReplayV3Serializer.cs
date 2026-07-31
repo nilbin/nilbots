@@ -267,7 +267,12 @@ internal static class ReplayV3Serializer
         WriteHeader(writer, replay.Header);
         writer.WritePropertyName("initialFrame");
         WriteInitialFrame(writer, replay.InitialFrame);
-        WriteArray(writer, "ticks", replay.Ticks, WriteTick);
+        bool mindProfile = IsMindProfile(replay.Header);
+        WriteArray(
+            writer,
+            "ticks",
+            replay.Ticks,
+            (value, tick) => WriteTick(value, tick, mindProfile));
         writer.WritePropertyName("result");
         if (replay.Result is null)
             writer.WriteNullValue();
@@ -483,19 +488,38 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
+    /// <summary>
+    /// A tick carries EXACTLY ONE of <c>actorTurns</c> / <c>mindTurns</c>,
+    /// decided by the header's contract profile — never by inspecting the
+    /// payload (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1). A
+    /// document that carried both would round-trip to a different canonical
+    /// text and is therefore refused before its hash is ever compared.
+    /// </summary>
     private static void WriteTick(
         Utf8JsonWriter writer,
-        ReplayV3.TickFrame tick)
+        ReplayV3.TickFrame tick,
+        bool mindProfile)
     {
         writer.WriteStartObject();
         writer.WriteNumber("tick", tick.Tick);
         writer.WritePropertyName("tickStart");
         WriteTickStart(writer, tick.TickStart);
-        WriteArray(
-            writer,
-            "actorTurns",
-            tick.ActorTurns,
-            WriteActorTurn);
+        if (mindProfile)
+        {
+            WriteArray(
+                writer,
+                "mindTurns",
+                tick.MindTurns,
+                WriteMindTurn);
+        }
+        else
+        {
+            WriteArray(
+                writer,
+                "actorTurns",
+                tick.ActorTurns,
+                WriteActorTurn);
+        }
         WriteArray(writer, "events", tick.Events, WriteEvent);
         WriteArray(
             writer,
@@ -556,6 +580,264 @@ internal static class ReplayV3Serializer
             WriteSubmittedDecision(writer, turn.SubmittedDecision);
         writer.WritePropertyName("actionResolution");
         WriteActionResolution(writer, turn.ActionResolution);
+        writer.WriteEndObject();
+    }
+
+    private static bool IsMindProfile(ReplayV3.ReplayHeader header) =>
+        header.Runtime is not null
+        && string.Equals(
+            header.Runtime.ContractProfileId,
+            BotArenaVersions.GenericMindContractProfileId,
+            StringComparison.Ordinal);
+
+    private static void WriteMindTurn(
+        Utf8JsonWriter writer,
+        ReplayV3.MindTurn turn)
+    {
+        ArgumentNullException.ThrowIfNull(turn);
+        writer.WriteStartObject();
+        writer.WriteNumber("tick", turn.Tick);
+        writer.WriteNumber("participantId", turn.ParticipantId);
+        writer.WriteNumber("teamId", turn.TeamId);
+        writer.WriteString("fuelBudget", turn.FuelBudget);
+        writer.WriteNumber("liveBodyCount", turn.LiveBodyCount);
+        writer.WritePropertyName("observation");
+        WriteMindObservation(writer, turn.Observation);
+        WriteArray(writer, "commands", turn.Commands, WriteMindCommand);
+        WriteArray(
+            writer,
+            "resolutions",
+            turn.Resolutions,
+            WriteMindBodyResolution);
+        WriteArray(writer, "intents", turn.Intents, WriteMindIntent);
+        writer.WritePropertyName("runtimeFault");
+        if (turn.RuntimeFault is null)
+            writer.WriteNullValue();
+        else
+            WriteMindRuntimeFault(writer, turn.RuntimeFault);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindCommand(
+        Utf8JsonWriter writer,
+        ReplayV3.MindCommand command)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("unitId", command.UnitId);
+        writer.WriteNumber("lifeId", command.LifeId);
+        writer.WriteString("actionId", command.ActionId);
+        writer.WriteNumber("actionCode", command.ActionCode);
+        WriteNullableRawActionArguments(writer, command.Arguments);
+        writer.WriteString("outcome", command.Outcome);
+        // Omit-when-inert (#156): an absent tag means "leave it unchanged" and
+        // the empty string means "clear it", so the two must stay distinct on
+        // the wire.
+        WriteRoleTag(writer, command.RoleTag);
+        WriteNullableString(
+            writer,
+            "debugMessage",
+            command.DebugMessage);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindBodyResolution(
+        Utf8JsonWriter writer,
+        ReplayV3.MindBodyResolution resolution)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("unitId", resolution.UnitId);
+        writer.WriteNumber("lifeId", resolution.LifeId);
+        writer.WritePropertyName("submittedDecision");
+        if (resolution.SubmittedDecision is null)
+            writer.WriteNullValue();
+        else
+            WriteSubmittedDecision(writer, resolution.SubmittedDecision);
+        writer.WritePropertyName("actionResolution");
+        WriteActionResolution(writer, resolution.ActionResolution);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindIntent(
+        Utf8JsonWriter writer,
+        ReplayV3.MindIntent intent)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("tagId", intent.TagId);
+        writer.WriteString("value", intent.Value);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindAlliedIntent(
+        Utf8JsonWriter writer,
+        ReplayV3.MindAlliedIntent intent)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("participantId", intent.ParticipantId);
+        writer.WriteString("tagId", intent.TagId);
+        writer.WriteString("value", intent.Value);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindRuntimeFault(
+        Utf8JsonWriter writer,
+        ReplayV3.MindRuntimeFault value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("participantId", value.ParticipantId);
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WritePropertyName("actorId");
+        WriteNullableActorId(writer, value.ActorId);
+        writer.WriteString("stage", value.Stage);
+        writer.WriteString("faultCode", value.FaultCode);
+        WriteInt64String(
+            writer,
+            "cumulativeFaultCount",
+            value.CumulativeFaultCount,
+            nonNegative: true);
+        writer.WriteBoolean(
+            "disqualificationTriggered",
+            value.DisqualificationTriggered);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindObservation(
+        Utf8JsonWriter writer,
+        ReplayV3.MindObservation observation)
+    {
+        ArgumentNullException.ThrowIfNull(observation);
+        writer.WriteStartObject();
+        writer.WriteNumber("schemaVersion", observation.SchemaVersion);
+        writer.WriteNumber("tick", observation.Tick);
+        writer.WriteString(
+            "matchContractFingerprint",
+            observation.MatchContractFingerprint);
+        writer.WriteNumber("participantId", observation.ParticipantId);
+        writer.WriteNumber("teamId", observation.TeamId);
+        WriteArray(writer, "bodies", observation.Bodies, WriteMindBody);
+        WriteArray(writer, "slots", observation.Slots, WriteMindSlot);
+        WriteArray(
+            writer,
+            "teamUnits",
+            observation.TeamUnits,
+            WriteObservedUnitSlot);
+        WriteArray(
+            writer,
+            "participants",
+            observation.Participants,
+            WriteParticipantStatus);
+        WriteArray(
+            writer,
+            "allies",
+            observation.Allies,
+            WriteObservedAlly);
+        WriteArray(
+            writer,
+            "enemies",
+            observation.Enemies,
+            WriteObservedEnemy);
+        WriteArray(
+            writer,
+            "visibleTiles",
+            observation.VisibleTiles,
+            WriteObservedTile);
+        WriteNullableArray(
+            writer,
+            "visibleProjectiles",
+            observation.VisibleProjectiles,
+            WriteObservedProjectile);
+        WriteArray(
+            writer,
+            "visibleEvents",
+            observation.VisibleEvents,
+            WriteObservedEvent);
+        WriteNullableArray(
+            writer,
+            "heardSounds",
+            observation.HeardSounds,
+            WriteObservedSound);
+        writer.WritePropertyName("scoreboard");
+        WriteScoreboard(writer, observation.Scoreboard);
+        writer.WritePropertyName("mode");
+        WriteModeState(writer, observation.Mode);
+        WriteArray(
+            writer,
+            "alliedIntents",
+            observation.AlliedIntents,
+            WriteMindAlliedIntent);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindBody(
+        Utf8JsonWriter writer,
+        ReplayV3.MindBody body)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("actorId");
+        WriteActorId(writer, body.ActorId);
+        writer.WriteNumber("generation", body.Generation);
+        writer.WriteString("formId", body.FormId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, body.Position);
+        writer.WriteString("facing", body.Facing);
+        writer.WriteNumber("health", body.Health);
+        writer.WriteNumber("cooldown", body.Cooldown);
+        WriteNullableNumber(writer, "energy", body.Energy);
+        writer.WritePropertyName("previousActionResolution");
+        WriteNullableActionResolution(
+            writer,
+            body.PreviousActionResolution);
+        writer.WritePropertyName("pendingSameLifeTransition");
+        WritePendingTransition(
+            writer,
+            body.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", body.ClassId);
+        writer.WritePropertyName("previousPosition");
+        if (body.PreviousPosition is null)
+            writer.WriteNullValue();
+        else
+            WritePosition(writer, body.PreviousPosition);
+        writer.WriteBoolean("movedLastTick", body.MovedLastTick);
+        writer.WriteNumber("lifeStartedTick", body.LifeStartedTick);
+        writer.WritePropertyName("origin");
+        WriteLifeOrigin(writer, body.Origin);
+        WriteUInt64String(
+            writer,
+            "bodyRandomSeed",
+            body.BodyRandomSeed);
+        WriteRouteCooldowns(writer, body.RouteCooldowns);
+        WriteCarriedScrap(writer, body.CarriedScrap);
+        WriteRoleTag(writer, body.RoleTag);
+        WriteArray(
+            writer,
+            "actionLegalities",
+            body.ActionLegalities,
+            WriteActionLegality);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindSlot(
+        Utf8JsonWriter writer,
+        ReplayV3.MindSlot slot)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", slot.TeamId);
+        writer.WriteNumber("unitId", slot.UnitId);
+        writer.WritePropertyName("state");
+        WriteUnitSlotState(writer, slot.State);
+        // Reserved composition facts, emitted only when a ruleset declares
+        // them (§9.2/§10.2): absence has ONE encoding and a classless contract
+        // never carries the keys.
+        if (slot.ClassId is not null)
+            writer.WriteString("classId", slot.ClassId);
+        if (!slot.CandidateClassIds.IsDefaultOrEmpty)
+        {
+            WriteStringArray(
+                writer,
+                "candidateClassIds",
+                slot.CandidateClassIds);
+        }
+        if (slot.SelectedClassId is not null)
+            writer.WriteString("selectedClassId", slot.SelectedClassId);
         writer.WriteEndObject();
     }
 
@@ -730,7 +1012,22 @@ internal static class ReplayV3Serializer
         WriteNullableString(writer, "classId", value.ClassId);
         WriteRouteCooldowns(writer, value.RouteCooldowns);
         WriteCarriedScrap(writer, value.CarriedScrap);
+        WriteRoleTag(writer, value.RoleTag);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Canonical form for a published role tag (§12): the key exists only when
+    /// a mind has labelled the body, so every per-life replay and every
+    /// document written before tags existed serializes byte-exactly as before.
+    /// </summary>
+    private static void WriteRoleTag(
+        Utf8JsonWriter writer,
+        string? value)
+    {
+        if (value is null)
+            return;
+        writer.WriteString("roleTag", value);
     }
 
     private static void WriteObservedEnemy(
@@ -756,6 +1053,7 @@ internal static class ReplayV3Serializer
             WriteActorId);
         WriteNullableString(writer, "classId", value.ClassId);
         WriteCarriedScrap(writer, value.CarriedScrap);
+        WriteRoleTag(writer, value.RoleTag);
         writer.WriteEndObject();
     }
 
@@ -1497,6 +1795,10 @@ internal static class ReplayV3Serializer
             case ReplayV3.EventPayload.RuntimeFaultValue payload:
                 writer.WritePropertyName("fault");
                 WriteRuntimeFault(writer, payload.Fault);
+                break;
+            case ReplayV3.EventPayload.MindRuntimeFaultValue payload:
+                writer.WritePropertyName("fault");
+                WriteMindRuntimeFault(writer, payload.Fault);
                 break;
             case ReplayV3.EventPayload.Participant payload:
                 writer.WriteNumber(
@@ -3304,6 +3606,18 @@ internal static class ReplayV3Serializer
             eventSourceOrdinals,
             "initial frame");
 
+        bool mindProfile = IsMindProfile(replay.Header);
+        // Every life's seed, accumulated as the document declares it, so a
+        // mind body publishing a seed the engine never derived is refused
+        // without the validator having to re-run the derivation itself.
+        var seedsByActor = new Dictionary<ReplayV3.ActorId, string>();
+        // The last tag each mind actually set, re-derived from the accepted
+        // commands, so a doctored document cannot narrate a strategy that
+        // never happened (§5.3).
+        var roleTags = new Dictionary<ReplayV3.ActorId, string>();
+        foreach (ReplayV3.LifeStart start in replay.InitialFrame.LifeStarts)
+            seedsByActor[start.ActorId] = start.ActorRandomSeed;
+
         ReplayV3.WorldState previousState = replay.InitialFrame.State;
         for (int index = 0; index < replay.Ticks.Length; index++)
         {
@@ -3357,21 +3671,46 @@ internal static class ReplayV3Serializer
                 eventSourceOrdinals,
                 $"tick {tick.Tick} start");
 
-            RequireCanonicalOrder(
-                tick.ActorTurns,
-                static (left, right) =>
-                    CompareActorId(left.ActorId, right.ActorId),
-                $"tick {tick.Tick} actor turns");
-            if (!tick.ActorTurns.Select(turn => turn.ActorId)
-                    .SequenceEqual(tick.TickStart.ActiveActorIds))
+            foreach (ReplayV3.LifeStart start in tick.TickStart.LifeStarts)
+                seedsByActor[start.ActorId] = start.ActorRandomSeed;
+
+            // The profile decides the turn kind, and a document may never
+            // carry both (§5.1).
+            if (mindProfile != tick.ActorTurns.IsDefault
+                || mindProfile == tick.MindTurns.IsDefault)
             {
                 throw new ArgumentException(
-                    $"Replay-v3 tick {tick.Tick} turns must exactly cover active actors.");
+                    $"Replay-v3 tick {tick.Tick} must carry exactly the turn kind its contract profile selects.");
+            }
+            if (!mindProfile)
+            {
+                RequireCanonicalOrder(
+                    tick.ActorTurns,
+                    static (left, right) =>
+                        CompareActorId(left.ActorId, right.ActorId),
+                    $"tick {tick.Tick} actor turns");
+                if (!tick.ActorTurns.Select(turn => turn.ActorId)
+                    .SequenceEqual(tick.TickStart.ActiveActorIds))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 tick {tick.Tick} turns must exactly cover active actors.");
+                }
             }
             Dictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives =
                 tick.TickStart.State.ActiveLives.ToDictionary(
                     life => life.ActorId);
-            foreach (ReplayV3.ActorTurn turn in tick.ActorTurns)
+            if (mindProfile)
+            {
+                ValidateMindTurns(
+                    tick,
+                    replay.Header,
+                    contract,
+                    lives,
+                    seedsByActor,
+                    roleTags);
+            }
+            foreach (ReplayV3.ActorTurn turn in
+                     tick.ActorTurns.IsDefault ? [] : tick.ActorTurns)
             {
                 ArgumentNullException.ThrowIfNull(turn);
                 ArgumentNullException.ThrowIfNull(turn.Observation);
@@ -3457,6 +3796,555 @@ internal static class ReplayV3Serializer
         }
 
         ValidateResult(replay.Result, replay.Ticks, previousState, contract);
+    }
+
+    /// <summary>
+    /// The mind-era document rules
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.3). It is
+    /// strictly LESS work than the per-life pass and a STRONGER check: one
+    /// union is re-derived per participant per tick instead of N
+    /// specializations of it, and the facts the per-life format only implied —
+    /// which bodies a mind owned, what budget it was handed, which label each
+    /// body was actually given — become explicit and checkable.
+    /// <para>
+    /// The refusals added here, each forgeable and each forged in the tests:
+    /// a turn for a non-ticking or unowned participant; a decision claimed
+    /// accepted on a body that is not an own live body; two commands for one
+    /// body on a healthy turn; a fuel budget off the live-body formula; a
+    /// resolution set that is not exactly the participant's own live bodies;
+    /// an observation that disagrees with the re-derived pre-state; a role tag
+    /// over the 24-byte cap, off the canonical charset, or on a body its mind
+    /// never tagged; and a body random seed that is not the one the document
+    /// itself declared at that life's start.
+    /// </para>
+    /// </summary>
+    private static void ValidateMindTurns(
+        ReplayV3.TickFrame tick,
+        ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
+        IReadOnlyDictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> seedsByActor,
+        Dictionary<ReplayV3.ActorId, string> roleTags)
+    {
+        RequireCanonicalOrder(
+            tick.MindTurns,
+            static (left, right) =>
+                left.ParticipantId.CompareTo(right.ParticipantId),
+            $"tick {tick.Tick} mind turns");
+        if (tick.MindTurns.Select(turn => turn.ParticipantId)
+                .Distinct()
+                .Count() != tick.MindTurns.Length)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 tick {tick.Tick} mind turns must be participant-unique.");
+        }
+
+        var covered = new List<ReplayV3.ActorId>();
+        foreach (ReplayV3.MindTurn turn in tick.MindTurns)
+        {
+            ArgumentNullException.ThrowIfNull(turn);
+            ArgumentNullException.ThrowIfNull(turn.Observation);
+            string context =
+                $"tick {tick.Tick} mind {turn.ParticipantId}";
+            ContractParticipant? participant =
+                contract.Participants.FirstOrDefault(value =>
+                    value.ParticipantId == turn.ParticipantId);
+            if (participant is null || participant.TeamId != turn.TeamId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} names a participant the contract does not place on that team.");
+            }
+            if (turn.Tick != tick.Tick
+                || turn.Observation.Tick != tick.Tick
+                || turn.Observation.ParticipantId != turn.ParticipantId
+                || turn.Observation.TeamId != turn.TeamId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} does not identify its own tick and participant.");
+            }
+            if (turn.LiveBodyCount < 0
+                || !IsCanonicalInt64(turn.FuelBudget, nonNegative: true)
+                || long.Parse(
+                        turn.FuelBudget,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture)
+                    != checked(
+                        GenericMindTickBudget.BaseTickFuel
+                        + (GenericMindTickBudget.PerBodyTickFuel
+                            * turn.LiveBodyCount)))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} fuel budget must be exactly the live-body formula.");
+            }
+
+            ReplayV3.ActorId[] expectedBodies =
+            [
+                .. tick.TickStart.State.ActiveLives
+                    .Where(life =>
+                        life.ParticipantId == turn.ParticipantId)
+                    .Select(life => life.ActorId),
+            ];
+            RequireInitialized(turn.Resolutions, $"{context} resolutions");
+            RequireInitialized(turn.Commands, $"{context} commands");
+            RequireInitialized(turn.Intents, $"{context} intents");
+            if (turn.Resolutions.Length != expectedBodies.Length
+                || turn.LiveBodyCount != expectedBodies.Length
+                || turn.Observation.Bodies.Length != expectedBodies.Length)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} resolutions must cover exactly its own live bodies.");
+            }
+            for (int index = 0; index < expectedBodies.Length; index++)
+            {
+                ReplayV3.MindBodyResolution resolution =
+                    turn.Resolutions[index];
+                ArgumentNullException.ThrowIfNull(resolution);
+                ReplayV3.ActorId expected = expectedBodies[index];
+                if (resolution.UnitId != expected.UnitId
+                    || resolution.LifeId != expected.LifeId)
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} resolutions must be its own live bodies in canonical order.");
+                }
+                ValidateActionResolution(
+                    resolution.ActionResolution,
+                    contract,
+                    $"{context} body {expected.UnitId}:{expected.LifeId} resolution");
+            }
+            covered.AddRange(expectedBodies);
+
+            ValidateMindRuntimeFault(turn, context);
+            ValidateMindCommands(turn, expectedBodies, context);
+            ValidateMindObservation(
+                turn,
+                tick,
+                header,
+                contract,
+                lives,
+                seedsByActor,
+                roleTags,
+                context);
+        }
+
+        if (!covered.Order(ActorIdOrder.Instance)
+            .SequenceEqual(tick.TickStart.ActiveActorIds))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 tick {tick.Tick} mind turns must resolve exactly the active actor set exactly once.");
+        }
+
+        // Tags set this tick are what the NEXT tick publishes: the observation
+        // the mind just answered was frozen before any of them were written.
+        foreach (ReplayV3.MindTurn turn in tick.MindTurns)
+        {
+            if (turn.RuntimeFault is not null)
+                continue;
+            foreach (ReplayV3.MindCommand command in turn.Commands)
+            {
+                if (!string.Equals(
+                        command.Outcome,
+                        "accepted",
+                        StringComparison.Ordinal)
+                    || command.RoleTag is null)
+                {
+                    continue;
+                }
+                var actorId = new ReplayV3.ActorId(
+                    turn.TeamId,
+                    command.UnitId,
+                    command.LifeId);
+                if (command.RoleTag.Length == 0)
+                    roleTags.Remove(actorId);
+                else
+                    roleTags[actorId] = command.RoleTag;
+            }
+        }
+        HashSet<ReplayV3.ActorId> live = tick.PostState.ActiveLives
+            .Select(life => life.ActorId)
+            .ToHashSet();
+        foreach (ReplayV3.ActorId dead in
+                 roleTags.Keys.Where(actor => !live.Contains(actor))
+                     .ToArray())
+        {
+            roleTags.Remove(dead);
+        }
+    }
+
+    private static void ValidateMindRuntimeFault(
+        ReplayV3.MindTurn turn,
+        string context)
+    {
+        ReplayV3.MindRuntimeFault? fault = turn.RuntimeFault;
+        if (fault is null)
+            return;
+        if (fault.ParticipantId != turn.ParticipantId
+            || fault.TeamId != turn.TeamId
+            || (fault.ActorId is not null
+                && fault.ActorId.TeamId != turn.TeamId)
+            || !IsFaultStage(fault.Stage)
+            || string.IsNullOrWhiteSpace(fault.FaultCode)
+            || !IsCanonicalInt64(
+                fault.CumulativeFaultCount,
+                nonNegative: true)
+            || long.Parse(
+                    fault.CumulativeFaultCount,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture) <= 0)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} runtime fault evidence does not match its turn.");
+        }
+    }
+
+    private static void ValidateMindCommands(
+        ReplayV3.MindTurn turn,
+        IReadOnlyCollection<ReplayV3.ActorId> ownLiveBodies,
+        string context)
+    {
+        bool faulted = turn.RuntimeFault is not null;
+        var keys = new HashSet<(int UnitId, int LifeId)>();
+        var live = ownLiveBodies
+            .Select(body => (body.UnitId, body.LifeId))
+            .ToHashSet();
+        foreach (ReplayV3.MindCommand command in turn.Commands)
+        {
+            ArgumentNullException.ThrowIfNull(command);
+            bool accepted = command.Outcome switch
+            {
+                "accepted" => true,
+                "rejected" => false,
+                _ => throw new ArgumentException(
+                    $"Replay-v3 {context} contains an invalid mind command outcome."),
+            };
+            // A duplicate is only ever legitimate on the faulted turn the
+            // duplicate itself caused, where nothing was routed and the raw
+            // submission is preserved verbatim as evidence.
+            if (!keys.Add((command.UnitId, command.LifeId)) && !faulted)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} cannot command the same body twice.");
+            }
+            if (command.UnitId < 0
+                || command.LifeId < 0
+                || string.IsNullOrWhiteSpace(command.ActionId)
+                || command.ActionCode < 0
+                || command.Arguments.IsDefault)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a malformed mind command.");
+            }
+            if (command.RoleTag is not null
+                && !GenericMindRoleTag.IsValid(command.RoleTag))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a role tag outside the canonical charset or the 24-byte cap.");
+            }
+            if (faulted && accepted)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} cannot record an accepted command on a faulted turn.");
+            }
+            if (!faulted
+                && accepted != live.Contains(
+                    (command.UnitId, command.LifeId)))
+            {
+                throw new ArgumentException(
+                    accepted
+                        ? $"Replay-v3 {context} accepted a command on a body that is not an own live body."
+                        : $"Replay-v3 {context} rejected a command on one of its own live bodies.");
+            }
+        }
+    }
+
+    private static void ValidateMindObservation(
+        ReplayV3.MindTurn turn,
+        ReplayV3.TickFrame tick,
+        ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
+        IReadOnlyDictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> seedsByActor,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> roleTags,
+        string context)
+    {
+        ReplayV3.MindObservation observation = turn.Observation;
+        if (observation.SchemaVersion
+                != header.Runtime.ObservationSchemaVersion
+            || !string.Equals(
+                observation.MatchContractFingerprint,
+                contract.Fingerprint,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observation does not reference the document's exact contract generation.");
+        }
+        if (!observation.AlliedIntents.IsDefaultOrEmpty)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} allied intents are reserved and must be empty.");
+        }
+        if (turn.Intents.Length
+            > GenericMindContractReservations.MaxDeclaredIntentsPerTick)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} declared more intents than the reserved bound.");
+        }
+        foreach (ReplayV3.MindIntent intent in turn.Intents)
+        {
+            if (intent is null
+                || string.IsNullOrEmpty(intent.TagId)
+                || Encoding.UTF8.GetByteCount(intent.TagId)
+                    > GenericMindContractReservations.MaxIntentTagUtf8Bytes
+                || !IsCanonicalInt64(intent.Value, nonNegative: false))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a malformed declared intent.");
+            }
+        }
+
+        // BODIES: the participant's own live lives, in canonical order, each
+        // publishing the exact authoritative pre-tick state.
+        RequireCanonicalOrder(
+            observation.Bodies,
+            static (left, right) =>
+                CompareActorId(left.ActorId, right.ActorId),
+            $"{context} bodies");
+        foreach (ReplayV3.MindBody body in observation.Bodies)
+        {
+            ArgumentNullException.ThrowIfNull(body);
+            if (!lives.TryGetValue(
+                    body.ActorId,
+                    out ReplayV3.LifeState? life)
+                || life.ParticipantId != turn.ParticipantId
+                || body.Generation != life.Generation
+                || !string.Equals(
+                    body.FormId,
+                    life.FormId,
+                    StringComparison.Ordinal)
+                || body.Position != life.Position
+                || !string.Equals(
+                    body.Facing,
+                    life.Facing,
+                    StringComparison.Ordinal)
+                || body.Health != life.Health
+                || body.Cooldown != life.Cooldown
+                || body.Energy != life.Energy
+                || body.LifeStartedTick != life.SpawnedAtTick)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} body does not match its authoritative pre-state.");
+            }
+            if (!seedsByActor.TryGetValue(
+                    body.ActorId,
+                    out string? seed)
+                || !string.Equals(
+                    body.BodyRandomSeed,
+                    seed,
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} body random seed is not the seed the document declared at that life's start.");
+            }
+            RequirePublishedRoleTag(
+                body.RoleTag,
+                body.ActorId,
+                roleTags,
+                context);
+            ValidateActionLegalities(
+                body.ActionLegalities,
+                contract,
+                $"{context} body {body.ActorId.UnitId}");
+        }
+
+        // SLOTS: exactly the participant's own slots, in canonical order,
+        // published every tick rather than only at start (§13.2).
+        int[] ownSlots =
+        [
+            .. contract.UnitSlots
+                .Where(slot => slot.ParticipantId == turn.ParticipantId)
+                .Select(slot => slot.UnitId)
+                .Order(),
+        ];
+        if (!observation.Slots
+            .Select(slot => slot.UnitId)
+            .SequenceEqual(ownSlots)
+            || observation.Slots.Any(slot => slot.TeamId != turn.TeamId))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} slot table must be exactly its own slots in canonical order.");
+        }
+        foreach (ReplayV3.MindSlot slot in observation.Slots)
+        {
+            ValidateUnitSlotState(
+                slot.State,
+                $"{context} slot {slot.UnitId}");
+            ReplayV3.SlotState authoritative =
+                tick.TickStart.State.Slots.Single(value =>
+                    value.TeamId == slot.TeamId
+                    && value.UnitId == slot.UnitId);
+            if (slot.State != authoritative.State)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} slot {slot.UnitId} does not match its authoritative pre-state.");
+            }
+            if (!slot.CandidateClassIds.IsDefaultOrEmpty
+                || slot.SelectedClassId is not null)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} slot {slot.UnitId} carries a reserved chassis selection that v1 never writes.");
+            }
+        }
+
+        // ALLIES are allied MINDS' bodies: on this team, never this mind's own.
+        foreach (ReplayV3.ObservedAlly ally in observation.Allies)
+        {
+            if (ally.ActorId.TeamId != turn.TeamId
+                || lives.TryGetValue(
+                        ally.ActorId,
+                        out ReplayV3.LifeState? allyLife)
+                    && allyLife.ParticipantId == turn.ParticipantId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} allies must be allied minds' bodies, never its own.");
+            }
+            RequirePublishedRoleTag(
+                ally.RoleTag,
+                ally.ActorId,
+                roleTags,
+                context);
+        }
+        foreach (ReplayV3.ObservedEnemy enemy in observation.Enemies)
+        {
+            RequirePublishedRoleTag(
+                enemy.RoleTag,
+                enemy.ActorId,
+                roleTags,
+                context);
+        }
+
+        ValidateMindObservationAgainstState(
+            observation,
+            tick.TickStart.State,
+            contract,
+            context);
+    }
+
+    private static void RequirePublishedRoleTag(
+        string? published,
+        ReplayV3.ActorId actorId,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> roleTags,
+        string context)
+    {
+        if (published is not null && !GenericMindRoleTag.IsValid(published))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} publishes a role tag outside the canonical charset or the 24-byte cap.");
+        }
+        roleTags.TryGetValue(actorId, out string? expected);
+        if (!string.Equals(published, expected, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} publishes a role tag its mind never set on that body.");
+        }
+    }
+
+    /// <summary>
+    /// The union half, re-derived against the authoritative pre-state. It is
+    /// the per-life check with the per-life specialization removed: the union
+    /// was always the interesting invariant, and now there is one of it per
+    /// team per tick instead of N byte-identical copies (§5.3).
+    /// </summary>
+    private static void ValidateMindObservationAgainstState(
+        ReplayV3.MindObservation observation,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (observation.Mode != state.Mode)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
+        }
+        // Shape only, exactly as the per-life pass does. The scoreboard a mind
+        // observes is the MODE's projection of the score catalog, which is a
+        // different object from the world snapshot's ledger even when the two
+        // agree; asserting identity here would be asserting an implementation
+        // detail rather than a fact about the match.
+        ValidateScoreboard(
+            observation.Scoreboard,
+            contract,
+            $"{context} scoreboard");
+        if (!observation.Participants.SequenceEqual(state.Participants))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed participant statuses must exactly match the authoritative pre-state.");
+        }
+        foreach (ReplayV3.ObservedTile tile in observation.VisibleTiles)
+        {
+            ReplayV3.SpawnReservation? expected = SpawnReservationAt(
+                tile.Position,
+                state,
+                contract);
+            if (tile.SpawnReservation != expected)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible spawn reservation does not match the authoritative pre-state.");
+            }
+        }
+        if (observation.VisibleProjectiles is not { } projectiles)
+            return;
+        HashSet<ReplayV3.ActorId> visibleEnemies = observation.Enemies
+            .Select(enemy => enemy.ActorId)
+            .ToHashSet();
+        foreach (ReplayV3.ObservedProjectile observed in projectiles)
+        {
+            ReplayV3.ProjectileState? authoritative =
+                state.Projectiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.ProjectileId,
+                        observed.ProjectileId,
+                        StringComparison.Ordinal));
+            ContractAttackProfile? profile = authoritative is null
+                ? null
+                : contract.AttackProfiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.Id,
+                        authoritative.AttackProfileId,
+                        StringComparison.Ordinal));
+            ReplayV3.ActorId? expectedOwnerActorId =
+                authoritative is not null
+                    && (authoritative.OwnerTeamId == observation.TeamId
+                        || visibleEnemies.Contains(
+                            authoritative.OwnerActorId))
+                    ? authoritative.OwnerActorId
+                    : null;
+            if (authoritative is null
+                || profile is null
+                || observed.OwnerTeamId != authoritative.OwnerTeamId
+                || observed.OwnerActorId != expectedOwnerActorId
+                || observed.Position != authoritative.Position
+                || !string.Equals(
+                    observed.Heading,
+                    authoritative.Heading,
+                    StringComparison.Ordinal)
+                || observed.TilesPerAdvance != profile.TilesPerAdvance
+                || observed.TicksPerAdvance != profile.TicksPerAdvance
+                || observed.TicksUntilAdvance
+                    != authoritative.TicksUntilAdvance
+                || observed.RemainingTiles != authoritative.RemainingTiles
+                || observed.DamagePerHit != profile.DamagePerHit)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible projectile does not match the authoritative pre-state and attack profile.");
+            }
+        }
+    }
+
+    private sealed class ActorIdOrder : IComparer<ReplayV3.ActorId>
+    {
+        public static ActorIdOrder Instance { get; } = new();
+
+        public int Compare(ReplayV3.ActorId? x, ReplayV3.ActorId? y) =>
+            x is null || y is null ? 0 : CompareActorId(x, y);
     }
 
     private static void ValidateProvenance(
@@ -5603,6 +6491,7 @@ internal static class ReplayV3Serializer
             "life-spawned" => "life-spawned",
             "life-retired" => "life-retired",
             "runtime-fault" => "runtime-fault",
+            "mind-runtime-fault" => "mind-runtime-fault",
             "participant-disqualified" => "participant",
             "lifecycle-queued"
                 or "lifecycle-cancelled"
@@ -5699,6 +6588,25 @@ internal static class ReplayV3Serializer
                         $"Replay-v3 {context} runtime-fault stage is invalid.");
                 }
                 break;
+            case ReplayV3.EventPayload.MindRuntimeFaultValue mindFault:
+                if (!IsFaultStage(mindFault.Fault.Stage)
+                    || !IsCanonicalInt64(
+                        mindFault.Fault.CumulativeFaultCount,
+                        nonNegative: true))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} mind-runtime-fault evidence is invalid.");
+                }
+                if (mindFault.Fault.ActorId is not null)
+                {
+                    // The mind-scoped event exists ONLY for the fault with no
+                    // body to attribute it to; a fault that HAS a body keeps
+                    // publishing one per-body event, so a document carrying
+                    // both encodings for the same fault is malformed.
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} mind-runtime-fault must carry no actor identity.");
+                }
+                break;
         }
     }
 
@@ -5710,7 +6618,15 @@ internal static class ReplayV3Serializer
             .. replay.Ticks.Select(frame => frame.TickStart.State.Mode),
             .. replay.Ticks.Select(frame => frame.PostState.Mode),
             .. replay.Ticks.SelectMany(frame =>
-                frame.ActorTurns.Select(turn => turn.Observation.Mode)),
+                frame.ActorTurns.IsDefaultOrEmpty
+                    ? []
+                    : frame.ActorTurns.Select(
+                        turn => turn.Observation.Mode)),
+            .. replay.Ticks.SelectMany(frame =>
+                frame.MindTurns.IsDefaultOrEmpty
+                    ? []
+                    : frame.MindTurns.Select(
+                        turn => turn.Observation.Mode)),
         ];
         foreach (ReplayV3.ModeState mode in modes)
         {
@@ -6169,6 +7085,12 @@ internal static class ReplayV3Serializer
                     bool scoreObject = element.TryGetProperty(
                         "channel",
                         out _);
+                    // A reserved inter-mind intent carries an int64 in the
+                    // same "value" key a score does; both must stay
+                    // decimal-safe strings rather than widen to a float.
+                    bool intentObject = element.TryGetProperty(
+                        "tagId",
+                        out _);
                     foreach (JsonProperty property in
                              element.EnumerateObject())
                     {
@@ -6182,13 +7104,15 @@ internal static class ReplayV3Serializer
                         {
                             "seed"
                                 or "actorRandomSeed"
-                                or "teamRandomSeed" =>
+                                or "teamRandomSeed"
+                                or "bodyRandomSeed" =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalUInt64(
                                     property.Value.GetString()),
                             "runtimeFaultCount"
                                 or "cumulativeFaultCount"
+                                or "fuelBudget"
                                 or "globalOrdinal"
                                 or "projectileId"
                                 or "nextProjectileId"
@@ -6213,7 +7137,7 @@ internal static class ReplayV3Serializer
                                 && IsCanonicalInt64(
                                     property.Value.GetString(),
                                     nonNegative: false),
-                            "value" when scoreObject =>
+                            "value" when scoreObject || intentObject =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalInt64(
@@ -6360,6 +7284,9 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.EventPayload.LifeRetired),
                     ["runtime-fault"] =
                         typeof(ReplayV3.EventPayload.RuntimeFaultValue),
+                    ["mind-runtime-fault"] =
+                        typeof(
+                            ReplayV3.EventPayload.MindRuntimeFaultValue),
                     ["participant"] =
                         typeof(ReplayV3.EventPayload.Participant),
                     ["lifecycle"] =

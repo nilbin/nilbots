@@ -55,6 +55,7 @@ public sealed class MindBody
         int lifeStartedTick,
         GenericActorMatchStart.LifeOrigin origin,
         string? roleTag,
+        ulong bodyRandomSeed,
         ImmutableArray<GenericActorActionLegality> actionLegalities,
         MindWaitAction waitAction)
     {
@@ -95,6 +96,7 @@ public sealed class MindBody
         RoleTag = roleTag is null
             ? null
             : MindValueRules.RoleTag(roleTag, nameof(roleTag));
+        BodyRandomSeed = bodyRandomSeed;
         ActionLegalities = GenericActorDynamicValueRules.Snapshot(
             actionLegalities,
             nameof(actionLegalities));
@@ -208,6 +210,23 @@ public sealed class MindBody
     /// is <see cref="SetRole"/>.
     /// </summary>
     public string? RoleTag { get; }
+
+    /// <summary>
+    /// This body's own deterministic random seed — the exact value the
+    /// per-life profile would have handed this life.
+    ///
+    /// <para>You almost certainly want <see cref="MindContext.Random"/>
+    /// instead: it is one stream for the whole match, which is the point of the
+    /// profile. This is here because a body's private stream is a per-BODY fact
+    /// under the mind, and because it is what lets a per-life bot hosted on
+    /// this profile reproduce its own behaviour EXACTLY rather than merely
+    /// closely — the migration adapter seeds each sub-brain from it.</para>
+    ///
+    /// <para>Deriving anything from it that another mind could also derive is
+    /// pointless: it is private to this body, and re-derivable by the replay
+    /// validator, so a forged value in a document is refused.</para>
+    /// </summary>
+    public ulong BodyRandomSeed { get; }
 
     /// <summary>
     /// This body's own pre-tick legality mask. It is PER BODY, not per army:

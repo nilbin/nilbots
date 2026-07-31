@@ -546,6 +546,22 @@ public sealed class GenericActorChronologyFoundationTests
                         Direction.West,
                         ProjectileHeading.East,
                         position)),
+            // P3: a participant-scoped mind fault has no body to name, which
+            // is exactly why it needs its own kind.
+            new(
+                20,
+                GenericActorRuntimeObservation.EventKind.MindRuntimeFault,
+                new GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault(
+                        new GenericMindRuntimeFault(
+                            10,
+                            0,
+                            ActorId: null,
+                            GenericActorRuntimeFault.FaultStage.TickExecution,
+                            GenericActorRuntimeFaultCodes
+                                .TickExecutionFailed,
+                            1,
+                            true))),
         ];
     }
 
@@ -576,6 +592,9 @@ public sealed class GenericActorChronologyFoundationTests
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 typeof(GenericActorRuntimeObservation.EventPayload
                     .RuntimeFault),
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                typeof(GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault),
             GenericActorRuntimeObservation.EventKind
                     .ParticipantDisqualified =>
                 typeof(GenericActorRuntimeObservation.EventPayload

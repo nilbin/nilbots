@@ -116,4 +116,16 @@ public static class GenericMindContractReservations
     /// the ruleset ID is already at 60 of 64 for the full game (§9.7).
     /// </summary>
     public const int MaxCompositionTokenLength = 10;
+
+    /// <summary>
+    /// RESERVED (§11.1). Declared-intent tag cap. The engine never delivers an
+    /// intent and Rejects every submitted one; the bound exists so a document
+    /// cannot smuggle an unbounded string through the reserved field.
+    /// </summary>
+    public const int MaxIntentTagUtf8Bytes = 32;
+
+    /// <summary>
+    /// RESERVED (§11.1). At most eight declared intents leave a mind per tick.
+    /// </summary>
+    public const int MaxDeclaredIntentsPerTick = 8;
 }

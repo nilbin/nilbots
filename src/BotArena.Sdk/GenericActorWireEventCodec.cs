@@ -319,6 +319,25 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireActionCodec.EncodeRuntimeFault(
                         fault.Fault));
                 break;
+            case GenericActorContext.EventPayload.MindRuntimeFault mindFault:
+                writer.Field(
+                    1,
+                    ActorWireValue.Int32(mindFault.ParticipantId));
+                writer.Field(2, ActorWireValue.Int32(mindFault.TeamId));
+                writer.Field(3, ActorWireValue.Enum(mindFault.Stage));
+                writer.Field(
+                    4,
+                    GenericActorWireCodecValues.SemanticId(
+                        mindFault.FaultCode));
+                writer.Field(
+                    5,
+                    GenericActorWireCodecValues.Int64(
+                        mindFault.CumulativeFaultCount));
+                writer.Field(
+                    6,
+                    ActorWireValue.Boolean(
+                        mindFault.DisqualificationTriggered));
+                break;
             case GenericActorContext.EventPayload.Participant participant:
                 writer.Field(
                     1,
@@ -459,6 +478,19 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireActionCodec.DecodeRuntimeFault(
                             reader.Required(1),
                             depth + 1)),
+                GenericActorContext.EventKind.MindRuntimeFault =>
+                    new GenericActorContext.EventPayload.MindRuntimeFault(
+                        GenericActorWireCodecValues.Int32(reader, 1),
+                        GenericActorWireCodecValues.Int32(reader, 2),
+                        GenericActorWireCodecValues.Enum<
+                            GenericActorRuntimeFaultContext.FaultStage>(
+                            reader,
+                            3),
+                        GenericActorWireCodecValues.SemanticId(
+                            reader.Required(4)),
+                        GenericActorWireCodecValues.Int64(
+                            reader.Required(5)),
+                        GenericActorWireCodecValues.Boolean(reader, 6)),
                 GenericActorContext.EventKind.ParticipantDisqualified =>
                     new GenericActorContext.EventPayload.Participant(
                         GenericActorWireCodecValues.Int32(reader, 1),

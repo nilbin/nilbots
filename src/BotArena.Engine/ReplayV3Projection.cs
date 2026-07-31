@@ -14,13 +14,15 @@ internal static class ReplayV3Projection
         ReplayV3.PresentationMetadata? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(chronology);
+        bool mindProfile = chronology.Descriptor.Definition
+            .CapabilityVersions.IsMindProfile;
         return new ReplayV3(
             Header(
                 chronology.Descriptor,
                 Presentation(presentation)),
             InitialFrame(chronology.InitialFrame),
             chronology.Ticks
-                .Select(frame => TickFrame(frame))
+                .Select(frame => TickFrame(frame, mindProfile))
                 .ToImmutableArray(),
             chronology.Result is null
                 ? null
@@ -210,17 +212,201 @@ internal static class ReplayV3Projection
                 .Select(value => Event(value))
                 .ToImmutableArray());
 
+    /// <summary>
+    /// The profile decides the turn kind. On a mind document the N per-life
+    /// turns are REPLACED by one turn per participant — the union is stored
+    /// once instead of nine times, which is the ~7x cut on the chronology term
+    /// and ~3x on the whole document
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.2). The per-body
+    /// resolutions the format still owes are folded into the mind turn from
+    /// the same actor turns a per-life document would have written.
+    /// </summary>
     private static ReplayV3.TickFrame TickFrame(
-        GenericActorMatchTickFrame frame) =>
+        GenericActorMatchTickFrame frame,
+        bool mindProfile) =>
         new(
             frame.Tick,
             TickStart(frame.TickStart),
-            frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
             frame.Events
                 .Select(value => Event(value))
                 .ToImmutableArray(),
             frame.Traversals.Select(Traversal).ToImmutableArray(),
-            WorldState(frame.PostState));
+            WorldState(frame.PostState),
+            // The absent turn kind is left UNINITIALIZED rather than empty, so
+            // "this document has no actor turns" and "this document has an
+            // empty actor-turns array" stay distinguishable — which is what
+            // lets the validator refuse a mind document that smuggles an empty
+            // actorTurns key rather than merely round-tripping it away.
+            mindProfile
+                ? default
+                : frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
+            mindProfile
+                ? frame.MindTurns
+                    .Select(turn => MindTurn(turn, frame))
+                    .ToImmutableArray()
+                : default);
+
+    private static ReplayV3.MindTurn MindTurn(
+        GenericActorMatchMindTurn turn,
+        GenericActorMatchTickFrame frame)
+    {
+        Dictionary<ActorIdentity, GenericActorMatchActorTurn> byActor =
+            frame.ActorTurns.ToDictionary(value => value.ActorId);
+        return new ReplayV3.MindTurn(
+            turn.Tick,
+            turn.ParticipantId,
+            turn.TeamId,
+            Decimal(turn.TickFuelBudget),
+            turn.LiveOwnBodyCount,
+            MindObservation(turn.Observation),
+            turn.Commands.Select(MindCommand).ToImmutableArray(),
+            [
+                .. turn.ResolvedBodies.Select(actorId =>
+                {
+                    GenericActorMatchActorTurn body = byActor[actorId];
+                    return new ReplayV3.MindBodyResolution(
+                        actorId.UnitId,
+                        actorId.LifeId,
+                        body.SubmittedDecision is null
+                            ? null
+                            : SubmittedDecision(body.SubmittedDecision),
+                        ActionResolution(body.ActionResolution));
+                }),
+            ],
+            turn.RejectedIntents
+                .Select(intent => new ReplayV3.MindIntent(
+                    intent.TagId,
+                    Decimal(intent.Value)))
+                .ToImmutableArray(),
+            turn.RuntimeFault is null
+                ? null
+                : MindRuntimeFault(turn.RuntimeFault));
+    }
+
+    private static ReplayV3.MindCommand MindCommand(
+        GenericMindCommandResolution resolution) =>
+        new(
+            resolution.Command.UnitId,
+            resolution.Command.LifeId,
+            resolution.Command.ActionId,
+            resolution.Command.ActionCode,
+            resolution.Command.Arguments
+                .Select(static value => RawActionArgument(value))
+                .ToImmutableArray(),
+            MindCommandOutcome(resolution.Outcome),
+            resolution.Command.RoleTag,
+            resolution.Command.DebugMessage);
+
+    private static string MindCommandOutcome(
+        GenericMindCommandOutcome value) =>
+        value switch
+        {
+            GenericMindCommandOutcome.Accepted => "accepted",
+            GenericMindCommandOutcome.Rejected => "rejected",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                "Unknown mind command outcome."),
+        };
+
+    private static ReplayV3.MindRuntimeFault MindRuntimeFault(
+        GenericMindRuntimeFault value) =>
+        new(
+            value.ParticipantId,
+            value.TeamId,
+            value.ActorId is null ? null : ActorId(value.ActorId),
+            FaultStage(value.Stage),
+            value.FaultCode,
+            Decimal(value.CumulativeFaultCount),
+            value.DisqualificationTriggered);
+
+    private static ReplayV3.MindObservation MindObservation(
+        GenericMindRuntimeObservation observation) =>
+        new(
+            observation.SchemaVersion,
+            observation.Tick,
+            observation.MatchContractFingerprint,
+            observation.ParticipantId,
+            observation.TeamId,
+            observation.Bodies.Select(MindBody).ToImmutableArray(),
+            observation.Slots.Select(MindSlot).ToImmutableArray(),
+            observation.Team.TeamUnits
+                .Select(ObservedUnitSlot)
+                .ToImmutableArray(),
+            observation.Team.Participants
+                .Select(ParticipantStatus)
+                .ToImmutableArray(),
+            observation.Allies.Select(ObservedAlly).ToImmutableArray(),
+            observation.Enemies.Select(ObservedEnemy).ToImmutableArray(),
+            observation.VisibleTiles
+                .Select(ObservedTile)
+                .ToImmutableArray(),
+            observation.Team.VisibleProjectiles is null
+                ? null
+                : observation.Team.VisibleProjectiles.Value
+                    .Select(ObservedProjectile)
+                    .ToImmutableArray(),
+            observation.VisibleEvents
+                .Select(ObservedEvent)
+                .ToImmutableArray(),
+            observation.Team.HeardSounds is null
+                ? null
+                : observation.Team.HeardSounds.Value
+                    .Select(ObservedSound)
+                    .ToImmutableArray(),
+            Scoreboard(observation.Scoreboard),
+            ModeState(observation.Mode),
+            observation.AlliedIntents
+                .Select(intent => new ReplayV3.MindAlliedIntent(
+                    intent.ParticipantId,
+                    intent.TagId,
+                    Decimal(intent.Value)))
+                .ToImmutableArray());
+
+    private static ReplayV3.MindBody MindBody(
+        GenericMindRuntimeObservation.ObservedBodyState body) =>
+        new(
+            ActorId(body.ActorId),
+            body.Generation,
+            body.FormId,
+            Position(body.Position),
+            Direction(body.Facing),
+            body.Health,
+            body.Cooldown,
+            body.Energy,
+            body.PreviousActionResolution is null
+                ? null
+                : ActionResolution(body.PreviousActionResolution),
+            PendingTransition(body.PendingSameLifeTransition),
+            body.ClassId,
+            body.PreviousPosition is Position previous
+                ? Position(previous)
+                : null,
+            body.MovedLastTick,
+            body.LifeStartedTick,
+            new ReplayV3.LifeOrigin(
+                SpawnReason(body.Origin.Reason),
+                body.Origin.Generation,
+                body.Origin.ParentActorId is null
+                    ? null
+                    : ActorId(body.Origin.ParentActorId),
+                body.Origin.SourceTransitionId,
+                body.Origin.SourceOperationId),
+            Decimal(body.BodyRandomSeed),
+            body.ActionLegalities.Select(ActionLegality).ToImmutableArray(),
+            RouteCooldowns(body.RouteCooldowns),
+            body.CarriedScrap,
+            body.RoleTag);
+
+    private static ReplayV3.MindSlot MindSlot(
+        GenericMindRuntimeObservation.ObservedOwnSlot slot) =>
+        new(
+            slot.TeamId,
+            slot.UnitId,
+            UnitSlotState(slot.State),
+            slot.ClassId,
+            slot.CandidateClassIds,
+            slot.SelectedClassId);
 
     private static ReplayV3.TickStart TickStart(
         GenericActorMatchTickStart tickStart) =>
@@ -347,7 +533,8 @@ internal static class ReplayV3Projection
             PendingTransition(value.PendingSameLifeTransition),
             value.ClassId,
             RouteCooldowns(value.RouteCooldowns),
-            value.CarriedScrap);
+            value.CarriedScrap,
+            value.RoleTag);
 
     private static ImmutableArray<ReplayV3.RouteCooldown> RouteCooldowns(
         ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
@@ -369,7 +556,8 @@ internal static class ReplayV3Projection
             PendingTransition(value.PendingSameLifeTransition),
             value.ObservedBy.Select(ActorId).ToImmutableArray(),
             value.ClassId,
-            value.CarriedScrap);
+            value.CarriedScrap,
+            value.RoleTag);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -771,6 +959,10 @@ internal static class ReplayV3Projection
                 payload =>
                 new ReplayV3.EventPayload.RuntimeFaultValue(
                     RuntimeFault(payload.Fault)),
+            GenericActorRuntimeObservation.EventPayload.MindRuntimeFault
+                payload =>
+                new ReplayV3.EventPayload.MindRuntimeFaultValue(
+                    MindRuntimeFault(payload.Fault)),
             GenericActorRuntimeObservation.EventPayload.Participant
                 payload =>
                 new ReplayV3.EventPayload.Participant(
@@ -1281,6 +1473,8 @@ internal static class ReplayV3Projection
                 "life-retired",
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 "runtime-fault",
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                "mind-runtime-fault",
             GenericActorRuntimeObservation.EventKind
                 .ParticipantDisqualified =>
                 "participant-disqualified",

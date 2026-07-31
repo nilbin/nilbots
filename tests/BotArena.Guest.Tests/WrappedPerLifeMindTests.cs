@@ -264,27 +264,179 @@ public sealed class WrappedPerLifeMindTests
         Assert.Equal(0, wrapped.SubBrainCount);
     }
 
+    /// <summary>
+    /// THE SEED FIX (P3). A sub-brain's private stream is the body's OWN
+    /// life-domain seed, handed through untouched — not derived from the mind's
+    /// participant-domain seed, which is what P2 had to do and flagged as the
+    /// null pin's one honest divergence. Independence still holds, because the
+    /// host derives one seed per <c>(team, unit, life)</c>; what changes is
+    /// that it is now the SAME seed the per-life profile hands that life.
+    /// </summary>
     [Fact]
-    public void SubBrainSeedsAreIndependentPerBodyAndPerLife()
+    public void EachSubBrainIsSeededWithItsBodysOwnPerLifeSeed()
     {
-        // Independence is the property that matters: two sub-brains, including
-        // a slot's successive lives, must never share a stream. The seed is NOT
-        // the per-life profile's — that one is mixed from a match seed the mind
-        // is never handed — and this is the documented divergence.
-        ulong[] seeds =
-        [
-            WrappedPerLifeMind.DeriveSubBrainSeed(7, new ActorIdentity(0, 0, 0)),
-            WrappedPerLifeMind.DeriveSubBrainSeed(7, new ActorIdentity(0, 1, 0)),
-            WrappedPerLifeMind.DeriveSubBrainSeed(7, new ActorIdentity(0, 0, 1)),
-            WrappedPerLifeMind.DeriveSubBrainSeed(8, new ActorIdentity(0, 0, 0)),
-        ];
+        MindStart start = GenericMindGuestTestFixture.Start();
+        var seen = new List<ulong>();
+        var wrapped = new WrappedPerLifeMind(
+            _ => new SeedRecordingBot(seen),
+            "seeds");
+        wrapped.StartMatch(start);
 
-        Assert.Equal(seeds.Length, seeds.Distinct().Count());
+        wrapped.Think(GenericMindGuestTestFixture.Context(
+            start,
+            0,
+            GenericMindGuestTestFixture.Body(
+                0,
+                0,
+                new Position(2, 2),
+                bodyRandomSeed: 0xAAAA_BBBB_CCCC_DDDDUL),
+            GenericMindGuestTestFixture.Body(
+                1,
+                0,
+                new Position(3, 2),
+                bodyRandomSeed: 0x1111_2222_3333_4444UL)));
+        // A slot's next life carries its own seed, so two lives of one slot
+        // never share a stream.
+        wrapped.Think(GenericMindGuestTestFixture.Context(
+            start,
+            1,
+            GenericMindGuestTestFixture.Body(
+                0,
+                0,
+                new Position(2, 2),
+                bodyRandomSeed: 0xAAAA_BBBB_CCCC_DDDDUL),
+            GenericMindGuestTestFixture.Body(
+                1,
+                1,
+                new Position(3, 2),
+                bodyRandomSeed: 0x9999_8888_7777_6666UL)));
+
         Assert.Equal(
-            seeds[0],
-            WrappedPerLifeMind.DeriveSubBrainSeed(
-                7,
-                new ActorIdentity(0, 0, 0)));
+            [
+                0xAAAA_BBBB_CCCC_DDDDUL,
+                0x1111_2222_3333_4444UL,
+                0x9999_8888_7777_6666UL,
+            ],
+            seen);
+        Assert.Equal(seen.Count, seen.Distinct().Count());
+    }
+
+    /// <summary>
+    /// THE RANDOM-DRAWING PIN. A per-life bot whose decision depends on
+    /// <c>context.Random</c> must produce the SAME action sequence hosted on
+    /// the mind profile as it does on its own — the property P2 could not
+    /// offer and the reason the seed moved onto the body.
+    /// </summary>
+    [Fact]
+    public void ARandomDrawingBotReproducesItsPerLifeSequenceExactly()
+    {
+        MindStart start = GenericMindGuestTestFixture.Start();
+        const ulong bodySeed = 0x5EED_5EED_5EED_5EEDUL;
+
+        // Hosted on the mind profile, through the wrap.
+        var wrappedDraws = new List<string>();
+        var wrapped = new WrappedPerLifeMind(
+            _ => new RandomDrawingBot(wrappedDraws),
+            "dice");
+        wrapped.StartMatch(start);
+        for (int tick = 0; tick < 12; tick++)
+        {
+            wrapped.Think(GenericMindGuestTestFixture.Context(
+                start,
+                tick,
+                GenericMindGuestTestFixture.Body(
+                    0,
+                    0,
+                    new Position(2, 2),
+                    bodyRandomSeed: bodySeed)));
+        }
+
+        // The same bot, run directly as a per-life bot with the seed the
+        // per-life profile would have handed it.
+        var directDraws = new List<string>();
+        var direct = new RandomDrawingBot(directDraws);
+        // The stream the per-life Guest would have built from the life's seed.
+        var directRandom = new GuestRandom(bodySeed);
+        direct.StartLife(new GenericActorMatchStart
+        {
+            SchemaVersion =
+                GenericActorContractVersions.MatchStartSchemaVersion,
+            RuntimeContractVersion =
+                GenericActorContractVersions.RuntimeContractVersion,
+            ActorId = new ActorIdentity(0, 0, 0),
+            ParticipantId = start.ParticipantId,
+            ActorRandomSeed = bodySeed,
+            TeamRandomSeed = start.TeamRandomSeed,
+            Origin = new GenericActorMatchStart.LifeOrigin(
+                GenericActorMatchStart.SpawnReason.Initial,
+                Generation: 0,
+                ParentActorId: null,
+                SourceTransitionId: null,
+                SourceOperationId: null),
+            Contract = start.Contract,
+        });
+        for (int tick = 0; tick < 12; tick++)
+        {
+            direct.Tick(WrappedPerLifeMind.Specialize(
+                start,
+                GenericMindGuestTestFixture.Context(
+                    start,
+                    tick,
+                    GenericMindGuestTestFixture.Body(
+                        0,
+                        0,
+                        new Position(2, 2),
+                        bodyRandomSeed: bodySeed)),
+                GenericMindGuestTestFixture.Body(
+                    0,
+                    0,
+                    new Position(2, 2),
+                    bodyRandomSeed: bodySeed),
+                directRandom));
+        }
+
+        Assert.Equal(directDraws, wrappedDraws);
+        Assert.Equal(12, wrappedDraws.Count);
+        // A bot that never drew would pass this trivially; make sure the draws
+        // actually vary.
+        Assert.True(wrappedDraws.Distinct().Count() > 1);
+    }
+
+    private sealed class SeedRecordingBot : IGenericActorBot
+    {
+        private readonly List<ulong> _seeds;
+
+        public SeedRecordingBot(List<ulong> seeds) => _seeds = seeds;
+
+        public void StartLife(GenericActorMatchStart start) =>
+            _seeds.Add(start.ActorRandomSeed);
+
+        public GenericActorDecision Tick(GenericActorContext context) =>
+            GenericActorDecision.WithoutArguments("wait", 0, null);
+    }
+
+    private sealed class RandomDrawingBot : IGenericActorBot
+    {
+        private readonly List<string> _draws;
+
+        public RandomDrawingBot(List<string> draws) => _draws = draws;
+
+        public void StartLife(GenericActorMatchStart start)
+        {
+        }
+
+        public GenericActorDecision Tick(GenericActorContext context)
+        {
+            // The private draw IS the decision: an author breaking a tie with
+            // the stream is exactly the case the seed fix exists for.
+            int draw = context.Random.NextInt(0, 1_000_000);
+            _draws.Add(draw.ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
+            return GenericActorDecision.WithoutArguments(
+                "wait",
+                0,
+                $"draw:{draw}");
+        }
     }
 
     private static MindBody[] World(int tick) =>

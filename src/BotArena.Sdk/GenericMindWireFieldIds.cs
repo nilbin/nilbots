@@ -137,6 +137,26 @@ public static class GenericMindWireFieldIds
         /// <summary>RESERVED for role tags (§12): the currently published label.</summary>
         public const ushort RoleTag = 18;
         public const ushort ActionLegalities = 19;
+
+        /// <summary>
+        /// P3's ADDITION, allocated beside the P0 block and documented as such
+        /// (DECISIONS #191 P3): the exact per-life <c>ActorRandomSeed</c> the
+        /// per-life profile would have handed this life.
+        /// <para>
+        /// It exists because a mind's own stream is derived in the participant
+        /// domain and cannot reproduce a life-domain seed, so before this field
+        /// a wrapped per-life bot that drew from <c>context.Random</c> made
+        /// different private tie-breaks on the mind profile than on its own —
+        /// which the §7.2 null pin would have had to explain away or fail on.
+        /// Under the mind, a body's private stream is a per-BODY fact exactly
+        /// as its origin is.
+        /// </para>
+        /// <para>
+        /// Nothing was renumbered to make room: 20 is the next free ID after
+        /// P0's 1..19 block.
+        /// </para>
+        /// </summary>
+        public const ushort BodyRandomSeed = 20;
     }
 
     /// <summary>

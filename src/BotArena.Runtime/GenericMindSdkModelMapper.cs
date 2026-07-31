@@ -115,6 +115,7 @@ internal static class GenericMindSdkModelMapper
             value.LifeStartedTick,
             GenericActorSdkModelMapper.ToSdk(value.Origin),
             value.RoleTag,
+            value.BodyRandomSeed,
             [
                 .. value.ActionLegalities.Select(
                     GenericActorSdkModelMapper.ToSdk),

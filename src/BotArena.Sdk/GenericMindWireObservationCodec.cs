@@ -260,6 +260,11 @@ internal static class GenericMindWireObservationCodec
             Array(
                 value.ActionLegalities,
                 GenericActorWireActionCodec.EncodeLegality));
+        // Field 20, P3's addition, written last because IDs ascend: the body's
+        // own per-life stream seed.
+        writer.Field(
+            GenericMindWireFieldIds.MindBodyState.BodyRandomSeed,
+            ActorWireValue.UInt64(value.BodyRandomSeed));
         return writer.ToArray();
     }
 
@@ -314,6 +319,10 @@ internal static class GenericMindWireObservationCodec
                         : ActorWireValue.String(
                             roleTag,
                             GenericMindContractVersions.MaxRoleTagUtf8Bytes),
+                    ActorWireValue.UInt64(
+                        reader.Required(
+                            GenericMindWireFieldIds.MindBodyState
+                                .BodyRandomSeed)),
                     Array(
                         reader,
                         GenericMindWireFieldIds.MindBodyState.ActionLegalities,

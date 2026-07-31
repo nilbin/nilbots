@@ -180,9 +180,10 @@ public sealed class GenericMindObservationCodecTests
             GenericMindDynamicTestFixture.Fields(body);
 
         // 1..13 are the SHARED body encoding, in the existing order; 14..19 are
-        // the facts a mind is entitled to and a per-life bot was not.
+        // the facts a mind is entitled to and a per-life bot was not; 20 is
+        // P3's addition, allocated BESIDE the P0 block with nothing renumbered.
         Assert.Equal(
-            Enumerable.Range(1, 19).Select(id => (ushort)id),
+            Enumerable.Range(1, 20).Select(id => (ushort)id),
             fields.Keys.Order());
         Assert.Equal(
             GenericMindWireFieldIds.MindBodyState.PreviousPosition,
@@ -198,6 +199,9 @@ public sealed class GenericMindObservationCodecTests
         Assert.Equal(
             GenericMindWireFieldIds.MindBodyState.ActionLegalities,
             (ushort)19);
+        Assert.Equal(
+            GenericMindWireFieldIds.MindBodyState.BodyRandomSeed,
+            (ushort)20);
     }
 
     [Fact]
