@@ -341,6 +341,15 @@ internal sealed class GenericActorDecisionAdmission
                 || HasDuplicates(
                     value.AllowedTrackIds,
                     StringComparer.Ordinal),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .PositionTargetConstraint value =>
+                value.AllowedValues.IsDefault
+                || value.AllowedValues.Any(position =>
+                    position.X < 0
+                    || position.Y < 0
+                    || position.X >= _contract.Map.Width
+                    || position.Y >= _contract.Map.Height)
+                || HasDuplicates(value.AllowedValues),
             _ => true,
         };
         if (invalid)
@@ -504,6 +513,11 @@ internal sealed class GenericActorDecisionAdmission
                 Enum.IsDefined(value.Value),
             GenericActorRuntimeActionArgument.UpgradeTrackArgument value =>
                 !string.IsNullOrWhiteSpace(value.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument value =>
+                value.Value.X >= 0
+                && value.Value.Y >= 0
+                && value.Value.X < _contract.Map.Width
+                && value.Value.Y < _contract.Map.Height,
             _ => false,
         };
 
@@ -556,6 +570,11 @@ internal sealed class GenericActorDecisionAdmission
                 && allowed.AllowedTrackIds.Contains(
                     value.TrackId,
                     StringComparer.Ordinal),
+            (
+                GenericActorRuntimeActionArgument.PositionTargetArgument value,
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint allowed) =>
+                allowed.AllowedValues.Contains(value.Value),
             _ => false,
         };
 

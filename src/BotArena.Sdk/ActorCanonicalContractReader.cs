@@ -560,6 +560,19 @@ public static class ActorCanonicalContractReader
                     Array(
                         Property(element, "teamAdvances"),
                         ReadTeamAdvance));
+            case "arc-relay":
+                ExactObject(
+                    element,
+                    "kind",
+                    "orderedWellRegionIds",
+                    "reactorRegionRoleId",
+                    "homePadRegionRoleId");
+                return new MatchContract.ArcRelayModeMapBinding(
+                    Array(
+                        Property(element, "orderedWellRegionIds"),
+                        Id),
+                    Id(element, "reactorRegionRoleId"),
+                    Id(element, "homePadRegionRoleId"));
             default:
                 throw Unsupported("modeMapBinding.kind", kind);
         }
@@ -710,7 +723,137 @@ public static class ActorCanonicalContractReader
         {
             "deathmatch" => ReadDeathmatchMode(element),
             "frontline" => ReadFrontlineMode(element),
+            "arc-relay" => ReadArcRelayMode(element),
             _ => throw Unsupported("gameMode.kind", kind),
+        };
+    }
+
+    private static RulesContract.ArcRelayGameMode ReadArcRelayMode(
+        JsonElement element)
+    {
+        ExactObject(
+            element,
+            "kind",
+            "modeId",
+            "victory",
+            "scoreCatalog",
+            "pendingRearmTicks",
+            "coreRelocationIntervalTicks",
+            "coresPerPulse",
+            "fieldedSlotsPerTeam",
+            "maxCopiesPerClass",
+            "respawnDelayTicks",
+            "wells",
+            "signatures");
+        RulesContract.Victory victory =
+            ReadVictory(Property(element, "victory"));
+        if (victory is not RulesContract.ArcRelayVictory arcRelayVictory)
+        {
+            throw new FormatException(
+                "Arc Relay gameMode requires Arc Relay victory.");
+        }
+        return new RulesContract.ArcRelayGameMode(
+            Id(element, "modeId"),
+            arcRelayVictory,
+            Array(Property(element, "scoreCatalog"), ReadScoreChannel),
+            Int(element, "pendingRearmTicks"),
+            Int(element, "coreRelocationIntervalTicks"),
+            Int(element, "coresPerPulse"),
+            Int(element, "fieldedSlotsPerTeam"),
+            Int(element, "maxCopiesPerClass"),
+            Int(element, "respawnDelayTicks"),
+            Array(Property(element, "wells"), ReadArcRelayWell),
+            Array(Property(element, "signatures"), ReadArcRelaySignature));
+    }
+
+    private static RulesContract.ArcRelayWellSchedule ReadArcRelayWell(
+        JsonElement element)
+    {
+        ExactObject(
+            element,
+            "wellId",
+            "firstBirthTick",
+            "cadenceTicks",
+            "finalBirthTick");
+        return new RulesContract.ArcRelayWellSchedule(
+            Id(element, "wellId"),
+            Int(element, "firstBirthTick"),
+            Int(element, "cadenceTicks"),
+            Int(element, "finalBirthTick"));
+    }
+
+    private static RulesContract.ArcRelaySignature ReadArcRelaySignature(
+        JsonElement element)
+    {
+        string kind = PeekString(element, "kind");
+        string[] specific = kind switch
+        {
+            "vector-dash" => ["tellTicks", "maxTiles"],
+            "prism-wall" =>
+                ["segmentCount", "durationTicks", "contactCapacity"],
+            "tractor-hook" => ["range", "maxPullTiles"],
+            "repair-beam" =>
+                ["range", "ticksPerRepair", "hullPerRepair",
+                    "maxHullPerActivation"],
+            "survey-flare" =>
+                ["range", "travelTilesPerTick", "revealRadius",
+                    "durationTicks"],
+            "falling-star" => ["range", "tellTicks", "damage"],
+            "trip-node" => ["hull", "triggerDamage", "revealRange"],
+            "null-field" => ["radius", "durationTicks"],
+            "arc-toss" =>
+                ["range", "tellTicks", "travelTilesPerTick"],
+            "exchange" => ["range", "tellTicks"],
+            "rail-line" =>
+                ["tellTicks", "range", "damage", "cancelCooldownTicks"],
+            "hardlight-block" => ["hull", "durationTicks"],
+            "target-paint" =>
+                ["range", "durationTicks", "enhancedHitCount",
+                    "bonusDamage"],
+            "kinetic-burst" => ["tellTicks", "pushTiles"],
+            "smoke-canister" => ["range", "radius", "durationTicks"],
+            "sentinel-seed" =>
+                ["hull", "range", "damage", "fireCooldownTicks",
+                    "durationTicks"],
+            _ => throw Unsupported("signature.kind", kind),
+        };
+        ExactObject(
+            element,
+            ["kind", "signatureId", "classId", "actionId",
+                "cooldownTicks", .. specific]);
+
+        int? Optional(string name) => specific.Contains(name)
+            ? Int(element, name)
+            : null;
+        return new RulesContract.ArcRelaySignature(
+            kind,
+            Id(element, "signatureId"),
+            Id(element, "classId"),
+            Id(element, "actionId"),
+            Int(element, "cooldownTicks"))
+        {
+            TellTicks = Optional("tellTicks"),
+            Range = Optional("range"),
+            MaxTiles = Optional("maxTiles"),
+            SegmentCount = Optional("segmentCount"),
+            DurationTicks = Optional("durationTicks"),
+            ContactCapacity = Optional("contactCapacity"),
+            MaxPullTiles = Optional("maxPullTiles"),
+            TicksPerRepair = Optional("ticksPerRepair"),
+            HullPerRepair = Optional("hullPerRepair"),
+            MaxHullPerActivation = Optional("maxHullPerActivation"),
+            TravelTilesPerTick = Optional("travelTilesPerTick"),
+            RevealRadius = Optional("revealRadius"),
+            Damage = Optional("damage"),
+            Hull = Optional("hull"),
+            TriggerDamage = Optional("triggerDamage"),
+            RevealRange = Optional("revealRange"),
+            Radius = Optional("radius"),
+            CancelCooldownTicks = Optional("cancelCooldownTicks"),
+            EnhancedHitCount = Optional("enhancedHitCount"),
+            BonusDamage = Optional("bonusDamage"),
+            PushTiles = Optional("pushTiles"),
+            FireCooldownTicks = Optional("fireCooldownTicks"),
         };
     }
 
@@ -985,6 +1128,17 @@ public static class ActorCanonicalContractReader
                         Property(element, "timeoutRanking"),
                         ReadScoreRanking),
                     Int(element, "pushesToBreach"));
+            case "arc-relay":
+                ExactObject(
+                    element,
+                    "kind",
+                    "timeoutRanking",
+                    "pulsesToDestroyReactor");
+                return new RulesContract.ArcRelayVictory(
+                    Array(
+                        Property(element, "timeoutRanking"),
+                        ReadScoreRanking),
+                    Int(element, "pulsesToDestroyReactor"));
             default:
                 throw Unsupported("victory.kind", kind);
         }
@@ -2286,6 +2440,50 @@ public static class ActorCanonicalContractReader
                 }
                 break;
 
+            case (RulesContract.ArcRelayGameMode arcRelay,
+                MatchContract.ArcRelayModeMapBinding arcBinding):
+                if (arcRelay.ModeId != "arc-relay-h0"
+                    || arcRelay.PendingRearmTicks <= 0
+                    || arcRelay.CoreRelocationIntervalTicks <= 0
+                    || arcRelay.CoresPerPulse <= 0
+                    || arcRelay.FieldedSlotsPerTeam <= 0
+                    || arcRelay.MaxCopiesPerClass <= 0
+                    || arcRelay.RespawnDelayTicks <= 0
+                    || arcRelay.Wells.IsDefaultOrEmpty
+                    || arcRelay.Signatures.IsDefaultOrEmpty
+                    || arcBinding.OrderedWellRegionIds.Length
+                        != arcRelay.Wells.Length
+                    || arcBinding.OrderedWellRegionIds
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcBinding.OrderedWellRegionIds.Length
+                    || arcBinding.OrderedWellRegionIds.Any(regionId =>
+                        !map.Regions.Any(region =>
+                            region.RegionId == regionId
+                            && region.Kind
+                                == MapContract.RegionKind.Objective))
+                    || arcRelay.Wells.Any(well =>
+                        well.FirstBirthTick < 0
+                        || well.CadenceTicks <= 0
+                        || well.FinalBirthTick < well.FirstBirthTick)
+                    || arcRelay.Wells.Select(well => well.WellId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Wells.Length
+                    || arcRelay.Signatures.Any(signature =>
+                        signature.CooldownTicks <= 0)
+                    || arcRelay.Signatures
+                        .Select(signature => signature.SignatureId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Signatures.Length
+                    || arcRelay.Signatures
+                        .Select(signature => signature.ClassId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Signatures.Length)
+                {
+                    throw new FormatException(
+                        "Arc Relay mode-map binding or rules are inconsistent.");
+                }
+                break;
+
             default:
                 throw new FormatException(
                     "Game mode and mode-map binding variants disagree.");
@@ -2704,7 +2902,9 @@ public static class ActorCanonicalContractReader
             "deaths",
             "damage-dealt",
             "active-health",
-            "territorial-progress");
+            "territorial-progress",
+            "pulses",
+            "reactor-charge");
 
     private static string EnumId(
         JsonElement element,
@@ -2799,6 +2999,8 @@ public static class ActorCanonicalContractReader
                 MapContract.TileTagKind.TransitionPlacementForbidden,
             "spawn-protected" =>
                 MapContract.TileTagKind.SpawnProtected,
+            "signature-placement-forbidden" =>
+                MapContract.TileTagKind.SignaturePlacementForbidden,
             string value => throw Unsupported("map tile-tag kind", value),
         };
 
@@ -2883,6 +3085,8 @@ public static class ActorCanonicalContractReader
                 RulesContract.ActionKind.SameLifeTransition,
             "replication" => RulesContract.ActionKind.Replication,
             "mode-investment" => RulesContract.ActionKind.ModeInvestment,
+            "objective" => RulesContract.ActionKind.Objective,
+            "signature" => RulesContract.ActionKind.Signature,
             string value => throw Unsupported("action kind", value),
         };
 
@@ -2901,6 +3105,8 @@ public static class ActorCanonicalContractReader
                 RulesContract.ActionParameterKind.ProjectileHeading,
             "upgrade-track" =>
                 RulesContract.ActionParameterKind.UpgradeTrack,
+            "position-target" =>
+                RulesContract.ActionParameterKind.PositionTarget,
             string value => throw Unsupported(
                 "action parameter kind",
                 value),

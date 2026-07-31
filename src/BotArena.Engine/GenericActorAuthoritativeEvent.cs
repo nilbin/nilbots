@@ -185,6 +185,9 @@ public sealed record GenericActorAuthoritativeEvent
             GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 payload is GenericActorRuntimeObservation.EventPayload
                     .ProjectileDeflected,
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                payload is GenericActorRuntimeObservation.EventPayload
+                    .ArcRelay,
             _ => false,
         };
 
@@ -269,6 +272,18 @@ public sealed record GenericActorAuthoritativeEvent
                 RequireNonnegative(
                     frontline.ClaimingTeamId,
                     nameof(frontline.ClaimingTeamId));
+                break;
+            case GenericActorRuntimeObservation.EventPayload.ArcRelay
+                {
+                    Fact: ArcRelayEvent.CoreBanked banked,
+                }:
+                RequireNonnegative(banked.TeamId, nameof(banked.TeamId));
+                break;
+            case GenericActorRuntimeObservation.EventPayload.ArcRelay
+                {
+                    Fact: ArcRelayEvent.Pulse pulse,
+                }:
+                RequireNonnegative(pulse.TeamId, nameof(pulse.TeamId));
                 break;
         }
     }

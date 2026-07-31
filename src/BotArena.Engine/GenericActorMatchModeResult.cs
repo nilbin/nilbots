@@ -68,4 +68,22 @@ public abstract record GenericActorMatchModeResult
         { get; }
         public FrontlineScoreState Scores { get; }
     }
+
+    public sealed record ArcRelay : GenericActorMatchModeResult
+    {
+        public ArcRelay(
+            GenericArcRelayEndReason reason,
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay state)
+        {
+            if (!Enum.IsDefined(reason))
+                throw new ArgumentOutOfRangeException(nameof(reason));
+            ArgumentNullException.ThrowIfNull(state);
+            Reason = reason;
+            State = state;
+        }
+
+        public GenericArcRelayEndReason Reason { get; }
+        public GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+            State { get; }
+    }
 }

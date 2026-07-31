@@ -344,6 +344,12 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                 .TickStartAfterDuration,
             tickStartEvents);
+        if (_mode is ArcRelayActorMatchModeDriver arcRelay)
+        {
+            EmitModeChanges(
+                arcRelay.PrepareTick(Tick, ModeWorldView()),
+                tickStartEvents);
+        }
 
         ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents =
             [
@@ -451,6 +457,26 @@ public sealed class GenericActorMatchSession : IDisposable
             deflections,
             events,
             projectileTransitions);
+        if (_mode is ArcRelayActorMatchModeDriver arcRelayAfterMovement)
+        {
+            ImmutableArray<ActorIdentity> movedActors = resolutions.Values
+                .Where(resolution =>
+                    resolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[resolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Movement)
+                .Select(resolution => resolution.ActorId)
+                .Order()
+                .ToImmutableArray();
+            EmitModeEvents(
+                arcRelayAfterMovement.ResolveMovement(
+                    Tick,
+                    movedActors,
+                    ModeWorldView()),
+                events);
+            ResolveArcRelayObjectiveActions(resolutions, events);
+        }
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
         AdvanceExistingProjectiles(
@@ -1073,18 +1099,40 @@ public sealed class GenericActorMatchSession : IDisposable
         switch (action.Kind)
         {
             case ActorActionKind.Wait:
-            case ActorActionKind.Movement:
             case ActorActionKind.Rotation:
+                return;
+            case ActorActionKind.Movement:
+                if (_mode is ArcRelayActorMatchModeDriver movementMode
+                    && !movementMode.CanCarrierRelocate(life.ActorId, Tick))
+                {
+                    Block(state);
+                }
                 return;
             case ActorActionKind.Attack:
                 ActorAttackProfileDefinition? attack = AttackFor(life);
                 if (attack is null
+                    || _mode is ArcRelayActorMatchModeDriver arcRelay
+                        && arcRelay.CarriesCore(life.ActorId)
                     || life.Cooldown > 0
                     || attack.MaxEnergy > 0
                     && life.Energy < attack.AttackEnergyCost)
                 {
                     Block(state);
                 }
+                return;
+            case ActorActionKind.Objective:
+                if (_mode is not ArcRelayActorMatchModeDriver objectiveMode
+                    || !ArcRelayObjectiveAvailable(
+                        objectiveMode,
+                        life,
+                        action))
+                {
+                    Block(state);
+                }
+                return;
+            case ActorActionKind.Signature:
+                if (_mode is not ArcRelayActorMatchModeDriver)
+                    Block(state);
                 return;
             case ActorActionKind.Replication:
                 SplitReplicationTransitionDefinition[] matches =
@@ -1228,12 +1276,9 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             LifeState life = _lives[resolution.ActorId];
-            Direction direction = resolution.ValidatedAction.Arguments
-                .OfType<
-                    GenericActorRuntimeActionArgument.DirectionArgument>()
-                .Single()
-                .Value;
-            var (dx, dy) = direction.Vector();
+            ProjectileHeading heading = MovementHeading(
+                resolution.ValidatedAction);
+            var (dx, dy) = heading.Vector();
             Position target = life.Position.Offset(dx, dy);
             targets.Add(life.ActorId, target);
             if (_definition.Map.IsWall(target)
@@ -1246,7 +1291,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 // resolve as Blocked rather than as a free sidestep.
                 || (MovementFor(life).FacingCoupling
                         == ActorMovementFacingCoupling.FacingLocked
-                    && direction != life.Facing))
+                    && heading != life.Facing.ToProjectileHeading()))
             {
                 blocked.Add(life.ActorId);
             }
@@ -1327,16 +1372,18 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             life.Position = target;
+            ProjectileHeading heading = MovementHeading(
+                resolution.ValidatedAction);
             if (MovementFor(life).FacingCoupling
-                == ActorMovementFacingCoupling.FaceMovementDirection)
+                    == ActorMovementFacingCoupling.FaceMovementDirection
+                && heading is ProjectileHeading.North
+                    or ProjectileHeading.East
+                    or ProjectileHeading.South
+                    or ProjectileHeading.West)
             {
                 // Facing is set before the event is emitted so the Movement
                 // payload carries — and therefore evidences — the new facing.
-                life.Facing = resolution.ValidatedAction.Arguments
-                    .OfType<
-                        GenericActorRuntimeActionArgument.DirectionArgument>()
-                    .Single()
-                    .Value;
+                life.Facing = (Direction)((int)heading / 2);
             }
             events.Add(EmitSpatial(
                 Tick,
@@ -1351,6 +1398,97 @@ public sealed class GenericActorMatchSession : IDisposable
                 // sight is observable, while a completed departure into
                 // hidden space reveals no hidden destination.
                 target));
+        }
+    }
+
+    private static ProjectileHeading MovementHeading(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument
+                .ProjectileHeadingArgument>()
+            .SingleOrDefault()?.Value
+        ?? action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.DirectionArgument>()
+            .Single().Value.ToProjectileHeading();
+
+    private void ResolveArcRelayObjectiveActions(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
+            return;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            tickStartLives = _preparedChronologyTick!.State.ActiveLives
+                .ToDictionary(value => value.ActorId);
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome.Success
+                || action.Kind != ActorActionKind.Objective)
+            {
+                continue;
+            }
+            GenericActorModeEvent? modeEvent;
+            if (string.Equals(
+                    action.Id,
+                    ArcRelayActionIds.DropCore,
+                    StringComparison.Ordinal))
+            {
+                if (!arcRelay.TryDrop(
+                        Tick,
+                        resolution.ActorId,
+                        out modeEvent))
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+            else if (string.Equals(
+                         action.Id,
+                         ArcRelayActionIds.HandoffCore,
+                         StringComparison.Ordinal))
+            {
+                GenericActorRuntimeActionArgument.UnitTarget target =
+                    resolution.ValidatedAction.Arguments
+                        .OfType<GenericActorRuntimeActionArgument
+                            .UnitTargetArgument>()
+                        .Single().Value;
+                LifeState? targetLife = _lives.Values.SingleOrDefault(value =>
+                    value.ActorId.TeamId == target.TeamId
+                    && value.ActorId.UnitId == target.UnitId);
+                bool receiverWaited = targetLife is not null
+                    && resolutions.TryGetValue(
+                        targetLife.ActorId,
+                        out ActionState? targetResolution)
+                    && targetResolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[targetResolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Wait
+                    && tickStartLives[targetLife.ActorId].Position
+                        == targetLife.Position;
+                if (!receiverWaited
+                    || !arcRelay.TryHandoff(
+                        Tick,
+                        resolution.ActorId,
+                        targetLife!.ActorId,
+                        _lives[resolution.ActorId].Position,
+                        targetLife.Position,
+                        out modeEvent))
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+            else
+            {
+                Block(resolution);
+                continue;
+            }
+            EmitModeEvent(modeEvent!, events);
         }
     }
 
@@ -2527,6 +2665,7 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorModeTickResult modeTick,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
+        EmitModeEvents(modeTick.ModeEvents, events);
         foreach (GenericActorModeScoreChange change
                  in modeTick.ScoreChanges)
         {
@@ -2547,6 +2686,30 @@ public sealed class GenericActorMatchSession : IDisposable
             GenericActorRuntimeObservation.EventKind.ModeChanged,
             new GenericActorRuntimeObservation.EventPayload.ModeChanged(
                 modeTick.ModeChange)));
+    }
+
+    private void EmitModeEvents(
+        IEnumerable<GenericActorModeEvent> modeEvents,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (GenericActorModeEvent modeEvent in modeEvents)
+            EmitModeEvent(modeEvent, events);
+    }
+
+    private void EmitModeEvent(
+        GenericActorModeEvent modeEvent,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        events.Add(modeEvent.SpatialPosition is Position position
+            ? EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                modeEvent.Payload,
+                position)
+            : EmitPublic(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                modeEvent.Payload));
     }
 
     private GenericActorModeCompletion Complete(
@@ -3352,9 +3515,14 @@ public sealed class GenericActorMatchSession : IDisposable
         return action.Kind switch
         {
             ActorActionKind.Wait => true,
-            ActorActionKind.Movement or ActorActionKind.Rotation => true,
+            ActorActionKind.Rotation => true,
+            ActorActionKind.Movement =>
+                _mode is not ArcRelayActorMatchModeDriver movementMode
+                || movementMode.CanCarrierRelocate(life.ActorId, Tick),
             ActorActionKind.Attack =>
                 AttackFor(life) is ActorAttackProfileDefinition attack
+                && (_mode is not ArcRelayActorMatchModeDriver arcRelay
+                    || !arcRelay.CarriesCore(life.ActorId))
                 && life.Cooldown == 0
                 && (attack.MaxEnergy == 0
                     || life.Energy >= attack.AttackEnergyCost),
@@ -3381,6 +3549,11 @@ public sealed class GenericActorMatchSession : IDisposable
             // reads its mask never prices the ladder itself.
             ActorActionKind.ModeInvestment =>
                 _mode.InvestableTracks(life.ActorId.TeamId).Count > 0,
+            ActorActionKind.Objective =>
+                _mode is ArcRelayActorMatchModeDriver objectiveMode
+                && ArcRelayObjectiveAvailable(objectiveMode, life, action),
+            ActorActionKind.Signature =>
+                _mode is ArcRelayActorMatchModeDriver,
             _ => false,
         };
     }
@@ -3394,6 +3567,38 @@ public sealed class GenericActorMatchSession : IDisposable
             .OfType<GenericActorRuntimeActionArgument.UpgradeTrackArgument>()
             .SingleOrDefault()
             ?.TrackId;
+
+    private bool ArcRelayObjectiveAvailable(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life,
+        ActorActionDefinition action) =>
+        string.Equals(
+            action.Id,
+            ArcRelayActionIds.DropCore,
+            StringComparison.Ordinal)
+            ? mode.CarriesCore(life.ActorId)
+            : string.Equals(
+                action.Id,
+                ArcRelayActionIds.HandoffCore,
+                StringComparison.Ordinal)
+              && mode.CarriesCore(life.ActorId)
+              && mode.CanCarrierRelocate(life.ActorId, Tick)
+              && ArcRelayHandoffTargets(life).Length > 0;
+
+    private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+        ArcRelayHandoffTargets(LifeState source) =>
+        _lives.Values
+            .Where(target =>
+                target.ActorId.TeamId == source.ActorId.TeamId
+                && target.ActorId != source.ActorId
+                && source.Position.ChebyshevDistance(target.Position) == 1
+                && _mode is ArcRelayActorMatchModeDriver mode
+                && !mode.CarriesCore(target.ActorId))
+            .OrderBy(target => target.ActorId)
+            .Select(target => new GenericActorRuntimeActionArgument.UnitTarget(
+                target.ActorId.TeamId,
+                target.ActorId.UnitId))
+            .ToImmutableArray();
 
     /// <summary>
     /// Settles this tick's mode-store purchases in canonical
@@ -3481,6 +3686,8 @@ public sealed class GenericActorMatchSession : IDisposable
                         .UnitTargetConstraint(
                             action.Kind == ActorActionKind.Fabrication
                                 ? FabricationTargets(life, action)
+                                : action.Kind == ActorActionKind.Objective
+                                    ? ArcRelayHandoffTargets(life)
                                 : _definition.Topology.UnitSlots
                                     .OrderBy(slot => slot.TeamId)
                                     .ThenBy(slot => slot.UnitId)
@@ -3504,8 +3711,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.ProjectileHeading =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .ProjectileHeadingConstraint(
-                            Enum.GetValues<ProjectileHeading>()
-                                .ToImmutableArray()),
+                            action.Kind == ActorActionKind.Movement
+                                && MovementFor(life).FacingCoupling
+                                    == ActorMovementFacingCoupling.FacingLocked
+                                ? [life.Facing.ToProjectileHeading()]
+                                : Enum.GetValues<ProjectileHeading>()
+                                    .ToImmutableArray()),
                 // Affordability lives in the mask, not in the bot: a track is
                 // offered only when the team's bank covers its next tier and
                 // no cap forbids it. The mask is a SET in canonical ordinal
@@ -3520,6 +3731,9 @@ public sealed class GenericActorMatchSession : IDisposable
                                     .InvestableTracks(life.ActorId.TeamId)
                                     .Order(StringComparer.Ordinal),
                             ]),
+                ActorActionParameterKind.PositionTarget =>
+                    new GenericActorRuntimeActionLegality.ArgumentConstraint
+                        .PositionTargetConstraint([]),
                 _ => throw new InvalidOperationException(
                     "Unknown actor action parameter kind."),
             });

@@ -74,6 +74,7 @@ public static class ActorResolvedMatchDefinitionValidator
             modeMapBinding,
             topologyValid ? topology : null,
             mapRegions,
+            participantRegionAssignments,
             errors);
         ValidateSameLifeMapFeasibility(
             rules.SameLifeTransitions,
@@ -101,6 +102,7 @@ public static class ActorResolvedMatchDefinitionValidator
                 initialDeployment,
                 lifecycleAssignments,
                 participantRegionAssignments,
+                modeMapBinding,
                 forms,
                 movementProfiles,
                 lifecycleProfiles,
@@ -486,6 +488,8 @@ public static class ActorResolvedMatchDefinitionValidator
         ActorModeMapBindingDefinition modeMapBinding,
         PublicMatchTopology? topology,
         IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorParticipantRegionAssignmentDefinition>
+            participantRegionAssignments,
         List<string> errors)
     {
         switch (gameMode)
@@ -496,6 +500,25 @@ public static class ActorResolvedMatchDefinitionValidator
                 {
                     errors.Add(
                         "Deathmatch requires the empty Deathmatch mode-map binding.");
+                }
+                break;
+
+            case ArcRelayGameModeDefinition arcRelay:
+                if (modeMapBinding
+                    is ArcRelayActorModeMapBindingDefinition arcBinding)
+                {
+                    ValidateArcRelayBinding(
+                        arcRelay,
+                        arcBinding,
+                        topology,
+                        mapRegions,
+                        participantRegionAssignments,
+                        errors);
+                }
+                else
+                {
+                    errors.Add(
+                        "Arc Relay requires an Arc Relay mode-map binding.");
                 }
                 break;
 
@@ -521,6 +544,133 @@ public static class ActorResolvedMatchDefinitionValidator
                 errors.Add(
                     $"Game mode '{gameMode.ModeId}' uses an unsupported semantic variant.");
                 break;
+        }
+    }
+
+    private static void ValidateArcRelayBinding(
+        ArcRelayGameModeDefinition mode,
+        ArcRelayActorModeMapBindingDefinition binding,
+        PublicMatchTopology? topology,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorParticipantRegionAssignmentDefinition> assignments,
+        List<string> errors)
+    {
+        if (binding.OrderedWellRegionIds.Length != mode.Wells.Length)
+        {
+            errors.Add(
+                $"Arc Relay requires exactly {mode.Wells.Length} ordered Well regions.");
+        }
+        var wellTiles = new HashSet<Position>();
+        foreach (string regionId in binding.OrderedWellRegionIds)
+        {
+            if (!mapRegions.TryGetValue(regionId, out var region))
+            {
+                errors.Add(
+                    $"Arc Relay references unknown Well region '{regionId}'.");
+                continue;
+            }
+            if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+                || region.Tiles.Length != 1)
+            {
+                errors.Add(
+                    $"Arc Relay Well region '{regionId}' must be a one-tile Objective region.");
+            }
+            foreach (Position tile in region.Tiles)
+            {
+                if (!wellTiles.Add(tile))
+                {
+                    errors.Add(
+                        $"Arc Relay Well regions overlap at {tile}.");
+                }
+            }
+        }
+
+        if (topology is null)
+            return;
+
+        HashSet<string> launchClasses = mode.Signatures
+            .Select(signature => signature.ClassId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (PublicScoringTeam team in topology.Teams)
+        {
+            PublicUnitSlot[] slots = topology.UnitSlots
+                .Where(slot => slot.TeamId == team.TeamId)
+                .OrderBy(slot => slot.UnitId)
+                .ToArray();
+            if (slots.Length != mode.FieldedSlotsPerTeam)
+            {
+                errors.Add(
+                    $"Arc Relay team {team.TeamId} must field exactly {mode.FieldedSlotsPerTeam} slots.");
+            }
+            if (slots.Any(slot => slot.ClassId is null
+                || !launchClasses.Contains(slot.ClassId)))
+            {
+                errors.Add(
+                    $"Arc Relay team {team.TeamId} slots must each declare one launch class.");
+            }
+            foreach (IGrouping<string?, PublicUnitSlot> group in
+                     slots.GroupBy(slot => slot.ClassId, StringComparer.Ordinal))
+            {
+                if (group.Key is not null
+                    && group.Count() > mode.MaxCopiesPerClass)
+                {
+                    errors.Add(
+                        $"Arc Relay team {team.TeamId} fields {group.Count()} copies of '{group.Key}', above the {mode.MaxCopiesPerClass}-copy cap.");
+                }
+            }
+        }
+
+        foreach (PublicParticipant participant in topology.Participants)
+        {
+            ActorParticipantRegionAssignmentDefinition[] own = assignments
+                .Where(item => item.ParticipantId == participant.ParticipantId)
+                .ToArray();
+            ValidateArcRelayRole(
+                participant.ParticipantId,
+                binding.ReactorRegionRoleId,
+                own,
+                mapRegions,
+                oneTile: true,
+                errors);
+            ValidateArcRelayRole(
+                participant.ParticipantId,
+                binding.HomePadRegionRoleId,
+                own,
+                mapRegions,
+                oneTile: false,
+                errors);
+        }
+    }
+
+    private static void ValidateArcRelayRole(
+        int participantId,
+        string roleId,
+        IReadOnlyCollection<ActorParticipantRegionAssignmentDefinition>
+            assignments,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        bool oneTile,
+        List<string> errors)
+    {
+        ActorParticipantRegionAssignmentDefinition[] matches = assignments
+            .Where(item => string.Equals(
+                item.RegionRoleId,
+                roleId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            errors.Add(
+                $"Arc Relay participant {participantId} must bind role '{roleId}' exactly once.");
+            return;
+        }
+        if (!mapRegions.TryGetValue(matches[0].MapRegionId, out var region))
+            return;
+        if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+            || oneTile && region.Tiles.Length != 1)
+        {
+            errors.Add(
+                $"Arc Relay role '{roleId}' must bind an Objective region"
+                + (oneTile ? " containing exactly one tile." : "."));
         }
     }
 
@@ -664,6 +814,7 @@ public static class ActorResolvedMatchDefinitionValidator
             lifecycleAssignments,
         IReadOnlyList<ActorParticipantRegionAssignmentDefinition>
             participantRegionAssignments,
+        ActorModeMapBindingDefinition modeMapBinding,
         IReadOnlyDictionary<string, ActorFormDefinition> forms,
         IReadOnlyDictionary<string, ActorMovementProfileDefinition>
             movementProfiles,
@@ -712,6 +863,7 @@ public static class ActorResolvedMatchDefinitionValidator
                 participantIds,
                 mapRegions,
                 rules.FabricationTransitions,
+                modeMapBinding as ArcRelayActorModeMapBindingDefinition,
                 errors);
         HashSet<Position> reservedRespawnTiles =
             ValidateReservedRespawnSpawns(
@@ -1138,6 +1290,7 @@ public static class ActorResolvedMatchDefinitionValidator
             IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
             IEnumerable<ActorFabricationTransitionDefinition>
                 fabricationTransitions,
+            ArcRelayActorModeMapBindingDefinition? arcRelayBinding,
             List<string> errors)
     {
         HashSet<string> knownRoleIds = fabricationTransitions
@@ -1148,6 +1301,13 @@ public static class ActorResolvedMatchDefinitionValidator
                 transition.OutputRegionRoleId,
             })
             .ToHashSet(StringComparer.Ordinal);
+        var arcRelayRoleIds = new HashSet<string>(StringComparer.Ordinal);
+        if (arcRelayBinding is not null)
+        {
+            arcRelayRoleIds.Add(arcRelayBinding.ReactorRegionRoleId);
+            arcRelayRoleIds.Add(arcRelayBinding.HomePadRegionRoleId);
+            knownRoleIds.UnionWith(arcRelayRoleIds);
+        }
         var assignments = new Dictionary<
             (int ParticipantId, string RegionRoleId),
             ActorParticipantRegionAssignmentDefinition>();
@@ -1189,12 +1349,16 @@ public static class ActorResolvedMatchDefinitionValidator
                     $"Region assignment references unknown map region " +
                     $"'{assignment.MapRegionId}'.");
             }
-            else if (region.Kind
-                     != ActorMapRegionDefinition.RegionKind.TransitionPlacement)
+            else if (arcRelayRoleIds.Contains(assignment.RegionRoleId)
+                ? region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+                : region.Kind
+                    != ActorMapRegionDefinition.RegionKind.TransitionPlacement)
             {
                 errors.Add(
-                    $"Region assignment '{assignment.MapRegionId}' must reference " +
-                    "a TransitionPlacement region.");
+                    $"Region assignment '{assignment.MapRegionId}' must reference "
+                    + (arcRelayRoleIds.Contains(assignment.RegionRoleId)
+                        ? "an Objective region."
+                        : "a TransitionPlacement region."));
             }
         }
 

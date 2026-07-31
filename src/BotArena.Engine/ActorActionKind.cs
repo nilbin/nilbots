@@ -18,4 +18,10 @@ public enum ActorActionKind
     /// exactly as it always has.
     /// </summary>
     ModeInvestment = 7,
+
+    /// <summary>Arc Relay's shared handoff and voluntary-drop verbs.</summary>
+    Objective = 8,
+
+    /// <summary>One class-bound Arc Relay signature activation.</summary>
+    Signature = 9,
 }

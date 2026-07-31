@@ -19,4 +19,9 @@ public enum ActorActionParameterKind
     /// bot reading its mask never does the arithmetic.
     /// </summary>
     UpgradeTrack = 5,
+
+    // Ordinal 6 is the pre-registered but still dormant class-target shape.
+
+    /// <summary>An absolute floor tile inside the resolved map.</summary>
+    PositionTarget = 7,
 }

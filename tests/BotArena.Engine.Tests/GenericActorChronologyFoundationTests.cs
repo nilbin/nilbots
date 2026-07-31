@@ -562,6 +562,13 @@ public sealed class GenericActorChronologyFoundationTests
                                 .TickExecutionFailed,
                             1,
                             true))),
+            new(
+                21,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                    new ArcRelayEvent.CoreBorn(
+                        new ArcRelayCoreId("well-centre", 0),
+                        position))),
         ];
     }
 
@@ -626,6 +633,8 @@ public sealed class GenericActorChronologyFoundationTests
             GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 typeof(GenericActorRuntimeObservation.EventPayload
                     .ProjectileDeflected),
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                typeof(GenericActorRuntimeObservation.EventPayload.ArcRelay),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 

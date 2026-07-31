@@ -182,6 +182,9 @@ internal static class ActorRulesCanonicalWriter
                     WriteFrontlineScrapEconomy(writer, scrapEconomy);
                 }
                 break;
+            case ArcRelayGameModeDefinition arcRelay:
+                WriteArcRelay(writer, arcRelay);
+                break;
             default:
                 throw Unsupported(mode);
         }
@@ -222,10 +225,156 @@ internal static class ActorRulesCanonicalWriter
                     "pushesToBreach",
                     frontline.PushesToBreach);
                 break;
+            case ArcRelayVictoryDefinition arcRelay:
+                writer.WriteNumber(
+                    "pulsesToDestroyReactor",
+                    arcRelay.PulsesToDestroyReactor);
+                break;
             default:
                 throw Unsupported(victory);
         }
 
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcRelay(
+        Utf8JsonWriter writer,
+        ArcRelayGameModeDefinition mode)
+    {
+        writer.WriteNumber("pendingRearmTicks", mode.PendingRearmTicks);
+        writer.WriteNumber(
+            "coreRelocationIntervalTicks",
+            mode.CoreRelocationIntervalTicks);
+        writer.WriteNumber("coresPerPulse", mode.CoresPerPulse);
+        writer.WriteNumber("fieldedSlotsPerTeam", mode.FieldedSlotsPerTeam);
+        writer.WriteNumber("maxCopiesPerClass", mode.MaxCopiesPerClass);
+        writer.WriteNumber("respawnDelayTicks", mode.RespawnDelayTicks);
+        writer.WritePropertyName("wells");
+        writer.WriteStartArray();
+        foreach (ArcRelayWellScheduleDefinition well in mode.Wells)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("wellId", well.WellId);
+            writer.WriteNumber("firstBirthTick", well.FirstBirthTick);
+            writer.WriteNumber("cadenceTicks", well.CadenceTicks);
+            writer.WriteNumber("finalBirthTick", well.FinalBirthTick);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+        writer.WritePropertyName("signatures");
+        writer.WriteStartArray();
+        foreach (ArcRelaySignatureDefinition signature in mode.Signatures)
+            WriteArcRelaySignature(writer, signature);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteArcRelaySignature(
+        Utf8JsonWriter writer,
+        ArcRelaySignatureDefinition signature)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("kind", Id(signature.Kind));
+        writer.WriteString("signatureId", signature.SignatureId);
+        writer.WriteString("classId", signature.ClassId);
+        writer.WriteString("actionId", signature.ActionId);
+        writer.WriteNumber("cooldownTicks", signature.CooldownTicks);
+        switch (signature)
+        {
+            case ArcRelaySignatureDefinition.VectorDash value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("maxTiles", value.MaxTiles);
+                break;
+            case ArcRelaySignatureDefinition.PrismWall value:
+                writer.WriteNumber("segmentCount", value.SegmentCount);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber("contactCapacity", value.ContactCapacity);
+                break;
+            case ArcRelaySignatureDefinition.TractorHook value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
+                break;
+            case ArcRelaySignatureDefinition.RepairBeam value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("ticksPerRepair", value.TicksPerRepair);
+                writer.WriteNumber("hullPerRepair", value.HullPerRepair);
+                writer.WriteNumber(
+                    "maxHullPerActivation",
+                    value.MaxHullPerActivation);
+                break;
+            case ArcRelaySignatureDefinition.SurveyFlare value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber(
+                    "travelTilesPerTick",
+                    value.TravelTilesPerTick);
+                writer.WriteNumber("revealRadius", value.RevealRadius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.FallingStar value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("damage", value.Damage);
+                break;
+            case ArcRelaySignatureDefinition.TripNode value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("triggerDamage", value.TriggerDamage);
+                writer.WriteNumber("revealRange", value.RevealRange);
+                break;
+            case ArcRelaySignatureDefinition.NullField value:
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.ArcToss value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber(
+                    "travelTilesPerTick",
+                    value.TravelTilesPerTick);
+                break;
+            case ArcRelaySignatureDefinition.Exchange value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                break;
+            case ArcRelaySignatureDefinition.RailLine value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "cancelCooldownTicks",
+                    value.CancelCooldownTicks);
+                break;
+            case ArcRelaySignatureDefinition.HardlightBlock value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.TargetPaint value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "enhancedHitCount",
+                    value.EnhancedHitCount);
+                writer.WriteNumber("bonusDamage", value.BonusDamage);
+                break;
+            case ArcRelaySignatureDefinition.KineticBurst value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("pushTiles", value.PushTiles);
+                break;
+            case ArcRelaySignatureDefinition.SmokeCanister value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.SentinelSeed value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "fireCooldownTicks",
+                    value.FireCooldownTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            default:
+                throw Unsupported(signature);
+        }
         writer.WriteEndObject();
     }
 

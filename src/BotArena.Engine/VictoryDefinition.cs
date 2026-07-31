@@ -50,5 +50,6 @@ public abstract record VictoryDefinition
     {
         Frontline = 0,
         Deathmatch = 1,
+        ArcRelay = 2,
     }
 }

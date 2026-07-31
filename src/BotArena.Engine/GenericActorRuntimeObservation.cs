@@ -495,6 +495,9 @@ public sealed record GenericActorRuntimeObservation(
         public sealed record ModeChanged(
             ModeObservationState State) : EventPayload;
 
+        public sealed record ArcRelay(
+            ArcRelayEvent Fact) : EventPayload;
+
         public sealed record LifecycleClockCancelled : EventPayload
         {
             public LifecycleClockCancelled(
@@ -581,6 +584,13 @@ public sealed record GenericActorRuntimeObservation(
         /// event exactly as before, so no per-life replay changes.
         /// </summary>
         MindRuntimeFault = 20,
+
+        /// <summary>
+        /// One stable Arc Relay objective or signature fact. The payload owns
+        /// a second closed discriminator so additions never overload a combat
+        /// or lifecycle event meaning.
+        /// </summary>
+        ArcRelay = 21,
     }
 
     public sealed record ScoreboardState(
@@ -800,6 +810,76 @@ public sealed record GenericActorRuntimeObservation(
             /// contract data, not an observation fact.
             /// </summary>
             public int SecondaryClaimProgress { get; }
+        }
+
+        public sealed record ArcRelay : ModeObservationState
+        {
+            public ArcRelay(
+                string modeId,
+                ImmutableArray<ArcRelayWellState> wells,
+                ImmutableArray<ArcRelayReactorState> reactors,
+                ImmutableArray<ArcRelayCoreState> visibleCores,
+                ImmutableArray<ArcRelaySignatureState> visibleSignatures,
+                int? latestPulseTeamId,
+                int? latestPulseTick)
+                : base(modeId)
+            {
+                if (wells.IsDefault || wells.Any(value => value is null)
+                    || reactors.IsDefault
+                    || reactors.Any(value => value is null)
+                    || visibleCores.IsDefault
+                    || visibleCores.Any(value => value is null)
+                    || visibleSignatures.IsDefault
+                    || visibleSignatures.Any(value => value is null))
+                {
+                    throw new ArgumentException(
+                        "Arc Relay observation arrays must be initialized and non-null.");
+                }
+                if ((latestPulseTeamId is null) != (latestPulseTick is null)
+                    || latestPulseTeamId < 0 || latestPulseTick < 0)
+                {
+                    throw new ArgumentException(
+                        "Arc Relay latest Pulse team and tick travel together.");
+                }
+                Wells = wells;
+                Reactors = reactors;
+                VisibleCores = visibleCores;
+                VisibleSignatures = visibleSignatures;
+                LatestPulseTeamId = latestPulseTeamId;
+                LatestPulseTick = latestPulseTick;
+            }
+
+            public ImmutableArray<ArcRelayWellState> Wells { get; }
+            public ImmutableArray<ArcRelayReactorState> Reactors { get; }
+            public ImmutableArray<ArcRelayCoreState> VisibleCores { get; }
+            public ImmutableArray<ArcRelaySignatureState> VisibleSignatures
+            { get; }
+            public int? LatestPulseTeamId { get; }
+            public int? LatestPulseTick { get; }
+
+            public bool Equals(ArcRelay? other) =>
+                other is not null
+                && ModeId == other.ModeId
+                && Wells.SequenceEqual(other.Wells)
+                && Reactors.SequenceEqual(other.Reactors)
+                && VisibleCores.SequenceEqual(other.VisibleCores)
+                && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
+                && LatestPulseTeamId == other.LatestPulseTeamId
+                && LatestPulseTick == other.LatestPulseTick;
+
+            public override int GetHashCode()
+            {
+                var hash = new HashCode();
+                hash.Add(ModeId, StringComparer.Ordinal);
+                foreach (ArcRelayWellState value in Wells) hash.Add(value);
+                foreach (ArcRelayReactorState value in Reactors) hash.Add(value);
+                foreach (ArcRelayCoreState value in VisibleCores) hash.Add(value);
+                foreach (ArcRelaySignatureState value in VisibleSignatures)
+                    hash.Add(value);
+                hash.Add(LatestPulseTeamId);
+                hash.Add(LatestPulseTick);
+                return hash.ToHashCode();
+            }
         }
     }
 

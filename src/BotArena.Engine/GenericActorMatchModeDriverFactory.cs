@@ -28,6 +28,10 @@ internal static class GenericActorMatchModeDriverFactory
                 definition.LifecycleAssignments,
                 mode,
                 binding),
+            (
+                ArcRelayGameModeDefinition,
+                ArcRelayActorModeMapBindingDefinition
+            ) => new ArcRelayActorMatchModeDriver(definition),
             _ => throw new ArgumentException(
                 "GenericActorMatchSession does not support this exact game-mode and map-binding pair.",
                 nameof(definition)),

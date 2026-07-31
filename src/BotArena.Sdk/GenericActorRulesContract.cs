@@ -200,6 +200,12 @@ public sealed class GenericActorRulesContract
         int PushesToBreach)
         : Victory(VictoryKind.Frontline, TimeoutRanking);
 
+    /// <summary>Arc Relay Pulse threshold and timeout policy.</summary>
+    public sealed record ArcRelayVictory(
+        ImmutableArray<ScoreRanking> TimeoutRanking,
+        int PulsesToDestroyReactor)
+        : Victory(VictoryKind.ArcRelay, TimeoutRanking);
+
     /// <summary>Closed union of objective, score-catalog, and victory rules.</summary>
     /// <param name="Kind">Mode discriminator.</param>
     /// <param name="ModeId">Stable authored game-mode identifier.</param>
@@ -266,6 +272,68 @@ public sealed class GenericActorRulesContract
         /// banks, the tiers, and the live piles are observation state.
         /// </summary>
         public FrontlineScrapEconomy? ScrapEconomy { get; init; }
+    }
+
+    /// <summary>Immutable Arc Relay Core, Pulse, composition, and signature rules.</summary>
+    public sealed record ArcRelayGameMode(
+        string ModeId,
+        ArcRelayVictory ArcRelayVictory,
+        ImmutableArray<ScoreChannel> ScoreCatalog,
+        int PendingRearmTicks,
+        int CoreRelocationIntervalTicks,
+        int CoresPerPulse,
+        int FieldedSlotsPerTeam,
+        int MaxCopiesPerClass,
+        int RespawnDelayTicks,
+        ImmutableArray<ArcRelayWellSchedule> Wells,
+        ImmutableArray<ArcRelaySignature> Signatures)
+        : GameModeDefinition(
+            GameModeKind.ArcRelay,
+            ModeId,
+            ArcRelayVictory,
+            ScoreCatalog);
+
+    /// <summary>One stable Well's complete production cadence.</summary>
+    public sealed record ArcRelayWellSchedule(
+        string WellId,
+        int FirstBirthTick,
+        int CadenceTicks,
+        int FinalBirthTick);
+
+    /// <summary>
+    /// One class-bound signature envelope. Fields irrelevant to
+    /// <see cref="Kind"/> are null; every relevant value was present in the
+    /// canonical rules document.
+    /// </summary>
+    public sealed record ArcRelaySignature(
+        string Kind,
+        string SignatureId,
+        string ClassId,
+        string ActionId,
+        int CooldownTicks)
+    {
+        public int? TellTicks { get; init; }
+        public int? Range { get; init; }
+        public int? MaxTiles { get; init; }
+        public int? SegmentCount { get; init; }
+        public int? DurationTicks { get; init; }
+        public int? ContactCapacity { get; init; }
+        public int? MaxPullTiles { get; init; }
+        public int? TicksPerRepair { get; init; }
+        public int? HullPerRepair { get; init; }
+        public int? MaxHullPerActivation { get; init; }
+        public int? TravelTilesPerTick { get; init; }
+        public int? RevealRadius { get; init; }
+        public int? Damage { get; init; }
+        public int? Hull { get; init; }
+        public int? TriggerDamage { get; init; }
+        public int? RevealRange { get; init; }
+        public int? Radius { get; init; }
+        public int? CancelCooldownTicks { get; init; }
+        public int? EnhancedHitCount { get; init; }
+        public int? BonusDamage { get; init; }
+        public int? PushTiles { get; init; }
+        public int? FireCooldownTicks { get; init; }
     }
 
     /// <summary>
@@ -1340,6 +1408,8 @@ public sealed class GenericActorRulesContract
         Deathmatch = 0,
         /// <summary>Advance through ordered territorial objectives.</summary>
         Frontline = 1,
+        /// <summary>Carry stable Cores to charge reactor Pulses.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Discriminator for terminal and timeout victory policies.</summary>
@@ -1349,6 +1419,8 @@ public sealed class GenericActorRulesContract
         Deathmatch = 0,
         /// <summary>Frontline breach and territorial ranking.</summary>
         Frontline = 1,
+        /// <summary>Destroy the opposing reactor through banked Pulses.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Engine semantic kind represented by an action catalog entry.</summary>
@@ -1374,6 +1446,10 @@ public sealed class GenericActorRulesContract
         /// action for the tick.
         /// </summary>
         ModeInvestment = 7,
+        /// <summary>Shared mode-objective verb such as handoff or drop.</summary>
+        Objective = 8,
+        /// <summary>One class-bound Arc Relay signature.</summary>
+        Signature = 9,
     }
 
     /// <summary>Closed discriminator for typed action arguments and constraints.</summary>
@@ -1391,6 +1467,8 @@ public sealed class GenericActorRulesContract
         ProjectileHeading = 4,
         /// <summary>One declared upgrade track of a mode's store.</summary>
         UpgradeTrack = 5,
+        /// <summary>Ordinal 6 remains reserved for class-target.</summary>
+        PositionTarget = 7,
     }
 
     /// <summary>Projectile traversal representation.</summary>

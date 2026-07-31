@@ -381,6 +381,9 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.EventPayload.ModeChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ModeChanged(
                     ToSdk(payload.State)),
+            GenericActorRuntimeObservation.EventPayload.ArcRelay payload =>
+                new Sdk.GenericActorContext.EventPayload.ArcRelay(
+                    ToSdk(payload.Fact)),
             GenericActorRuntimeObservation.EventPayload
                 .LifecycleClockCancelled payload =>
                 new Sdk.GenericActorContext.EventPayload
@@ -442,6 +445,15 @@ internal static class GenericActorSdkModelMapper
                     mode.SecondaryClaimProgress,
                     [.. mode.ScrapTeams.Select(ToSdk)],
                     [.. mode.ScrapPiles.Select(ToSdk)]),
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay mode =>
+                new Sdk.GenericActorContext.ModeObservationState.ArcRelay(
+                    mode.ModeId,
+                    [.. mode.Wells.Select(ToSdk)],
+                    [.. mode.Reactors.Select(ToSdk)],
+                    [.. mode.VisibleCores.Select(ToSdk)],
+                    [.. mode.VisibleSignatures.Select(ToSdk)],
+                    mode.LatestPulseTeamId,
+                    mode.LatestPulseTick),
             _ => throw UnknownUnion(value),
         };
 
@@ -452,6 +464,209 @@ internal static class GenericActorSdkModelMapper
     internal static Sdk.GenericActorContext.ScrapPile ToSdk(
         GenericActorRuntimeObservation.ScrapPile value) =>
         new(ToSdk(value.Position), value.Amount, value.ExpiresAtTick);
+
+    internal static Sdk.GenericActorContext.ArcRelayCoreId ToSdk(
+        ArcRelayCoreId value) =>
+        new(value.SourceWellId, value.SourceOrdinal);
+
+    internal static Sdk.GenericActorContext.ArcRelayWellState ToSdk(
+        ArcRelayWellState value) =>
+        new(
+            value.WellId,
+            ToSdk(value.Position),
+            value.NextScheduledBirthTick,
+            value.OutstandingCoreId is { } coreId ? ToSdk(coreId) : null,
+            value.PendingCharge,
+            value.RearmCompletesAtTick);
+
+    internal static Sdk.GenericActorContext.ArcRelayReactorState ToSdk(
+        ArcRelayReactorState value) =>
+        new(
+            value.TeamId,
+            ToSdk(value.Position),
+            value.ChargePips,
+            value.IntegritySegments);
+
+    internal static Sdk.GenericActorContext.ArcRelayCoreState ToSdk(
+        ArcRelayCoreState value) =>
+        new(
+            ToSdk(value.CoreId),
+            ToSdk(value.Position),
+            value.Disposition switch
+            {
+                ArcRelayCoreState.CoreDisposition.Loose =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.Loose,
+                ArcRelayCoreState.CoreDisposition.Carried =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.Carried,
+                ArcRelayCoreState.CoreDisposition.InFlight =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.InFlight,
+                _ => throw UnknownEnum(value.Disposition),
+            },
+            ToSdkOptional(value.CarrierActorId),
+            value.NextRelocationTick,
+            value.FlightTarget is { } target ? ToSdk(target) : null,
+            value.FlightCompletesAtTick);
+
+    internal static Sdk.GenericActorContext.ArcRelaySignatureState ToSdk(
+        ArcRelaySignatureState value) =>
+        new(
+            value.OperationId,
+            value.SignatureId,
+            ArcRelaySignatureKindId(value.Kind),
+            ToSdk(value.OwnerActorId),
+            value.OwnerTeamId,
+            value.Phase switch
+            {
+                ArcRelaySignatureState.SignaturePhase.Tell =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Tell,
+                ArcRelaySignatureState.SignaturePhase.Active =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Active,
+                ArcRelaySignatureState.SignaturePhase.Channel =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Channel,
+                ArcRelaySignatureState.SignaturePhase.InFlight =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.InFlight,
+                _ => throw UnknownEnum(value.Phase),
+            },
+            value.StartedTick,
+            value.CompletesAtTick,
+            value.EndsAtTick,
+            [.. value.Positions.Select(ToSdk)],
+            ToSdkOptional(value.TargetActorId),
+            value.RemainingCapacity,
+            value.Suppressed);
+
+    internal static Sdk.GenericActorContext.ArcRelayEvent ToSdk(
+        ArcRelayEvent value) => value switch
+        {
+            ArcRelayEvent.CoreBorn fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreBorn(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.CorePickedUp fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CorePickedUp(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.CarrierActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreRelocated fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreRelocated(
+                    ToSdk(fact.CoreId),
+                    ToSdkOptional(fact.CarrierActorId),
+                    ToSdk(fact.From),
+                    ToSdk(fact.To),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreRelocationKind.CarriedMovement =>
+                            "carried-movement",
+                        ArcRelayEvent.CoreRelocationKind.ForcedDisplacement =>
+                            "forced-displacement",
+                        ArcRelayEvent.CoreRelocationKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw UnknownEnum(fact.Kind),
+                    }),
+            ArcRelayEvent.CoreHandedOff fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreHandedOff(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.SourceActorId),
+                    ToSdk(fact.TargetActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreDropped fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreDropped(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.SourceActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreDropKind.Voluntary => "voluntary",
+                        ArcRelayEvent.CoreDropKind.Destruction => "destruction",
+                        ArcRelayEvent.CoreDropKind.SignatureDeparture =>
+                            "signature-departure",
+                        ArcRelayEvent.CoreDropKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw UnknownEnum(fact.Kind),
+                    }),
+            ArcRelayEvent.CoreBanked fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreBanked(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.CarrierActorId),
+                    fact.TeamId,
+                    ToSdk(fact.Position),
+                    fact.ChargePips),
+            ArcRelayEvent.WellChanged fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.WellChanged(
+                    fact.WellId,
+                    fact.PendingCharge,
+                    fact.RearmCompletesAtTick,
+                    fact.OutstandingCoreId is { } coreId
+                        ? ToSdk(coreId)
+                        : null),
+            ArcRelayEvent.Pulse fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.Pulse(
+                    fact.TeamId,
+                    fact.PulseOrdinal,
+                    fact.OpposingReactorIntegrity),
+            ArcRelayEvent.SignatureChanged fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureChanged(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    fact.Phase is { } phase
+                        ? phase switch
+                        {
+                            ArcRelaySignatureState.SignaturePhase.Tell =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Tell,
+                            ArcRelaySignatureState.SignaturePhase.Active =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Active,
+                            ArcRelaySignatureState.SignaturePhase.Channel =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Channel,
+                            ArcRelaySignatureState.SignaturePhase.InFlight =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.InFlight,
+                            _ => throw UnknownEnum(phase),
+                        }
+                        : null,
+                    fact.Reason),
+            _ => throw UnknownUnion(value),
+        };
+
+    private static string ArcRelaySignatureKindId(
+        ArcRelaySignatureDefinition.SignatureKind value) => value switch
+        {
+            ArcRelaySignatureDefinition.SignatureKind.VectorDash =>
+                "vector-dash",
+            ArcRelaySignatureDefinition.SignatureKind.PrismWall =>
+                "prism-wall",
+            ArcRelaySignatureDefinition.SignatureKind.TractorHook =>
+                "tractor-hook",
+            ArcRelaySignatureDefinition.SignatureKind.RepairBeam =>
+                "repair-beam",
+            ArcRelaySignatureDefinition.SignatureKind.SurveyFlare =>
+                "survey-flare",
+            ArcRelaySignatureDefinition.SignatureKind.FallingStar =>
+                "falling-star",
+            ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
+            ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
+            ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
+            ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
+            ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
+            ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
+                "hardlight-block",
+            ArcRelaySignatureDefinition.SignatureKind.TargetPaint =>
+                "target-paint",
+            ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
+                "kinetic-burst",
+            ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
+                "smoke-canister",
+            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
+                "sentinel-seed",
+            _ => throw UnknownEnum(value),
+        };
 
     internal static Sdk.GenericActorActionLegality ToSdk(
         GenericActorRuntimeActionLegality value) =>
@@ -493,6 +708,11 @@ internal static class GenericActorSdkModelMapper
                 .UpgradeTrackConstraint constraint =>
                 new Sdk.GenericActorActionLegality.ArgumentConstraint
                     .UpgradeTrackConstraint(constraint.AllowedTrackIds),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .PositionTargetConstraint constraint =>
+                new Sdk.GenericActorActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint(
+                        constraint.AllowedValues.Select(ToSdk)),
             _ => throw UnknownUnion(value),
         };
 
@@ -560,6 +780,9 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeActionArgument.UpgradeTrackArgument argument =>
                 new Sdk.GenericActorActionArgument.UpgradeTrackArgument(
                     argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument argument =>
+                new Sdk.GenericActorActionArgument.PositionTargetArgument(
+                    ToSdk(argument.Value)),
             _ => throw UnknownUnion(value),
         };
 
@@ -587,6 +810,9 @@ internal static class GenericActorSdkModelMapper
             Sdk.GenericActorActionArgument.UpgradeTrackArgument argument =>
                 new GenericActorRuntimeActionArgument.UpgradeTrackArgument(
                     argument.TrackId),
+            Sdk.GenericActorActionArgument.PositionTargetArgument argument =>
+                new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                    ToEngine(argument.Value)),
             _ => throw UnknownUnion(value),
         };
 
@@ -597,6 +823,9 @@ internal static class GenericActorSdkModelMapper
         value is null ? null : ToSdk(value);
 
     internal static Sdk.Position ToSdk(Position value) =>
+        new(value.X, value.Y);
+
+    internal static Position ToEngine(Sdk.Position value) =>
         new(value.X, value.Y);
 
     internal static Sdk.ShotProgram ToSdk(ShotProgram value) =>
@@ -757,6 +986,10 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorContext.EventKind.LifecycleClockCancelled,
             GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 Sdk.GenericActorContext.EventKind.ProjectileDeflected,
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                Sdk.GenericActorContext.EventKind.MindRuntimeFault,
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                Sdk.GenericActorContext.EventKind.ArcRelay,
             _ => throw UnknownEnum(value),
         };
 

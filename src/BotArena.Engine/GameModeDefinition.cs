@@ -108,5 +108,6 @@ public abstract record GameModeDefinition
     {
         Frontline = 0,
         Deathmatch = 1,
+        ArcRelay = 2,
     }
 }

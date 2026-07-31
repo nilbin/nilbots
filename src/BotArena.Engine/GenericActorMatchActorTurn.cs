@@ -379,6 +379,11 @@ public sealed record GenericActorMatchActorTurn
             // ID; whether it is legal THIS tick is the legality mask's job.
             GenericActorRuntimeActionArgument.UpgradeTrackArgument value =>
                 !string.IsNullOrWhiteSpace(value.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument value =>
+                value.Value.X >= 0
+                && value.Value.Y >= 0
+                && value.Value.X < definition.Map.Width
+                && value.Value.Y < definition.Map.Height,
             _ => false,
         };
 
@@ -471,6 +476,10 @@ public sealed record GenericActorMatchActorTurn
                     a.TrackId,
                     b.TrackId,
                     StringComparison.Ordinal),
+            (
+                GenericActorRuntimeActionArgument.PositionTargetArgument a,
+                GenericActorRuntimeActionArgument.PositionTargetArgument b) =>
+                a.Value == b.Value,
             _ => false,
         };
 

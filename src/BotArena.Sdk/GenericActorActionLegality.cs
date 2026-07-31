@@ -287,5 +287,32 @@ public sealed record GenericActorActionLegality
             /// <summary>Complete ordinal-sorted set of legal track IDs.</summary>
             public ImmutableArray<string> AllowedTrackIds { get; }
         }
+
+        /// <summary>Frozen legal absolute map tiles for one action.</summary>
+        public sealed record PositionTargetConstraint : ArgumentConstraint
+        {
+            /// <summary>Creates a canonical position-target constraint.</summary>
+            public PositionTargetConstraint(
+                IEnumerable<Position> allowedValues)
+            {
+                ArgumentNullException.ThrowIfNull(allowedValues);
+                Position[] values = [.. allowedValues];
+                if (values.Any(value => value.X < 0 || value.Y < 0)
+                    || values.Distinct().Count() != values.Length)
+                {
+                    throw new ArgumentException(
+                        "Position targets must be unique non-negative tiles.",
+                        nameof(allowedValues));
+                }
+                AllowedValues = values.OrderBy(value => value.Y)
+                    .ThenBy(value => value.X).ToImmutableArray();
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.ActionParameterKind Kind =>
+                GenericActorRulesContract.ActionParameterKind.PositionTarget;
+            /// <summary>Canonical legal targets.</summary>
+            public ImmutableArray<Position> AllowedValues { get; }
+        }
     }
 }

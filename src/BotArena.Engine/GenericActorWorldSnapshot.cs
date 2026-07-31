@@ -1482,6 +1482,9 @@ public sealed class GenericActorWorldSnapshot
             (FrontlineGameModeDefinition,
                 GenericActorRuntimeObservation.ModeObservationState
                     .Frontline) => true,
+            (ArcRelayGameModeDefinition,
+                GenericActorRuntimeObservation.ModeObservationState
+                    .ArcRelay) => true,
             _ => false,
         };
 }

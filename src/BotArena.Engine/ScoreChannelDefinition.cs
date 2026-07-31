@@ -24,6 +24,8 @@ public sealed record ScoreChannelDefinition
             ChannelKind.DamageDealt => ValueDomain.NonNegative,
             ChannelKind.ActiveHealth => ValueDomain.NonNegative,
             ChannelKind.TerritorialProgress => ValueDomain.Signed,
+            ChannelKind.Pulses => ValueDomain.NonNegative,
+            ChannelKind.ReactorCharge => ValueDomain.NonNegative,
             _ => throw new ArgumentOutOfRangeException(nameof(channel)),
         };
 
@@ -34,6 +36,8 @@ public sealed record ScoreChannelDefinition
         DamageDealt = 2,
         ActiveHealth = 3,
         TerritorialProgress = 4,
+        Pulses = 5,
+        ReactorCharge = 6,
     }
 
     public enum ValueDomain

@@ -15,14 +15,18 @@ internal static class ActorContractCanonicalIds
 
         GameModeDefinition.GameModeDefinitionKind.Frontline => "frontline",
         GameModeDefinition.GameModeDefinitionKind.Deathmatch => "deathmatch",
+        GameModeDefinition.GameModeDefinitionKind.ArcRelay => "arc-relay",
         VictoryDefinition.VictoryDefinitionKind.Frontline => "frontline",
         VictoryDefinition.VictoryDefinitionKind.Deathmatch => "deathmatch",
+        VictoryDefinition.VictoryDefinitionKind.ArcRelay => "arc-relay",
         ScoreChannelDefinition.ChannelKind.Kills => "kills",
         ScoreChannelDefinition.ChannelKind.Deaths => "deaths",
         ScoreChannelDefinition.ChannelKind.DamageDealt => "damage-dealt",
         ScoreChannelDefinition.ChannelKind.ActiveHealth => "active-health",
         ScoreChannelDefinition.ChannelKind.TerritorialProgress =>
             "territorial-progress",
+        ScoreChannelDefinition.ChannelKind.Pulses => "pulses",
+        ScoreChannelDefinition.ChannelKind.ReactorCharge => "reactor-charge",
         ScoreChannelDefinition.ValueDomain.NonNegative => "non-negative",
         ScoreChannelDefinition.ValueDomain.Signed => "signed",
         ScoreRankingDefinition.SortDirection.HigherWins => "higher-wins",
@@ -146,6 +150,9 @@ internal static class ActorContractCanonicalIds
         ActorModeMapBindingDefinition.ActorModeMapBindingDefinitionKind
                 .Frontline =>
             "frontline",
+        ActorModeMapBindingDefinition.ActorModeMapBindingDefinitionKind
+                .ArcRelay =>
+            "arc-relay",
         FrontlineTeamAdvanceDefinition.ObjectiveAdvanceDirection
                 .TowardLowerIndex =>
             "toward-lower-index",
@@ -184,6 +191,29 @@ internal static class ActorContractCanonicalIds
             "transition-placement-forbidden",
         ActorMapTileTagDefinition.TileTagKind.SpawnProtected =>
             "spawn-protected",
+        ActorMapTileTagDefinition.TileTagKind.SignaturePlacementForbidden =>
+            "signature-placement-forbidden",
+
+        ArcRelaySignatureDefinition.SignatureKind.VectorDash => "vector-dash",
+        ArcRelaySignatureDefinition.SignatureKind.PrismWall => "prism-wall",
+        ArcRelaySignatureDefinition.SignatureKind.TractorHook => "tractor-hook",
+        ArcRelaySignatureDefinition.SignatureKind.RepairBeam => "repair-beam",
+        ArcRelaySignatureDefinition.SignatureKind.SurveyFlare => "survey-flare",
+        ArcRelaySignatureDefinition.SignatureKind.FallingStar => "falling-star",
+        ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
+        ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
+        ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
+        ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
+        ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
+        ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
+            "hardlight-block",
+        ArcRelaySignatureDefinition.SignatureKind.TargetPaint => "target-paint",
+        ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
+            "kinetic-burst",
+        ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
+            "smoke-canister",
+        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
+            "sentinel-seed",
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>
@@ -338,12 +368,15 @@ internal static class ActorContractCanonicalIds
         ActorActionKind.SameLifeTransition => "same-life-transition",
         ActorActionKind.Replication => "replication",
         ActorActionKind.ModeInvestment => "mode-investment",
+        ActorActionKind.Objective => "objective",
+        ActorActionKind.Signature => "signature",
         ActorActionParameterKind.ShotProgram => "shot-program",
         ActorActionParameterKind.Direction => "direction",
         ActorActionParameterKind.UnitTarget => "unit-target",
         ActorActionParameterKind.FormTarget => "form-target",
         ActorActionParameterKind.ProjectileHeading => "projectile-heading",
         ActorActionParameterKind.UpgradeTrack => "upgrade-track",
+        ActorActionParameterKind.PositionTarget => "position-target",
         ActorActionRejectionResult.Blocked => "blocked",
         ActorActionRejectionResult.Faulted => "faulted",
         ActorActionRejectionResult.Rejected => "rejected",

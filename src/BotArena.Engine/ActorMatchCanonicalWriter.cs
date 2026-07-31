@@ -505,6 +505,19 @@ internal static class ActorMatchCanonicalWriter
                 }
                 writer.WriteEndArray();
                 break;
+            case ArcRelayActorModeMapBindingDefinition arcRelay:
+                writer.WritePropertyName("orderedWellRegionIds");
+                writer.WriteStartArray();
+                foreach (string regionId in arcRelay.OrderedWellRegionIds)
+                    writer.WriteStringValue(regionId);
+                writer.WriteEndArray();
+                writer.WriteString(
+                    "reactorRegionRoleId",
+                    arcRelay.ReactorRegionRoleId);
+                writer.WriteString(
+                    "homePadRegionRoleId",
+                    arcRelay.HomePadRegionRoleId);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(binding),

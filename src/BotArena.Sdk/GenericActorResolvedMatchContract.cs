@@ -241,6 +241,13 @@ public sealed class GenericActorResolvedMatchContract
         ImmutableArray<FrontlineTeamAdvance> TeamAdvances)
         : ModeMapBindingDefinition(ModeMapBindingKind.Frontline);
 
+    /// <summary>Binds ordered Wells and participant-relative home roles.</summary>
+    public sealed record ArcRelayModeMapBinding(
+        ImmutableArray<string> OrderedWellRegionIds,
+        string ReactorRegionRoleId,
+        string HomePadRegionRoleId)
+        : ModeMapBindingDefinition(ModeMapBindingKind.ArcRelay);
+
     /// <summary>One team's advance direction through ordered objectives.</summary>
     /// <param name="TeamId">Stable scoring-team identifier.</param>
     /// <param name="Direction">Semantic direction through objective indices.</param>
@@ -282,6 +289,8 @@ public sealed class GenericActorResolvedMatchContract
         Deathmatch = 0,
         /// <summary>Frontline uses ordered objective regions.</summary>
         Frontline = 1,
+        /// <summary>Arc Relay binds three Wells plus home/reactor roles.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Semantic team advance through ordered objective indices.</summary>

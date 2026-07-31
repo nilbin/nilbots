@@ -73,6 +73,34 @@ public static class ActorRulesDefinitionValidator
                 }
             }
         }
+        else if (gameMode is ArcRelayGameModeDefinition arcRelay)
+        {
+            foreach (ArcRelayWellScheduleDefinition well in arcRelay.Wells)
+            {
+                ValidateCanonicalId(well.WellId, "Arc Relay Well ID", errors);
+                if (well.FinalBirthTick >= limits.MaxTicks)
+                {
+                    errors.Add(
+                        $"Arc Relay Well '{well.WellId}' must finish before MaxTicks.");
+                }
+            }
+            foreach (ArcRelaySignatureDefinition signature in
+                     arcRelay.Signatures)
+            {
+                ValidateCanonicalId(
+                    signature.SignatureId,
+                    "Arc Relay signature ID",
+                    errors);
+                ValidateCanonicalId(
+                    signature.ClassId,
+                    "Arc Relay signature class ID",
+                    errors);
+                ValidateCanonicalId(
+                    signature.ActionId,
+                    "Arc Relay signature action ID",
+                    errors);
+            }
+        }
 
         Dictionary<string, ActorFormDefinition> formsById = IndexCatalog(
             forms,
@@ -276,6 +304,12 @@ public static class ActorRulesDefinitionValidator
                 errors.Add(
                     $"Frontline form '{form.Id}' objective weight must be zero " +
                     "or one because positive presence does not stack.");
+            }
+            else if (gameMode is ArcRelayGameModeDefinition
+                     && form.ObjectiveWeight != 0)
+            {
+                errors.Add(
+                    $"Arc Relay form '{form.Id}' must use objective weight zero.");
             }
         }
     }
@@ -659,10 +693,13 @@ public static class ActorRulesDefinitionValidator
                 case ActorActionKind.Movement
                     when !HasExactly(
                         action.ParameterKinds,
-                        ActorActionParameterKind.Direction):
+                        ActorActionParameterKind.Direction)
+                        && !HasExactly(
+                            action.ParameterKinds,
+                            ActorActionParameterKind.ProjectileHeading):
                     errors.Add(
                         $"Movement action '{action.Id}' must declare exactly " +
-                        "Direction under actor rules schema 3.");
+                        "Direction or ProjectileHeading under actor rules schema 3.");
                     break;
                 case ActorActionKind.Rotation
                     when !HasExactly(

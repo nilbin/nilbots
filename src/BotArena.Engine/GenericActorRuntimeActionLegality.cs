@@ -68,5 +68,12 @@ public sealed record GenericActorRuntimeActionLegality(
             public override ActorActionParameterKind Kind =>
                 ActorActionParameterKind.UpgradeTrack;
         }
+
+        public sealed record PositionTargetConstraint(
+            ImmutableArray<Position> AllowedValues) : ArgumentConstraint
+        {
+            public override ActorActionParameterKind Kind =>
+                ActorActionParameterKind.PositionTarget;
+        }
     }
 }

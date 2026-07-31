@@ -129,6 +129,24 @@ public abstract record GenericActorActionArgument
         public string TrackId { get; }
     }
 
+    /// <summary>Targets one absolute map tile.</summary>
+    public sealed record PositionTargetArgument : GenericActorActionArgument
+    {
+        /// <summary>Creates a map-tile target argument.</summary>
+        public PositionTargetArgument(Position value)
+        {
+            if (value.X < 0 || value.Y < 0)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            Value = value;
+        }
+
+        /// <inheritdoc />
+        public override GenericActorRulesContract.ActionParameterKind Kind =>
+            GenericActorRulesContract.ActionParameterKind.PositionTarget;
+        /// <summary>The requested absolute tile.</summary>
+        public Position Value { get; }
+    }
+
     /// <summary>
     /// Stable target slot. It does not identify a particular generation or life.
     /// </summary>

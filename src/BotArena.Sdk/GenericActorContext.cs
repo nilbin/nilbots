@@ -2319,6 +2319,22 @@ public sealed record GenericActorContext
             internal override bool Supports(EventKind kind) =>
                 kind == EventKind.LifecycleClockCancelled;
         }
+
+        /// <summary>One authoritative Arc Relay objective/signature fact.</summary>
+        public sealed record ArcRelay : EventPayload
+        {
+            /// <summary>Creates an Arc Relay fact payload.</summary>
+            public ArcRelay(ArcRelayEvent fact)
+            {
+                ArgumentNullException.ThrowIfNull(fact);
+                Fact = fact;
+            }
+
+            /// <summary>The typed Arc Relay fact.</summary>
+            public ArcRelayEvent Fact { get; }
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.ArcRelay;
+        }
     }
 
     /// <summary>Discriminator for visible events and redacted heard-event kinds.</summary>
@@ -2376,6 +2392,8 @@ public sealed record GenericActorContext
         /// contract ever emits it.
         /// </summary>
         MindRuntimeFault = 20,
+        /// <summary>An Arc Relay Core, Well, Pulse, or signature fact.</summary>
+        ArcRelay = 21,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>
@@ -2667,6 +2685,180 @@ public sealed record GenericActorContext
             /// </summary>
             public ImmutableArray<ScrapPile> ScrapPiles { get; }
         }
+
+        /// <summary>Current Arc Relay public and visibility-filtered state.</summary>
+        public sealed record ArcRelay : ModeObservationState
+        {
+            /// <summary>Creates one Arc Relay mode observation.</summary>
+            public ArcRelay(
+                string modeId,
+                ImmutableArray<ArcRelayWellState> wells,
+                ImmutableArray<ArcRelayReactorState> reactors,
+                ImmutableArray<ArcRelayCoreState> visibleCores,
+                ImmutableArray<ArcRelaySignatureState> visibleSignatures,
+                int? latestPulseTeamId,
+                int? latestPulseTick)
+                : base(modeId)
+            {
+                Wells = wells.IsDefault ? [] : wells;
+                Reactors = reactors.IsDefault ? [] : reactors;
+                VisibleCores = visibleCores.IsDefault ? [] : visibleCores;
+                VisibleSignatures = visibleSignatures.IsDefault
+                    ? []
+                    : visibleSignatures;
+                LatestPulseTeamId = latestPulseTeamId;
+                LatestPulseTick = latestPulseTick;
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.GameModeKind Kind =>
+                GenericActorRulesContract.GameModeKind.ArcRelay;
+            /// <summary>All public Well clocks and capacity facts.</summary>
+            public ImmutableArray<ArcRelayWellState> Wells { get; }
+            /// <summary>Both public reactor states.</summary>
+            public ImmutableArray<ArcRelayReactorState> Reactors { get; }
+            /// <summary>Cores visible to this team.</summary>
+            public ImmutableArray<ArcRelayCoreState> VisibleCores { get; }
+            /// <summary>Signature state visible to this team.</summary>
+            public ImmutableArray<ArcRelaySignatureState> VisibleSignatures
+            { get; }
+            /// <summary>Team owning the most recent Pulse, if any.</summary>
+            public int? LatestPulseTeamId { get; }
+            /// <summary>Tick of the most recent Pulse, if any.</summary>
+            public int? LatestPulseTick { get; }
+        }
+    }
+
+    /// <summary>Stable source-local Core identity.</summary>
+    public sealed record ArcRelayCoreId(string SourceWellId, int SourceOrdinal);
+
+    /// <summary>One public Well state.</summary>
+    public sealed record ArcRelayWellState(
+        string WellId,
+        Position Position,
+        int? NextScheduledBirthTick,
+        ArcRelayCoreId? OutstandingCoreId,
+        bool PendingCharge,
+        int? RearmCompletesAtTick);
+
+    /// <summary>One public reactor state.</summary>
+    public sealed record ArcRelayReactorState(
+        int TeamId,
+        Position Position,
+        int ChargePips,
+        int IntegritySegments);
+
+    /// <summary>One currently visible Core.</summary>
+    public sealed record ArcRelayCoreState(
+        ArcRelayCoreId CoreId,
+        Position Position,
+        ArcRelayCoreDisposition Disposition,
+        ActorIdentity? CarrierActorId,
+        int NextRelocationTick,
+        Position? FlightTarget,
+        int? FlightCompletesAtTick);
+
+    /// <summary>One visible signature tell/effect/construct.</summary>
+    public sealed record ArcRelaySignatureState(
+        string OperationId,
+        string SignatureId,
+        string Kind,
+        ActorIdentity OwnerActorId,
+        int OwnerTeamId,
+        ArcRelaySignaturePhase Phase,
+        int StartedTick,
+        int? CompletesAtTick,
+        int? EndsAtTick,
+        ImmutableArray<Position> Positions,
+        ActorIdentity? TargetActorId,
+        int RemainingCapacity,
+        bool Suppressed);
+
+    /// <summary>Current physical disposition of a visible Core.</summary>
+    public enum ArcRelayCoreDisposition
+    {
+        /// <summary>Neutral on a floor tile.</summary>
+        Loose = 0,
+        /// <summary>Owned by a live body.</summary>
+        Carried = 1,
+        /// <summary>Travelling through an Arc Toss.</summary>
+        InFlight = 2,
+    }
+
+    /// <summary>Presentation/resolution phase of a signature occurrence.</summary>
+    public enum ArcRelaySignaturePhase
+    {
+        /// <summary>Public counterplay tell.</summary>
+        Tell = 0,
+        /// <summary>Active field or construct.</summary>
+        Active = 1,
+        /// <summary>Maintained channel.</summary>
+        Channel = 2,
+        /// <summary>Visible travel.</summary>
+        InFlight = 3,
+    }
+
+    /// <summary>Closed SDK mirror of Arc Relay authoritative facts.</summary>
+    public abstract record ArcRelayEvent
+    {
+        private ArcRelayEvent() { }
+        /// <summary>A scheduled or rearmed Core appeared.</summary>
+        public sealed record CoreBorn(
+            ArcRelayCoreId CoreId,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A body acquired a loose Core.</summary>
+        public sealed record CorePickedUp(
+            ArcRelayCoreId CoreId,
+            ActorIdentity CarrierActorId,
+            Position Position,
+            int NextRelocationTick) : ArcRelayEvent;
+        /// <summary>A carried/displaced/tossed Core changed tiles.</summary>
+        public sealed record CoreRelocated(
+            ArcRelayCoreId CoreId,
+            ActorIdentity? CarrierActorId,
+            Position From,
+            Position To,
+            int NextRelocationTick,
+            string Kind) : ArcRelayEvent;
+        /// <summary>An adjacent committed handoff succeeded.</summary>
+        public sealed record CoreHandedOff(
+            ArcRelayCoreId CoreId,
+            ActorIdentity SourceActorId,
+            ActorIdentity TargetActorId,
+            Position Position,
+            int NextRelocationTick) : ArcRelayEvent;
+        /// <summary>A Core became neutral.</summary>
+        public sealed record CoreDropped(
+            ArcRelayCoreId CoreId,
+            ActorIdentity SourceActorId,
+            Position Position,
+            int NextRelocationTick,
+            string Kind) : ArcRelayEvent;
+        /// <summary>A surviving carrier delivered a Core.</summary>
+        public sealed record CoreBanked(
+            ArcRelayCoreId CoreId,
+            ActorIdentity CarrierActorId,
+            int TeamId,
+            Position Position,
+            int ChargePips) : ArcRelayEvent;
+        /// <summary>A Well's capacity/rearm state changed.</summary>
+        public sealed record WellChanged(
+            string WellId,
+            bool PendingCharge,
+            int? RearmCompletesAtTick,
+            ArcRelayCoreId? OutstandingCoreId) : ArcRelayEvent;
+        /// <summary>A delivery completed a Pulse.</summary>
+        public sealed record Pulse(
+            int TeamId,
+            int PulseOrdinal,
+            int OpposingReactorIntegrity) : ArcRelayEvent;
+        /// <summary>A signature occurrence changed phase or ended.</summary>
+        public sealed record SignatureChanged(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ArcRelaySignaturePhase? Phase,
+            string Reason) : ArcRelayEvent;
     }
 
     /// <summary>One team's published economic position.</summary>

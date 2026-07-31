@@ -86,6 +86,19 @@ internal abstract record GenericActorModeState
         public FrontlineControlState Control { get; }
         public FrontlineScoreState Scores { get; }
     }
+
+    internal sealed record ArcRelay : GenericActorModeState
+    {
+        public ArcRelay(
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay state)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            State = state;
+        }
+
+        public GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+            State { get; }
+    }
 }
 
 internal sealed record GenericActorModeWorldView
@@ -294,7 +307,8 @@ internal sealed record GenericActorModeTickResult
     public GenericActorModeTickResult(
         IReadOnlyCollection<GenericActorModeScoreChange> scoreChanges,
         GenericActorRuntimeObservation.ModeObservationState? modeChange,
-        bool modeObjectiveReached)
+        bool modeObjectiveReached,
+        IReadOnlyCollection<GenericActorModeEvent>? modeEvents = null)
     {
         ArgumentNullException.ThrowIfNull(scoreChanges);
         GenericActorModeScoreChange[] changes = [.. scoreChanges];
@@ -309,9 +323,18 @@ internal sealed record GenericActorModeTickResult
                 nameof(scoreChanges));
         }
 
+        GenericActorModeEvent[] facts = [.. modeEvents ?? []];
+        if (facts.Any(value => value is null))
+        {
+            throw new ArgumentException(
+                "Mode events cannot contain null entries.",
+                nameof(modeEvents));
+        }
+
         ScoreChanges = changes.ToImmutableArray();
         ModeChange = modeChange;
         ModeObjectiveReached = modeObjectiveReached;
+        ModeEvents = facts.ToImmutableArray();
     }
 
     /// <summary>Exact mode-owned event order for this joint tick.</summary>
@@ -321,7 +344,12 @@ internal sealed record GenericActorModeTickResult
         get;
     }
     public bool ModeObjectiveReached { get; }
+    public ImmutableArray<GenericActorModeEvent> ModeEvents { get; }
 }
+
+internal sealed record GenericActorModeEvent(
+    GenericActorRuntimeObservation.EventPayload Payload,
+    Position? SpatialPosition);
 
 internal sealed record GenericActorModeProjection
 {
@@ -429,6 +457,23 @@ internal abstract record GenericActorModeCompletion
                     reason,
                     control,
                     scores))
+        {
+        }
+    }
+
+    internal sealed record ArcRelay : GenericActorModeCompletion
+    {
+        public ArcRelay(
+            string completionReason,
+            int endTick,
+            TeamStandings standings,
+            GenericArcRelayEndReason reason,
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay state)
+            : base(
+                completionReason,
+                endTick,
+                standings,
+                new GenericActorMatchModeResult.ArcRelay(reason, state))
         {
         }
     }
