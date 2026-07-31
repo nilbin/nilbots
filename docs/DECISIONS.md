@@ -4234,6 +4234,30 @@ respawns lengthened every walk the 40-tick hold was calibrated
 against). Ground healing (slow, own-half, stillness-gated) is ruled
 and slated as the next-window A/B.
 
+## 190. The mind: one runtime drives all of a participant's bodies
+
+Owner ruling, made knowingly after the feasibility read: "I want the
+most drastical one — the 'one mind controls all bots'… I think this
+will let the player focus more on the real fun complexity than
+ergonomics." The per-life every-bot-for-himself model — with its
+common-knowledge coordination, life-scoped memory, and the wave-6/8
+friction families it produced — is superseded for this game by a
+PARTICIPANT-scoped controller: one submitted artifact, one runtime,
+one persistent mind driving every body that participant owns for the
+whole match. The owner's own rider fixes the boundary correctly: the
+mind is the PARTICIPANT, not the team, so future 2v2/FFA formats
+(already expressible in the gen-3 format definitions) are teams of
+ALLIED MINDS — and the common-knowledge toolkit (TeamRandom, declared
+intents) survives one level up as inter-mind coordination rather than
+dissolving. Wave 9 was cancelled minutes in precisely because
+authoring more per-life doctrine ergonomics would have been obsolete
+work. Design memo commissioned: profile shape beside the per-life
+generation (the shipped duel product and the measured cohorts stay
+playable and comparable via a wrap adapter), persistent-memory
+information game analyzed with eyes open, fuel and payload budgets,
+replay-v3 mind turns, qualification and scaffold redesign, migration
+plan for the eight lineages. The build ruling follows the memo.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
