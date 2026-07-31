@@ -1,93 +1,100 @@
-# Handover: the mind port wave (P6)
+# Handover: the mind-native doctrine wave
 
 For Codex. Commissioned by the owner; run this when he says it is due.
-This document is self-contained — read it fully before touching anything,
-then read the three files it names as authoritative.
+Self-contained — read it fully, then the files it names.
+
+OWNER AMENDMENT (2026-07-31): the originally-planned strict-port stage
+(mechanical 1:1 ports + ported-vs-wrapped A/B) is SKIPPED — "I think we
+can skip 1." Go straight to the doctrine pass. The recorded caveat: the
+wave's deltas conflate the architecture's value with the new doctrine's
+value; the null pin (DECISIONS #192, 63/63) already proved the wrapped
+originals are faithful old-world baselines, which is what makes the
+skip safe.
 
 ## Context in five sentences
 
-The game moved to THE MIND (DECISIONS #190–#192): one submitted artifact
-is one runtime driving every body its participant owns for the whole
-match, with persistent memory — the per-life "every bot for himself"
-model remains supported but superseded for this game. The mind profile is
-`generic-mind-match-1`; the resolved match contract is UNCHANGED (same
-game, different driver), and the null pin proved it: the wrapped wave-8
+The game moved to THE MIND (DECISIONS #190–#192): one submitted
+artifact is one runtime driving every body its participant owns for the
+whole match, with persistent memory — the per-life model remains
+supported but superseded for this game. The mind profile is
+`generic-mind-match-1`; the resolved match contract is unchanged (same
+game, different driver), proven by the null pin: the wrapped wave-8
 cohort played 63/63 cells outcome-identically on both profiles. The
-current game stack is `warpath` (legion rosters growing 3→8, bodies 4→9
-for the fabricator; hull pendulum with home respawns; channeled captures;
-the scrap economy with a six-tier board; 750-tick horizon). Your job is
-P6 of the build plan in docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md: port
-the eight per-life lineages to native minds and run the ported-vs-wrapped
-A/B that measures what the architecture is worth. Authoritative reading
-order: this file → docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md (§ on the
-API, the wrapper, and the A/B) → docs/EXPERIMENTAL-FRONTLINE-CLASSES.md
-(the whole current game, including "The mind" section).
+current stack is `warpath` (legion rosters 3→8, fabricator 4→9; hull
+pendulum with home respawns; channeled captures; the scrap economy with
+a six-tier board; 750-tick horizon). Your job: write the MIND-NATIVE
+new versions of the eight stable lineages — the owner's "new versions
+of the current stable" — and run the wave read. Reading order: this
+file → docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md (the API and the
+wrapper) → docs/EXPERIMENTAL-FRONTLINE-CLASSES.md (the whole current
+game, including "The mind" section).
 
-## What "porting" means — and what it must NOT mean
+## The commission
 
-A port is a MECHANICAL translation, not a doctrine pass. The A/B's whole
-value is that the ported mind embodies the same strategy as its per-life
-original, so any measured delta is the architecture (shared memory, no
-same-tick blindness, coherent assignments), never new ideas.
+Eight lineages, from their frozen wave-8 sources at
+`arena-bots/frontline-labs/classes-wave-8-2026-07-31/<name>/` (FROZEN —
+copy out to scratch under `sandbox/`, never build inside, never
+modify): vector-edge, still-water, arc-light (strikers); iron-root,
+march-wall, gate-stone (bulwarks); spark-line, ledger-fly
+(fabricators).
 
-- Source: `arena-bots/frontline-labs/classes-wave-8-2026-07-31/<name>/`.
-  These directories are FROZEN — copy out to a scratch dir under
-  `sandbox/`, never build inside them, never modify them.
-- Delete the coordination layer (each lineage carries ~600–700 lines of
-  common-knowledge machinery: shared-plan derivations, sibling-intent
-  inference, per-life memory reconstruction, TeamRandom conventions).
-  The mind replaces all of it: one `Think(mind)` per tick, commands
-  written onto `mind.Bodies` handles, persistent fields for memory.
-- Keep the contract readers, gunnery/ballistics, target selection,
-  invest logic, and every doctrine RULE. Where a rule consumed the
-  deleted machinery (e.g. "who is spare" derivations), re-express the
-  same rule directly over `mind.Bodies` — same decision, simpler code.
-- You will see all eight sources. Do NOT move ideas between lineages.
-  Each port preserves its own lineage's play 1:1. If you find a bug in a
-  lineage while porting, preserve the bug (the A/B compares against the
-  wrapped original, which has it too) and note it in PORT-NOTES.md.
-- The API and the mental model are in the template:
-  `templates/botarena-generic-mind/` (Roles.cs is the front door). The
-  SDK surface is `IGenericMindBot` / `MindContext` / `MindBody`
-  (src/BotArena.Sdk/, XML-documented). RoleTags: set them (`SetRole`) —
-  they are cosmetic, viewer-rendered, and free.
+Per lineage, ONE doctrine pass rebuilding it as a native
+`IGenericMindBot`, exploiting what only a mind can do:
+
+- Persistent memory: scouting that survives death, enemy tracking,
+  economy bookkeeping, tier-vector reading over time (`Recall` in the
+  template is the working pattern).
+- Match-long build orders and coherent role choreography: assignments,
+  escorted channels, courier scheduling, written directly over
+  `mind.Bodies` — the ~600–700 lines of common-knowledge machinery each
+  lineage carries are DELETED, not ported.
+- Keep each lineage's identity recognizable (pressure-duelist,
+  stance-tempo, flank-and-collapse, the wall, the fast breach, the
+  rotation discipline, the tempo engine, the ledger). Contract readers,
+  gunnery, and doctrine RULES transfer; their scaffolding does not.
+- Mechanical repairs free. Leave-one-out attribution per rule in DX,
+  exactly as every prior wave.
+- Honesty requirement, because one author writes all eight: no idea
+  transfer between lineages; disclose in each DX where an idea's
+  provenance is another lineage's public results. The read tolerates
+  shared authorship; it does not tolerate eight copies of one doctrine.
+- Set role tags (`SetRole`) — cosmetic, viewer-rendered, free.
+
+The API and mental model: `templates/botarena-generic-mind/` (Roles.cs
+is the front door); SDK `IGenericMindBot`/`MindContext`/`MindBody`,
+XML-documented. Commands are written onto body handles; every live body
+pre-fills Wait; the mind ticks every tick including with zero bodies; a
+trapping mind forgets the match (fault = participant disqualification).
 
 ## Deliverables
 
-Per lineage, at `arena-bots/frontline-labs/mind-port-2026-08/<name>/`:
-full source, `out/bot.wasm`, `PORT-NOTES.md` (what was deleted, what was
-kept, any preserved bugs, line counts before/after), and the final act
-every wave performs: `nilbots build <frozen tree> --no-cache` must
-reproduce the shipped artifact hash — state both hashes.
+Per lineage, frozen at `arena-bots/frontline-labs/mind-wave-2026-08/<name>/`:
+full source, `out/bot.wasm`, `README.md` (role, doctrine summary,
+headline results), `DX.md` (budget ledger, per-rule leave-one-out
+attribution, friction list, provenance disclosures), and the final act:
+`nilbots build <frozen tree> --no-cache` reproduces the shipped
+artifact hash — state both hashes.
 
-Qualification: T4 on `frontline-mind-qualification-5` (note: the mind
-suites include `body-handoff` and `escort-integrity`; the wave-8 doctrine
-should pass both — if a port fails a probe its original passes on the
-per-life suite, that is a PORT BUG, not a doctrine gap).
+Qualification: T4 on `frontline-mind-qualification-5` (includes the
+mind-native `body-handoff` and `escort-integrity` probes).
 
-Do all eight lineages. If budget forces a cut, the minimum is one per
-class — vector-edge (striker), iron-root (bulwark), ledger-fly
-(fabricator) — but the full eight is the commission.
+## The wave read
 
-## The A/B read
-
-For each ported lineage: ported mind vs its own WRAPPED self.
-
-- The wrapped baseline: the same lineage's wave-8 source rebuilt on the
-  current toolchain — prebuilt at `sandbox/w8-mind-0.10.11/<name>/out/
-  bot.wasm` (rebuild them yourself with the current published CLI if that
-  directory is gone: copy each frozen wave-8 source out, `nilbots
-  build`). A per-life artifact runs on the mind profile automatically
-  (the wrapper) — no flags needed beyond the profile.
-- Cells: the lineage's class pairings from the wave-8 matrix (a striker
-  port plays bvs against the three wrapped bulwarks and fvs against the
-  two wrapped fabricators, plus the mirror against its own wrapped self).
-  Seeds 930011, 960017, 990037 — the campaign's read seeds.
-- Stack and flags (the warpath game, mind profile):
+- Baselines: the WRAPPED wave-8 originals — prebuilt at
+  `sandbox/w8-mind-0.10.11/<name>/out/bot.wasm`, or rebuild them from
+  the frozen wave-8 sources with the published CLI if that directory is
+  gone. A per-life artifact runs on the mind profile automatically (the
+  wrapper); the null pin certifies it faithful.
+- Per lineage: native vs its own wrapped self (the mirror, BOTH
+  assignments via --swap) and native vs the wrapped field on its class
+  pairings. Then the wave's own triangle: native vs native across the
+  full class-pair matrix — the first balance read of the mind era.
+- Seeds 930011, 960017, 990037 — the campaign's read seeds.
+- Stack and flags:
 
 ```
 sandbox/cli-publish/botarena experiment frontline-labs --profile mind \
-  --bot <ported>/out/bot.wasm --opponent <wrapped>/out/bot.wasm \
+  --bot <native>/out/bot.wasm --opponent <baseline>/out/bot.wasm \
   --classes <pair> --movement facing-locked --pendulum hull \
   --skills kit --bend universal --aim offset --stance-ground open \
   --cooldown ticking --volley salvo --capture channel --economy scrap \
@@ -95,94 +102,44 @@ sandbox/cli-publish/botarena experiment frontline-labs --profile mind \
   --seeds 930011,960017,990037 --runtime wasm --out <dir>
 ```
 
-- Also run each mirror (ported vs its own wrapped self) BOTH ways
-  (--swap) — the null pin guarantees the wrapped side is faithful, so
-  the mirror is the cleanest architecture measurement in the study.
-- The pacing diagnostic (pre-registered, #189): report breach rate vs
-  max-ticks rate per cell, against the wave-8 coarse baseline (bvs
+- The pacing diagnostic (pre-registered, #189): breach rate vs
+  max-ticks rate per cell against the wave-8 coarse baseline (bvs
   +0.370, bvf −0.278, fvs +0.333; 44/63 at the wall). The question on
-  record: is the wall doctrine or numbers? Minds with coherent
-  assignments are the doctrine-side answer — measure whether they
-  convert more.
+  record: is the wall doctrine or numbers? Minds are the doctrine-side
+  answer — measure whether they convert.
+- Usage stats per cell: tiers bought, casts, interrupts, couriers,
+  channels completed/denied.
 
-## Process law (the campaign's hard-won rules — follow all of them)
+## Process law (the campaign's hard-won rules)
 
-1. COUNT REPLAY FILES, never trust exit codes. Every cell must show
-   `<seeds>` replay.json files; a missing replay means the cell measured
-   nothing and must be re-run, never scored.
+1. COUNT REPLAY FILES, never trust exit codes. A missing replay means
+   the cell measured nothing — re-run it, never score it.
 2. Deterministic bots: N seeds are NOT N observations. Disclose
    distinct-outcome counts beside every table.
-3. Kill-fix-relaunch: if a port has a defect mid-study, fix the port and
-   re-run its cells from scratch. Never patch mid-sweep and splice.
-4. Sweeps write no viewers (they are opt-in: `--viewer`). Watch disk.
-5. `sandbox/` is scratch; `arena-bots/` freezes are append-only; the
-   only tracked things you add are the port directories and PORT-NOTES.
-6. docs/DECISIONS.md is the owner's log — do not write it. Report your
-   results; the owner's session writes the record.
+3. Kill-fix-relaunch: a defective build's cells re-run from scratch.
+   Never patch mid-sweep and splice.
+4. Sweeps write no viewers (opt-in: `--viewer`). Watch disk.
+5. `sandbox/` is scratch; `arena-bots/` freezes are append-only.
+6. docs/DECISIONS.md is the owner's log — do not write it.
 
 ## Report format (the owner reads this directly)
 
 Lead with `DECISION NEEDED:` (or "none"), then RESULT in plain words,
-then EVIDENCE — the per-pair table (ported-vs-wrapped W-L-D and payoff,
-with distinct-outcome counts), the mirror results, the pacing
-diagnostic vs baseline, per-lineage port stats (lines deleted, hash
-pair, T4 status) — then NEXT. Codenames spelled out on first use.
+then EVIDENCE — the native-vs-wrapped table per lineage, the
+native-vs-native triangle with distinct-outcome counts, the pacing
+diagnostic vs baseline, per-lineage stats (T4, hash pair, attribution
+headlines) — then NEXT. Codenames spelled out on first use.
 
 ## Known sharp edges
 
-- Pre-mind artifacts (anything built before SDK 0.10.11) FAULT at
-  startup on the mind profile — expected; rebuild from source.
+- Pre-mind artifacts (built before SDK 0.10.11) FAULT at startup on the
+  mind profile — expected; rebuild from source.
 - A mind-startup fault aborting document recording was a live defect at
   handover time; the pre-friction pass queued the fix. If you hit
   "Runtime fault evidence does not match its actor turn", check whether
-  that fix landed (docs/DECISIONS.md #192 and later).
-- The scaffold's reservation-based movement (template ArenaBasics) is a
-  reference implementation for intra-mind collision handling — ports may
-  adopt it ONLY if the original lineage had equivalent collision
-  handling; otherwise preserve the original behavior (see the doctrine
-  rule above).
-- Fuel: 250M + 200M × live bodies per tick, shared across the mind. The
-  wave-8 doctrines use a tiny fraction of it; if a port trips the fuel
-  fault, something is wrong with the port (an accidental loop), not the
-  budget.
-
-## Part 2 — the doctrine pass (run AFTER the A/B read is reported)
-
-The port above deliberately changes nothing. Once its A/B is reported,
-the same eight lineages get their mind-NATIVE iteration — this is the
-"new versions of the current stable bots" the owner commissioned, and it
-is where the bots actually improve.
-
-- Budget per lineage: ONE doctrine pass exploiting what the mind alone
-  can do — persistent memory (scouting that survives death, enemy
-  tracking, economy bookkeeping across the match), match-long build
-  orders, coherent role choreography (assignments, escorted channels,
-  courier scheduling), and reading the enemy's tier vector over time.
-  Mechanical repairs free. Leave-one-out attribution per rule, exactly
-  as every prior wave's DX demanded.
-- The baseline each doctrine build measures against is ITS OWN Part-1
-  port (same architecture, old strategy) — that isolates the value of
-  mind-native thinking from the value of the architecture, completing
-  the three-step chain: wrapped (old world) → port (new world, old
-  ideas) → native (new world, new ideas).
-- Honesty requirement, stated because one agent authors all eight:
-  the campaign's per-author independence is gone in this wave. Do not
-  transfer ideas between lineages; keep each lineage's identity
-  (pressure-duelist, stance-tempo, flank-and-collapse, the wall, the
-  fast breach, the ledger, the tempo engine, the king) recognizably
-  itself; disclose in each DX where an idea's provenance is another
-  lineage's public results rather than this lineage's own line of
-  development. The read design tolerates shared authorship; it does not
-  tolerate eight copies of one doctrine.
-- Deliverables per lineage: freeze at
-  arena-bots/frontline-labs/mind-wave-2026-08/<name>/ with source,
-  artifact, README, DX (budget ledger + attribution + friction), the
-  reproducible-rebuild final act, and T4 on
-  frontline-mind-qualification-5.
-- The wave read: full class-pair matrix, native vs native, on the
-  warpath stack — the first balance triangle of the mind era — plus
-  native-vs-port deltas per lineage, the pacing diagnostic again, and
-  fan/economy/channel usage stats. Same report format as Part 1.
-- Compositions remain OUT of scope (P7 is read-gated and owner-ruled);
-  role tags, TeamRandom-for-allied-minds and intents remain reserved
-  or cosmetic exactly as the docs state.
+  it landed (docs/DECISIONS.md #192 and later).
+- Fuel: 250M + 200M × live bodies per tick, shared across the mind. If
+  a build trips the fuel fault, suspect an accidental loop in the
+  build, not the budget.
+- Compositions are OUT of scope (P7 is read-gated and owner-ruled);
+  allied intents remain reserved; role tags are cosmetic.
