@@ -1,0 +1,45 @@
+{
+  "lineage": "still-water-v1",
+  "revision": 8,
+  "wave": "classes-wave-8-2026-07-31",
+  "class": "striker",
+  "role": "verdict-doctrine",
+  "doctrine": "Pressure — seek early territorial advantage and credible breach opportunities without assuming escalation will unlock; expressed as a patient standoff interceptor that takes ground last.",
+  "commission": "One doctrine pass integrating the capture channel (DECISIONS #187) and the SCRAP economy, read from the contract and degrading gracefully where either arm is absent.",
+  "authoringPasses": 1,
+  "mechanicalRepairs": [
+    "projectile-guard refusal promoted from a score penalty to a refusal (self-inflicted-damage defect)",
+    "erosion budget uses the declared opposingErosionMultiplier",
+    "two derived contract reads added to Doctrine (own mobile vision, worst opposing bolt)",
+    "scaffold ArenaBasics.cs adopted verbatim from templates/botarena-generic-actor",
+    "botarena.json sdkVersion 0.10.8 -> 0.10.10"
+  ],
+  "artifact": {
+    "path": "out/bot.wasm",
+    "sha256": "37cf30e5d6f1ebdeec93b0b9490124e5351a8f6f6483fec09c5ab85817af90b7",
+    "cli": "0.9.27",
+    "sdk": "0.10.10",
+    "gameRules": "0.5",
+    "rebuiltNoCacheFromThisTree": "37cf30e5d6f1ebdeec93b0b9490124e5351a8f6f6483fec09c5ab85817af90b7",
+    "preRepublishEquivalent": "2ca266b5d0210d871883dc5f639719d15c1b0fdbce88d8803d2df3d41989f33e"
+  },
+  "sourceDigest": "0bf3ea8ae66429d4f4b633513f7d080765eb842efc892adc23bdb55307ee0a8e",
+  "qualification": {
+    "suite": "frontline-qualification-5",
+    "tier": "T4",
+    "reportSha256": "53a17011fff399d393a14f43207477640d9080a4e57e2874b32f98fde5ecb9bf"
+  },
+  "shippedRules": {
+    "StillClaim": true,
+    "Interrupt": true,
+    "DenyPresence": true,
+    "Screen": true,
+    "MirrorRefusal": true,
+    "ErosionClock": true,
+    "TeamTieBreak": false,
+    "Invest": true,
+    "Assay": true,
+    "Courier": true,
+    "Intercept": true
+  }
+}

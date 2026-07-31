@@ -1,0 +1,11 @@
+{
+  "name": "ArcLight",
+  "entryType": "ArcLight",
+  "sdkVersion": "0.10.10",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  },
+  "class": "striker"
+}

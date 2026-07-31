@@ -4152,6 +4152,46 @@ his stated criteria:
   +0.05…+0.20 and squeezes the bulwark from both sides — the floor
   watch (any pair below +0.15) is the wave-8 tripwire.
 
+## 188. Wave 8: the channel game works; the bulwark wears the crown
+
+The full-cohort round on the #187 game, run under standing AFK
+autonomy. Eight of eight T4 first-attempt, byte-reproducing freezes at
+arena-bots/frontline-labs/classes-wave-8-2026-07-31/ (full read and
+converged findings in that README). The game itself is a success by
+the owner's dynamism criteria: captures are escorted set-pieces, the
+stillness doctrine converged in eight independent phrasings, the
+striker interrupts, the bulwark holds ground, the fabricator screens
+and stacks, and the population found and precisely isolated two engine
+defects (both fixed mid-wave, republished, affected measurements
+re-run; both reachable only by mask-reading bots — the population is
+now the engine's best fuzzer).
+
+The symmetric 2×2 read (every lineage equally fresh — a campaign
+first): swell bvs +0.667 / bvf +0.444 / fvs −0.222; siege +0.556 /
++0.500 / −0.222; forge +0.630 / +0.667 / −0.222; bastion **+0.778 /
++0.667 / −0.111**. The #184 triangle did not survive two waves of
+bulwark catch-up: the channel alone moved bvs the predicted DIRECTION
+at a fraction of the predicted magnitude, the economy as priced is a
+bulwark amplifier (+0.223 on bvf), and their interaction (+0.259 bvs)
+crowns the bulwark on the full game — the #187 floor tripwire fired
+in reverse. Fabricator-vs-striker stays in band on every arm.
+
+Owner-prediction refutations recorded with numbers: the turret is not
+the class's recapture denial (a body's unconditional denial weight
+beats the conditional revert, twice independently); TeamRandom's
+first doctrine verdict is null-to-negative (capability sound, no
+doctrine has found where coordinated unpredictability pays).
+
+Next balance levers, in the order the evidence suggests: (1) economy
+pricing/scope — the scrap arm favors the class that survives to
+collect; the per-track scope (plate-to-all-bodies) and vein/carry
+incentives are the registered knobs, and the deep-carry game is
+mostly unbought as priced; (2) channel-speed and the interrupt
+setting; (3) class numbers. Engineering queue promoted by unanimity:
+publish movedThisTick, fix ArenaBasics.Capture's channel misread, fix
+abort paths that exit 0. Everything provisional per #174; the owner
+rules on the next lever when he returns.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

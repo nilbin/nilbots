@@ -1,0 +1,47 @@
+# ledger-fly revision 8 — freeze manifest
+# source-tree sha256: e6ef24c82134fbaea4e6559fffa2c1b4162c4cb557f548ad115328028c81b87f
+# build cache key:    7958e0d36616b2f7c935207454b8f233aa7951c8d07f0a9a1a02141fe4a142ab
+# artifact sha256:    b4de0047ef9870e64fafaf62260633a795475da7fc134d294a2dc026a689a953
+# toolchain: nilbots CLI 0.9.27, SDK 0.10.10, NativeAOT-LLVM 10.0.0-rc.1.26306.1, WASI p1
+# primary cell: frontline-labs-1-fabricator-vs-striker-bastion-facing-locked
+#   rules fingerprint c1e80fe7e8aedee31e5f1d98b1fb6e31ac2968642ea8f8eda252fa677c80eb81
+#   topology two-team-one-controller-asymmetric-slots-4-3-v1
+# other cells read in this freeze: siege, forge, swell (same pair), and the
+#   fabricator mirror, which resolves redoubt / sap because the salvo arm is
+#   inert-omitted where no striker is in the cell.
+#
+# source-tree hash construction: sha256 over the sorted submitted files (.cs,
+# .csproj, .json), each contributed as name, NUL, big-endian 8-byte length,
+# bytes — carried unchanged from revisions 2-6 and verified by reproducing
+# wave 6's recorded 63a6f2fe... from its own frozen directory.
+#
+# Rebuilt --no-cache FROM THIS DIRECTORY: same cache key, same artifact hash.
+# No ablation or instrument source is archived inside this tree — `nilbots
+# build` globs every .cs under the project, so a stored variant would make the
+# freeze fail to rebuild. All 20 instruments live in the private scratch
+# directory sandbox/ledger-fly-w8-scratch-3f9c62ae/.
+
+dfebec45d84c1e7e7a0a71362a3113bfb0bb94e5e61e6124769485618ba3f4b8  ArenaBasics.cs
+c078ec65e575b72ed8700060533f0fe76cbc9a195098a8acdcaf52c20a333d6b  Bearings.cs
+6d69f1e712e9b12e563c83ff88ade692d76d69b6231a404f5fcffce66cd5cf78  Channel.cs
+3daef4732a1fbb587dfe446e36b4919cf55c24b936622f4fff3dd46aa9bcc1b7  Convoy.cs
+2973fa416ca0b1aef206cec5c60d10e63e05e89087e9f899bececf4d20719bcc  Coordination.cs
+e443f5a8f94fa2b1f1fbcf5530af39d0ec2dd659d097fa95fe92554b3e6fdbd3  Doctrine.cs
+28bdce1328322aa8457ac7a11d7991d9f4f0e856543bbc81f237a6578c80537e  FabricationRoute.cs
+8d45363d8fac1c90700a4eb88053c813b74fa444fc04ebd20dfc1d0b3f75842e  Field.cs
+45702aad6581aad11e2105c1b81d250aa0bd27756a8a2b2e6eba93df1cfb70cd  Gunnery.cs
+928e9e177546ece72a956873b60cdb18aa6642150063a6066e9b8bbd125505fc  Kinematics.cs
+d96faf4cd2f525d6a409abd861c3b36a7b7726cf5efc9aefc0941dda269082f8  Ledger.cs
+871c95c4c9c77991f61efb24debe9c0f8f545fe9ade7f8630933c14fce2cabd0  LedgerFly.cs
+8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573  LedgerFly.csproj
+3efef76885d5bf6b9479dc3fa83c1613991d19670a3b9593510a00964c95cab4  MatchLens.cs
+a0424893079948b7145b3e57b972cfd21f4ceb7519a5b9ed9eb530ee98547a14  Ratchet.cs
+de2be48934b19d4f427307a757f9f1144cfef097c1a5242d3a4ae0f924d13dbe  Scrap.cs
+5973f3dd753f19423795058cb613dae50dfc935d267f0aec9808cc2f311e13b0  Stances.cs
+1523e3817aabd6a29de59e1ed71143920409cf9fde35919eed85f6b16281036f  botarena.json
+
+d0a7c0bcbf94fb9a68f815affb6e5df82b97ca576299ecb5c9375f34d0f03bb0  README.md
+2f35d1114ae74578483aad7c3647fcd10920b2a3501674dbfbe102c15be8638d  DX.md
+
+b4de0047ef9870e64fafaf62260633a795475da7fc134d294a2dc026a689a953  out/bot.wasm
+34a486b250158b2e97d1803af4d06b160574a3575d4804f5d2f071f07ba29c12  evidence/t4/qualification.json

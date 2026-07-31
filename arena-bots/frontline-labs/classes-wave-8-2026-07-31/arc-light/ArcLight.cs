@@ -1,0 +1,527 @@
+using BotArena.Sdk;
+
+/// <summary>
+/// arc-light — a striker whose identity is the skill, not a chassis with a skill
+/// bolted on.
+///
+/// <para>One artifact plays every cell it is measured in because it asks the
+/// contract, every tick, what it is actually holding: is there a stance route out
+/// of this form and what does its budget cost; how far off facing may this gun
+/// launch and how deep may it bend; does a step turn the body; which enemy form
+/// can create more bodies; and what is a completed capture worth right now. In
+/// the kit-off cells the stance code declines because no route exists. In the
+/// classless qualification profile the same code finds an anchor route instead,
+/// fabricates from the pad, and never touches a volley.</para>
+///
+/// <para>Wave-5 revision. The one broken leg was the swarm matchup, and the fix
+/// was not more aggression — it was three contract facts the doctrine had been
+/// getting from the wrong place. The gun's launch offsets are read from the shot
+/// program instead of assumed to be the straight lane, so the diagonal blind spot
+/// the fan used to exist for is closed by the GUN and the fan is freed for what
+/// it is actually good at. The cast's legality is read from the stance route's
+/// own placement instead of the map's tag, so the fan may rise on the objective
+/// it is denying. And the cast is priced in bodies against the contract's own
+/// tempo arithmetic instead of in lane crossings, which is what makes it the
+/// right answer against four bodies and the wrong one against a duel.</para>
+///
+/// <para>Every active body life gets its own instance of this class with empty
+/// private memory, so coordination is derived from the shared observation — rank
+/// among the team's active bodies — and never from hidden state. The little that
+/// IS remembered lives exactly one life and is declared as such.</para>
+/// </summary>
+public sealed class ArcLight : IGenericActorBot
+{
+    private ArcFacts? _facts;
+    private ArcMemory _memory = new();
+    private string _formLastTick = string.Empty;
+    private int _formSince;
+
+    public void StartLife(GenericActorMatchStart start)
+    {
+        _facts = new ArcFacts(
+            start.Contract,
+            start.ActorId.TeamId,
+            start.ParticipantId);
+        _memory = new ArcMemory();
+        _formLastTick = string.Empty;
+        _formSince = 0;
+    }
+
+    public GenericActorDecision Tick(GenericActorContext context)
+    {
+        GenericActorDecision decision = Decide(context);
+        // WAVE 8. The channel decides a claim on ONE bit per body — did this
+        // tile change — and the observation publishes where allied bodies are,
+        // never where they were. So the tick is closed by freezing this team's
+        // positions, on EVERY path including the early returns, because a map
+        // that skips a tick reports a two-tick-old tile as "last tick" and the
+        // claim arithmetic built on it is then confidently wrong.
+        _memory.Close(context);
+        return decision;
+    }
+
+    private GenericActorDecision Decide(GenericActorContext context)
+    {
+        ArcFacts facts = _facts
+            ?? throw new InvalidOperationException("StartLife was not called.");
+
+        if (!string.Equals(
+                _formLastTick,
+                context.Self.FormId,
+                StringComparison.Ordinal))
+        {
+            _formLastTick = context.Self.FormId;
+            _formSince = context.Tick;
+        }
+        _memory.Observe(context);
+
+        // A windup that permits nothing but waiting is not a decision point.
+        // Submitting anything else is a blocked action and a wasted tick.
+        if (context.Self.PendingSameLifeTransition is not null)
+            return ArenaBasics.Wait(context, "committed to a windup");
+
+        var threat = new ArcThreat(facts, context, _memory);
+        var scrap = new ArcScrap(facts, context);
+        var gun = new ArcGun(facts, context, threat, scrap);
+        var keel = new ArcKeel(facts, context, _memory);
+        // WAVE 6. Everything below now prices this team's OWN bodies as well as
+        // the opposition's. A life never sees an ally's current decision, but
+        // every life receives the same frozen observation — so a precedence rule
+        // computed from that observation is a shared answer that independent
+        // instances cannot disagree about, which is the only kind of
+        // coordination this contract permits.
+        var traffic = new ArcTraffic(facts, context);
+        var stance = new ArcStance(facts, context, threat, gun, _memory, traffic);
+
+        if (stance.InStance)
+        {
+            return stance.Act(context.Tick - _formSince)
+                ?? ArenaBasics.Wait(context, "holding the arc");
+        }
+
+        // Standing on a lane an enemy gun already owns is a cost, so it is a
+        // sort key on every tile choice: a fan's three headings weigh most, an
+        // ordinary gun's aim-and-bend envelope still weighs something. Flanking
+        // beats a locked arc, and this is where that preference lives.
+        HashSet<Position> fanLanes = threat.FanLanes();
+        HashSet<Position> hot = [.. fanLanes, .. threat.EnemyLanes()];
+        HashSet<Position> blocked = threat.BlockedNow();
+        Direction[] order = ArenaBasics.OrderedDirections(facts.Contract, context);
+        Position[] frontGoals = keel.Goals(Rank(context), hot, traffic, _memory);
+        // W5. The errand only ever REPLACES the front's goals when the keel has
+        // already said this body's absence is affordable, so the economy can
+        // never outbid the objective — it can only spend a body the objective
+        // was not using. On a ruleset with no economy the errand is empty and
+        // this line is the identity.
+        Position[] errand = keel.Channeling
+            ? []
+            : scrap.Errand(keel, threat, frontGoals);
+        Position[] goals = errand.Length > 0 ? errand : frontGoals;
+        (int Ticks, int Damage)? incoming = threat.Incoming(context.Self.Position);
+
+        // 1. A bolt that kills outweighs everything, including the objective:
+        //    arrivals rally forward on this contract, but a dead body still
+        //    stops contributing weight for the whole respawn clock.
+        if (incoming is { } lethal
+            && lethal.Damage >= context.Self.Health
+            && lethal.Ticks <= 2
+            && ArcMove.Escape(facts, context, threat, traffic, goals, blocked)
+                is GenericActorDecision flee)
+        {
+            return flee;
+        }
+
+        // 2. More bodies is more objective weight, and on a contract where
+        //    surplus weight scales capture pressure that is the cheapest
+        //    pressure available. The legality mask owns the preconditions, so
+        //    this declines silently on a chassis whose children arrive by
+        //    themselves.
+        if (ArenaBasics.TryFabricateReady(facts.Contract, context)
+            is GenericActorDecision fabricate)
+        {
+            return fabricate;
+        }
+
+        ArcGun.Shot? shot = gun.Best();
+        // MEASURED, and it cost two whole legs before it was found. "On station"
+        // is not "standing on my current routing goal" — it is "standing where
+        // the FRONT wants me", and it is what the fire bar, the unmask search
+        // and the kite are all conditioned on. Letting a two-tile scrap detour
+        // redefine it dropped the fire bar's own threshold from 8 to 55+, so the
+        // body stopped shooting while it walked: casts fell 9.0 → 4.0 and the
+        // vector-edge leg went from a 231-tick contest to a 116-tick breach. An
+        // errand may move this body. It may not make it think it is out of
+        // position.
+        bool onStation = frontGoals.Length == 0
+            || frontGoals.Contains(context.Self.Position)
+            || errand.Contains(context.Self.Position);
+
+        // MEASURED, and it is the one place this doctrine still refuses its own
+        // signature move: a cast that PRE-EMPTS an available aimed bolt loses,
+        // even when the fan is forecast to connect with strictly more bodies than
+        // the contract's break-even count. 16 seeds against the same swarm, the
+        // same build with the ordering flipped: 13-3 and +16.19 with the premium
+        // cast ahead of the gun, 15-1 and +23.38 with it behind. One bolt now
+        // beats three bolts in four ticks, because the four ticks are immobile and
+        // the swarm is still walking. The cast keeps its place BELOW the shot.
+
+        // 3. Fire when the bolt is worth more than the step. Standing on the
+        //    ground we want, a shot is nearly free. Walking to it, only a near
+        //    certain interception is — and the bar rises with the objective
+        //    deficit, because on a surplus-scaling contract every tick spent
+        //    outnumbered on the point is a full point of progress against us and
+        //    a body of ours in the right place cancels exactly one of them.
+        //    Answering that with return fire instead of with a step is how a
+        //    three-slot chassis loses to a four-slot one while winning the
+        //    shooting.
+        // The cast is priced inside TryEnter against the gun it replaces, in
+        // DAMAGE rather than in bolts (V1), and it now knows whether it kills
+        // (V2). It is computed here, before the gun, only so the one case that
+        // outranks a bolt can be asked about; the ordering below is otherwise
+        // wave 6's, which was measured.
+        GenericActorDecision? cast = stance.TryEnter(keel, shot);
+
+        // 2b. WAVE 7 — the only thing that pre-empts an available aimed bolt.
+        //     A fan bolt removes twice what the mobile gun does, so a body at or
+        //     below that health dies to one, and a diverging fan can present
+        //     that bolt to three bearings at once. An aimed bolt that leaves the
+        //     body standing is not the same purchase: the kill takes the gun,
+        //     the objective weight and — on a supply body — every rebuild behind
+        //     it. The entry is one tick now, so the target does not get to
+        //     reorient out of the arcs first, and the fan no longer taxes the
+        //     gun on the way out, so the bolt this defers is deferred, not lost.
+        if (cast is not null && stance.Executes)
+        {
+            _memory.RecordCast(context.Self.Position, context.Tick);
+            return cast;
+        }
+
+        int fireBar = onStation
+            ? 8
+            : keel.OwnWeight == 0
+                ? 400
+                : 55 + (keel.Deficit * 60);
+        if (shot is not null && shot.Score >= fireBar)
+            return shot.Decision;
+
+        // 4. The cast that does not kill keeps wave 6's place: below the gun.
+        //    Open ground means it is cast from where the body already stands —
+        //    including the objective — so it never trades presence for position.
+        if (cast is not null)
+        {
+            _memory.RecordCast(context.Self.Position, context.Tick);
+            return cast;
+        }
+
+        // 4a. WAVE 8 — the purchase. `invest` costs this body its action and
+        //     does NOT move it, so it neither breaks a channel nor concedes a
+        //     tile: the cheapest buyer on the board is a body standing on the
+        //     point with a cold gun. It is placed below the shot and the cast
+        //     because a tier applies from the NEXT tick onward and a bolt
+        //     applies to this one, and above the walk because three tiers is
+        //     three ticks across a whole match. The mask decides what is
+        //     affordable; the doctrine only decides which offered track removes
+        //     a constraint it is actually bound by, and refusing all of them is
+        //     a real answer under a three-tier cap.
+        if (incoming is null
+            && shot is null
+            && scrap.Invest() is GenericActorDecision purchase)
+        {
+            return purchase;
+        }
+
+        // 4b. A fan aims by facing and a stance tick cannot dodge, so when the
+        //     only thing between here and a qualifying cast is a bearing, buy the
+        //     bearing on this tick — while the body can still step — rather than
+        //     inside the windup.
+        if (onStation
+            && shot is null
+            && stance.CastBearing() is Direction bearing
+            && ArcMove.Rotate(facts, context, bearing, "lining up the fan")
+                is GenericActorDecision aimFan)
+        {
+            return aimFan;
+        }
+
+        // 4bb. A deflecting stance, on a chassis that has one. Declines on every
+        //      striker form because no striker route leads to a guarding form; it
+        //      is here because the artifact is measured on chassis it was not
+        //      written for, and because a shield raised into an arriving bolt
+        //      turns a poke into the poker's own bolt.
+        if (stance.TryGuard() is GenericActorDecision shield)
+            return shield;
+
+        // 4c. Objective-preserving evasion: when a bolt is coming and this body's
+        //     weight is holding the claim, the answer is a step to ANOTHER tile of
+        //     the same objective. Presence is kept, the bolt is not eaten, and the
+        //     claim never notices.
+        //
+        //     W2 turns "the claim never notices" from an assumption into an
+        //     arithmetic comparison, because on a channelling contract it is
+        //     false in one direction and doubly true in the other. Standing still
+        //     while WE control is worth this tick's gain MINUS the revert the
+        //     contact takes off the whole run; stepping to another tile of the
+        //     same objective is worth the gain without this body's claim weight,
+        //     with no revert and no health lost. Denial weight counts a mover, so
+        //     the step never concedes the contest — it is only the CLAIM that a
+        //     step costs, and only while the claim is ours.
+        bool eatTheBolt = ArcRules.ChannelDodgeIsPriced
+            && incoming is { } weighed
+            && keel.OwnRunAtRisk
+            && keel.SelfPresent
+            && keel.GainIfStill - keel.RevertFor(weighed.Damage)
+                > keel.GainIfStepping;
+        if (!eatTheBolt
+            && incoming is { } onObjective
+            && onObjective.Ticks <= 2
+            && keel.SelfPresent
+            && keel.ActiveTiles.Length > 1
+            && ArcMove.Escape(
+                    facts,
+                    context,
+                    threat,
+                    traffic,
+                    keel.ActiveTiles,
+                    blocked,
+                    keel.ActiveTiles.ToHashSet())
+                is GenericActorDecision shuffle)
+        {
+            return shuffle;
+        }
+
+        // 5. Ordinary evasion, but only when this body's presence is not the
+        //    thing holding the claim. Leaving an objective no enemy stands alone
+        //    on costs nothing here; leaving a contested one costs the claim.
+        if (!eatTheBolt
+            && incoming is { } arriving
+            && arriving.Ticks <= 2
+            && !keel.PresenceIsLoadBearing
+            && ArcMove.Escape(facts, context, threat, traffic, goals, blocked)
+                is GenericActorDecision sidestep)
+        {
+            return sidestep;
+        }
+
+        // 5b. Unmask a lane without giving up the ground. One step inside the
+        //     objective cluster can turn an unreachable bearing into a lane, and
+        //     with the launch offsets restored the search knows about the
+        //     diagonals it is buying.
+        // W1. Every branch from here to the end of the movement chain changes
+        //     this body's TILE, and under a channelling control policy a tile
+        //     that changes contributes nothing to the claim on the tick it
+        //     changes. So the whole discretionary half of the router is refused
+        //     while stillness is buying progress a step would throw away —
+        //     unmasking a lane, kiting off a bearing, clearing a sibling's path,
+        //     and walking between goal tiles are all worth less than the tick
+        //     they cost while a capture is running under this body. Rotating,
+        //     shooting, casting and investing are all still available, because
+        //     stillness is positional rather than intentional: none of them
+        //     changes the tile.
+        bool channelling = keel.Channeling;
+
+        if (shot is null
+            && onStation
+            && !channelling
+            && ArcMove.Unmask(
+                    facts,
+                    context,
+                    gun,
+                    threat,
+                    traffic,
+                    goals.ToHashSet(),
+                    blocked)
+                is GenericActorDecision unmask)
+        {
+            return unmask;
+        }
+
+        // 6. Take the ground.
+        if (!channelling
+            && ArcMove.Toward(
+                    facts,
+                    context,
+                    threat,
+                    traffic,
+                    goals,
+                    blocked,
+                    order)
+                is GenericActorDecision advance)
+        {
+            return advance;
+        }
+
+        // 6b. On station with nothing to shoot and guns pointed at this tile:
+        //     do not stand in the bearing. A kite step keeps a diagonal lane on
+        //     the enemy while leaving the tile it has already ranged, and it is
+        //     restricted to the objective whenever presence is load-bearing so it
+        //     never pays for tempo with ground.
+        if (shot is null
+            && !channelling
+            && (hot.Contains(context.Self.Position)
+                || threat.Bearing(context.Self.Position) > 0)
+            && ArcMove.Kite(
+                    facts,
+                    context,
+                    gun,
+                    threat,
+                    traffic,
+                    hot,
+                    blocked,
+                    keel.PresenceIsLoadBearing
+                        ? keel.ActiveTiles.ToHashSet()
+                        : null)
+                is GenericActorDecision kite)
+        {
+            return kite;
+        }
+
+        // 6c. WAVE 6 — the yielding half of the precedence rule. Declining to
+        //     step INTO a stronger sibling's tile stops the mutual block; it does
+        //     nothing when this body is already STANDING on the tile that sibling
+        //     needs, or on the tile the next arrival is due to take. Both of those
+        //     are silent failures — the sibling's move blocks against a body with
+        //     no diagnostic, and the arrival's placement quietly moves one tile
+        //     further forward — so the yield is completed here, on a tick that had
+        //     no shot and no ground to take, and never at the price of presence
+        //     that is load-bearing.
+        if (!channelling
+            && ArcMove.StepAside(
+                facts,
+                context,
+                threat,
+                traffic,
+                blocked,
+                keel.PresenceIsLoadBearing
+                    ? keel.ActiveTiles.ToHashSet()
+                    : null)
+                is GenericActorDecision yield)
+        {
+            return yield;
+        }
+
+        // 7. Fortify only behind relief (declines on every class arm in which
+        //    this chassis has no weight-shedding route).
+        if (stance.TryFortify(keel) is GenericActorDecision fortify)
+            return fortify;
+
+        // 8. Facing is a resource: it is this body's sight cone, its aim, and —
+        //    under a facing-locked coupling — the only direction it may walk.
+        if (Reorient(facts, context, gun, keel, goals, hot)
+            is GenericActorDecision turn)
+        {
+            return turn;
+        }
+
+        if (shot is not null)
+            return shot.Decision;
+        // The wait carries WHY: the objective intent, the priced reason the cast
+        // declined, and — new in wave 6 — the coordination note, so a tick spent
+        // yielding is distinguishable in a replay from a tick spent confused.
+        return ArenaBasics.Wait(
+            context,
+            $"holding station ({keel.Decision}/{stance.Veto}"
+                + $"/d{keel.Deficit}/{traffic.Note}"
+                // WAVE 8. The two arms are in the wait note too, so a tick spent
+                // channelling is distinguishable in a replay from a tick spent
+                // confused, and a declined errand says why it declined.
+                + $"/{(channelling ? "chan" : "free")}"
+                + $"g{keel.GainIfStill}v{keel.GainIfStepping}/{scrap.Note})");
+    }
+
+    /// <summary>
+    /// This body's index among its team's active bodies, ordered by stable slot
+    /// then life. Derived entirely from the shared observation, so independent
+    /// instances agree without shared memory and spread across the objective
+    /// instead of stacking into one lane.
+    /// </summary>
+    private static int Rank(GenericActorContext context)
+    {
+        int rank = 0;
+        foreach (GenericActorContext.ObservedAllyState ally in context.Allies)
+        {
+            if (ally.ActorId.CompareTo(context.Self.ActorId) < 0)
+                rank++;
+        }
+        return rank;
+    }
+
+    /// <summary>
+    /// Spend a rotation when it buys a shot next tick, or when nothing is
+    /// visible and the body is facing away from where the fight is. Under a
+    /// facing-locked coupling this is the cheapest way to convert a wasted tick
+    /// into either vision or a threat — and with the launch offsets restored, the
+    /// lane a facing owns is three headings wide, so the swing is worth more than
+    /// it used to be and the pre-aim search finally prices it that way.
+    /// </summary>
+    private static GenericActorDecision? Reorient(
+        ArcFacts facts,
+        GenericActorContext context,
+        ArcGun gun,
+        ArcKeel keel,
+        Position[] goals,
+        IReadOnlySet<Position> hot)
+    {
+        if (gun.BestRotation() is { } aim && aim.Score >= 40)
+        {
+            return ArcMove.Rotate(
+                facts,
+                context,
+                aim.Facing,
+                "swinging the gun onto a lane");
+        }
+
+        // Pre-aim while the cooldown drains. Availability decides whether a bolt
+        // leaves this tick; it does not decide where to point, and a facing-locked
+        // body that turns late has already lost the exchange.
+        if (!context.Enemies.IsEmpty)
+        {
+            int current = gun.LaneValue(
+                context.Self.Facing,
+                context.Self.Position,
+                ticksFromNow: 0);
+            Direction? swing = null;
+            int bestLane = current;
+            foreach (Direction facing in ArcBoard.Cardinals)
+            {
+                if (facing == context.Self.Facing)
+                    continue;
+                int value = gun.LaneValue(
+                    facing,
+                    context.Self.Position,
+                    ticksFromNow: 1);
+                if (value > bestLane)
+                {
+                    bestLane = value;
+                    swing = facing;
+                }
+            }
+            if (swing is Direction lane
+                && ArcMove.Rotate(facts, context, lane, "pre-aiming the lane")
+                    is GenericActorDecision preaim)
+            {
+                return preaim;
+            }
+            return null;
+        }
+
+        // Look where the opposition must come from: down the chain toward their
+        // side, derived from the objective order rather than from a spawn.
+        Direction? forward = ArenaBasics.AdvanceDirection(facts.Contract, context);
+        Position anchor = keel.ActiveTiles.Length > 0
+            ? keel.ActiveTiles[0]
+            : goals.Length > 0
+                ? goals[0]
+                : context.Self.Position;
+        Direction watch = anchor == context.Self.Position
+            ? forward ?? context.Self.Facing
+            : Math.Abs(anchor.X - context.Self.Position.X)
+                >= Math.Abs(anchor.Y - context.Self.Position.Y)
+                ? anchor.X > context.Self.Position.X
+                    ? Direction.East
+                    : Direction.West
+                : anchor.Y > context.Self.Position.Y
+                    ? Direction.South
+                    : Direction.North;
+        return ArcMove.Rotate(facts, context, watch, "watching the approach");
+    }
+}
