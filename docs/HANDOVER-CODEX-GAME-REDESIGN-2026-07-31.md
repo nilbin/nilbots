@@ -109,6 +109,11 @@ EVALUATION-METHODOLOGY.md + the balance-harness skill (how reads run).
 
 ## Starting state (all committed; CLI 0.9.30 at sandbox/cli-publish)
 
+`sandbox/` is gitignored, so on a fresh clone that binary is absent —
+recreate it with `dotnet publish src/BotArena.Cli -c Release -o
+sandbox/cli-publish` (and run `bash scripts/setup.sh` first on a
+fresh environment, per CLAUDE.md).
+
 The one-chassis package (#194) landed as class-agnostic
 infrastructure that survives ANY roster:
 
