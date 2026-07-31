@@ -4346,6 +4346,39 @@ shape (free chassis choice, scrap buys tempo, home delivery vs field
 fabrication), the upgrade-scope re-rule the slate owes, and the
 ground-healing A/B riding the same read.
 
+## 195. Commander mode: the passive manager layer, per-sheet only
+
+Mid-window the owner re-scoped #194's package ("remove prime" and
+composition are ready; the headless fabricator network is PART of
+removing prime; FOUNDRY tempo, home delivery, and ground healing go
+back on the design table) and opened the bigger question: can
+non-coders play? The direction that emerged and is now ruled:
+commander mode, a PASSIVE manager game on the mind architecture. A
+non-coder authors a SHEET — composition plans, ordered upgrade
+priorities with reserve triggers, economy and capture policies,
+roles, FF12-style ordered gambits, and DRAWN spatial plans (paths,
+zones, rally lines) — which configures a curated stock mind and
+compiles to an ordinary artifact; the ladder plays it while the
+player is away, and the morning report (results, decisive replays,
+loss attribution, counterfactual re-sims) closes the loop. The owner
+ruled drawings PER-SHEET: saved plans executed blind, never live
+redrawing — no decision points, no sessions, no pause machinery; the
+interactive Mechabellum-style variant is dead. Matchmaking being
+blind makes the gambit block carry ALL counter-play, so in-match
+conditionals are first-class in the stock-mind config schema. Owner
+direction alongside: a much wider class roster (stable of ~5 from a
+launch band of ~10-12 mechanically distinct classes — dormant engine
+mechanics are the seeds) and a reward loop that unlocks BREADTH,
+never power. The map likely grows (spatial authorship needs a
+"where"; the mind removed the per-life big-map penalty; map-gen-3
+regions are the machinery). Full design:
+docs/DESIGN-COMMANDER-MODE-2026-07-31.md. The empirical go/no-go is
+the DEPTH AUDIT — fixed stock mind, sheet-space tournament, payoff
+matrix read for dominance vs cycles — which, like the map-scale
+prototype, waits on stock mind v0 after the one-chassis package
+lands. Still open with the owner: the one-shared-ladder question and
+who writes stock minds beyond the curated first set.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
