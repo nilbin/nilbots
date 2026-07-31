@@ -139,10 +139,15 @@ headlines) — then NEXT. Codenames spelled out on first use.
 
 - Pre-mind artifacts (built before SDK 0.10.11) FAULT at startup on the
   mind profile — expected; rebuild from source.
-- A mind-startup fault aborting document recording was a live defect at
-  handover time; the pre-friction pass queued the fix. If you hit
-  "Runtime fault evidence does not match its actor turn", check whether
-  it landed (docs/DECISIONS.md #192 and later).
+- A mind-startup fault aborting document recording ("Runtime fault
+  evidence does not match its actor turn") is FIXED in CLI 0.9.29 — the
+  published `sandbox/cli-publish` binary carries it (DECISIONS #193). A
+  startup fault now records as a clean participant disqualification,
+  exit 2, and the replay verifies. Also in 0.9.29 for you:
+  `--print-candidate-contract full` (the whole resolved canonical
+  contract without running a match), abort exit code 4 with stderr
+  always populated, and a stderr advisory when an artifact's manifest
+  SDK predates the toolchain (the pre-mind-artifact case above).
 - Fuel: 250M + 200M × live bodies per tick, shared across the mind. If
   a build trips the fuel fault, suspect an accidental loop in the
   build, not the budget.
