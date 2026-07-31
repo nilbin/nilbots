@@ -297,3 +297,42 @@ Explicitly NOT in the legion/no-rally/economy-v1.1 package — it ships
 as its own A/B in the round after, so its effect on the bulwark crown
 reads clean. Register `ground-healing` (rate, gate, cap) in the
 ablation debt at build time.
+
+## The prime dissolves; production refined (owner-ruled 2026-07-31, post-mind-wave window)
+
+Ruled for the design window AFTER the mind-native wave (the Codex wave
+runs on the current game untouched):
+
+- **No class keeps the prime concept.** The prime was the per-life
+  world's avatar; under the mind the player IS the mind, and slot 0 is
+  just a slot. All bodies of a class share one chassis and one
+  lifecycle. Per-class statlines need re-ruling at build time (today's
+  prime/child splits — bulwark 5/4, fabricator 2/3 — collapse to one
+  number each).
+- **The fabricator becomes a headless production network**: any live
+  fabricator body is a fabrication origin ("spawn at me" from every
+  unit), the mind chooses which. Killing a body never kills the
+  factory. This restores the class USP that generalized tempo-buying
+  would otherwise erode: everyone may buy WHEN reinforcements come;
+  only the fabricator controls WHERE, from any of its bodies.
+- **OPEN FORK for the owner at build time — the fabricator bootstrap**:
+  without a respawning prime, what happens at total body loss? (a) the
+  home base acts as the root factory (a structure, not a body, can
+  always seed one body — comeback preserved, no special body); (b)
+  total wipe = elimination for the fabricator — which quietly
+  introduces the annihilation win condition the mind memo analyzed and
+  parked. Both are coherent; (b) is the sharper game.
+- **FOUNDRY refined by the owner's pricing challenge** ("would you
+  spend money on that choice?"): chassis CHOICE at activation is FREE
+  (the cost is commitment; the depth is the read); scrap buys TEMPO
+  (accelerate a tranche's arrival — the missing late-game money sink;
+  wave-8 banks peaked ~335 with ~37 spent); purchased tranches arrive
+  at HOME and walk, while fabrication delivers in the field. An
+  import-tax variant (off-class chassis costs a little) stays
+  registered as the alternative.
+- **Consequences owed at build time**: upgrade scope re-ruled (the
+  prime-scoped ladder dies with the prime; the registered per-track /
+  all-bodies axis is the replacement space), lifecycle profiles
+  unified per class, PrimeSpawn/muster-scope machinery generalized,
+  and the balance triangle re-read from scratch — one-chassis classes
+  are a new game.
