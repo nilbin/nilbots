@@ -54,11 +54,26 @@ public sealed class MindToolchainSurfaceTests
         // mind's protocol, configuration and schemas belong in the cache key —
         // otherwise a mind-side contract change would keep serving artifacts
         // that promise the old one.
-        string identity = string.Join(
-            "|",
-            ToolchainInfo.SdkVersion,
-            ToolchainInfo.GuestAdapterVersion);
-        Assert.Equal("0.10.11|0.10.11", identity);
+        //
+        // The two versions move INDEPENDENTLY and that is the point: #192's
+        // wrapper fix moved the guest adapter alone (0.10.11 -> 0.10.12) with
+        // the SDK unmoved. This assertion used to hard-code both literals and
+        // broke on exactly that legitimate bump, so what it pins now is the
+        // rule rather than the numbers — each version is real, and each is
+        // documented where a frozen artifact's capabilities are read back.
+        string toolchain = ReadToolchainSource();
+        foreach (string version in new[]
+                 {
+                     ToolchainInfo.SdkVersion,
+                     ToolchainInfo.GuestAdapterVersion,
+                 })
+        {
+            Assert.Matches(@"^\d+\.\d+\.\d+$", version);
+            Assert.Contains(
+                $"// {version}:",
+                toolchain,
+                StringComparison.Ordinal);
+        }
 
         Assert.Equal(
             "generic-mind-match-1",
@@ -66,5 +81,25 @@ public sealed class MindToolchainSurfaceTests
         Assert.Equal(
             "2.0",
             BotArenaVersions.GenericMindRuntimeConfigurationVersion);
+    }
+
+    /// <summary>The version notes live beside the constants they explain.</summary>
+    private static string ReadToolchainSource()
+    {
+        string directory = AppContext.BaseDirectory;
+        while (!Directory.Exists(Path.Combine(directory, ".git"))
+               && !File.Exists(Path.Combine(directory, "BotArena.sln")))
+        {
+            string? parent = Path.GetDirectoryName(
+                directory.TrimEnd(Path.DirectorySeparatorChar));
+            Assert.NotNull(parent);
+            directory = parent!;
+        }
+        return File.ReadAllText(
+            Path.Combine(
+                directory,
+                "src",
+                "BotArena.Toolchain",
+                "BotProject.cs"));
     }
 }

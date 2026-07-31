@@ -285,8 +285,9 @@ public static class ToolchainInfo
     ///   still standing when the next lands on the same tile, so the two merge
     ///   and a neglected lane accumulates.
     /// - `--roster legion` is a new arm: every team starts with three live
-    ///   bodies (the fabricator with a fourth slot it must fabricate, keeping
-    ///   #154's class verb), gains two slots at tick 150 and three at 300, and
+    ///   bodies (the fabricator with a fourth, standing — the owner ruled its
+    ///   opening automatic, so #154's class verb prices the later tranches
+    ///   instead), gains two slots at tick 150 and three at 300, and
     ///   ends with eight (nine for the fabricator). It runs on its own map
     ///   generation `frontline-labs-03-legion` — the classes map's exact
     ///   tiles plus seven mirror-fair companion anchors per team and a pad
@@ -344,9 +345,36 @@ public static class ToolchainInfo
     /// tick with no live bodies there is no command at all.
     /// SDK/Guest stay at 0.10.11: nothing about the compiled artifact moved,
     /// only what the CLI can ask of it.
+    /// 0.9.29 is the PRE-FRICTION pass before the mind port wave — the
+    /// accumulated authoring frictions of three waves, fixed together, and
+    /// again with SDK/Guest unmoved at 0.10.11.
+    /// `--print-candidate-contract full` prints a cell's COMPLETE resolved
+    /// canonical contract as JSON (the bare flag still prints identity), which
+    /// retires the campaign's most-repeated friction: every declared number was
+    /// previously reachable only by running a throwaway match and mining
+    /// `replay.json`.
+    /// A match that ABORTS — an engine invariant refusing the history it was
+    /// building — now reports one line on stderr with its own exit code (4),
+    /// distinct from usage (1) and from a real fault/disqualification (2), and
+    /// no command can report a failure as 0. An aborted cell writes no replay
+    /// and says so, so a sweep can stop treating return codes as unreliable.
+    /// A mind that traps while owning MORE THAN ONE body now records a clean
+    /// participant disqualification instead of aborting the document: the
+    /// participant's one fault is restated under each stopped body's identity,
+    /// which is what per-life evidence requires (the null pin's first run hit
+    /// this with a pre-mind artifact on the legion roster).
+    /// `nilbots build` WARNS when botarena.json's declared sdkVersion
+    /// disagrees with the toolchain's; it never fails, because a stale
+    /// declaration cannot produce a stale artifact and frozen trees must stay
+    /// rebuildable.
+    /// The mind scaffold's movement no longer releases the tile a commanded
+    /// body is vacating unless the contract's
+    /// `collisions.followingVacatedActorAllowed` says a sibling may follow it
+    /// — under this game it may not, so releasing it handed the army blocked
+    /// steps.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.28";
+    public const string CliVersion = "0.9.29";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

@@ -230,18 +230,29 @@ public static class FrontlineLabsQualificationCommand
                             teamId: 0),
                         bot.ToParticipant(participantId: 1, teamId: 1),
                     ];
-            GenericActorMatchResult result;
-            GenericActorReplayDocument replay;
-            using (var session = new GenericActorMatchSession(
-                       definition,
-                       participants,
-                       seed))
-            {
-                result = session.Run();
-                replay = GenericActorReplayDocument.Create(
-                    session,
-                    FrontlineLabsReplayPresentation.Create(definition));
-            }
+            // One abort boundary, shared with every other command: a probe
+            // that stops mid-run names its cell, writes nothing, exits
+            // non-zero.
+            (GenericActorMatchResult result,
+                GenericActorReplayDocument replay) = MatchRun.Guard(
+                MatchRun.Probe(
+                    suiteId,
+                    FrontlineLabsQualificationDefinition.EntryProbeId,
+                    seed),
+                () =>
+                {
+                    using var session = new GenericActorMatchSession(
+                        definition,
+                        participants,
+                        seed);
+                    GenericActorMatchResult ran = session.Run();
+                    return (
+                        ran,
+                        GenericActorReplayDocument.Create(
+                            session,
+                            FrontlineLabsReplayPresentation.Create(
+                                definition)));
+                });
             bool contractValid = GenericActorReplayDocument.VerifyHash(
                 replay.CanonicalJson,
                 out string? verificationFailure);

@@ -109,7 +109,9 @@ versus concession, proactive choke entry, objective-preserving prediction
 responses, front rotation, and the thin-fronts map holdout from both
 assignments. Exit `0` awards T4 and entrant-level balance eligibility; `3` is
 a clean capability failure that retains any prerequisite tier; `2` means
-invalid runtime/contract evidence.
+invalid runtime/contract evidence; `4` means a probe match ABORTED and
+therefore measured nothing (re-run it, never score it). No failure of any
+kind exits `0`.
 
 Run suite 3 directly for an assigned T2 boundary and suite 4 for T3. T5 and
 higher packets must name their immutable suite, profile, prerequisite

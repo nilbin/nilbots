@@ -54,39 +54,13 @@ try
         _ => Help(),
     };
 }
-catch (BotBuildException ex)
-{
-    // The message already carries the extracted compiler diagnostics and the log path.
-    Console.Error.WriteLine($"error: {ex.Message}");
-    return 1;
-}
-catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException
-    or ArgumentException or DirectoryNotFoundException or IOException
-    or System.Net.Http.HttpRequestException or TaskCanceledException)
-{
-    // Expected user-facing failures (bad argument, unreachable server, missing file):
-    // one clean line, never a stack trace — those leaked CI build paths to players.
-    Console.Error.WriteLine($"error: {Describe(ex)}");
-    return 1;
-}
 catch (Exception ex)
 {
-    // Last resort: an unexpected fault is still a bug, but a player should get a
-    // readable line and a way to produce the full trace for a report.
-    Console.Error.WriteLine($"error: {Describe(ex)}");
-    Console.Error.WriteLine("This looks like a bug. Set NILBOTS_DEBUG=1 and re-run for the full trace.");
-    if (Environment.GetEnvironmentVariable("NILBOTS_DEBUG") is "1" or "true")
-        Console.Error.WriteLine(ex);
-    return 1;
+    // ONE failure boundary for every command. CliFailure owns the message, the
+    // exit code, and the stderr routing so no path can invent its own — and so
+    // the "no failure exits 0" invariant is a test rather than a habit.
+    return CliFailure.Print(ex);
 }
-
-static string Describe(Exception ex) => ex switch
-{
-    System.Net.Http.HttpRequestException or TaskCanceledException =>
-        $"could not reach the server: {ex.Message.TrimEnd('.')}. " +
-        "Check the URL (--server) and your connection; `nilbots doctor` shows the configured server.",
-    _ => ex.Message,
-};
 
 static int Help(int exitCode = 1)
 {
@@ -135,13 +109,17 @@ static int Help(int exitCode = 1)
                         --bot <generic-spec> --opponent <generic-spec>
                         [--seed <n> | --seeds a,b,c] [--swap]
                         [--profile actor|mind]
+                        [--print-candidate-contract [identity|full]]
                         [--runtime wasm|in-process] [--out <dir>] [--viewer] [--open]
                                                   exact hosted Labs v1 contract,
                                                   local/quota-free, replay v3;
                                                   --profile mind runs the same
                                                   game with ONE runtime per
                                                   participant driving all its
-                                                  bodies
+                                                  bodies. --print-candidate-contract
+                                                  full prints the whole resolved
+                                                  contract JSON (every declared
+                                                  number) and exits
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
@@ -272,7 +250,7 @@ static int CommandHelp(string command)
                    [--roster none|legion]
                    [--horizon standard|long]
                    [--prime-respawn-ticks <positive-n>]
-                   [--print-candidate-contract]
+                   [--print-candidate-contract [identity|full]]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -487,12 +465,12 @@ static int CommandHelp(string command)
             --roster legion raises the ROSTER (owner ruling on the wave-8
             read). Every team starts with three live bodies instead of one,
             gains two more slots at tick 150 and three more at 300, and ends
-            the match with eight. The FABRICATOR opens with four slots rather
-            than four bodies: its three companions are unlocked from tick
-            zero and each costs its prime an action to fabricate, which is
-            the class verb it has always paid in — and they arrive in the
-            field beside it rather than on a pad — so its endgame roster is
-            nine. The arm runs on its own map generation
+            the match with eight. The FABRICATOR stands FOUR live bodies at
+            tick zero rather than three (owner ruling on the levy re-mint:
+            "the initial spawn should be automatic for the Fab"), and its
+            exclusive verb prices the mid and late tranches instead — its
+            slots at 150 and 300 are fabricable rather than automatic, so
+            its endgame roster is nine. The arm runs on its own map generation
             (frontline-labs-03-legion): a slot that returns automatically
             needs a reserved spawn anchor, so the map carries seven
             mirror-fair companion anchors per team and a home pad widened to
@@ -549,8 +527,21 @@ static int CommandHelp(string command)
             --net-control, --one-bend-shots, or --auto-companions.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
-            --print-candidate-contract emits the exact resolved candidate
-            identity and exits; bot arguments are not required in this mode.
+            EXIT CODES: 0 the match produced a result; 1 usage/environment;
+            2 a participant faulted or was disqualified (a real outcome, with
+            a real replay); 4 the match ABORTED — no result and no replay, so
+            the cell measured nothing and must be re-run rather than scored.
+            Nothing that failed returns 0.
+            --print-candidate-contract emits the resolved candidate and exits;
+            bot arguments are not required in this mode. The bare flag (or
+            `identity`) prints the ruleset/map/format/topology IDs and their
+            fingerprints. `full` prints the COMPLETE resolved canonical match
+            contract as JSON on stdout — byte-identical to what the runtime
+            receives at MatchStart and to a replay-v3 header's contract — so
+            every declared number (limits.maxTicks, each action's
+            routeCooldown.cooldownTicks, sameLifeTransitions windups, the mode's
+            capture arithmetic, the economy schedule and upgrade tracks) is
+            readable without running a throwaway match.
 
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
@@ -566,7 +557,8 @@ static int CommandHelp(string command)
             cumulative T3 tactical geometry; suite 5 adds cumulative T4
             positional doctrine and is the first balance-eligible tier.
             Probe failure returns exit code 3; runtime or contract failure
-            returns 2. It is never ranked.
+            returns 2; a probe match that ABORTED — no result and no replay —
+            returns 4. Nothing that failed returns 0. It is never ranked.
 
             THE MIND SUITES. --profile mind selects
             frontline-mind-qualification-3/4/5 on the parallel

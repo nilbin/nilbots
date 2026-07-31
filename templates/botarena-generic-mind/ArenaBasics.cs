@@ -59,8 +59,23 @@ internal static class ArenaBasics
             return claims;
         }
 
-        /// <summary>Releases a tile a commanded body is vacating.</summary>
-        public void Release(Position tile) => _tiles.Remove(tile);
+        /// <summary>
+        /// Releases the tile a commanded body is vacating — but ONLY where the
+        /// contract lets another body follow it in the same tick. Read the
+        /// rule, do not assume it: under
+        /// <c>collisions.followingVacatedActorAllowed = false</c> (which is
+        /// what this game declares) a sibling that steps into a tile someone
+        /// else is leaving is Blocked, so freeing the tile would hand your own
+        /// army a wasted tick. Where the contract does allow it, holding the
+        /// tile would cost a legal step instead — so the rule decides.
+        /// </summary>
+        public void Vacate(
+            GenericActorResolvedMatchContract contract,
+            Position tile)
+        {
+            if (contract.Rules.Collisions.FollowingVacatedActorAllowed)
+                _tiles.Remove(tile);
+        }
     }
 
     /// <summary>
@@ -182,7 +197,7 @@ internal static class ArenaBasics
             return false;
 
         (int stepX, int stepY) = direction.Vector();
-        claims.Release(body.Position);
+        claims.Vacate(contract, body.Position);
         claims.Reserve(body.Position.Offset(stepX, stepY));
         body.Command(
             move.ActionId,
@@ -447,7 +462,7 @@ internal static class ArenaBasics
         }
 
         (int moveX, int moveY) = direction.Vector();
-        claims.Release(body.Position);
+        claims.Vacate(contract, body.Position);
         claims.Reserve(body.Position.Offset(moveX, moveY));
         body.Command(
             move.ActionId,

@@ -4294,6 +4294,37 @@ instead of producing a clean disqualification (queued in the
 pre-friction pass). P6 goes to Codex per the owner's directive, after
 the pre-friction check.
 
+## 193. Pre-friction pass done; the Codex handover state is FINAL
+
+The pre-friction check commissioned in #192 landed in full, CLI
+0.9.29 (local-window bump, republished to sandbox/cli-publish). What
+it fixed, beyond docs: (1) the mind-startup fault recording defect —
+`FaultedTurn` stamped the canonically-first body's ActorId on every
+stopped body's fault, so recording aborted with "Runtime fault
+evidence does not match its actor turn"; now
+`GenericMindRuntimeFault.ToActorFault(body)` stamps each body's own
+identity and the repro completes as a clean participant
+disqualification, exit 2, replay verifies. (2) The generic-mind
+template's ArenaBasics released VACATED tiles despite the contract's
+`followingVacatedActorAllowed: false` — 16/1357 blocked moves in a
+scaffold match; the contract-reading `Vacate` fix measures 0/1512.
+(3) Uniform CLI failure mapping: new `CliFailure`/`MatchRun`, abort
+exit code 4 distinct from disqualification's 2, stderr guaranteed,
+27-case pin. (4) `--print-candidate-contract full` prints the whole
+resolved canonical contract (Codex's contract-reading entry point).
+(5) `SdkVersionAdvisory` warns on manifest/toolchain mismatch — the
+#170/#192 pre-mind-artifact startup fault now has a legible
+pre-flight hint. Doc sweep: retired `levy` spelling and the stale
+"fabricator must fabricate its opening" claim scrubbed from brief,
+CLI help, run banner and BotProject note; enemies-publish
+routeCooldowns falsehood fixed; 4 new DocDrift pins; one pre-existing
+red test repaired. All suites green. Handover doc carries the two
+owner amendments (skip the strict-port stage; THREE bots, one per
+class, agents unleashed); wrapped baselines prebuilt at
+sandbox/w8-mind-0.10.11. Codex runs P6 whenever the owner says it is
+due. Parked for the owner: the fabricator-bootstrap fork
+(base-as-root-factory vs elimination) in the mechanism slate.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

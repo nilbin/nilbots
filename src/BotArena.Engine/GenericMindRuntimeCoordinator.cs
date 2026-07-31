@@ -614,13 +614,19 @@ public sealed class GenericMindRuntimeCoordinator : IDisposable
             faultCode);
         foreach (ActiveLifeState body in ownBodies)
         {
+            // Each stopped body restates the PARTICIPANT's one fault under its
+            // own identity: per-life evidence refuses a faulted turn whose
+            // fault names a different actor, and before this the whole fan-out
+            // carried the canonically-first body's identity — which validated
+            // only when the mind happened to own exactly one body and aborted
+            // document recording for every larger roster.
             bodyTurns.Add(new GenericActorRuntimeTurn(
                 participant.ParticipantId,
                 body.Start.ActorId,
                 SubmittedDecision: null,
                 _admission.SyntheticWait(body.CurrentFormId!),
                 GenericActorRuntimeActionResolution.ActionOutcome.Faulted,
-                fault.ToActorFault()));
+                fault.ToActorFault(body.Start.ActorId)));
         }
 
         return new GenericMindRuntimeTurn(

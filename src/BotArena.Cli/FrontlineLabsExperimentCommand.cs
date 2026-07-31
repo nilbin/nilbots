@@ -106,9 +106,14 @@ public static class FrontlineLabsExperimentCommand
         bool automaticCompanions = OptionalFlag(
             options,
             "auto-companions");
-        bool printCandidateContract = OptionalFlag(
-            options,
-            "print-candidate-contract");
+        // THE ONE FLAG AUTHORS ASKED FOR THREE WAVES RUNNING (#184, #188):
+        // `identity` (the bare flag, the historical behaviour) prints the ids
+        // and fingerprints; `full` prints the COMPLETE resolved canonical
+        // contract — the same bytes a bot reads at MatchStart and the same
+        // bytes replay.json carries in header.contract, which is what every
+        // wave mined a throwaway match for.
+        FrontlineLabsContractPrintMode? printCandidateContract =
+            OptionalContractPrintMode(options);
         FrontlineLabsDuelMapArm? duelMapArm =
             OptionalDuelMapArm(options);
         ActorMovementFacingCoupling movementCoupling =
@@ -128,7 +133,7 @@ public static class FrontlineLabsExperimentCommand
             "ignore-declared-classes");
         string? botSpec = null;
         string? opponentSpec = null;
-        if (printCandidateContract
+        if (printCandidateContract is not null
             && !ignoreDeclaredClasses
             && classPair is null
             && options.ContainsKey("bot")
@@ -150,7 +155,7 @@ public static class FrontlineLabsExperimentCommand
                     : (printDeclared1, printDeclared0);
             }
         }
-        if (!printCandidateContract)
+        if (printCandidateContract is null)
         {
             botSpec = RequiredOption(options, "bot");
             opponentSpec = RequiredOption(options, "opponent");
@@ -501,9 +506,9 @@ public static class FrontlineLabsExperimentCommand
         // outcome can then only have come from the driver.
         if (mindProfile)
             definition = definition.OnProfile(ActorMatchCapabilityVersions.Mind);
-        if (printCandidateContract)
+        if (printCandidateContract is { } printMode)
         {
-            PrintCandidateContract(definition);
+            PrintCandidateContract(definition, printMode);
             return 0;
         }
 
@@ -564,7 +569,8 @@ public static class FrontlineLabsExperimentCommand
         {
             Console.WriteLine(
                 "Roster:            legion — three bodies from tick 0 (the "
-                + "fabricator opens with four SLOTS it fabricates), +2 at "
+                + "fabricator stands FOUR; its verb prices the later "
+                + "tranches, which it fabricates), +2 at "
                 + $"{FrontlineLabsLegionRoster.MidTrancheUnlockTick} and +3 "
                 + $"at {FrontlineLabsLegionRoster.LateTrancheUnlockTick}; "
                 + "eight at the horn, nine for the fabricator");
@@ -641,18 +647,29 @@ public static class FrontlineLabsExperimentCommand
                 bot0.ToParticipant(participantId: 0, teamId: 0),
                 bot1.ToParticipant(participantId: 1, teamId: 1),
             };
-            GenericActorMatchResult result;
-            GenericActorReplayDocument replay;
-            using (var session = new GenericActorMatchSession(
-                       definition,
-                       participants,
-                       seed))
-            {
-                result = session.Run();
-                replay = GenericActorReplayDocument.Create(
-                    session,
-                    FrontlineLabsReplayPresentation.Create(definition));
-            }
+            // THE ABORT BOUNDARY (#188's engineering queue). Everything that
+            // can refuse the match — a chronology invariant, a replay
+            // validation, a runtime the host could not drive — happens inside
+            // here, strictly before the replay is written. So an aborted cell
+            // leaves no document behind and exits with the abort code rather
+            // than looking like a completed one.
+            (GenericActorMatchResult result,
+                GenericActorReplayDocument replay) = MatchRun.Guard(
+                MatchRun.Cell(bot0.Name, bot1.Name, seed),
+                () =>
+                {
+                    using var session = new GenericActorMatchSession(
+                        definition,
+                        participants,
+                        seed);
+                    GenericActorMatchResult ran = session.Run();
+                    return (
+                        ran,
+                        GenericActorReplayDocument.Create(
+                            session,
+                            FrontlineLabsReplayPresentation.Create(
+                                definition)));
+                });
 
             string outDir = OutputDirectory(
                 options.GetValueOrDefault("out"),
@@ -734,9 +751,45 @@ public static class FrontlineLabsExperimentCommand
         return 0;
     }
 
-    private static void PrintCandidateContract(
-        ActorResolvedMatchDefinition definition)
+    /// <summary>
+    /// Reads <c>--print-candidate-contract [identity|full]</c>. The bare flag
+    /// keeps its historical meaning, so every existing sweep script and the
+    /// preflight gate read the same identity object they always did.
+    /// </summary>
+    private static FrontlineLabsContractPrintMode? OptionalContractPrintMode(
+        IReadOnlyDictionary<string, string> options)
     {
+        if (!options.TryGetValue(
+                "print-candidate-contract",
+                out string? value))
+        {
+            return null;
+        }
+        return value.ToLowerInvariant() switch
+        {
+            "true" or "identity" => FrontlineLabsContractPrintMode.Identity,
+            "full" or "contract" => FrontlineLabsContractPrintMode.Full,
+            _ => throw new InvalidOperationException(
+                $"Unknown --print-candidate-contract mode '{value}' "
+                + "(use identity — the default — or full, which emits the "
+                + "complete resolved canonical contract JSON)."),
+        };
+    }
+
+    private static void PrintCandidateContract(
+        ActorResolvedMatchDefinition definition,
+        FrontlineLabsContractPrintMode mode)
+    {
+        if (mode == FrontlineLabsContractPrintMode.Full)
+        {
+            // The EXACT bytes: the same canonical document the runtime is
+            // handed at MatchStart and the same one a replay-v3 header
+            // carries, so a number read here is the number the match plays.
+            Console.WriteLine(
+                ActorContractManifestSerializer.ToCanonicalJson(definition));
+            return;
+        }
+
         var contract = new
         {
             modeId = definition.Rules.GameMode.ModeId,

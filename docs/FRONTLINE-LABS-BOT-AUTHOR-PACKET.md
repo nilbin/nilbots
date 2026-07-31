@@ -99,6 +99,39 @@ strategy independently derived from the same player-facing information.
   Local Labs reports the precise sandbox failure and peak completed-tick fuel
   when a WASM life faults; preserve that output in DX notes.
 
+## Reading the contract before you write
+
+```bash
+nilbots experiment frontline-labs --print-candidate-contract full \
+  <the cell's flags>
+```
+
+prints the cell's complete resolved canonical contract as JSON on stdout and
+exits, taking no bot arguments. Those are the exact bytes the runtime receives
+at MatchStart and the exact bytes a replay-v3 header carries, so every declared
+number — tick limit, windups, route and gun cooldowns, damage, capture
+arithmetic, economy schedule, upgrade tracks, topology, lifecycle — is readable
+before a single match runs. The bare flag prints identity (IDs and
+fingerprints) only.
+
+## Reading the CLI's exit codes
+
+Every local Labs command reports failure the same way: one line on **stderr**
+and a **non-zero** exit code. Nothing that failed exits `0`.
+
+| code | meaning | what a sweep should do |
+| --- | --- | --- |
+| `0` | the match or probe ran to a result | score it |
+| `1` | usage, environment, or build failure | fix the invocation |
+| `2` | a participant faulted or was disqualified | a real outcome, with a real replay — read it |
+| `3` | a qualification probe failed cleanly | read the report; the prerequisite tier is retained |
+| `4` | the match **aborted**: it produced no result and **no replay** | re-run the cell; never score it |
+
+Code `4` is the one worth wiring into a harness. An aborted cell measures
+nothing, and scoring it as a loss (or as a completed match) is how three waves
+of authors lost sweeps. Counting `replay.json` files is still good practice —
+it catches an interrupted run too — but the exit code is now load-bearing.
+
 ## Budget and repair policy
 
 The author gets one implementation pass. Building the project and fixing a

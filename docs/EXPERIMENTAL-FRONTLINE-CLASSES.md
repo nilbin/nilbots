@@ -12,6 +12,17 @@ Everything below is readable from the resolved contract at match start — form 
 routes, unlock ticks, and both teams' form IDs — so a well-written bot
 recognizes the opposing class and adapts instead of hard-coding.
 
+**Read the contract before you write the bot, without running a match.** Add
+`--print-candidate-contract full` to any cell's flags and the CLI prints that
+cell's complete resolved canonical contract as JSON on stdout and exits — the
+same bytes the runtime receives at MatchStart and the same bytes a replay-v3
+header carries. Every declared number in this brief is in there
+(`limits.maxTicks`, each route's `windup.durationTicks` and `cooldownTicks`,
+the attack profiles' `damagePerHit` and `cooldownTicks`, the mode's capture
+arithmetic, the scrap schedule and upgrade tracks), so the numbers below are a
+narrative and the print is the authority. The bare flag still prints identity
+only — IDs and fingerprints.
+
 ## The slate
 
 | | striker | bulwark | fabricator |
@@ -104,7 +115,8 @@ nilbots experiment frontline-labs \
 Pairs are canonical in alphabetical order (`bulwark-vs-fabricator`,
 `bulwark-vs-striker`, `fabricator-vs-striker`, and the three mirrors). Team 0
 always plays the first class; use `--swap` to mirror bot assignments.
-`--print-candidate-contract` emits the exact resolved identity for a spec.
+`--print-candidate-contract` emits the exact resolved identity for a spec;
+`--print-candidate-contract full` emits the whole contract instead.
 
 Your bot has **one class, chosen at creation**: declare it in
 `botarena.json` (`"class": "striker"`). Two class-declaring projects need no
@@ -237,7 +249,7 @@ do.
 | token | owner | what appears in the contract | what it means on the board |
 | --- | --- | --- | --- |
 | `none` (default) | — | nothing | today's measured baseline |
-| `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes, and `automaticReturn` on the return route | windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only. **Firing returns you.** The fan launches and the return begins on that same tick, so one entry buys exactly one cast: enter, aim by rotating, shoot. There is no exit to author, and a parked striker cannot become artillery. Objective weight stays **1** throughout. |
+| `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes, and `automaticReturn` on the return route | **`--volley cast` (the default) only — `--volley salvo` re-prices all three numbers; see *Volley salvo* below.** Windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only. **Firing returns you.** The fan launches and the return begins on that same tick, so one entry buys exactly one cast: enter, aim by rotating, shoot. There is no exit to author, and a parked striker cannot become artillery. Objective weight stays **1** throughout. |
 | `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes, and `automaticReturn` on the return route | windup **1** into a stance that **deflects enemy bolts arriving inside its facing quadrant**: the incoming bolt dies on the arc and a **new bolt launches from the shell's tile along the exactly reversed heading, owned by the bulwark's team** — so poking a shell head-on shoots yourself. Flank and rear contacts hurt normally. The shell cannot move, shoot, **or rotate** — the protected quadrant is chosen before the shield rises; objective weight stays **1**, so it still holds ground. **The shield breaks on its third deflection**: the third bolt shatters it into a forced return, and the punish window is the exit plus a fresh entry windup. |
 | `five-slots` | fabricator | five `unitSlots` for each fabricator team, the `fabricator-late-child-ready` lifecycle profile, a new topology profile and fingerprint (`…-asymmetric-slots-5-3-v1` against another class, `…-five-slots-v1` in a fabricator mirror) | the fabricator fields **prime plus four children**; a non-fabricator opponent keeps three. The extra two unlock at **300** and **420** (continuing the class's own 120-tick cadence 60/180/300/420) and rebuild on a **30**-tick clock instead of 15 — more bodies, deliberately not faster bodies. |
 | `kit` | — | all three, filtered to the cell's classes | the whole slate at once |
@@ -674,8 +686,11 @@ The arithmetic, at threshold 8 and gain 1:
 
 So the tick-by-tick decision is: **against a broken defence, stack; against a
 live one, screen.** That is a read on published state — how many enemy bodies
-are alive, on what headings, and whether a fan entry is off cooldown
-(`routeCooldowns` publishes exactly that).
+are alive, on what headings, and what forms they are in. Be precise about
+whose clocks you can see: `routeCooldowns` is published on **your own bodies
+and your allies', never on an enemy**, so an enemy striker's fan entry is
+timed from what you watched it do (its stance form, its windup, its last
+cast), not read off its slot.
 
 Two consequences worth planning for. A **turret** has objective weight zero, so
 it contributes neither claim nor denial — but its gun is cooldown 1 at travel
@@ -940,7 +955,7 @@ the extra characters do not fit beside the worst class pair.
 
 ## Roster: LEGION
 
-`--roster levy` changes how many bodies you have and when. Every arm above
+`--roster legion` changes how many bodies you have and when. Every arm above
 this one was measured on prime-plus-two, and both #187 mechanisms — the channel
 and the economy — are priced against how many bodies a team can afford to send
 away from the front, so this is a rework of the whole allocation problem rather
@@ -950,23 +965,28 @@ bots").
 
 | when | striker / bulwark | fabricator |
 | --- | --- | --- |
-| tick 0 | **3 live bodies** — prime plus two companions, standing on their own reserved anchors | **4 slots** — prime plus three companions it must FABRICATE, unlocked from tick zero |
+| tick 0 | **3 live bodies** — prime plus two companions, standing on their own reserved anchors | **4 live bodies** — prime plus three companions, standing (owner ruling: the Fab's opening is automatic) |
 | tick 150 | +2 slots, activated automatically | +2 slots, fabricable |
 | tick 300 | +3 slots, activated automatically | +3 slots, fabricable |
 | endgame | **8** | **9** |
 
-- **The fabricator's opening is slots, not bodies, and that is the point.**
-  DECISIONS #154 made explicit forward fabrication its one exclusive verb and
-  #187 kept body count as its monopoly; handing it free pad-spawned companions
-  would make it a striker with a wider chassis. Its three openers cost three
-  prime actions at one tick of fabrication delay each, spent before contact —
-  and they arrive **in the field beside the prime** rather than on a pad twelve
-  tiles behind the front, which is what the verb has always bought.
+- **The fabricator's opening STANDS; its verb prices the tranches after it.**
+  The opener was fabricable on the retired `legion` spelling and the owner
+  re-ruled it ("the initial spawn should be automatic for the Fab"), so all
+  four of its tick-zero bodies are live on their own anchors like everyone
+  else's. What stays exclusive is everything later: its five mid- and
+  late-tranche slots are `dormant-unlock-at-tick` rather than
+  `dormant-automatic-activation-at-tick`, so each of them costs the prime an
+  action at one tick of fabrication delay — and each arrives **in the field
+  beside the prime** rather than on a pad twelve tiles behind the front, which
+  is what the verb has always bought. Under `--pendulum hull` that is the only
+  forward body delivery in the game.
 - **Read the slots, don't count bodies.** Slot count, each slot's availability,
   and its activation tick are all contract data: the topology's `unitSlots`,
   and each lifecycle assignment's `initialAvailability` / `unlockTick`. A slot
   that activates automatically declares its reserved spawn anchor too.
-- **The arm mints its own map generation** (`frontline-labs-03-levy`). A slot
+- **The arm mints its own map generation** (`frontline-labs-03-legion`, and
+  `frontline-labs-03-legion-classes` in a classed cell). A slot
   that returns automatically needs a reserved anchor, and the measured pad has
   room for two — so the legion map carries the classes map's exact tiles, seven
   mirror-fair companion anchors per team (the measured pair unchanged, then
@@ -987,7 +1007,8 @@ Registered identities: `swell` + legion is **`warband`**, `tide` + legion is
 **`retinue`**, `sail-tick-open` + legion is **`vanguard`**; with the full v1.1
 game already in the cell `citadel` + legion is **`brigade`**, `rampart` +
 legion is **`column`** and `armoury` + legion is **`regiment`**. Smaller cells
-spell their factors and append `levy`.
+spell their factors and append `levy` — the arm's flag is `legion` and its
+ruleset-ID token is `levy`; they are the same arm.
 
 ## The next round: home respawns, a longer horn, a full board
 
@@ -1026,7 +1047,7 @@ nilbots experiment frontline-labs \
 
 Registered identities for the whole package: **`vigil`** on the striker shapes,
 **`warren`** on the fabricator shapes, **`bastille`** on the bulwark mirror —
-and with `--roster levy` on top, **`warpath`**, **`horde`** and
+and with `--roster legion` on top, **`warpath`**, **`horde`** and
 **`stockade`**. Anything smaller in this family spells its factors, and a
 combination that overflows the 64-character budget faults with a message
 telling you to register it: a pre-registration is a decision, not a fallback.

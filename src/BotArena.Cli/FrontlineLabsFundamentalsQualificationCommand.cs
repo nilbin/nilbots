@@ -503,18 +503,28 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 ? [botParticipant, controllerParticipant]
                 : [controllerParticipant, botParticipant];
 
-        GenericActorMatchResult result;
-        GenericActorReplayDocument replay;
-        using (var session = new GenericActorMatchSession(
-                   definition,
-                   participants,
-                   seed))
-        {
-            result = session.Run();
-            replay = GenericActorReplayDocument.Create(
-                session,
-                FrontlineLabsReplayPresentation.Create(definition));
-        }
+        // One abort boundary, shared with every other command: a probe that
+        // stops mid-run names its cell, writes nothing, and exits non-zero.
+        (GenericActorMatchResult result, GenericActorReplayDocument replay) =
+            MatchRun.Guard(
+                MatchRun.Probe(
+                    definition.Rules.RulesetId,
+                    plan.ProbeId,
+                    seed),
+                () =>
+                {
+                    using var session = new GenericActorMatchSession(
+                        definition,
+                        participants,
+                        seed);
+                    GenericActorMatchResult ran = session.Run();
+                    return (
+                        ran,
+                        GenericActorReplayDocument.Create(
+                            session,
+                            FrontlineLabsReplayPresentation.Create(
+                                definition)));
+                });
         bool contractValid = GenericActorReplayDocument.VerifyHash(
             replay.CanonicalJson,
             out _);

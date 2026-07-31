@@ -114,15 +114,19 @@ public static class FrontlineExperimentCommand
                 map.Id,
                 seed,
                 seeds.Length > 1);
-            FrontlineActorMatchAttempt attempt =
-                new FrontlineActorMatchEngine().RunAttempt(
+            // Same abort boundary as the Labs command: an eligibility failure
+            // is a typed RESULT below and keeps its own exit code, but a run
+            // that throws measured nothing and must say so.
+            FrontlineActorMatchAttempt attempt = MatchRun.Guard(
+                MatchRun.Cell(bot0.Name, bot1.Name, seed),
+                () => new FrontlineActorMatchEngine().RunAttempt(
                     new FrontlineActorMatchConfiguration
                     {
                         Map = map,
                         Rules = rules,
                         Seed = seed,
                         Participants = participants,
-                    });
+                    }));
 
             if (attempt is FrontlineActorMatchFailed failed)
             {

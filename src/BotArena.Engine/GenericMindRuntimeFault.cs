@@ -42,11 +42,32 @@ public sealed record GenericMindRuntimeFault(
     public GenericActorRuntimeFault? ToActorFault() =>
         ActorId is null
             ? null
-            : new GenericActorRuntimeFault(
-                ParticipantId,
-                ActorId,
-                Stage,
-                FaultCode,
-                CumulativeFaultCount,
-                DisqualificationTriggered);
+            : ToActorFault(ActorId);
+
+    /// <summary>
+    /// The same participant-scoped fault, attributed to ONE own live body.
+    /// <para>
+    /// A trapped mind stops every body it owns, and the per-life evidence
+    /// contract requires each body's faulted turn to carry a fault record
+    /// naming THAT body — <c>GenericActorMatchActorTurn</c> refuses a turn
+    /// whose fault names someone else. The event-facing projection
+    /// (<see cref="ToActorFault()"/>) deliberately keeps naming the canonically
+    /// first body so the single team-private fault event stays byte-identical;
+    /// this overload exists for the body fan-out, where the participant's one
+    /// fault is restated per body. Participant ID, stage, code, cumulative
+    /// count and the disqualification flag are the participant's and are
+    /// copied unchanged, so N restatements are still ONE fault.
+    /// </para>
+    /// </summary>
+    public GenericActorRuntimeFault ToActorFault(ActorIdentity body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        return new GenericActorRuntimeFault(
+            ParticipantId,
+            body,
+            Stage,
+            FaultCode,
+            CumulativeFaultCount,
+            DisqualificationTriggered);
+    }
 }

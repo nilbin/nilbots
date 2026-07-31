@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -310,6 +311,100 @@ public class DocDriftTests
                 rules.Contains(token, StringComparison.Ordinal),
                 $"FRONTLINE-LABS-RULES.md never mentions '{token}'.");
         }
+    }
+
+    /// <summary>
+    /// The roster arm has TWO spellings — the flag the CLI accepts (`legion`)
+    /// and the ruleset-ID token the engine appends (`levy`) — and a whole
+    /// section of the brief was written against the wrong one, telling authors
+    /// to pass a flag that does not parse and naming a map generation that does
+    /// not exist. Both facts are mechanical, so pin both.
+    /// </summary>
+    [Fact]
+    public void ClassSkillsBrief_SpellsTheRosterFlagAndItsMapGeneration()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        Assert.Contains("`--roster legion`", brief, StringComparison.Ordinal);
+        Assert.DoesNotContain("`--roster levy`", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            FrontlineLabsLegionRoster.MapId,
+            brief,
+            StringComparison.Ordinal);
+        // The tranche ticks the same section tabulates.
+        foreach (int tick in new[]
+                 {
+                     FrontlineLabsLegionRoster.MidTrancheUnlockTick,
+                     FrontlineLabsLegionRoster.LateTrancheUnlockTick,
+                 })
+        {
+            Assert.True(
+                brief.Contains(
+                    tick.ToString(CultureInfo.InvariantCulture),
+                    StringComparison.Ordinal),
+                $"The class-skills brief never states the tranche tick {tick}.");
+        }
+    }
+
+    /// <summary>
+    /// `--print-candidate-contract` grew a mode after three waves of authors
+    /// mined replay headers for declared numbers. Help that does not name the
+    /// mode is help that keeps them mining.
+    /// </summary>
+    [Fact]
+    public void CliHelp_NamesEveryCandidateContractPrintMode()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[] { "identity", "full" })
+        {
+            Assert.True(
+                help.Contains(
+                    $"--print-candidate-contract [{token}",
+                    StringComparison.Ordinal)
+                || help.Contains(
+                    $"|{token}]",
+                    StringComparison.Ordinal),
+                $"CLI help does not offer --print-candidate-contract '{token}'.");
+        }
+    }
+
+    /// <summary>
+    /// The abort exit code exists so a sweep can tell "this cell measured
+    /// nothing" from "your flags were wrong". A code nobody documents is a
+    /// code nobody wires in.
+    /// </summary>
+    [Fact]
+    public void AuthorPacketAndCliHelp_StateTheAbortExitCode()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        Assert.Contains("ABORTED", help, StringComparison.Ordinal);
+        string packet = ReadRepoFile(
+            "docs",
+            "FRONTLINE-LABS-BOT-AUTHOR-PACKET.md");
+        Assert.Contains("never score it", packet, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Wave-8 friction: the salvo section told authors to read an enemy's fan
+    /// entry off `routeCooldowns`. The observation type is the authority, and
+    /// it publishes the field on SELF and ALLIES only — so the pin is the type,
+    /// and the brief must say which.
+    /// </summary>
+    [Fact]
+    public void ClassSkillsBrief_DoesNotClaimEnemiesPublishRouteCooldowns()
+    {
+        const string field = "RouteCooldowns";
+        Assert.NotNull(
+            typeof(GenericActorRuntimeObservation.ObservedSelfState)
+                .GetProperty(field));
+        Assert.NotNull(
+            typeof(GenericActorRuntimeObservation.ObservedAllyState)
+                .GetProperty(field));
+        Assert.Null(
+            typeof(GenericActorRuntimeObservation.ObservedEnemyState)
+                .GetProperty(field));
+
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        Assert.Contains("never on an enemy", brief, StringComparison.Ordinal);
     }
 
     [Fact]

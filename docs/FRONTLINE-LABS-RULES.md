@@ -279,7 +279,12 @@ drives it:
 - **A mind that traps forgets the match.** There is no snapshot: a runtime fault
   discards the Store and its entire match-long memory, and under this contract's
   zero fault allowance it also disqualifies the participant. Robustness is part
-  of the doctrine.
+  of the doctrine. The MATCH still completes: a disqualification is an outcome,
+  with a complete, verifying replay and a non-zero-but-not-abort exit code (2),
+  and every body the trapped mind owned records the participant's one fault
+  under its own identity. That is true however many bodies it held — a
+  pre-mind artifact faulting at startup on a legion roster is the ordinary
+  case, not an aborted run.
 - **Team perception is unchanged and stays team-scoped.** The observable union
   is computed per scoring team exactly as above and delivered to the mind once
   rather than once per body. Observations are still frozen before any same-tick

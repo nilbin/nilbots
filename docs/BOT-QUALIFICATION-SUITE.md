@@ -433,7 +433,8 @@ opponent behaves identically on both suites; their recorded fingerprints carry a
 `-mind` suffix, because the same program hosted a different way is a different
 opponent identity.
 
-Everything else carries over verbatim: the exit-code contract (0 / 3 / 2), the
+Everything else carries over verbatim: the exit-code contract (0 / 3 / 2, and
+4 for a probe match that ABORTED and therefore measured nothing), the
 prerequisite hash-linking chain, `tierAwarded` retention on clean failure, and
 `balanceEvidenceEligible = t4Passed`.
 
