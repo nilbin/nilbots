@@ -4258,6 +4258,23 @@ information game analyzed with eyes open, fuel and payload budgets,
 replay-v3 mind turns, qualification and scaffold redesign, migration
 plan for the eight lineages. The build ruling follows the memo.
 
+## 191. The mind build: full go, P0-P6, gated at the null pin
+
+Owner ruling on the memo ("Full go: P0-P6"): the mind profile
+(generic-mind-match-1, resolved contract schema unchanged so the null
+pin means something) builds in the memo's phase order — P0 reserved
+field IDs (role tags, allied intents, per-slot chassis, candidate
+chassis: the one irreversible step), P1 engine session + contract, P2
+SDK/Guest/Runtime + codecs + the WrappedPerLifeMind adapter, P3
+replay mind-turns + validators + TS + viewer, P4 CLI/qualification/
+scaffold/docs + publish, P5 THE NULL PIN (wrapped cohort
+outcome-identical across profiles — explicitly allowed to stop the
+project), P6 the port wave with the ported-vs-wrapped A/B and the
+pre-registered pacing diagnostic. Compositions (P7) and pacing arms
+(P8) stay read-gated behind P6. Fuel 250M + 200M/body, persistent
+memory undamped with the fog-effectiveness diagnostic, `mind` is the
+product word.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
