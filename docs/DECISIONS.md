@@ -4275,6 +4275,25 @@ pre-registered pacing diagnostic. Compositions (P7) and pacing arms
 memory undamped with the fog-effectiveness diagnostic, `mind` is the
 product word.
 
+## 192. The null pin holds: the mind is behavior-identical, 63/63
+
+P5 ran twice, and the first run is the story: 33 of 63 cells DIVERGED
+— the pin caught a real wrapper defect (one shared TeamRandom stream
+position across sub-brains, where per-life semantics re-derive each
+life's stream per tick so every life's Nth draw is identical). Fixed
+at the source, pinned by a two-body double-draw regression, guest
+adapter 0.10.12. Second run: the rebuilt wave-8 cohort's full matrix
+on the warpath stack, actor profile vs mind profile, zero tolerances
+— winner, end tick, completion reason, scores, and every body's
+accepted-action sequence — **63/63 identical. The mind plays the same
+game.** Also learned and recorded for the port handover: pre-mind
+artifacts fault at startup on the mind profile (expected — their
+guests predate the protocol; the standard from-source rebuild fixes
+it), and a mind-startup fault currently aborts document recording
+instead of producing a clean disqualification (queued in the
+pre-friction pass). P6 goes to Codex per the owner's directive, after
+the pre-friction check.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
