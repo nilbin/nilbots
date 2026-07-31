@@ -31,12 +31,17 @@ game, including "The mind" section).
 
 ## The commission
 
-Eight lineages, from their frozen wave-8 sources at
-`arena-bots/frontline-labs/classes-wave-8-2026-07-31/<name>/` (FROZEN —
-copy out to scratch under `sandbox/`, never build inside, never
-modify): vector-edge, still-water, arc-light (strikers); iron-root,
-march-wall, gate-stone (bulwarks); spark-line, ledger-fly
-(fabricators).
+OWNER AMENDMENT (2026-07-31): THREE bots, one per class — eight is
+excessive. "Let the agents do their best": you are NOT bound to port a
+lineage's doctrine; write the best mind bot you can per class. The
+frozen wave-8 sources at
+`arena-bots/frontline-labs/classes-wave-8-2026-07-31/<name>/` are
+available as idea quarries (FROZEN — copy out to scratch under
+`sandbox/`, never build inside, never modify); start from the
+strongest lineage of each class or from scratch, your call, and say
+which in the DX. Suggested starting lineages: vector-edge (striker),
+iron-root (bulwark), ledger-fly (fabricator). Name each new bot
+freshly (new codename) — these are new entrants, not revisions.
 
 Per lineage, ONE doctrine pass rebuilding it as a native
 `IGenericMindBot`, exploiting what only a mind can do:
@@ -54,10 +59,10 @@ Per lineage, ONE doctrine pass rebuilding it as a native
   gunnery, and doctrine RULES transfer; their scaffolding does not.
 - Mechanical repairs free. Leave-one-out attribution per rule in DX,
   exactly as every prior wave.
-- Honesty requirement, because one author writes all eight: no idea
-  transfer between lineages; disclose in each DX where an idea's
-  provenance is another lineage's public results. The read tolerates
-  shared authorship; it does not tolerate eight copies of one doctrine.
+- Honesty requirement, adjusted for the three-bot wave: classes keep
+  the doctrine boundaries natural, so cross-class idea transfer is not
+  a confound — just disclose provenance in each DX (which lineage's
+  ideas seeded the build, what is new).
 - Set role tags (`SetRole`) — cosmetic, viewer-rendered, free.
 
 The API and mental model: `templates/botarena-generic-mind/` (Roles.cs
@@ -68,7 +73,7 @@ trapping mind forgets the match (fault = participant disqualification).
 
 ## Deliverables
 
-Per lineage, frozen at `arena-bots/frontline-labs/mind-wave-2026-08/<name>/`:
+Per bot, frozen at `arena-bots/frontline-labs/mind-wave-2026-08/<name>/`:
 full source, `out/bot.wasm`, `README.md` (role, doctrine summary,
 headline results), `DX.md` (budget ledger, per-rule leave-one-out
 attribution, friction list, provenance disclosures), and the final act:
@@ -85,10 +90,10 @@ mind-native `body-handoff` and `escort-integrity` probes).
   the frozen wave-8 sources with the published CLI if that directory is
   gone. A per-life artifact runs on the mind profile automatically (the
   wrapper); the null pin certifies it faithful.
-- Per lineage: native vs its own wrapped self (the mirror, BOTH
-  assignments via --swap) and native vs the wrapped field on its class
-  pairings. Then the wave's own triangle: native vs native across the
-  full class-pair matrix — the first balance read of the mind era.
+- Per bot: native vs the wrapped wave-8 field on its class pairings
+  (the old-world baseline), and the wave's own triangle: the three
+  natives against each other on bvs/bvf/fvs plus the three mirrors —
+  the first balance read of the mind era.
 - Seeds 930011, 960017, 990037 — the campaign's read seeds.
 - Stack and flags:
 
