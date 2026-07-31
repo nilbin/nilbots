@@ -14,6 +14,8 @@
              Link="ActorSha256.cs" />
     <Compile Include="../BotArena.Sdk/GenericActorContractVersions.cs"
              Link="GenericActorContractVersions.cs" />
+    <Compile Include="../BotArena.Sdk/GenericMindContractVersions.cs"
+             Link="GenericMindContractVersions.cs" />
     <Compile Include="../BotArena.Sdk/GenericActorMapContract.cs"
              Link="GenericActorMapContract.cs" />
     <Compile Include="../BotArena.Sdk/GenericActorResolvedMatchContract.cs"

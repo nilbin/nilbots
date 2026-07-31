@@ -13,7 +13,8 @@ internal sealed class GenericActorMatchHost : IDisposable
     private readonly GenericActorMatchDescriptor _descriptor;
     private readonly InMemoryGenericActorMatchChronologyRecorder _chronology =
         new();
-    private readonly GenericActorRuntimeCoordinator _runtimes;
+    private readonly GenericActorRuntimeCoordinator? _runtimes;
+    private readonly GenericMindRuntimeCoordinator? _minds;
     private int _operationGate;
     private bool _disposed;
 
@@ -31,10 +32,40 @@ internal sealed class GenericActorMatchHost : IDisposable
             definition,
             matchSeed,
             participantSnapshot);
-        _runtimes = new GenericActorRuntimeCoordinator(
-            definition,
-            participantSnapshot);
+        // ONE profile ID decides the execution shape: one runtime per life, or
+        // one runtime per participant. Everything downstream of decision
+        // collection is identical, which is the whole design (DECISIONS #191).
+        if (definition.CapabilityVersions.IsMindProfile)
+        {
+            _minds = new GenericMindRuntimeCoordinator(
+                definition,
+                participantSnapshot,
+                matchSeed);
+        }
+        else
+        {
+            _runtimes = new GenericActorRuntimeCoordinator(
+                definition,
+                participantSnapshot);
+        }
     }
+
+    /// <summary>True when this match runs the participant-scoped mind profile.</summary>
+    public bool IsMindProfile => _minds is not null;
+
+    /// <inheritdoc cref="GenericMindRuntimeCoordinator.TickingParticipantIds"/>
+    public ImmutableArray<int> TickingParticipantIds =>
+        Minds.TickingParticipantIds;
+
+    private GenericActorRuntimeCoordinator Runtimes =>
+        _runtimes
+        ?? throw new InvalidOperationException(
+            "This match resolved the mind profile and has no per-life runtime coordinator.");
+
+    private GenericMindRuntimeCoordinator Minds =>
+        _minds
+        ?? throw new InvalidOperationException(
+            "This match resolved the per-life profile and has no mind coordinator.");
 
     public GenericActorMatchDescriptor Descriptor
     {
@@ -55,11 +86,13 @@ internal sealed class GenericActorMatchHost : IDisposable
     }
 
     public string MatchContractFingerprint =>
-        _runtimes.MatchContractFingerprint;
+        _minds?.MatchContractFingerprint
+        ?? Runtimes.MatchContractFingerprint;
 
     public ImmutableArray<
         GenericActorRuntimeObservation.ObservedParticipantStatus>
-        ParticipantStatuses => _runtimes.ParticipantStatuses;
+        ParticipantStatuses =>
+        _minds?.ParticipantStatuses ?? Runtimes.ParticipantStatuses;
 
     public bool IsDisposed => _disposed;
 
@@ -95,27 +128,51 @@ internal sealed class GenericActorMatchHost : IDisposable
         };
         GenericActorLifeStart lifeStart =
             GenericActorLifeStart.FromRuntimeStart(runtimeStart);
-        _runtimes.StartLife(runtimeStart);
+        if (_minds is not null)
+            _minds.StartLife(runtimeStart);
+        else
+            Runtimes.StartLife(runtimeStart);
         return lifeStart;
     }
 
-    public void RetireLife(ActorIdentity actorId) =>
-        _runtimes.RetireLife(actorId);
+    public void RetireLife(ActorIdentity actorId)
+    {
+        if (_minds is not null)
+            _minds.RetireLife(actorId);
+        else
+            Runtimes.RetireLife(actorId);
+    }
 
     public GenericActorRuntimeTickResult CollectTickDecisions(
         int tick,
         IEnumerable<GenericActorRuntimeObservation> observations) =>
-        _runtimes.CollectTickDecisions(tick, observations);
+        Runtimes.CollectTickDecisions(tick, observations);
+
+    /// <summary>
+    /// Collects one decision MAP per participant and fans it out across that
+    /// participant's bodies. This is the ONE structural change the mind
+    /// profile makes to the host: <c>PrepareTick()</c> -&gt; <c>Step()</c>, the
+    /// 16 tick phases, the re-entrancy guard and the invocation ordering are
+    /// all preserved.
+    /// </summary>
+    public GenericMindRuntimeTickResult CollectMindTickDecisions(
+        int tick,
+        IEnumerable<GenericMindRuntimeObservation> observations) =>
+        Minds.CollectTickDecisions(tick, observations);
 
     public ImmutableArray<ActorIdentity> ApplyDisqualification(
         int participantId) =>
-        _runtimes.ApplyDisqualification(participantId);
+        _minds is not null
+            ? _minds.ApplyDisqualification(participantId)
+            : Runtimes.ApplyDisqualification(participantId);
 
     public bool TryProjectSubmittedAction(
         GenericActorRuntimeDecision? decision,
         out GenericActorRuntimeActionResolution.ResolvedAction?
             submittedAction) =>
-        _runtimes.TryProjectSubmittedAction(decision, out submittedAction);
+        _minds is not null
+            ? _minds.TryProjectSubmittedAction(decision, out submittedAction)
+            : Runtimes.TryProjectSubmittedAction(decision, out submittedAction);
 
     public void RecordInitial(GenericActorMatchInitialFrame initialFrame) =>
         _chronology.RecordInitial(_descriptor, initialFrame);
@@ -155,7 +212,8 @@ internal sealed class GenericActorMatchHost : IDisposable
             return;
 
         _disposed = true;
-        _runtimes.Dispose();
+        _runtimes?.Dispose();
+        _minds?.Dispose();
     }
 
     public HostOperation EnterOperation(string operationName)

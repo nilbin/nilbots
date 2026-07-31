@@ -81,6 +81,41 @@ public static class FrontlineLabsDefinition
     public const string LegionFabricatorMirrorTopologyProfileId =
         "two-team-one-controller-nine-slots-legion-v1";
 
+    /// <summary>
+    /// The MIXED-COMPOSITION legion shapes
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §9.5, §9.7). Under
+    /// compositions the same per-team slot counts can mean different armies,
+    /// so the profile ID must key on (counts, composition tokens) rather than
+    /// counts alone — a small extension of an existing switch.
+    /// <para>
+    /// The tokens live HERE, in the topology profile ID, and never in the
+    /// ruleset ID. That is partly budget — the full game's ruleset ID already
+    /// sits at 60 of its 64 characters, which is why #189 had to mint short
+    /// composites rather than spell factors — and mostly correctness: the
+    /// ruleset spells MECHANICS and the topology spells the ARMY. Two
+    /// compositions playing the same mechanics share a rules fingerprint and
+    /// differ in the topology and aggregate ones, which is exactly what
+    /// GAME-MODE-ARCHITECTURE.md §3 already requires.
+    /// </para>
+    /// <para>
+    /// The three MONO compositions deliberately have no entry here. A mono
+    /// composition's token is its chassis ID and it declares no per-slot
+    /// chassis at all, so it keeps today's counts-only label and today's exact
+    /// bytes — the load-bearing property that keeps every wave-1..8 cell
+    /// comparable.
+    /// </para>
+    /// </summary>
+    public const string LegionWardenMirrorTopologyProfileId =
+        "two-team-one-controller-legion-mirror-warden-v1";
+
+    /// <inheritdoc cref="LegionWardenMirrorTopologyProfileId"/>
+    public const string LegionSpearheadMirrorTopologyProfileId =
+        "two-team-one-controller-legion-mirror-spearhead-v1";
+
+    /// <inheritdoc cref="LegionWardenMirrorTopologyProfileId"/>
+    public const string LegionSpearheadVersusWardenTopologyProfileId =
+        "two-team-one-controller-legion-spearhead-vs-warden-v1";
+
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
     public const string ClassesSeedProfileId =
@@ -195,6 +230,8 @@ public static class FrontlineLabsDefinition
                     slot.TeamId == team.TeamId))
                 .OrderByDescending(count => count),
         ];
+        if (MixedCompositionProfileIdFor(topology) is string mixed)
+            return mixed;
         return counts switch
         {
             [3, 3] => TopologyProfileId,
@@ -211,6 +248,83 @@ public static class FrontlineLabsDefinition
                 "No Frontline Labs topology profile is registered for these "
                 + "per-team slot counts. Register one before running the "
                 + "cell — the profile ID travels into balance evidence."),
+        };
+    }
+
+    /// <summary>
+    /// The registered profile ID for a MIXED composition, or null when no team
+    /// declares one — in which case the counts-only switch above answers and
+    /// every existing cell keeps its exact label.
+    /// <para>
+    /// A team is mixed when at least one of its slots declares a chassis that
+    /// differs from the team's composition token. That token lives on
+    /// <c>PublicScoringTeam.ClassId</c>, whose MEANING changed under
+    /// compositions — it carries a registered composition rather than a
+    /// chassis — while its shape did not, so a mono composition's token is
+    /// still just its chassis ID and nothing about today's bytes moves.
+    /// </para>
+    /// </summary>
+    private static string? MixedCompositionProfileIdFor(
+        PublicMatchTopology topology)
+    {
+        var mixedTokens = new List<string>();
+        foreach (PublicScoringTeam team in topology.Teams
+                     .OrderBy(team => team.TeamId))
+        {
+            PublicUnitSlot[] slots = topology.UnitSlots
+                .Where(slot => slot.TeamId == team.TeamId)
+                .OrderBy(slot => slot.UnitId)
+                .ToArray();
+            bool mixed = slots.Any(slot =>
+                slot.ClassId is not null
+                && !string.Equals(
+                    slot.ClassId,
+                    team.ClassId,
+                    StringComparison.Ordinal));
+            if (!mixed)
+                continue;
+            if (team.ClassId is not string token
+                || !GenericMindContractReservations
+                    .RegisteredMixedCompositionTokens
+                    .Contains(token, StringComparer.Ordinal))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(topology),
+                    team.ClassId,
+                    "A team whose slots declare differing chassis must name a "
+                    + "registered MIXED composition token. Free composition is "
+                    + "a later level with its own evaluation policy, not an "
+                    + "unregistered cell.");
+            }
+            mixedTokens.Add(token);
+        }
+        if (mixedTokens.Count == 0)
+            return null;
+        if (mixedTokens.Count != topology.Teams.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(topology),
+                string.Join("/", mixedTokens),
+                "A composition cell pits a declared composition against a "
+                + "declared composition. Mixing a registered composition "
+                + "against an unlabelled army would carry the wrong topology "
+                + "into balance evidence.");
+        }
+
+        string[] ordered =
+            [.. mixedTokens.Order(StringComparer.Ordinal)];
+        return ordered switch
+        {
+            ["warden", "warden"] => LegionWardenMirrorTopologyProfileId,
+            ["spearhead", "spearhead"] =>
+                LegionSpearheadMirrorTopologyProfileId,
+            ["spearhead", "warden"] =>
+                LegionSpearheadVersusWardenTopologyProfileId,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(topology),
+                string.Join("-vs-", ordered),
+                "No Frontline Labs topology profile is registered for this "
+                + "composition pairing. Register one before running the cell."),
         };
     }
 

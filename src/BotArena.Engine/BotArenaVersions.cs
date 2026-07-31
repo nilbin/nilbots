@@ -80,4 +80,51 @@ public static class BotArenaVersions
     /// separate <see cref="GenericActorReplayFormatVersion"/> 3 contract.
     /// </summary>
     public const int EntityReplayFormatVersion = 2;
+
+    /// <summary>
+    /// Negotiated contract profile for the participant-scoped MIND generation
+    /// (DECISIONS #190/#191). It sits BESIDE the generic actor block above
+    /// rather than superseding it: the per-life generation stays byte-exact so
+    /// the hosted playlist, the eight measured lineages, and every frozen
+    /// cohort's evidence remain valid and comparable.
+    /// </summary>
+    public const string GenericMindContractProfileId =
+        "generic-mind-match-1";
+
+    /// <summary>Framing protocol, carried unchanged from the actor line.</summary>
+    public const string GenericMindRuntimeProtocolVersion = "1.0";
+
+    /// <summary>
+    /// Runtime CONFIGURATION 2.0: the fuel formula, the linear-memory ceiling,
+    /// and the instance topology all change. Configuration 1.0 stays exactly
+    /// as pinned for the per-life generation.
+    /// </summary>
+    public const string GenericMindRuntimeConfigurationVersion = "2.0";
+
+    /// <summary>
+    /// Semantic implementation version for mind matches, separate from
+    /// <see cref="GenericActorEngineVersion"/> so introducing the new path
+    /// does not relabel per-life matches.
+    /// </summary>
+    public const string GenericMindEngineVersion = "1.0.0";
+
+    public const int GenericMindRuntimeContractVersion = 1;
+    public const int GenericMindMatchStartSchemaVersion = 1;
+    public const int GenericMindObservationSchemaVersion = 1;
+    public const int GenericMindDecisionSchemaVersion = 1;
+
+    /// <summary>
+    /// CARRIED OVER from the actor generation and load-bearing: the mind plays
+    /// the same game, so the resolved static contract is the same schema. The
+    /// null pin depends on this.
+    /// </summary>
+    public const int GenericMindMatchContractSchemaVersion =
+        GenericActorMatchContractSchemaVersion;
+
+    /// <summary>
+    /// Replay 3, carried: the document grows a <c>mindTurns</c> alternative to
+    /// <c>actorTurns</c>, keyed by the contract profile in its header.
+    /// </summary>
+    public const int GenericMindReplayFormatVersion =
+        GenericActorReplayFormatVersion;
 }

@@ -81,7 +81,11 @@ public sealed record GenericActorParticipantProvenance
                     "Participant configurations cannot contain null.",
                     nameof(configurations));
             }
-            if (configuration.RuntimeFactory is null)
+            // Either programming model satisfies provenance: a per-life
+            // participant brings a life factory, a mind participant brings a
+            // mind factory, and the two profiles coexist beside each other.
+            if (configuration.RuntimeFactory is null
+                && configuration.MindRuntimeFactory is null)
             {
                 throw new ArgumentException(
                     $"Participant {configuration.ParticipantId} has no runtime factory.",

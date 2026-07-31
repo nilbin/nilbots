@@ -139,6 +139,40 @@ public static class SeedDerivation
         }
     }
 
+    /// <summary>
+    /// Independent stream for one SUBMITTED PARTICIPANT under the mind profile
+    /// (DECISIONS #191). The "minds:" domain label keeps it clear of the
+    /// per-life "actors:", the "teams:" and the "spawns:" domains, so a mind's
+    /// private stream can never collide with the per-life stream of a body it
+    /// happens to command — which matters because the two profiles are meant
+    /// to be compared, not merged.
+    /// <para>Derived in the PARTICIPANT domain rather than the life domain is
+    /// the whole point: one stream advancing across the whole match instead of
+    /// a fresh one per life.</para>
+    /// </summary>
+    /// <param name="matchSeed">The match's authoritative seed.</param>
+    /// <param name="participantId">Non-negative submitted participant.</param>
+    /// <param name="seedProfile">
+    /// The ruleset's fingerprinted seed-profile comparison namespace.
+    /// </param>
+    public static ulong DeriveMindSeed(
+        ulong matchSeed,
+        int participantId,
+        string seedProfile)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(participantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(seedProfile);
+
+        unchecked
+        {
+            const ulong step = 0x9E3779B97F4A7C15UL;
+            ulong x = DeterministicRandom.Mix(
+                matchSeed ^ Fnv1a64("minds:" + seedProfile));
+            return DeterministicRandom.Mix(
+                x + step * ((ulong)participantId + 1));
+        }
+    }
+
     /// <summary>Independent stream for seed-spawn variation — labeled so it can never
     /// collide with a bot's own stream (same shape as DeriveBotSeed, distinct domain).</summary>
     public static ulong DeriveSpawnSeed(ulong matchSeed, string gameRulesVersion) =>

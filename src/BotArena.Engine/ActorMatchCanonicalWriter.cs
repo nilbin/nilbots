@@ -251,6 +251,13 @@ internal static class ActorMatchCanonicalWriter
             writer.WriteNumber(
                 "controllerParticipantId",
                 slot.ControllerParticipantId);
+            // Per-slot chassis, emitted only when a ruleset declares
+            // compositions — the same #156 additive-canonical pattern the
+            // scoring team and participant above already follow. A
+            // composition-free topology writes exactly the bytes it wrote
+            // before, so every existing fingerprint holds.
+            if (slot.ClassId is not null)
+                writer.WriteString("classId", slot.ClassId);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

@@ -75,4 +75,32 @@ public sealed record ActorMatchCapabilityVersions
         BotArenaVersions.GenericActorObservationSchemaVersion,
         BotArenaVersions.GenericActorDecisionSchemaVersion,
         BotArenaVersions.GenericActorMatchContractSchemaVersion);
+
+    /// <summary>
+    /// The participant-scoped MIND tuple (DECISIONS #191). Selecting it is
+    /// what makes a resolved definition run through the per-participant
+    /// coordinator instead of the per-life one; the rules, map, format,
+    /// topology and mode it describes are untouched, which is exactly why the
+    /// match-contract schema is carried rather than minted.
+    /// </summary>
+    public static ActorMatchCapabilityVersions Mind { get; } = new(
+        BotArenaVersions.GenericMindContractProfileId,
+        BotArenaVersions.GenericMindRuntimeProtocolVersion,
+        BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+        BotArenaVersions.GenericMindRuntimeContractVersion,
+        BotArenaVersions.GenericMindMatchStartSchemaVersion,
+        BotArenaVersions.GenericMindObservationSchemaVersion,
+        BotArenaVersions.GenericMindDecisionSchemaVersion,
+        BotArenaVersions.GenericMindMatchContractSchemaVersion);
+
+    /// <summary>
+    /// True when this tuple selects the participant-scoped mind generation.
+    /// One profile ID decides the whole execution shape: one runtime per
+    /// participant, a union-once observation, and a decision MAP.
+    /// </summary>
+    public bool IsMindProfile =>
+        string.Equals(
+            ContractProfileId,
+            BotArenaVersions.GenericMindContractProfileId,
+            StringComparison.Ordinal);
 }

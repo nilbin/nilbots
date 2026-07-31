@@ -23,10 +23,24 @@ public sealed record PublicParticipant(
     int TeamId,
     string? ClassId = null);
 
+/// <summary>
+/// A stable, team-local body slot controlled by one submitted participant.
+/// </summary>
+/// <param name="TeamId">The scoring team the slot belongs to.</param>
+/// <param name="UnitId">The team-local stable handle, which survives death.</param>
+/// <param name="ControllerParticipantId">The participant that commands it.</param>
+/// <param name="ClassId">
+/// The chassis this slot's bodies carry, or null when the ruleset declares no
+/// compositions. Under a mixed composition your army's capability set is per
+/// BODY, not per team: read each body's legality mask rather than assuming
+/// your class's shape. Absent on every classless contract — the additive inert
+/// default, so a bot never branches on whether the mechanic exists.
+/// </param>
 public sealed record PublicUnitSlot(
     int TeamId,
     int UnitId,
-    int ControllerParticipantId);
+    int ControllerParticipantId,
+    string? ClassId = null);
 
 public sealed record PublicInitialLife(
     int TeamId,

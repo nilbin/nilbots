@@ -47,6 +47,30 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly Dictionary<int, int> _nextEventOrdinalByTick = [];
     private readonly Dictionary<ObservationAudienceKey, EventProjectionState>
         _eventProjectionStates = [];
+
+    /// <summary>
+    /// This tick's observable union per scoring team. Cleared at the top of
+    /// every <c>PrepareTick</c>, so it can never outlive the frozen boundary
+    /// it belongs to.
+    /// </summary>
+    private readonly Dictionary<int, GenericMindTeamProjection>
+        _teamProjectionCache = [];
+
+    /// <summary>
+    /// Where every body stood in the PREVIOUS mind observation — literally
+    /// "last tick's <c>Bodies</c>", which is the collection a mind would
+    /// otherwise hold in its own fields. Publishing it is what makes
+    /// <c>MovedLastTick</c> free rather than a favour: the fact is exactly
+    /// <c>previous.Position != Position</c>, computed once by the engine
+    /// instead of nine times by nine authors with a documented footgun.
+    /// <para>Deliberately NOT
+    /// <see cref="_positionsAtPreviousTickEnd"/>, which is the mid-step
+    /// stillness reference and equals the body's tick-start position by
+    /// construction.</para>
+    /// </summary>
+    private ImmutableDictionary<ActorIdentity, Position>
+        _positionsAtPreviousMindObservation =
+            ImmutableDictionary<ActorIdentity, Position>.Empty;
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
     private ImmutableDictionary<ActorIdentity, Position>
@@ -289,22 +313,37 @@ public sealed class GenericActorMatchSession : IDisposable
                 .. _priorResolvedEvents,
                 .. tickStartEvents,
             ];
+        // ONE union per team per tick, for BOTH profiles. Under the per-life
+        // profile the specialization is now a thin wrapper — self, the ally
+        // list, and the legality mask — over a union computed once instead of
+        // N byte-identical times, which is the O(N^2 x mapArea) -> O(N x
+        // mapArea) collapse the memo measured (§4.6). Under the mind profile
+        // the same object is handed straight to the participant.
+        _teamProjectionCache.Clear();
         ImmutableArray<GenericActorRuntimeObservation> observations =
             _lives.Values
                 .OrderBy(life => life.ActorId)
                 .Select(life => ProjectObservation(life, sourceEvents))
                 .ToImmutableArray();
+        ImmutableArray<GenericMindRuntimeObservation> mindObservations =
+            _host.IsMindProfile
+                ? ProjectMindObservations(sourceEvents)
+                : [];
         _preparedTick = new GenericActorMatchPreparedTick(
             Tick,
             observations,
             tickStartEvents
                 .Select(ToObservedEvent)
-                .ToImmutableArray());
+                .ToImmutableArray())
+        {
+            MindObservations = mindObservations,
+        };
         _preparedChronologyTick = new GenericActorMatchTickStart(
             Tick,
             SnapshotWorld(),
-            observations
-                .Select(observation => observation.Self.ActorId)
+            _lives.Values
+                .Select(life => life.ActorId)
+                .Order()
                 .ToImmutableArray(),
             lifeStarts.ToImmutable(),
             tickStartEvents.ToImmutable(),
@@ -346,8 +385,18 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorRuntimeObservation[] supplied = [.. observations];
         ValidateFrozenObservationBatch(tickStart, supplied);
 
+        // The ONE structural change the mind profile makes to a tick: one
+        // runtime per participant instead of one per life. The fan-out hands
+        // everything below this line exactly the shape it always received, so
+        // the 16 canonical phases run unchanged.
+        GenericMindRuntimeTickResult? mindTick = _host.IsMindProfile
+            ? _host.CollectMindTickDecisions(
+                Tick,
+                tickStart.MindObservations)
+            : null;
         GenericActorRuntimeTickResult runtimeTick =
-            _host.CollectTickDecisions(Tick, supplied);
+            mindTick?.ToActorTickResult()
+            ?? _host.CollectTickDecisions(Tick, supplied);
         var resolutions = CreateActionResolutions(runtimeTick);
         var events =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -533,7 +582,10 @@ public sealed class GenericActorMatchSession : IDisposable
             resolvedEvents,
             postState,
             IsCompleted,
-            terminalResult);
+            terminalResult)
+        {
+            MindTurns = mindTick?.MindTurns ?? [],
+        };
     }
 
     /// <summary>Runs until one terminal rule completes and returns its result.</summary>
@@ -2252,15 +2304,195 @@ public sealed class GenericActorMatchSession : IDisposable
         // onto self, ally, and enemy states as they are built.
         GenericActorModeProjection modeProjection =
             _mode.Project(ModeWorldView());
-        ImmutableArray<LifeState> sensors =
+        GenericMindTeamProjection shared = SharedProjectionFor(
+            observer,
+            sourceEvents,
+            modeProjection);
+
+        ImmutableArray<GenericActorRuntimeObservation.ObservedAllyState>
+            allies =
             _definition.Rules.TeamPerception.Kind
                 == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
                 ? _lives.Values
                     .Where(life =>
-                        life.ActorId.TeamId == observer.ActorId.TeamId)
+                        life.ActorId.TeamId == observer.ActorId.TeamId
+                        && life.ActorId != observer.ActorId)
                     .OrderBy(life => life.ActorId)
+                    .Select(life => ProjectAlly(life, modeProjection))
                     .ToImmutableArray()
-                : [observer];
+                : [];
+
+        return new GenericActorRuntimeObservation(
+            _definition.CapabilityVersions.ObservationSchemaVersion,
+            Tick,
+            _host.MatchContractFingerprint,
+            new GenericActorRuntimeObservation.ObservedSelfState(
+                observer.ActorId,
+                observer.Generation,
+                observer.FormId,
+                observer.Position,
+                observer.Facing,
+                observer.Health,
+                observer.Cooldown,
+                observer.Energy,
+                observer.PreviousActionResolution,
+                PendingObservation(observer))
+            {
+                ClassId = _participantClassIds[observer.ParticipantId],
+                RouteCooldowns = LiveRouteCooldowns(
+                    observer.ActorId.TeamId,
+                    observer.ActorId.UnitId),
+                CarriedScrap = modeProjection.CarriedScrapByActor
+                    .GetValueOrDefault(observer.ActorId),
+            },
+            shared.TeamUnits,
+            shared.Participants,
+            allies,
+            shared.Enemies,
+            shared.VisibleTiles,
+            shared.VisibleProjectiles,
+            shared.VisibleEvents,
+            shared.HeardSounds,
+            shared.Scoreboard,
+            shared.Mode,
+            ActionLegalities(observer));
+    }
+
+    /// <summary>
+    /// The observable union this observer reads, computed once per team per
+    /// tick and reused by reference.
+    /// <para>
+    /// The memoization is only correct — and is exactly correct — under
+    /// immediate-union perception, because that is the case in which the
+    /// sensor set, the enemy set, the redaction audience and the event
+    /// projection state are all functions of the TEAM rather than of the body.
+    /// Under any other perception kind the union is genuinely per-observer and
+    /// nothing is shared, which is also why the mind profile requires immediate
+    /// union (see <c>ValidateWorldCapabilities</c>).
+    /// </para>
+    /// </summary>
+    private GenericMindTeamProjection SharedProjectionFor(
+        LifeState observer,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
+        int teamId = observer.ActorId.TeamId;
+        if (_definition.Rules.TeamPerception.Kind
+            != ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion)
+        {
+            return ProjectPerceptionUnion(
+                teamId,
+                [observer],
+                EventProjectionFor(observer),
+                sourceEvents,
+                modeProjection);
+        }
+        if (!_teamProjectionCache.TryGetValue(
+                teamId,
+                out GenericMindTeamProjection? cached))
+        {
+            cached = ProjectPerceptionUnion(
+                teamId,
+                SensorsFor(observer),
+                EventProjectionFor(observer),
+                sourceEvents,
+                modeProjection);
+            _teamProjectionCache.Add(teamId, cached);
+        }
+        return cached;
+    }
+
+    /// <summary>
+    /// The union for one team, independent of any observer. Used by the mind
+    /// projection, which has no "self" to key on.
+    /// </summary>
+    private GenericMindTeamProjection SharedProjectionForTeam(
+        int teamId,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
+        if (!_teamProjectionCache.TryGetValue(
+                teamId,
+                out GenericMindTeamProjection? cached))
+        {
+            cached = ProjectPerceptionUnion(
+                teamId,
+                [
+                    .. _lives.Values
+                        .Where(life => life.ActorId.TeamId == teamId)
+                        .OrderBy(life => life.ActorId),
+                ],
+                TeamEventProjection(teamId),
+                sourceEvents,
+                modeProjection);
+            _teamProjectionCache.Add(teamId, cached);
+        }
+        return cached;
+    }
+
+    /// <summary>
+    /// Every body whose sensors contribute to one observer's picture. Under
+    /// the shipped immediate-union perception that is the whole scoring team,
+    /// which is precisely why the union is the same object for every body on
+    /// it — the fact the mind profile finally exploits.
+    /// </summary>
+    private ImmutableArray<LifeState> SensorsFor(LifeState observer) =>
+        _definition.Rules.TeamPerception.Kind
+            == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
+            ? _lives.Values
+                .Where(life =>
+                    life.ActorId.TeamId == observer.ActorId.TeamId)
+                .OrderBy(life => life.ActorId)
+                .ToImmutableArray()
+            : [observer];
+
+    private GenericActorRuntimeObservation.ObservedAllyState ProjectAlly(
+        LifeState life,
+        GenericActorModeProjection modeProjection) =>
+        new(
+            life.ActorId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing,
+            life.Health,
+            life.Cooldown,
+            life.Energy,
+            life.PreviousActionResolution,
+            PendingObservation(life))
+        {
+            ClassId = _participantClassIds[life.ParticipantId],
+            RouteCooldowns = LiveRouteCooldowns(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId),
+            CarriedScrap = modeProjection.CarriedScrapByActor
+                .GetValueOrDefault(life.ActorId),
+        };
+
+    /// <summary>
+    /// The observable union for one audience: visible tiles with provenance,
+    /// visible enemies, visible projectiles, redacted events, heard sounds,
+    /// the team's slot table, participant statuses, the scoreboard and the
+    /// mode state.
+    /// <para>
+    /// This is the single most expensive computation in a tick —
+    /// <c>VisibleTilesFor</c> scans the map per sensor, <c>ObserversAt</c> runs
+    /// per tile per sensor, and <c>SpawnReservationAt</c> runs a
+    /// <c>SingleOrDefault</c> over the reservation lists per visible tile — and
+    /// under the per-life profile it is executed once per LIFE with a
+    /// byte-identical result each time. The mind profile calls it once per TEAM
+    /// per tick, turning <c>O(N^2 x mapArea)</c> into <c>O(N x mapArea)</c>. It
+    /// is extracted rather than duplicated so the two profiles cannot drift:
+    /// the null pin compares two drivers, not two implementations.
+    /// </para>
+    /// </summary>
+    private GenericMindTeamProjection ProjectPerceptionUnion(
+        int observingTeamId,
+        ImmutableArray<LifeState> sensors,
+        EventProjectionState eventProjection,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
         Dictionary<ActorIdentity, HashSet<Position>> visibleBySensor =
             sensors.ToDictionary(
                 sensor => sensor.ActorId,
@@ -2287,8 +2519,7 @@ public sealed class GenericActorMatchSession : IDisposable
 
         ImmutableArray<GenericActorRuntimeObservation.ObservedEnemyState>
             enemies = _lives.Values
-                .Where(life =>
-                    life.ActorId.TeamId != observer.ActorId.TeamId)
+                .Where(life => life.ActorId.TeamId != observingTeamId)
                 .OrderBy(life => life.ActorId)
                 .Select(life =>
                     (life, observedBy:
@@ -2313,39 +2544,6 @@ public sealed class GenericActorMatchSession : IDisposable
         HashSet<ActorIdentity> visibleEnemyIds =
             enemies.Select(enemy => enemy.ActorId).ToHashSet();
 
-        ImmutableArray<GenericActorRuntimeObservation.ObservedAllyState>
-            allies =
-            _definition.Rules.TeamPerception.Kind
-                == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
-                ? _lives.Values
-                    .Where(life =>
-                        life.ActorId.TeamId == observer.ActorId.TeamId
-                        && life.ActorId != observer.ActorId)
-                    .OrderBy(life => life.ActorId)
-                    .Select(life =>
-                        new GenericActorRuntimeObservation.ObservedAllyState(
-                            life.ActorId,
-                            life.Generation,
-                            life.FormId,
-                            life.Position,
-                            life.Facing,
-                            life.Health,
-                            life.Cooldown,
-                            life.Energy,
-                            life.PreviousActionResolution,
-                            PendingObservation(life))
-                        {
-                            ClassId =
-                                _participantClassIds[life.ParticipantId],
-                            RouteCooldowns = LiveRouteCooldowns(
-                                life.ActorId.TeamId,
-                                life.ActorId.UnitId),
-                            CarriedScrap = modeProjection.CarriedScrapByActor
-                                .GetValueOrDefault(life.ActorId),
-                        })
-                    .ToImmutableArray()
-                : [];
-
         ImmutableArray<GenericActorRuntimeObservation.ObservedProjectile>?
             projectiles = _definition.Rules.AttackProfiles.All(profile =>
                 profile.Projectile.Mode == ActorProjectileMode.InstantRay)
@@ -2364,7 +2562,7 @@ public sealed class GenericActorMatchSession : IDisposable
                                 item.projectile.Id,
                                 item.projectile.OwnerTeamId,
                                 item.projectile.OwnerTeamId
-                                        == observer.ActorId.TeamId
+                                        == observingTeamId
                                     || visibleEnemyIds.Contains(
                                         item.projectile.OwnerActorId)
                                     ? item.projectile.OwnerActorId
@@ -2396,8 +2594,6 @@ public sealed class GenericActorMatchSession : IDisposable
         var heardSounds =
             ImmutableArray.CreateBuilder<
                 GenericActorRuntimeObservation.ObservedSound>();
-        EventProjectionState eventProjection =
-            EventProjectionFor(observer);
         foreach (GenericActorAuthoritativeEvent source in
                  sourceEvents
                      .OrderBy(item => item.Tick)
@@ -2414,12 +2610,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 GenericActorAuthoritativeEvent.Audience.Public => true,
                 GenericActorAuthoritativeEvent.Audience.TeamPrivate
                     teamPrivate =>
-                    teamPrivate.TeamId == observer.ActorId.TeamId,
+                    teamPrivate.TeamId == observingTeamId,
                 GenericActorAuthoritativeEvent.Audience.Spatial spatial =>
                     ProjectSpatialEvent(
                         sourceEvent,
                         spatial.PrimaryPosition,
-                        observer.ActorId.TeamId,
+                        observingTeamId,
                         sensors,
                         visibleBySensor,
                         visibleEnemyIds,
@@ -2460,32 +2656,10 @@ public sealed class GenericActorMatchSession : IDisposable
             }
         }
 
-        return new GenericActorRuntimeObservation(
-            _definition.CapabilityVersions.ObservationSchemaVersion,
-            Tick,
-            _host.MatchContractFingerprint,
-            new GenericActorRuntimeObservation.ObservedSelfState(
-                observer.ActorId,
-                observer.Generation,
-                observer.FormId,
-                observer.Position,
-                observer.Facing,
-                observer.Health,
-                observer.Cooldown,
-                observer.Energy,
-                observer.PreviousActionResolution,
-                PendingObservation(observer))
-            {
-                ClassId = _participantClassIds[observer.ParticipantId],
-                RouteCooldowns = LiveRouteCooldowns(
-                    observer.ActorId.TeamId,
-                    observer.ActorId.UnitId),
-                CarriedScrap = modeProjection.CarriedScrapByActor
-                    .GetValueOrDefault(observer.ActorId),
-            },
-            TeamUnitObservations(observer.ActorId.TeamId),
+        return new GenericMindTeamProjection(
+            observingTeamId,
+            TeamUnitObservations(observingTeamId),
             _host.ParticipantStatuses,
-            allies,
             enemies,
             visibleTiles,
             projectiles,
@@ -2494,9 +2668,137 @@ public sealed class GenericActorMatchSession : IDisposable
                 ? null
                 : heardSounds.ToImmutable(),
             modeProjection.Scoreboard,
-            modeProjection.Mode,
-            ActionLegalities(observer));
+            modeProjection.Mode);
     }
+
+    /// <summary>
+    /// One frozen observation per TICKING PARTICIPANT
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §2.3, §2.7).
+    /// <para>
+    /// Every non-disqualified participant appears here on every tick, whether
+    /// or not it owns a live body. A mind that went dark on a total body loss
+    /// would lose the ability to plan the return — exactly the "real fun
+    /// complexity" #190 asked for, especially under a home-walk respawn — would
+    /// accumulate silent memory staleness, and would be blind during the very
+    /// window its enemy-position beliefs decay fastest. It costs only the base
+    /// fuel term, so it ticks.
+    /// </para>
+    /// </summary>
+    private ImmutableArray<GenericMindRuntimeObservation>
+        ProjectMindObservations(
+            ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
+    {
+        GenericActorModeProjection modeProjection =
+            _mode.Project(ModeWorldView());
+        var result =
+            ImmutableArray.CreateBuilder<GenericMindRuntimeObservation>();
+        foreach (int participantId in _host.TickingParticipantIds)
+        {
+            int teamId = _participantTeams[participantId];
+            GenericMindTeamProjection shared = SharedProjectionForTeam(
+                teamId,
+                sourceEvents,
+                modeProjection);
+            result.Add(new GenericMindRuntimeObservation(
+                _definition.CapabilityVersions.ObservationSchemaVersion,
+                Tick,
+                _host.MatchContractFingerprint,
+                participantId,
+                teamId,
+                [
+                    .. _lives.Values
+                        .Where(life => life.ParticipantId == participantId)
+                        .OrderBy(life => life.ActorId)
+                        .Select(life => ProjectBody(life, modeProjection)),
+                ],
+                [
+                    .. _slots.Values
+                        .Where(slot => slot.ParticipantId == participantId)
+                        .OrderBy(slot => slot.UnitId)
+                        .Select(slot =>
+                            new GenericMindRuntimeObservation.ObservedOwnSlot(
+                                slot.TeamId,
+                                slot.UnitId,
+                                ProjectSlotState(slot),
+                                SlotClassId(slot))),
+                ],
+                // Allied MINDS' bodies: the team's bodies this participant does
+                // NOT command. Always empty in head-to-head and in FFA-N,
+                // because there is one participant per scoring team; the 2v2
+                // hook that makes the #190 rider structural rather than
+                // documented.
+                [
+                    .. _lives.Values
+                        .Where(life =>
+                            life.ActorId.TeamId == teamId
+                            && life.ParticipantId != participantId)
+                        .OrderBy(life => life.ActorId)
+                        .Select(life => ProjectAlly(life, modeProjection)),
+                ],
+                shared,
+                // Reserved (§11.3): the engine writes the empty collection, so
+                // the field is negotiated and the shape is fixed while nothing
+                // executes.
+                AlliedIntents: []));
+        }
+
+        // This tick's published positions become next tick's "previous". The
+        // update happens exactly once per tick because PrepareTick memoizes.
+        _positionsAtPreviousMindObservation = _lives.Values.ToImmutableDictionary(
+            life => life.ActorId,
+            life => life.Position);
+        return result.ToImmutable();
+    }
+
+    private GenericMindRuntimeObservation.ObservedBodyState ProjectBody(
+        LifeState life,
+        GenericActorModeProjection modeProjection)
+    {
+        Position? previousPosition =
+            _positionsAtPreviousMindObservation.TryGetValue(
+                life.ActorId,
+                out Position remembered)
+                ? remembered
+                : null;
+        return new GenericMindRuntimeObservation.ObservedBodyState(
+            life.ActorId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing,
+            life.Health,
+            life.Cooldown,
+            life.Energy,
+            life.PreviousActionResolution,
+            PendingObservation(life),
+            previousPosition,
+            // The wave-8 ask, published rather than reconstructed. A body with
+            // no previous position is new this tick, and a new body has not
+            // moved — the same rule an author had to derive and could get
+            // silently wrong.
+            previousPosition is Position previous
+                && previous != life.Position,
+            life.SpawnedAtTick,
+            life.LifeStart.Origin,
+            ActionLegalities(life))
+        {
+            ClassId = _participantClassIds[life.ParticipantId],
+            RouteCooldowns = LiveRouteCooldowns(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId),
+            CarriedScrap = modeProjection.CarriedScrapByActor
+                .GetValueOrDefault(life.ActorId),
+            // Reserved (§12): P2 ships SetRole, so no tag has ever been set.
+            RoleTag = null,
+        };
+    }
+
+    private string? SlotClassId(SlotState slot) =>
+        _definition.Topology.UnitSlots
+            .Single(value =>
+                value.TeamId == slot.TeamId
+                && value.UnitId == slot.UnitId)
+            .ClassId;
 
     private GenericActorRuntimeObservation.SpawnReservation?
         SpawnReservationAt(Position position)
@@ -2602,9 +2904,8 @@ public sealed class GenericActorMatchSession : IDisposable
         return false;
     }
 
-    private EventProjectionState EventProjectionFor(LifeState observer)
-    {
-        ObservationAudienceKey audience =
+    private EventProjectionState EventProjectionFor(LifeState observer) =>
+        EventProjectionFor(
             _definition.Rules.TeamPerception.Kind
                 == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
                 ? new ObservationAudienceKey(
@@ -2612,7 +2913,20 @@ public sealed class GenericActorMatchSession : IDisposable
                     ActorId: null)
                 : new ObservationAudienceKey(
                     observer.ActorId.TeamId,
-                    observer.ActorId);
+                    observer.ActorId));
+
+    /// <summary>
+    /// The team's projected-event identity state. Under immediate union this
+    /// is the same object every body on the team reads, so a mind and a
+    /// per-life body see identical event handles and ordinals — which is what
+    /// keeps the two profiles' event streams comparable.
+    /// </summary>
+    private EventProjectionState TeamEventProjection(int teamId) =>
+        EventProjectionFor(new ObservationAudienceKey(teamId, ActorId: null));
+
+    private EventProjectionState EventProjectionFor(
+        ObservationAudienceKey audience)
+    {
         if (!_eventProjectionStates.TryGetValue(
                 audience,
                 out EventProjectionState? projection))
@@ -4374,6 +4688,33 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             throw new NotSupportedException(
                 "The first generic session requires initial life IDs and generations to start at zero.");
+        }
+        if (definition.CapabilityVersions.IsMindProfile
+            && definition.Rules.TeamPerception.Kind
+                != ActorTeamPerceptionDefinition.PerceptionKind
+                    .ImmediateUnion)
+        {
+            // The mind receives its team's observable union ONCE. That is only
+            // meaningful when perception is a team union in the first place —
+            // under any per-body perception the "shared" projection would be a
+            // fiction. Team perception is unchanged and stays team-scoped
+            // (DESIGN-MIND-ARCHITECTURE §1.3); the mind profile simply
+            // requires it.
+            throw new NotSupportedException(
+                "The mind profile requires immediate-union team perception.");
+        }
+        if (definition.CapabilityVersions.IsMindProfile
+            && definition.Topology.UnitSlots.Any(slot =>
+                slot.ClassId is not null
+                && !GenericMindContractReservations
+                    .RegisteredCompositionTokens
+                    .Contains(slot.ClassId, StringComparer.Ordinal)))
+        {
+            // A profile ID is a pre-registration in this project, and so is a
+            // composition token. An unregistered chassis on a slot faults here
+            // rather than travelling unlabelled into balance evidence (§9.5).
+            throw new NotSupportedException(
+                "Every per-slot chassis must name a registered composition chassis.");
         }
 
         Dictionary<string, ActorMovementProfileDefinition> movement =

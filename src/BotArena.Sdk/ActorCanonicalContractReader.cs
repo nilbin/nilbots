@@ -196,29 +196,59 @@ public static class ActorCanonicalContractReader
             Int(element, "decisionSchemaVersion"),
             Int(element, "matchContractSchemaVersion"));
 
-        if (result.ContractProfileId
-                != GenericActorContractVersions.ContractProfileId
-            || result.RuntimeProtocolVersion
-                != GenericActorContractVersions.RuntimeProtocolVersion
-            || result.RuntimeConfigurationVersion
-                != GenericActorContractVersions.RuntimeConfigurationVersion
-            || result.RuntimeContractVersion
-                != GenericActorContractVersions.RuntimeContractVersion
-            || result.MatchStartSchemaVersion
-                != GenericActorContractVersions.MatchStartSchemaVersion
-            || result.ObservationSchemaVersion
-                != GenericActorContractVersions.ObservationSchemaVersion
-            || result.DecisionSchemaVersion
-                != GenericActorContractVersions.DecisionSchemaVersion
-            || result.MatchContractSchemaVersion
-                != GenericActorContractVersions.MatchContractSchemaVersion)
+        // A profile is an INDIVISIBLE tuple: the whole set matches one
+        // negotiated profile or the contract is refused. The two profiles
+        // coexist beside each other (DECISIONS #191), so the reader admits
+        // exactly two exact tuples and nothing in between — a contract that
+        // mixed the actor line's schemas with the mind line's would be a
+        // combination nobody has ever tested.
+        if (!IsExactly(result, generic: true)
+            && !IsExactly(result, generic: false))
         {
             throw Unsupported(
                 "capabilityVersions",
-                "The capability tuple is not the negotiated generic-v2 profile.");
+                "The capability tuple is not a negotiated contract profile.");
         }
         return result;
     }
+
+    private static bool IsExactly(
+        MatchContract.CapabilityVersionSet result,
+        bool generic) =>
+        generic
+            ? result.ContractProfileId
+                    == GenericActorContractVersions.ContractProfileId
+                && result.RuntimeProtocolVersion
+                    == GenericActorContractVersions.RuntimeProtocolVersion
+                && result.RuntimeConfigurationVersion
+                    == GenericActorContractVersions
+                        .RuntimeConfigurationVersion
+                && result.RuntimeContractVersion
+                    == GenericActorContractVersions.RuntimeContractVersion
+                && result.MatchStartSchemaVersion
+                    == GenericActorContractVersions.MatchStartSchemaVersion
+                && result.ObservationSchemaVersion
+                    == GenericActorContractVersions.ObservationSchemaVersion
+                && result.DecisionSchemaVersion
+                    == GenericActorContractVersions.DecisionSchemaVersion
+                && result.MatchContractSchemaVersion
+                    == GenericActorContractVersions.MatchContractSchemaVersion
+            : result.ContractProfileId
+                    == GenericMindContractVersions.ContractProfileId
+                && result.RuntimeProtocolVersion
+                    == GenericMindContractVersions.RuntimeProtocolVersion
+                && result.RuntimeConfigurationVersion
+                    == GenericMindContractVersions.RuntimeConfigurationVersion
+                && result.RuntimeContractVersion
+                    == GenericMindContractVersions.RuntimeContractVersion
+                && result.MatchStartSchemaVersion
+                    == GenericMindContractVersions.MatchStartSchemaVersion
+                && result.ObservationSchemaVersion
+                    == GenericMindContractVersions.ObservationSchemaVersion
+                && result.DecisionSchemaVersion
+                    == GenericMindContractVersions.DecisionSchemaVersion
+                && result.MatchContractSchemaVersion
+                    == GenericMindContractVersions.MatchContractSchemaVersion;
 
     private static MapContract ReadMap(JsonElement element)
     {
@@ -381,15 +411,22 @@ public static class ActorCanonicalContractReader
 
     private static PublicUnitSlot ReadUnitSlot(JsonElement element)
     {
+        // Per-slot chassis reads under the same additive discipline as the
+        // scoring team's and the participant's: present or absent, never an
+        // explicit null, so the absence has exactly one encoding.
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
         ExactObject(
             element,
-            "teamId",
-            "unitId",
-            "controllerParticipantId");
+            hasClassId
+                ? ["teamId", "unitId", "controllerParticipantId", "classId"]
+                : ["teamId", "unitId", "controllerParticipantId"]);
         return new PublicUnitSlot(
             Int(element, "teamId"),
             Int(element, "unitId"),
-            Int(element, "controllerParticipantId"));
+            Int(element, "controllerParticipantId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicInitialLife ReadInitialLife(JsonElement element)

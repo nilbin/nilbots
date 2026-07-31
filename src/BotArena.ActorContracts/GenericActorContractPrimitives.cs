@@ -22,7 +22,8 @@ internal sealed record PublicParticipant(
 internal sealed record PublicUnitSlot(
     int TeamId,
     int UnitId,
-    int ControllerParticipantId);
+    int ControllerParticipantId,
+    string? ClassId = null);
 
 internal sealed record PublicInitialLife(
     int TeamId,
