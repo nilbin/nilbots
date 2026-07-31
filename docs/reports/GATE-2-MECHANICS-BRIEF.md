@@ -1,6 +1,6 @@
-DECISION NEEDED: Approve the **Threefold** map and the Arc Relay Phase B numbers as the Phase C implementation hypothesis; default: approve unchanged, with every number below remaining provisional until rules-native play and the owner gallery.
+DECISION NEEDED: none — the owner approved **Threefold** and the Arc Relay Phase B mechanics unchanged on 2026-08-01 (DECISIONS #200); all H0 numbers remain provisional until rules-native play and the owner gallery.
 
-RESULT: Arc Relay now has a buildable mechanics hypothesis rather than only a concept. Threefold is an exact 31×23, three-theater, mirror-fair map with 525 walkable tiles; eight bodies per side fight over at most three live Arc Cores. A 25-tick global production beat, three Cores per reactor Pulse, three Pulses to win, a 600-tick horizon, a 20-tick respawn delay, and bounded hull, handling, gun, vision, carrier, and signature values create the first testable ruleset. These are registered starting values, not balance findings, and no implementation or claim of fun has been made.
+RESULT: **APPROVED.** Arc Relay now has a ratified, buildable mechanics hypothesis rather than only a concept. Threefold is an exact 31×23, three-theater, mirror-fair map with 525 walkable tiles; eight bodies per side fight over at most three live Arc Cores. A 25-tick global production beat, three Cores per reactor Pulse, three Pulses to win, a 600-tick horizon, a 20-tick respawn delay, and bounded hull, handling, gun, vision, carrier, and signature values create the first testable ruleset. These remain registered starting values, not balance findings, and no implementation or claim of fun has been made.
 
 EVIDENCE:
 
@@ -653,4 +653,4 @@ choices do not move outcomes or collapse to one dominant plan.
 | Determinism / mind / 2D / frozen generations | Chronology and Phase C boundaries in Sections 4 and 10 | Met as design constraint |
 | No implementation | Only this report is created; no engine, SDK, renderer, map package, ruleset, or test is changed | Met |
 
-NEXT: none without the owner ruling. If approved, Phase C may implement H0 behind a new experimental Arc Relay identity with Canvas2D presentation in the same change. If changed, revise this brief before code. Do not run balance evidence, author stock mind v0, or begin implementation from an unratified Phase B foundation.
+NEXT: Phase B is closed. Phase C may implement H0 behind a new experimental Arc Relay identity, with Canvas2D presentation in the same change, when that build is commissioned. No Phase C implementation, balance evidence, or stock-mind authoring was started by this ruling.

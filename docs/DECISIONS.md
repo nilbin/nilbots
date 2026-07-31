@@ -4456,6 +4456,27 @@ registered exactly as recorded; a later season may widen the roster
 if the game first proves fun. Phase A is closed and its foundation is
 ratified for Phase B. This ruling does not itself begin implementation.
 
+## 200. Threefold and the Arc Relay Phase B mechanics are approved
+
+Gate 2 owner ruling (2026-08-01): **approved unchanged.** Threefold and
+the complete H0 mechanics brief in
+`docs/reports/GATE-2-MECHANICS-BRIEF.md` are the ratified Phase C
+implementation hypothesis: the exact 31x23 map; eight fixed bodies per
+side; direct composition from the player's unlocked classes with at
+most two copies of one class; the three-Well production schedule and
+three-live-Core bound; the Core-owned relocation recovery and committed
+handoff; three deliveries per Pulse, three Pulses to win, the 600-tick
+horizon, and the 20-tick respawn delay; the statline bands and first
+implementation envelopes for all sixteen signatures.
+
+There is no five-class stable in ordinary Arc Relay sheet structure.
+That mechanism stays registered only as a scale response if the roster
+grows beyond roughly 25 classes, or as an explicit draft/tournament
+format lever. Approval makes the H0 package buildable; it does not turn
+its provisional numbers into measured balance, establish that the game
+is fun, or itself begin Phase C. Rules-native evidence and the owner's
+felt-experience gallery remain the authorities for those later gates.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
