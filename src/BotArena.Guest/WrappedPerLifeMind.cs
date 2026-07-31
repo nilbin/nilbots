@@ -92,8 +92,9 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
                 _subBrains[key] = brain;
             }
 
+            brain.TeamRandom.BeginTick(mind.Tick);
             GenericActorDecision decision = brain.Tick(
-                Specialize(start, mind, body, brain.Random));
+                Specialize(start, mind, body, brain.Random, brain.TeamRandom));
             body.Command(
                 decision.ActionId,
                 decision.ActionCode,
@@ -130,7 +131,8 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
         MindStart start,
         MindContext mind,
         MindBody body,
-        IBotRandom? bodyRandom = null)
+        IBotRandom? bodyRandom = null,
+        IBotRandom? bodyTeamRandom = null)
     {
         ArgumentNullException.ThrowIfNull(start);
         ArgumentNullException.ThrowIfNull(mind);
@@ -198,7 +200,10 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
             body.ActionLegalities)
         {
             Random = bodyRandom ?? mind.Random,
-            TeamRandom = mind.TeamRandom,
+            // Each sub-brain's OWN re-derived team stream (see SubBrain
+            // .TeamRandom): sharing the mind's instance advanced one stream
+            // position across bodies and broke the per-life equivalence.
+            TeamRandom = bodyTeamRandom ?? mind.TeamRandom,
             Debug = mind.Debug,
         };
     }
@@ -229,10 +234,14 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
     {
         private readonly IGenericActorBot _bot;
 
-        private SubBrain(IGenericActorBot bot, IBotRandom random)
+        private SubBrain(
+            IGenericActorBot bot,
+            IBotRandom random,
+            GuestTeamRandom teamRandom)
         {
             _bot = bot;
             Random = random;
+            TeamRandom = teamRandom;
         }
 
         /// <summary>
@@ -242,6 +251,18 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
         /// </summary>
         public IBotRandom Random { get; }
 
+        /// <summary>
+        /// This body's OWN per-tick team stream. Under the per-life profile
+        /// every life re-derives its team stream each tick, so every life's
+        /// Nth draw of a tick yields the same value. Sharing the mind's one
+        /// instance advanced a single position across sub-brains in body
+        /// iteration order — the first null-pin run diverged in 33 of 63
+        /// cells on exactly this. Each sub-brain re-deriving its own stream
+        /// restores per-life semantics: identical per draw index, and no
+        /// body's draws move another's.
+        /// </summary>
+        public GuestTeamRandom TeamRandom { get; }
+
         public static SubBrain Create(
             IGenericActorBot bot,
             GenericActorMatchStart start)
@@ -250,7 +271,8 @@ internal sealed class WrappedPerLifeMind : IGenericMindBot
                 bot
                 ?? throw new InvalidOperationException(
                     "Generic actor bot factory returned null."),
-                new GuestRandom(start.ActorRandomSeed));
+                new GuestRandom(start.ActorRandomSeed),
+                new GuestTeamRandom(start.TeamRandomSeed));
             brain._bot.StartLife(start);
             return brain;
         }

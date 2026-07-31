@@ -484,7 +484,11 @@ public static class ToolchainInfo
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.
-    public const string GuestAdapterVersion = "0.10.11";
+    // 0.10.12: the wrapped per-life mind gives each sub-brain its OWN
+    // re-derived per-tick team stream — sharing the mind's one instance
+    // advanced a single position across bodies and diverged 33 of 63
+    // null-pin cells for any TeamRandom-consuming bot.
+    public const string GuestAdapterVersion = "0.10.12";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

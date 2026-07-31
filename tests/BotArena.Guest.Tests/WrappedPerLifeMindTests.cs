@@ -402,6 +402,71 @@ public sealed class WrappedPerLifeMindTests
         Assert.True(wrappedDraws.Distinct().Count() > 1);
     }
 
+    /// <summary>
+    /// The first null-pin run diverged in 33 of 63 cells because the wrapper
+    /// shared ONE TeamRandom instance across sub-brains — body B's first
+    /// draw continued the stream after body A's, while under the per-life
+    /// profile every life re-derives its own per-tick stream and every
+    /// life's Nth draw of a tick yields the same value. Two bodies drawing
+    /// twice per tick pin both properties: identical values per draw index,
+    /// and no body's draws moving another's.
+    /// </summary>
+    [Fact]
+    public void TeamRandomDrawsMatchPerLifeSemanticsAcrossSubBrains()
+    {
+        MindStart start = GenericMindGuestTestFixture.Start();
+
+        var byBody = new Dictionary<int, List<int>>
+        {
+            [0] = [],
+            [1] = [],
+        };
+        var wrapped = new WrappedPerLifeMind(
+            _ => new TeamDrawingBot(byBody),
+            "team-dice");
+        wrapped.StartMatch(start);
+        for (int tick = 0; tick < 8; tick++)
+        {
+            wrapped.Think(GenericMindGuestTestFixture.Context(
+                start,
+                tick,
+                GenericMindGuestTestFixture.Body(0, 0, new Position(2, 2)),
+                GenericMindGuestTestFixture.Body(1, 0, new Position(3, 2))));
+        }
+
+        // Per-life semantics: every life's Nth team draw of a tick is the
+        // same value, so the two bodies' sequences are identical...
+        Assert.Equal(byBody[0], byBody[1]);
+        Assert.Equal(16, byBody[0].Count);
+        // ...and match a per-life guest's own re-derived stream exactly.
+        var reference = new GuestTeamRandom(start.TeamRandomSeed);
+        var expected = new List<int>();
+        for (int tick = 0; tick < 8; tick++)
+        {
+            reference.BeginTick(tick);
+            expected.Add(reference.NextInt(0, 1000));
+            expected.Add(reference.NextInt(0, 1000));
+        }
+        Assert.Equal(expected, byBody[0]);
+        Assert.True(byBody[0].Distinct().Count() > 1);
+    }
+
+    private sealed class TeamDrawingBot(Dictionary<int, List<int>> byBody)
+        : IGenericActorBot
+    {
+        private int _unitId;
+
+        public void StartLife(GenericActorMatchStart start) =>
+            _unitId = start.ActorId.UnitId;
+
+        public GenericActorDecision Tick(GenericActorContext context)
+        {
+            byBody[_unitId].Add(context.TeamRandom.NextInt(0, 1000));
+            byBody[_unitId].Add(context.TeamRandom.NextInt(0, 1000));
+            return new GenericActorDecision("wait", 0, []);
+        }
+    }
+
     private sealed class SeedRecordingBot : IGenericActorBot
     {
         private readonly List<ulong> _seeds;
