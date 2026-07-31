@@ -279,3 +279,21 @@ otherwise). The dynamics report's pass/fail metrics are the
 pre-registration targets. The numbers-only lethality/respawn arm runs
 as the control factor in the same factorial (steelman: the largest
 balance effect ever measured here came from a non-mechanism change).
+
+## Ground healing (owner-ruled 2026-07-31, next-window candidate)
+
+Healing on OWN captured ground, ruled "has to be fairly slow": a body
+standing still on its team's captured half regenerates 1 HP per N
+stationary ticks (N in the 8–12 band, pre-registered), capped at the
+body's current max health so the plate ladder composes (plate raises
+the ceiling, ground restores toward it). The stillness gate reuses the
+channel's still-tick grammar deliberately — healing costs front
+presence, the same currency capturing costs, so recovery is a
+decision, not a regen aura. The rejected variant is recorded with its
+reason: healing scaled to captured positions amplifies the winner
+(more pushed ground = more healing) on top of a now-decisive economy;
+the slow own-half rule keeps both teams' recovery symmetric in space.
+Explicitly NOT in the legion/no-rally/economy-v1.1 package — it ships
+as its own A/B in the round after, so its effect on the bulwark crown
+reads clean. Register `ground-healing` (rate, gate, cap) in the
+ablation debt at build time.
