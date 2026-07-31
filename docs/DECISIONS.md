@@ -4379,6 +4379,31 @@ prototype, waits on stock mind v0 after the one-chassis package
 lands. Still open with the owner: the one-shared-ladder question and
 who writes stock minds beyond the curated first set.
 
+## 196. The game-redesign campaign hands to Codex; 2D is the renderer
+
+Owner rulings (2026-07-31), driven by quota — the campaign continues
+under Codex with the owner at the gates. FIRST, presentation: the
+experimental game GOES BACK TO THE 2D RENDERER as its primary and
+only REQUIRED surface — way less work per class, and agents can
+review a Canvas2D frame autonomously. The 3D viewer is PARKED for the
+experiment (kept compiling, no longer extended per new mechanic); the
+shipped duel product keeps its 3D stance. The #189 law stands
+("viewer must render the mechanics") and 2D is now how it is
+satisfied cheaply. SECOND, the commission, in the owner's own frame:
+15-20 classes; fun variety; "we are NOT committed to any of the
+existing classes"; each class some depth but not too much; a BIGGER
+map than current frontline; and core mechanics MORE INTERESTING than
+today's — the owner's verdict on the current game is on record:
+"frontline feels a bit too dull." Commander mode (#195) is the
+overall vision it all serves. The one-chassis package (#194, in
+flight) lands as class-agnostic infrastructure — chassis unification
+and slot-scoped composition survive any roster. The mind-native bot
+wave (the previous Codex handover) is SUPERSEDED IN ORDER: bots are
+authored after the game stabilizes, not before. Owner gates are part
+of the campaign contract: taste rulings on curated forks, and the
+felt-experience gate — galleries watched by the owner — as the only
+authority on "fun."
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

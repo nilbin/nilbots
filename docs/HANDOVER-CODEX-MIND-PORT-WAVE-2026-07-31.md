@@ -1,5 +1,11 @@
 # Handover: the mind-native doctrine wave
 
+SUPERSEDED IN ORDER (2026-07-31, DECISIONS #196): the game-redesign
+campaign (HANDOVER-CODEX-GAME-REDESIGN-2026-07-31.md) runs FIRST —
+bots are authored after the game stabilizes. Do not run this wave
+until the owner re-issues it; expect its stack, baselines, and
+class list to need a refresh pass against the redesigned game.
+
 For Codex. Commissioned by the owner; run this when he says it is due.
 Self-contained — read it fully, then the files it names.
 
