@@ -660,6 +660,11 @@ the contract before it is generalized to other arenas.
   vents, and clamps from a stable family/coordinate/mask/side hash and keep
   them inside the narrowest reviewed profile. A future authored module kit may
   replace individual layers only after it preserves the same data authority.
+- Keep topology caps per tile for exact atlas registration, but round a cap
+  corner when and only when both adjacent sides face open floor. Connected and
+  different-family joins stay square; shaped vertices keep the same linear
+  crop into the atlas cell. This preserves the rounded solid without a sharp
+  unsupported texture lip and without changing collision or wall layout.
 - Walls may gain chamfers, recesses, profiles, damage, and less rectangular
   silhouettes, but the occupied tile and cover edge must remain immediately
   legible. Decorative overhangs cannot imply an opening, changed collision,

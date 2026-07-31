@@ -140,8 +140,8 @@ export function isGenuineLookModel(model: THREE.Object3D): boolean {
  * a cached material would let one bot dim every other bot wearing the same chassis.
  *
  * A missing, unreadable or malformed GLB falls back to the existing sprite extrusion.
- * The SVG therefore remains the canonical asset for Canvas/mobile/site use and the safe
- * rendering floor for WebGL.
+ * The approved GLB is the target mobile-game asset; the SVG remains canonical for Canvas,
+ * site, loading and render-failure use, and is the safe rendering floor for WebGL.
  *
  * **A `sector` a model cannot serve is also a fallback.** `sector: 'front'` asks for the
  * chassis' forward section — the piece the turret builder repeats around an axis to make

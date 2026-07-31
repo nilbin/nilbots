@@ -22,9 +22,9 @@ import * as THREE from 'three';
 /**
  * Tile-space corner radius.
  *
- * Small on purpose. The topology caps that sit on the wall tops are square, per tile, and
- * baked — so the rounder the solid under them, the further its corners pull away from the
- * art lying on it. This is the most that still reads as square from the play camera.
+ * Small on purpose. The per-tile topology caps now round only genuinely exposed corners,
+ * so the solid and atlas art share the same supported outline while connected joins stay
+ * exact. This radius still has to read as occupied grid cover from the play camera.
  */
 const CORNER_RADIUS = 0.1;
 

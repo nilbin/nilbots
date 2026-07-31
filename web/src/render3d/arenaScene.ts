@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ReplayModel } from '../replayModel';
 import { arenaTheme, type ArenaTheme } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
+import { wallCapGeometry } from './wallCapGeometry';
 import { wallShapes } from './wallSolids';
 import { buildWallDetails } from './wallDetails';
 import { themeMaterialImage } from './themeMaterialAssets';
@@ -204,9 +205,10 @@ function floor(
  * a run of wall is a single chamfered block instead of a row of cubes with hidden faces
  * pressed together. One extrusion per family is also one draw call per family.
  *
- * The topology caps stay per tile and stay merged. They need per-tile UVs into the 16-column
- * atlas, and instancing that means patching a shader with a per-instance attribute — so
- * baking the UVs into one buffer costs a loop and saves a custom material.
+ * The topology caps stay per tile and stay merged. Their exposed corners follow the
+ * rounded solid while connected joins remain exact. They still need per-tile UVs into the
+ * 16-column atlas, and instancing that means patching a shader with a per-instance
+ * attribute — so baking the UVs into one buffer costs a loop and saves a custom material.
  */
 function walls(
   replay: ReplayModel,
@@ -259,8 +261,23 @@ function walls(
     const right = east.extent;
     const north = -northEdge.extent;
     const south = southEdge.extent;
-    const cap = new THREE.PlaneGeometry(right - left, south - north);
-    cap.rotateX(-Math.PI / 2);
+    const openWest = layout.familyAt(wall.x - 1, wall.y) === null;
+    const openEast = layout.familyAt(wall.x + 1, wall.y) === null;
+    const openNorth = layout.familyAt(wall.x, wall.y - 1) === null;
+    const openSouth = layout.familyAt(wall.x, wall.y + 1) === null;
+    const cap = wallCapGeometry({
+      left,
+      right,
+      north,
+      south,
+      cornerRadius: family.geometry3d.cornerRadius,
+      corners: {
+        northWest: openNorth && openWest,
+        southWest: openSouth && openWest,
+        southEast: openSouth && openEast,
+        northEast: openNorth && openEast,
+      },
+    });
     applyAtlasUvs(
       cap,
       wall.mask,
@@ -273,9 +290,9 @@ function walls(
       },
     );
     cap.translate(
-      wall.x + 0.5 + (left + right) / 2,
+      wall.x + 0.5,
       family.geometry3d.height + 0.004,
-      wall.y + 0.5 + (north + south) / 2,
+      wall.y + 0.5,
     );
     (capsByFamily.get(wall.family) ?? capsByFamily.set(wall.family, []).get(wall.family)!)
       .push(cap);
@@ -410,6 +427,7 @@ function walls(
       capMesh.userData.family = familyId;
       capMesh.userData.height = height;
       capMesh.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
+      capMesh.userData.cornerRadius = family.geometry3d.cornerRadius;
       capMesh.receiveShadow = true;
       meshes.push(capMesh);
       disposables.push(capGeometry, capMaterial);
