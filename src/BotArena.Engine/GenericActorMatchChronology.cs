@@ -1722,6 +1722,89 @@ public sealed record GenericActorMatchChronology
         }
     }
 
+    /// <summary>
+    /// The form this slot's profile bootstraps with, or null when it declares
+    /// no root factory — which is every ruleset shipped before prime
+    /// dissolution.
+    /// </summary>
+    private static string? RootFactorySeedForm(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot.SlotSnapshot slot)
+    {
+        ActorUnitSlotLifecycleAssignmentDefinition? assignment =
+            definition.LifecycleAssignments.FirstOrDefault(entry =>
+                entry.TeamId == slot.TeamId && entry.UnitId == slot.UnitId);
+        if (assignment?.AssignedRespawnSpawnId is null)
+            return null;
+        return definition.Rules.Lifecycle.Profiles
+            .FirstOrDefault(profile =>
+                profile.ProfileId == assignment.LifecycleProfileId)
+            ?.RootFactorySeedFormId;
+    }
+
+    /// <summary>
+    /// A base seed is re-derivable from the recorded boundary alone: one life,
+    /// on the seeded slot, parentless, at the slot's declared home spawn, in
+    /// the profile's declared seed form, at a fresh generation — and only for a
+    /// participant that recorded no live body at all going in.
+    /// </summary>
+    private static void ValidateRootFactorySeed(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickStart tickStart,
+        GenericActorWorldSnapshot.SlotSnapshot beforeSlot,
+        GenericActorWorldSnapshot.SlotSnapshot afterSlot,
+        string seedFormId,
+        string parameterName)
+    {
+        ActorUnitSlotLifecycleAssignmentDefinition assignment =
+            definition.LifecycleAssignments.Single(entry =>
+                entry.TeamId == beforeSlot.TeamId
+                && entry.UnitId == beforeSlot.UnitId);
+        InitialSpawnDefinition spawn = definition.InitialDeployment.Spawns
+            .Single(entry =>
+                entry.SpawnId == assignment.AssignedRespawnSpawnId);
+        var actorId = new ActorIdentity(
+            beforeSlot.TeamId,
+            beforeSlot.UnitId,
+            beforeSlot.NextLifeId);
+        GenericActorWorldSnapshot.LifeSnapshot? life = tickStart.State
+            .ActiveLives
+            .FirstOrDefault(entry => entry.ActorId == actorId);
+        GenericActorLifeStart? start = tickStart.LifeStarts
+            .FirstOrDefault(entry => entry.ActorId == actorId);
+        if (life is null
+            || start is null
+            || afterSlot.NextLifeId != beforeSlot.NextLifeId + 1
+            || afterSlot.PendingParentActorId is not null
+            || afterSlot.SplitReservation is not null
+            || life.SpawnReason
+                != GenericActorRuntimeStart.SpawnReason.RootFactorySeed
+            || life.ParentActorId is not null
+            || life.SourceTransitionId is not null
+            || life.SourceOperationId is not null
+            || life.Generation != 0
+            || life.Position != spawn.Position
+            || life.Facing != spawn.Facing
+            || !string.Equals(
+                life.FormId,
+                seedFormId,
+                StringComparison.Ordinal)
+            || start.Origin.Reason
+                != GenericActorRuntimeStart.SpawnReason.RootFactorySeed
+            || start.Origin.ParentActorId is not null
+            || start.Origin.Generation != 0
+            // The bootstrap answers a TOTAL loss: the participant held
+            // nothing at all going into this tick.
+            || tickStart.State.ActiveLives.Any(entry =>
+                entry.ParticipantId == beforeSlot.ParticipantId
+                && entry.ActorId != actorId))
+        {
+            throw new ArgumentException(
+                "A root-factory seed must consume its exact availability clock into one parentless home-spawn life for a participant holding nothing.",
+                parameterName);
+        }
+    }
+
     private static void ValidateSlotClockLifecycleBoundary(
         ActorResolvedMatchDefinition definition,
         GenericActorWorldSnapshot before,
@@ -1946,6 +2029,30 @@ public sealed record GenericActorMatchChronology
                                 "An automatic activation must consume its exact contract clock into the declared first assigned-spawn life.",
                                 parameterName);
                         }
+                        break;
+                    }
+                    // THE ROOT FACTORY (DECISIONS #194). A slot whose profile
+                    // declares a bootstrap consumes its own due availability
+                    // clock into a live body at its home spawn instead of
+                    // becoming an idle Ready slot — because for a participant
+                    // holding nothing, an idle Ready slot is a slot nothing
+                    // can ever place a body into. The shape is exactly the
+                    // automatic activation's: parentless, transitionless, at
+                    // the assigned spawn, one life, one clock consumed.
+                    if (pending.DueTick == tickStart.Tick
+                        && RootFactorySeedForm(definition, beforeSlot)
+                            is string seedFormId
+                        && afterSlot.State
+                            is GenericActorRuntimeObservation.UnitSlotState
+                                .Active)
+                    {
+                        ValidateRootFactorySeed(
+                            definition,
+                            tickStart,
+                            beforeSlot,
+                            afterSlot,
+                            seedFormId,
+                            parameterName);
                         break;
                     }
                     if (pending.DueTick != tickStart.Tick

@@ -1052,6 +1052,153 @@ and with `--roster legion` on top, **`warpath`**, **`horde`** and
 combination that overflows the 64-character budget faults with a message
 telling you to register it: a pre-registration is a decision, not a fallback.
 
+## One chassis: THE PRIME DISSOLVES
+
+`--chassis unified` (DECISIONS #194) deletes the oldest shape in this game.
+Every class has always had a PRIME — slot 0, tougher, on its own respawn
+clock, holding the class verb and the upgrade ladder — and a run of CHILDREN
+that were something less. Under the mind the player IS the mind and slot 0 is
+just a slot, so the split has nothing left to mean. **If your bot special-cases
+unit 0, this arm invalidates that code.**
+
+### What changed
+
+- **One statline per class, at the CHILD values.** Bulwark 5/4 becomes 4,
+  fabricator 2/3 becomes 3, striker 3/3 does not move. The bulwark's anchor
+  windup collapses the same way: 3 (prime) / 1 (child) becomes **1** for every
+  body. Read `form.maxHealth` and your anchor route's
+  `windup.durationTicks` — as always, do not assume.
+- **One FORM per class.** There is no `bulwark-prime` and no `bulwark-child`
+  any more; there is `bulwark-body`, plus `bulwark-body-turret` and
+  `bulwark-body-aegis-shell` where the class and the cell declare them — and
+  likewise `striker-body` (with `striker-body-volley-stance`) and
+  `fabricator-body`. Route
+  IDs follow (`anchor-bulwark-body`, `unstance-striker-body`). Nothing should
+  have been parsing form-ID prefixes — read `ClassId` and the form catalog.
+- **One LIFECYCLE per class**, the one the majority of bodies already used:
+  automatic respawn on the class's **child rebuild clock** (30 for the
+  striker and bulwark) for a class that receives companions, and explicit
+  fabrication for the fabricator. The 18-tick Prime return names nothing on
+  this arm, and `--prime-respawn-ticks` is **refused** rather than silently
+  ignored.
+- **The fabricator becomes a NETWORK.** One form means the `fabricate` verb
+  sits on *every* fabricator body: any live body is a fabrication origin, the
+  pads it can reach are the ones beside **it**, and killing one body never
+  kills the factory. This is not a separate flag — it is what unifying the
+  form *is*.
+- **The home base is the ROOT FACTORY.** With every fabricator body placed by
+  the verb, a participant that loses its last body could never place another.
+  So at TOTAL body loss the base seeds **one** body at your home spawn after
+  the class's own respawn delay, at no scrap cost and with no action spent.
+  Read `rules.lifecycle.profiles[].rootFactorySeedFormId`: **absent means a
+  total wipe is permanent for the slots on that profile.** Active fabrication
+  still needs a live body — the base bootstraps, it does not produce.
+  Total-loss-as-elimination stays registered as the sharper alternative arm.
+- **The upgrade ladder applies to EVERY body.** `upgradeScope` moves from
+  `prime-slot-lives-only` to **`all-slot-lives`**: a purchased tier lifts the
+  whole team, live and future, in every form. There is no prime to scope it
+  to any more. The mitigation moves to price — 20 scrap per tier instead of 10
+  — so the full six-tier board is 120 — and the price is the registered
+  sweep (`--tier-cost`, with 10 and 30 pre-registered).
+
+### Read your contract, don't assume
+
+| where | what it tells you |
+| --- | --- |
+| `form.maxHealth` on your one mobile form | the unified statline |
+| `lifecycle.profiles[]` | one profile per class, its `delayTicks`, and whether it declares a `rootFactorySeedFormId` |
+| `sameLifeTransitions[]` | one anchor and one mobilize route per class, not two |
+| the form's `allowedActionIds` | whether *this* body may `fabricate` — on this arm, every fabricator body may |
+| `gameMode.scrapEconomy.upgradeScope` | `all-slot-lives` on this arm; `prime-slot-lives-only` everywhere else |
+| `gameMode.scrapEconomy.tracks[].tierCosts` | what a tier actually costs in *this* cell |
+
+A base seed is an ordinary life spawn whose `spawnReason` is
+**`root-factory-seed`** — it appears in the replay and in your own origin like
+any other arrival, so nothing new has to be subscribed to.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum hull --skills kit \
+  --bend universal --aim offset --cooldown ticking --stance-ground open \
+  --volley salvo --capture channel --economy scrap --horizon long \
+  --roster legion --chassis unified --seed 42 --runtime wasm --out /tmp/peer
+```
+
+The arm needs a class pair, and it refuses `--side-objective` (whose whole
+effect is the PRIME's return geometry) and `--prime-respawn-ticks`. Its plain
+token is `peer` — no body outranks another. Because the registered package
+tokens already sit at the budget wall, the whole warpath family re-mints on
+this arm: **`phalanx`** on the striker shapes, **`swarm`** on the fabricator
+shapes, and **`curtain`** on the bulwark mirror. A named tier price appends
+its number in short form (`phalanx-t30`).
+
+## Compositions: whose chassis is on which slot
+
+`--compositions <a>-vs-<b>` lets a participant field an army that is not all
+one thing. Chassis identity moves from the PARTICIPANT to the SLOT, so
+mono-class becomes the special case rather than the only case.
+
+The registered set is **closed and small**, because free composition is 6,561
+armies per side and that is not a balance read anybody can run:
+
+| token | slot 0 | companions | the question it prices |
+| --- | --- | --- | --- |
+| `bulwark` / `fabricator` / `striker` | its own chassis | its own chassis | the controls — **byte-identical to today's class arms**, and what every cell already plays without typing anything |
+| `spearhead` | fabricator | striker, bulwark (alternating in slot order) | does mixing beat mono at all? A fabricator opening that BUILDS a mixed line |
+| `warden` | bulwark | fabricator, striker (alternating) | does the fabricator's monopoly survive being a companion? A fabricating body that is not slot 0 |
+
+- **A composition is a departure from a declared class, not a second
+  matchmaking axis.** Match setup stays classes-pair shaped, and a
+  composition's slot-0 chassis must equal that team's `--classes` side —
+  `--classes bulwark-vs-fabricator --compositions warden-vs-spearhead`.
+- **Pairs are canonical in alphabetical order**, exactly like `--classes`, and
+  a single token names the mirror.
+- **A mixed cell pits a declared army against a declared army.** Half a
+  composition is not a registered cell.
+- **Mixed needs `--chassis unified`** (on the split chassis a class's verbs
+  live on its prime form, so a chassis carried by a companion slot would
+  arrive without them) **and `--roster legion`** (the registered mixed
+  topology profiles are legion shapes).
+- **Fabricate produces the target SLOT's chassis.** A spearhead's fabricator
+  places striker and bulwark bodies into the slots that declare them, not
+  copies of itself. Read `lifecycleAssignments[].fabricationOutputFormId` —
+  absent means the slot takes the transition's own output, which is every
+  mono cell.
+- **Whether a team's tranches are BUILT or arrive by themselves is a team
+  fact**, read across the whole composition: a warden fields a fabricator, so
+  a warden builds its army.
+
+### Read the slots, not the participant
+
+- `topology.unitSlots[].classId` is the per-slot chassis. It is **absent** on
+  every mono composition, so a bot that branches on presence never has to know
+  whether the mechanic exists.
+- `team.classId` and `participant.classId` carry the **composition token**
+  under this arm — `warden`, not `bulwark`. A mono composition's token is its
+  chassis ID, so nothing about today's values moves.
+- **A visible body's `ClassId` is its own chassis**, not its participant's
+  composition. Condition on the enemy body's stats and routes, exactly as the
+  brief has always told you to: in a mixed army the body in front of you and
+  the body beside it need not agree about anything.
+- Composition tokens live in the **topology** profile ID and never in the
+  ruleset ID: the ruleset spells MECHANICS and the topology spells the ARMY.
+  Two compositions playing the same mechanics carry the same ruleset ID.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-fabricator --pendulum hull --skills kit \
+  --bend universal --aim offset --cooldown ticking --stance-ground open \
+  --volley salvo --capture channel --economy scrap --horizon long \
+  --roster legion --chassis unified --compositions warden-vs-spearhead \
+  --seed 42 --runtime wasm --out /tmp/composition
+```
+
+Free composition (`--compositions free`) is a later registered LEVEL with its
+own population-sampling evaluation policy. It is not an unregistered cell you
+can reach by typing something else.
+
 ## The mind
 
 The largest authoring change this campaign has made, and it changes nothing

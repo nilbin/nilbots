@@ -206,9 +206,18 @@ test('a per-slot chassis is admitted on the topology, and only canonically', () 
   // compositions, and refused as a second encoding of absence when explicitly
   // null. No shipped ruleset declares one yet (P7 mints the first), so the
   // mirror is exercised here rather than by a fixture.
+  //
+  // Under #194's compositions the slot's chassis is AUTHORITATIVE for the
+  // bodies that stand in it — the participant's own ID may be a composition
+  // token rather than a chassis — so a forged slot chassis has to agree with
+  // what the document's bodies publish, exactly as a real mixed army does.
+  const declared = (root: Record<string, any>): string | null =>
+    root.header.contract.topology.participants[0].classId ?? null;
   const withComposition = forge((root) => {
+    const chassis = declared(root);
+    if (chassis === null) return;
     for (const slot of root.header.contract.topology.unitSlots) {
-      slot.classId = 'striker';
+      slot.classId = chassis;
     }
   });
   assert.doesNotThrow(() => decodeReplay(withComposition));

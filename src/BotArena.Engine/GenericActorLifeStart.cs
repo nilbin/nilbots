@@ -159,7 +159,11 @@ public sealed record GenericActorLifeStart
         GenericActorLifeStart? issuedParent)
     {
         if (Origin.Reason is GenericActorRuntimeStart.SpawnReason.Initial
-            or GenericActorRuntimeStart.SpawnReason.AutomaticActivation)
+            or GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+            // A ROOT-FACTORY seed is parentless in exactly the same way an
+            // initial deployment is: the base placed it, so there is no
+            // issued life for it to descend from.
+            or GenericActorRuntimeStart.SpawnReason.RootFactorySeed)
         {
             if (issuedParent is not null)
             {
@@ -239,7 +243,11 @@ public sealed record GenericActorLifeStart
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
                 origin.ParentActorId is null && !hasTransition,
-            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+                // A ROOT-FACTORY seed has no parent by construction: a
+                // structure placed it, so there is no source life whose
+                // lineage it continues.
+                or GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
                 origin.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 origin.ParentActorId is ActorIdentity parent

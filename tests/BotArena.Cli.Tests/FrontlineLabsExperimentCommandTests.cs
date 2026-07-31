@@ -1565,6 +1565,172 @@ public sealed class FrontlineLabsExperimentCommandTests
                 ]));
     }
 
+    /// <summary>
+    /// Prime dissolution on the CLI: the flag re-mints the registered package
+    /// token rather than appending to it, the ladder's price is sweepable, and
+    /// the two combinations the arm would silently break are refused.
+    /// </summary>
+    [Fact]
+    public void ChassisArm_ReMintsThePackageAndRefusesWhatItWouldBreak()
+    {
+        string[] warpath =
+        [
+            "--print-candidate-contract",
+            "--classes",
+            "bulwark-vs-striker",
+            "--movement",
+            "facing-locked",
+            "--pendulum",
+            "hull",
+            "--skills",
+            "kit",
+            "--bend",
+            "universal",
+            "--aim",
+            "offset",
+            "--cooldown",
+            "ticking",
+            "--stance-ground",
+            "open",
+            "--volley",
+            "salvo",
+            "--capture",
+            "channel",
+            "--economy",
+            "scrap",
+            "--horizon",
+            "long",
+            "--roster",
+            "legion",
+        ];
+
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-warpath-facing-locked",
+            PrintedContract(warpath).GetProperty("rulesetId").GetString());
+        // `peer` beside the worst class pair overflows the 64-character
+        // budget, so the package re-mints exactly as every other arm's did.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-phalanx-facing-locked",
+            PrintedContract([.. warpath, "--chassis", "unified"])
+                .GetProperty("rulesetId")
+                .GetString());
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-fabricator-curtain-facing-locked",
+            PrintedContract(
+                    [
+                        .. warpath[..2],
+                        "bulwark-vs-fabricator",
+                        .. warpath[3..],
+                        "--chassis",
+                        "unified",
+                    ])
+                .GetProperty("rulesetId")
+                .GetString());
+        // The tier price is the registered ablation on the widened scope.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-phalanx-t30-facing-locked",
+            PrintedContract(
+                    [.. warpath, "--chassis", "unified", "--tier-cost", "30"])
+                .GetProperty("rulesetId")
+                .GetString());
+
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                ["--print-candidate-contract", "--chassis", "unified"]));
+        Assert.Contains(
+            "split or unified",
+            Assert.Throws<InvalidOperationException>(() =>
+                    FrontlineLabsExperimentCommand.Run(
+                        [
+                            "--print-candidate-contract",
+                            "--classes",
+                            "bulwark-vs-striker",
+                            "--chassis",
+                            "one",
+                        ]))
+                .Message);
+    }
+
+    /// <summary>
+    /// Slot-scoped compositions on the CLI: a mono composition is the default
+    /// nobody types, the two registered mixed tokens mint their registered
+    /// topology profile, and the composition never touches the ruleset ID.
+    /// </summary>
+    [Fact]
+    public void CompositionArm_KeysTheTopologyAndNeverTheRuleset()
+    {
+        string[] cell =
+        [
+            "--print-candidate-contract",
+            "--classes",
+            "bulwark-vs-fabricator",
+            "--movement",
+            "facing-locked",
+            "--pendulum",
+            "hull",
+            "--skills",
+            "kit",
+            "--bend",
+            "universal",
+            "--aim",
+            "offset",
+            "--cooldown",
+            "ticking",
+            "--stance-ground",
+            "open",
+            "--volley",
+            "salvo",
+            "--capture",
+            "channel",
+            "--economy",
+            "scrap",
+            "--horizon",
+            "long",
+            "--roster",
+            "legion",
+            "--chassis",
+            "unified",
+        ];
+        JsonElement mono = PrintedContract(cell);
+        JsonElement mixed = PrintedContract(
+            [.. cell, "--compositions", "warden-vs-spearhead"]);
+
+        // The MECHANICS are the same game, so the ruleset spells the same
+        // identity — composition tokens live in the topology profile ID and
+        // never in the ruleset ID, which is the whole 64-character budget
+        // argument.
+        Assert.Equal(
+            mono.GetProperty("rulesetId").GetString(),
+            mixed.GetProperty("rulesetId").GetString());
+        // The rules FINGERPRINT does move, because a mixed army puts a third
+        // chassis's forms, profiles and routes in the catalog: the identity is
+        // the mechanics, the fingerprint is the bytes.
+        Assert.NotEqual(
+            mono.GetProperty("rulesFingerprint").GetString(),
+            mixed.GetProperty("rulesFingerprint").GetString());
+        Assert.NotEqual(
+            mono.GetProperty("topologyFingerprint").GetString(),
+            mixed.GetProperty("topologyFingerprint").GetString());
+        Assert.Equal(
+            "two-team-one-controller-legion-spearhead-vs-warden-v1",
+            mixed.GetProperty("topologyProfileId").GetString());
+
+        // Naming the mono composition is the same contract as naming none.
+        Assert.Equal(
+            mono.GetProperty("matchContractFingerprint").GetString(),
+            PrintedContract(
+                    [.. cell, "--compositions", "bulwark-vs-fabricator"])
+                .GetProperty("matchContractFingerprint")
+                .GetString());
+
+        Assert.Contains(
+            "Registered compositions",
+            Assert.Throws<InvalidOperationException>(() =>
+                    FrontlineLabsExperimentCommand.Run(
+                        [.. cell, "--compositions", "phalanx-vs-warden"]))
+                .Message);
+    }
+
     private static JsonElement PrintedContract(string[] args)
     {
         TextWriter original = Console.Out;

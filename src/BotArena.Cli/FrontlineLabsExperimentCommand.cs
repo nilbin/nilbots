@@ -53,6 +53,9 @@ public static class FrontlineLabsExperimentCommand
             "economy",
             "roster",
             "horizon",
+            "chassis",
+            "compositions",
+            "tier-cost",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -381,8 +384,36 @@ public static class FrontlineLabsExperimentCommand
                 + "two class-declaring projects), or compose it with a "
                 + "--pendulum level.");
         }
+        // ONE CHASSIS per class (DECISIONS #194) — prime dissolution, the
+        // headless fabrication network it implies, and the widened upgrade
+        // scope it forces. It rewrites a CLASS, so it needs a class pair.
+        FrontlineLabsChassisArm chassisArm = OptionalChassisArm(options);
+        if (chassisArm != FrontlineLabsChassisArm.Split && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--chassis unified re-shapes a class — one statline, one "
+                + "lifecycle, one action catalog for every body — so it needs "
+                + "a class pair: pass --classes <a>-vs-<b> or run two "
+                + "class-declaring projects.");
+        }
+        int? tierCost = OptionalPositiveInt(options, "tier-cost");
+        // Slot-scoped compositions. Match setup stays classes-pair shaped:
+        // this is a participant departing from its declared class's default
+        // mix, never a second matchmaking axis.
+        (FrontlineLabsComposition TeamZero, FrontlineLabsComposition TeamOne)?
+            compositionPair = OptionalCompositionPair(options);
+        if (compositionPair is not null && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--compositions declares which chassis each team's SLOTS "
+                + "carry, so it needs a class pair to depart from: pass "
+                + "--classes <a>-vs-<b> or run two class-declaring projects.");
+        }
         bool pendulumCell =
-            captureArm != FrontlineLabsCaptureArm.Frozen
+            chassisArm != FrontlineLabsChassisArm.Split
+            || compositionPair is not null
+            || tierCost is not null
+            || captureArm != FrontlineLabsCaptureArm.Frozen
             || economyArm != FrontlineLabsEconomyArm.None
             || rosterArm != FrontlineLabsRosterArm.None
             || horizonArm != FrontlineLabsHorizonArm.Standard
@@ -437,7 +468,10 @@ public static class FrontlineLabsExperimentCommand
                 captureArm,
                 economyArm,
                 rosterArm,
-                horizonArm);
+                horizonArm,
+                chassisArm,
+                compositionPair,
+                tierCost);
         }
         else if (captureThreshold is int threshold)
         {
@@ -581,6 +615,38 @@ public static class FrontlineLabsExperimentCommand
                     + FrontlineLabsDefinition.TopologyProfileIdFor(
                         definition.Topology));
             }
+        }
+        if (chassisArm != FrontlineLabsChassisArm.Split)
+        {
+            Console.WriteLine(
+                "Chassis:           unified — one statline, one lifecycle "
+                + "and one action catalog per class (each class unified at "
+                + "its child values). No prime: every fabricator body is a "
+                + "fabrication origin, the home base re-seeds one body at "
+                + "total loss, and a purchased tier applies to EVERY body of "
+                + "the buying team");
+            if (economyArm != FrontlineLabsEconomyArm.None)
+            {
+                Console.WriteLine(
+                    "Upgrade ladder:    all-slot-lives at "
+                    + (tierCost
+                        ?? FrontlineLabsScrapEconomy.DefaultTierCost(
+                            chassisArm))
+                    + " scrap per tier ("
+                    + FrontlineLabsScrapEconomy.MaxTotalTiers
+                    + " tiers on the board)");
+            }
+        }
+        if (compositionPair is { } resolvedComposition)
+        {
+            Console.WriteLine(
+                "Compositions:      "
+                + $"{resolvedComposition.TeamZero.Token}-vs-"
+                + $"{resolvedComposition.TeamOne.Token}");
+            Console.WriteLine(
+                "Topology profile:  "
+                + FrontlineLabsDefinition.TopologyProfileIdFor(
+                    definition.Topology));
         }
         if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly)
         {
@@ -1142,6 +1208,71 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --roster arm '{value}' (use none or legion)."),
         };
+    }
+
+    /// <summary>
+    /// Reads the registered chassis arm (DECISIONS #194, prime dissolution).
+    /// Omitting the option — or naming <c>split</c> — keeps today's measured
+    /// prime/child shape and adds no ruleset suffix. <c>unified</c> gives
+    /// every body of a class one statline (its child values), one lifecycle
+    /// profile and one action catalog; the fabricate verb therefore sits on
+    /// every fabricator body rather than on a prime, the home base re-seeds
+    /// one body at total loss, and a purchased upgrade tier applies to every
+    /// body of the buying team at double the price.
+    /// </summary>
+    private static FrontlineLabsChassisArm OptionalChassisArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("chassis", out string? value))
+            return FrontlineLabsChassisArm.Split;
+        return value.ToLowerInvariant() switch
+        {
+            "split" => FrontlineLabsChassisArm.Split,
+            "unified" => FrontlineLabsChassisArm.Unified,
+            _ => throw new InvalidOperationException(
+                $"Unknown --chassis arm '{value}' (use split or unified)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered composition pair, canonical in ordinal token
+    /// order exactly as <c>--classes</c> is. A single token names the mirror,
+    /// so <c>--compositions warden</c> is <c>warden-vs-warden</c>.
+    /// <para>The registered set is closed: three MONO compositions, which are
+    /// byte-identical to today's class arms and therefore the default nobody
+    /// has to type, plus <c>spearhead</c> and <c>warden</c>. Free composition
+    /// is a later registered LEVEL with its own population-sampling
+    /// evaluation policy, not an unregistered cell.</para>
+    /// </summary>
+    private static (FrontlineLabsComposition TeamZero,
+        FrontlineLabsComposition TeamOne)? OptionalCompositionPair(
+            IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("compositions", out string? value))
+            return null;
+        string[] parts = value.ToLowerInvariant().Split("-vs-");
+        if (parts is not ([_] or [_, _]) || parts.Any(string.IsNullOrEmpty))
+        {
+            throw new InvalidOperationException(
+                "--compositions takes <a>-vs-<b> in canonical alphabetical "
+                + "order, or one token for the mirror (registered: "
+                + string.Join(
+                    ", ",
+                    FrontlineLabsComposition.All.Select(entry => entry.Token))
+                + ").");
+        }
+        try
+        {
+            FrontlineLabsComposition zero =
+                FrontlineLabsComposition.Parse(parts[0]);
+            FrontlineLabsComposition one =
+                FrontlineLabsComposition.Parse(parts[^1]);
+            return (zero, one);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidOperationException(exception.Message, exception);
+        }
     }
 
     /// <summary>

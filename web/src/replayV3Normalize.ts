@@ -1005,10 +1005,16 @@ function validateContract(
           'names one distinct banking region per scoring team',
         );
       }
-      if (String(economy.upgradeScope) !== 'prime-slot-lives-only') {
+      // `all-slot-lives` is prime dissolution's forced consequence
+      // (DECISIONS #194): with no prime slot there is nothing narrower to
+      // scope a purchased tier to.
+      if (
+        String(economy.upgradeScope) !== 'prime-slot-lives-only' &&
+        String(economy.upgradeScope) !== 'all-slot-lives'
+      ) {
         fail(
           `${economyPath}.upgradeScope`,
-          'expected one of prime-slot-lives-only',
+          'expected one of prime-slot-lives-only, all-slot-lives',
         );
       }
       if (
@@ -4368,7 +4374,12 @@ export function validateReplayV3TickStartBoundary(
         afterSlot.state.actorId.teamId === beforeSlot.teamId &&
         afterSlot.state.actorId.unitId === beforeSlot.unitId &&
         afterSlot.state.actorId.lifeId === beforeSlot.nextLifeId &&
-        start?.origin.reason === 'automatic-activation'
+        (start?.origin.reason === 'automatic-activation' ||
+          // THE ROOT FACTORY (DECISIONS #194): a slot whose profile declares
+          // a bootstrap consumes its own due availability clock into a live
+          // body at its home spawn, because for a participant holding nothing
+          // an idle Ready slot is a slot nothing can ever fill.
+          start?.origin.reason === 'root-factory-seed')
       ) {
         continue;
       }
@@ -5042,9 +5053,16 @@ function validateV3Relationships(
   );
   const classForActor = (actor: V3.ReplayV3ActorId): string | null => {
     const slot = slots.get(unitValue(actor));
-    return slot
-      ? participants.get(slot.controllerParticipantId)?.classId ?? null
-      : null;
+    if (!slot) return null;
+    // A BODY's published chassis is its SLOT's where the slot declares one,
+    // and its participant's otherwise. Under a mixed COMPOSITION the
+    // participant's ID is a composition token rather than a chassis, so a
+    // body must never be checked against it (DECISIONS #191 §9.2, #194).
+    return (
+      slot.classId ??
+      participants.get(slot.controllerParticipantId)?.classId ??
+      null
+    );
   };
   const attackProfiles = new Map(
     contract.rules.attackProfiles.map((profile) => [profile.id, profile]),

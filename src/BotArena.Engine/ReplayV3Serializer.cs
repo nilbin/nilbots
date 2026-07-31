@@ -3563,18 +3563,39 @@ internal static class ReplayV3Serializer
                 .EnumerateArray()
                 .Select(value =>
                 {
+                    // Per-slot chassis, the same additive-canonical shape the
+                    // team and participant above already carry: present only
+                    // where a ruleset declares COMPOSITIONS, so a
+                    // composition-free document keeps its exact bytes.
+                    bool hasSlotClassId = value.TryGetProperty(
+                        "classId",
+                        out _);
                     RequireExactObject(
                         value,
                         "embedded topology unit slot",
-                        "teamId",
-                        "unitId",
-                        "controllerParticipantId");
+                        hasSlotClassId
+                            ?
+                            [
+                                "teamId",
+                                "unitId",
+                                "controllerParticipantId",
+                                "classId",
+                            ]
+                            :
+                            [
+                                "teamId",
+                                "unitId",
+                                "controllerParticipantId",
+                            ]);
                     return new ContractUnitSlot(
                         RequiredInt32(value, "teamId"),
                         RequiredInt32(value, "unitId"),
                         RequiredInt32(
                             value,
-                            "controllerParticipantId"));
+                            "controllerParticipantId"),
+                        hasSlotClassId
+                            ? RequiredString(value, "classId")
+                            : null);
                 })
                 .ToImmutableArray();
         RequireCanonicalOrder(
@@ -4452,13 +4473,16 @@ internal static class ReplayV3Serializer
                     right.TeamId,
                     right.UnitId),
             $"{context} slots");
+        // The world state carries a slot's IDENTITY, never its chassis: a
+        // slot's declared chassis is a contract fact, published once in the
+        // topology, so comparing the identity triple is what "matches
+        // topology" means under compositions.
         if (!state.Slots
                 .Select(value =>
-                    new ContractUnitSlot(
-                        value.TeamId,
-                        value.UnitId,
-                        value.ParticipantId))
-                .SequenceEqual(contract.UnitSlots))
+                    (value.TeamId, value.UnitId, value.ParticipantId))
+                .SequenceEqual(
+                    contract.UnitSlots.Select(value =>
+                        (value.TeamId, value.UnitId, value.ParticipantId))))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} slots must exactly match topology.");
@@ -5236,10 +5260,15 @@ internal static class ReplayV3Serializer
             ? null
             : contract.Participants.FirstOrDefault(
                 value => value.ParticipantId == slot.ParticipantId);
+        // A BODY's published chassis is its SLOT's where the slot declares
+        // one, and its participant's otherwise (DECISIONS #191 §9.2 as shipped
+        // by #194's compositions). Under a mixed army the participant's ID is
+        // a composition token, not a chassis, so a body must not be checked
+        // against it.
         return participant is not null
             && string.Equals(
                 classId,
-                participant.ClassId,
+                slot?.ClassId ?? participant.ClassId,
                 StringComparison.Ordinal);
     }
 
@@ -5761,13 +5790,16 @@ internal static class ReplayV3Serializer
                     right.Slot.TeamId,
                     right.Slot.UnitId),
             "result units");
+        // Identity, not chassis: a slot's declared chassis lives in the
+        // topology and nowhere else, so a result unit matches on its triple.
         if (!result.Units
                 .Select(value =>
-                    new ContractUnitSlot(
-                        value.Slot.TeamId,
+                    (value.Slot.TeamId,
                         value.Slot.UnitId,
                         value.Slot.ParticipantId))
-                .SequenceEqual(contract.UnitSlots))
+                .SequenceEqual(
+                    contract.UnitSlots.Select(value =>
+                        (value.TeamId, value.UnitId, value.ParticipantId))))
         {
             throw new ArgumentException(
                 "Replay-v3 result units must exactly match topology slots.");
@@ -6828,7 +6860,8 @@ internal static class ReplayV3Serializer
             or "automatic-return"
             or "fabrication"
             or "replication"
-            or "automatic-activation";
+            or "automatic-activation"
+            or "root-factory-seed";
 
     /// <summary>
     /// "requested" is deliberately absent: the inert cause is encoded by
@@ -6898,7 +6931,8 @@ internal static class ReplayV3Serializer
     private sealed record ContractUnitSlot(
         int TeamId,
         int UnitId,
-        int ParticipantId);
+        int ParticipantId,
+        string? ClassId = null);
 
     private sealed record ContractAction(
         string Id,

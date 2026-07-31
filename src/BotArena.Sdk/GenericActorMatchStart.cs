@@ -78,5 +78,15 @@ public sealed record GenericActorMatchStart
         /// The slot's declared delayed activation created its first life.
         /// </summary>
         AutomaticActivation = 4,
+        /// <summary>
+        /// The participant's HOME BASE acted as the ROOT FACTORY: it held no
+        /// live body at all, and the base seeded this one, alone, at the home
+        /// spawn, after the class's own respawn delay. It costs nothing and
+        /// spends no action, and it happens only on a ruleset whose lifecycle
+        /// profile declares a root-factory seed form — read
+        /// <c>rootFactorySeedFormId</c> if you want to know whether a total
+        /// wipe is survivable in this match.
+        /// </summary>
+        RootFactorySeed = 5,
     }
 }

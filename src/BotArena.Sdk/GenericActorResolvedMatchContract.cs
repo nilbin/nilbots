@@ -196,7 +196,21 @@ public sealed class GenericActorResolvedMatchContract
         ImmutableArray<string> AllowedFormIds,
         InitialAvailability InitialAvailability,
         int? UnlockTick,
-        string? AssignedRespawnSpawnId);
+        string? AssignedRespawnSpawnId)
+    {
+        /// <summary>
+        /// The form a fabrication INTO this slot produces, overriding the
+        /// fabrication transition's declared output — "fabricate produces the
+        /// target slot's chassis". It is present only under a MIXED
+        /// composition, where a fabricating body builds the ARMY its topology
+        /// declares rather than copies of itself.
+        /// <para><see langword="null"/> means this slot takes the transition's
+        /// own output, which is every mono cell. Read it beside the slot's
+        /// <c>classId</c> in the topology when you want to know what a
+        /// <c>fabricate</c> into slot N will actually put on the board.</para>
+        /// </summary>
+        public string? FabricationOutputFormId { get; init; }
+    }
 
     /// <summary>Binds one participant role to a named map region.</summary>
     /// <param name="ParticipantId">Submitted-program identifier.</param>

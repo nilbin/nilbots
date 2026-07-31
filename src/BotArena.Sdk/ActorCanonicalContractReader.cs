@@ -479,16 +479,28 @@ public static class ActorCanonicalContractReader
     private static MatchContract.LifecycleAssignment ReadLifecycleAssignment(
         JsonElement element)
     {
+        // Additive optional field: written only under a MIXED composition,
+        // so an absent property means "this slot takes the fabrication
+        // transition's own output" and an explicit null would be a second
+        // encoding of the same contract.
+        bool hasFabricationOutput = element.TryGetProperty(
+            "fabricationOutputFormId",
+            out JsonElement fabricationOutput);
         ExactObject(
             element,
-            "teamId",
-            "unitId",
-            "lifecycleProfileId",
-            "initialGeneration",
-            "allowedFormIds",
-            "initialAvailability",
-            "unlockTick",
-            "assignedRespawnSpawnId");
+            [
+                "teamId",
+                "unitId",
+                "lifecycleProfileId",
+                "initialGeneration",
+                "allowedFormIds",
+                "initialAvailability",
+                "unlockTick",
+                "assignedRespawnSpawnId",
+                .. hasFabricationOutput
+                    ? new[] { "fabricationOutputFormId" }
+                    : [],
+            ]);
         return new MatchContract.LifecycleAssignment(
             Int(element, "teamId"),
             Int(element, "unitId"),
@@ -497,7 +509,17 @@ public static class ActorCanonicalContractReader
             Array(Property(element, "allowedFormIds"), Id),
             InitialAvailability(element, "initialAvailability"),
             NullableInt(element, "unlockTick"),
-            NullableId(element, "assignedRespawnSpawnId"));
+            NullableId(element, "assignedRespawnSpawnId"))
+        {
+            FabricationOutputFormId = hasFabricationOutput
+                ? fabricationOutput.ValueKind == JsonValueKind.String
+                    ? fabricationOutput.GetString()!
+                    : throw new FormatException(
+                        "A canonical fabrication output form must be a "
+                        + "string; a slot that takes the transition's own "
+                        + "output omits the property entirely.")
+                : null,
+        };
     }
 
     private static MatchContract.ParticipantRegionAssignment
@@ -836,7 +858,11 @@ public static class ActorCanonicalContractReader
             Int(element, "pileLifetimeTicks"),
             Int(element, "maxSimultaneousPiles"),
             bankRegionIds,
-            EnumId(element, "upgradeScope", "prime-slot-lives-only"),
+            EnumId(
+                element,
+                "upgradeScope",
+                "prime-slot-lives-only",
+                "all-slot-lives"),
             Int(element, "maxTotalTiers"),
             EnumId(
                 element,
@@ -1211,12 +1237,22 @@ public static class ActorCanonicalContractReader
     private static RulesContract.LifecycleProfile ReadLifecycleProfile(
         JsonElement element)
     {
+        // Additive optional field, exactly like the form's projectile guard:
+        // the canonical writer omits it while the profile declares no
+        // root-factory bootstrap, so an absent property means "none" and an
+        // explicit null would be a second encoding of the same contract.
+        bool hasRootFactory = element.TryGetProperty(
+            "rootFactorySeedFormId",
+            out JsonElement rootFactory);
         ExactObject(
             element,
-            "profileId",
-            "destructionPolicy",
-            "delayTicks",
-            "automaticReturnFormId");
+            [
+                "profileId",
+                "destructionPolicy",
+                "delayTicks",
+                "automaticReturnFormId",
+                .. hasRootFactory ? new[] { "rootFactorySeedFormId" } : [],
+            ]);
         return new RulesContract.LifecycleProfile(
             Id(element, "profileId"),
             EnumId(
@@ -1226,7 +1262,17 @@ public static class ActorCanonicalContractReader
                 "ready-for-explicit-fabrication",
                 "permanently-dormant"),
             Int(element, "delayTicks"),
-            NullableId(element, "automaticReturnFormId"));
+            NullableId(element, "automaticReturnFormId"))
+        {
+            RootFactorySeedFormId = hasRootFactory
+                ? rootFactory.ValueKind == JsonValueKind.String
+                    ? rootFactory.GetString()!
+                    : throw new FormatException(
+                        "A canonical root-factory seed form must be a "
+                        + "string; a profile without a bootstrap omits the "
+                        + "property entirely.")
+                : null,
+        };
     }
 
     private static RulesContract.Form ReadForm(JsonElement element)

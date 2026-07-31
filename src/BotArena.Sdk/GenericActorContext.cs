@@ -2910,7 +2910,8 @@ public sealed record GenericActorContext
                 && parentActorId is null
                 && sourceTransitionId is null
                 && sourceOperationId is null,
-            GenericActorMatchStart.SpawnReason.AutomaticActivation =>
+            GenericActorMatchStart.SpawnReason.AutomaticActivation
+                or GenericActorMatchStart.SpawnReason.RootFactorySeed =>
                 generation >= 0
                 && parentActorId is null
                 && sourceTransitionId is null

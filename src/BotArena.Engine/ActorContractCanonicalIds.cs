@@ -126,6 +126,9 @@ internal static class ActorContractCanonicalIds
         FrontlineScrapEconomyDefinition.UpgradeScopeKind
                 .PrimeSlotLivesOnly =>
             "prime-slot-lives-only",
+        FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                .AllSlotLives =>
+            "all-slot-lives",
         FrontlineScrapEconomyDefinition.PurchaseModeKind.InvestAction =>
             "invest-action",
         FrontlineScrapEconomyDefinition.PurchaseModeKind

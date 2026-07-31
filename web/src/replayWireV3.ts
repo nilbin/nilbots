@@ -243,7 +243,7 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     pileLifetimeTicks: number;
     maxSimultaneousPiles: number;
     bankRegionIds: string[];
-    upgradeScope: 'prime-slot-lives-only';
+    upgradeScope: 'prime-slot-lives-only' | 'all-slot-lives';
     maxTotalTiers: number;
     purchaseMode: 'invest-action' | 'automatic-greedy-declared-order';
     tracks: {
@@ -359,6 +359,12 @@ export interface ReplayV3TopologyContract {
     teamId: number;
     unitId: number;
     controllerParticipantId: number;
+    /**
+     * The per-slot chassis (§9.2). Additive under the #156 canonical
+     * discipline: present only where a ruleset declares COMPOSITIONS, so a
+     * mono army keeps its exact topology bytes.
+     */
+    classId?: string;
   }[];
   initialLives: {
     teamId: number;
@@ -392,6 +398,13 @@ export interface ReplayV3LifecycleAssignment extends ReplayV3JsonObject {
   initialAvailability: string;
   unlockTick: number | null;
   assignedRespawnSpawnId: string | null;
+  /**
+   * The form a fabrication INTO this slot produces, overriding the fabrication
+   * transition's declared output — "fabricate produces the target slot's
+   * chassis". Present only under a MIXED composition; absent (not null) on
+   * every mono cell, which is the #156 additive-canonical rule.
+   */
+  fabricationOutputFormId?: string;
 }
 
 export interface ReplayV3DeathmatchModeMapBinding {

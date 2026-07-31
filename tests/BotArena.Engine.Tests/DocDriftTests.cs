@@ -350,6 +350,96 @@ public class DocDriftTests
     /// mined replay headers for declared numbers. Help that does not name the
     /// mode is help that keeps them mining.
     /// </summary>
+    /// <summary>
+    /// Prime dissolution's mechanical lists: the flag tokens the CLI accepts,
+    /// the unified form IDs the arm mints, the upgrade scope it forces, the
+    /// tier price it ships with, and the new spawn reason a base seed carries.
+    /// Prose accuracy is on the author; these are the names that rot.
+    /// </summary>
+    [Fact]
+    public void ChassisBrief_SpellsEveryUnifiedNameTheArmMints()
+    {
+        string brief = ReadRepoFile(
+            "docs/EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        string help = ReadRepoFile("src/BotArena.Cli/Program.cs");
+
+        foreach (string token in new[]
+                 {
+                     "--chassis unified",
+                     "--tier-cost",
+                     "rootFactorySeedFormId",
+                     "all-slot-lives",
+                     "root-factory-seed",
+                     "peer",
+                     "phalanx",
+                     "swarm",
+                     "curtain",
+                 })
+        {
+            Assert.Contains(token, brief, StringComparison.Ordinal);
+        }
+        Assert.Contains("[--chassis split|unified]", help, StringComparison.Ordinal);
+        Assert.Contains("[--tier-cost <positive-n>]", help, StringComparison.Ordinal);
+
+        // The unified form IDs the arm actually mints, per class.
+        foreach (FrontlineLabsClassDefinition entry
+                 in FrontlineLabsClassDefinition.All)
+        {
+            Assert.Contains(
+                entry.UnifiedFormId,
+                brief,
+                StringComparison.Ordinal);
+        }
+
+        // The two numbers the arm moves, quoted rather than described.
+        Assert.Contains(
+            $"{FrontlineLabsScrapEconomy.UnifiedChassisTierCost} scrap per "
+            + "tier instead of "
+            + FrontlineLabsScrapEconomy.TierCost,
+            brief,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The composition set is a pre-registration, so the brief, the engine's
+    /// registered table and the reserved contract allocation must all name the
+    /// same five tokens and the same two mixed ones.
+    /// </summary>
+    [Fact]
+    public void CompositionBrief_NamesEveryRegisteredToken()
+    {
+        string brief = ReadRepoFile(
+            "docs/EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        string help = ReadRepoFile("src/BotArena.Cli/Program.cs");
+
+        Assert.Equal(
+            GenericMindContractReservations.RegisteredCompositionTokens,
+            FrontlineLabsComposition.All.Select(entry => entry.Token));
+        Assert.Equal(
+            GenericMindContractReservations.RegisteredMixedCompositionTokens,
+            FrontlineLabsComposition.All
+                .Where(entry => entry.IsMixed)
+                .Select(entry => entry.Token));
+        foreach (FrontlineLabsComposition entry
+                 in FrontlineLabsComposition.All)
+        {
+            Assert.Contains(entry.Token, brief, StringComparison.Ordinal);
+            Assert.Contains(entry.Token, help, StringComparison.Ordinal);
+        }
+        Assert.Contains(
+            "--compositions <a>-vs-<b>",
+            brief,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[--compositions <a>-vs-<b>]",
+            help,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "fabricationOutputFormId",
+            brief,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CliHelp_NamesEveryCandidateContractPrintMode()
     {

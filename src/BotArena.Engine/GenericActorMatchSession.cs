@@ -38,6 +38,17 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly Dictionary<string, InitialSpawnDefinition> _spawns;
     private readonly Dictionary<int, int> _participantTeams;
     private readonly Dictionary<int, string?> _participantClassIds;
+    private readonly Dictionary<(int TeamId, int UnitId), string?>
+        _slotClassIds;
+
+    /// <summary>
+    /// THE ROOT FACTORY clock, per participant (DECISIONS #194). A
+    /// participant whose slots are all placed by explicit fabrication cannot
+    /// place one once its last body dies, so the home base seeds one for it.
+    /// Empty on every ruleset that declares no bootstrap, which is every
+    /// ruleset shipped before prime dissolution.
+    /// </summary>
+    private readonly Dictionary<int, int> _rootFactoryDueTick = [];
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
@@ -138,6 +149,9 @@ public sealed class GenericActorMatchSession : IDisposable
         _participantTeams = definition.Topology.Participants.ToDictionary(
             participant => participant.ParticipantId,
             participant => participant.TeamId);
+        _slotClassIds = definition.Topology.UnitSlots.ToDictionary(
+            slot => (slot.TeamId, slot.UnitId),
+            slot => slot.ClassId);
         _participantClassIds = definition.Topology.Participants.ToDictionary(
             participant => participant.ParticipantId,
             participant => participant.ClassId);
@@ -304,6 +318,13 @@ public sealed class GenericActorMatchSession : IDisposable
         var projectileTransitions =
             ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
         ApplyInitialUnlocks(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
+        // The base seeds BEFORE the ordinary readiness pass, because the seed
+        // consumes the very clock that pass would otherwise turn into an idle
+        // Ready slot: a bootstrapped slot goes straight from pending to live.
+        ApplyRootFactorySeeds(
             tickStartEvents,
             lifeStarts,
             projectileTransitions);
@@ -2213,7 +2234,160 @@ public sealed class GenericActorMatchSession : IDisposable
             CancelSameLifeTransition(life, events);
             ScheduleAfterDestruction(slot, life);
         }
+        ScheduleRootFactorySeeds();
         return destroyed.ToImmutable();
+    }
+
+    /// <summary>
+    /// Starts the root factory's clock for any participant this tick left
+    /// with no live body at all.
+    /// <para>It uses the ordinary destruction grammar —
+    /// <c>tick + 1 + profile delay</c>, the class's own respawn delay — so a
+    /// wiped participant waits exactly as long for its bootstrap body as an
+    /// ordinary body waits to be re-placeable. Nothing is scheduled while any
+    /// life-creating clock is still running, because a participant that is
+    /// merely between bodies is not wiped.</para>
+    /// </summary>
+    private void ScheduleRootFactorySeeds()
+    {
+        foreach (int participantId in _participantTeams.Keys.Order())
+        {
+            if (RootFactorySlot(participantId) is not SlotState slot)
+                continue;
+            if (_rootFactoryDueTick.ContainsKey(participantId))
+                continue;
+            int dueTick = checked(
+                Tick
+                + 1
+                + _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DelayTicks);
+            // The seed rides the slot's OWN availability clock rather than a
+            // second one beside it: a bootstrapped slot goes from pending
+            // straight to live, which is the shape an automatic activation
+            // already has and the shape the chronology already validates.
+            slot.Kind = SlotKind.AvailabilityPending;
+            slot.DueTick = dueTick;
+            slot.PendingReason = GenericActorRuntimeObservation
+                .AvailabilityReason.DestructionRecovery;
+            _rootFactoryDueTick[participantId] = dueTick;
+        }
+    }
+
+    /// <summary>
+    /// The slot the root factory would seed for one participant, or null when
+    /// the participant needs no bootstrap this tick — it still holds a body,
+    /// a life-creating clock is already running, or its ruleset declares no
+    /// root factory at all.
+    /// <para>The seeded slot is the LOWEST-numbered one that owns a home
+    /// spawn, which under prime dissolution is the slot the authored
+    /// PrimeSpawn pad now reserves as an ordinary home spawn.</para>
+    /// </summary>
+    private SlotState? RootFactorySlot(int participantId)
+    {
+        if (_lives.Values.Any(life => life.ParticipantId == participantId))
+            return null;
+        // A disqualified participant is out of the match, not merely wiped.
+        // Its base seeds nothing: the bootstrap answers a total body loss, and
+        // a disqualification is a loss of the PLAYER.
+        if (_host.ParticipantStatuses.Any(status =>
+                status.ParticipantId == participantId
+                && status.Disqualified))
+        {
+            return null;
+        }
+        SlotState[] owned =
+            [
+                .. _slots.Values
+                    .Where(slot => slot.ParticipantId == participantId)
+                    .OrderBy(slot => slot.UnitId),
+            ];
+        // A pending automatic return or activation is a body already on its
+        // way; the base does not seed against one.
+        if (owned.Any(slot =>
+                slot.Kind is SlotKind.AutomaticReturnPending
+                || slot.Kind == SlotKind.AvailabilityPending
+                    && slot.Assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick))
+        {
+            return null;
+        }
+        if (_fabricationReservations.Any(reservation =>
+                reservation.ParticipantId == participantId))
+        {
+            return null;
+        }
+        return owned.FirstOrDefault(slot =>
+            slot.Kind != SlotKind.PermanentlyDormant
+            && slot.Assignment.AssignedRespawnSpawnId is not null
+            && _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                .RootFactorySeedFormId is not null);
+    }
+
+    /// <summary>
+    /// Seeds one body at the home spawn for every participant whose root
+    /// factory is due this tick. It runs in the canonical returns/readiness
+    /// phase, in participant order, exactly like every other tick-start life
+    /// creation, and it costs the participant nothing: no action, no scrap, no
+    /// slot beyond the one it fills.
+    /// </summary>
+    private void ApplyRootFactorySeeds(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        foreach (int participantId in _rootFactoryDueTick.Keys.Order())
+        {
+            if (_rootFactoryDueTick[participantId] != Tick)
+                continue;
+            if (RootFactorySlot(participantId) is not SlotState slot
+                || slot.Kind != SlotKind.AvailabilityPending
+                || slot.DueTick != Tick)
+            {
+                // The participant recovered by some other route before the
+                // base could seed it. The bootstrap is a floor, never a bonus.
+                _rootFactoryDueTick.Remove(participantId);
+                continue;
+            }
+            string formId =
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .RootFactorySeedFormId!;
+            InitialSpawnDefinition spawn = _spawns[
+                slot.Assignment.AssignedRespawnSpawnId!];
+            ConsumeProjectilesAt(spawn.Position, traversals);
+            LifeState life = CreateLife(
+                slot,
+                formId,
+                // A base seed starts a fresh lineage: the structure is not a
+                // parent, so there is no source generation to carry.
+                0,
+                spawn.Position,
+                spawn.Facing,
+                EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
+                GenericActorRuntimeStart.SpawnReason.RootFactorySeed,
+                parentActorId: null,
+                sourceTransitionId: null,
+                sourceOperationId: null);
+            lifeStarts.Add(life.LifeStart);
+            ClearPendingClock(slot);
+            _rootFactoryDueTick.Remove(participantId);
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifeSpawned,
+                SpawnPayload(life),
+                life.Position));
+        }
+        // A participant that regained a body some other way keeps no stale
+        // clock: the bootstrap only ever answers a total loss.
+        foreach (int participantId in _rootFactoryDueTick.Keys.ToArray())
+        {
+            if (_lives.Values.Any(life =>
+                    life.ParticipantId == participantId))
+            {
+                _rootFactoryDueTick.Remove(participantId);
+            }
+        }
     }
 
     private void CancelParticipantClocks(
@@ -2424,7 +2598,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 observer.PreviousActionResolution,
                 PendingObservation(observer))
             {
-                ClassId = _participantClassIds[observer.ParticipantId],
+                ClassId = BodyClassId(
+                    observer.ActorId.TeamId,
+                    observer.ActorId.UnitId,
+                    observer.ParticipantId),
                 RouteCooldowns = LiveRouteCooldowns(
                     observer.ActorId.TeamId,
                     observer.ActorId.UnitId),
@@ -2547,7 +2724,10 @@ public sealed class GenericActorMatchSession : IDisposable
             life.PreviousActionResolution,
             PendingObservation(life))
         {
-            ClassId = _participantClassIds[life.ParticipantId],
+            ClassId = BodyClassId(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId,
+                life.ParticipantId),
             RouteCooldowns = LiveRouteCooldowns(
                 life.ActorId.TeamId,
                 life.ActorId.UnitId),
@@ -2622,8 +2802,10 @@ public sealed class GenericActorMatchSession : IDisposable
                         PendingObservation(item.life),
                         item.observedBy)
                     {
-                        ClassId =
-                            _participantClassIds[item.life.ParticipantId],
+                        ClassId = BodyClassId(
+                            item.life.ActorId.TeamId,
+                            item.life.ActorId.UnitId,
+                            item.life.ParticipantId),
                         CarriedScrap = modeProjection.CarriedScrapByActor
                             .GetValueOrDefault(item.life.ActorId),
                         // Public on purpose (§12.2): this game telegraphs
@@ -2877,7 +3059,10 @@ public sealed class GenericActorMatchSession : IDisposable
             life.LifeStart.Origin,
             ActionLegalities(life))
         {
-            ClassId = _participantClassIds[life.ParticipantId],
+            ClassId = BodyClassId(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId,
+                life.ParticipantId),
             RouteCooldowns = LiveRouteCooldowns(
                 life.ActorId.TeamId,
                 life.ActorId.UnitId),
@@ -2891,6 +3076,20 @@ public sealed class GenericActorMatchSession : IDisposable
             BodyRandomSeed = life.LifeStart.ActorRandomSeed,
         };
     }
+
+    /// <summary>
+    /// The chassis one BODY carries. Under a mixed composition that is the
+    /// SLOT's declared chassis, not the participant's composition token — a
+    /// warden's slot-3 body is a fabricator and says so, which is what makes
+    /// "condition on the enemy's stats and routes" still work when an army is
+    /// not one thing.
+    /// <para>On every mono cell the slot declares nothing and this falls
+    /// through to the participant's own ID, so nothing an existing bot reads
+    /// changes.</para>
+    /// </summary>
+    private string? BodyClassId(int teamId, int unitId, int participantId) =>
+        _slotClassIds.GetValueOrDefault((teamId, unitId))
+        ?? _participantClassIds[participantId];
 
     private string? SlotClassId(SlotState slot) =>
         _definition.Topology.UnitSlots

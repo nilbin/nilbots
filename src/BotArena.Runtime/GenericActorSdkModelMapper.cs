@@ -682,6 +682,8 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
                 Sdk.GenericActorMatchStart.SpawnReason
                     .AutomaticActivation,
+            GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
+                Sdk.GenericActorMatchStart.SpawnReason.RootFactorySeed,
             _ => throw UnknownEnum(value),
         };
 

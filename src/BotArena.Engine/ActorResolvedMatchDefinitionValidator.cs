@@ -958,11 +958,43 @@ public static class ActorResolvedMatchDefinitionValidator
                 .AutomaticRespawn;
         if (!automatic)
         {
-            if (assignment.AssignedRespawnSpawnId is not null)
+            // A ROOT-FACTORY profile is the one non-automatic policy that
+            // still needs a home spawn: the base seeds its bootstrap body
+            // there when the participant has lost every body. The spawn is
+            // NOT registered as an automatic-return reservation, so it does
+            // not become a permanently reserved tile — it is an address, not
+            // a claim (DECISIONS #194).
+            if (assignment.AssignedRespawnSpawnId is not null
+                && profile.RootFactorySeedFormId is null)
             {
                 errors.Add(
                     $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
                     "must not assign a respawn spawn for a non-automatic profile.");
+            }
+            if (assignment.AssignedRespawnSpawnId is string seedSpawnId
+                && profile.RootFactorySeedFormId is string seedFormId)
+            {
+                if (!mapSpawns.ContainsKey(seedSpawnId))
+                {
+                    errors.Add(
+                        $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                        $"references unknown respawn spawn '{seedSpawnId}'.");
+                }
+                if (!assignment.AllowedFormIds.Contains(
+                        seedFormId,
+                        StringComparer.Ordinal))
+                {
+                    errors.Add(
+                        $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                        "must allow its profile's root-factory seed form.");
+                }
+            }
+            if (profile.RootFactorySeedFormId is string declaredSeedForm
+                && !forms.ContainsKey(declaredSeedForm))
+            {
+                errors.Add(
+                    $"Lifecycle profile '{profile.ProfileId}' names an unknown "
+                    + $"root-factory seed form '{declaredSeedForm}'.");
             }
             return;
         }
@@ -1239,7 +1271,12 @@ public static class ActorResolvedMatchDefinitionValidator
                             out ActorUnitSlotLifecycleAssignmentDefinition?
                                 assignment)
                         && assignment.AllowedFormIds.Contains(
-                            bounded.OutputFormId,
+                            // "Fabricate produces the target SLOT's chassis":
+                            // a slot may override the transition's declared
+                            // output, and the override is exactly what makes a
+                            // mixed composition buildable.
+                            assignment.FabricationOutputFormId
+                            ?? bounded.OutputFormId,
                             StringComparer.Ordinal)
                         && CanBecomeReadyForExplicitCreation(
                             assignment,

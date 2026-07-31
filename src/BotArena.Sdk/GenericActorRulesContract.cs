@@ -599,7 +599,26 @@ public sealed class GenericActorRulesContract
         string ProfileId,
         string DestructionPolicy,
         int DelayTicks,
-        string? AutomaticReturnFormId);
+        string? AutomaticReturnFormId)
+    {
+        /// <summary>
+        /// THE ROOT FACTORY. A slot on a <c>ready-for-explicit-fabrication</c>
+        /// profile is normally placed only by a live body's fabricate action —
+        /// so when your last body dies, nothing can place one again. When this
+        /// form ID is present, your HOME BASE seeds exactly one body of it,
+        /// once, at your own home spawn, after this profile's
+        /// <see cref="DelayTicks"/>. It costs nothing, spends no action, and
+        /// needs no body: a structure, not a body, does the seeding.
+        /// <para>
+        /// <see langword="null"/> — which is every ruleset that does not
+        /// declare the bootstrap — means a total wipe of the slots on this
+        /// profile is permanent, so read it rather than assuming a comeback.
+        /// When it is present, plan around the tempo rather than the loss: the
+        /// seed arrives alone, at home, with the whole map to walk.
+        /// </para>
+        /// </summary>
+        public string? RootFactorySeedFormId { get; init; }
+    }
 
     /// <summary>
     /// One playable body form and its referenced movement, perception, attack,

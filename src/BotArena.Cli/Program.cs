@@ -249,6 +249,9 @@ static int CommandHelp(string command)
                    [--economy none|scrap|scrap-flat]
                    [--roster none|legion]
                    [--horizon standard|long]
+                   [--chassis split|unified]
+                   [--compositions <a>-vs-<b>]
+                   [--tier-cost <positive-n>]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract [identity|full]]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -492,6 +495,46 @@ static int CommandHelp(string command)
             was priced against 500 and is being re-priced against 750. It is a
             real arm on every pair and needs a class pair or a --pendulum
             level to sit in.
+            --chassis unified DISSOLVES THE PRIME. Every body of a class
+            shares one statline (each class unified at its CHILD values:
+            bulwark 4, fabricator 3, striker 3, and the bulwark's anchor
+            windup at the child's 1), one lifecycle profile, and one action
+            catalog. Three consequences travel with it because they are one
+            design step: the fabricate verb sits on EVERY fabricator body, so
+            any live body is a fabrication origin and killing one never kills
+            the factory; at TOTAL body loss the home base acts as the ROOT
+            FACTORY and seeds one body at the home spawn after the class's own
+            respawn delay, at no cost (active fabrication still needs a live
+            body); and a purchased upgrade tier applies to EVERY body of the
+            buying team instead of the prime slot's lives, at 20 scrap per
+            tier instead of 10. Read the tier price from the contract's
+            scrapEconomy tracks and the bootstrap from the lifecycle
+            profile's rootFactorySeedFormId. It needs a class pair, it refuses
+            --prime-respawn-ticks (which names a lifecycle it deletes) and
+            --side-objective (whose effect is prime-scoped), and it appends
+            `peer` to the ruleset identity.
+            --tier-cost <n> sweeps the flat upgrade price. It is the
+            registered ablation on the widened scope — 10, 20 and 30 are
+            pre-registered — and it spells its number in the ruleset identity.
+            --compositions <a>-vs-<b> lets a participant's SLOTS carry chassis
+            of more than one class. Registered tokens: the three monos
+            (bulwark, fabricator, striker), which are byte-identical to
+            today's class arms and are what every cell already plays, plus
+            spearhead (a fabricator leading a striker/bulwark line — does
+            mixing beat mono at all?) and warden (a bulwark leading fabricator
+            and striker companions — does the fabricator's monopoly survive
+            being a companion?). Pairs are canonical in alphabetical order and
+            a single token names the mirror. A composition's lead chassis must
+            agree with that team's --classes side: composition is a departure
+            from a declared class, not a second matchmaking axis. A MIXED
+            composition needs --chassis unified (a class's verbs live on its
+            prime form otherwise) and --roster legion (the registered mixed
+            profiles are legion shapes). Composition tokens live in the
+            TOPOLOGY profile ID and never in the ruleset ID, so two
+            compositions playing the same mechanics share a rules fingerprint
+            and differ in the topology and aggregate ones. Read the per-slot
+            classId on the topology's unitSlots; free composition is a later
+            registered level.
             --pendulum hull is the keel WITHOUT its forward rally (owner
             ruling): sticky frontline, contest majority and enemy-sole decay
             are unchanged, but every automatic arrival — prime respawns and

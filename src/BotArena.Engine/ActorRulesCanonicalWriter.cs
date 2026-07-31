@@ -468,6 +468,18 @@ internal static class ActorRulesCanonicalWriter
                 writer,
                 "automaticReturnFormId",
                 profile.AutomaticReturnFormId);
+            // Additive trailing field under the #156 canonical discipline,
+            // exactly like the form's projectile guard: emitted only when the
+            // profile declares a root-factory bootstrap, so every profile
+            // shipped before prime dissolution writes the bytes it always
+            // wrote and an absent property means "no bootstrap — total body
+            // loss is permanent for this slot".
+            if (profile.RootFactorySeedFormId is not null)
+            {
+                writer.WriteString(
+                    "rootFactorySeedFormId",
+                    profile.RootFactorySeedFormId);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

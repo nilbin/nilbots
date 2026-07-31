@@ -1447,7 +1447,9 @@ public sealed class GenericActorWorldSnapshot
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
                 life.ParentActorId is null && !hasTransition,
-            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+                // A ROOT-FACTORY seed has no parent: a structure placed it.
+                or GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
                 life.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 life.ParentActorId is not null && !hasTransition,

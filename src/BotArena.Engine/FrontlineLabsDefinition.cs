@@ -610,8 +610,76 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
         FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null,
+        int? tierCost = null)
     {
+        if (!Enum.IsDefined(chassis))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(chassis),
+                chassis,
+                "Unknown Frontline Labs chassis arm.");
+        }
+        // Prime dissolution rewrites a CLASS's statline, lifecycle, verbs and
+        // upgrade scope, so — exactly like the skills, the aim grammar, the
+        // curve envelope and the cooldown clock — it is handed to class
+        // chassis and has no meaning without a class pair.
+        if (chassis != FrontlineLabsChassisArm.Split && classes is null)
+        {
+            throw new ArgumentException(
+                "One chassis per class is a statement about class chassis, so "
+                + "it has no meaning without a class pair; pass one.",
+                nameof(chassis));
+        }
+        // The prime respawn delay names a lifecycle that no longer exists once
+        // the prime dissolves: every body returns on the unified clock. A
+        // numbers-only level that silently moved nothing would be an ablation
+        // reporting an effect it never applied, so it is refused rather than
+        // ignored.
+        if (chassis != FrontlineLabsChassisArm.Split
+            && primeRespawnTicks != DefaultPrimeRespawnTicks)
+        {
+            throw new ArgumentException(
+                "The prime respawn delay names the prime's own lifecycle, and "
+                + "one chassis per class dissolves it — every body returns on "
+                + "the unified clock instead. Sweep the class rebuild delay "
+                + "rather than a number this arm no longer applies.",
+                nameof(primeRespawnTicks));
+        }
+        // MUSTER pays in the PRIME's return geometry
+        // (PrimeAutomaticReturnOnly), which is precisely the scope prime
+        // dissolution deletes. Re-ruling what the flag buys when every body is
+        // the same body is an owner decision, not a build-time one.
+        if (chassis != FrontlineLabsChassisArm.Split
+            && sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            throw new ArgumentException(
+                "The side objective pays in the PRIME's return geometry, and "
+                + "one chassis per class dissolves the prime. What the flag "
+                + "buys a prime-free army is an open re-ruling, so the "
+                + "combination is refused rather than guessed.",
+                nameof(sideObjective));
+        }
+        if (tierCost is int declaredTierCost)
+        {
+            if (declaredTierCost <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(tierCost),
+                    tierCost,
+                    "An upgrade tier price must be positive.");
+            }
+            if (economy == FrontlineLabsEconomyArm.None)
+            {
+                throw new ArgumentException(
+                    "An upgrade tier price only means something where an "
+                    + "economy declares a ladder; pass --economy.",
+                    nameof(tierCost));
+            }
+        }
         if (!Enum.IsDefined(horizon))
         {
             throw new ArgumentOutOfRangeException(
@@ -916,6 +984,9 @@ public static class FrontlineLabsDefinition
                 FrontlineLabsStanceGroundArm.Strict,
             _ => stanceGround,
         };
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? effectiveCompositions =
+            ResolveCompositions(classes, compositions, chassis, roster);
 
         return CreateResolved(
             PendulumRulesetId(
@@ -935,7 +1006,9 @@ public static class FrontlineLabsDefinition
                 capture,
                 economy,
                 roster,
-                horizon),
+                horizon,
+                chassis,
+                tierCost),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -946,6 +1019,15 @@ public static class FrontlineLabsDefinition
             classes: classes is { } cell
                 ? (ApplyFiveSlotVariant(cell.TeamZero, effectiveFiveSlots),
                     ApplyFiveSlotVariant(cell.TeamOne, effectiveFiveSlots))
+                : null,
+            // A class tuning has to reach the chassis inside a composition as
+            // well as the pair's own entries, or a mixed cell would silently
+            // play the untuned class.
+            compositions: effectiveCompositions is { } tuned
+                ? (tuned.TeamZero.WithChassis(entry =>
+                        ApplyFiveSlotVariant(entry, effectiveFiveSlots)),
+                    tuned.TeamOne.WithChassis(entry =>
+                        ApplyFiveSlotVariant(entry, effectiveFiveSlots)))
                 : null,
             movementCoupling: movementCoupling,
             pendulum: pendulum,
@@ -959,7 +1041,102 @@ public static class FrontlineLabsDefinition
             sideObjective: sideObjective,
             economy: economy,
             roster: roster,
-            horizon: horizon);
+            horizon: horizon,
+            chassis: chassis,
+            tierCost: tierCost);
+    }
+
+    /// <summary>
+    /// The compositions a cell actually fields. A cell that names none plays
+    /// the MONO composition of each declared class, which writes no per-slot
+    /// chassis at all — so the whole mechanism is inert for every existing arm
+    /// and for every bot written against one.
+    /// </summary>
+    private static (FrontlineLabsComposition TeamZero,
+        FrontlineLabsComposition TeamOne)? ResolveCompositions(
+            (FrontlineLabsClassDefinition TeamZero,
+                FrontlineLabsClassDefinition TeamOne)? classes,
+            (FrontlineLabsComposition TeamZero,
+                FrontlineLabsComposition TeamOne)? compositions,
+            FrontlineLabsChassisArm chassis,
+            FrontlineLabsRosterArm roster)
+    {
+        if (compositions is null)
+        {
+            return classes is { } mono
+                ? (FrontlineLabsComposition.MonoFor(mono.TeamZero),
+                    FrontlineLabsComposition.MonoFor(mono.TeamOne))
+                : null;
+        }
+        if (classes is not { } pair)
+        {
+            throw new ArgumentException(
+                "A composition declares which chassis a team's SLOTS carry, "
+                + "so it needs a class pair to depart from; pass one.",
+                nameof(compositions));
+        }
+        (FrontlineLabsComposition zero, FrontlineLabsComposition one) =
+            compositions.Value;
+        // Match setup stays classes-pair shaped: a composition is a
+        // participant departing from its declared class's default mix, never a
+        // second matchmaking axis. Slot zero therefore still names the class
+        // the cell was set up as.
+        foreach ((FrontlineLabsComposition composition,
+                     FrontlineLabsClassDefinition declared) in new[]
+                 {
+                     (zero, pair.TeamZero),
+                     (one, pair.TeamOne),
+                 })
+        {
+            if (composition.SlotZeroChassis.Id != declared.Id)
+            {
+                throw new ArgumentException(
+                    $"Composition '{composition.Token}' leads with "
+                    + $"'{composition.SlotZeroChassis.Id}' but the cell "
+                    + $"declares class '{declared.Id}'. A composition is a "
+                    + "departure from a declared class, so the two must "
+                    + "agree.",
+                    nameof(compositions));
+            }
+        }
+        if (!zero.IsMixed && !one.IsMixed)
+            return (zero, one);
+        if (zero.IsMixed != one.IsMixed)
+        {
+            throw new ArgumentException(
+                "A composition cell pits a declared composition against a "
+                + "declared composition. Mixing a registered composition "
+                + "against an unlabelled mono army would carry the wrong "
+                + "topology into balance evidence.",
+                nameof(compositions));
+        }
+        // A mixed army needs every chassis to carry its own verbs on every
+        // body: under the split chassis the fabricate verb sits on the PRIME
+        // form alone, so a fabricator companion would be a statline with no
+        // class and a fabricator lead could never build the line it is
+        // supposed to build. That is exactly the question the two registered
+        // mixed tokens ask, and it is only askable once the chassis unify.
+        if (chassis != FrontlineLabsChassisArm.Unified)
+        {
+            throw new ArgumentException(
+                "A mixed composition needs one chassis per class: on the "
+                + "split chassis a class's verbs live on its PRIME form, so a "
+                + "chassis carried by a companion slot would arrive without "
+                + "them. Compose it with the unified chassis arm.",
+                nameof(compositions));
+        }
+        // The registered mixed profiles are legion shapes. A profile ID is a
+        // pre-registration, so an unregistered roster shape faults here rather
+        // than borrowing a neighbour's label.
+        if (roster != FrontlineLabsRosterArm.Legion)
+        {
+            throw new ArgumentException(
+                "The registered mixed compositions are LEGION shapes — a "
+                + "two-companion army has no room to be an army — so a mixed "
+                + "cell needs the legion roster.",
+                nameof(compositions));
+        }
+        return (zero, one);
     }
 
     /// <summary>
@@ -1232,7 +1409,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
         FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        int? tierCost = null)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -1487,6 +1666,42 @@ public static class FrontlineLabsDefinition
             arms = [package];
             tuning = [];
         }
+        // Prime dissolution rides OUTSIDE every registered package token,
+        // because it is orthogonal to the pendulum family the packages name:
+        // it re-shapes the CLASS rather than the front. It spells itself
+        // wherever the budget allows, which is everywhere the packages reach —
+        // `warpath-peer` is 51 of the 64 canonical characters in the worst
+        // pair. `peer` because that is exactly what the arm does: no body
+        // outranks another any more.
+        if (chassis == FrontlineLabsChassisArm.Unified)
+        {
+            // The package tokens already sit at the budget wall — the worst
+            // cell spends 61 of its 64 characters on
+            // `fabricator-vs-fabricator`, a package token and
+            // `facing-locked` — so prime dissolution on a registered package
+            // re-mints it rather than appending, exactly as the muster, the
+            // channel, the economy and the roster arms each did:
+            // `phalanx` for the striker shapes (a formation of equals, no
+            // captain in it), `swarm` for the fabricator shapes (every body
+            // a factory), and `curtain` for the bulwark mirror (a wall whose
+            // every section is the same section).
+            arms = arms switch
+            {
+                ["warpath"] => ["phalanx"],
+                ["horde"] => ["swarm"],
+                ["stockade"] => ["curtain"],
+                _ => [.. arms, ChassisArmToken],
+            };
+            // A named tier price is the registered ablation on the widened
+            // upgrade scope, so it spells its number exactly as every
+            // numbers-only level always has — in the SHORT form, because the
+            // budget is what it is.
+            if (tierCost is int price
+                && price != FrontlineLabsScrapEconomy.DefaultTierCost(chassis))
+            {
+                arms = [.. arms, $"t{price}"];
+            }
+        }
         string[] tokens =
         [
             .. arms,
@@ -1527,6 +1742,13 @@ public static class FrontlineLabsDefinition
 
     /// <summary>The longer horizon's plain arm token.</summary>
     private const string HorizonArmToken = "long";
+
+    /// <summary>
+    /// Prime dissolution's plain arm token. Every body of a class is now a
+    /// PEER of every other: same statline, same lifecycle, same verbs, and an
+    /// upgrade ladder that no longer picks a favourite.
+    /// </summary>
+    private const string ChassisArmToken = "peer";
 
     /// <summary>
     /// The registered identity for the NEXT ROUND'S PACKAGE, or empty.
@@ -1954,8 +2176,16 @@ public static class FrontlineLabsDefinition
             FrontlineLabsSideObjectiveArm.None,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
         FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null,
+        int? tierCost = null)
     {
+        compositions ??= classes is { } monoPair
+            ? (FrontlineLabsComposition.MonoFor(monoPair.TeamZero),
+                FrontlineLabsComposition.MonoFor(monoPair.TeamOne))
+            : null;
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
             captureThreshold,
@@ -1978,7 +2208,10 @@ public static class FrontlineLabsDefinition
             volley,
             sideObjective,
             economy,
-            horizon);
+            horizon,
+            chassis,
+            compositions,
+            tierCost);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -1987,9 +2220,13 @@ public static class FrontlineLabsDefinition
             sideObjective: sideObjective,
             roster: roster);
         PublicMatchTopology topology =
-            CreateTopology(classes, skills, roster);
+            CreateTopology(classes, skills, roster, chassis, compositions);
         InitialDeploymentDefinition deployment =
-            CreateInitialDeployment(classes, roster);
+            CreateInitialDeployment(
+                classes,
+                roster,
+                chassis,
+                compositions);
 
         return new ActorResolvedMatchDefinition(
             rules,
@@ -2001,10 +2238,11 @@ public static class FrontlineLabsDefinition
                 automaticCompanions,
                 classes,
                 skills,
-                roster),
-            classes is { } classSelection
-                ? classSelection.TeamZero.ExplicitForwardFabrication
-                    || classSelection.TeamOne.ExplicitForwardFabrication
+                roster,
+                chassis,
+                compositions),
+            classes is not null
+                ? FabricatingChassis(classes, compositions).Any()
                     ? ClassesParticipantRegionAssignments()
                     : []
                 : automaticCompanions
@@ -2075,7 +2313,11 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null,
+        int? tierCost = null)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -2100,7 +2342,10 @@ public static class FrontlineLabsDefinition
                 sideObjective,
                 controlPolicy,
                 economy,
-                horizon);
+                horizon,
+                chassis,
+                compositions,
+                tierCost);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -2468,7 +2713,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard) =>
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        int? tierCost = null) =>
         new(
             rulesetId,
             new ActorRulesLimits(
@@ -2527,7 +2774,10 @@ public static class FrontlineLabsDefinition
                             .DamageRevertsWork
                         : null),
                 SecondaryControl(sideObjective),
-                FrontlineLabsScrapEconomy.For(economy)),
+                FrontlineLabsScrapEconomy.For(
+                    economy,
+                    chassis,
+                    tierCost)),
             lifecycle,
             forms,
             movementProfiles,
@@ -2593,12 +2843,47 @@ public static class FrontlineLabsDefinition
             FrontlineCaptureDefinition.ControlPolicyKind
                 .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
-        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null,
+        int? tierCost = null)
     {
+        bool unified = chassis == FrontlineLabsChassisArm.Unified;
+        // Which lifecycle spellings each chassis actually needs. A chassis on
+        // a fabricating army is BUILT; on any other army it RETURNS. Both can
+        // be true for one chassis in a mixed cell, and exactly one is true in
+        // every mono cell — which is why a mono cell's rules stay minimal.
+        Dictionary<string, HashSet<bool>> fabricatedShapes = new(
+            StringComparer.Ordinal);
+        foreach ((FrontlineLabsClassDefinition teamClass,
+                     FrontlineLabsComposition? teamComposition) in new[]
+                 {
+                     (classes.TeamZero, compositions?.TeamZero),
+                     (classes.TeamOne, compositions?.TeamOne),
+                 })
+        {
+            FrontlineLabsComposition resolved =
+                teamComposition
+                ?? FrontlineLabsComposition.MonoFor(teamClass);
+            foreach (FrontlineLabsClassDefinition member
+                     in resolved.DistinctChassis)
+            {
+                if (!fabricatedShapes.TryGetValue(
+                        member.Id,
+                        out HashSet<bool>? shapes))
+                {
+                    shapes = [];
+                    fabricatedShapes[member.Id] = shapes;
+                }
+                shapes.Add(resolved.Fabricates);
+            }
+        }
+        // The catalog is built from every chassis the cell can put on the
+        // board. On a mono cell that is exactly the class pair's distinct
+        // entries, so the bytes do not move.
         FrontlineLabsClassDefinition[] distinct =
-            classes.TeamZero.Id == classes.TeamOne.Id
-                ? [classes.TeamZero]
-                : [classes.TeamZero, classes.TeamOne];
+            [.. DistinctChassis(classes, compositions)];
         // The curve grammar is a rules-wide factor rather than a class
         // capability, so it reads as one predicate over every chassis: a class
         // bends if it always did, or if this arm hands the grammar to
@@ -2760,31 +3045,54 @@ public static class FrontlineLabsDefinition
                 .. mayTransform ? new[] { "transform" } : [],
                 .. investActions,
             ];
-            forms.Add(
-                new ActorFormDefinition(
-                    entry.PrimeFormId,
-                    entry.PrimeMaxHealth,
-                    movement.Id,
-                    entry.MobileVisionProfileId,
-                    entry.MobileAttackProfileId,
-                    objectiveWeight: 1,
-                    primeActions));
-            forms.Add(
-                new ActorFormDefinition(
-                    entry.ChildFormId,
-                    entry.ChildMaxHealth,
-                    movement.Id,
-                    entry.MobileVisionProfileId,
-                    entry.MobileAttackProfileId,
-                    objectiveWeight: 1,
-                    childActions));
+            if (unified)
+            {
+                // ONE CHASSIS: one form, the child statline, and the class's
+                // exclusive verb on every body. That last clause is the
+                // headless production network in its entirety — the fabricate
+                // verb sat on the PRIME form, so unifying the form is what
+                // makes every live fabricator body a fabrication origin and
+                // what makes killing one stop killing the factory.
+                forms.Add(
+                    new ActorFormDefinition(
+                        entry.UnifiedFormId,
+                        entry.UnifiedMaxHealth,
+                        movement.Id,
+                        entry.MobileVisionProfileId,
+                        entry.MobileAttackProfileId,
+                        objectiveWeight: 1,
+                        primeActions));
+            }
+            else
+            {
+                forms.Add(
+                    new ActorFormDefinition(
+                        entry.PrimeFormId,
+                        entry.PrimeMaxHealth,
+                        movement.Id,
+                        entry.MobileVisionProfileId,
+                        entry.MobileAttackProfileId,
+                        objectiveWeight: 1,
+                        primeActions));
+                forms.Add(
+                    new ActorFormDefinition(
+                        entry.ChildFormId,
+                        entry.ChildMaxHealth,
+                        movement.Id,
+                        entry.MobileVisionProfileId,
+                        entry.MobileAttackProfileId,
+                        objectiveWeight: 1,
+                        childActions));
+            }
             if (entry.MayAnchor)
             {
-                foreach (string turretFormId in new[]
-                         {
-                             entry.PrimeTurretFormId,
-                             entry.ChildTurretFormId,
-                         })
+                foreach (string turretFormId in unified
+                             ? new[] { entry.UnifiedTurretFormId }
+                             : new[]
+                             {
+                                 entry.PrimeTurretFormId,
+                                 entry.ChildTurretFormId,
+                             })
                 {
                     forms.Add(
                         new ActorFormDefinition(
@@ -2847,11 +3155,19 @@ public static class FrontlineLabsDefinition
                 // the shield rises, in the mobile form.
                 bool volley = HasVolley(entry);
                 bool lockedArc = HasShell(entry);
-                foreach ((string stanceFormId, int maxHealth) in new[]
-                         {
-                             (entry.PrimeStanceFormId, entry.PrimeMaxHealth),
-                             (entry.ChildStanceFormId, entry.ChildMaxHealth),
-                         })
+                foreach ((string stanceFormId, int maxHealth) in unified
+                             ? new[]
+                             {
+                                 (entry.UnifiedStanceFormId,
+                                     entry.UnifiedMaxHealth),
+                             }
+                             : new[]
+                             {
+                                 (entry.PrimeStanceFormId,
+                                     entry.PrimeMaxHealth),
+                                 (entry.ChildStanceFormId,
+                                     entry.ChildMaxHealth),
+                             })
                 {
                     forms.Add(
                         new ActorFormDefinition(
@@ -2887,38 +3203,39 @@ public static class FrontlineLabsDefinition
                 int entryWindupTicks = salvoStance
                     ? SalvoEntryWindupTicks
                     : entry.StanceEntryWindupTicks;
-                sameLifeTransitions.Add(
-                    StanceRoute(
-                        $"{StanceRouteToken(entry)}-{entry.Id}-prime",
-                        entry.PrimeFormId,
-                        entry.PrimeStanceFormId,
-                        entryWindupTicks,
-                        stanceGround,
-                        entryCooldownTicks));
-                sameLifeTransitions.Add(
-                    StanceRoute(
-                        $"{StanceRouteToken(entry)}-{entry.Id}-child",
-                        entry.ChildFormId,
-                        entry.ChildStanceFormId,
-                        entryWindupTicks,
-                        stanceGround,
-                        entryCooldownTicks));
                 ActorAutomaticReturnTriggerDefinition automaticReturn =
                     StanceAutomaticReturn(entry);
-                sameLifeTransitions.Add(
-                    StanceReturnRoute(
-                        $"unstance-{entry.Id}-prime",
-                        entry.PrimeStanceFormId,
-                        entry.PrimeFormId,
-                        entry.StanceExitWindupTicks,
-                        automaticReturn));
-                sameLifeTransitions.Add(
-                    StanceReturnRoute(
-                        $"unstance-{entry.Id}-child",
-                        entry.ChildStanceFormId,
-                        entry.ChildFormId,
-                        entry.StanceExitWindupTicks,
-                        automaticReturn));
+                foreach ((string suffix, string source, string stanceForm)
+                         in unified
+                             ? new[]
+                             {
+                                 ("body", entry.UnifiedFormId,
+                                     entry.UnifiedStanceFormId),
+                             }
+                             : new[]
+                             {
+                                 ("prime", entry.PrimeFormId,
+                                     entry.PrimeStanceFormId),
+                                 ("child", entry.ChildFormId,
+                                     entry.ChildStanceFormId),
+                             })
+                {
+                    sameLifeTransitions.Add(
+                        StanceRoute(
+                            $"{StanceRouteToken(entry)}-{entry.Id}-{suffix}",
+                            source,
+                            stanceForm,
+                            entryWindupTicks,
+                            stanceGround,
+                            entryCooldownTicks));
+                    sameLifeTransitions.Add(
+                        StanceReturnRoute(
+                            $"unstance-{entry.Id}-{suffix}",
+                            stanceForm,
+                            source,
+                            entry.StanceExitWindupTicks,
+                            automaticReturn));
+                }
             }
             if (skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
                 && entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots)
@@ -2938,33 +3255,80 @@ public static class FrontlineLabsDefinition
                                 ? null
                                 : entry.ChildFormId));
             }
-            lifecycleProfiles.Add(
-                new ActorLifecycleProfileDefinition(
-                    entry.PrimeLifecycleProfileId,
-                    ActorLifecycleProfileDefinition
-                        .DestructionPolicyKind.AutomaticRespawn,
-                    primeRespawnTicks,
-                    automaticReturnFormId: entry.PrimeFormId));
-            lifecycleProfiles.Add(
-                new ActorLifecycleProfileDefinition(
-                    entry.ChildLifecycleProfileId,
-                    entry.ExplicitForwardFabrication
-                        ? ActorLifecycleProfileDefinition
-                            .DestructionPolicyKind.ReadyForExplicitFabrication
-                        : ActorLifecycleProfileDefinition
+            if (unified)
+            {
+                // ONE LIFECYCLE. It unifies at the profile the MAJORITY of a
+                // class's bodies already use — the child's — so a class that
+                // receives companions returns automatically on its rebuild
+                // clock and the fabricator's bodies are all placed by the
+                // verb. The prime's 18-tick return names nothing any more.
+                //
+                // THE ROOT FACTORY rides here, and only here: a class whose
+                // every body is fabricated can otherwise be wiped out
+                // permanently, because fabrication needs a live body. The
+                // owner's ruling makes the HOME BASE the bootstrap — one
+                // body, at home, after the class's own delay, at no cost —
+                // so a full wipe is a huge tempo loss rather than an instant
+                // kill, and total-loss-as-elimination stays the registered
+                // alternative.
+                foreach (bool fabricated in fabricatedShapes[entry.Id])
+                {
+                    lifecycleProfiles.Add(
+                        new ActorLifecycleProfileDefinition(
+                            entry.UnifiedLifecycleProfileId(fabricated),
+                            fabricated
+                                ? ActorLifecycleProfileDefinition
+                                    .DestructionPolicyKind
+                                    .ReadyForExplicitFabrication
+                                : ActorLifecycleProfileDefinition
+                                    .DestructionPolicyKind.AutomaticRespawn,
+                            entry.UnifiedLifecycleDelayTicks,
+                            automaticReturnFormId: fabricated
+                                ? null
+                                : entry.UnifiedFormId,
+                            // The ROOT FACTORY exists only where a body can
+                            // otherwise never be placed again.
+                            rootFactorySeedFormId: fabricated
+                                ? entry.UnifiedFormId
+                                : null));
+                }
+            }
+            else
+            {
+                lifecycleProfiles.Add(
+                    new ActorLifecycleProfileDefinition(
+                        entry.PrimeLifecycleProfileId,
+                        ActorLifecycleProfileDefinition
                             .DestructionPolicyKind.AutomaticRespawn,
-                    entry.ChildRebuildDelayTicks,
-                    automaticReturnFormId: entry.ExplicitForwardFabrication
-                        ? null
-                        : entry.ChildFormId));
+                        primeRespawnTicks,
+                        automaticReturnFormId: entry.PrimeFormId));
+                lifecycleProfiles.Add(
+                    new ActorLifecycleProfileDefinition(
+                        entry.ChildLifecycleProfileId,
+                        entry.ExplicitForwardFabrication
+                            ? ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind
+                                .ReadyForExplicitFabrication
+                            : ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind.AutomaticRespawn,
+                        entry.ChildRebuildDelayTicks,
+                        automaticReturnFormId:
+                            entry.ExplicitForwardFabrication
+                                ? null
+                                : entry.ChildFormId));
+            }
             if (entry.ExplicitForwardFabrication)
             {
                 fabrications.Add(
                     new BoundedChildFabricationDefinition(
                         $"fabricate-{entry.Id}-child",
                         "fabricate",
-                        [entry.PrimeFormId],
-                        entry.ChildFormId,
+                        unified
+                            ? [entry.UnifiedFormId]
+                            : [entry.PrimeFormId],
+                        unified
+                            ? entry.UnifiedFormId
+                            : entry.ChildFormId,
                         FabricationSourceRoleId,
                         FabricationOutputRoleId,
                         requiredSourceTileTags: [],
@@ -2982,32 +3346,38 @@ public static class FrontlineLabsDefinition
             {
                 continue;
             }
-            sameLifeTransitions.Add(
-                AnchorRoute(
-                    $"anchor-{entry.Id}-prime",
-                    entry.PrimeFormId,
-                    entry.PrimeTurretFormId,
-                    entry.PrimeAnchorWindupTicks,
-                    stanceGround));
-            sameLifeTransitions.Add(
-                AnchorRoute(
-                    $"anchor-{entry.Id}-child",
-                    entry.ChildFormId,
-                    entry.ChildTurretFormId,
-                    entry.ChildAnchorWindupTicks,
-                    stanceGround));
-            sameLifeTransitions.Add(
-                MobilizeRoute(
-                    $"mobilize-{entry.Id}-prime",
-                    entry.PrimeTurretFormId,
-                    entry.PrimeFormId,
-                    stanceGround));
-            sameLifeTransitions.Add(
-                MobilizeRoute(
-                    $"mobilize-{entry.Id}-child",
-                    entry.ChildTurretFormId,
-                    entry.ChildFormId,
-                    stanceGround));
+            foreach ((string suffix, string source, string turret, int windup)
+                     in unified
+                         ? new[]
+                         {
+                             ("body", entry.UnifiedFormId,
+                                 entry.UnifiedTurretFormId,
+                                 entry.UnifiedAnchorWindupTicks),
+                         }
+                         : new[]
+                         {
+                             ("prime", entry.PrimeFormId,
+                                 entry.PrimeTurretFormId,
+                                 entry.PrimeAnchorWindupTicks),
+                             ("child", entry.ChildFormId,
+                                 entry.ChildTurretFormId,
+                                 entry.ChildAnchorWindupTicks),
+                         })
+            {
+                sameLifeTransitions.Add(
+                    AnchorRoute(
+                        $"anchor-{entry.Id}-{suffix}",
+                        source,
+                        turret,
+                        windup,
+                        stanceGround));
+                sameLifeTransitions.Add(
+                    MobilizeRoute(
+                        $"mobilize-{entry.Id}-{suffix}",
+                        turret,
+                        source,
+                        stanceGround));
+            }
         }
         if (distinct.Any(entry => entry.MayAnchor))
         {
@@ -3036,7 +3406,9 @@ public static class FrontlineLabsDefinition
             cooldown,
             sideObjective,
             economy,
-            horizon);
+            horizon,
+            chassis,
+            tierCost);
     }
 
     private static ActorFormTransitionDefinition AnchorRoute(
@@ -3811,15 +4183,21 @@ public static class FrontlineLabsDefinition
     private static int TeamSlotCount(
         FrontlineLabsClassDefinition? teamClass,
         FrontlineLabsSkillKit skills,
-        FrontlineLabsRosterArm roster)
+        FrontlineLabsRosterArm roster,
+        FrontlineLabsComposition? composition = null)
     {
         if (teamClass is null)
             return 3;
         if (roster == FrontlineLabsRosterArm.Legion)
         {
+            // Whether a team gets the fabricator's extra opening slot is a
+            // COMPOSITION fact, not a slot-zero fact: a warden leads with a
+            // bulwark and still fields fabricator bodies, so it still buys its
+            // opening the way the class prices everything.
             return 1
                 + FrontlineLabsLegionRoster.CompanionSlots(
-                    teamClass.ExplicitForwardFabrication);
+                    composition?.Fabricates
+                    ?? teamClass.ExplicitForwardFabrication);
         }
         return teamClass.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
             && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
@@ -3827,36 +4205,104 @@ public static class FrontlineLabsDefinition
                 : 3;
     }
 
+    /// <summary>
+    /// The composition one team plays: its declared one, or the MONO
+    /// composition of its class when the cell declares none.
+    /// </summary>
+    private static FrontlineLabsComposition? CompositionFor(
+        FrontlineLabsClassDefinition? teamClass,
+        FrontlineLabsComposition? declared) =>
+        declared
+        ?? (teamClass is null
+            ? null
+            : FrontlineLabsComposition.MonoFor(teamClass));
+
+    /// <summary>
+    /// Every chassis the cell can put on the board, in canonical ordinal
+    /// order. On a mono cell this is exactly the class pair's distinct
+    /// entries, so the form catalog it drives is byte-identical to today's.
+    /// </summary>
+    private static ImmutableArray<FrontlineLabsClassDefinition>
+        DistinctChassis(
+            (FrontlineLabsClassDefinition TeamZero,
+                FrontlineLabsClassDefinition TeamOne) classes,
+            (FrontlineLabsComposition TeamZero,
+                FrontlineLabsComposition TeamOne)? compositions) =>
+        compositions is { } cell
+            ?
+            [
+                .. cell.TeamZero.DistinctChassis
+                    .Concat(cell.TeamOne.DistinctChassis)
+                    .DistinctBy(entry => entry.Id)
+                    .OrderBy(entry => entry.Id, StringComparer.Ordinal),
+            ]
+            : classes.TeamZero.Id == classes.TeamOne.Id
+                ? [classes.TeamZero]
+                : [classes.TeamZero, classes.TeamOne];
+
+    /// <summary>
+    /// The chassis in this cell that carry the fabricate verb. It drives the
+    /// fabrication region roles, which exist only where something fabricates.
+    /// </summary>
+    private static IEnumerable<FrontlineLabsClassDefinition>
+        FabricatingChassis(
+            (FrontlineLabsClassDefinition TeamZero,
+                FrontlineLabsClassDefinition TeamOne)? classes,
+            (FrontlineLabsComposition TeamZero,
+                FrontlineLabsComposition TeamOne)? compositions) =>
+        classes is { } pair
+            ? DistinctChassis(pair, compositions)
+                .Where(entry => entry.ExplicitForwardFabrication)
+            : [];
+
+    /// <summary>
+    /// The mobile form one slot's chassis carries under one chassis arm. It is
+    /// the single place the prime/child form split is decided, so every
+    /// topology, deployment and lifecycle surface asks one question.
+    /// </summary>
+    private static string SlotFormId(
+        FrontlineLabsClassDefinition chassisEntry,
+        int unitId,
+        FrontlineLabsChassisArm chassis) =>
+        chassis == FrontlineLabsChassisArm.Unified
+            ? chassisEntry.UnifiedFormId
+            : unitId == 0
+                ? chassisEntry.PrimeFormId
+                : chassisEntry.ChildFormId;
+
     private static PublicMatchTopology CreateTopology(
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classes,
         FrontlineLabsSkillKit skills,
         FrontlineLabsRosterArm roster =
-            FrontlineLabsRosterArm.None) =>
-        new()
+            FrontlineLabsRosterArm.None,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null)
+    {
+        FrontlineLabsComposition? zero =
+            CompositionFor(classes?.TeamZero, compositions?.TeamZero);
+        FrontlineLabsComposition? one =
+            CompositionFor(classes?.TeamOne, compositions?.TeamOne);
+        return new PublicMatchTopology
         {
+            // A team's declared identity is its COMPOSITION token. For a mono
+            // composition that token IS the chassis ID, so every existing cell
+            // writes exactly the bytes it wrote before.
             Teams =
             [
-                new PublicScoringTeam(0, classes?.TeamZero.Id),
-                new PublicScoringTeam(1, classes?.TeamOne.Id),
+                new PublicScoringTeam(0, zero?.Token),
+                new PublicScoringTeam(1, one?.Token),
             ],
             Participants =
             [
-                new PublicParticipant(0, 0, classes?.TeamZero.Id),
-                new PublicParticipant(1, 1, classes?.TeamOne.Id),
+                new PublicParticipant(0, 0, zero?.Token),
+                new PublicParticipant(1, 1, one?.Token),
             ],
             UnitSlots =
             [
-                .. Enumerable
-                    .Range(
-                        0,
-                        TeamSlotCount(classes?.TeamZero, skills, roster))
-                    .Select(unitId => new PublicUnitSlot(0, unitId, 0)),
-                .. Enumerable
-                    .Range(
-                        0,
-                        TeamSlotCount(classes?.TeamOne, skills, roster))
-                    .Select(unitId => new PublicUnitSlot(1, unitId, 1)),
+                .. TeamSlots(0, classes?.TeamZero, zero, skills, roster),
+                .. TeamSlots(1, classes?.TeamOne, one, skills, roster),
             ],
             InitialLives =
             [
@@ -3864,8 +4310,10 @@ public static class FrontlineLabsDefinition
                     0,
                     0,
                     0,
-                    classes?.TeamZero.PrimeFormId ?? PrimeFormId),
-                .. OpeningCompanions(classes?.TeamZero, 0, roster)
+                    zero is null
+                        ? PrimeFormId
+                        : SlotFormId(zero.ChassisForSlot(0), 0, chassis)),
+                .. OpeningCompanions(zero, 0, roster, chassis)
                     .Select(companion => new PublicInitialLife(
                         0,
                         companion.UnitId,
@@ -3875,8 +4323,10 @@ public static class FrontlineLabsDefinition
                     1,
                     0,
                     0,
-                    classes?.TeamOne.PrimeFormId ?? PrimeFormId),
-                .. OpeningCompanions(classes?.TeamOne, 1, roster)
+                    one is null
+                        ? PrimeFormId
+                        : SlotFormId(one.ChassisForSlot(0), 0, chassis)),
+                .. OpeningCompanions(one, 1, roster, chassis)
                     .Select(companion => new PublicInitialLife(
                         1,
                         companion.UnitId,
@@ -3884,6 +4334,28 @@ public static class FrontlineLabsDefinition
                         companion.FormId)),
             ],
         };
+    }
+
+    /// <summary>
+    /// One team's stable slots. A slot publishes its chassis only where the
+    /// composition is MIXED — the #156 additive-canonical rule again: a mono
+    /// army writes no per-slot chassis and keeps its exact topology bytes.
+    /// </summary>
+    private static IEnumerable<PublicUnitSlot> TeamSlots(
+        int teamId,
+        FrontlineLabsClassDefinition? teamClass,
+        FrontlineLabsComposition? composition,
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsRosterArm roster) =>
+        Enumerable
+            .Range(
+                0,
+                TeamSlotCount(teamClass, skills, roster, composition))
+            .Select(unitId => new PublicUnitSlot(
+                teamId,
+                unitId,
+                teamId,
+                composition?.PublishedChassisIdForSlot(unitId)));
 
     /// <summary>
     /// The companion slots that carry a LIVE body at tick zero: none on every
@@ -3896,14 +4368,15 @@ public static class FrontlineLabsDefinition
     /// </summary>
     private static IEnumerable<(int UnitId, string FormId, string SpawnId)>
         OpeningCompanions(
-            FrontlineLabsClassDefinition? teamClass,
+            FrontlineLabsComposition? composition,
             int teamId,
-            FrontlineLabsRosterArm roster)
+            FrontlineLabsRosterArm roster,
+            FrontlineLabsChassisArm chassis)
     {
-        if (roster != FrontlineLabsRosterArm.Legion || teamClass is null)
+        if (roster != FrontlineLabsRosterArm.Legion || composition is null)
             yield break;
         int slots = FrontlineLabsLegionRoster.OpeningCompanionSlots
-            + (teamClass.ExplicitForwardFabrication
+            + (composition.Fabricates
                 ? FrontlineLabsLegionRoster.FabricatorExtraOpeningSlots
                 : 0);
         for (int index = 0; index < slots; index++)
@@ -3911,7 +4384,10 @@ public static class FrontlineLabsDefinition
             int unitId = index + 1;
             yield return (
                 unitId,
-                teamClass.ChildFormId,
+                SlotFormId(
+                    composition.ChassisForSlot(unitId),
+                    unitId,
+                    chassis),
                 FrontlineLabsLegionRoster.CompanionSpawnId(teamId, unitId));
         }
     }
@@ -3919,12 +4395,19 @@ public static class FrontlineLabsDefinition
     private static InitialDeploymentDefinition CreateInitialDeployment(
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classes,
-        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None)
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        (FrontlineLabsComposition TeamZero,
+            FrontlineLabsComposition TeamOne)? compositions = null)
     {
+        FrontlineLabsComposition? zeroComposition =
+            CompositionFor(classes?.TeamZero, compositions?.TeamZero);
+        FrontlineLabsComposition? oneComposition =
+            CompositionFor(classes?.TeamOne, compositions?.TeamOne);
         (int UnitId, string FormId, string SpawnId)[] teamZero =
-            [.. OpeningCompanions(classes?.TeamZero, 0, roster)];
+            [.. OpeningCompanions(zeroComposition, 0, roster, chassis)];
         (int UnitId, string FormId, string SpawnId)[] teamOne =
-            [.. OpeningCompanions(classes?.TeamOne, 1, roster)];
+            [.. OpeningCompanions(oneComposition, 1, roster, chassis)];
         ImmutableArray<ActorMapSpawnAnchorDefinition> anchors =
             AutomaticCompanionSpawns(
                 classes is not null,
@@ -3949,7 +4432,12 @@ public static class FrontlineLabsDefinition
                     0,
                     0,
                     0,
-                    classes?.TeamZero.PrimeFormId ?? PrimeFormId,
+                    zeroComposition is null
+                        ? PrimeFormId
+                        : SlotFormId(
+                            zeroComposition.ChassisForSlot(0),
+                            0,
+                            chassis),
                     "team-0-prime"),
                 .. teamZero.Select(companion => new InitialLifeDeployment(
                     0,
@@ -3961,7 +4449,12 @@ public static class FrontlineLabsDefinition
                     1,
                     0,
                     0,
-                    classes?.TeamOne.PrimeFormId ?? PrimeFormId,
+                    oneComposition is null
+                        ? PrimeFormId
+                        : SlotFormId(
+                            oneComposition.ChassisForSlot(0),
+                            0,
+                            chassis),
                     "team-1-prime"),
                 .. teamOne.Select(companion => new InitialLifeDeployment(
                     1,
@@ -3979,14 +4472,27 @@ public static class FrontlineLabsDefinition
             (FrontlineLabsClassDefinition TeamZero,
                 FrontlineLabsClassDefinition TeamOne)? classes,
             FrontlineLabsSkillKit skills,
-            FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None)
+            FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
+            FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+            (FrontlineLabsComposition TeamZero,
+                FrontlineLabsComposition TeamOne)? compositions = null)
     {
         if (roster == FrontlineLabsRosterArm.Legion && classes is { } legion)
         {
             return
             [
-                .. LegionTeamAssignments(0, legion.TeamZero, skills),
-                .. LegionTeamAssignments(1, legion.TeamOne, skills),
+                .. LegionTeamAssignments(
+                    0,
+                    legion.TeamZero,
+                    CompositionFor(legion.TeamZero, compositions?.TeamZero)!,
+                    skills,
+                    chassis),
+                .. LegionTeamAssignments(
+                    1,
+                    legion.TeamOne,
+                    CompositionFor(legion.TeamOne, compositions?.TeamOne)!,
+                    skills,
+                    chassis),
             ];
         }
         if (classes is { } pair)
@@ -4009,27 +4515,38 @@ public static class FrontlineLabsDefinition
                     entry.Skill is FrontlineLabsSkillKit.StrikerVolley
                         or FrontlineLabsSkillKit.BulwarkAegisShell
                     && skills.HasFlag(entry.Skill);
+                // Off the legion roster a team is exactly its class, so
+                // "does this army build its bodies" is the class's own verb.
+                bool fabricates =
+                    entry.ExplicitForwardFabrication
+                    && chassis == FrontlineLabsChassisArm.Unified;
                 return
                 [
                     ClassPrimeAssignment(
                         teamId,
                         $"team-{teamId}-prime",
                         entry,
-                        stance),
+                        stance,
+                        chassis,
+                        fabricates),
                     ClassChildAssignment(
                         teamId,
                         1,
                         entry,
                         entry.FirstChildUnlockTick,
                         AutoSpawn(entry, teamId, 1),
-                        stance),
+                        stance,
+                        chassis,
+                        fabricatedByTeam: fabricates),
                     ClassChildAssignment(
                         teamId,
                         2,
                         entry,
                         entry.SecondChildUnlockTick,
                         AutoSpawn(entry, teamId, 2),
-                        stance),
+                        stance,
+                        chassis,
+                        fabricatedByTeam: fabricates),
                     // The five-slot arm's extra slots run their own later
                     // unlock schedule and their own slower rebuild profile;
                     // they are ordinary slots in every other respect.
@@ -4047,7 +4564,9 @@ public static class FrontlineLabsDefinition
                             entry.ExtraChildUnlockTicks[index],
                             AutoSpawn(entry, teamId, 3 + index),
                             stance,
-                            entry.ExtraChildLifecycleProfileId)),
+                            chassis,
+                            entry.ExtraChildLifecycleProfileId,
+                            fabricatedByTeam: fabricates)),
                 ];
             }
             return
@@ -4113,27 +4632,40 @@ public static class FrontlineLabsDefinition
     private static IEnumerable<ActorUnitSlotLifecycleAssignmentDefinition>
         LegionTeamAssignments(
             int teamId,
-            FrontlineLabsClassDefinition entry,
-            FrontlineLabsSkillKit skills)
+            FrontlineLabsClassDefinition teamClass,
+            FrontlineLabsComposition composition,
+            FrontlineLabsSkillKit skills,
+            FrontlineLabsChassisArm chassis)
     {
-        bool stance =
-            entry.Skill is FrontlineLabsSkillKit.StrikerVolley
+        bool StanceFor(FrontlineLabsClassDefinition value) =>
+            value.Skill is FrontlineLabsSkillKit.StrikerVolley
                 or FrontlineLabsSkillKit.BulwarkAegisShell
-            && skills.HasFlag(entry.Skill);
+            && skills.HasFlag(value.Skill);
         bool fiveSlots =
-            entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
+            teamClass.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
             && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots);
-        bool fabricates = entry.ExplicitForwardFabrication;
+        // Fabricability is a TEAM fact — the roster's tranches are either
+        // built or they arrive — while the chassis on each slot is a
+        // COMPOSITION fact. Keeping them separate is what lets a spearhead's
+        // fabricator build a striker/bulwark line and a warden's fabricator
+        // companion have something to build.
+        bool fabricates = composition.Fabricates;
         yield return ClassPrimeAssignment(
             teamId,
             $"team-{teamId}-prime",
-            entry,
-            stance);
+            composition.ChassisForSlot(0),
+            StanceFor(composition.ChassisForSlot(0)),
+            chassis,
+            fabricates
+                && chassis == FrontlineLabsChassisArm.Unified);
         ImmutableArray<int> unlockTicks =
             FrontlineLabsLegionRoster.CompanionUnlockTicks(fabricates);
         for (int index = 0; index < unlockTicks.Length; index++)
         {
             int unitId = index + 1;
+            FrontlineLabsClassDefinition entry =
+                composition.ChassisForSlot(unitId);
+            bool stance = StanceFor(entry);
             bool late = FrontlineLabsLegionRoster.IsLateTrancheSlot(
                 fabricates,
                 index);
@@ -4158,36 +4690,89 @@ public static class FrontlineLabsDefinition
                         teamId,
                         unitId),
                 stance,
-                late && fiveSlots
+                chassis,
+                late
+                && fiveSlots
+                && entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
                     ? entry.ExtraChildLifecycleProfileId
                     : null,
-                activeAtTickZero: opening);
+                activeAtTickZero: opening,
+                fabricatedByTeam: fabricates);
         }
     }
 
+    /// <summary>
+    /// The forms one slot's chassis may occupy under one chassis arm. Under
+    /// the unified arm there is exactly one mobile form per class, plus its
+    /// turret and stance where the class and the cell declare them.
+    /// </summary>
+    private static string[] SlotFormIds(
+        FrontlineLabsClassDefinition entry,
+        int unitId,
+        bool stance,
+        FrontlineLabsChassisArm chassis) =>
+        chassis == FrontlineLabsChassisArm.Unified
+            ?
+            [
+                entry.UnifiedFormId,
+                .. entry.MayAnchor
+                    ? new[] { entry.UnifiedTurretFormId }
+                    : [],
+                .. stance ? new[] { entry.UnifiedStanceFormId } : [],
+            ]
+            : unitId == 0
+                ?
+                [
+                    entry.PrimeFormId,
+                    .. entry.MayAnchor
+                        ? new[] { entry.PrimeTurretFormId }
+                        : [],
+                    .. stance ? new[] { entry.PrimeStanceFormId } : [],
+                ]
+                :
+                [
+                    entry.ChildFormId,
+                    .. entry.MayAnchor
+                        ? new[] { entry.ChildTurretFormId }
+                        : [],
+                    .. stance ? new[] { entry.ChildStanceFormId } : [],
+                ];
+
+    /// <summary>
+    /// Slot zero's lifecycle. Under the split chassis it is the PRIME's:
+    /// its own form, its own profile, its own 18-tick return. Under the
+    /// unified chassis it is an ordinary slot on the class's one profile,
+    /// and the authored PrimeSpawn pad it keeps is an ordinary home spawn
+    /// reservation rather than an avatar's throne.
+    /// </summary>
     private static ActorUnitSlotLifecycleAssignmentDefinition
         ClassPrimeAssignment(
             int teamId,
             string spawnId,
             FrontlineLabsClassDefinition entry,
-            bool stance) =>
+            bool stance,
+            FrontlineLabsChassisArm chassis =
+                FrontlineLabsChassisArm.Split,
+            bool fabricated = false) =>
         new(
             teamId,
             unitId: 0,
-            entry.PrimeLifecycleProfileId,
+            chassis == FrontlineLabsChassisArm.Unified
+                ? entry.UnifiedLifecycleProfileId(fabricated)
+                : entry.PrimeLifecycleProfileId,
             initialGeneration: 0,
-            allowedFormIds:
-            [
-                entry.PrimeFormId,
-                .. entry.MayAnchor
-                    ? new[] { entry.PrimeTurretFormId }
-                    : [],
-                .. stance ? new[] { entry.PrimeStanceFormId } : [],
-            ],
+            allowedFormIds: SlotFormIds(entry, 0, stance, chassis),
             ActorUnitSlotLifecycleAssignmentDefinition
                 .InitialAvailabilityKind.ActiveAtTickZero,
             unlockTick: null,
-            assignedRespawnSpawnId: spawnId);
+            // The home spawn stays reserved for slot zero under BOTH arms.
+            // Under the unified fabricator it is load-bearing for a second
+            // reason: it is the tile the ROOT FACTORY seeds onto when the
+            // participant has lost every body.
+            assignedRespawnSpawnId: spawnId,
+            fabricationOutputFormId: fabricated
+                ? entry.UnifiedFormId
+                : null);
 
     private static ActorUnitSlotLifecycleAssignmentDefinition
         ClassChildAssignment(
@@ -4197,22 +4782,21 @@ public static class FrontlineLabsDefinition
             int unlockTick,
             string? automaticSpawnId,
             bool stance,
+            FrontlineLabsChassisArm chassis =
+                FrontlineLabsChassisArm.Split,
             string? lifecycleProfileId = null,
-            bool activeAtTickZero = false) =>
+            bool activeAtTickZero = false,
+            bool fabricatedByTeam = false) =>
         new(
             teamId,
             unitId,
-            lifecycleProfileId ?? entry.ChildLifecycleProfileId,
+            lifecycleProfileId
+            ?? (chassis == FrontlineLabsChassisArm.Unified
+                ? entry.UnifiedLifecycleProfileId(fabricatedByTeam)
+                : entry.ChildLifecycleProfileId),
             initialGeneration:
                 activeAtTickZero || automaticSpawnId is not null ? 0 : null,
-            allowedFormIds:
-            [
-                entry.ChildFormId,
-                .. entry.MayAnchor
-                    ? new[] { entry.ChildTurretFormId }
-                    : [],
-                .. stance ? new[] { entry.ChildStanceFormId } : [],
-            ],
+            allowedFormIds: SlotFormIds(entry, unitId, stance, chassis),
             activeAtTickZero
                 ? ActorUnitSlotLifecycleAssignmentDefinition
                     .InitialAvailabilityKind.ActiveAtTickZero
@@ -4223,7 +4807,15 @@ public static class FrontlineLabsDefinition
                         .InitialAvailabilityKind
                         .DormantAutomaticActivationAtTick,
             activeAtTickZero ? null : unlockTick,
-            assignedRespawnSpawnId: automaticSpawnId);
+            assignedRespawnSpawnId: automaticSpawnId,
+            // "Fabricate produces the target SLOT's chassis": a spearhead's
+            // fabricator builds the striker and bulwark bodies its army
+            // declares, rather than copies of itself. Null wherever the slot
+            // takes the transition's own output, which is every mono cell.
+            fabricationOutputFormId:
+                fabricatedByTeam && chassis == FrontlineLabsChassisArm.Unified
+                    ? entry.UnifiedFormId
+                    : null);
 
     private static ActorUnitSlotLifecycleAssignmentDefinition PrimeAssignment(
         int teamId,

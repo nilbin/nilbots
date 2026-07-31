@@ -109,6 +109,14 @@ public sealed class FrontlineScrapKernel
                     .Select(assignment =>
                         (assignment.TeamId, assignment.UnitId))
                     .ToHashSet(),
+            // Prime dissolution's forced consequence: with no prime slot there
+            // is nothing narrower to scope a tier to, so every slot the team
+            // fields carries every tier it has bought.
+            FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                .AllSlotLives => unitSlotLifecycle
+                    .Select(assignment =>
+                        (assignment.TeamId, assignment.UnitId))
+                    .ToHashSet(),
             _ => throw new ArgumentOutOfRangeException(nameof(economy)),
         };
 

@@ -311,6 +311,62 @@
       "currentInterpretation": "Match length was a fixed 500 ticks for the whole campaign and every pacing number was chosen against it. The owner opened it to 750 ('longer games at this point is ok'), which re-prices the 18-tick prime return, the 40-tick ratchet hold, the vein cadence and the roster tranches simultaneously - and changes what a TIMEOUT means, since the objective-only max-tick score is the tiebreak.",
       "requiredIsolation": "Run 500 and 750 as the only difference on the same stack; report share of matches decided by breach vs horn, captures per match normalised by length, lead changes after tick 500, and whether any class edge is a function of the tail alone.",
       "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "chassis-unified-statline",
+      "status": "open",
+      "currentInterpretation": "Prime dissolution unifies each class at its CHILD statline (bulwark 5/4 -> 4, fabricator 2/3 -> 3, striker unchanged) and at the child anchor windup (bulwark 3/1 -> 1). Unifying at the PRIME values instead is the pre-registered alternative arm, and the measured effect of `--chassis unified` bundles the statline choice with the lifecycle, fabrication-origin and upgrade-scope changes.",
+      "requiredIsolation": "Run the prime-value arm (unify at 5/2/3 with the prime anchor windup) against the child-value arm on the same cells and seeds, holding the lifecycle, fabrication and upgrade-scope halves of the arm fixed.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-lifecycle",
+      "status": "open",
+      "currentInterpretation": "The unified lifecycle moves the slot-0 return from the 18-tick Prime clock to the class's child rebuild clock (30 for the striker and bulwark) AND makes every fabricator body explicit-fabrication-only. Two pacing changes in one flag: a slower return for the body that used to be the avatar, and a fabricator whose slot 0 is no longer a free respawn.",
+      "requiredIsolation": "Compare the unified arm against a variant that keeps the 18-tick clock on every unified slot, on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "headless-fabrication-network",
+      "status": "open",
+      "currentInterpretation": "Unifying the fabricator's form puts the fabricate verb on every body, so any live body is a fabrication origin and killing one never kills the factory. It is not separable from the form unification by flag: the verb is form-scoped.",
+      "requiredIsolation": "Declare a unified fabricator whose fabricate action is restricted to slot 0's lives by a source-slot constraint, and compare it against the network arm on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "root-factory-bootstrap",
+      "status": "open",
+      "currentInterpretation": "At total body loss the home base seeds one body at the home spawn after the class's own respawn delay, at no cost. The owner ruled it against total-loss-as-elimination; the delay, the body count (one) and the home placement are one bundled factor, and the arm it replaces (elimination) is registered but unimplemented.",
+      "requiredIsolation": "Sweep the seed delay against the class's rebuild clock and the seed count, and run the registered total-loss-as-elimination arm, before attributing a comeback effect to any one of them.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-upgrade-scope",
+      "status": "open",
+      "currentInterpretation": "With no prime slot the upgrade ladder necessarily moves from prime-slot-lives-only to all-slot-lives. The scope change is forced by prime dissolution and therefore cannot be measured inside the arm; it is bundled with the tier price that answers it.",
+      "requiredIsolation": "Not separable from `--chassis unified`. Measure it indirectly through `chassis-unified-tier-price`, whose arms bracket the scope's value at 10 (free), 20 (shipped) and 30 (a whole extra board).",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-tier-price",
+      "status": "open",
+      "currentInterpretation": "The flat tier price doubles to 20 under the unified chassis to absorb the widened upgrade scope. Doubling is a conservative guess: a legion team fields eight or nine bodies, so the true scope multiplier is far above two, and pricing at 2x deliberately leaves the economy stronger under the arm.",
+      "requiredIsolation": "Run --tier-cost 10 and --tier-cost 30 against the shipped 20 on the same cells and seeds. Note that the fabricator mirror plus facing-locked overflows the 64-character ruleset budget with a price token, so that cell needs a registered composite before it can be swept.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "composition-slot-chassis",
+      "status": "open",
+      "currentInterpretation": "A mixed composition changes three things at once: which chassis stand on which slots, whether the team's tranches are fabricated (a warden fields a fabricator and therefore builds its army), and the rules catalog, which gains the third chassis's forms and profiles. The registered pair set is closed at spearhead and warden; free composition is unmeasured and unimplemented.",
+      "requiredIsolation": "Compare each mixed composition against both of its constituent monos on the same cells and seeds, and separately against a mono whose tranche fabricability is forced to match, before attributing an effect to the mix rather than to the build economy it implies.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "composition-companion-cycle",
+      "status": "open",
+      "currentInterpretation": "A composition's companion chassis alternate in slot order (slots 1,3,5,7 take the first entry; 2,4,6,8 the second). Which chassis lands on which tranche is therefore a consequence of the cycle rather than a designed schedule, and the mid/late tranches inherit whatever the cycle hands them.",
+      "requiredIsolation": "Run the reversed cycle for each mixed composition on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
     }
   ]
 }

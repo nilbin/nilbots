@@ -36,5 +36,15 @@ public sealed record GenericActorRuntimeStart
         Fabrication = 2,
         Replication = 3,
         AutomaticActivation = 4,
+
+        /// <summary>
+        /// Additive append (DECISIONS #194), exactly the discipline the
+        /// observed-event enum follows: the participant's HOME BASE acted as
+        /// the root factory and seeded this body because the participant had
+        /// none left. It happens only on a ruleset whose lifecycle profile
+        /// declares <c>rootFactorySeedFormId</c>, so no existing replay or
+        /// observation changes.
+        /// </summary>
+        RootFactorySeed = 5,
     }
 }

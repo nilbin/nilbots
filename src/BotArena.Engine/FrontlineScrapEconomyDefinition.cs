@@ -81,6 +81,24 @@ public sealed record FrontlineScrapEconomyDefinition
         /// registered alternatives (<c>scrap-upgrade-scope</c>).
         /// </summary>
         PrimeSlotLivesOnly = 0,
+
+        /// <summary>
+        /// Every life of every slot the team fields, current and future, in
+        /// every form those slots occupy. The registered alternative the
+        /// PrimeSlotLivesOnly comment named, promoted to a shipped level by
+        /// prime dissolution (DECISIONS #194): once no slot is the prime, a
+        /// prime-scoped ladder has nothing to be scoped to, so the upgrade
+        /// scope is not an independent choice under
+        /// <see cref="FrontlineLabsChassisArm.Unified"/> — it is a forced
+        /// consequence.
+        /// <para>The mitigation the prime scope existed for — a nine-slot team
+        /// buying more upgraded body than an eight-slot one — returns with it,
+        /// and is answered on price instead: the tier cost doubles under the
+        /// arm so a wider army pays for its width. Price is the registered
+        /// factor (<c>chassis-unified-tier-price</c>), which is why it is a
+        /// sweepable rules value rather than a constant.</para>
+        /// </summary>
+        AllSlotLives = 1,
     }
 
     /// <summary>How a bank turns into tiers.</summary>

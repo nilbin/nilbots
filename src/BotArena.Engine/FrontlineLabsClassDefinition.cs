@@ -108,6 +108,69 @@ public sealed record FrontlineLabsClassDefinition
     public string ChildTurretFormId => $"{Id}-child-turret";
 
     /// <summary>
+    /// THE UNIFIED CHASSIS (<see cref="FrontlineLabsChassisArm.Unified"/>).
+    /// One form, one statline, one lifecycle: no body of this class is
+    /// special any more, so there is exactly one mobile form ID rather than a
+    /// prime one and a child one.
+    /// <para>Nothing parses these IDs — the brief has told authors since the
+    /// class slate landed to read <c>ClassId</c> and the form catalog rather
+    /// than a form-ID prefix — so the rename is free.</para>
+    /// </summary>
+    public string UnifiedFormId => $"{Id}-body";
+
+    /// <inheritdoc cref="UnifiedFormId"/>
+    public string UnifiedTurretFormId => $"{Id}-body-turret";
+
+    /// <inheritdoc cref="UnifiedFormId"/>
+    public string UnifiedStanceFormId => $"{Id}-body-{StanceToken}";
+
+    /// <summary>
+    /// The unified lifecycle profile for a body that RETURNS BY ITSELF, and
+    /// for one that has to be BUILT. Which of the two a slot takes is a TEAM
+    /// fact — does this participant's army fabricate at all — while the
+    /// chassis is a SLOT fact, so a mixed composition needs both spellings of
+    /// the same chassis and a mono cell only ever references one.
+    /// </summary>
+    public string UnifiedRespawnLifecycleProfileId =>
+        $"{Id}-body-respawn";
+
+    /// <inheritdoc cref="UnifiedRespawnLifecycleProfileId"/>
+    public string UnifiedFabricatedLifecycleProfileId => $"{Id}-body-built";
+
+    /// <summary>The unified lifecycle profile one slot takes.</summary>
+    public string UnifiedLifecycleProfileId(bool fabricated) =>
+        fabricated
+            ? UnifiedFabricatedLifecycleProfileId
+            : UnifiedRespawnLifecycleProfileId;
+
+    /// <summary>
+    /// The unified statline's maximum health: the CHILD value, because that is
+    /// the number the MAJORITY of a class's bodies already carry (owner call
+    /// on the #194 build package). Bulwark 5/4 collapses to 4, fabricator 2/3
+    /// to 3, and the striker's 3/3 does not move at all.
+    /// <para>The prime-value arm — unify at 5/2/3 instead — is the registered
+    /// alternative (<c>chassis-unified-statline</c>), and it is a one-line
+    /// change here precisely so the sweep can run it.</para>
+    /// </summary>
+    public int UnifiedMaxHealth => ChildMaxHealth;
+
+    /// <summary>
+    /// The unified anchor windup: the CHILD's, by the same rule. The prime's
+    /// three-tick commitment was the readable, punishable window a class-wide
+    /// avatar could afford; with no avatar there is nothing for the longer
+    /// windup to price.
+    /// </summary>
+    public int UnifiedAnchorWindupTicks => ChildAnchorWindupTicks;
+
+    /// <summary>
+    /// The unified lifecycle delay: the CHILD rebuild clock. For a class that
+    /// receives companions this is an automatic respawn at 30 rather than the
+    /// prime's 18; for the fabricator it is 15 ticks of readiness before an
+    /// explicit fabrication may re-place the slot.
+    /// </summary>
+    public int UnifiedLifecycleDelayTicks => ChildRebuildDelayTicks;
+
+    /// <summary>
     /// Stance forms are per source form, exactly like the turret forms and for
     /// the same reason: the parameterless Mobilize must resolve a single
     /// return target (DECISIONS #154).

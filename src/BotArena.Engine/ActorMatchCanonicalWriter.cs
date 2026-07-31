@@ -430,6 +430,17 @@ internal static class ActorMatchCanonicalWriter
                 writer,
                 "assignedRespawnSpawnId",
                 assignment.AssignedRespawnSpawnId);
+            // Additive trailing field under the #156 canonical discipline:
+            // emitted only where a MIXED composition makes a fabrication into
+            // this slot produce the slot's own chassis rather than the
+            // transition's declared output. Every mono cell writes exactly the
+            // bytes it wrote before.
+            if (assignment.FabricationOutputFormId is not null)
+            {
+                writer.WriteString(
+                    "fabricationOutputFormId",
+                    assignment.FabricationOutputFormId);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

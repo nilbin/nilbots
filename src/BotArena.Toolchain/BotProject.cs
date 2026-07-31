@@ -372,9 +372,20 @@ public static class ToolchainInfo
     /// `collisions.followingVacatedActorAllowed` says a sibling may follow it
     /// — under this game it may not, so releasing it handed the army blocked
     /// steps.
+    /// 0.9.30 carries the ONE-CHASSIS package (DECISIONS #194): `--chassis
+    /// unified` dissolves the prime — one statline, one lifecycle and one
+    /// action catalog per class, which is also what makes every fabricator
+    /// body a fabrication origin and forces the upgrade ladder onto every body
+    /// of the buying team — with the home base as the root factory at total
+    /// body loss, a sweepable `--tier-cost`, and `--compositions` putting a
+    /// participant's slots on chassis of more than one class. SDK/Guest stay
+    /// at 0.10.11 in shape: the new contract facts are trailing
+    /// inert-omitted fields and one appended spawn reason, so a bot compiled
+    /// yesterday reads today's contract, but the staged assembly bytes moved
+    /// and every artifact rebuilds.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.29";
+    public const string CliVersion = "0.9.30";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

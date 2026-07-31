@@ -204,6 +204,23 @@ public static class FrontlineLabsScrapEconomy
     /// </summary>
     public const int TierCost = 10;
 
+    /// <summary>
+    /// The tier price under <see cref="FrontlineLabsChassisArm.Unified"/>,
+    /// where a purchased tier applies to EVERY body of the buying team rather
+    /// than to the prime slot's lives (DECISIONS #194). Doubling is the
+    /// conservative call: a legion team fields eight or nine bodies, so a
+    /// scope change from one slot to all of them is worth far more than 2×,
+    /// and pricing it at 2× deliberately leaves the economy stronger under the
+    /// arm rather than pretending to neutralise it — the owner already ruled
+    /// that scrap is allowed to decide the match.
+    /// <para>It is a REGISTERED FACTOR (<c>chassis-unified-tier-price</c>)
+    /// with 10 and 30 pre-registered beside it, which is why it is a sweepable
+    /// value on the arm rather than a second constant: 10 is "the widened
+    /// scope is free", 30 is "the widened scope costs a whole extra board",
+    /// and a full board moves 60 → 120 here.</para>
+    /// </summary>
+    public const int UnifiedChassisTierCost = 20;
+
     /// <summary>Deepest tier on any one track.</summary>
     public const int MaxTierPerTrack = 2;
 
@@ -287,22 +304,54 @@ public static class FrontlineLabsScrapEconomy
     /// The declared economy for one arm level, or null for the inert level —
     /// in which case the canonical writer emits no bytes at all.
     /// </summary>
+    /// <param name="chassis">
+    /// The chassis arm the cell runs. Under
+    /// <see cref="FrontlineLabsChassisArm.Unified"/> the ladder's scope widens
+    /// from the prime slot's lives to every body of the team — a forced
+    /// consequence of dissolving the prime, not a separable choice — and the
+    /// price moves with it.
+    /// </param>
+    /// <param name="tierCost">
+    /// The flat per-tier price, or null for the arm's own default (10 on the
+    /// split chassis, <see cref="UnifiedChassisTierCost"/> on the unified
+    /// one). A caller that names a price is running the registered
+    /// <c>chassis-unified-tier-price</c> ablation, which spells its number in
+    /// the ruleset identity exactly as every numbers-only level always has.
+    /// </param>
     public static FrontlineScrapEconomyDefinition? For(
-        FrontlineLabsEconomyArm economy) =>
+        FrontlineLabsEconomyArm economy,
+        FrontlineLabsChassisArm chassis = FrontlineLabsChassisArm.Split,
+        int? tierCost = null) =>
         economy switch
         {
             FrontlineLabsEconomyArm.None => null,
             FrontlineLabsEconomyArm.Scrap => Create(
                 FrontlineScrapEconomyDefinition.PurchaseModeKind
-                    .InvestAction),
+                    .InvestAction,
+                chassis,
+                tierCost),
             FrontlineLabsEconomyArm.ScrapFlat => Create(
                 FrontlineScrapEconomyDefinition.PurchaseModeKind
-                    .AutomaticGreedyDeclaredOrder),
+                    .AutomaticGreedyDeclaredOrder,
+                chassis,
+                tierCost),
             _ => throw new ArgumentOutOfRangeException(nameof(economy)),
         };
 
+    /// <summary>
+    /// The flat per-tier price one chassis arm ships with. Named here rather
+    /// than inlined so the CLI, the ruleset identity and the ablation debt all
+    /// read one number.
+    /// </summary>
+    public static int DefaultTierCost(FrontlineLabsChassisArm chassis) =>
+        chassis == FrontlineLabsChassisArm.Unified
+            ? UnifiedChassisTierCost
+            : TierCost;
+
     private static FrontlineScrapEconomyDefinition Create(
-        FrontlineScrapEconomyDefinition.PurchaseModeKind purchaseMode) =>
+        FrontlineScrapEconomyDefinition.PurchaseModeKind purchaseMode,
+        FrontlineLabsChassisArm chassis,
+        int? tierCost) =>
         new(
             VeinSites,
             VeinFirstSpawnTick,
@@ -315,19 +364,46 @@ public static class FrontlineLabsScrapEconomy
             PileLifetimeTicks,
             MaxSimultaneousPiles,
             BankRegionIds,
-            FrontlineScrapEconomyDefinition.UpgradeScopeKind
-                .PrimeSlotLivesOnly,
+            chassis == FrontlineLabsChassisArm.Unified
+                ? FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                    .AllSlotLives
+                : FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                    .PrimeSlotLivesOnly,
             MaxTotalTiers,
             purchaseMode,
-            Tracks);
+            TracksAt(tierCost ?? DefaultTierCost(chassis)));
+
+    private static ImmutableArray<FrontlineScrapTrackDefinition> TracksAt(
+        int tierCost) =>
+        tierCost == TierCost
+            ? Tracks
+            :
+            [
+                Track(
+                    EdgeTrackId,
+                    FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                        .MobileAttackTravelTilesDelta,
+                    tierCost),
+                Track(
+                    PlateTrackId,
+                    FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                        .SpawnMaxHealthDelta,
+                    tierCost),
+                Track(
+                    OpticTrackId,
+                    FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                        .VisionRangeDelta,
+                    tierCost),
+            ];
 
     private static FrontlineScrapTrackDefinition Track(
         string trackId,
-        FrontlineScrapEconomyDefinition.UpgradeEffectKind effect) =>
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind effect,
+        int tierCost = TierCost) =>
         new(
             trackId,
             effect,
             perTierMagnitude: 1,
             MaxTierPerTrack,
-            [.. Enumerable.Repeat(TierCost, MaxTierPerTrack)]);
+            [.. Enumerable.Repeat(tierCost, MaxTierPerTrack)]);
 }
