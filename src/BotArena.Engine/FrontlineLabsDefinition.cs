@@ -1325,22 +1325,22 @@ public static class FrontlineLabsDefinition
             // factor: it changes what every other arm is priced against. The
             // budget wall is the same one, so the same answer — registered
             // composites for the shapes the campaign runs, everything smaller
-            // spells its factors and appends `legion`.
+            // spells its factors and appends `levy`.
             // Two families, because the roster's own read is the 2×2 against
             // the shipped game: on the candidate game alone the formations are
-            // `cohort`, `maniple` and `phalanx`, and on the full v1.1 game
-            // (channel + economy) the quarters that hold them are `garrison`,
-            // `cordon` and `barracks`.
+            // `warband`, `retinue` and `vanguard`, and on the full v1.1 game
+            // (channel + economy) the quarters that hold them are `brigade`,
+            // `column` and `regiment`.
             (string[] Arms, string[] Tuning) mustered =
                 (arms, tuning) switch
                 {
-                    (["swell"], _) => (new[] { "cohort" }, []),
-                    (["tide"], _) => (new[] { "maniple" }, []),
+                    (["swell"], _) => (new[] { "warband" }, []),
+                    (["tide"], _) => (new[] { "retinue" }, []),
                     (["sail", "tick"], ["open"]) =>
-                        (new[] { "phalanx" }, []),
-                    (["citadel"], _) => (new[] { "garrison" }, []),
-                    (["rampart"], _) => (new[] { "cordon" }, []),
-                    (["armoury"], _) => (new[] { "barracks" }, []),
+                        (new[] { "vanguard" }, []),
+                    (["citadel"], _) => (new[] { "brigade" }, []),
+                    (["rampart"], _) => (new[] { "column" }, []),
+                    (["armoury"], _) => (new[] { "regiment" }, []),
                     _ => (
                         [.. arms, FrontlineLabsLegionRoster.ArmToken],
                         tuning),
@@ -1435,8 +1435,8 @@ public static class FrontlineLabsDefinition
     /// <item><c>bastille</c> — the bulwark mirror, which under home respawns
     /// is a fortress at both ends.</item>
     /// </list>
-    /// With the LEGION roster on top they become <c>crusade</c>,
-    /// <c>swarm</c> and <c>palisade</c>. Every other combination in this
+    /// With the LEGION roster on top they become <c>warpath</c>,
+    /// <c>horde</c> and <c>stockade</c>. Every other combination in this
     /// family spells its factors and, in the cells where that overflows,
     /// faults with the usual "register the combination" message — a
     /// pre-registration is a decision, not a fallback.</para>
@@ -1475,11 +1475,11 @@ public static class FrontlineLabsDefinition
         // wane variant, so those two facts name the three shapes.
         bool legion = roster == FrontlineLabsRosterArm.Legion;
         if (volley == FrontlineLabsVolleyArm.Salvo)
-            return legion ? "crusade" : "vigil";
+            return legion ? "warpath" : "vigil";
         if (fiveSlots == FrontlineLabsFiveSlotVariant.Wane)
-            return legion ? "swarm" : "warren";
+            return legion ? "horde" : "warren";
         return stanceGround == FrontlineLabsStanceGroundArm.Open
-            ? legion ? "palisade" : "bastille"
+            ? legion ? "stockade" : "bastille"
             : string.Empty;
     }
 
@@ -3773,10 +3773,12 @@ public static class FrontlineLabsDefinition
 
     /// <summary>
     /// The companion slots that carry a LIVE body at tick zero: none on every
-    /// measured generation, and the legion arm's opening tranche for a class
-    /// that receives companions automatically. The fabricator's opening slots
-    /// are deliberately absent — its bodies are fabricated, which is the
-    /// class's one exclusive verb (DECISIONS #154).
+    /// measured generation, and the legion arm's opening tranche for EVERY
+    /// class on the levy re-mint. The fabricator's opening was fabricable on
+    /// the retired `legion` spelling; the owner ruled it automatic ("the
+    /// initial spawn should be automatic for the Fab"), so it stands four
+    /// bodies at tick zero and its exclusive verb prices the mid and late
+    /// tranches instead.
     /// </summary>
     private static IEnumerable<(int UnitId, string FormId, string SpawnId)>
         OpeningCompanions(
@@ -3784,15 +3786,13 @@ public static class FrontlineLabsDefinition
             int teamId,
             FrontlineLabsRosterArm roster)
     {
-        if (roster != FrontlineLabsRosterArm.Legion
-            || teamClass is null
-            || teamClass.ExplicitForwardFabrication)
-        {
+        if (roster != FrontlineLabsRosterArm.Legion || teamClass is null)
             yield break;
-        }
-        for (int index = 0;
-             index < FrontlineLabsLegionRoster.OpeningCompanionSlots;
-             index++)
+        int slots = FrontlineLabsLegionRoster.OpeningCompanionSlots
+            + (teamClass.ExplicitForwardFabrication
+                ? FrontlineLabsLegionRoster.FabricatorExtraOpeningSlots
+                : 0);
+        for (int index = 0; index < slots; index++)
         {
             int unitId = index + 1;
             yield return (
@@ -4023,6 +4023,16 @@ public static class FrontlineLabsDefinition
             bool late = FrontlineLabsLegionRoster.IsLateTrancheSlot(
                 fabricates,
                 index);
+            // The OPENING tranche is automatic for every class — owner
+            // ruling on the levy re-mint ("the initial spawn should be
+            // automatic for the Fab"): the fabricator's four bodies stand
+            // at tick zero like everyone else's three, and its exclusive
+            // verb prices the MID and LATE tranches instead, which stay
+            // fabricate-to-field. Its opening slots deploy from anchors
+            // but carry NO respawn assignment — a dead opener rebuilds
+            // through explicit fabrication, exactly like every other
+            // fabricator body.
+            bool opening = unlockTicks[index] == 0;
             yield return ClassChildAssignment(
                 teamId,
                 unitId,
@@ -4037,7 +4047,7 @@ public static class FrontlineLabsDefinition
                 late && fiveSlots
                     ? entry.ExtraChildLifecycleProfileId
                     : null,
-                activeAtTickZero: !fabricates && unlockTicks[index] == 0);
+                activeAtTickZero: opening);
         }
     }
 
@@ -4079,7 +4089,8 @@ public static class FrontlineLabsDefinition
             teamId,
             unitId,
             lifecycleProfileId ?? entry.ChildLifecycleProfileId,
-            initialGeneration: automaticSpawnId is null ? null : 0,
+            initialGeneration:
+                activeAtTickZero || automaticSpawnId is not null ? 0 : null,
             allowedFormIds:
             [
                 entry.ChildFormId,

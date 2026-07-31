@@ -725,7 +725,7 @@ public sealed class FrontlineLabsExperimentCommandTests
             ]);
 
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-legion",
+            "frontline-labs-1-bulwark-vs-striker-levy",
             legion.GetProperty("rulesetId").GetString());
         // Unlike the economy, this arm DOES mint a map: the extra reserved
         // spawn anchors are map facts, and a map is never edited in place.
@@ -739,9 +739,9 @@ public sealed class FrontlineLabsExperimentCommandTests
             plain.GetProperty("matchContractFingerprint").GetString(),
             legion.GetProperty("matchContractFingerprint").GetString());
 
-        // The full v1.1 game plus the roster is the registered `garrison`.
+        // The full v1.1 game plus the roster is the registered `brigade`.
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-garrison-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-brigade-facing-locked",
             PrintedContract(
                 [
                     "--print-candidate-contract",
@@ -887,7 +887,7 @@ public sealed class FrontlineLabsExperimentCommandTests
             "frontline-labs-1-fabricator-vs-fabricator-warren-facing-locked",
             PrintedContract(package).GetProperty("rulesetId").GetString());
         Assert.Equal(
-            "frontline-labs-1-fabricator-vs-fabricator-swarm-facing-locked",
+            "frontline-labs-1-fabricator-vs-fabricator-horde-facing-locked",
             PrintedContract([.. package, "--roster", "legion"])
                 .GetProperty("rulesetId")
                 .GetString());

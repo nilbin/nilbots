@@ -61,13 +61,14 @@ public sealed class FrontlineLabsRosterSessionTests
     }
 
     /// <summary>
-    /// The fabricator's opening is four SLOTS rather than four bodies: its
-    /// three companions are unlocked from tick zero and cost the prime an
-    /// action each, which is the bargain #154 gave the class — and they
-    /// materialise beside it in the field rather than on a pad.
+    /// The levy opening, live: the fabricator stands FOUR bodies at tick
+    /// zero automatically (owner ruling on the levy re-mint), with no prime
+    /// action spent — and its dead openers rebuild only through explicit
+    /// fabrication, which stays the class verb for the tranches and every
+    /// replacement.
     /// </summary>
     [Fact]
-    public void TheFabricatorFieldsItsOpeningFourByFabricatingThem()
+    public void TheFabricatorStandsItsOpeningFourAutomatically()
     {
         ActorResolvedMatchDefinition legion = FrontlineLabsRosterArmTests.Arm(
             FrontlineLabsClassDefinition.Fabricator,
@@ -75,36 +76,18 @@ public sealed class FrontlineLabsRosterSessionTests
         GenericActorMatchChronology run = FrontlineLabsSkillArmTestFixture.Run(
             legion,
             (start, observation) =>
-                start.ActorId.TeamId != 0
-                || observation.Self.ActorId.UnitId != 0
-                    ? GenericDeathmatchSessionTestFixture.Wait()
-                    : Fabricate(observation));
+                GenericDeathmatchSessionTestFixture.Wait());
 
-        // One body at tick zero, and four standing within ten ticks — the
-        // fabricator's opening is paid in prime actions, not handed over.
-        Assert.Equal(
-            1,
-            run.InitialFrame.State.ActiveLives.Count(life =>
-                life.ActorId.TeamId == 0));
+        // Four bodies stand in the initial frame with zero actions spent.
         Assert.Equal(
             4,
-            run.Ticks
-                .Single(frame => frame.Tick == 10)
-                .PostState.ActiveLives
-                .Count(life => life.ActorId.TeamId == 0));
-        // None of them arrived on a pad: forward fabrication places beside
-        // the prime, and the pads are SpawnProtected against it.
-        Assert.All(
-            run.Ticks
-                .Single(frame => frame.Tick == 10)
-                .PostState.ActiveLives
-                .Where(life => life.ActorId.TeamId == 0
-                    && life.ActorId.UnitId > 0),
-            life => Assert.DoesNotContain(
-                life.Position,
-                legion.Map.Regions
-                    .Single(region => region.RegionId == "team-0-home-pad")
-                    .Tiles));
+            run.InitialFrame.State.ActiveLives.Count(life =>
+                life.ActorId.TeamId == 0));
+        // And the striker side stands its three.
+        Assert.Equal(
+            3,
+            run.InitialFrame.State.ActiveLives.Count(life =>
+                life.ActorId.TeamId == 1));
 
         // Nine slots in the end, against the striker's eight.
         Assert.Equal(
@@ -146,7 +129,7 @@ public sealed class FrontlineLabsRosterSessionTests
         Assert.Equal(
             legion.Rules.RulesetId,
             run.Descriptor.Definition.Rules.RulesetId);
-        Assert.Contains("garrison", legion.Rules.RulesetId, StringComparison.Ordinal);
+        Assert.Contains("brigade", legion.Rules.RulesetId, StringComparison.Ordinal);
         Assert.True(
             run.Ticks[^1].PostState.ActiveLives.Length >= 16,
             "the full roster never reached the field");

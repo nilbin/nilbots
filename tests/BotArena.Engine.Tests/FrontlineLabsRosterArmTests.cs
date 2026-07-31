@@ -145,23 +145,23 @@ public sealed class FrontlineLabsRosterArmTests
                 .Select(life => life.SpawnId)
                 .Order());
 
-        // The fabricator side: one body, three slots ready from tick zero.
+        // The fabricator side on the levy re-mint: FOUR bodies stand at
+        // tick zero (owner ruling — "the initial spawn should be automatic
+        // for the Fab"), deployed from anchors but with NO respawn
+        // assignment: a dead opener rebuilds through explicit fabrication,
+        // like every fabricator body.
         Assert.Equal(
-            1,
+            4,
             cell.Topology.InitialLives.Count(life => life.TeamId == 0));
-        Assert.Equal(
-            [0, 0, 0],
-            Companions(cell, 0)
-                .Take(3)
-                .Select(assignment => assignment.UnlockTick!.Value));
         Assert.All(
-            Companions(cell, 0),
+            Companions(cell, 0).Take(3),
             assignment =>
             {
                 Assert.Equal(
                     ActorUnitSlotLifecycleAssignmentDefinition
-                        .InitialAvailabilityKind.DormantUnlockAtTick,
+                        .InitialAvailabilityKind.ActiveAtTickZero,
                     assignment.InitialAvailability);
+                Assert.Null(assignment.UnlockTick);
                 Assert.Null(assignment.AssignedRespawnSpawnId);
             });
     }
@@ -179,8 +179,9 @@ public sealed class FrontlineLabsRosterArmTests
             FrontlineLabsClassDefinition.Striker);
 
         Assert.Equal(
-            [0, 0, 0, 150, 150, 300, 300, 300],
+            [150, 150, 300, 300, 300],
             Companions(cell, 0)
+                .Where(assignment => assignment.UnlockTick is not null)
                 .Select(assignment => assignment.UnlockTick!.Value));
         Assert.Equal(
             [150, 150, 300, 300, 300],
@@ -486,12 +487,12 @@ public sealed class FrontlineLabsRosterArmTests
     {
         var expected = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["bulwark-vs-bulwark"] = "barracks",
-            ["bulwark-vs-fabricator"] = "cordon",
-            ["bulwark-vs-striker"] = "garrison",
-            ["fabricator-vs-fabricator"] = "cordon",
-            ["fabricator-vs-striker"] = "garrison",
-            ["striker-vs-striker"] = "garrison",
+            ["bulwark-vs-bulwark"] = "regiment",
+            ["bulwark-vs-fabricator"] = "column",
+            ["bulwark-vs-striker"] = "brigade",
+            ["fabricator-vs-fabricator"] = "column",
+            ["fabricator-vs-striker"] = "brigade",
+            ["striker-vs-striker"] = "brigade",
         };
         foreach ((FrontlineLabsClassDefinition zero,
                   FrontlineLabsClassDefinition one) in
@@ -509,7 +510,7 @@ public sealed class FrontlineLabsRosterArmTests
         // The candidate game without the two #187 arms carries the other
         // registered family, and a smaller cell still spells its factors.
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-keel-legion",
+            "frontline-labs-1-bulwark-vs-striker-keel-levy",
             FrontlineLabsDefinition.CreatePendulumExperiment(
                     Keel,
                     (FrontlineLabsClassDefinition.Bulwark,

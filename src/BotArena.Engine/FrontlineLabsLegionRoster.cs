@@ -79,7 +79,7 @@ public static class FrontlineLabsLegionRoster
     public const string MapId = "frontline-labs-03-legion";
 
     /// <summary>The roster arm's plain identity token.</summary>
-    public const string ArmToken = "legion";
+    public const string ArmToken = "levy";
 
     /// <summary>
     /// Companion spawn anchors for team 0, in slot order, on the legion map.

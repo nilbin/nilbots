@@ -174,12 +174,12 @@ public sealed class FrontlineLabsNextRoundPackageTests
         var expected = new Dictionary<string, (string Bare, string Legion)>(
             StringComparer.Ordinal)
         {
-            ["bulwark-vs-bulwark"] = ("bastille", "palisade"),
-            ["bulwark-vs-fabricator"] = ("warren", "swarm"),
-            ["bulwark-vs-striker"] = ("vigil", "crusade"),
-            ["fabricator-vs-fabricator"] = ("warren", "swarm"),
-            ["fabricator-vs-striker"] = ("vigil", "crusade"),
-            ["striker-vs-striker"] = ("vigil", "crusade"),
+            ["bulwark-vs-bulwark"] = ("bastille", "stockade"),
+            ["bulwark-vs-fabricator"] = ("warren", "horde"),
+            ["bulwark-vs-striker"] = ("vigil", "warpath"),
+            ["fabricator-vs-fabricator"] = ("warren", "horde"),
+            ["fabricator-vs-striker"] = ("vigil", "warpath"),
+            ["striker-vs-striker"] = ("vigil", "warpath"),
         };
         foreach ((FrontlineLabsClassDefinition zero,
                   FrontlineLabsClassDefinition one) in

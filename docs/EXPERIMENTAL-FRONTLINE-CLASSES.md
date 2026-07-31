@@ -940,7 +940,7 @@ the extra characters do not fit beside the worst class pair.
 
 ## Roster: LEGION
 
-`--roster legion` changes how many bodies you have and when. Every arm above
+`--roster levy` changes how many bodies you have and when. Every arm above
 this one was measured on prime-plus-two, and both #187 mechanisms — the channel
 and the economy — are priced against how many bodies a team can afford to send
 away from the front, so this is a rework of the whole allocation problem rather
@@ -966,7 +966,7 @@ bots").
   and its activation tick are all contract data: the topology's `unitSlots`,
   and each lifecycle assignment's `initialAvailability` / `unlockTick`. A slot
   that activates automatically declares its reserved spawn anchor too.
-- **The arm mints its own map generation** (`frontline-labs-03-legion`). A slot
+- **The arm mints its own map generation** (`frontline-labs-03-levy`). A slot
   that returns automatically needs a reserved anchor, and the measured pad has
   room for two — so the legion map carries the classes map's exact tiles, seven
   mirror-fair companion anchors per team (the measured pair unchanged, then
@@ -983,11 +983,11 @@ bots").
   generation, and a combined generation is a pre-registration nobody has asked
   for.
 
-Registered identities: `swell` + legion is **`cohort`**, `tide` + legion is
-**`maniple`**, `sail-tick-open` + legion is **`phalanx`**; with the full v1.1
-game already in the cell `citadel` + legion is **`garrison`**, `rampart` +
-legion is **`cordon`** and `armoury` + legion is **`barracks`**. Smaller cells
-spell their factors and append `legion`.
+Registered identities: `swell` + legion is **`warband`**, `tide` + legion is
+**`retinue`**, `sail-tick-open` + legion is **`vanguard`**; with the full v1.1
+game already in the cell `citadel` + legion is **`brigade`**, `rampart` +
+legion is **`column`** and `armoury` + legion is **`regiment`**. Smaller cells
+spell their factors and append `levy`.
 
 ## The next round: home respawns, a longer horn, a full board
 
@@ -1021,12 +1021,12 @@ nilbots experiment frontline-labs \
   --classes bulwark-vs-striker --pendulum hull --skills kit \
   --bend universal --aim offset --cooldown ticking --stance-ground open \
   --volley salvo --capture channel --economy scrap --horizon long \
-  --roster legion --seed 42 --runtime wasm --out /tmp/crusade
+  --roster legion --seed 42 --runtime wasm --out /tmp/warpath
 ```
 
 Registered identities for the whole package: **`vigil`** on the striker shapes,
 **`warren`** on the fabricator shapes, **`bastille`** on the bulwark mirror —
-and with `--roster legion` on top, **`crusade`**, **`swarm`** and
-**`palisade`**. Anything smaller in this family spells its factors, and a
+and with `--roster levy` on top, **`warpath`**, **`horde`** and
+**`stockade`**. Anything smaller in this family spells its factors, and a
 combination that overflows the 64-character budget faults with a message
 telling you to register it: a pre-registration is a decision, not a fallback.

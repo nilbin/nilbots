@@ -216,7 +216,7 @@ static int CommandHelp(string command)
 
             Actor built-ins:
               frontline-rusher       objective-first; never Anchors
-              frontline-swarm        fabricates every child; stays mobile
+              frontline-horde        fabricates every child; stays mobile
               frontline-bastion      fabricates, Anchors, and fires turrets
               frontline-counterpunch defends its half, then advances on contact
               frontline-probe        protocol/action diagnostic, not a doctrine
@@ -486,7 +486,7 @@ static int CommandHelp(string command)
             is inferable from a body count. It is a real arm on every pair,
             needs a class pair, and cannot be combined with --side-objective
             (both mint a map generation). swell + legion is registered as
-            `cohort`, and the full v1.1 game plus the roster as `garrison`.
+            `warband`, and the full v1.1 game plus the roster as `brigade`.
             --horizon long raises the match limit from 500 to 750 ticks
             (owner ruling: "longer games at this point is ok"). It is a
             contract LIMIT, so read limits.maxTicks instead of assuming a
@@ -506,8 +506,8 @@ static int CommandHelp(string command)
             --capture channel + --economy scrap + --horizon long — carries one
             registered identity per shape: `vigil` on the striker shapes,
             `warren` on the fabricator shapes, `bastille` on the bulwark
-            mirror; with --roster legion they are `crusade`, `swarm` and
-            `palisade`.
+            mirror; with --roster legion they are `warpath`, `horde` and
+            `stockade`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

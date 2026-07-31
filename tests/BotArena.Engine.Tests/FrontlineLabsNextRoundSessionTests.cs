@@ -80,7 +80,7 @@ public sealed class FrontlineLabsNextRoundSessionTests
             run.Ticks[^1].PostState.ActiveLives.Length >= 16,
             "the full roster never reached the horn");
         Assert.Equal(
-            "frontline-labs-1-fabricator-vs-striker-crusade-facing-locked",
+            "frontline-labs-1-fabricator-vs-striker-warpath-facing-locked",
             package.Rules.RulesetId);
     }
 
