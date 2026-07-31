@@ -4192,6 +4192,48 @@ publish movedThisTick, fix ArenaBasics.Capture's channel misread, fix
 abort paths that exit 0. Everything provisional per #174; the owner
 rules on the next lever when he returns.
 
+## 189. The legion round: fabricator renaissance, crown dissolved
+
+Six owner rulings shipped as one package after he watched wave 8
+("didn't see the new mechanisms"; "initial number of bots higher…
+add 2 then 3 so end game is genuinely many"; "recapture needs to be
+faster"; "the new mechanism needs to be stronger and happen earlier";
+"the respawn at capture point may be too strong and it also means
+Fab's signature skill is almost useless — next balancing round
+without that"; "longer games ok"; "scraps should decide the game").
+Plus the fix for the seeing itself: the viewer now RENDERS both
+mechanics (piles, couriers, bank/tier pips, purchase beats, channel
+arcs with interrupt-vs-erosion distinction, channeler/screen auras) —
+and an adjacent v3 bug meant impact effects had never rendered at
+all; restored.
+
+The stack: `--roster legion` (3 bodies at tick 0, fabricator 4 via
+dormant-unlock slots its prime field-fabricates — the monopoly becomes
+the opening verb; +2 at 150, +3 at 300; endgame 8–9; new map
+generation frontline-labs-03-legion), `--pendulum hull` (keel minus
+forward-rally: home respawns make fabrication the ONLY forward body
+delivery), erosion 8 (flips 1.125×), economy v1.1 (veins 8 scrap from
+tick 60 every 70 through 620, wreckage 2/death, six-tier board — the
+economy is now allowed to decide), `--horizon long` (750). Wave-8
+tokens retired to their measured bytes; the package mints
+vigil/crusade. Full-roster observation: 14.1KB, 1.3% of the payload
+cap.
+
+Coarse crusade read (wave-8 cohort, stale doctrine on every axis —
+the heaviest lower-bound caveat of the campaign):
+**bulwark-vs-striker +0.778 → +0.370; bulwark-vs-fabricator +0.667 →
+−0.278; fabricator-vs-striker −0.111 → +0.333.** The bulwark crown
+is gone and the fabricator is the package's winner exactly as
+designed — its restored signature plus the numeric opening. A soft
+cycle shows (bulwark > striker > … < fabricator > bulwark). Pacing
+note, honest: 44/63 matches reach max-ticks and draws returned (6) —
+eight-body defenses under stale doctrine hold hard; whether that is
+the doctrine or the numbers is wave-9's question, and
+channel-ratchet-retune is now the most-live registered factor (home
+respawns lengthened every walk the 40-tick hold was calibrated
+against). Ground healing (slow, own-half, stillness-gated) is ruled
+and slated as the next-window A/B.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
