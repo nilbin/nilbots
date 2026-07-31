@@ -266,14 +266,16 @@ public sealed class FrontlineLabsCaptureChannelArmTests
     [Fact]
     public void EveryChannelIdentityFitsTheCanonicalBudget()
     {
+        // The v1.1 mint. The wave-8 spellings — mantlet / sap / siege — keep
+        // meaning the erosion-4 bytes and must not appear here.
         var expected = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["bulwark-vs-bulwark"] = "mantlet",
-            ["bulwark-vs-fabricator"] = "sap",
-            ["bulwark-vs-striker"] = "siege",
-            ["fabricator-vs-fabricator"] = "sap",
-            ["fabricator-vs-striker"] = "siege",
-            ["striker-vs-striker"] = "siege",
+            ["bulwark-vs-bulwark"] = "pavise",
+            ["bulwark-vs-fabricator"] = "mine",
+            ["bulwark-vs-striker"] = "storm",
+            ["fabricator-vs-fabricator"] = "mine",
+            ["fabricator-vs-striker"] = "storm",
+            ["striker-vs-striker"] = "storm",
         };
         foreach ((FrontlineLabsClassDefinition zero,
                   FrontlineLabsClassDefinition one) in

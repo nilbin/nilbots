@@ -228,7 +228,7 @@ public static class ToolchainInfo
     /// run began, and damage to a body OFF the objective reverts nothing —
     /// which is what makes screening the channeler the intended play), the
     /// stationary gain multiplier is capped at 2, an opposing claim erodes
-    /// at 4× build speed, and the paired `channel-speed` factor moves the
+    /// at 8× build speed, and the paired `channel-speed` factor moves the
     /// threshold 15 → 8. It carries SDK/Guest 0.10.10, because the contract
     /// grows three trailing additive capture facts
     /// (`stationaryGainMultiplierCap`, `opposingErosionMultiplier`,
@@ -244,13 +244,13 @@ public static class ToolchainInfo
     /// The same version registers the SCRAP ECONOMY (`--economy
     /// scrap`, composites `forge` = swell + scrap and `bastion` = swell +
     /// channel + scrap; the control level is `--economy scrap-flat`).
-    /// Deposits worth 6 arrive at (11,1) and (11,13) on ticks 120/200/280/
-    /// 360, every destroyed body leaves a wreck worth 1 at its death tile,
+    /// Deposits worth 8 arrive at (11,1) and (11,13) every 70 ticks from 60
+    /// through 620, every destroyed body leaves a wreck worth 2 at its tile,
     /// stepping onto a pile banks 1 instantly and loads the rest up to a
     /// carry of 6, a load banks in full on your own home pad and drops with
     /// you when you die, and piles expire 80 ticks after they appear. The
     /// bank buys tiers on `edge`, `plate` and `optic` at a flat 10 each — at
-    /// most 2 in a track and 3 in total, applied to the Prime slot's lives —
+    /// most 2 in a track, a full board of 6, applied to the Prime slot's lives —
     /// through the new `invest` verb (action code 106, kind
     /// `mode-investment`, one `upgrade-track` argument), which costs the
     /// casting body its action for the tick and whose affordability lives in
@@ -260,6 +260,53 @@ public static class ToolchainInfo
     /// zero on every ruleset that declares no economy, and no new event kind
     /// at all — every purchase and bank change rides the existing
     /// mode-changed fact carrying the post-change state.
+    /// The same version carries the post-wave-8 RULING WINDOW, which moves
+    /// numbers on two arms that were already measured and adds two more. The
+    /// identity discipline applies in full: every token below is a re-mint,
+    /// and the wave-8 spellings keep meaning the wave-8 bytes for ever.
+    /// - The channel's opposing-erosion multiplier moves 4 -> 8 ("recapture
+    ///   needs to be faster"): one controlling tick now erases even a maximal
+    ///   standing claim, so a full flip costs 9 ticks against a fresh
+    ///   capture's 8 (1.125x, down from 1.25x). `siege`/`sap`/`mantlet`
+    ///   re-mint as `storm`/`mine`/`pavise`.
+    /// - SCRAP re-tunes to v1.1 ("the new mechanism needs to be stronger and
+    ///   happen earlier"): the first deposit lands at 60 instead of 120, the
+    ///   cadence tightens 80 -> 70 and the series runs to nine events
+    ///   (60/130/200/270/340/410/480/550/620), a deposit is worth 8 instead
+    ///   of 6, and a wreck is worth 2 instead of 1. Carry cap, pile lifetime
+    ///   and the flat 10-per-tier price are unchanged — the arm gets stronger
+    ///   through affordability rather than through effect inflation, which is
+    ///   what protects the class-gap admission rule. The three-tier TOTAL cap
+    ///   is REMOVED on the owner's ruling that the economy should be able to
+    ///   decide a match: the board is now six tiers (2 per track, 60 scrap).
+    ///   `forge`/`anvil`/`smelter` re-mint as `foundry`/`bellows`/`furnace`
+    ///   and `bastion`/`redoubt`/`smithy` as `citadel`/`rampart`/`armoury`.
+    ///   One behaviour arrives with the tighter cadence: an untaken deposit is
+    ///   still standing when the next lands on the same tile, so the two merge
+    ///   and a neglected lane accumulates.
+    /// - `--roster legion` is a new arm: every team starts with three live
+    ///   bodies (the fabricator with a fourth slot it must fabricate, keeping
+    ///   #154's class verb), gains two slots at tick 150 and three at 300, and
+    ///   ends with eight (nine for the fabricator). It runs on its own map
+    ///   generation `frontline-labs-03-legion` — the classes map's exact
+    ///   tiles plus seven mirror-fair companion anchors per team and a pad
+    ///   widened from six tiles to ten so every anchor stays SpawnProtected —
+    ///   and registers three topology profiles (8-8, 9-8, 9-9). It supersedes
+    ///   FIVE SLOTS' slot schedule and cannot combine with --side-objective.
+    /// - `--pendulum hull` is the keel WITHOUT its forward rally, and
+    ///   `--horizon long` raises the match limit 500 -> 750. Both are
+    ///   registered levels; the horizon is a contract LIMIT, so read
+    ///   limits.maxTicks. The whole next-round package (hull + the tuned class
+    ///   game + channel + scrap + long) carries one identity per shape:
+    ///   `vigil`, `warren`, `bastille`, and with the roster `crusade`,
+    ///   `swarm`, `palisade`.
+    /// NONE of this moves SDK or Guest bytes: it is all contract DATA — arm
+    /// constants, a limits value, topology and lifecycle assignments, and one
+    /// new map generation — inside schemas that already exist, so SDK/Guest
+    /// stay at 0.10.10 and a frozen artifact from this window still
+    /// negotiates. A frozen artifact that hard-coded 500 ticks, four deposits
+    /// or a three-tier cap will simply play badly, which is the ordinary
+    /// contract-driven consequence.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.27";

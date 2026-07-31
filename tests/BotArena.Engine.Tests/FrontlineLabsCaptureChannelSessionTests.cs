@@ -153,6 +153,51 @@ public sealed class FrontlineLabsCaptureChannelSessionTests
     }
 
     /// <summary>
+    /// Recapture, live, at the owner's post-wave-8 setting. A striker builds a
+    /// MAXIMAL standing claim (7 at threshold 8) on the centre and walks off
+    /// it; a bulwark steps on and holds. The first stationary sole tick erases
+    /// the whole claim — erosion is 8× a fresh gain — and eight more take the
+    /// point, so the full flip costs NINE ticks against a fresh capture's
+    /// eight: 1.125×, inside the band the arm was adopted under and near its
+    /// floor.
+    /// </summary>
+    [Fact]
+    public void AMaximalStandingClaimFlipsInNineControllingTicks()
+    {
+        TickRecord[] run = Read(RunRecapture());
+
+        // The striker's claim reached the maximum a claim can stand at.
+        int built = Array.FindIndex(
+            run,
+            record => record.ClaimingTeamId == Poker
+                && record.CaptureProgress == 7);
+        Assert.True(built >= 0, "the striker never built a full claim");
+
+        // The first tick the bulwark controls the point clears the whole
+        // thing, and starts no claim of its own on that tick.
+        int erased = Array.FindIndex(
+            run,
+            built,
+            record => record.ClaimingTeamId is null
+                && record.CaptureProgress == 0);
+        Assert.True(erased > built, "the standing claim was never erased");
+        Assert.Equal(7, run[erased - 1].CaptureProgress);
+        Assert.Equal(Poker, run[erased - 1].ClaimingTeamId);
+
+        // Then eight ordinary build ticks, one point each, and the eighth
+        // takes the objective: nine controlling ticks for the whole flip.
+        Assert.Equal(2, run[erased].ActivePositionIndex);
+        for (int index = 1; index <= 7; index++)
+        {
+            Assert.Equal(Channeler, run[erased + index].ClaimingTeamId);
+            Assert.Equal(index, run[erased + index].CaptureProgress);
+            Assert.Equal(2, run[erased + index].ActivePositionIndex);
+        }
+        Assert.Equal(3, run[erased + 8].ActivePositionIndex);
+        Assert.Equal(0, run[erased + 8].CaptureProgress);
+    }
+
+    /// <summary>
     /// The impossible channel histories, refused. Each forgery below is a
     /// self-consistent recorded boundary; the only thing wrong with it is
     /// that the bodies and damage the SAME document recorded could not have
@@ -381,6 +426,97 @@ public sealed class FrontlineLabsCaptureChannelSessionTests
                     : Direction.North)
             : GenericDeathmatchSessionTestFixture.Wait();
     }
+
+    /// <summary>
+    /// The recapture script. The striker walks onto the centre from the east
+    /// and holds it until its claim stands at 7 — one short of the capture —
+    /// then walks back off; the bulwark's prime waits one tile west of the
+    /// objective, steps on once the point is clear of enemy bodies, and holds.
+    /// Nobody fires: the probe is about the erosion multiple alone.
+    /// </summary>
+    private static GenericActorMatchChronology RunRecapture()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.CreatePendulumExperiment(
+                FrontlineLabsPendulumArm.EnemySoleDecay,
+                (FrontlineLabsClassDefinition.Bulwark,
+                    FrontlineLabsClassDefinition.Striker),
+                capture: FrontlineLabsCaptureArm.Channel);
+        return FrontlineLabsSkillArmTestFixture.Run(
+            definition,
+            (start, observation) => start.ActorId.TeamId == Poker
+                ? BuildThenLeave(observation)
+                : StepOnAndHold(observation));
+    }
+
+    /// <summary>The striker's half: build to 7, then vacate the point.</summary>
+    private static GenericActorRuntimeDecision BuildThenLeave(
+        GenericActorRuntimeObservation observation)
+    {
+        if (observation.Self.ActorId.UnitId != 0
+            || observation.Self.ActorId.LifeId != 0)
+        {
+            return GenericDeathmatchSessionTestFixture.Wait();
+        }
+        if (observation.Tick < RecaptureVacateTick)
+        {
+            return FrontlineLabsSkillArmTestFixture.WalkTo(
+                    observation,
+                    RecaptureHoldTile)
+                ?? GenericDeathmatchSessionTestFixture.Wait();
+        }
+        // Off the point and out of the way for good, so the bulwark's arrival
+        // is the only thing that touches the standing claim.
+        return observation.Self.Position.X < PokeTile.X
+            ? GenericDeathmatchSessionTestFixture.Move(Direction.East)
+            : GenericDeathmatchSessionTestFixture.Wait();
+    }
+
+    /// <summary>
+    /// The bulwark's half: wait one tile west of the objective while the
+    /// striker builds and walks off, then step on and never move again.
+    /// </summary>
+    private static GenericActorRuntimeDecision StepOnAndHold(
+        GenericActorRuntimeObservation observation)
+    {
+        if (observation.Self.ActorId.UnitId != 0
+            || observation.Self.ActorId.LifeId != 0)
+        {
+            return GenericDeathmatchSessionTestFixture.Wait();
+        }
+        if (observation.Tick < RecaptureStepOnTick)
+        {
+            return FrontlineLabsSkillArmTestFixture.WalkTo(
+                    observation,
+                    RecaptureApproachTile)
+                ?? GenericDeathmatchSessionTestFixture.Wait();
+        }
+        return observation.Self.Position == RecaptureApproachTile
+            ? GenericDeathmatchSessionTestFixture.Move(Direction.East)
+            : GenericDeathmatchSessionTestFixture.Wait();
+    }
+
+    /// <summary>
+    /// The tick the striker walks off the point: its claim stands at 7 — one
+    /// short of a capture — from the tick before.
+    /// </summary>
+    private const int RecaptureVacateTick = 15;
+
+    /// <summary>
+    /// The tick the bulwark steps on, by which the striker is clear of the
+    /// objective. The step itself is a move, so it channels nothing; the tick
+    /// after it is the first controlling tick of the flip.
+    /// </summary>
+    private const int RecaptureStepOnTick = 18;
+
+    /// <summary>The striker's channel tile, at the objective's east edge.</summary>
+    private static readonly Position RecaptureHoldTile = new(12, 7);
+
+    /// <summary>The bulwark waits here, one tile west of the objective.</summary>
+    private static readonly Position RecaptureApproachTile = new(9, 7);
+
+    /// <summary>And channels from here once it steps on.</summary>
+    private static readonly Position RecaptureEntryTile = new(10, 7);
 
     private sealed record TickRecord(
         int Tick,

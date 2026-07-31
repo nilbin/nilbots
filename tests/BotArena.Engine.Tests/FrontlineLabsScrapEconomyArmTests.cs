@@ -116,14 +116,14 @@ public sealed class FrontlineLabsScrapEconomyArmTests
 
         Assert.Contains(
             "\"scrapEconomy\":{\"veinSites\":[{\"x\":11,\"y\":1},"
-            + "{\"x\":11,\"y\":13}],\"veinFirstSpawnTick\":120,"
-            + "\"veinSpawnIntervalTicks\":80,\"veinLastSpawnTick\":360,"
-            + "\"veinAmount\":6,\"wreckAmount\":1,\"assayAmount\":1,"
+            + "{\"x\":11,\"y\":13}],\"veinFirstSpawnTick\":60,"
+            + "\"veinSpawnIntervalTicks\":70,\"veinLastSpawnTick\":620,"
+            + "\"veinAmount\":8,\"wreckAmount\":2,\"assayAmount\":1,"
             + "\"carryCapacity\":6,\"pileLifetimeTicks\":80,"
             + "\"maxSimultaneousPiles\":16,\"bankRegionIds\":"
             + "[\"team-0-home-pad\",\"team-1-home-pad\"],"
             + "\"upgradeScope\":\"prime-slot-lives-only\","
-            + "\"maxTotalTiers\":3,\"purchaseMode\":\"invest-action\","
+            + "\"maxTotalTiers\":6,\"purchaseMode\":\"invest-action\","
             + "\"tracks\":[{\"trackId\":\"edge\",\"effect\":"
             + "\"mobile-attack-travel-tiles-delta\",\"perTierMagnitude\":1,"
             + "\"maxTier\":2,\"tierCosts\":[10,10]},{\"trackId\":\"plate\","
@@ -149,11 +149,11 @@ public sealed class FrontlineLabsScrapEconomyArmTests
         Assert.Equal(
             [(11, 1), (11, 13)],
             economy.VeinSites.Select(site => (site.X, site.Y)));
-        Assert.Equal(120, economy.VeinFirstSpawnTick);
-        Assert.Equal(80, economy.VeinSpawnIntervalTicks);
-        Assert.Equal(360, economy.VeinLastSpawnTick);
-        Assert.Equal(6, economy.VeinAmount);
-        Assert.Equal(1, economy.WreckAmount);
+        Assert.Equal(60, economy.VeinFirstSpawnTick);
+        Assert.Equal(70, economy.VeinSpawnIntervalTicks);
+        Assert.Equal(620, economy.VeinLastSpawnTick);
+        Assert.Equal(8, economy.VeinAmount);
+        Assert.Equal(2, economy.WreckAmount);
         Assert.Equal(1, economy.AssayAmount);
         Assert.Equal(6, economy.CarryCapacity);
         Assert.Equal(80, economy.PileLifetimeTicks);
@@ -162,7 +162,7 @@ public sealed class FrontlineLabsScrapEconomyArmTests
             ["team-0-home-pad", "team-1-home-pad"],
             economy.BankRegionIds.ToArray());
         Assert.Equal("prime-slot-lives-only", economy.UpgradeScope);
-        Assert.Equal(3, economy.MaxTotalTiers);
+        Assert.Equal(6, economy.MaxTotalTiers);
         Assert.Equal("invest-action", economy.PurchaseMode);
         Assert.Equal(
             ["edge", "plate", "optic"],
@@ -242,7 +242,7 @@ public sealed class FrontlineLabsScrapEconomyArmTests
             ActorContractFingerprint.ComputeMatch(arm),
             ActorContractFingerprint.ComputeMatch(control));
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-siege-flat-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-storm-flat-facing-locked",
             control.Rules.RulesetId);
         Assert.True(control.Rules.RulesetId.Length <= 64);
     }
@@ -350,12 +350,12 @@ public sealed class FrontlineLabsScrapEconomyArmTests
     {
         var expected = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["bulwark-vs-bulwark"] = "smithy",
-            ["bulwark-vs-fabricator"] = "redoubt",
-            ["bulwark-vs-striker"] = "bastion",
-            ["fabricator-vs-fabricator"] = "redoubt",
-            ["fabricator-vs-striker"] = "bastion",
-            ["striker-vs-striker"] = "bastion",
+            ["bulwark-vs-bulwark"] = "armoury",
+            ["bulwark-vs-fabricator"] = "rampart",
+            ["bulwark-vs-striker"] = "citadel",
+            ["fabricator-vs-fabricator"] = "rampart",
+            ["fabricator-vs-striker"] = "citadel",
+            ["striker-vs-striker"] = "citadel",
         };
         var fingerprints = new HashSet<string>(StringComparer.Ordinal);
         foreach ((FrontlineLabsClassDefinition zero,
@@ -382,9 +382,10 @@ public sealed class FrontlineLabsScrapEconomyArmTests
                     FullGame(zero, one, FrontlineLabsEconomyArm.None)));
         }
 
-        // The economy alone (no channel) mints `forge`, which is the wave-8
-        // 2x2's third cell.
-        string forge = FrontlineLabsDefinition.CreatePendulumExperiment(
+        // The economy alone (no channel) mints `foundry` at v1.1, which is
+        // the attribution 2x2's third cell (`forge` keeps naming the wave-8
+        // pricing).
+        string foundry = FrontlineLabsDefinition.CreatePendulumExperiment(
                 Keel,
                 (FrontlineLabsClassDefinition.Bulwark,
                     FrontlineLabsClassDefinition.Striker),
@@ -400,8 +401,8 @@ public sealed class FrontlineLabsScrapEconomyArmTests
             .Rules
             .RulesetId;
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-forge-facing-locked",
-            forge);
+            "frontline-labs-1-bulwark-vs-striker-foundry-facing-locked",
+            foundry);
 
         // A bare pendulum cell spells the plain token.
         string bare = FrontlineLabsDefinition.CreatePendulumExperiment(

@@ -250,6 +250,8 @@ static int CommandHelp(string command)
                    [--side-objective none|muster]
                    [--capture frozen|channel]
                    [--economy none|scrap|scrap-flat]
+                   [--roster none|legion]
+                   [--horizon standard|long]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -413,8 +415,9 @@ static int CommandHelp(string command)
             a channeler the intended play. Gain scales with net stationary
             weight but is CAPPED AT 2, so extra channelers buy screens and
             denial rather than speed. Eroding an enemy claim is a channel
-            too, at 4x build speed, which puts a full flip at 10 ticks
-            against a fresh capture's 8. The paired `channel-speed` factor
+            too, at 8x build speed, so one controlling tick erases even a
+            maximal standing claim and a full flip costs 9 ticks against a
+            fresh capture's 8. The paired `channel-speed` factor
             moves the threshold 15 -> 8. It publishes no new observation
             fact: every rule above moves captureProgress and claimingTeamId
             in their exact published shape — read the policy, the cap, the
@@ -423,22 +426,28 @@ static int CommandHelp(string command)
             opposingErosionMultiplier, claimInterrupt) instead of assuming
             them. It is a real arm on every pair and needs a class pair or a
             --pendulum level to sit in. swell + channel is registered as
-            `siege`.
+            `storm` (the wave-8 erosion-4 spelling `siege` still names those
+            exact bytes).
             --economy scrap adds a BATTLEFIELD ECONOMY (DECISIONS #187).
-            Deposits worth 6 arrive at (11,1) and (11,13) — the two dead side
+            Deposits worth 8 arrive at (11,1) and (11,13) — the two dead side
             lanes, equidistant from both home pads by construction — on ticks
-            120, 200, 280 and 360, and every destroyed body leaves a wreck
-            worth 1 at its death tile. Standing on a pile banks 1 for your
+            60, 130, 200, 270, 340 and 410, and every destroyed body leaves a
+            wreck worth 2 at its death tile. Standing on a pile banks 1 for your
             team instantly and loads the rest as carry up to 6; a load banks
             in full when you end a tick on your own home pad, and drops with
             you, merged into your wreck, when you die. Piles expire 80 ticks
-            after they appear. A form with objective weight 0 — an anchored
+            after they appear, which is ten ticks LONGER than the cadence: a
+            deposit nobody took is still standing when the next one lands on
+            it, so the two merge and a neglected lane accumulates. A form
+            with objective weight 0 — an anchored
             turret — can neither pick up nor carry, and anchoring drops the
             load. Spend the bank with the new `invest` verb, which costs the
             casting body its action for that tick and takes an upgrade track:
             `edge` (+1 gun travel per tier), `plate` (+1 max health per tier,
             applied at spawn — it NEVER heals) or `optic` (+1 vision per
-            tier). Ten per tier, flat; at most 2 in one track and 3 in total;
+            tier). Ten per tier, flat; at most 2 in one track, and the whole
+            board is 6 (there is no total cap: the economy is allowed to
+            decide the match);
             every tier applies to your PRIME slot's lives, current and
             future. Affordability lives in the legality mask, so read your
             constraint rather than pricing the ladder yourself. Three
@@ -453,8 +462,52 @@ static int CommandHelp(string command)
             `invest` verb does not exist. It is a real arm on every pair,
             needs a class pair or a --pendulum level to sit in, and cannot be
             combined with --side-objective. swell + scrap is registered as
-            `forge`, and swell + channel + scrap — the full shipped game — as
-            `bastion`.
+            `foundry`, and swell + channel + scrap — the full shipped game —
+            as `citadel` (the wave-8 pricing's own spellings, `forge` and
+            `bastion`, still name those exact bytes).
+            --roster legion raises the ROSTER (owner ruling on the wave-8
+            read). Every team starts with three live bodies instead of one,
+            gains two more slots at tick 150 and three more at 300, and ends
+            the match with eight. The FABRICATOR opens with four slots rather
+            than four bodies: its three companions are unlocked from tick
+            zero and each costs its prime an action to fabricate, which is
+            the class verb it has always paid in — and they arrive in the
+            field beside it rather than on a pad — so its endgame roster is
+            nine. The arm runs on its own map generation
+            (frontline-labs-03-legion): a slot that returns automatically
+            needs a reserved spawn anchor, so the map carries seven
+            mirror-fair companion anchors per team and a home pad widened to
+            cover them (which is also the banking region under --economy).
+            It supersedes the FIVE SLOTS slot schedule — two factors that
+            both set the slot count could not be attributed apart — while the
+            skill's rebuild-clock variants still apply. Read the slot count,
+            each slot's availability, and its activation tick from the
+            contract's topology and lifecycle assignments; nothing about it
+            is inferable from a body count. It is a real arm on every pair,
+            needs a class pair, and cannot be combined with --side-objective
+            (both mint a map generation). swell + legion is registered as
+            `cohort`, and the full v1.1 game plus the roster as `garrison`.
+            --horizon long raises the match limit from 500 to 750 ticks
+            (owner ruling: "longer games at this point is ok"). It is a
+            contract LIMIT, so read limits.maxTicks instead of assuming a
+            number: every pacing gate in the game — the 18-tick Prime return,
+            the 40-tick ratchet hold, the vein cadence, the roster tranches —
+            was priced against 500 and is being re-priced against 750. It is a
+            real arm on every pair and needs a class pair or a --pendulum
+            level to sit in.
+            --pendulum hull is the keel WITHOUT its forward rally (owner
+            ruling): sticky frontline, contest majority and enemy-sole decay
+            are unchanged, but every automatic arrival — prime respawns and
+            companion activations alike — lands on its own reserved home
+            spawn. Read rules.lifecycle.automaticReturnPlacement rather than
+            assuming a rally: under hull the fabricator's field-placed
+            children are the ONLY forward body delivery in the game.
+            The next round's whole package — hull + the tuned class game +
+            --capture channel + --economy scrap + --horizon long — carries one
+            registered identity per shape: `vigil` on the striker shapes,
+            `warren` on the fabricator shapes, `bastille` on the bulwark
+            mirror; with --roster legion they are `crusade`, `swarm` and
+            `palisade`.
             Both stances spend a declared budget and then return by
             themselves: the volley returns the tick its fan launches (one cast
             per entry, so a parked striker cannot become artillery), and the

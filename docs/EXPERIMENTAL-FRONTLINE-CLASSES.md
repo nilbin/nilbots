@@ -615,7 +615,7 @@ has a capture routine, this arm invalidates it.
   team's work on the current run, one point of progress per point of health
   removed. One hit reverts the whole run's work, not one body's share.
 - **Damage off the objective reverts nothing.** This is the whole design.
-- **Retaking ground is also a channel**, at **4×** speed against a standing
+- **Retaking ground is also a channel**, at **8×** speed against a standing
   enemy claim — see *Erosion and recapture* below.
 - **The threshold is 8, not 15.** That is the paired `channel-speed` factor:
   each channeling tick is riskier, so it pays more. It also rescales the
@@ -638,7 +638,7 @@ Everything above is contract data on `rules.gameMode.capture`:
 | `controlPolicy` | `stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-…` is the channel. Any other value and none of this section applies |
 | `threshold` | what a capture costs. **8** on this arm, 15 everywhere else — read it |
 | `stationaryGainMultiplierCap` | the ceiling on the gain multiplier (2) |
-| `opposingErosionMultiplier` | how many times faster an enemy claim erodes than a fresh claim builds (4) |
+| `opposingErosionMultiplier` | how many times faster an enemy claim erodes than a fresh claim builds (**8**) |
 | `claimInterrupt` | `kind`, `revertPerDamagePoint`, `scope`, `granularity` — the interrupt, spelled out |
 
 The last three and the `claimInterrupt` block are **absent** on every ruleset
@@ -703,15 +703,19 @@ quarters of a capture.
 ### Erosion and recapture
 
 While an enemy claim stands, controlling the point **erodes** it at
-`4 × gain × multiplier` per tick instead of building your own. Erosion is a
+`8 × gain × multiplier` per tick instead of building your own. Erosion is a
 channel too — same stillness gate, same cap, same interrupt — because a kiting
-body that could wipe a built claim in two ticks while dodging would make a
-built claim worth nothing.
+body that could wipe a built claim while dodging would make a built claim worth
+nothing.
 
 On reaching zero the enemy claim clears and **you start no claim of your own on
 that tick**; overshoot is discarded. So a full flip from a maximal standing
-enemy claim is 2 erode ticks + 8 build ticks = **10**, against a fresh
-capture's 8 — 1.25×, sliding toward 1.0× the smaller the standing claim is.
+enemy claim is 1 erode tick + 8 build ticks = **9**, against a fresh capture's
+8 — 1.125×, sliding toward 1.0× the smaller the standing claim is. The
+multiplier was 4 in the wave-8 game (a 10-tick flip); the owner ruled on that
+read that **recapture needs to be faster**, so one controlling tick now erases
+even a maximal claim and taking ground back costs almost exactly what taking it
+forward costs.
 
 If you are interrupted mid-erosion you lose your erosion progress, and the
 enemy's claim can climb back — but **never above where it stood when you took
@@ -723,17 +727,19 @@ nilbots experiment frontline-labs \
   --bot <generic-spec> --opponent <generic-spec> \
   --classes bulwark-vs-striker --pendulum keel --skills kit \
   --bend universal --volley salvo --capture channel \
-  --seed 42 --runtime wasm --out /tmp/siege
+  --seed 42 --runtime wasm --out /tmp/storm
 ```
 
 The arm needs a cell to sit in: a class pair (explicit or manifest-declared) or
 a `--pendulum` level. It is a **real arm on every pair** — never inert-omitted,
 because it changes capture for both teams whatever classes are present. The
 candidate game plus the channel carries a registered identity per shape:
-`swell` + channel is **`siege`**, `tide` + channel is **`sap`**, and the tuned
+`swell` + channel is **`storm`**, `tide` + channel is **`mine`**, and the tuned
 open game on the ticking clock without the fabricator's `wane`
-(`sail-tick-open`) + channel is **`mantlet`**. Smaller cells spell their
-factors and append `channel`.
+(`sail-tick-open`) + channel is **`pavise`**. Smaller cells spell their factors
+and append `channel`. The wave-8 spellings — `siege`, `sap`, `mantlet` — keep
+meaning the **erosion-4** bytes for ever; a token names a behaviour, and this
+one moved.
 
 ## Economy: SCRAP
 
@@ -750,17 +756,19 @@ now worth something, and *coming back* is where you can be robbed.
 
 ### The loop
 
-- **Deposits arrive on a public metronome.** Six scrap appears at `(11,1)` and
-  `(11,13)` — both lanes, every event — on ticks **120, 200, 280 and 360**.
-  Every one of those numbers is static contract data you can plan against
-  before tick zero. The sites sit on the map's centre column, which is why they
+- **Deposits arrive on a public metronome.** **Eight** scrap appears at
+  `(11,1)` and `(11,13)` — both lanes, every event — on ticks **60, 130, 200,
+  270, 340, 410, 480, 550 and 620**. Every one of those numbers is static
+  contract data you can plan against before tick zero. A 500-tick match reaches
+  seven of the nine (112 scrap in the ground); the 750-tick horizon reaches all
+  nine (144). The sites sit on the map's centre column, which is why they
   are exactly 16 facing-locked ticks from *both* home pads: the tile rows are
   palindromic about `x = 11`, so the mirror is free and the map is unchanged.
 - **If a body is standing on a site when a deposit is due, the deposit moves**
   to the nearest free floor tile in the same row (ties break toward the lower
   `x`). Parking on the tile denies nothing.
-- **Every destroyed body drops a wreck worth 1 at its death tile**, merged with
-  whatever it was carrying. A killed carrier is one pile worth `1 + load` — the
+- **Every destroyed body drops a wreck worth 2 at its death tile**, merged with
+  whatever it was carrying. A killed carrier is one pile worth `2 + load` — the
   largest single transfer in the game, and it is available to whoever did the
   killing.
 - **Stepping onto a pile banks 1 for your team instantly** (the assay, paid at
@@ -768,9 +776,14 @@ now worth something, and *coming back* is where you can be robbed.
   remainder stays on the tile with its original expiry.
 - **A load banks in full when you end a tick on your own team's home pad.**
   Automatic, no action, no cost — the walk *was* the price.
-- **Piles expire 80 ticks after they appear.** That is exactly one cadence, so
-  an untaken deposit disappears as the next pair arrives and at most one
-  cycle's worth is ever live. You cannot stockpile corpses and cash them later.
+- **Piles expire 80 ticks after they appear** — ten ticks longer than the
+  70-tick cadence, which has one consequence worth planning for: a deposit
+  nobody took is still standing when the next one lands **on the same tile**,
+  so the two **merge** and carry the later expiry. A lane nobody contests
+  ACCUMULATES. What never changes is the extraction rate — the assay plus a
+  carry of 6 per visit — so a fat site is a reason to send a second body, not a
+  jackpot one runner takes home. A pile nothing feeds (every wreck) still dies
+  on its own 80 ticks, so you cannot stockpile corpses and cash them later.
 - **Objective weight gates the economy.** A form declaring weight 0 — an
   anchored turret — can neither pick up nor carry, and completing a transition
   into one drops the whole load on the floor. This is the same rule the class
@@ -794,10 +807,15 @@ It takes one `upgrade-track` argument. The three tracks, each `+1` per tier:
 
 **Ten per tier, flat.** Going deep (2 in one track) and going broad (1 in each
 of three) both cost 30, at every point in the match — tier 2 is never a
-discount for being ahead. **At most 2 in one track and 3 in total.** Every tier
-applies to your **Prime slot's lives**, current and future, in every form that
-slot occupies, so a five-slot fabricator buys exactly as much upgraded body as
-a three-slot striker.
+discount for being ahead. **At most 2 in one track, and the whole board is 6**:
++2 gun travel, +2 spawn health and +2 sight, for 60 scrap. There is no total
+cap any more — the owner ruled that the economy is allowed to decide the match
+("ideally scraps should weigh in and decide the game / enable overpowering the
+opponent"), so a team that wins the lanes is meant to look like it won them.
+The overpower is bought in BREADTH: every tier is still +1, so no single step
+widens a class gap. Every tier applies to your **Prime slot's lives**, current
+and future, in every form that slot occupies, so a five-slot fabricator buys
+exactly as much upgraded body as a three-slot striker.
 
 **Read the mask, don't price the ladder.** A track appears in this tick's
 `upgrade-track` constraint only when your team's bank covers its next tier and
@@ -866,7 +884,7 @@ exists.
 
 ### What it costs you to go and get it
 
-A dedicated harvester leaving home around tick 104 and running until the horn
+A dedicated harvester leaving home around tick 44 and running until the horn
 spends roughly a quarter of a three-body team's total body-ticks. While it is
 out, your front runs a body light — and under `--capture channel` two defenders
 who keep moving hold three stationary attackers, so the deficit is real and the
@@ -879,9 +897,11 @@ assay pays in full at the tile with no transport. Ignoring SCRAP costs you the
 *deposit* channel, not the whole economy — roughly one tier against a
 committed team's three.
 
-The supply is a **fixed pot**: 4 events × 2 sites × 6 = 48 scrap, and one
-harvester already services a whole cycle. Extra bodies therefore buy *security
-of collection* — a harvester and an escort and a front — not extra income.
+The supply is a **fixed pot**: 9 events × 2 sites × 8 = 144 scrap over a
+750-tick match (112 inside 500), against a full board of 60. One harvester
+services a whole cycle, so extra bodies buy *security of collection* — a
+harvester and an escort and a front — plus the second trip an accumulated lane
+now rewards.
 
 ### The control level
 
@@ -899,7 +919,7 @@ nilbots experiment frontline-labs \
   --bot <generic-spec> --opponent <generic-spec> \
   --classes bulwark-vs-striker --pendulum keel --skills kit \
   --bend universal --volley salvo --capture channel --economy scrap \
-  --seed 42 --runtime wasm --out /tmp/bastion
+  --seed 42 --runtime wasm --out /tmp/citadel
 ```
 
 The arm needs a cell to sit in: a class pair (explicit or manifest-declared) or
@@ -907,12 +927,106 @@ a `--pendulum` level. It is a **real arm on every pair** — never inert-omitted
 because the deposits, the wreckage and the ladder are the same whatever classes
 are present — and it **cannot be combined with `--side-objective`**, because
 both claim the side lanes' attention. Registered identities: `swell` + scrap is
-**`forge`**, `tide` + scrap is **`anvil`**, `sail-tick-open` + scrap is
-**`smelter`**, and with the channel already in the cell `siege` + scrap is
-**`bastion`**, `sap` + scrap is **`redoubt`** and `mantlet` + scrap is
-**`smithy`**. Smaller cells spell their factors and append `scrap`. The control
+**`foundry`**, `tide` + scrap is **`bellows`**, `sail-tick-open` + scrap is
+**`furnace`**, and with the channel already in the cell `storm` + scrap is
+**`citadel`**, `mine` + scrap is **`rampart`** and `pavise` + scrap is
+**`armoury`**. The wave-8 pricing's own spellings — `forge`, `anvil`,
+`smelter`, `bastion`, `redoubt`, `smithy` — keep meaning those exact bytes. Smaller cells spell their factors and append `scrap`. The control
 level never takes a registered composite — an identity it shared with the arm
 it controls would be unreadable in the evidence — so it always appends `flat`
 (`siege-flat`, `sap-flat`, …); it spells `flat` rather than the flag's own
 `scrap-flat` because the composite it appends to already names the economy and
 the extra characters do not fit beside the worst class pair.
+
+## Roster: LEGION
+
+`--roster legion` changes how many bodies you have and when. Every arm above
+this one was measured on prime-plus-two, and both #187 mechanisms — the channel
+and the economy — are priced against how many bodies a team can afford to send
+away from the front, so this is a rework of the whole allocation problem rather
+than a tuning knob (owner ruling: "I want initial number of bots to be higher …
+should still increase as the game progresses … so end game is genuinely many
+bots").
+
+| when | striker / bulwark | fabricator |
+| --- | --- | --- |
+| tick 0 | **3 live bodies** — prime plus two companions, standing on their own reserved anchors | **4 slots** — prime plus three companions it must FABRICATE, unlocked from tick zero |
+| tick 150 | +2 slots, activated automatically | +2 slots, fabricable |
+| tick 300 | +3 slots, activated automatically | +3 slots, fabricable |
+| endgame | **8** | **9** |
+
+- **The fabricator's opening is slots, not bodies, and that is the point.**
+  DECISIONS #154 made explicit forward fabrication its one exclusive verb and
+  #187 kept body count as its monopoly; handing it free pad-spawned companions
+  would make it a striker with a wider chassis. Its three openers cost three
+  prime actions at one tick of fabrication delay each, spent before contact —
+  and they arrive **in the field beside the prime** rather than on a pad twelve
+  tiles behind the front, which is what the verb has always bought.
+- **Read the slots, don't count bodies.** Slot count, each slot's availability,
+  and its activation tick are all contract data: the topology's `unitSlots`,
+  and each lifecycle assignment's `initialAvailability` / `unlockTick`. A slot
+  that activates automatically declares its reserved spawn anchor too.
+- **The arm mints its own map generation** (`frontline-labs-03-legion`). A slot
+  that returns automatically needs a reserved anchor, and the measured pad has
+  room for two — so the legion map carries the classes map's exact tiles, seven
+  mirror-fair companion anchors per team (the measured pair unchanged, then
+  outward in pairs that mirror across the centre row), and a home pad widened
+  from six tiles to ten so every anchor is SpawnProtected. Under `--economy`
+  that wider pad is also the banking region. No existing map is edited.
+- **It supersedes FIVE SLOTS' slot schedule.** Two factors that both set the
+  slot count could not be attributed apart, so under legion the roster owns the
+  count and the skill's schedule variants (`trim`, `boom`) change no bytes and
+  therefore no identity; the rebuild-clock variants (`drag`, `wane`, and `moor`
+  as `drag`) still apply, and the late tranche keeps the skill's slower rebuild
+  profile where the skill is in the cell.
+- **It cannot be combined with `--side-objective`**: both mint a map
+  generation, and a combined generation is a pre-registration nobody has asked
+  for.
+
+Registered identities: `swell` + legion is **`cohort`**, `tide` + legion is
+**`maniple`**, `sail-tick-open` + legion is **`phalanx`**; with the full v1.1
+game already in the cell `citadel` + legion is **`garrison`**, `rampart` +
+legion is **`cordon`** and `armoury` + legion is **`barracks`**. Smaller cells
+spell their factors and append `legion`.
+
+## The next round: home respawns, a longer horn, a full board
+
+Three more owner rulings landed on the same game, and together they are a new
+game rather than three tunings — so the package carries **one identity per
+shape**.
+
+- **`--pendulum hull` is the keel without its forward rally.** Sticky
+  frontline, contest majority and enemy-sole decay are unchanged; what goes is
+  the free forward placement every arrival used to get ("the respawn at capture
+  point may be a bit too strong and it also means Fab's signature skill is
+  almost useless"). Every automatic arrival — prime respawns and companion
+  activations alike — now lands on its own permanently reserved home spawn.
+  **Read `rules.lifecycle.automaticReturnPlacement`**, do not assume a rally.
+  The consequence the ruling is for: with no free forward placement anywhere,
+  the fabricator's field-placed children are **the only forward body delivery
+  in the game**.
+- **`--horizon long` runs 750 ticks instead of 500** ("longer games at this
+  point is ok"). It is a contract LIMIT: read `limits.maxTicks`. Every pacing
+  gate in the game was priced against 500 — the 18-tick prime return, the
+  40-tick ratchet hold, the vein cadence, the roster's tranches — so the longer
+  horn re-prices all of them at once. The legion roster's late tranche arrives
+  at 300 with 450 ticks left to defend, and the deposit series runs to nine
+  events instead of seven.
+- **The economy's total-tier cap is gone** (see *Spending it* above): the board
+  is six tiers, 60 scrap, and winning the lanes is meant to show.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum hull --skills kit \
+  --bend universal --aim offset --cooldown ticking --stance-ground open \
+  --volley salvo --capture channel --economy scrap --horizon long \
+  --roster legion --seed 42 --runtime wasm --out /tmp/crusade
+```
+
+Registered identities for the whole package: **`vigil`** on the striker shapes,
+**`warren`** on the fabricator shapes, **`bastille`** on the bulwark mirror —
+and with `--roster legion` on top, **`crusade`**, **`swarm`** and
+**`palisade`**. Anything smaller in this family spells its factors, and a
+combination that overflows the 64-character budget faults with a message
+telling you to register it: a pre-registration is a decision, not a fallback.

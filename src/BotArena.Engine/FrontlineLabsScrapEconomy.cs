@@ -5,9 +5,30 @@ namespace BotArena.Engine;
 /// <summary>
 /// The Frontline Labs battlefield economy, as adopted
 /// (<c>docs/DESIGN-SCRAP-ECONOMY-2026-07-30.md</c> §14.1 with the part-2
-/// significance re-tune, DECISIONS #187). Everything here is a decision rather
-/// than a suggestion, and every number below is one the ablation registry
-/// names.
+/// significance re-tune, DECISIONS #187) and re-tuned to v1.1 on the wave-8
+/// read (#188). Everything here is a decision rather than a suggestion, and
+/// every number below is one the ablation registry names.
+/// <para>v1.1 answers the owner's ruling on the measured arm — "the new
+/// mechanism needs to be stronger and happen earlier". The wave-8 finding was
+/// that the economy as priced is real but marginal: a committed team banks
+/// roughly one ladder's worth over a whole match, so the allocation decision
+/// the arm exists to create is mostly theoretical. Three numbers move — the
+/// first deposit lands at 60 instead of 120, the cadence tightens 80 → 70, and
+/// a deposit is worth 8 instead of 6 — wreckage doubles to 2, and the series
+/// runs to nine events so it fills the LONG horizon. Income roughly triples
+/// over a 750-tick match.
+/// <para>The second owner ruling of the same window removes the three-tier
+/// TOTAL cap: "ideally scraps should weigh in and decide the game / enable
+/// overpowering the opponent". The full board is now six tiers — two on each
+/// track, 60 scrap — so a team that wins the economy war visibly overpowers.
+/// Nothing a tier DOES changes: the overpower is bought in BREADTH, which is
+/// what keeps the class-gap admission rule (every track gap-preserving or
+/// deliberately corrective) true tier for tier.</para>
+/// <para>Behaviour moved on a measured arm, so the identities re-mint:
+/// <c>forge</c>/<c>anvil</c>/<c>smelter</c> and
+/// <c>bastion</c>/<c>redoubt</c>/<c>smithy</c> keep meaning the wave-8 bytes,
+/// and v1.1 spells <c>foundry</c>/<c>bellows</c>/<c>furnace</c> and
+/// <c>citadel</c>/<c>rampart</c>/<c>armoury</c>.</para>
 /// </summary>
 public static class FrontlineLabsScrapEconomy
 {
@@ -34,45 +55,70 @@ public static class FrontlineLabsScrapEconomy
     ];
 
     /// <summary>
-    /// First deposit tick. Not 60: striker and bulwark receive their first
-    /// companion at 120 and the fabricator at 60, so a deposit at 60 would
-    /// ask a striker to send its ONLY body away from the front and hand the
-    /// fabricator a free two-body window. 120 is the tick at which every
-    /// class has exactly two bodies — a class-fairness constraint rather than
-    /// a pacing one.
+    /// First deposit tick (v1.1: 120 → 60, the owner's "happen earlier").
+    /// The v1 number was a class-fairness constraint — 120 was the tick at
+    /// which every class had two bodies, so no deposit could ask a striker to
+    /// send its ONLY body away from the front. That constraint is what the
+    /// ROSTER arm dissolves: under <c>--roster legion</c> every class fields
+    /// three bodies at tick 0 and the fabricator can field four, so 60 asks
+    /// for a body nobody had at 60 in v1.
+    /// <para>On a legion-less cell 60 is still the fabricator's own first
+    /// unlock tick, and the striker/bulwark cost of the early errand is
+    /// exactly the tension the arm is for: the first deposit is the one that
+    /// most tempts a team into an unaffordable trip.</para>
     /// </summary>
-    public const int VeinFirstSpawnTick = 120;
+    public const int VeinFirstSpawnTick = 60;
 
     /// <summary>
-    /// Ticks between deposits. One harvester services both sites of a cycle
-    /// in 64 of the 80 ticks without a greedy double-run.
+    /// Ticks between deposits (v1.1: 80 → 70). One harvester still services
+    /// both sites of a cycle inside the cadence — 64 facing-locked ticks of
+    /// the 70 — but there is no longer slack for a greedy double-run, so a
+    /// team that wants both cycles' worth pays for a second body rather than
+    /// scheduling one better.
     /// </summary>
-    public const int VeinSpawnIntervalTicks = 80;
+    public const int VeinSpawnIntervalTicks = 70;
 
     /// <summary>
-    /// Last deposit tick, so the schedule is 120 / 200 / 280 / 360. A deposit
-    /// at 440 could not be banked (16 ticks home) and converted before the
-    /// 500-tick horn; it would be scenery.
+    /// Last deposit tick: the cadence-70 series runs 60 / 130 / 200 / 270 /
+    /// 340 / 410 / 480 / 550 / 620 — nine events, filling the LONG horizon the
+    /// owner opened (a deposit at 690 could not be banked, 16 ticks home, and
+    /// converted before a 750-tick horn; it would be scenery, exactly as 440
+    /// was under the old cadence and the old horn).
+    /// <para>The schedule is one series rather than one per horizon: on a
+    /// standard 500-tick cell the last three events simply never arrive, and
+    /// a bot reads BOTH the schedule and <c>limits.maxTicks</c> from its
+    /// contract, so nothing has to be inferred. The pot is 7 × 2 × 8 = 112
+    /// scrap inside 500 ticks and 9 × 2 × 8 = 144 inside 750.</para>
     /// </summary>
-    public const int VeinLastSpawnTick = 360;
+    public const int VeinLastSpawnTick = 620;
 
     /// <summary>
-    /// Scrap in one deposit. Doubled from the first draft because the errand
-    /// must be worth its risk once the capture channel makes it affordable at
-    /// all: total deposit supply is 4 events × 2 sites × 6 = 48 scrap.
+    /// Scrap in one deposit (v1.1: 6 → 8). Total deposit supply is now
+    /// 112 scrap inside a 500-tick match and 144 inside a 750-tick one, against
+    /// v1's 48 — and that is the whole of "stronger": at a flat 10 per tier
+    /// and a full board of six, a team that contests the lanes can now reach
+    /// the whole board instead of finishing the match one tier in.
+    /// <para>Eight is also one carry capacity plus a wreck's remainder, so a
+    /// full deposit still cannot be lifted in one trip: the assay pays at the
+    /// tile, the carry caps at 6, and the leftover stays on the floor for
+    /// whoever comes back — the pile is still a place, not a package.</para>
     /// </summary>
-    public const int VeinAmount = 6;
+    public const int VeinAmount = 8;
 
     /// <summary>
-    /// Scrap a destroyed body leaves at its death tile. It does three jobs:
-    /// it makes kills CONVERT, against the slate's own structural diagnosis
-    /// that they do not; it keeps a team that never leaves the front in the
-    /// economy, because corpses fall where it is standing and the assay pays
-    /// in full at the tile with no transport; and it is the fabricator's
+    /// Scrap a destroyed body leaves at its death tile (v1.1: 1 → 2). It does
+    /// three jobs: it makes kills CONVERT, against the slate's own structural
+    /// diagnosis that they do not; it keeps a team that never leaves the front
+    /// in the economy, because corpses fall where it is standing and the assay
+    /// pays in full at the tile with no transport; and it is the fabricator's
     /// damper, since the class that fields the most bodies and loses them
     /// fastest is the largest single supplier of scrap to its opponent.
+    /// <para>Doubling it is the half of "stronger" that pays the team which
+    /// never leaves the front, so the buff does not land only on the team
+    /// that can afford errands — and it is the half that scales with the
+    /// ROSTER arm, where there are twice as many bodies to leave wrecks.</para>
     /// </summary>
-    public const int WreckAmount = 1;
+    public const int WreckAmount = 2;
 
     /// <summary>
     /// Banked instantly on stepping onto a pile. It is the floor under every
@@ -82,18 +128,32 @@ public static class FrontlineLabsScrapEconomy
     public const int AssayAmount = 1;
 
     /// <summary>
-    /// Most scrap one body may carry: one full deposit's remainder plus a
-    /// wreck.
+    /// Most scrap one body may carry. Deliberately UNCHANGED at v1.1's larger
+    /// deposit: a body still cannot lift a whole vein, so the deposit is a
+    /// place two trips (or two bodies) are spent on rather than a package one
+    /// runner collects.
     /// </summary>
     public const int CarryCapacity = 6;
 
     /// <summary>
-    /// Ticks a pile survives — exactly one cadence, so an untaken deposit
-    /// disappears as the next pair arrives and at most two deposit piles are
-    /// ever live at once. It caps the RATE at which map control converts into
-    /// bank: a dominant team cannot stockpile corpses near its front and cash
-    /// them later, and a losing team has a real window to come back for
-    /// ground it briefly lost.
+    /// Ticks a pile survives. Unchanged at v1.1, which means it is now ten
+    /// ticks LONGER than the 70-tick cadence rather than exactly one cadence.
+    /// Two consequences, both deliberate and both worth stating:
+    /// <list type="bullet">
+    /// <item>a deposit nobody took is still standing when the next one lands
+    /// on the same tile, so the two MERGE and carry the later expiry — a
+    /// neglected lane ACCUMULATES rather than evaporating. What grows is the
+    /// prize, never the pace: extraction is still the assay plus a carry of
+    /// six per visit, so a fat site is a reason to send a second body, which
+    /// is exactly the allocation decision the arm exists to create;</item>
+    /// <item>a pile nothing feeds — every wreck, and any displaced deposit —
+    /// still dies on its own eighty ticks, so the front cannot stockpile
+    /// corpses and cash them later.</item>
+    /// </list>
+    /// <para>
+    /// Ablation debt: <c>scrap-pile-lifetime</c> now bundles the roll-over
+    /// that the cadence change created.
+    /// </para>
     /// </summary>
     public const int PileLifetimeTicks = 80;
 
@@ -114,12 +174,24 @@ public static class FrontlineLabsScrapEconomy
     ];
 
     /// <summary>
-    /// Hard cap on one team's total tiers. The ceiling is enforced by rules
-    /// rather than by income, so even a total economic wipeout converts to
-    /// three integer stat steps on one body — there is no quantity of
-    /// harvesting that buys a capture.
+    /// The whole board: two tiers on each of the three tracks. v1 capped the
+    /// total at THREE, which was a philosophy — the economy supplements the
+    /// game and never decides it — and the owner has overturned it: "ideally
+    /// scraps should weigh in and decide the game / enable overpowering the
+    /// opponent." A team that wins the economy war is now meant to look like
+    /// it won something.
+    /// <para>The overpower is bought in BREADTH, never in step size: the
+    /// per-track cap stays 2 and every tier is still +1, so the class-gap
+    /// admission rule holds tier for tier — a full board is +2 gun travel,
+    /// +2 spawn health and +2 sight, at 60 scrap, against a v1.1 pot of 112
+    /// inside 500 ticks and 144 inside 750. Winning every deposit and every
+    /// wreck is therefore a real, reachable, visible advantage, and it is
+    /// still bounded: six integer steps, and none of them buys a capture.</para>
+    /// <para>The cap remains a declared contract fact rather than a removed
+    /// one, so a bot still reads one number for "how much board is there" and
+    /// the legality mask still closes when it is full.</para>
     /// </summary>
-    public const int MaxTotalTiers = 3;
+    public const int MaxTotalTiers = 6;
 
     /// <summary>
     /// Every tier costs the same. Flat pricing is what makes going DEEP (two

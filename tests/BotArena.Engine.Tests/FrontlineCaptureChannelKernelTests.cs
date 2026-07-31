@@ -253,13 +253,14 @@ public sealed class FrontlineCaptureChannelKernelTests
     }
 
     /// <summary>
-    /// Recapture, priced. A maximal standing enemy claim (7 at threshold 8)
-    /// erodes at 4 per stationary sole tick, clears on the second without
-    /// starting a claim of its own, and the flip completes on tick 10 — 1.25×
-    /// a fresh capture, the top of the owner's stated band.
+    /// Recapture, priced at the owner's post-wave-8 setting. A maximal
+    /// standing enemy claim (7 at threshold 8) erodes at 8 per stationary sole
+    /// tick, so ONE controlling tick clears it — without starting a claim of
+    /// its own — and the flip completes on tick 9: 1.125× a fresh capture,
+    /// inside the owner's stated 1.0–1.25× band and near its floor.
     /// </summary>
     [Fact]
-    public void AFullFlipCostsTenTicksAgainstAFreshCapturesEight()
+    public void AFullFlipCostsNineTicksAgainstAFreshCapturesEight()
     {
         FrontlineModeKernel kernel = Channel();
         FrontlineControlState state = kernel.CreateInitialState() with
@@ -268,28 +269,23 @@ public sealed class FrontlineCaptureChannelKernelTests
             CaptureProgress = Threshold - 1,
         };
 
-        FrontlineControlState first =
-            Step(kernel, state, 0, stationary: 1).State;
-        Assert.Equal(Defender, first.ClaimingTeamId);
-        Assert.Equal(3, first.CaptureProgress);
-
         // Overshoot is discarded and the controller starts no claim on the
         // crossing tick: the documented invariant, preserved.
         FrontlineControlState cleared =
-            Step(kernel, first, 1, stationary: 1).State;
+            Step(kernel, state, 0, stationary: 1).State;
         Assert.Null(cleared.ClaimingTeamId);
         Assert.Equal(0, cleared.CaptureProgress);
 
         state = cleared;
-        for (int tick = 2; tick < 9; tick++)
+        for (int tick = 1; tick < 8; tick++)
         {
             state = Step(kernel, state, tick, stationary: 1).State;
             Assert.Equal(Attacker, state.ClaimingTeamId);
-            Assert.Equal(tick - 1, state.CaptureProgress);
+            Assert.Equal(tick, state.CaptureProgress);
         }
 
         Assert.IsType<FrontlinePositionAdvanced>(
-            Step(kernel, state, 9, stationary: 1).Transition);
+            Step(kernel, state, 8, stationary: 1).Transition);
     }
 
     /// <summary>
@@ -307,21 +303,18 @@ public sealed class FrontlineCaptureChannelKernelTests
             CaptureProgress = 6,
         };
 
-        FrontlineControlState eroded =
-            Step(kernel, state, 0, stationary: 1).State;
-        Assert.Equal(Defender, eroded.ClaimingTeamId);
-        Assert.Equal(2, eroded.CaptureProgress);
-
-        // +4 erosion, then a fan bolt for 2 reverted: net +2 of work.
+        // The erosion clears the whole claim in one tick at the multiplier of
+        // 8 — and then the fan bolt for 2 takes two of that work straight back
+        // off, because gain lands first and the revert lands second.
         FrontlineControlState interrupted =
-            Step(kernel, eroded, 1, stationary: 1, damage: 2).State;
+            Step(kernel, state, 0, stationary: 1, damage: 2).State;
         Assert.Equal(Defender, interrupted.ClaimingTeamId);
         Assert.Equal(2, interrupted.CaptureProgress);
 
         // Everything the run has ever done, reverted at once: the claim is
         // back at 6 and stops there no matter how much more lands.
         FrontlineControlState hammered =
-            Step(kernel, interrupted, 2, stationary: 1, damage: 50).State;
+            Step(kernel, interrupted, 1, stationary: 1, damage: 50).State;
         Assert.Equal(Defender, hammered.ClaimingTeamId);
         Assert.Equal(6, hammered.CaptureProgress);
     }
@@ -411,10 +404,15 @@ public sealed class FrontlineCaptureChannelKernelTests
                 standing with { ChannelRun = null },
                 0,
                 Weights((Attacker, 1))).State.CaptureProgress);
+        // The multiple: one stationary controlling tick erases the whole
+        // standing claim instead of shaving one point off it.
         Assert.Equal(
-            2,
+            0,
             Step(channel, standing, 0, stationary: 1)
                 .State.CaptureProgress);
+        Assert.Null(
+            Step(channel, standing, 0, stationary: 1)
+                .State.ClaimingTeamId);
     }
 
     /// <summary>

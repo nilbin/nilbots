@@ -62,6 +62,25 @@ public static class FrontlineLabsDefinition
     public const string TrimMirrorTopologyProfileId =
         "two-team-one-controller-four-slots-v1";
 
+    /// <summary>
+    /// The LEGION roster's three shapes. Every class fields eight stable unit
+    /// slots under that arm except the fabricator, which fields nine — so the
+    /// arm produces an eight-slot mirror, a nine-versus-eight cell, and a
+    /// nine-slot fabricator mirror. A profile ID names a topology rather than
+    /// an arm flag, so all three are registered separately: an unregistered
+    /// shape faults rather than borrowing a neighbour's pre-registration.
+    /// </summary>
+    public const string LegionMirrorTopologyProfileId =
+        "two-team-one-controller-eight-slots-legion-v1";
+
+    /// <inheritdoc cref="LegionMirrorTopologyProfileId"/>
+    public const string LegionAsymmetricSlotsTopologyProfileId =
+        "two-team-one-controller-asymmetric-slots-9-8-legion-v1";
+
+    /// <inheritdoc cref="LegionMirrorTopologyProfileId"/>
+    public const string LegionFabricatorMirrorTopologyProfileId =
+        "two-team-one-controller-nine-slots-legion-v1";
+
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
     public const string ClassesSeedProfileId =
@@ -118,17 +137,42 @@ public static class FrontlineLabsDefinition
     /// <summary>
     /// The channel's opposing-erosion multiplier, registered as
     /// <c>recapture-cost</c>. Flipping a standing claim costs
-    /// <c>ceil(claim / 4) + threshold</c> ticks against a fresh capture's
-    /// threshold, which puts the whole range of recapture costs inside the
-    /// owner's stated 1.0–1.25× band: 10 ticks against 8 at a full standing
-    /// claim (1.25×), sliding to 1.0× as the standing claim shrinks. Erosion
-    /// still stops at neutral and still discards overshoot, so the
-    /// documented "no own claim on the crossing tick" invariant is preserved.
+    /// <c>ceil(claim / 8) + threshold</c> ticks against a fresh capture's
+    /// threshold: a MAXIMAL standing enemy claim (threshold 8) is erased by a
+    /// single controlling tick, so the full flip is 1 erode tick + 8 build
+    /// ticks = 9 against a fresh capture's 8 — 1.125×, sliding to 1.0× as the
+    /// standing claim shrinks.
+    /// <para>Raised 4 → 8 on the owner's wave-8 ruling ("recapture needs to
+    /// be faster"). Wave 8 crowned the bulwark on the full game (#188): the
+    /// class that holds ground was paying the least for holding it, and the
+    /// erosion multiplier is the one number that prices taking ground BACK.
+    /// The band the arm was adopted under (1.0–1.25×) still holds — the whole
+    /// range now sits in its lower half.</para>
+    /// <para>Erosion still stops at neutral and still discards overshoot, so
+    /// the documented "no own claim on the crossing tick" invariant is
+    /// preserved: erasing a claim and starting one are still two ticks'
+    /// work.</para>
     /// </summary>
-    public const int ChannelOpposingErosionMultiplier = 4;
+    public const int ChannelOpposingErosionMultiplier = 8;
 
     /// <summary>The capture channel's plain arm token.</summary>
     public const string ChannelArmToken = "channel";
+
+    /// <summary>
+    /// The declared tick limit for one horizon level. It is a rules LIMIT, so
+    /// it travels in the contract like every other pacing number and a bot
+    /// reads it rather than assuming 500.
+    /// </summary>
+    public static int MaxTicks(FrontlineLabsHorizonArm horizon) =>
+        horizon switch
+        {
+            FrontlineLabsHorizonArm.Standard => 500,
+            FrontlineLabsHorizonArm.Long => 750,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(horizon),
+                horizon,
+                "Unknown Frontline Labs horizon arm."),
+        };
 
     /// <summary>Canonical IDs are capped at 64 characters.</summary>
     private const int MaxRulesetIdLength = 64;
@@ -158,6 +202,9 @@ public static class FrontlineLabsDefinition
             [5, 3] => AsymmetricSlotsTopologyProfileId,
             [4, 4] => TrimMirrorTopologyProfileId,
             [4, 3] => TrimAsymmetricSlotsTopologyProfileId,
+            [8, 8] => LegionMirrorTopologyProfileId,
+            [9, 8] => LegionAsymmetricSlotsTopologyProfileId,
+            [9, 9] => LegionFabricatorMirrorTopologyProfileId,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(topology),
                 string.Join("/", counts),
@@ -447,8 +494,62 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
         FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
+        if (!Enum.IsDefined(horizon))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(horizon),
+                horizon,
+                "Unknown Frontline Labs horizon arm.");
+        }
+        // The horizon is a limits change, which re-prices every pacing gate in
+        // the game for both teams — so it is a real arm on every pair and, like
+        // the channel and the economy, it needs a cell to sit in.
+        if (horizon != FrontlineLabsHorizonArm.Standard
+            && classes is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new ArgumentException(
+                "A longer horizon re-prices every pacing gate both teams "
+                + "play against, so it needs a cell to sit in: pass a class "
+                + "pair, or compose it with a pendulum level.",
+                nameof(horizon));
+        }
+        if (!Enum.IsDefined(roster))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(roster),
+                roster,
+                "Unknown Frontline Labs roster arm.");
+        }
+        // The roster states its shape per class — three live bodies for a
+        // class that receives companions, a fourth fabricable slot for the
+        // one that builds them — so it has no meaning without a class pair,
+        // exactly like the skills, the aim grammar, and the cooldown clock.
+        if (roster != FrontlineLabsRosterArm.None && classes is null)
+        {
+            throw new ArgumentException(
+                "The roster is declared per class chassis (a class that "
+                + "receives companions starts with three bodies; the "
+                + "fabricator starts with a fourth slot it fabricates), so it "
+                + "needs a class pair; pass one.",
+                nameof(roster));
+        }
+        // Two arms that each mint a map generation cannot share a cell: the
+        // combined generation would be a third pre-registration nobody has
+        // asked for, and the side objective is dormant (DECISIONS #186).
+        if (roster != FrontlineLabsRosterArm.None
+            && sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            throw new ArgumentException(
+                "The roster arm and the side objective each mint their own "
+                + "map generation, so they are mutually exclusive: a cell "
+                + "carrying both would run on an unregistered third map.",
+                nameof(roster));
+        }
         if (!Enum.IsDefined(capture))
         {
             throw new ArgumentOutOfRangeException(
@@ -669,6 +770,13 @@ public static class FrontlineLabsDefinition
                 + "includes five-slots.",
                 nameof(fiveSlots));
         }
+        // The roster authors every slot's unlock tick, so the half of a
+        // five-slot variant that moves the extra SCHEDULE changes no contract
+        // bytes here and must therefore change no identity — the same
+        // inert-omission rule the salvo and the ground arms follow. What
+        // survives is the half that moves the rebuild CLOCK.
+        FrontlineLabsFiveSlotVariant effectiveFiveSlots =
+            EffectiveFiveSlotVariant(fiveSlots, roster);
         // The salvo tunes the striker's fan, so it is inert-omitted where
         // no striker is in the cell — the skills rule again.
         FrontlineLabsVolleyArm effectiveVolley =
@@ -704,14 +812,16 @@ public static class FrontlineLabsDefinition
                 primeRespawnTicks,
                 effectiveSkills,
                 bendEnvelope,
-                fiveSlots,
+                effectiveFiveSlots,
                 effectiveGround,
                 aim,
                 cooldown,
                 effectiveVolley,
                 sideObjective,
                 capture,
-                economy),
+                economy,
+                roster,
+                horizon),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -720,8 +830,8 @@ public static class FrontlineLabsDefinition
             duelMapArm: mapArm,
             seedProfileId: classes is null ? null : ClassesSeedProfileId,
             classes: classes is { } cell
-                ? (ApplyFiveSlotVariant(cell.TeamZero, fiveSlots),
-                    ApplyFiveSlotVariant(cell.TeamOne, fiveSlots))
+                ? (ApplyFiveSlotVariant(cell.TeamZero, effectiveFiveSlots),
+                    ApplyFiveSlotVariant(cell.TeamOne, effectiveFiveSlots))
                 : null,
             movementCoupling: movementCoupling,
             pendulum: pendulum,
@@ -733,8 +843,36 @@ public static class FrontlineLabsDefinition
             cooldown: cooldown,
             volley: effectiveVolley,
             sideObjective: sideObjective,
-            economy: economy);
+            economy: economy,
+            roster: roster,
+            horizon: horizon);
     }
+
+    /// <summary>
+    /// The five-slot variant a legion cell actually carries. Two of the five
+    /// registered variants move only the extra-slot SCHEDULE (Trim drops the
+    /// fifth slot, Boom swings both late), and the roster authors that
+    /// schedule for every class — so under the roster those two write exactly
+    /// the bytes the unmodified skill writes, and an arm that changes no bytes
+    /// changes no identity. Moor is Trim + Drag, so it resolves to Drag.
+    /// Drag and Wane survive intact: their lever is the fabricator's rebuild
+    /// clock, which the roster does not touch.
+    /// </summary>
+    private static FrontlineLabsFiveSlotVariant EffectiveFiveSlotVariant(
+        FrontlineLabsFiveSlotVariant variant,
+        FrontlineLabsRosterArm roster) =>
+        roster == FrontlineLabsRosterArm.None
+            ? variant
+            : variant switch
+            {
+                FrontlineLabsFiveSlotVariant.Trim =>
+                    FrontlineLabsFiveSlotVariant.Full,
+                FrontlineLabsFiveSlotVariant.Boom =>
+                    FrontlineLabsFiveSlotVariant.Full,
+                FrontlineLabsFiveSlotVariant.Moor =>
+                    FrontlineLabsFiveSlotVariant.Drag,
+                _ => variant,
+            };
 
     /// <summary>
     /// Applies a registered FIVE SLOTS tuning variant to the class entry
@@ -803,6 +941,24 @@ public static class FrontlineLabsDefinition
     private const FrontlineLabsPendulumArm AllPendulumArms =
         FrontlineLabsPendulumArm.StickyFrontline
         | FrontlineLabsPendulumArm.ForwardRally
+        | FrontlineLabsPendulumArm.ContestMajority
+        | FrontlineLabsPendulumArm.EnemySoleDecay;
+
+    /// <summary>
+    /// The keel without its forward rally (owner ruling on the wave-8 read:
+    /// "the respawn at capture point may be a bit too strong and it also means
+    /// Fab's signature skill is almost useless — let's try the next balancing
+    /// round without that"). Sticky frontline, contest majority and enemy-sole
+    /// decay are untouched; every automatic arrival lands on its reserved home
+    /// spawn.
+    /// <para>The consequence the ruling is FOR: with no free forward
+    /// placement, the fabricator's field-placed children become the only
+    /// forward body delivery in the game. Its class verb stops competing with
+    /// a free rally every class already had and starts being the reason to
+    /// play the class.</para>
+    /// </summary>
+    private const FrontlineLabsPendulumArm HullPendulumArms =
+        FrontlineLabsPendulumArm.StickyFrontline
         | FrontlineLabsPendulumArm.ContestMajority
         | FrontlineLabsPendulumArm.EnemySoleDecay;
 
@@ -960,7 +1116,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
         FrontlineLabsCaptureArm capture = FrontlineLabsCaptureArm.Frozen,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -1084,23 +1242,28 @@ public static class FrontlineLabsDefinition
             // The channel re-mints the whole game, exactly as `swell`
             // re-minted `tide` and the flags re-minted `swell`: it is a
             // capture-CORE change, so a cell carrying it is not the cell it
-            // was. `siege` is the registered composite for swell + channel
-            // (DECISIONS #187). The strikerless cells inert-omit the fan and
-            // therefore spell a longer game, which does not fit beside the
-            // worst class pair and `facing-locked` — the muster arm's exact
-            // problem and its exact answer, three registered tokens for the
-            // three shapes the candidate game takes. `sap` is the tuned game
-            // on the ticking clock (undermining, not storming) and `mantlet`
-            // is the open-ground spelling (the sapper's screen, which the
-            // channel is precisely the mechanism for). Everything smaller
-            // spells its factors and appends `channel`.
+            // was. The strikerless cells inert-omit the fan and therefore
+            // spell a longer game, which does not fit beside the worst class
+            // pair and `facing-locked` — the muster arm's exact problem and
+            // its exact answer, three registered tokens for the three shapes
+            // the candidate game takes.
+            // The FIRST mint of this arm was `siege`/`sap`/`mantlet` at
+            // erosion 4; the owner's post-wave-8 ruling ("recapture needs to
+            // be faster") moved the multiplier to 8, so the tokens re-mint on
+            // the surf→swell precedent and the old three keep meaning the
+            // measured wave-8 bytes for ever. `storm` is what a siege becomes
+            // when the assault is quick, `mine` is the sap driven deeper
+            // (undermining, not storming), and `pavise` is the mantlet's
+            // bigger cousin — the screen the sapper actually stands behind,
+            // which is the open-ground spelling. Everything smaller spells its
+            // factors and appends `channel`.
             (string[] Arms, string[] Tuning) channeled =
                 (arms, tuning) switch
                 {
-                    (["swell"], _) => (new[] { "siege" }, []),
-                    (["tide"], _) => (new[] { "sap" }, []),
+                    (["swell"], _) => (new[] { "storm" }, []),
+                    (["tide"], _) => (new[] { "mine" }, []),
                     (["sail", "tick"], ["open"]) =>
-                        (new[] { "mantlet" }, []),
+                        (new[] { "pavise" }, []),
                     _ => ([.. arms, ChannelArmToken], tuning),
                 };
             arms = channeled.Arms;
@@ -1112,33 +1275,103 @@ public static class FrontlineLabsDefinition
             // does — the game it produces is not the game it was — and it hits
             // the same budget wall, because the worst class pair beside
             // `facing-locked` leaves eight canonical characters for the whole
-            // arm. `forge` is swell + scrap and `bastion` is the full
-            // shipped game (swell + channel + scrap); `redoubt` is the tuned
-            // clock's version of the same. The control level always spells
-            // itself, because a control that shared an identity with the arm
-            // it controls would be unreadable in the evidence.
+            // arm.
+            // The FIRST mint was `forge`/`anvil`/`smelter` (economy alone) and
+            // `bastion`/`redoubt`/`smithy` (with the channel), at four deposits
+            // of six and a wreck of one. The owner's post-wave-8 ruling ("the
+            // new mechanism needs to be stronger and happen earlier") doubled
+            // the income, so those six keep meaning the measured wave-8 bytes
+            // and v1.1 mints its own: the forge scales up to a `foundry`, the
+            // anvil gets `bellows`, the smelter becomes a `furnace` — and with
+            // the channel already in the cell the bastion becomes a `citadel`,
+            // the redoubt a `rampart`, and the smithy an `armoury`.
+            // The control level always spells itself, because a control that
+            // shared an identity with the arm it controls would be unreadable
+            // in the evidence.
             (string[] Arms, string[] Tuning) traded =
                 (arms, tuning, economy) switch
                 {
                     (["swell"], _, FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "forge" }, []),
+                        (new[] { "foundry" }, []),
                     (["tide"], _, FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "anvil" }, []),
+                        (new[] { "bellows" }, []),
                     (["sail", "tick"], ["open"],
                         FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "smelter" }, []),
-                    (["siege"], _, FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "bastion" }, []),
-                    (["sap"], _, FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "redoubt" }, []),
-                    (["mantlet"], _, FrontlineLabsEconomyArm.Scrap) =>
-                        (new[] { "smithy" }, []),
+                        (new[] { "furnace" }, []),
+                    (["storm"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "citadel" }, []),
+                    (["mine"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "rampart" }, []),
+                    (["pavise"], _, FrontlineLabsEconomyArm.Scrap) =>
+                        (new[] { "armoury" }, []),
                     _ => (
                         [.. arms, EconomyArmToken(economy)],
                         tuning),
                 };
             arms = traded.Arms;
             tuning = traded.Tuning;
+        }
+        if (horizon != FrontlineLabsHorizonArm.Standard)
+        {
+            // A longer horizon re-prices every pacing gate, so it is a factor
+            // like any other and spells itself where the budget allows. Every
+            // cell of the next round carries it inside a registered package
+            // token, so this spelling is what a SMALLER probe cell gets.
+            arms = [.. arms, HorizonArmToken];
+        }
+        if (roster != FrontlineLabsRosterArm.None)
+        {
+            // The roster re-mints the cell last, because it is the outermost
+            // factor: it changes what every other arm is priced against. The
+            // budget wall is the same one, so the same answer — registered
+            // composites for the shapes the campaign runs, everything smaller
+            // spells its factors and appends `legion`.
+            // Two families, because the roster's own read is the 2×2 against
+            // the shipped game: on the candidate game alone the formations are
+            // `cohort`, `maniple` and `phalanx`, and on the full v1.1 game
+            // (channel + economy) the quarters that hold them are `garrison`,
+            // `cordon` and `barracks`.
+            (string[] Arms, string[] Tuning) mustered =
+                (arms, tuning) switch
+                {
+                    (["swell"], _) => (new[] { "cohort" }, []),
+                    (["tide"], _) => (new[] { "maniple" }, []),
+                    (["sail", "tick"], ["open"]) =>
+                        (new[] { "phalanx" }, []),
+                    (["citadel"], _) => (new[] { "garrison" }, []),
+                    (["rampart"], _) => (new[] { "cordon" }, []),
+                    (["armoury"], _) => (new[] { "barracks" }, []),
+                    _ => (
+                        [.. arms, FrontlineLabsLegionRoster.ArmToken],
+                        tuning),
+                };
+            arms = mustered.Arms;
+            tuning = mustered.Tuning;
+        }
+        // The next round's whole package — the keel without its rally, the
+        // longer horizon, the re-tuned channel and economy on the tuned class
+        // game — spells far more factors than the 64-character budget allows
+        // in the worst cell, so it carries ONE registered token per shape, the
+        // same answer the muster/channel/economy arms each reached. The roster
+        // stays a composable flag on top of it.
+        if (RegisteredPackageToken(
+                pendulum,
+                skills,
+                bendEnvelope,
+                fiveSlots,
+                stanceGround,
+                aim,
+                cooldown,
+                volley,
+                capture,
+                economy,
+                horizon,
+                roster,
+                classes)
+            is { Length: > 0 } package)
+        {
+            arms = [package];
+            tuning = [];
         }
         string[] tokens =
         [
@@ -1176,6 +1409,78 @@ public static class FrontlineLabsDefinition
                 + "token.");
         }
         return id;
+    }
+
+    /// <summary>The longer horizon's plain arm token.</summary>
+    private const string HorizonArmToken = "long";
+
+    /// <summary>
+    /// The registered identity for the NEXT ROUND'S PACKAGE, or empty.
+    /// <para>Three owner rulings landed on the same game at once — no forward
+    /// rally, a 750-tick horizon, and an economy that is allowed to decide the
+    /// match — on top of the faster recapture and the richer deposits. That is
+    /// one new game rather than five composable tunings, and its per-factor
+    /// spelling (<c>hull</c> + the kit + the bend + the aim + the clock + the
+    /// fan + the channel + the economy + the horizon) does not come close to
+    /// fitting beside <c>fabricator-vs-fabricator</c> and
+    /// <c>facing-locked</c>. So the package carries one token per shape, in
+    /// the siege line the channel and economy tokens already speak:
+    /// <list type="bullet">
+    /// <item><c>vigil</c> — the striker shapes. Nobody is relieved any more:
+    /// every body walks home and walks back, and the front is held by
+    /// watching it.</item>
+    /// <item><c>warren</c> — the fabricator shapes, where the only forward
+    /// delivery left in the game is a fabricated body appearing beside its
+    /// prime.</item>
+    /// <item><c>bastille</c> — the bulwark mirror, which under home respawns
+    /// is a fortress at both ends.</item>
+    /// </list>
+    /// With the LEGION roster on top they become <c>crusade</c>,
+    /// <c>swarm</c> and <c>palisade</c>. Every other combination in this
+    /// family spells its factors and, in the cells where that overflows,
+    /// faults with the usual "register the combination" message — a
+    /// pre-registration is a decision, not a fallback.</para>
+    /// </summary>
+    private static string RegisteredPackageToken(
+        FrontlineLabsPendulumArm pendulum,
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        FrontlineLabsFiveSlotVariant fiveSlots,
+        FrontlineLabsStanceGroundArm stanceGround,
+        FrontlineLabsAimArm aim,
+        FrontlineLabsCooldownArm cooldown,
+        FrontlineLabsVolleyArm volley,
+        FrontlineLabsCaptureArm capture,
+        FrontlineLabsEconomyArm economy,
+        FrontlineLabsHorizonArm horizon,
+        FrontlineLabsRosterArm roster,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes)
+    {
+        if (pendulum != HullPendulumArms
+            || classes is not { } pair
+            || skills != (pair.TeamZero.Skill | pair.TeamOne.Skill)
+            || bendEnvelope != FrontlineLabsBendEnvelopeArm.Universal
+            || aim != FrontlineLabsAimArm.Offset
+            || cooldown != FrontlineLabsCooldownArm.Ticking
+            || stanceGround == FrontlineLabsStanceGroundArm.Free
+            || capture != FrontlineLabsCaptureArm.Channel
+            || economy != FrontlineLabsEconomyArm.Scrap
+            || horizon != FrontlineLabsHorizonArm.Long)
+        {
+            return string.Empty;
+        }
+        // The shape resolves exactly as the keel family's does: the fan is
+        // inert-omitted without a striker, and the fabricator cells carry the
+        // wane variant, so those two facts name the three shapes.
+        bool legion = roster == FrontlineLabsRosterArm.Legion;
+        if (volley == FrontlineLabsVolleyArm.Salvo)
+            return legion ? "crusade" : "vigil";
+        if (fiveSlots == FrontlineLabsFiveSlotVariant.Wane)
+            return legion ? "swarm" : "warren";
+        return stanceGround == FrontlineLabsStanceGroundArm.Open
+            ? legion ? "palisade" : "bastille"
+            : string.Empty;
     }
 
     /// <summary>
@@ -1345,6 +1650,12 @@ public static class FrontlineLabsDefinition
             // positions: a registered name that changed under composition
             // would make the spelled and named forms diverge for no gain.
             AllPendulumArms => "keel",
+            // The keel minus its forward rally (owner ruling, next round).
+            // A keel is the counterweight that also carries every arrival to
+            // the front for free; take that away and what is left holding the
+            // same shape is the `hull` — four characters, exactly like keel,
+            // so no cell that could spell one can fail to spell the other.
+            HullPendulumArms => "hull",
             _ => string.Join(
                 "-",
                 new[]
@@ -1527,7 +1838,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -1550,16 +1863,19 @@ public static class FrontlineLabsDefinition
             cooldown,
             volley,
             sideObjective,
-            economy);
+            economy,
+            horizon);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
             automaticCompanions,
             classes: classes is not null,
-            sideObjective: sideObjective);
-        PublicMatchTopology topology = CreateTopology(classes, skills);
+            sideObjective: sideObjective,
+            roster: roster);
+        PublicMatchTopology topology =
+            CreateTopology(classes, skills, roster);
         InitialDeploymentDefinition deployment =
-            CreateInitialDeployment(classes);
+            CreateInitialDeployment(classes, roster);
 
         return new ActorResolvedMatchDefinition(
             rules,
@@ -1570,7 +1886,8 @@ public static class FrontlineLabsDefinition
             CreateLifecycleAssignments(
                 automaticCompanions,
                 classes,
-                skills),
+                skills,
+                roster),
             classes is { } classSelection
                 ? classSelection.TeamZero.ExplicitForwardFabrication
                     || classSelection.TeamOne.ExplicitForwardFabrication
@@ -1643,7 +1960,8 @@ public static class FrontlineLabsDefinition
         FrontlineLabsVolleyArm volley = FrontlineLabsVolleyArm.Cast,
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -1667,7 +1985,8 @@ public static class FrontlineLabsDefinition
                 volley,
                 sideObjective,
                 controlPolicy,
-                economy);
+                economy,
+                horizon);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -2034,11 +2353,12 @@ public static class FrontlineLabsDefinition
             FrontlineLabsCooldownArm.Frozen,
         FrontlineLabsSideObjectiveArm sideObjective =
             FrontlineLabsSideObjectiveArm.None,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None) =>
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard) =>
         new(
             rulesetId,
             new ActorRulesLimits(
-                maxTicks: 500,
+                MaxTicks(horizon),
                 new ActorRuntimeFaultDefinition(
                     faultsAllowedBeforeDisqualification: 0)),
             new ActorSeedMechanicsDefinition(
@@ -2158,7 +2478,8 @@ public static class FrontlineLabsDefinition
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
             FrontlineCaptureDefinition.ControlPolicyKind
                 .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
-        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None)
+        FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.None,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -2600,7 +2921,8 @@ public static class FrontlineLabsDefinition
             replicationTransitions: [],
             cooldown,
             sideObjective,
-            economy);
+            economy,
+            horizon);
     }
 
     private static ActorFormTransitionDefinition AnchorRoute(
@@ -2980,36 +3302,29 @@ public static class FrontlineLabsDefinition
         bool automaticCompanions,
         bool classes = false,
         FrontlineLabsSideObjectiveArm sideObjective =
-            FrontlineLabsSideObjectiveArm.None) =>
+            FrontlineLabsSideObjectiveArm.None,
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None) =>
         new(
             MapIdFor(
                 remoteFabrication,
                 duelMapArm,
                 automaticCompanions,
                 classes,
-                sideObjective),
+                sideObjective,
+                roster),
             version: 1,
             MapTileRows(duelMapArm, sideObjective),
             [
                 Spawn("team-0-prime", 2, 7, Direction.East),
                 Spawn("team-1-prime", 20, 7, Direction.West),
-                .. AutomaticCompanionSpawns(automaticCompanions || classes),
+                .. AutomaticCompanionSpawns(
+                    automaticCompanions || classes,
+                    roster),
             ],
             [
                 .. ObjectiveRegions(duelMapArm),
-                Region(
-                    "team-0-home-pad",
-                    [(1, 6), (2, 6), (1, 7), (2, 7), (1, 8), (2, 8)]),
-                Region(
-                    "team-1-home-pad",
-                    [
-                        (20, 6),
-                        (21, 6),
-                        (20, 7),
-                        (21, 7),
-                        (20, 8),
-                        (21, 8),
-                    ]),
+                Region("team-0-home-pad", HomePadTiles(0, roster)),
+                Region("team-1-home-pad", HomePadTiles(1, roster)),
                 .. MusterSiteRegions(sideObjective),
                 .. RemoteFabricationRegions(
                     remoteFabrication || classes,
@@ -3025,20 +3340,46 @@ public static class FrontlineLabsDefinition
                     "protected-home-pads",
                     ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
                     [
-                        new Position(1, 6),
-                        new Position(2, 6),
-                        new Position(1, 7),
-                        new Position(2, 7),
-                        new Position(1, 8),
-                        new Position(2, 8),
-                        new Position(20, 6),
-                        new Position(21, 6),
-                        new Position(20, 7),
-                        new Position(21, 7),
-                        new Position(20, 8),
-                        new Position(21, 8),
+                        .. Positions(HomePadTiles(0, roster)),
+                        .. Positions(HomePadTiles(1, roster)),
                     ]),
             ]);
+
+    /// <summary>
+    /// One team's home pad: six tiles on every measured generation, ten on the
+    /// legion map, where the extra companion anchors need protecting. The pad
+    /// is one thing — reserved spawn anchors, opposing-entry protection, and
+    /// (under the economy arm) the banking region — so widening it widens all
+    /// three together rather than splitting the concept.
+    /// </summary>
+    private static IReadOnlyList<(int X, int Y)> HomePadTiles(
+        int teamId,
+        FrontlineLabsRosterArm roster)
+    {
+        (int X, int Y)[] teamZero =
+            roster == FrontlineLabsRosterArm.Legion
+                ? [.. FrontlineLabsLegionRoster.TeamZeroPad]
+                : [(1, 6), (2, 6), (1, 7), (2, 7), (1, 8), (2, 8)];
+        return teamId == 0
+            ? teamZero
+            :
+            [
+                .. teamZero
+                    .Select(Mirrored)
+                    .OrderBy(tile => tile.Y)
+                    .ThenBy(tile => tile.X),
+            ];
+    }
+
+    /// <summary>
+    /// One tile reflected across the map's fairness axis — the vertical centre
+    /// line the two spawns face across. It is the construction every mirrored
+    /// map fact in this family uses, and the arm tests re-derive it.
+    /// </summary>
+    private static (int X, int Y) Mirrored((int X, int Y) tile) =>
+        (MapWidth - 1 - tile.X, tile.Y);
+
+    private const int MapWidth = 23;
 
     /// <summary>
     /// The map identity for one arm combination. A side objective mints its
@@ -3051,11 +3392,14 @@ public static class FrontlineLabsDefinition
         FrontlineLabsDuelMapArm duelMapArm,
         bool automaticCompanions,
         bool classes,
-        FrontlineLabsSideObjectiveArm sideObjective)
+        FrontlineLabsSideObjectiveArm sideObjective,
+        FrontlineLabsRosterArm roster)
     {
         string baseId = sideObjective == FrontlineLabsSideObjectiveArm.Muster
             ? MusterMapId
-            : MapId;
+            : roster == FrontlineLabsRosterArm.Legion
+                ? FrontlineLabsLegionRoster.MapId
+                : MapId;
         return remoteFabrication
                 ? $"{baseId}-remote-fabrication-experiment"
                 : classes
@@ -3245,16 +3589,38 @@ public static class FrontlineLabsDefinition
                 facing),
             [ActorMovementLayer.Ground]);
 
+    /// <summary>
+    /// The companion spawn anchors: two per team on every measured
+    /// generation, seven per team on the legion map. Team 1's are team 0's
+    /// reflected across the fairness axis, and the first two are byte-for-byte
+    /// the measured pair, so the legion map's opening geometry is the classes
+    /// map's opening geometry.
+    /// </summary>
     private static ImmutableArray<ActorMapSpawnAnchorDefinition>
-        AutomaticCompanionSpawns(bool enabled) =>
-        enabled
-            ? [
-                Spawn("team-0-child-1", 1, 6, Direction.East),
-                Spawn("team-0-child-2", 1, 8, Direction.East),
-                Spawn("team-1-child-1", 21, 6, Direction.West),
-                Spawn("team-1-child-2", 21, 8, Direction.West),
-            ]
-            : [];
+        AutomaticCompanionSpawns(
+            bool enabled,
+            FrontlineLabsRosterArm roster)
+    {
+        if (!enabled)
+            return [];
+        (int X, int Y)[] teamZero =
+            roster == FrontlineLabsRosterArm.Legion
+                ? [.. FrontlineLabsLegionRoster.TeamZeroCompanionAnchors]
+                : [(1, 6), (1, 8)];
+        return
+        [
+            .. teamZero.Select((tile, index) => Spawn(
+                FrontlineLabsLegionRoster.CompanionSpawnId(0, index + 1),
+                tile.X,
+                tile.Y,
+                Direction.East)),
+            .. teamZero.Select((tile, index) => Spawn(
+                FrontlineLabsLegionRoster.CompanionSpawnId(1, index + 1),
+                Mirrored(tile).X,
+                Mirrored(tile).Y,
+                Direction.West)),
+        ];
+    }
 
     private static ActorMapRegionDefinition Objective(
         string id,
@@ -3322,21 +3688,37 @@ public static class FrontlineLabsDefinition
     /// <summary>
     /// How many stable unit slots one team fields. Three everywhere except a
     /// five-slot arm's fabricator side, which fields prime plus four children
-    /// (<see cref="AsymmetricSlotsTopologyProfileId"/>).
+    /// (<see cref="AsymmetricSlotsTopologyProfileId"/>), and a legion cell,
+    /// where the roster arm authors the whole schedule for both teams — eight
+    /// slots, nine for the fabricator — and SUPERSEDES the five-slot skill's
+    /// extra slots rather than stacking with them. Two factors that both set
+    /// the slot count could not be attributed separately.
     /// </summary>
     private static int TeamSlotCount(
         FrontlineLabsClassDefinition? teamClass,
-        FrontlineLabsSkillKit skills) =>
-        teamClass is not null
-        && teamClass.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
-        && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
-            ? 1 + teamClass.ExtraChildUnlockTicks.Length + 2
-            : 3;
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsRosterArm roster)
+    {
+        if (teamClass is null)
+            return 3;
+        if (roster == FrontlineLabsRosterArm.Legion)
+        {
+            return 1
+                + FrontlineLabsLegionRoster.CompanionSlots(
+                    teamClass.ExplicitForwardFabrication);
+        }
+        return teamClass.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
+            && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
+                ? 1 + teamClass.ExtraChildUnlockTicks.Length + 2
+                : 3;
+    }
 
     private static PublicMatchTopology CreateTopology(
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classes,
-        FrontlineLabsSkillKit skills) =>
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsRosterArm roster =
+            FrontlineLabsRosterArm.None) =>
         new()
         {
             Teams =
@@ -3354,12 +3736,12 @@ public static class FrontlineLabsDefinition
                 .. Enumerable
                     .Range(
                         0,
-                        TeamSlotCount(classes?.TeamZero, skills))
+                        TeamSlotCount(classes?.TeamZero, skills, roster))
                     .Select(unitId => new PublicUnitSlot(0, unitId, 0)),
                 .. Enumerable
                     .Range(
                         0,
-                        TeamSlotCount(classes?.TeamOne, skills))
+                        TeamSlotCount(classes?.TeamOne, skills, roster))
                     .Select(unitId => new PublicUnitSlot(1, unitId, 1)),
             ],
             InitialLives =
@@ -3369,27 +3751,84 @@ public static class FrontlineLabsDefinition
                     0,
                     0,
                     classes?.TeamZero.PrimeFormId ?? PrimeFormId),
+                .. OpeningCompanions(classes?.TeamZero, 0, roster)
+                    .Select(companion => new PublicInitialLife(
+                        0,
+                        companion.UnitId,
+                        0,
+                        companion.FormId)),
                 new PublicInitialLife(
                     1,
                     0,
                     0,
                     classes?.TeamOne.PrimeFormId ?? PrimeFormId),
+                .. OpeningCompanions(classes?.TeamOne, 1, roster)
+                    .Select(companion => new PublicInitialLife(
+                        1,
+                        companion.UnitId,
+                        0,
+                        companion.FormId)),
             ],
         };
 
+    /// <summary>
+    /// The companion slots that carry a LIVE body at tick zero: none on every
+    /// measured generation, and the legion arm's opening tranche for a class
+    /// that receives companions automatically. The fabricator's opening slots
+    /// are deliberately absent — its bodies are fabricated, which is the
+    /// class's one exclusive verb (DECISIONS #154).
+    /// </summary>
+    private static IEnumerable<(int UnitId, string FormId, string SpawnId)>
+        OpeningCompanions(
+            FrontlineLabsClassDefinition? teamClass,
+            int teamId,
+            FrontlineLabsRosterArm roster)
+    {
+        if (roster != FrontlineLabsRosterArm.Legion
+            || teamClass is null
+            || teamClass.ExplicitForwardFabrication)
+        {
+            yield break;
+        }
+        for (int index = 0;
+             index < FrontlineLabsLegionRoster.OpeningCompanionSlots;
+             index++)
+        {
+            int unitId = index + 1;
+            yield return (
+                unitId,
+                teamClass.ChildFormId,
+                FrontlineLabsLegionRoster.CompanionSpawnId(teamId, unitId));
+        }
+    }
+
     private static InitialDeploymentDefinition CreateInitialDeployment(
         (FrontlineLabsClassDefinition TeamZero,
-            FrontlineLabsClassDefinition TeamOne)? classes) =>
-        new(
+            FrontlineLabsClassDefinition TeamOne)? classes,
+        FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None)
+    {
+        (int UnitId, string FormId, string SpawnId)[] teamZero =
+            [.. OpeningCompanions(classes?.TeamZero, 0, roster)];
+        (int UnitId, string FormId, string SpawnId)[] teamOne =
+            [.. OpeningCompanions(classes?.TeamOne, 1, roster)];
+        ImmutableArray<ActorMapSpawnAnchorDefinition> anchors =
+            AutomaticCompanionSpawns(
+                classes is not null,
+                roster);
+        InitialSpawnDefinition Anchor(string spawnId) =>
+            anchors.Single(anchor => anchor.Spawn.SpawnId == spawnId).Spawn;
+        return new InitialDeploymentDefinition(
             [
                 new InitialSpawnDefinition(
                     "team-0-prime",
                     new Position(2, 7),
                     Direction.East),
+                .. teamZero.Select(companion => Anchor(companion.SpawnId)),
                 new InitialSpawnDefinition(
                     "team-1-prime",
                     new Position(20, 7),
                     Direction.West),
+                .. teamOne.Select(companion => Anchor(companion.SpawnId)),
             ],
             [
                 new InitialLifeDeployment(
@@ -3398,13 +3837,26 @@ public static class FrontlineLabsDefinition
                     0,
                     classes?.TeamZero.PrimeFormId ?? PrimeFormId,
                     "team-0-prime"),
+                .. teamZero.Select(companion => new InitialLifeDeployment(
+                    0,
+                    companion.UnitId,
+                    0,
+                    companion.FormId,
+                    companion.SpawnId)),
                 new InitialLifeDeployment(
                     1,
                     0,
                     0,
                     classes?.TeamOne.PrimeFormId ?? PrimeFormId,
                     "team-1-prime"),
+                .. teamOne.Select(companion => new InitialLifeDeployment(
+                    1,
+                    companion.UnitId,
+                    0,
+                    companion.FormId,
+                    companion.SpawnId)),
             ]);
+    }
 
     private static ImmutableArray<
         ActorUnitSlotLifecycleAssignmentDefinition>
@@ -3412,8 +3864,17 @@ public static class FrontlineLabsDefinition
             bool automaticCompanions,
             (FrontlineLabsClassDefinition TeamZero,
                 FrontlineLabsClassDefinition TeamOne)? classes,
-            FrontlineLabsSkillKit skills)
+            FrontlineLabsSkillKit skills,
+            FrontlineLabsRosterArm roster = FrontlineLabsRosterArm.None)
     {
+        if (roster == FrontlineLabsRosterArm.Legion && classes is { } legion)
+        {
+            return
+            [
+                .. LegionTeamAssignments(0, legion.TeamZero, skills),
+                .. LegionTeamAssignments(1, legion.TeamOne, skills),
+            ];
+        }
         if (classes is { } pair)
         {
             // Non-fabricating classes receive companions automatically at
@@ -3459,7 +3920,12 @@ public static class FrontlineLabsDefinition
                     // unlock schedule and their own slower rebuild profile;
                     // they are ordinary slots in every other respect.
                     .. Enumerable
-                        .Range(0, TeamSlotCount(entry, skills) - 3)
+                        .Range(
+                            0,
+                            TeamSlotCount(
+                                entry,
+                                skills,
+                                FrontlineLabsRosterArm.None) - 3)
                         .Select(index => ClassChildAssignment(
                             teamId,
                             3 + index,
@@ -3512,6 +3978,69 @@ public static class FrontlineLabsDefinition
         ];
     }
 
+    /// <summary>
+    /// One team's slot lifecycle under the LEGION roster. The prime is
+    /// unchanged; every companion slot reads its availability from the roster
+    /// table rather than from the class's own cadence:
+    /// <list type="bullet">
+    /// <item>the opening tranche is LIVE at tick zero for a class that
+    /// receives companions (topology initial lives, deployed on its reserved
+    /// anchor), and an unlocked-at-zero FABRICABLE slot for the fabricator —
+    /// its bodies cost prime actions and arrive in the field, which is the
+    /// bargain #154 gave the class;</item>
+    /// <item>the mid and late tranches are dormant with a declared automatic
+    /// activation tick (the 0.10.4 capability) for an automatic class, and
+    /// dormant-unlock-at-tick for the fabricator;</item>
+    /// <item>the late tranche keeps FIVE SLOTS' slower rebuild profile where
+    /// that skill is in the cell, because those are exactly the extra bodies
+    /// the skill was priced on — the arm buys COUNT, never TEMPO.</item>
+    /// </list>
+    /// </summary>
+    private static IEnumerable<ActorUnitSlotLifecycleAssignmentDefinition>
+        LegionTeamAssignments(
+            int teamId,
+            FrontlineLabsClassDefinition entry,
+            FrontlineLabsSkillKit skills)
+    {
+        bool stance =
+            entry.Skill is FrontlineLabsSkillKit.StrikerVolley
+                or FrontlineLabsSkillKit.BulwarkAegisShell
+            && skills.HasFlag(entry.Skill);
+        bool fiveSlots =
+            entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
+            && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots);
+        bool fabricates = entry.ExplicitForwardFabrication;
+        yield return ClassPrimeAssignment(
+            teamId,
+            $"team-{teamId}-prime",
+            entry,
+            stance);
+        ImmutableArray<int> unlockTicks =
+            FrontlineLabsLegionRoster.CompanionUnlockTicks(fabricates);
+        for (int index = 0; index < unlockTicks.Length; index++)
+        {
+            int unitId = index + 1;
+            bool late = FrontlineLabsLegionRoster.IsLateTrancheSlot(
+                fabricates,
+                index);
+            yield return ClassChildAssignment(
+                teamId,
+                unitId,
+                entry,
+                unlockTicks[index],
+                fabricates
+                    ? null
+                    : FrontlineLabsLegionRoster.CompanionSpawnId(
+                        teamId,
+                        unitId),
+                stance,
+                late && fiveSlots
+                    ? entry.ExtraChildLifecycleProfileId
+                    : null,
+                activeAtTickZero: !fabricates && unlockTicks[index] == 0);
+        }
+    }
+
     private static ActorUnitSlotLifecycleAssignmentDefinition
         ClassPrimeAssignment(
             int teamId,
@@ -3544,7 +4073,8 @@ public static class FrontlineLabsDefinition
             int unlockTick,
             string? automaticSpawnId,
             bool stance,
-            string? lifecycleProfileId = null) =>
+            string? lifecycleProfileId = null,
+            bool activeAtTickZero = false) =>
         new(
             teamId,
             unitId,
@@ -3558,12 +4088,16 @@ public static class FrontlineLabsDefinition
                     : [],
                 .. stance ? new[] { entry.ChildStanceFormId } : [],
             ],
-            automaticSpawnId is null
+            activeAtTickZero
                 ? ActorUnitSlotLifecycleAssignmentDefinition
-                    .InitialAvailabilityKind.DormantUnlockAtTick
-                : ActorUnitSlotLifecycleAssignmentDefinition
-                    .InitialAvailabilityKind.DormantAutomaticActivationAtTick,
-            unlockTick,
+                    .InitialAvailabilityKind.ActiveAtTickZero
+                : automaticSpawnId is null
+                    ? ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind.DormantUnlockAtTick
+                    : ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick,
+            activeAtTickZero ? null : unlockTick,
             assignedRespawnSpawnId: automaticSpawnId);
 
     private static ActorUnitSlotLifecycleAssignmentDefinition PrimeAssignment(

@@ -517,7 +517,8 @@ public sealed class FrontlineLabsExperimentCommandTests
                 ]).GetProperty("matchContractFingerprint").GetString());
 
         // It composes with a pendulum level without a class pair, and the
-        // whole candidate game plus the channel is the registered `siege`.
+        // whole candidate game plus the channel is the registered `storm`
+        // (the wave-8 erosion-4 mint `siege` still names those exact bytes).
         Assert.Equal(
             "frontline-labs-1-experiment-keel-channel",
             PrintedContract(
@@ -529,7 +530,7 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "channel",
                 ]).GetProperty("rulesetId").GetString());
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-siege-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-storm-facing-locked",
             PrintedContract(
                 [
                     "--print-candidate-contract",
@@ -633,9 +634,10 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "scrap-flat",
                 ]).GetProperty("rulesetId").GetString());
 
-        // The shipped game: swell + channel + scrap is `bastion`.
+        // The shipped game: swell + channel + scrap is `citadel` at v1.1
+        // (the wave-8 pricing's own mint, `bastion`, still names those bytes).
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-bastion-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-citadel-facing-locked",
             PrintedContract(
                 [
                     "--print-candidate-contract",
@@ -699,6 +701,229 @@ public sealed class FrontlineLabsExperimentCommandTests
                         "bulwark-vs-striker",
                         "--economy",
                         "forge",
+                    ])).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The roster flag: it mints its own map generation and its own topology
+    /// profile, needs a class pair, refuses to share a cell with the side
+    /// objective, and names the levels that exist when misspelled.
+    /// </summary>
+    [Fact]
+    public void RosterArm_MintsTheLegionMapAndNeedsAClassPair()
+    {
+        JsonElement plain = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement legion = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--roster",
+                "legion",
+            ]);
+
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-legion",
+            legion.GetProperty("rulesetId").GetString());
+        // Unlike the economy, this arm DOES mint a map: the extra reserved
+        // spawn anchors are map facts, and a map is never edited in place.
+        Assert.Equal(
+            "frontline-labs-03-legion-classes",
+            legion.GetProperty("mapId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("mapFingerprint").GetString(),
+            legion.GetProperty("mapFingerprint").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            legion.GetProperty("matchContractFingerprint").GetString());
+
+        // The full v1.1 game plus the roster is the registered `garrison`.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-garrison-facing-locked",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--movement",
+                    "facing-locked",
+                    "--pendulum",
+                    "keel",
+                    "--skills",
+                    "kit",
+                    "--bend",
+                    "universal",
+                    "--stance-ground",
+                    "open",
+                    "--aim",
+                    "offset",
+                    "--cooldown",
+                    "ticking",
+                    "--volley",
+                    "salvo",
+                    "--capture",
+                    "channel",
+                    "--economy",
+                    "scrap",
+                    "--roster",
+                    "legion",
+                ]).GetProperty("rulesetId").GetString());
+
+        // A roster with no class pair to state its shape is refused, as is a
+        // cell carrying both map-minting arms, and an unknown level names the
+        // ones that exist.
+        Assert.Contains(
+            "needs a class pair",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--pendulum",
+                        "keel",
+                        "--roster",
+                        "legion",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "cannot run in the same cell",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--side-objective",
+                        "muster",
+                        "--roster",
+                        "legion",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use none or legion",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--roster",
+                        "horde",
+                    ])).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The next round's two new flags: the keel without its rally, and the
+    /// longer horizon. Both are registered levels with their own identity, and
+    /// the whole package collapses to one token per shape.
+    /// </summary>
+    [Fact]
+    public void HullAndHorizon_MintTheNextRoundsPackage()
+    {
+        JsonElement hull = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "hull",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-hull",
+            hull.GetProperty("rulesetId").GetString());
+
+        JsonElement longer = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--pendulum",
+                "hull",
+                "--horizon",
+                "long",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-hull-long",
+            longer.GetProperty("rulesetId").GetString());
+        Assert.NotEqual(
+            hull.GetProperty("rulesFingerprint").GetString(),
+            longer.GetProperty("rulesFingerprint").GetString());
+
+        // The whole package: one registered token per shape, and the roster
+        // stays a composable flag on top of it.
+        string[] package =
+        [
+            "--print-candidate-contract",
+            "--classes",
+            "fabricator-vs-fabricator",
+            "--movement",
+            "facing-locked",
+            "--pendulum",
+            "hull",
+            "--skills",
+            "kit",
+            "--bend",
+            "universal",
+            "--five-slots",
+            "wane",
+            "--stance-ground",
+            "open",
+            "--aim",
+            "offset",
+            "--cooldown",
+            "ticking",
+            "--volley",
+            "salvo",
+            "--capture",
+            "channel",
+            "--economy",
+            "scrap",
+            "--horizon",
+            "long",
+        ];
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-fabricator-warren-facing-locked",
+            PrintedContract(package).GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-fabricator-swarm-facing-locked",
+            PrintedContract([.. package, "--roster", "legion"])
+                .GetProperty("rulesetId")
+                .GetString());
+
+        // A horizon with no cell to sit in is refused, and an unknown level
+        // names the ones that exist.
+        Assert.Contains(
+            "needs a cell to sit in",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--horizon",
+                        "long",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use standard or long",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "bulwark-vs-striker",
+                        "--horizon",
+                        "epic",
+                    ])).Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "use control, ratchet, ratchet-contest, keel, hull",
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--pendulum",
+                        "hulk",
                     ])).Message,
             StringComparison.Ordinal);
     }

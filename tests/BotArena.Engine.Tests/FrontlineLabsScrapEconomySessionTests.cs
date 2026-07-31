@@ -26,9 +26,9 @@ public sealed class FrontlineLabsScrapEconomySessionTests
 
     /// <summary>
     /// The tick the ambush opens: after the courier has banked enough to buy
-    /// its tier and has the third deposit's load still on it.
+    /// its tier and is standing on the vein with a fresh load still on it.
     /// </summary>
-    private const int AmbushFromTick = 285;
+    private const int AmbushFromTick = 205;
 
     /// <summary>
     /// The scripted harvest. Team 0's prime walks to the tile beside the
@@ -43,14 +43,16 @@ public sealed class FrontlineLabsScrapEconomySessionTests
         GenericActorMatchChronology Chronology) Run(
         string? track = null,
         FrontlineLabsEconomyArm economy = FrontlineLabsEconomyArm.Scrap,
-        int shootFromTick = int.MaxValue)
+        int shootFromTick = int.MaxValue,
+        FrontlineLabsHorizonArm horizon = FrontlineLabsHorizonArm.Standard)
     {
         ActorResolvedMatchDefinition definition =
             FrontlineLabsDefinition.CreatePendulumExperiment(
                 FrontlineLabsPendulumArm.None,
                 (FrontlineLabsClassDefinition.Bulwark,
                     FrontlineLabsClassDefinition.Bulwark),
-                economy: economy);
+                economy: economy,
+                horizon: horizon);
         return (
             definition,
             FrontlineLabsSkillArmTestFixture.Run(
@@ -93,9 +95,12 @@ public sealed class FrontlineLabsScrapEconomySessionTests
     {
         Position self = observation.Self.Position;
         bool loaded = observation.Self.CarriedScrap > 0;
+        // v1.1 leaves a remainder on the tile (a deposit of 8 against an
+        // assay plus a carry of 6), so "am I standing on the vein" is no
+        // longer a reason to stay: the pile itself is.
         Position target = loaded
             ? HomePad
-            : self == NorthVein || DepositIsStanding(observation)
+            : DepositIsStanding(observation)
                 ? NorthVein
                 : VeinApproach;
         // Row 1 first, then along it: the northern shoulder is open the whole
@@ -179,51 +184,102 @@ public sealed class FrontlineLabsScrapEconomySessionTests
         GenericActorMatchChronology run = Run().Chronology;
 
         GenericActorMatchTickFrame deposit = run.Ticks.Single(
-            frame => frame.Tick == 120);
+            frame => frame.Tick == 60);
         Assert.Contains(
             PostMode(deposit).ScrapPiles,
             pile => pile.Position == NorthVein
-                && pile.Amount == 6
-                && pile.ExpiresAtTick == 200);
+                && pile.Amount == 8
+                && pile.ExpiresAtTick == 140);
 
         GenericActorMatchTickFrame pickup = run.Ticks.First(frame =>
             PostMode(frame).ScrapTeams
                 .Single(team => team.TeamId == 0)
                 .Bank > 0);
-        Assert.Equal(121, pickup.Tick);
+        Assert.Equal(61, pickup.Tick);
         Assert.Equal(
             1,
             PostMode(pickup).ScrapTeams.Single(team => team.TeamId == 0).Bank);
-        Assert.DoesNotContain(
-            PostMode(pickup).ScrapPiles,
-            pile => pile.Position == NorthVein);
+        // A deposit of 8 against an assay of 1 and a carry of 6 leaves a
+        // remainder standing with its original expiry: one body cannot lift a
+        // whole vein.
+        Assert.Equal(
+            1,
+            Assert.Single(
+                    PostMode(pickup).ScrapPiles,
+                    pile => pile.Position == NorthVein)
+                .Amount);
 
         // The load is published on the carrier's own next observation, and on
         // the enemy's if it can see it. Zero on everybody else.
         GenericActorRuntimeObservation carrier = run.Ticks
-            .Single(frame => frame.Tick == 122)
+            .Single(frame => frame.Tick == 62)
             .ActorTurns
             .Single(turn =>
                 turn.ActorId.TeamId == 0
                 && turn.ActorId.UnitId == Harvester)
             .Observation;
-        Assert.Equal(5, carrier.Self.CarriedScrap);
+        Assert.Equal(6, carrier.Self.CarriedScrap);
         Assert.All(carrier.Allies, ally => Assert.Equal(0, ally.CarriedScrap));
 
         GenericActorMatchTickFrame banked = run.Ticks.First(frame =>
             PostMode(frame).ScrapTeams
                 .Single(team => team.TeamId == 0)
-                .Bank == 6);
+                .Bank == 7);
         Assert.True(banked.Tick > pickup.Tick);
         Assert.Contains(
             banked.ActorTurns,
-            turn => turn.Observation.Self.CarriedScrap == 5);
+            turn => turn.Observation.Self.CarriedScrap == 6);
         // The load left the carrier the tick it banked.
         GenericActorMatchTickFrame after = run.Ticks.Single(frame =>
             frame.Tick == banked.Tick + 1);
         Assert.All(
             after.ActorTurns,
             turn => Assert.Equal(0, turn.Observation.Self.CarriedScrap));
+    }
+
+    /// <summary>
+    /// The owner's third ruling of the window, driven live: with the total cap
+    /// removed, one committed harvester over a 750-tick match banks the whole
+    /// SIX-tier board — +2 gun travel, +2 spawn health, +2 sight — and the
+    /// legality mask closes only when the board is full. The economy is now
+    /// allowed to decide the match, and this is what deciding it looks like.
+    /// </summary>
+    [Fact]
+    public void ACommittedHarvesterBanksTheWholeSixTierBoard()
+    {
+        GenericActorMatchChronology run = Run(
+            track: null,
+            economy: FrontlineLabsEconomyArm.ScrapFlat,
+            horizon: FrontlineLabsHorizonArm.Long).Chronology;
+
+        GenericActorRuntimeObservation.ScrapTeamState settled =
+            PostMode(run.Ticks[^1]).ScrapTeams
+                .Single(team => team.TeamId == 0);
+        Assert.Equal([2, 2, 2], settled.TierLevels.ToArray());
+        Assert.Equal(
+            FrontlineLabsScrapEconomy.MaxTotalTiers,
+            settled.TierLevels.Sum());
+        // Six tiers cost sixty, and the harvester earned every one of them
+        // out of deposits, remainders and the assay.
+        Assert.True(
+            settled.Bank
+                + settled.TierLevels.Sum() * FrontlineLabsScrapEconomy.TierCost
+                >= 60,
+            $"the board cost more than the run earned: {settled.Bank}");
+
+        // The same script on the invest arm reaches the same affordability;
+        // what differs is only who spends it.
+        GenericActorMatchChronology arm = Run(
+            track: "edge",
+            horizon: FrontlineLabsHorizonArm.Long).Chronology;
+        GenericActorRuntimeObservation.ScrapTeamState armTeam =
+            PostMode(arm.Ticks[^1]).ScrapTeams
+                .Single(team => team.TeamId == 0);
+        Assert.True(
+            armTeam.Bank + armTeam.TierLevels.Sum() * 10 >= 60,
+            $"the invest arm earned less: {armTeam.Bank}");
+        // Two in a track is still the cap the mask enforces.
+        Assert.Equal(2, armTeam.TierLevels[0]);
     }
 
     /// <summary>
@@ -667,7 +723,7 @@ public sealed class FrontlineLabsScrapEconomySessionTests
             return Invest(observation, "plate");
         if (observation.Self.ActorId.LifeId != 0)
             return GenericDeathmatchSessionTestFixture.Wait();
-        if (observation.Tick >= 280 && observation.Self.CarriedScrap > 0)
+        if (observation.Tick >= 200 && observation.Self.CarriedScrap > 0)
             return GenericDeathmatchSessionTestFixture.Wait();
         return Harvest(observation);
     }
@@ -709,7 +765,9 @@ public sealed class FrontlineLabsScrapEconomySessionTests
                 .Select(value => new FrontlineScrapPileFact(
                     value.Amount,
                     value.ExpiresAtTick)));
-        Assert.Equal(load + 1, pile.Amount);
+        Assert.Equal(
+            load + FrontlineLabsScrapEconomy.WreckAmount,
+            pile.Amount);
         Assert.Equal(kill.Tick + 80, pile.ExpiresAtTick);
     }
 

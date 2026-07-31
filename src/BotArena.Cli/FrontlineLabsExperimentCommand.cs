@@ -50,6 +50,8 @@ public static class FrontlineLabsExperimentCommand
             "side-objective",
             "capture",
             "economy",
+            "roster",
+            "horizon",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -298,6 +300,40 @@ public static class FrontlineLabsExperimentCommand
                 + "<a>-vs-<b> (or run two class-declaring projects), or "
                 + "compose it with a --pendulum level.");
         }
+        // A longer horizon re-prices every pacing gate both teams play
+        // against, so it is a real arm on every pair and needs a cell.
+        FrontlineLabsHorizonArm horizonArm = OptionalHorizonArm(options);
+        if (horizonArm != FrontlineLabsHorizonArm.Standard
+            && classPair is null
+            && pendulum == FrontlineLabsPendulumArm.None)
+        {
+            throw new InvalidOperationException(
+                "--horizon long re-prices every pacing gate both teams play "
+                + "against, so it needs a cell to sit in: pass --classes "
+                + "<a>-vs-<b> (or run two class-declaring projects), or "
+                + "compose it with a --pendulum level.");
+        }
+        // The roster states its shape per class, so — like the skills, the
+        // aim grammar and the cooldown clock — it needs a class pair. It also
+        // mints its own map generation, which is why it cannot share a cell
+        // with the side objective.
+        FrontlineLabsRosterArm rosterArm = OptionalRosterArm(options);
+        if (rosterArm != FrontlineLabsRosterArm.None && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--roster legion declares three starting bodies per class "
+                + "(four slots for the fabricator), so it needs a class "
+                + "pair: pass --classes <a>-vs-<b> or run two "
+                + "class-declaring projects.");
+        }
+        if (rosterArm != FrontlineLabsRosterArm.None
+            && sideObjective != FrontlineLabsSideObjectiveArm.None)
+        {
+            throw new InvalidOperationException(
+                "--roster and --side-objective each mint their own map "
+                + "generation, so they cannot run in the same cell: pick "
+                + "one.");
+        }
         // The channel reworks capture for BOTH teams whatever chassis they
         // are, so — like the side objective — it is a real arm on every pair
         // rather than an inert-omitted one, and it needs a cell to sit in.
@@ -339,6 +375,8 @@ public static class FrontlineLabsExperimentCommand
         bool pendulumCell =
             captureArm != FrontlineLabsCaptureArm.Frozen
             || economyArm != FrontlineLabsEconomyArm.None
+            || rosterArm != FrontlineLabsRosterArm.None
+            || horizonArm != FrontlineLabsHorizonArm.Standard
             || pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
             || skills != FrontlineLabsSkillKit.None
@@ -388,7 +426,9 @@ public static class FrontlineLabsExperimentCommand
                 volleyArm,
                 sideObjective,
                 captureArm,
-                economyArm);
+                economyArm,
+                rosterArm,
+                horizonArm);
         }
         else if (captureThreshold is int threshold)
         {
@@ -494,12 +534,36 @@ public static class FrontlineLabsExperimentCommand
         {
             Console.WriteLine(
                 economyArm == FrontlineLabsEconomyArm.Scrap
-                    ? "Economy:           scrap — veins at (11,1)/(11,13) on "
-                        + "120/200/280/360; wrecks drop 1; carry, bank at "
-                        + "home, invest in edge/plate/optic"
+                    ? "Economy:           scrap — veins of 8 at (11,1)/"
+                        + "(11,13) every 70 ticks from 60 through 620; "
+                        + "wrecks drop 2; carry, bank at home, invest in "
+                        + "edge/plate/optic up to a full board of 6 tiers"
                     : "Economy:           scrap-flat (CONTROL) — same veins, "
                         + "carrying, and ladder, but the bank buys greedily "
                         + "by itself and no invest verb exists");
+        }
+        if (horizonArm != FrontlineLabsHorizonArm.Standard)
+        {
+            Console.WriteLine(
+                "Horizon:           long — "
+                + $"{FrontlineLabsDefinition.MaxTicks(horizonArm)} ticks "
+                + "instead of 500; read limits.maxTicks, do not assume it");
+        }
+        if (rosterArm != FrontlineLabsRosterArm.None)
+        {
+            Console.WriteLine(
+                "Roster:            legion — three bodies from tick 0 (the "
+                + "fabricator opens with four SLOTS it fabricates), +2 at "
+                + $"{FrontlineLabsLegionRoster.MidTrancheUnlockTick} and +3 "
+                + $"at {FrontlineLabsLegionRoster.LateTrancheUnlockTick}; "
+                + "eight at the horn, nine for the fabricator");
+            if (skills == FrontlineLabsSkillKit.None)
+            {
+                Console.WriteLine(
+                    "Topology profile:  "
+                    + FrontlineLabsDefinition.TopologyProfileIdFor(
+                        definition.Topology));
+            }
         }
         if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly)
         {
@@ -921,7 +985,7 @@ public static class FrontlineLabsExperimentCommand
     /// no ruleset suffix. <c>channel</c> makes taking ground a channel: only
     /// bodies that held their tile this tick add gain (denial still counts
     /// all of them), the multiplier is capped at 2, an opposing claim erodes
-    /// at 4× build speed, damage to a controlling body ON the objective
+    /// at 8× build speed, damage to a controlling body ON the objective
     /// reverts the controller's work on that run, and the paired
     /// <c>channel-speed</c> factor moves the threshold from 15 to 8.
     /// </summary>
@@ -963,6 +1027,51 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --economy arm '{value}' (use none, scrap or "
                 + "scrap-flat)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered horizon arm (the owner's post-wave-8 ruling,
+    /// "longer games at this point is ok"). Omitting the option — or naming
+    /// <c>standard</c> — keeps the measured 500-tick limit and adds no ruleset
+    /// suffix. <c>long</c> declares 750, which is a contract LIMIT: it travels
+    /// in the rules like every other pacing number.
+    /// </summary>
+    private static FrontlineLabsHorizonArm OptionalHorizonArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("horizon", out string? value))
+            return FrontlineLabsHorizonArm.Standard;
+        return value.ToLowerInvariant() switch
+        {
+            "standard" => FrontlineLabsHorizonArm.Standard,
+            "long" => FrontlineLabsHorizonArm.Long,
+            _ => throw new InvalidOperationException(
+                $"Unknown --horizon arm '{value}' (use standard or long)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the registered roster arm (the owner's post-wave-8 ruling).
+    /// Omitting the option — or naming <c>none</c> — keeps the measured
+    /// prime-plus-two roster on its class cadences and adds no ruleset
+    /// suffix. <c>legion</c> starts every team with three live bodies (the
+    /// fabricator with a fourth slot it must fabricate), unlocks two more
+    /// slots at tick 150 and three more at 300, and runs on its own map
+    /// generation, because a slot that returns automatically needs a reserved
+    /// spawn anchor and the measured pad has room for two.
+    /// </summary>
+    private static FrontlineLabsRosterArm OptionalRosterArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("roster", out string? value))
+            return FrontlineLabsRosterArm.None;
+        return value.ToLowerInvariant() switch
+        {
+            "none" => FrontlineLabsRosterArm.None,
+            "legion" => FrontlineLabsRosterArm.Legion,
+            _ => throw new InvalidOperationException(
+                $"Unknown --roster arm '{value}' (use none or legion)."),
         };
     }
 
@@ -1093,8 +1202,10 @@ public static class FrontlineLabsExperimentCommand
     /// Reads the pre-registered pendulum level (DECISIONS #158/#166). Omitting
     /// the option — or naming <c>control</c> explicitly — selects today's
     /// measured baseline and adds no ruleset suffix. <c>ratchet</c>,
-    /// <c>ratchet-contest</c>, and <c>keel</c> (every counterweight at once)
-    /// are the registered composite levels; the four single-factor tokens may
+    /// <c>ratchet-contest</c>, <c>keel</c> (every counterweight at once) and
+    /// <c>hull</c> (the keel without its forward rally, so every arrival walks
+    /// home) are the registered composite levels; the four single-factor
+    /// tokens may
     /// also be combined with commas for an ablation, and a comma spelling that
     /// lands on a registered combination is that same ruleset.
     /// </summary>
@@ -1142,6 +1253,14 @@ public static class FrontlineLabsExperimentCommand
                     | FrontlineLabsPendulumArm.ForwardRally
                     | FrontlineLabsPendulumArm.ContestMajority
                     | FrontlineLabsPendulumArm.EnemySoleDecay,
+                // The keel without its forward rally (owner ruling): every
+                // automatic arrival lands on its reserved home spawn, so the
+                // fabricator's field-placed children are the only forward
+                // body delivery left in the game.
+                "hull" =>
+                    FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay,
                 "sticky-frontline" =>
                     FrontlineLabsPendulumArm.StickyFrontline,
                 "forward-rally" => FrontlineLabsPendulumArm.ForwardRally,
@@ -1151,8 +1270,8 @@ public static class FrontlineLabsExperimentCommand
                     FrontlineLabsPendulumArm.EnemySoleDecay,
                 _ => throw new InvalidOperationException(
                     $"Unknown --pendulum arm '{token}' (use control, "
-                    + "ratchet, ratchet-contest, keel, sticky-frontline, "
-                    + "forward-rally, contest-majority, or "
+                    + "ratchet, ratchet-contest, keel, hull, "
+                    + "sticky-frontline, forward-rally, contest-majority, or "
                     + "enemy-sole-decay)."),
             };
             arm |= selected;
