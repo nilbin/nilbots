@@ -4325,6 +4325,27 @@ sandbox/w8-mind-0.10.11. Codex runs P6 whenever the owner says it is
 due. Parked for the owner: the fabricator-bootstrap fork
 (base-as-root-factory vs elimination) in the mechanism slate.
 
+## 194. Build the game first; the fabricator bootstraps from base
+
+Two owner rulings (2026-07-31). FIRST, the order flips: "we're at the
+point where we're designing and building the game before we build
+more bots." The Codex mind wave stays parked — the handover is final
+but untriggered — and the design window the slate had scheduled
+post-wave builds NOW, so Codex's mind natives will be written against
+the finished game rather than one shifting under them. The handover
+and wrapped baselines get a refresh pass before Codex ever runs.
+SECOND, the open fork closes: at total body loss the fabricator's
+HOME BASE acts as the root factory — a structure, not a body, can
+always seed one body. Comeback preserved, no special body returns,
+and a full wipe is a huge tempo win rather than an instant kill.
+Total-loss-as-elimination stays registered as the sharper alternative
+arm. The build package that follows under #174 delegation: prime
+dissolution for all classes (one chassis, one lifecycle per class),
+the headless fabricator production network, FOUNDRY in its refined
+shape (free chassis choice, scrap buys tempo, home delivery vs field
+fabrication), the upgrade-scope re-rule the slate owes, and the
+ground-healing A/B riding the same read.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
