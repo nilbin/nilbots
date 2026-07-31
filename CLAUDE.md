@@ -162,6 +162,26 @@ Project boundaries that must not be violated:
   verifiable replay v3 without App admission or quotas. `nilbots new
   --profile generic-actor` is its authoring scaffold. This local path remains
   unranked and does not enable the hosted feature.
+  A fourth, local-only compatibility generation coexists BESIDE the per-life
+  one: the participant-scoped MIND profile `generic-mind-match-1`
+  (DECISIONS #190/#191). One submitted artifact owns one runtime, one Store and
+  one persistent bot object per PARTICIPANT for the whole match and commands
+  every body that participant owns; bodies are data inside it and a body's
+  destruction disposes nothing. Rules, map, format, topology, mode and the
+  resolved match-contract schema are all CARRIED unchanged — the mind plays the
+  same game, only the driver moved — while the runtime contract, MatchStart,
+  observation and decision schemas mint 1 in a fresh namespace and runtime
+  configuration mints 2.0 (128 MiB linear memory; per-tick fuel
+  `250M + 200M x live own bodies`). Replay 3 carries `mindTurns` instead of
+  `actorTurns` on such a document, keyed by the header's contract profile.
+  `nilbots new --profile generic-mind`, `experiment frontline-labs
+  --profile mind` and `qualify --profile mind`
+  (`frontline-mind-qualification-3/4/5`) are the whole player surface; nothing
+  hosted selects it. Every artifact built by the current toolchain attests both
+  profiles — `GuestHost.RunDetected` gives any `IGenericActorBot` a
+  `WrappedPerLifeMind` facade with per-life memory semantics reproduced exactly
+  — so a per-life bot plays a mind match with zero source edits and a MIXED
+  match is ordinary. Profile is a match-level choice, never per entrant.
   Older workers leave unknown playlist-version work pending; retain historical
   definitions and capabilities until their queued work drains or is migrated.
   It creates no season, ladder, rating, series settlement, broad matchmaking,
@@ -253,6 +273,15 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   exactly those keys (empty when no lives are active); missing, extra, or stale
   lives fail atomically. A destruction on tick `D` respawns at
   `D + 1 + PrimeRespawnTicks`, and the new life may act immediately.
+- Under the MIND profile the runtime-owning unit is the participant, not the
+  life: one Store, Instance, thread, linear memory and bot object for the whole
+  match, persistent memory in its fields, `Think` invoked exactly once per tick
+  including with zero live bodies, every own live body pre-filled `Wait` so a
+  forgotten body costs a tick rather than the match, commands naming non-owned
+  or dead bodies `Rejected`, duplicate commands `Faulted`, and the observable
+  union projected once per team per tick. A fault is participant-scoped and
+  discards the mind's whole match-long memory. All 16 tick phases,
+  `PrepareTick()` -> `Step()`, and the invocation ordering are unchanged.
 - Each active Frontline life owns an independent runtime instance of its
   submitted participant's artifact. Form changes preserve that exact life,
   runtime, and private memory; destruction disposes it, and respawn or

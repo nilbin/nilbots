@@ -615,6 +615,13 @@ internal static class ReplayV3Serializer
             writer.WriteNullValue();
         else
             WriteMindRuntimeFault(writer, turn.RuntimeFault);
+        // The MIND's diagnostics home, OMITTED when inert (#156) rather than
+        // written as an explicit null: a mind that said nothing this tick
+        // should cost no bytes, and most ticks say nothing. A mind reasons once
+        // per tick over the whole army, so the sentence is not any one body's —
+        // and on a tick with no live bodies there is no command to carry it.
+        if (turn.DebugMessage is not null)
+            writer.WriteString("debugMessage", turn.DebugMessage);
         writer.WriteEndObject();
     }
 

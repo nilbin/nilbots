@@ -75,7 +75,8 @@ internal static class FrontlineLabsFoundationQualificationCommand
         string botSpec,
         string runtimeKind,
         ulong seed,
-        string outputDirectory)
+        string outputDirectory,
+        bool withViewer = false)
     {
         if (runtimeKind != "wasm")
         {
@@ -121,6 +122,7 @@ internal static class FrontlineLabsFoundationQualificationCommand
                 outputDirectory,
                 "primary",
                 quiet: artifactName is not null,
+                withViewer,
                 ref artifactName,
                 ref artifactHash,
                 ref actualRuntimeKind);
@@ -134,6 +136,7 @@ internal static class FrontlineLabsFoundationQualificationCommand
                 outputDirectory,
                 "determinism-repeat",
                 quiet: true,
+                withViewer,
                 ref artifactName,
                 ref artifactHash,
                 ref actualRuntimeKind);
@@ -255,12 +258,13 @@ internal static class FrontlineLabsFoundationQualificationCommand
         string outputDirectory,
         string runId,
         bool quiet,
+        bool withViewer,
         ref string? artifactName,
         ref string? artifactHash,
         ref string? actualRuntimeKind)
     {
-        using ResolvedGenericActorBot bot =
-            ResolvedGenericActorBot.Resolve(
+        using ResolvedLabsEntrant bot =
+            ResolvedLabsEntrant.Resolve(
                 botSpec,
                 runtimeKind,
                 quiet);
@@ -317,7 +321,9 @@ internal static class FrontlineLabsFoundationQualificationCommand
             runId);
         WrittenReplay written = ReplayOutput.WriteJson(
             replay.CanonicalJson,
-            runDirectory);
+            runDirectory,
+            themeId: null,
+            withViewer);
         return Analyze(
             replay.CanonicalJson,
             botTeamId,

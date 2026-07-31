@@ -71,6 +71,35 @@ public sealed record ActorResolvedMatchDefinition
         ModeMapBinding = modeMapBinding;
     }
 
+    /// <summary>
+    /// The same match on a different contract profile — same rules, same map,
+    /// same format, same topology, same mode, a different DRIVER
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §7.2).
+    /// <para>
+    /// This is the shape the null pin needs and the shape the CLI's
+    /// <c>--profile</c> selection is: exactly one field moves, so a difference
+    /// in outcome between the two runs can only have come from who was driving.
+    /// The rules and map fingerprints are unchanged by construction; the
+    /// aggregate match fingerprint moves, because the capability tuple rides
+    /// inside it, and that is stated rather than hidden.
+    /// </para>
+    /// </summary>
+    public ActorResolvedMatchDefinition OnProfile(
+        ActorMatchCapabilityVersions capabilityVersions)
+    {
+        ArgumentNullException.ThrowIfNull(capabilityVersions);
+        return new ActorResolvedMatchDefinition(
+            Rules,
+            Map,
+            Format,
+            Topology,
+            InitialDeployment,
+            LifecycleAssignments,
+            ParticipantRegionAssignments,
+            ModeMapBinding,
+            capabilityVersions);
+    }
+
     public int SchemaVersion => CurrentSchemaVersion;
     public ActorMatchCapabilityVersions CapabilityVersions { get; }
     public ActorRulesDefinition Rules { get; }

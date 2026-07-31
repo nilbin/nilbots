@@ -140,6 +140,12 @@ internal sealed record ReplayV3(
     /// tick-start state, so the validator re-derives it rather than trusting it
     /// (§4.2).
     /// </param>
+    /// <param name="DebugMessage">
+    /// The mind's own diagnostic text for the tick. It belongs to the TURN and
+    /// not to a command because a mind reasons once per tick over the whole
+    /// army — and on a tick where it owns no live body, the turn is the only
+    /// thing there is to hang it on.
+    /// </param>
     internal sealed record MindTurn(
         int Tick,
         int ParticipantId,
@@ -150,7 +156,8 @@ internal sealed record ReplayV3(
         ImmutableArray<MindCommand> Commands,
         ImmutableArray<MindBodyResolution> Resolutions,
         ImmutableArray<MindIntent> Intents,
-        MindRuntimeFault? RuntimeFault);
+        MindRuntimeFault? RuntimeFault,
+        string? DebugMessage = null);
 
     /// <summary>
     /// One command the mind wrote, with what the host did with it. Both halves

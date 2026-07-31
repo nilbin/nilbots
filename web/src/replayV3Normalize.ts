@@ -3502,8 +3502,13 @@ function mindObservation(
 }
 
 function mindTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const turnValue = object(value, path, fail);
+  // The mind's own diagnostic text is omitted when inert, like every other
+  // additive key in this format, so its presence is optional and its absence
+  // is a real answer rather than a gap.
+  const hasDebugMessage = own(turnValue, 'debugMessage');
   const turn = exact(
-    value,
+    turnValue,
     path,
     [
       'tick',
@@ -3516,6 +3521,7 @@ function mindTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
       'resolutions',
       'intents',
       'runtimeFault',
+      ...(hasDebugMessage ? ['debugMessage'] : []),
     ],
     fail,
   );
@@ -3546,6 +3552,15 @@ function mindTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
     mindIntent(entry, `${path}.intents[${index}]`, fail),
   );
   nullable(turn.runtimeFault, `${path}.runtimeFault`, mindRuntimeFault, fail);
+  if (hasDebugMessage) {
+    string(turn.debugMessage, `${path}.debugMessage`, fail);
+    // A faulted turn's reply never parsed, so it cannot have carried text.
+    // This one the mirror can decide alone, which is where the division of
+    // labour puts it.
+    if (turn.runtimeFault !== null) {
+      fail(`${path}.debugMessage`, 'a faulted mind turn carries no diagnostic');
+    }
+  }
 }
 
 function eventAudience(

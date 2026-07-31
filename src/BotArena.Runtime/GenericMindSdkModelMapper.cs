@@ -88,7 +88,8 @@ internal static class GenericMindSdkModelMapper
         ArgumentNullException.ThrowIfNull(decisions);
         return new GenericMindRuntimeDecisions(
             [.. decisions.Commands.Select(ToEngine)],
-            [.. decisions.Intents.Select(ToEngine)]);
+            [.. decisions.Intents.Select(ToEngine)],
+            decisions.DebugMessage);
     }
 
     private static Sdk.MindBody ToSdk(

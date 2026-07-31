@@ -280,7 +280,8 @@ internal static class ReplayV3Projection
                 .ToImmutableArray(),
             turn.RuntimeFault is null
                 ? null
-                : MindRuntimeFault(turn.RuntimeFault));
+                : MindRuntimeFault(turn.RuntimeFault),
+            turn.DebugMessage);
     }
 
     private static ReplayV3.MindCommand MindCommand(

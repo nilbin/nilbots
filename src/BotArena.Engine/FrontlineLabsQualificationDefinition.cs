@@ -26,6 +26,78 @@ public static class FrontlineLabsQualificationDefinition
     public const int PositionalSuiteVersion = 1;
     public const string PositionalProfileId =
         "frontline-duel-depth-union-t4-v1";
+
+    /// <summary>
+    /// THE MIND SUITES (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c>
+    /// §6.2). Parallel IDs on parallel profiles, running the SAME T1-T4 probe
+    /// contracts against a participant-scoped controller.
+    ///
+    /// <para>The probe contracts are untouched on purpose: almost every probe
+    /// is already one-body, and a mind commanding one body is a perfectly good
+    /// subject for direct fire, evasion and objective pathing. Only the
+    /// runner's bot HOSTING changes, which is the cheapest possible answer and
+    /// the one that keeps the existing reference artifacts comparable.</para>
+    ///
+    /// <para>The IDs are parallel rather than shared because a profile ID is a
+    /// PRE-REGISTRATION in this project. A mind T4 and a per-life T4 are not
+    /// the same evidence — the same tier was earned driving a different
+    /// machine — and balance evidence must never have to guess which one it is
+    /// holding.</para>
+    /// </summary>
+    public const string MindFundamentalsSuiteId =
+        "frontline-mind-qualification-3";
+
+    /// <inheritdoc cref="MindFundamentalsSuiteId"/>
+    public const string MindFundamentalsProfileId =
+        "frontline-mind-union-t2-v1";
+
+    /// <inheritdoc cref="MindFundamentalsSuiteId"/>
+    public const string MindTacticalSuiteId =
+        "frontline-mind-qualification-4";
+
+    /// <inheritdoc cref="MindFundamentalsSuiteId"/>
+    public const string MindTacticalProfileId =
+        "frontline-mind-union-t3-v1";
+
+    /// <inheritdoc cref="MindFundamentalsSuiteId"/>
+    public const string MindPositionalSuiteId =
+        "frontline-mind-qualification-5";
+
+    /// <inheritdoc cref="MindFundamentalsSuiteId"/>
+    public const string MindPositionalProfileId =
+        "frontline-mind-union-t4-v1";
+
+    /// <summary>
+    /// The T2 competency that REPLACES the documented <c>respawn-reorient</c>
+    /// requirement, which is vacuous under the mind: a mind's memory does not
+    /// reset when a body dies, so "resumes mode-directed play after a fresh
+    /// life with isolated memory" measures nothing.
+    ///
+    /// <para>What replaces it measures the same thing and is strictly harder:
+    /// when the body executing a task is destroyed, the mind RESUMES THE TASK
+    /// WITH ANOTHER BODY. Per-life, that was not merely hard — the plan had no
+    /// carrier at all, because the body holding it was the body that died.
+    /// </para>
+    /// </summary>
+    public const string BodyHandoffProbeId = "body-handoff";
+
+    /// <summary>
+    /// The T4 mind-native probe: the #187/#188 set-piece, and the thing the
+    /// mind exists to make authorable. Keep a body still on the objective with
+    /// another own body adjacent on the threat axis, for K consecutive ticks,
+    /// from both assignments.
+    /// </summary>
+    public const string EscortIntegrityProbeId = "escort-integrity";
+
+    /// <summary>
+    /// Consecutive ticks of intact escort that <c>escort-integrity</c>
+    /// requires, and the window inside which <c>body-handoff</c> must see the
+    /// task resumed.
+    /// </summary>
+    public const int EscortIntegrityTicks = 6;
+
+    /// <inheritdoc cref="EscortIntegrityTicks"/>
+    public const int BodyHandoffWindowTicks = 12;
     public const string EntryProbeId = "entry-initiative";
     public const string ContractAutoDeterminismProbeId =
         "contract-auto-determinism";
@@ -686,6 +758,344 @@ public static class FrontlineLabsQualificationDefinition
             Direction.East,
             new Position(14, 7),
             Direction.West);
+    }
+
+    /// <summary>
+    /// T2 <c>body-handoff</c>: a two-body probe in which the body doing the
+    /// job dies.
+    ///
+    /// <para>The tested team starts one body ON the central objective in an
+    /// open lane, facing a pressure controller that fires down that lane every
+    /// tick, and a second body two steps behind it. Bolts carry lethal damage,
+    /// so the exchange resolves in a few ticks and the question the probe
+    /// exists to ask arrives immediately: <b>the body holding the point is
+    /// gone — does the plan survive it?</b></para>
+    ///
+    /// <para>Per-life this was structurally unanswerable. The plan lived in the
+    /// dying body's private memory, its successor started empty, and its
+    /// sibling could only re-derive an intention from a frozen observation that
+    /// never contained one. A mind simply still has the plan.</para>
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateBodyHandoffProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        Position tested = testedTeamId == 0
+            ? new Position(10, 7)
+            : new Position(12, 7);
+        Position reserve = testedTeamId == 0
+            ? new Position(8, 7)
+            : new Position(14, 7);
+        Position controller = testedTeamId == 0
+            ? new Position(14, 7)
+            : new Position(8, 7);
+        Direction testedFacing =
+            testedTeamId == 0 ? Direction.East : Direction.West;
+        Direction controllerFacing =
+            testedTeamId == 0 ? Direction.West : Direction.East;
+        ActorResolvedMatchDefinition probe = CreateHandoffProbe(
+            BodyHandoffProbeId,
+            maxTicks: 40,
+            testedTeamId,
+            tested,
+            testedFacing,
+            reserve,
+            controller,
+            controllerFacing,
+            [
+                new Position(10, 7),
+                new Position(11, 7),
+                new Position(12, 7),
+            ]);
+        // Lethal bolts, so the loss the probe is about is a matter of a few
+        // ticks rather than of luck. It applies to both sides, which is the
+        // only symmetric way to do it.
+        return WithMobileProjectileDamage(probe, damagePerHit: 99);
+    }
+
+    /// <summary>
+    /// T4 <c>escort-integrity</c>: hold the point still with a body beside the
+    /// holder on the axis the damage comes from, for
+    /// <see cref="EscortIntegrityTicks"/> consecutive ticks, from both
+    /// assignments.
+    ///
+    /// <para>Three own slots against a passive controller. Nothing here needs
+    /// a new mechanism: it is the escorted channel exactly as the game already
+    /// plays it, and it is on the T4 list because the last per-life cohort
+    /// measured escorts as the intended play its authors could barely execute
+    /// — every body had to independently derive who was holding, who was
+    /// screening, and on which side, and any disagreement cost a tick of
+    /// stationary claim.</para>
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateEscortIntegrityProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        Position tested = testedTeamId == 0
+            ? new Position(10, 7)
+            : new Position(12, 7);
+        Position reserve = testedTeamId == 0
+            ? new Position(8, 7)
+            : new Position(14, 7);
+        Position controller = testedTeamId == 0
+            ? new Position(20, 1)
+            : new Position(2, 1);
+        return CreateHandoffProbe(
+            EscortIntegrityProbeId,
+            maxTicks: 30,
+            testedTeamId,
+            tested,
+            testedTeamId == 0 ? Direction.East : Direction.West,
+            reserve,
+            controller,
+            Direction.South,
+            [
+                new Position(10, 7),
+                new Position(11, 7),
+                new Position(12, 7),
+            ]);
+    }
+
+    /// <summary>
+    /// The shared two-versus-one contract behind the mind-native probes: the
+    /// tested participant owns units 0 and 1 (both live at tick zero), the
+    /// controller owns exactly one, and the active objective is an explicit
+    /// three-tile stretch of the central lane so the geometry is stated rather
+    /// than inherited.
+    /// </summary>
+    private static ActorResolvedMatchDefinition CreateHandoffProbe(
+        string probeId,
+        int maxTicks,
+        int testedTeamId,
+        Position testedPosition,
+        Direction testedFacing,
+        Position reservePosition,
+        Position controllerPosition,
+        Direction controllerFacing,
+        IReadOnlyCollection<Position> activeObjective)
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{MindFundamentalsSuiteId}-{probeId}-t{testedTeamId}",
+            maxTicks,
+            captureThreshold: 1000,
+            removePopulationActions: true);
+        int controllerTeamId = 1 - testedTeamId;
+        // Short spawn IDs on purpose: a canonical semantic ID is capped at 64
+        // bytes, and the suite ID alone spends 30 of them.
+        const string SpawnPrefix = "fmq";
+        string testedSpawnId = $"{SpawnPrefix}-{probeId}-tested";
+        string reserveSpawnId = $"{SpawnPrefix}-{probeId}-reserve";
+        string controllerSpawnId = $"{SpawnPrefix}-{probeId}-controller";
+        // Respawn anchors sit OFF the objective on purpose. A slot's respawn
+        // anchor is reserved while the slot is away, and a reservation refuses
+        // entry — so an anchor on the point would make the point unenterable
+        // for the very body the probe is asking to take it over.
+        string testedRespawnSpawnId =
+            $"{SpawnPrefix}-{probeId}-tested-return";
+        string controllerRespawnSpawnId =
+            $"{SpawnPrefix}-{probeId}-controller-return";
+        Position testedRespawn = new(
+            testedTeamId == 0 ? 2 : 20,
+            7);
+        Position controllerRespawn = new(
+            testedTeamId == 0 ? 20 : 2,
+            7);
+        ImmutableArray<ActorMapRegionDefinition> regions =
+        [
+            .. source.Map.Regions.Select(region =>
+                region.RegionId == "frontline-position-2"
+                    ? new ActorMapRegionDefinition(
+                        region.RegionId,
+                        region.Kind,
+                        [.. activeObjective])
+                    : region),
+        ];
+        var map = new ActorMapDefinition(
+            $"{MindFundamentalsSuiteId}-{probeId}-t{testedTeamId}-map",
+            version: 1,
+            source.Map.TileRows,
+            [
+                Spawn(testedSpawnId, testedPosition, testedFacing),
+                Spawn(reserveSpawnId, reservePosition, testedFacing),
+                Spawn(
+                    controllerSpawnId,
+                    controllerPosition,
+                    controllerFacing),
+                Spawn(
+                    testedRespawnSpawnId,
+                    testedRespawn,
+                    testedFacing),
+                Spawn(
+                    controllerRespawnSpawnId,
+                    controllerRespawn,
+                    controllerFacing),
+            ],
+            regions,
+            source.Map.TileTags);
+        var deployment = new InitialDeploymentDefinition(
+            [
+                new InitialSpawnDefinition(
+                    testedSpawnId,
+                    testedPosition,
+                    testedFacing),
+                new InitialSpawnDefinition(
+                    reserveSpawnId,
+                    reservePosition,
+                    testedFacing),
+                new InitialSpawnDefinition(
+                    controllerSpawnId,
+                    controllerPosition,
+                    controllerFacing),
+            ],
+            [
+                new InitialLifeDeployment(
+                    testedTeamId,
+                    0,
+                    0,
+                    "prime-mobile",
+                    testedSpawnId),
+                new InitialLifeDeployment(
+                    testedTeamId,
+                    1,
+                    0,
+                    "child-mobile",
+                    reserveSpawnId),
+                new InitialLifeDeployment(
+                    controllerTeamId,
+                    0,
+                    0,
+                    "prime-mobile",
+                    controllerSpawnId),
+            ]);
+        // Every slot keeps its declared lifecycle profile and its declared
+        // allowed forms; only availability, generation and spawn move. A
+        // narrowed form list would drop the anchor route's target form, and a
+        // respawn spawn on a non-automatic profile is refused outright — both
+        // are the validator keeping the contract honest rather than obstacles.
+        ActorUnitSlotLifecycleAssignmentDefinition Assignment(
+            int teamId,
+            int unitId,
+            string spawnId)
+        {
+            ActorUnitSlotLifecycleAssignmentDefinition declared =
+                source.LifecycleAssignments.First(assignment =>
+                    assignment.TeamId == teamId
+                    && assignment.UnitId == unitId);
+            return new ActorUnitSlotLifecycleAssignmentDefinition(
+                teamId,
+                unitId,
+                declared.LifecycleProfileId,
+                // A tick-zero active slot must declare the generation its
+                // initial life carries; all of these are first lives.
+                initialGeneration: 0,
+                declared.AllowedFormIds,
+                ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind.ActiveAtTickZero,
+                unlockTick: null,
+                declared.AssignedRespawnSpawnId is null
+                    ? null
+                    : teamId == testedTeamId
+                        ? testedRespawnSpawnId
+                        : controllerRespawnSpawnId);
+        }
+
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            Assignment(testedTeamId, 0, testedSpawnId),
+            Assignment(testedTeamId, 1, reserveSpawnId),
+            Assignment(controllerTeamId, 0, controllerSpawnId),
+        ];
+        PublicMatchTopology topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot =>
+                    slot.UnitId == 0
+                    || slot.TeamId == testedTeamId && slot.UnitId == 1)
+                .ToImmutableArray(),
+            InitialLives =
+            [
+                new PublicInitialLife(testedTeamId, 0, 0, "prime-mobile"),
+                new PublicInitialLife(testedTeamId, 1, 0, "child-mobile"),
+                new PublicInitialLife(
+                    controllerTeamId,
+                    0,
+                    0,
+                    "prime-mobile"),
+            ],
+        };
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            topology,
+            deployment,
+            assignments,
+            [],
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static ActorResolvedMatchDefinition WithMobileProjectileDamage(
+        ActorResolvedMatchDefinition source,
+        int damagePerHit)
+    {
+        ActorAttackProfileDefinition[] attacks =
+        [
+            .. source.Rules.AttackProfiles.Select(profile =>
+            {
+                ActorProjectileDefinition projectile = profile.Projectile;
+                return new ActorAttackProfileDefinition(
+                    profile.Id,
+                    profile.OmnidirectionalAim,
+                    new ActorProjectileDefinition(
+                        projectile.Mode,
+                        damagePerHit,
+                        projectile.MaxTravelTiles,
+                        projectile.TicksPerAdvance,
+                        projectile.TilesPerAdvance,
+                        projectile.LaunchTiles,
+                        projectile.AdvancesOnLaunchTick,
+                        projectile.DamageAppliedSimultaneously,
+                        projectile.DiagonalCornersMustBeClear),
+                    profile.CooldownTicks,
+                    profile.MaxEnergy,
+                    profile.AttackEnergyCost,
+                    profile.EnergyRegenerationIntervalTicks,
+                    profile.EnergyRegenerationAmount,
+                    profile.ShotProgram);
+            }),
+        ];
+        ActorRulesDefinition rules = source.Rules;
+        var lethalRules = new ActorRulesDefinition(
+            rules.RulesetId,
+            rules.Limits,
+            rules.SeedMechanics,
+            rules.GameMode,
+            rules.Lifecycle,
+            rules.Forms,
+            rules.MovementProfiles,
+            rules.VisionProfiles,
+            attacks,
+            rules.Actions,
+            rules.FabricationTransitions,
+            rules.SameLifeTransitions,
+            rules.ReplicationTransitions,
+            rules.TeamPerception,
+            rules.Collisions,
+            rules.TickResolution);
+        return new ActorResolvedMatchDefinition(
+            lethalRules,
+            source.Map,
+            source.Format,
+            source.Topology,
+            source.InitialDeployment,
+            source.LifecycleAssignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
     }
 
     private static ActorResolvedMatchDefinition CreatePrimeOnlyProbe(

@@ -52,7 +52,9 @@ public static class FrontlineLabsQualificationCommand
             "runtime",
             "seed",
             "suite",
-            "out");
+            "out",
+            "profile",
+            "viewer");
         string botSpec = RequiredOption(options, "bot");
         string runtimeKind = options
             .GetValueOrDefault("runtime", "wasm")
@@ -64,9 +66,30 @@ public static class FrontlineLabsQualificationCommand
                 "(use wasm or in-process).");
         }
 
+        // Selecting a mind SUITE and passing --profile mind are the same
+        // request said two ways, so either alone is enough and the two must
+        // not be able to disagree: a mind suite on the per-life profile would
+        // record a mind profile ID over per-life evidence, which is exactly
+        // the confusion parallel IDs exist to prevent.
+        bool mindProfile = CliSupport.ParseLabsProfile(
+            options.GetValueOrDefault("profile"));
         string suiteId = options.GetValueOrDefault(
             "suite",
-            FrontlineLabsQualificationDefinition.SuiteId);
+            mindProfile
+                ? FrontlineLabsQualificationDefinition
+                    .MindFundamentalsSuiteId
+                : FrontlineLabsQualificationDefinition.SuiteId);
+        bool mindSuite = suiteId
+            is FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId
+            or FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+            or FrontlineLabsQualificationDefinition.MindPositionalSuiteId;
+        if (mindSuite && options.ContainsKey("profile") && !mindProfile)
+        {
+            throw new InvalidOperationException(
+                $"Suite '{suiteId}' is a mind suite; it cannot run on the "
+                + "per-life profile.");
+        }
+        mindProfile |= mindSuite;
         if (suiteId
             is not (
                 FrontlineLabsQualificationDefinition.SuiteId
@@ -74,11 +97,26 @@ public static class FrontlineLabsQualificationCommand
                 or FrontlineLabsQualificationDefinition
                     .FundamentalsSuiteId
                 or FrontlineLabsQualificationDefinition.TacticalSuiteId
-                or FrontlineLabsQualificationDefinition.PositionalSuiteId))
+                or FrontlineLabsQualificationDefinition.PositionalSuiteId
+                or FrontlineLabsQualificationDefinition
+                    .MindFundamentalsSuiteId
+                or FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+                or FrontlineLabsQualificationDefinition
+                    .MindPositionalSuiteId))
         {
             throw new InvalidOperationException(
                 $"Unknown qualification suite '{suiteId}'.");
         }
+        if (mindProfile && !mindSuite)
+        {
+            throw new InvalidOperationException(
+                $"Suite '{suiteId}' has no mind counterpart. The mind suites "
+                + "are frontline-mind-qualification-3/4/5.");
+        }
+        // Viewers are OPT-IN. A cumulative T4 run writes 38 replays, and
+        // embedding each one into a multi-megabyte theme template turned a
+        // 21 MB evidence directory into 214 MB of files nobody opened.
+        bool withViewer = options.ContainsKey("viewer");
         ulong seed = ParseSeed(
             options.GetValueOrDefault("seed", "104729"));
         string outputDirectory = Path.GetFullPath(
@@ -93,34 +131,50 @@ public static class FrontlineLabsQualificationCommand
                 botSpec,
                 runtimeKind,
                 seed,
-                outputDirectory);
+                outputDirectory,
+                withViewer);
         }
         if (suiteId
-            == FrontlineLabsQualificationDefinition.FundamentalsSuiteId)
+            == FrontlineLabsQualificationDefinition.FundamentalsSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId)
         {
             return FrontlineLabsFundamentalsQualificationCommand.Run(
                 botSpec,
                 runtimeKind,
                 seed,
-                outputDirectory);
+                outputDirectory,
+                printSummary: true,
+                mindProfile,
+                withViewer);
         }
         if (suiteId
-            == FrontlineLabsQualificationDefinition.TacticalSuiteId)
+            == FrontlineLabsQualificationDefinition.TacticalSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition.MindTacticalSuiteId)
         {
             return FrontlineLabsTacticalQualificationCommand.Run(
                 botSpec,
                 runtimeKind,
                 seed,
-                outputDirectory);
+                outputDirectory,
+                printSummary: true,
+                mindProfile,
+                withViewer);
         }
         if (suiteId
-            == FrontlineLabsQualificationDefinition.PositionalSuiteId)
+            == FrontlineLabsQualificationDefinition.PositionalSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition
+                    .MindPositionalSuiteId)
         {
             return FrontlineLabsPositionalQualificationCommand.Run(
                 botSpec,
                 runtimeKind,
                 seed,
-                outputDirectory);
+                outputDirectory,
+                mindProfile,
+                withViewer);
         }
 
         ActorResolvedMatchDefinition definition =
@@ -138,8 +192,8 @@ public static class FrontlineLabsQualificationCommand
         string? actualRuntimeKind = null;
         foreach (int botTeamId in new[] { 0, 1 })
         {
-            using ResolvedGenericActorBot bot =
-                ResolvedGenericActorBot.Resolve(
+            using ResolvedLabsEntrant bot =
+                ResolvedLabsEntrant.Resolve(
                     botSpec,
                     runtimeKind,
                     quiet: botTeamId != 0);
@@ -204,7 +258,9 @@ public static class FrontlineLabsQualificationCommand
                 $"bot-team-{botTeamId}");
             WrittenReplay written = ReplayOutput.WriteJson(
                 replay.CanonicalJson,
-                assignmentDirectory);
+                assignmentDirectory,
+                themeId: null,
+                withViewer);
             evidence.Add(
                 Analyze(
                     replay.CanonicalJson,
@@ -353,15 +409,15 @@ public static class FrontlineLabsQualificationCommand
                      .GetProperty("ticks")
                      .EnumerateArray())
         {
-            foreach (JsonElement turn in tick
-                         .GetProperty("actorTurns")
-                         .EnumerateArray())
+            // Profile-neutral: a per-life document yields one entry per body
+            // turn, a mind document yields one per body RESOLUTION inside the
+            // participant's single turn. The probe measures behaviour, and
+            // behaviour is the same question on both.
+            foreach (ProbeTurn turn in ProbeReplay.Turns(tick))
             {
-                int participantId = turn
-                    .GetProperty("participantId")
-                    .GetInt32();
+                int participantId = turn.ParticipantId;
                 JsonElement submitted =
-                    turn.GetProperty("submittedDecision");
+                    turn.SubmittedDecision;
                 string? actionId = submitted.ValueKind
                         == JsonValueKind.Object
                     ? submitted
@@ -381,9 +437,7 @@ public static class FrontlineLabsQualificationCommand
                     actionCounts[actionId] =
                         actionCounts.GetValueOrDefault(actionId) + 1;
                 }
-                JsonElement self = turn
-                    .GetProperty("observation")
-                    .GetProperty("self");
+                JsonElement self = turn.Self;
                 JsonElement actorId = self.GetProperty("actorId");
                 if (actorId.GetProperty("unitId").GetInt32() != 0)
                     continue;
@@ -406,7 +460,7 @@ public static class FrontlineLabsQualificationCommand
                     continue;
                 }
 
-                int tickNumber = turn.GetProperty("tick").GetInt32();
+                int tickNumber = turn.Tick;
                 firstObjectiveTick ??= tickNumber;
                 if (lifeId == 0)
                 {
@@ -415,8 +469,7 @@ public static class FrontlineLabsQualificationCommand
                     firstLifeObjectiveObservationCount++;
                 }
 
-                JsonElement mode = turn
-                    .GetProperty("observation")
+                JsonElement mode = turn.Observation
                     .GetProperty("mode");
                 if (mode.GetProperty("activePositionIndex").GetInt32() == 2
                     && mode.GetProperty("claimingTeamId").ValueKind

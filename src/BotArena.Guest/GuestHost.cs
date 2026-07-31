@@ -171,6 +171,33 @@ public static class GuestHost
             botFactory);
 
     /// <summary>
+    /// THE MIGRATION ADAPTER, exposed. Wraps an ordinary per-life
+    /// <see cref="IGenericActorBot"/> as a mind that hosts one sub-brain per
+    /// live body, reproducing per-life memory semantics exactly.
+    ///
+    /// <para>Artifacts get this for free — <c>RunDetected</c> installs it
+    /// automatically for a type that implements only
+    /// <see cref="IGenericActorBot"/>. It is public so the CLI's DIAGNOSTIC
+    /// in-process loop and the qualification runner's own controllers run the
+    /// SAME facade the artifact runs: a wrapped bot that behaves one way in
+    /// WASM and another in-process would make the fast loop lie about exactly
+    /// the migration the profile depends on.</para>
+    /// </summary>
+    /// <param name="botName">
+    /// The framework-owned selector, forwarded to the factory on every
+    /// sub-brain construction.
+    /// </param>
+    /// <param name="botFactory">Creates one per-life bot per body life.</param>
+    public static IGenericMindBot WrapPerLife(
+        string botName,
+        Func<string, IGenericActorBot> botFactory)
+    {
+        ArgumentNullException.ThrowIfNull(botName);
+        ArgumentNullException.ThrowIfNull(botFactory);
+        return new WrappedPerLifeMind(botFactory, botName);
+    }
+
+    /// <summary>
     /// Framework/test artifact supporting both historical duel bots and
     /// entity bots. Player artifacts normally use one of the single-family
     /// overloads above.

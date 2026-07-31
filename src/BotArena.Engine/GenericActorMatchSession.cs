@@ -669,7 +669,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     turn.Commands,
                     turn.ResolvedBodies,
                     turn.RejectedIntents,
-                    turn.RuntimeFault)),
+                    turn.RuntimeFault,
+                    turn.DebugMessage)),
         ];
     }
 

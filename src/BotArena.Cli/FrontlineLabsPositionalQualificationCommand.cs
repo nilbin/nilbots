@@ -38,6 +38,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
         Prediction,
         Rotation,
         MapHoldout,
+        EscortIntegrity,
     }
 
     private sealed record CasePlan(
@@ -132,13 +133,20 @@ internal static class FrontlineLabsPositionalQualificationCommand
         string botSpec,
         string runtimeKind,
         ulong seed,
-        string outputDirectory)
+        string outputDirectory,
+        bool mindProfile = false,
+        bool withViewer = false)
     {
+        string suiteId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindPositionalSuiteId
+            : FrontlineLabsQualificationDefinition.PositionalSuiteId;
+        string profileId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindPositionalProfileId
+            : FrontlineLabsQualificationDefinition.PositionalProfileId;
         if (runtimeKind != "wasm")
         {
             throw new InvalidOperationException(
-                $"{FrontlineLabsQualificationDefinition.PositionalSuiteId} " +
-                "requires the canonical WASM runtime.");
+                $"{suiteId} requires the canonical WASM runtime.");
         }
 
         string prerequisiteDirectory = Path.Combine(
@@ -150,13 +158,16 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 runtimeKind,
                 seed,
                 prerequisiteDirectory,
-                printSummary: false);
+                printSummary: false,
+                mindProfile,
+                withViewer);
         string prerequisiteReportPath = Path.Combine(
             prerequisiteDirectory,
             "qualification.json");
         PrerequisiteEvidence prerequisite = ReadPrerequisite(
             prerequisiteReportPath,
-            outputDirectory);
+            outputDirectory,
+            mindProfile);
         if (prerequisiteExit == 2)
         {
             Console.WriteLine(
@@ -211,6 +222,24 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 AnalysisKind.MapHoldout,
                 FrontlineLabsQualificationDefinition
                     .CreateMapHoldoutProbe),
+            // The mind-native T4 case: the escorted channel, which is the
+            // set-piece the profile exists to make authorable and the one the
+            // last per-life cohort measured as the intended play its authors
+            // could barely execute.
+            .. mindProfile
+                ? new CasePlan[]
+                {
+                    new(
+                        FrontlineLabsQualificationDefinition
+                            .EscortIntegrityProbeId,
+                        "stationary-claim-with-escort",
+                        "current",
+                        ControllerKind.Wait,
+                        AnalysisKind.EscortIntegrity,
+                        FrontlineLabsQualificationDefinition
+                            .CreateEscortIntegrityProbe),
+                }
+                : [],
         ];
 
         string? artifactName = null;
@@ -223,6 +252,11 @@ internal static class FrontlineLabsPositionalQualificationCommand
             {
                 ActorResolvedMatchDefinition definition =
                     plan.Definition(botTeamId);
+                if (mindProfile)
+                {
+                    definition = definition.OnProfile(
+                        ActorMatchCapabilityVersions.Mind);
+                }
                 int botParticipantId = definition.Topology.Participants
                     .Single(participant =>
                         participant.TeamId == botTeamId)
@@ -237,6 +271,8 @@ internal static class FrontlineLabsPositionalQualificationCommand
                     botParticipantId,
                     outputDirectory,
                     quiet: artifactName is not null,
+                    mindProfile,
+                    withViewer,
                     ref artifactName,
                     ref artifactHash,
                     ref actualRuntimeKind);
@@ -257,7 +293,9 @@ internal static class FrontlineLabsPositionalQualificationCommand
                                 definition.Topology),
                             ActorContractFingerprint.ComputeMatch(
                                 definition),
-                            ControllerFingerprint(plan.Controller),
+                            QualificationControllerHost.Fingerprint(
+                                ControllerFingerprint(plan.Controller),
+                                mindProfile),
                             AnalyzerFingerprint,
                             run,
                             run.Passed,
@@ -327,11 +365,11 @@ internal static class FrontlineLabsPositionalQualificationCommand
             : prerequisite.TierAwarded;
         var fingerprintParts = new List<string>
         {
-            FrontlineLabsQualificationDefinition.PositionalSuiteId,
+            suiteId,
             FrontlineLabsQualificationDefinition.PositionalSuiteVersion
                 .ToString(
                     System.Globalization.CultureInfo.InvariantCulture),
-            FrontlineLabsQualificationDefinition.PositionalProfileId,
+            profileId,
             prerequisite.QualificationContractFingerprint,
             PredicateFingerprint,
         };
@@ -350,9 +388,9 @@ internal static class FrontlineLabsPositionalQualificationCommand
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
             SchemaVersion: 6,
-            FrontlineLabsQualificationDefinition.PositionalSuiteId,
+            suiteId,
             FrontlineLabsQualificationDefinition.PositionalSuiteVersion,
-            FrontlineLabsQualificationDefinition.PositionalProfileId,
+            profileId,
             qualificationFingerprint,
             resolvedArtifactName,
             resolvedArtifactHash,
@@ -362,7 +400,8 @@ internal static class FrontlineLabsPositionalQualificationCommand
             Passed: t4Passed,
             ProfileComplete: true,
             tierAwarded,
-            CoordinationGradeAwarded: null,
+            // The C-axis folds into the tiers for a mind artifact (§6.2).
+            CoordinationGradeAwarded: mindProfile ? "folded-into-tiers" : null,
             BalanceEvidenceEligible: t4Passed,
             probes);
         string reportPath = Path.Combine(
@@ -421,14 +460,17 @@ internal static class FrontlineLabsPositionalQualificationCommand
         int botParticipantId,
         string outputDirectory,
         bool quiet,
+        bool mindProfile,
+        bool withViewer,
         ref string? artifactName,
         ref string? artifactHash,
         ref string? actualRuntimeKind)
     {
-        using ResolvedGenericActorBot bot =
-            ResolvedGenericActorBot.Resolve(
+        using ResolvedLabsEntrant bot =
+            ResolvedLabsEntrant.Resolve(
                 botSpec,
                 runtimeKind,
+                mindProfile,
                 quiet);
         artifactName ??= bot.Name;
         artifactHash ??= bot.ArtifactHash;
@@ -446,16 +488,21 @@ internal static class FrontlineLabsPositionalQualificationCommand
             .Single(participant =>
                 participant.TeamId == controllerTeamId)
             .ParticipantId;
-        using IGenericActorRuntimeFactory controllerFactory =
-            ControllerFactory(plan.Controller);
+        using QualificationControllerHost controllerHost =
+            QualificationControllerHost.Create(
+                ControllerName(plan.Controller),
+                () => Controller(plan.Controller),
+                mindProfile);
         GenericActorParticipantConfiguration botParticipant =
             bot.ToParticipant(botParticipantId, botTeamId);
         GenericActorParticipantConfiguration controllerParticipant =
-            ControllerParticipant(
-                plan.Controller,
-                controllerFactory,
+            controllerHost.ToParticipant(
                 controllerParticipantId,
-                controllerTeamId);
+                controllerTeamId,
+                ControllerName(plan.Controller),
+                QualificationControllerHost.Fingerprint(
+                    ControllerFingerprint(plan.Controller),
+                    mindProfile));
         GenericActorParticipantConfiguration[] participants =
             botParticipantId < controllerParticipantId
                 ? [botParticipant, controllerParticipant]
@@ -530,20 +577,26 @@ internal static class FrontlineLabsPositionalQualificationCommand
         int? firstLifeObjectiveTick = null;
         int threatTurnCount = 0;
         var threatMoveTicks = new HashSet<int>();
+        // Escort integrity needs where every own body stood, tick by tick:
+        // one still on the point, another beside it. Both halves are a fact
+        // about the ARMY rather than about any body, which is why the per-life
+        // suites never had to collect it.
+        var ownPositionsByTick = new SortedDictionary<int, List<(int UnitId,
+            Position Position)>>();
         foreach (JsonElement tick in root
                      .GetProperty("ticks")
                      .EnumerateArray())
         {
-            foreach (JsonElement turn in tick
-                         .GetProperty("actorTurns")
-                         .EnumerateArray()
+            // Profile-neutral: a per-life document yields one entry per body
+            // turn, a mind document yields one per body RESOLUTION inside the
+            // participant's single turn.
+            foreach (ProbeTurn turn in ProbeReplay.Turns(tick)
                          .Where(turn =>
-                             turn.GetProperty("participantId").GetInt32()
-                                == botParticipantId))
+                             turn.ParticipantId == botParticipantId))
             {
                 botTurnCount++;
                 JsonElement resolution =
-                    turn.GetProperty("actionResolution");
+                    turn.ActionResolution;
                 string? acceptedActionId = AcceptedActionId(resolution);
                 bool success =
                     resolution.GetProperty("outcome").GetString()
@@ -561,8 +614,18 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 }
 
                 JsonElement observation =
-                    turn.GetProperty("observation");
-                JsonElement self = observation.GetProperty("self");
+                    turn.Observation;
+                JsonElement self = turn.Self;
+                if (!ownPositionsByTick.TryGetValue(
+                        turn.Tick,
+                        out List<(int, Position)>? standing))
+                {
+                    standing = [];
+                    ownPositionsByTick[turn.Tick] = standing;
+                }
+                standing.Add((
+                    turn.UnitId,
+                    ReadPosition(self.GetProperty("position"))));
                 JsonElement actorId = self.GetProperty("actorId");
                 int lifeId = actorId.GetProperty("lifeId").GetInt32();
                 int health = self.GetProperty("health").GetInt32();
@@ -579,7 +642,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
                     && firstLifeObjectiveTick is null)
                 {
                     firstLifeObjectiveTick =
-                        turn.GetProperty("tick").GetInt32();
+                        turn.Tick;
                     healthAtFirstLifeObjective = health;
                 }
 
@@ -608,7 +671,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
                     && movementActions.Contains(acceptedActionId))
                 {
                     threatMoveTicks.Add(
-                        turn.GetProperty("tick").GetInt32());
+                        turn.Tick);
                 }
             }
         }
@@ -699,6 +762,10 @@ internal static class FrontlineLabsPositionalQualificationCommand
             }
         }
 
+        int maxEscortTicks = MaxConsecutiveEscortTicks(
+            root,
+            contract,
+            ownPositionsByTick);
         int maxCaptureTicks = MaxConsecutiveCaptureTicks(
             root,
             contract,
@@ -776,6 +843,21 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 criteria.Add((
                     "held-sole-objective-control-for-an-uninterrupted-run",
                     maxCaptureTicks >= 5));
+                break;
+            case AnalysisKind.EscortIntegrity:
+                criteria.Add((
+                    "kept-a-body-still-on-the-point-with-another-beside-it-"
+                    + $"for-{FrontlineLabsQualificationDefinition
+                        .EscortIntegrityTicks}-consecutive-ticks",
+                    maxEscortTicks
+                        >= FrontlineLabsQualificationDefinition
+                            .EscortIntegrityTicks));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks
+                        >= FrontlineLabsQualificationDefinition
+                            .EscortIntegrityTicks));
+                criteria.Add(("took-no-damage", damageTaken == 0));
                 break;
             case AnalysisKind.Prediction:
                 criteria.Add((
@@ -860,6 +942,15 @@ internal static class FrontlineLabsPositionalQualificationCommand
     private static string Expectation(AnalysisKind analysis) =>
         analysis switch
         {
+            AnalysisKind.EscortIntegrity =>
+                "Run the escorted channel: keep one body STILL on the active "
+                + "objective with another of your bodies adjacent to it for "
+                + $"{FrontlineLabsQualificationDefinition
+                    .EscortIntegrityTicks} consecutive ticks, holding sole "
+                + "control across that run and taking no damage. Under the "
+                + "channel the claim is built by bodies that did not change "
+                + "tile, and the screen is what makes standing still "
+                + "survivable.",
             AnalysisKind.Suppression =>
                 "Suppress from the ground you already hold: your first "
                 + "accepted action must be an attack, all of your fire must "
@@ -900,7 +991,8 @@ internal static class FrontlineLabsPositionalQualificationCommand
 
     private static PrerequisiteEvidence ReadPrerequisite(
         string reportPath,
-        string outputDirectory)
+        string outputDirectory,
+        bool mindProfile)
     {
         byte[] bytes = File.ReadAllBytes(reportPath);
         using JsonDocument document = JsonDocument.Parse(bytes);
@@ -911,12 +1003,17 @@ internal static class FrontlineLabsPositionalQualificationCommand
             root.GetProperty("qualificationProfileId").GetString()!;
         if (
             suiteId
-                != FrontlineLabsQualificationDefinition.TacticalSuiteId
+                != (mindProfile
+                    ? FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+                    : FrontlineLabsQualificationDefinition.TacticalSuiteId)
             || suiteVersion
                 != FrontlineLabsQualificationDefinition
                     .TacticalSuiteVersion
             || profileId
-                != FrontlineLabsQualificationDefinition.TacticalProfileId)
+                != (mindProfile
+                    ? FrontlineLabsQualificationDefinition
+                        .MindTacticalProfileId
+                    : FrontlineLabsQualificationDefinition.TacticalProfileId))
         {
             throw new InvalidOperationException(
                 "T4 qualification requires the exact immutable cumulative " +
@@ -946,6 +1043,56 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 tick.GetProperty("events").EnumerateArray())
             .Where(item =>
                 item.GetProperty("kind").GetString() == kind);
+
+    /// <summary>
+    /// The longest run of consecutive ticks on which one own body stood STILL
+    /// on an active objective tile while another own body stood adjacent to
+    /// it.
+    ///
+    /// <para>Stillness is positional, exactly as the capture channel defines
+    /// it: a body that did not change tile since the previous tick was still,
+    /// whatever it asked for and whatever it was doing. Adjacency is
+    /// Chebyshev-1, which is where a screen has to be to be between the
+    /// channeler and anything.</para>
+    /// </summary>
+    private static int MaxConsecutiveEscortTicks(
+        JsonElement root,
+        JsonElement contract,
+        IReadOnlyDictionary<int, List<(int UnitId, Position Position)>>
+            ownPositionsByTick)
+    {
+        _ = root;
+        var previous = new Dictionary<int, Position>();
+        int consecutive = 0;
+        int maximum = 0;
+        foreach ((int tick, List<(int UnitId, Position Position)> standing)
+                 in ownPositionsByTick.OrderBy(entry => entry.Key))
+        {
+            Position[] objective = ActiveObjectiveTiles(
+                contract,
+                root.GetProperty("ticks")
+                    .EnumerateArray()
+                    .First(frame =>
+                        frame.GetProperty("tick").GetInt32() == tick)
+                    .GetProperty("postState"));
+            bool escorted = standing.Any(holder =>
+                objective.Contains(holder.Position)
+                && previous.TryGetValue(
+                    holder.UnitId,
+                    out Position before)
+                && before == holder.Position
+                && standing.Any(screen =>
+                    screen.UnitId != holder.UnitId
+                    && screen.Position.ChebyshevDistance(holder.Position)
+                        == 1));
+            consecutive = escorted ? consecutive + 1 : 0;
+            maximum = Math.Max(maximum, consecutive);
+            previous.Clear();
+            foreach ((int unitId, Position position) in standing)
+                previous[unitId] = position;
+        }
+        return maximum;
+    }
 
     private static int MaxConsecutiveCaptureTicks(
         JsonElement root,
@@ -1087,49 +1234,27 @@ internal static class FrontlineLabsPositionalQualificationCommand
             value.GetProperty("x").GetInt32(),
             value.GetProperty("y").GetInt32());
 
-    private static IGenericActorRuntimeFactory ControllerFactory(
-        ControllerKind kind) =>
+    private static Sdk.IGenericActorBot Controller(ControllerKind kind) =>
         kind switch
         {
             ControllerKind.Wait =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationWaitController()),
+                new FrontlineLabsQualificationWaitController(),
             ControllerKind.OneShot =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationOneShotController()),
+                new FrontlineLabsQualificationOneShotController(),
             ControllerKind.Pressure =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationSentinel()),
+                new FrontlineLabsQualificationSentinel(),
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };
 
-    private static GenericActorParticipantConfiguration
-        ControllerParticipant(
-            ControllerKind kind,
-            IGenericActorRuntimeFactory runtimeFactory,
-            int participantId,
-            int teamId) =>
-        new()
+    private static string ControllerName(ControllerKind kind) =>
+        kind switch
         {
-            ParticipantId = participantId,
-            TeamId = teamId,
-            Name = kind switch
-            {
-                ControllerKind.Wait =>
-                    "Qualification Passive Controller",
-                ControllerKind.OneShot =>
-                    "Qualification One-Shot Controller",
-                ControllerKind.Pressure =>
-                    "Qualification Pressure Controller",
-                _ => "Qualification Controller",
-            },
-            RuntimeFactory = runtimeFactory,
-            RuntimeKind = "in-process-qualification-controller",
-            ArtifactHash = ControllerFingerprint(kind),
-            Accent = "#f97316",
-            LookId = "bastion",
-            ProjectileLookId = "ember-lance",
+            ControllerKind.Wait => "Qualification Passive Controller",
+            ControllerKind.OneShot => "Qualification One-Shot Controller",
+            ControllerKind.Pressure => "Qualification Pressure Controller",
+            _ => throw new InvalidOperationException(
+                "Unknown qualification controller."),
         };
 
     private static string ControllerFingerprint(ControllerKind kind) =>

@@ -18,6 +18,8 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         "frontline-qualification-wait-controller-v1";
     private const string OneShotControllerFingerprint =
         "frontline-qualification-one-shot-controller-v1";
+    private const string PressureControllerFingerprint =
+        "frontline-qualification-pressure-controller-v1";
     private const string AnalyzerFingerprint =
         "frontline-qualification-3-t2-analyzer-v1";
     private const string PredicateFingerprint =
@@ -33,6 +35,7 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
     {
         Wait,
         OneShot,
+        Pressure,
     }
 
     private enum AnalysisKind
@@ -43,6 +46,7 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         DirectFire,
         StraightEvade,
         ManualFabrication,
+        BodyHandoff,
     }
 
     private sealed record ProbePlan(
@@ -125,13 +129,20 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         string runtimeKind,
         ulong seed,
         string outputDirectory,
-        bool printSummary = true)
+        bool printSummary = true,
+        bool mindProfile = false,
+        bool withViewer = false)
     {
+        string suiteId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId
+            : FrontlineLabsQualificationDefinition.FundamentalsSuiteId;
+        string profileId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindFundamentalsProfileId
+            : FrontlineLabsQualificationDefinition.FundamentalsProfileId;
         if (runtimeKind != "wasm")
         {
             throw new InvalidOperationException(
-                $"{FrontlineLabsQualificationDefinition.FundamentalsSuiteId} " +
-                "requires the canonical WASM runtime.");
+                $"{suiteId} requires the canonical WASM runtime.");
         }
 
         ProbePlan[] plans =
@@ -186,6 +197,25 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 DeterminismRepeat: false,
                 _ => FrontlineLabsQualificationDefinition
                     .CreateManualFabricationProbe()),
+            // The mind-native T2 competency, replacing the documented
+            // respawn-reorient requirement that persistent memory made
+            // vacuous. It only exists on the mind suites, because on the
+            // per-life profile it is not merely hard — the plan has no
+            // carrier once the body holding it dies.
+            .. mindProfile
+                ? new ProbePlan[]
+                {
+                    new(
+                        FrontlineLabsQualificationDefinition
+                            .BodyHandoffProbeId,
+                        "T2",
+                        ControllerKind.Pressure,
+                        AnalysisKind.BodyHandoff,
+                        DeterminismRepeat: false,
+                        FrontlineLabsQualificationDefinition
+                            .CreateBodyHandoffProbe),
+                }
+                : [],
         ];
 
         string? artifactName = null;
@@ -199,6 +229,11 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             {
                 ActorResolvedMatchDefinition definition =
                     plan.Definition(botTeamId);
+                if (mindProfile)
+                {
+                    definition = definition.OnProfile(
+                        ActorMatchCapabilityVersions.Mind);
+                }
                 int botParticipantId = definition.Topology.Participants
                     .Single(participant =>
                         participant.TeamId == botTeamId)
@@ -214,6 +249,8 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                     outputDirectory,
                     "primary",
                     quiet: artifactName is not null,
+                    mindProfile,
+                    withViewer,
                     ref artifactName,
                     ref artifactHash,
                     ref actualRuntimeKind);
@@ -229,6 +266,8 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                         outputDirectory,
                         "determinism-repeat",
                         quiet: true,
+                        mindProfile,
+                        withViewer,
                         ref artifactName,
                         ref artifactHash,
                         ref actualRuntimeKind)
@@ -261,7 +300,9 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                         ActorContractFingerprint.ComputeTopology(
                             definition.Topology),
                         ActorContractFingerprint.ComputeMatch(definition),
-                        ControllerFingerprint(plan.Controller),
+                        QualificationControllerHost.Fingerprint(
+                            ControllerFingerprint(plan.Controller),
+                            mindProfile),
                         AnalyzerFingerprint,
                         primary,
                         repeat,
@@ -306,12 +347,12 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 : null;
         var fingerprintParts = new List<string>
         {
-            FrontlineLabsQualificationDefinition.FundamentalsSuiteId,
+            suiteId,
             FrontlineLabsQualificationDefinition
                 .FundamentalsSuiteVersion
                 .ToString(
                     System.Globalization.CultureInfo.InvariantCulture),
-            FrontlineLabsQualificationDefinition.FundamentalsProfileId,
+            profileId,
             PredicateFingerprint,
         };
         fingerprintParts.AddRange(
@@ -328,9 +369,9 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
             SchemaVersion: 4,
-            FrontlineLabsQualificationDefinition.FundamentalsSuiteId,
+            suiteId,
             FrontlineLabsQualificationDefinition.FundamentalsSuiteVersion,
-            FrontlineLabsQualificationDefinition.FundamentalsProfileId,
+            profileId,
             qualificationFingerprint,
             resolvedArtifactName,
             resolvedArtifactHash,
@@ -339,7 +380,15 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             Passed: t2Passed,
             ProfileComplete: true,
             tierAwarded,
-            CoordinationGradeAwarded: null,
+            // The C-axis folds into the tiers for a mind artifact (§6.2):
+            // C1's stable roles and non-duplicated single-owner task, C2's
+            // health-and-position-driven focus, and C4's role rotation after
+            // death are one-line expressions under a mind, so they became pass
+            // predicates instead of a separate grade. C3 and C5 retire for
+            // minds — "avoid synchronized predictability" is trivially
+            // satisfiable by one decider and stopped being diagnostic. The
+            // axis stays alive, unchanged, for per-life artifacts.
+            CoordinationGradeAwarded: mindProfile ? "folded-into-tiers" : null,
             BalanceEvidenceEligible: false,
             probes);
         string reportPath = Path.Combine(
@@ -406,14 +455,17 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         string outputDirectory,
         string runId,
         bool quiet,
+        bool mindProfile,
+        bool withViewer,
         ref string? artifactName,
         ref string? artifactHash,
         ref string? actualRuntimeKind)
     {
-        using ResolvedGenericActorBot bot =
-            ResolvedGenericActorBot.Resolve(
+        using ResolvedLabsEntrant bot =
+            ResolvedLabsEntrant.Resolve(
                 botSpec,
                 runtimeKind,
+                mindProfile,
                 quiet);
         artifactName ??= bot.Name;
         artifactHash ??= bot.ArtifactHash;
@@ -431,16 +483,21 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             .Single(participant =>
                 participant.TeamId == controllerTeamId)
             .ParticipantId;
-        using IGenericActorRuntimeFactory controllerFactory =
-            ControllerFactory(plan.Controller);
+        using QualificationControllerHost controllerHost =
+            QualificationControllerHost.Create(
+                ControllerName(plan.Controller),
+                () => Controller(plan.Controller),
+                mindProfile);
         GenericActorParticipantConfiguration botParticipant =
             bot.ToParticipant(botParticipantId, botTeamId);
         GenericActorParticipantConfiguration controllerParticipant =
-            ControllerParticipant(
-                plan.Controller,
-                controllerFactory,
+            controllerHost.ToParticipant(
                 controllerParticipantId,
-                controllerTeamId);
+                controllerTeamId,
+                ControllerName(plan.Controller),
+                QualificationControllerHost.Fingerprint(
+                    ControllerFingerprint(plan.Controller),
+                    mindProfile));
         GenericActorParticipantConfiguration[] participants =
             botParticipantId < controllerParticipantId
                 ? [botParticipant, controllerParticipant]
@@ -468,7 +525,9 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             runId);
         WrittenReplay written = ReplayOutput.WriteJson(
             replay.CanonicalJson,
-            runDirectory);
+            runDirectory,
+            themeId: null,
+            withViewer);
         return Analyze(
             plan.Analysis,
             replay.CanonicalJson,
@@ -536,6 +595,13 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 .GetProperty("reason")
                 .GetString() == "fabrication");
 
+        // The mind-native T2 probe needs three facts the per-life analyzers
+        // never had to collect: which own body was on the point and when,
+        // which own body stopped existing, and whether the army got in its own
+        // way. All three are read off the same pass.
+        var objectiveTicksByUnit = new Dictionary<int, List<int>>();
+        var turnTicksByUnit = new Dictionary<int, SortedSet<int>>();
+        int ownBlockedMoveCount = 0;
         int botTurnCount = 0;
         int faultedTurnCount = 0;
         int acceptedAttackCount = 0;
@@ -549,18 +615,20 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                      .GetProperty("ticks")
                      .EnumerateArray())
         {
-            foreach (JsonElement turn in tick
-                         .GetProperty("actorTurns")
-                         .EnumerateArray())
+            // Profile-neutral: a per-life document yields one entry per body
+            // turn, a mind document yields one per body RESOLUTION inside the
+            // participant's single turn. The probe measures behaviour, and
+            // behaviour is the same question on both.
+            foreach (ProbeTurn turn in ProbeReplay.Turns(tick))
             {
-                if (turn.GetProperty("participantId").GetInt32()
+                if (turn.ParticipantId
                     != botParticipantId)
                 {
                     continue;
                 }
                 botTurnCount++;
                 JsonElement resolution =
-                    turn.GetProperty("actionResolution");
+                    turn.ActionResolution;
                 if (
                     resolution.GetProperty("outcome").GetString()
                         == "faulted"
@@ -583,11 +651,40 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 }
 
                 JsonElement observation =
-                    turn.GetProperty("observation");
-                JsonElement self = observation.GetProperty("self");
+                    turn.Observation;
+                JsonElement self = turn.Self;
                 int unitId = self.GetProperty("actorId")
                     .GetProperty("unitId")
                     .GetInt32();
+                if (!turnTicksByUnit.TryGetValue(
+                        unitId,
+                        out SortedSet<int>? turnTicks))
+                {
+                    turnTicks = [];
+                    turnTicksByUnit[unitId] = turnTicks;
+                }
+                turnTicks.Add(turn.Tick);
+                if (acceptedActionId is not null
+                    && movementActions.Contains(acceptedActionId)
+                    && resolution.GetProperty("outcome").GetString()
+                        == "blocked")
+                {
+                    ownBlockedMoveCount++;
+                }
+                Position[] activeObjective =
+                    ActiveObjectiveTiles(contract, observation);
+                if (activeObjective.Contains(
+                        ReadPosition(self.GetProperty("position"))))
+                {
+                    if (!objectiveTicksByUnit.TryGetValue(
+                            unitId,
+                            out List<int>? held))
+                    {
+                        held = [];
+                        objectiveTicksByUnit[unitId] = held;
+                    }
+                    held.Add(turn.Tick);
+                }
                 if (unitId != 0)
                 {
                     childTurnCount++;
@@ -667,6 +764,9 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             minimumChildDistance[pair.Key] < pair.Value
             || damagingChildUnits.Contains(pair.Key));
 
+        (int? handoffLossTick, int? handoffResumeTick) = BodyHandoff(
+            objectiveTicksByUnit,
+            turnTicksByUnit);
         (int? objectiveEntryTick, int maxConsecutiveCaptureTicks) =
             ObjectiveEvidence(root, contract, botTeamId);
         JsonElement finalState = root.GetProperty("ticks")
@@ -764,6 +864,26 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                     "at-least-one-child-life-took-a-turn",
                     childTurnCount > 0));
                 break;
+            case AnalysisKind.BodyHandoff:
+                criteria.Add((
+                    "lost-the-body-that-was-holding-the-point",
+                    handoffLossTick is not null));
+                criteria.Add((
+                    "another-body-resumed-the-point-within-"
+                    + $"{FrontlineLabsQualificationDefinition
+                        .BodyHandoffWindowTicks}-ticks",
+                    handoffLossTick is int lost
+                    && handoffResumeTick is int resumed
+                    && resumed - lost
+                        <= FrontlineLabsQualificationDefinition
+                            .BodyHandoffWindowTicks));
+                // The folded C1 predicate: an assignment cannot duplicate
+                // itself, and a mind that walks its own bodies into each other
+                // has not made one.
+                criteria.Add((
+                    "no-own-body-blocked-another",
+                    ownBlockedMoveCount == 0));
+                break;
             default:
                 criteria.Add(("known-analysis-kind", false));
                 break;
@@ -836,6 +956,13 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 + "be on its declared two-advance hazard path at least "
                 + "once, answer at least one such turn with a successful "
                 + "move, and finish having taken no damage.",
+            AnalysisKind.BodyHandoff =>
+                "Keep the job when you lose the body doing it: the body "
+                + "holding the objective is destroyed under fire, and another "
+                + "of your bodies takes the point within "
+                + $"{FrontlineLabsQualificationDefinition
+                    .BodyHandoffWindowTicks} ticks — without your own bodies "
+                + "blocking each other on the way.",
             AnalysisKind.ManualFabrication =>
                 "Use the explicit lifecycle: get at least one fabrication "
                 + "accepted, have the fabricated life actually start, and "
@@ -989,17 +1116,24 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 .GetString() == reason;
     }
 
-    private static IGenericActorRuntimeFactory ControllerFactory(
-        ControllerKind kind) =>
+    private static Sdk.IGenericActorBot Controller(ControllerKind kind) =>
         kind switch
         {
             ControllerKind.Wait =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationWaitController()),
+                new FrontlineLabsQualificationWaitController(),
             ControllerKind.OneShot =>
-                new InProcessGenericActorRuntimeFactory(
-                    () =>
-                        new FrontlineLabsQualificationOneShotController()),
+                new FrontlineLabsQualificationOneShotController(),
+            ControllerKind.Pressure =>
+                new FrontlineLabsQualificationSentinel(),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+
+    private static string ControllerName(ControllerKind kind) =>
+        kind switch
+        {
+            ControllerKind.Wait => "Qualification Passive Controller",
+            ControllerKind.OneShot => "Qualification One-Shot Controller",
+            ControllerKind.Pressure => "Qualification Pressure Controller",
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
@@ -1025,14 +1159,77 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         };
 
     private static string ControllerFingerprint(ControllerKind kind) =>
-        kind == ControllerKind.Wait
-            ? WaitControllerFingerprint
-            : OneShotControllerFingerprint;
+        kind switch
+        {
+            ControllerKind.Wait => WaitControllerFingerprint,
+            ControllerKind.OneShot => OneShotControllerFingerprint,
+            ControllerKind.Pressure => PressureControllerFingerprint,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
 
     private static string ControllerRole(ControllerKind kind) =>
-        kind == ControllerKind.Wait
-            ? "passive-wait-controller"
-            : "one-shot-straight-controller";
+        kind switch
+        {
+            ControllerKind.Wait => "passive-wait-controller",
+            ControllerKind.OneShot => "one-shot-straight-controller",
+            ControllerKind.Pressure =>
+                "repeated-straight-pressure-controller",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+
+    /// <summary>
+    /// The two ticks the handoff competency turns on: when a body that had
+    /// been holding the point stopped taking turns, and when a DIFFERENT own
+    /// body first stood on the point after that.
+    ///
+    /// <para>A body that stops taking turns has stopped existing — under this
+    /// probe's lethal bolts that is a destruction, and the probe's whole
+    /// question is whether the plan outlived it.</para>
+    /// </summary>
+    private static (int? LossTick, int? ResumeTick) BodyHandoff(
+        IReadOnlyDictionary<int, List<int>> objectiveTicksByUnit,
+        IReadOnlyDictionary<int, SortedSet<int>> turnTicksByUnit)
+    {
+        if (turnTicksByUnit.Count == 0)
+            return (null, null);
+        // A GAP in a slot's turns, not merely a missing tail: under an
+        // automatic return the slot comes back, so "stopped taking turns for
+        // ever" would miss every loss the probe is about.
+        int finalTurnTick = turnTicksByUnit.Values.Max(ticks => ticks.Max());
+        int? lossTick = null;
+        int? lostUnit = null;
+        foreach ((int unitId, SortedSet<int> ticks) in turnTicksByUnit
+                     .OrderBy(entry => entry.Key))
+        {
+            if (!objectiveTicksByUnit.TryGetValue(unitId, out List<int>? held)
+                || held.Count == 0)
+            {
+                continue;
+            }
+            foreach (int tick in ticks)
+            {
+                if (tick >= finalTurnTick || ticks.Contains(tick + 1))
+                    continue;
+                if (lossTick is null || tick < lossTick)
+                {
+                    lossTick = tick;
+                    lostUnit = unitId;
+                }
+                break;
+            }
+        }
+        if (lossTick is not int lost || lostUnit is not int gone)
+            return (null, null);
+
+        int? resumeTick = objectiveTicksByUnit
+            .Where(entry => entry.Key != gone)
+            .SelectMany(entry => entry.Value)
+            .Where(tick => tick > lost)
+            .OrderBy(tick => tick)
+            .Select(tick => (int?)tick)
+            .FirstOrDefault();
+        return (lost, resumeTick);
+    }
 
     private static string Fingerprint(string value) =>
         Convert.ToHexString(

@@ -1068,6 +1068,15 @@ export interface ReplayV3MindTurn {
   /** Reserved inter-mind declarations; always empty in v1. */
   intents: ReplayV3MindIntent[];
   runtimeFault: ReplayV3MindRuntimeFault | null;
+  /**
+   * The mind's own diagnostic text for this tick, omitted when inert.
+   *
+   * It sits on the TURN rather than on a command because a mind reasons once
+   * per tick over its whole army — and on a tick where it owns no live body
+   * there is no command for it to ride on at all. A faulted turn never carries
+   * one: the reply that would have carried it never parsed.
+   */
+  debugMessage?: string;
 }
 
 export type ReplayV3MindCommandOutcome = 'accepted' | 'rejected';

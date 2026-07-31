@@ -134,13 +134,20 @@ internal static class FrontlineLabsTacticalQualificationCommand
         string runtimeKind,
         ulong seed,
         string outputDirectory,
-        bool printSummary = true)
+        bool printSummary = true,
+        bool mindProfile = false,
+        bool withViewer = false)
     {
+        string suiteId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+            : FrontlineLabsQualificationDefinition.TacticalSuiteId;
+        string profileId = mindProfile
+            ? FrontlineLabsQualificationDefinition.MindTacticalProfileId
+            : FrontlineLabsQualificationDefinition.TacticalProfileId;
         if (runtimeKind != "wasm")
         {
             throw new InvalidOperationException(
-                $"{FrontlineLabsQualificationDefinition.TacticalSuiteId} " +
-                "requires the canonical WASM runtime.");
+                $"{suiteId} requires the canonical WASM runtime.");
         }
 
         string prerequisiteDirectory = Path.Combine(
@@ -152,13 +159,16 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 runtimeKind,
                 seed,
                 prerequisiteDirectory,
-                printSummary: false);
+                printSummary: false,
+                mindProfile,
+                withViewer);
         string prerequisiteReportPath = Path.Combine(
             prerequisiteDirectory,
             "qualification.json");
         PrerequisiteEvidence prerequisite = ReadPrerequisite(
             prerequisiteReportPath,
-            outputDirectory);
+            outputDirectory,
+            mindProfile);
         if (prerequisiteExit == 2)
         {
             Console.WriteLine(
@@ -226,6 +236,11 @@ internal static class FrontlineLabsTacticalQualificationCommand
             {
                 ActorResolvedMatchDefinition definition =
                     plan.Definition(botTeamId);
+                if (mindProfile)
+                {
+                    definition = definition.OnProfile(
+                        ActorMatchCapabilityVersions.Mind);
+                }
                 int botParticipantId = definition.Topology.Participants
                     .Single(participant =>
                         participant.TeamId == botTeamId)
@@ -240,6 +255,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
                     botParticipantId,
                     outputDirectory,
                     quiet: artifactName is not null,
+                    mindProfile,
+                    withViewer,
                     ref artifactName,
                     ref artifactHash,
                     ref actualRuntimeKind);
@@ -260,7 +277,9 @@ internal static class FrontlineLabsTacticalQualificationCommand
                                 definition.Topology),
                             ActorContractFingerprint.ComputeMatch(
                                 definition),
-                            ControllerFingerprint(plan.Controller),
+                            QualificationControllerHost.Fingerprint(
+                                ControllerFingerprint(plan.Controller),
+                                mindProfile),
                             AnalyzerFingerprint,
                             run,
                             run.Passed,
@@ -354,9 +373,9 @@ internal static class FrontlineLabsTacticalQualificationCommand
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
             SchemaVersion: 5,
-            FrontlineLabsQualificationDefinition.TacticalSuiteId,
+            suiteId,
             FrontlineLabsQualificationDefinition.TacticalSuiteVersion,
-            FrontlineLabsQualificationDefinition.TacticalProfileId,
+            profileId,
             qualificationFingerprint,
             resolvedArtifactName,
             resolvedArtifactHash,
@@ -366,7 +385,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
             Passed: t3Passed,
             ProfileComplete: true,
             tierAwarded,
-            CoordinationGradeAwarded: null,
+            // The C-axis folds into the tiers for a mind artifact (§6.2).
+            CoordinationGradeAwarded: mindProfile ? "folded-into-tiers" : null,
             BalanceEvidenceEligible: false,
             probes);
         string reportPath = Path.Combine(
@@ -428,14 +448,17 @@ internal static class FrontlineLabsTacticalQualificationCommand
         int botParticipantId,
         string outputDirectory,
         bool quiet,
+        bool mindProfile,
+        bool withViewer,
         ref string? artifactName,
         ref string? artifactHash,
         ref string? actualRuntimeKind)
     {
-        using ResolvedGenericActorBot bot =
-            ResolvedGenericActorBot.Resolve(
+        using ResolvedLabsEntrant bot =
+            ResolvedLabsEntrant.Resolve(
                 botSpec,
                 runtimeKind,
+                mindProfile,
                 quiet);
         artifactName ??= bot.Name;
         artifactHash ??= bot.ArtifactHash;
@@ -453,16 +476,21 @@ internal static class FrontlineLabsTacticalQualificationCommand
             .Single(participant =>
                 participant.TeamId == controllerTeamId)
             .ParticipantId;
-        using IGenericActorRuntimeFactory controllerFactory =
-            ControllerFactory(plan.Controller);
+        using QualificationControllerHost controllerHost =
+            QualificationControllerHost.Create(
+                ControllerName(plan.Controller),
+                () => Controller(plan.Controller),
+                mindProfile);
         GenericActorParticipantConfiguration botParticipant =
             bot.ToParticipant(botParticipantId, botTeamId);
         GenericActorParticipantConfiguration controllerParticipant =
-            ControllerParticipant(
-                plan.Controller,
-                controllerFactory,
+            controllerHost.ToParticipant(
                 controllerParticipantId,
-                controllerTeamId);
+                controllerTeamId,
+                ControllerName(plan.Controller),
+                QualificationControllerHost.Fingerprint(
+                    ControllerFingerprint(plan.Controller),
+                    mindProfile));
         GenericActorParticipantConfiguration[] participants =
             botParticipantId < controllerParticipantId
                 ? [botParticipant, controllerParticipant]
@@ -490,7 +518,9 @@ internal static class FrontlineLabsTacticalQualificationCommand
             $"bot-team-{botTeamId}");
         WrittenReplay written = ReplayOutput.WriteJson(
             replay.CanonicalJson,
-            runDirectory);
+            runDirectory,
+            themeId: null,
+            withViewer);
         return Analyze(
             plan.Analysis,
             replay.CanonicalJson,
@@ -547,18 +577,20 @@ internal static class FrontlineLabsTacticalQualificationCommand
                      .GetProperty("ticks")
                      .EnumerateArray())
         {
-            foreach (JsonElement turn in tick
-                         .GetProperty("actorTurns")
-                         .EnumerateArray())
+            // Profile-neutral: a per-life document yields one entry per body
+            // turn, a mind document yields one per body RESOLUTION inside the
+            // participant's single turn. The probe measures behaviour, and
+            // behaviour is the same question on both.
+            foreach (ProbeTurn turn in ProbeReplay.Turns(tick))
             {
                 JsonElement resolution =
-                    turn.GetProperty("actionResolution");
+                    turn.ActionResolution;
                 string? acceptedActionId = AcceptedActionId(resolution);
                 bool success =
                     resolution.GetProperty("outcome").GetString()
                     == "success";
                 int participantId =
-                    turn.GetProperty("participantId").GetInt32();
+                    turn.ParticipantId;
                 if (participantId != botParticipantId)
                 {
                     if (
@@ -568,9 +600,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
                         && attackActions.Contains(acceptedActionId))
                     {
                         controllerAttackTick =
-                            turn.GetProperty("tick").GetInt32();
-                        string formId = turn.GetProperty("observation")
-                            .GetProperty("self")
+                            turn.Tick;
+                        string formId = turn.Self
                             .GetProperty("formId")
                             .GetString()!;
                         controllerCooldownTicks =
@@ -596,11 +627,11 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 }
 
                 JsonElement observation =
-                    turn.GetProperty("observation");
+                    turn.Observation;
                 Position self = ReadPosition(
-                    observation.GetProperty("self")
+                    turn.Self
                         .GetProperty("position"));
-                int tickNumber = turn.GetProperty("tick").GetInt32();
+                int tickNumber = turn.Tick;
                 objectiveDistances[tickNumber] =
                     objective.Length == 0
                         ? 0
@@ -972,7 +1003,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
 
     private static PrerequisiteEvidence ReadPrerequisite(
         string reportPath,
-        string outputDirectory)
+        string outputDirectory,
+        bool mindProfile)
     {
         byte[] bytes = File.ReadAllBytes(reportPath);
         using JsonDocument document = JsonDocument.Parse(bytes);
@@ -983,14 +1015,16 @@ internal static class FrontlineLabsTacticalQualificationCommand
             root.GetProperty("qualificationProfileId").GetString()!;
         if (
             suiteId
-                != FrontlineLabsQualificationDefinition
-                    .FundamentalsSuiteId
+                != (mindProfile
+                    ? FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId
+                    : FrontlineLabsQualificationDefinition.FundamentalsSuiteId)
             || suiteVersion
                 != FrontlineLabsQualificationDefinition
                     .FundamentalsSuiteVersion
             || profileId
-                != FrontlineLabsQualificationDefinition
-                    .FundamentalsProfileId)
+                != (mindProfile
+                    ? FrontlineLabsQualificationDefinition.MindFundamentalsProfileId
+                    : FrontlineLabsQualificationDefinition.FundamentalsProfileId))
         {
             throw new InvalidOperationException(
                 "T3 qualification requires the exact immutable cumulative " +
@@ -1162,44 +1196,24 @@ internal static class FrontlineLabsTacticalQualificationCommand
             value.GetProperty("x").GetInt32(),
             value.GetProperty("y").GetInt32());
 
-    private static IGenericActorRuntimeFactory ControllerFactory(
-        ControllerKind kind) =>
+    private static Sdk.IGenericActorBot Controller(ControllerKind kind) =>
         kind switch
         {
             ControllerKind.Wait =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationWaitController()),
+                new FrontlineLabsQualificationWaitController(),
             ControllerKind.OneShot =>
-                new InProcessGenericActorRuntimeFactory(
-                    () => new FrontlineLabsQualificationOneShotController()),
+                new FrontlineLabsQualificationOneShotController(),
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };
 
-    private static GenericActorParticipantConfiguration
-        ControllerParticipant(
-            ControllerKind kind,
-            IGenericActorRuntimeFactory runtimeFactory,
-            int participantId,
-            int teamId) =>
-        new()
+    private static string ControllerName(ControllerKind kind) =>
+        kind switch
         {
-            ParticipantId = participantId,
-            TeamId = teamId,
-            Name = kind switch
-            {
-                ControllerKind.Wait =>
-                    "Qualification Passive Controller",
-                ControllerKind.OneShot =>
-                    "Qualification One-Shot Controller",
-                _ => "Qualification Controller",
-            },
-            RuntimeFactory = runtimeFactory,
-            RuntimeKind = "in-process-qualification-controller",
-            ArtifactHash = ControllerFingerprint(kind),
-            Accent = "#f97316",
-            LookId = "bastion",
-            ProjectileLookId = "ember-lance",
+            ControllerKind.Wait => "Qualification Passive Controller",
+            ControllerKind.OneShot => "Qualification One-Shot Controller",
+            _ => throw new InvalidOperationException(
+                "Unknown qualification controller."),
         };
 
     private static string ControllerFingerprint(ControllerKind kind) =>

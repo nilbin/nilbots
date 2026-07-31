@@ -31,8 +31,18 @@ public static class BuildCommand
         Console.WriteLine(
             $"Runtime protocols: legacy " +
             $"{BotArenaVersions.RuntimeProtocolVersion}; actor " +
-            $"{BotArenaVersions.GenericActorRuntimeProtocolVersion} " +
+            $"{BotArenaVersions.GenericActorRuntimeProtocolVersion}; mind " +
+            $"{BotArenaVersions.GenericMindRuntimeProtocolVersion} " +
             "(selected by match and implemented entry interface)");
+        // Both generic profiles, always, because both are always true of the
+        // artifact: an IGenericMindBot entry drives the mind natively and any
+        // IGenericActorBot entry reaches it through the guest's wrap adapter.
+        // The host deliberately cannot tell which, so printing a guess here
+        // would be inventing a claim nothing can check.
+        Console.WriteLine(
+            $"Contract profiles: {BotArenaVersions.GenericActorContractProfileId} " +
+            $"(per-life) · {BotArenaVersions.GenericMindContractProfileId} " +
+            "(mind; a per-life entry is wrapped, no source edits)");
         Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
         Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey}");

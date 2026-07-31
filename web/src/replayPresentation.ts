@@ -300,6 +300,22 @@ export interface UnitPresentation {
    * Null for every per-life replay, which has no way to set one.
    */
   roleTag: string | null;
+  /**
+   * The runtime fault this body's turn recorded, or null.
+   *
+   * Per-life it costs that body its decision and its private memory, which
+   * respawn would have cleared anyway. Under the mind it is participant-scoped:
+   * one trap costs every own body its decision that tick AND discards the
+   * mind's entire match-long memory, because there is no snapshot to restore
+   * and a trap can leave a torn heap. Keeping that visible rather than smoothing
+   * it over is deliberate — robustness is a real design pressure now.
+   */
+  runtimeFault: {
+    participantId: number;
+    stage: string;
+    faultCode: string;
+    disqualificationTriggered: boolean;
+  } | null;
 }
 
 export interface TickPresentation {
@@ -517,6 +533,12 @@ function presentUnit(
     // mind's published label for it. Absent renders as nothing at all: an
     // unlabelled body should look unlabelled, not broken.
     roleTag: turn?.observation.self?.roleTag ?? null,
+    // A trap, and under the mind a trap is a different kind of event: the
+    // Store is discarded, so the participant loses its whole match-long memory
+    // rather than one body's private fields — and under the shipped Labs
+    // contract the first fault also disqualifies it. That deserves a frame of
+    // its own rather than an outcome word nobody reads.
+    runtimeFault: turn?.actionResolution.runtimeFault ?? null,
   };
 }
 

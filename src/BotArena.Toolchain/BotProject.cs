@@ -312,9 +312,41 @@ public static class ToolchainInfo
     /// nothing a player can reach: no CLI command selects the mind profile and
     /// no scaffold emits one until the CLI phase, so this version keeps its
     /// number and grows a note rather than shipping a half-built surface.
+    /// 0.9.28 IS that CLI phase: the mind becomes player-reachable.
+    /// `nilbots new &lt;Name&gt; --profile generic-mind` scaffolds a mind
+    /// project (one program driving the whole army, with Roles.cs as the file
+    /// an author edits first, persistent memory shipped working in Recall.cs,
+    /// and mind-shaped helpers whose movement reserves its destination tile so
+    /// an army cannot walk into itself). `nilbots experiment frontline-labs
+    /// --profile mind` runs the same immutable contract with ONE runtime per
+    /// participant instead of one per body life — same rules, same map, same
+    /// format, same topology, only the capability tuple moves — so a MIXED
+    /// match is ordinary: a native mind against a per-life artifact runs
+    /// because the artifact's guest wraps itself, with no source edit and no
+    /// flag of its own. `qualify` gains the parallel mind suites
+    /// `frontline-mind-qualification-3/4/5` on
+    /// `frontline-mind-union-t{2,3,4}-v1`, running the same probe contracts
+    /// plus two that only exist there: `body-handoff` at T2, where the body
+    /// holding the objective is destroyed and another must take the point
+    /// within 12 ticks without the army blocking itself, and
+    /// `escort-integrity` at T4, the escorted channel held for six consecutive
+    /// ticks from both assignments. The documented `respawn-reorient`
+    /// requirement is gone from the mind suites because persistent memory made
+    /// it vacuous, and the C1-C5 coordination axis folds into those tiers for
+    /// a mind (`coordinationGradeAwarded` reads "folded-into-tiers") while
+    /// staying exactly as it was for per-life artifacts.
+    /// Two long-standing frictions are fixed in the same version: qualify's
+    /// viewers become OPT-IN (`--viewer`), because a cumulative T4 run wrote 38
+    /// self-contained viewers nobody asked for and turned a 21 MB evidence
+    /// directory into 214 MB; and the mind's per-TICK diagnostic text is now
+    /// recorded on the replay's mind turn, which is the only home an
+    /// army-scoped sentence has — a body's command cannot carry it, and on a
+    /// tick with no live bodies there is no command at all.
+    /// SDK/Guest stay at 0.10.11: nothing about the compiled artifact moved,
+    /// only what the CLI can ask of it.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.27";
+    public const string CliVersion = "0.9.28";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

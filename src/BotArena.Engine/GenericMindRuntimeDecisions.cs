@@ -33,9 +33,23 @@ namespace BotArena.Engine;
 /// RESERVED (§11). A non-empty submission is <c>Rejected</c> — recorded,
 /// non-fatal — until a format with allied minds is admitted.
 /// </param>
+/// <param name="DebugMessage">
+/// The mind's own diagnostic text for this tick, bounded at 4 KiB and
+/// non-authoritative.
+/// <para>
+/// This is the MIND's diagnostics home, and it has to exist separately from
+/// the per-command one: a mind reasons ONCE per tick over the whole army, so
+/// the sentence that explains a tick — "front is held, sending unit 3 for the
+/// vein" — belongs to nobody's command. Attaching it to an arbitrary body
+/// would misfile it, and dropping it would leave a mind that owns no live body
+/// with no way to say anything at all on the very ticks its planning is least
+/// observable.
+/// </para>
+/// </param>
 public sealed record GenericMindRuntimeDecisions(
     ImmutableArray<GenericMindCommand> Commands,
-    ImmutableArray<GenericMindDeclaredIntent> Intents)
+    ImmutableArray<GenericMindDeclaredIntent> Intents,
+    string? DebugMessage = null)
 {
     /// <summary>A mind that commanded nothing. Every live body waits.</summary>
     public static GenericMindRuntimeDecisions Empty { get; } =

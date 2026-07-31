@@ -37,7 +37,8 @@ public sealed record GenericActorMatchMindTurn
         IReadOnlyCollection<GenericMindCommandResolution> commands,
         IReadOnlyCollection<ActorIdentity> resolvedBodies,
         IReadOnlyCollection<GenericMindDeclaredIntent> rejectedIntents,
-        GenericMindRuntimeFault? runtimeFault)
+        GenericMindRuntimeFault? runtimeFault,
+        string? debugMessage = null)
     {
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
@@ -114,6 +115,24 @@ public sealed record GenericActorMatchMindTurn
         GenericMindDeclaredIntent[] intentSnapshot = [.. rejectedIntents];
         ValidateRejectedIntents(intentSnapshot);
         ValidateRuntimeFault(participantId, teamId, runtimeFault);
+        if (debugMessage is not null)
+        {
+            if (runtimeFault is not null)
+            {
+                throw new ArgumentException(
+                    "A faulted mind turn carries no diagnostic text: the reply "
+                    + "that would have carried it never parsed.",
+                    nameof(debugMessage));
+            }
+            if (System.Text.Encoding.UTF8.GetByteCount(debugMessage)
+                > MaxDebugMessageBytes)
+            {
+                throw new ArgumentException(
+                    "A mind turn's diagnostic text is bounded at "
+                    + $"{MaxDebugMessageBytes} UTF-8 bytes.",
+                    nameof(debugMessage));
+            }
+        }
 
         Tick = tick;
         ParticipantId = participantId;
@@ -125,7 +144,15 @@ public sealed record GenericActorMatchMindTurn
         ResolvedBodies = bodySnapshot.Order().ToImmutableArray();
         RejectedIntents = intentSnapshot.ToImmutableArray();
         RuntimeFault = runtimeFault;
+        DebugMessage = debugMessage;
     }
+
+    /// <summary>
+    /// The same 4 KiB text bound the per-life decision carries. A mind reasons
+    /// once per tick rather than once per body, so its diagnostics are not nine
+    /// times larger than a per-life bot's — they are one ninth.
+    /// </summary>
+    public const int MaxDebugMessageBytes = 4096;
 
     public int Tick { get; }
     public int ParticipantId { get; }
@@ -167,6 +194,15 @@ public sealed record GenericActorMatchMindTurn
     /// tick it owns nothing still faults, and the fact must be visible.
     /// </summary>
     public GenericMindRuntimeFault? RuntimeFault { get; }
+
+    /// <summary>
+    /// The mind's own diagnostic text for this tick, or <see langword="null"/>.
+    /// The MIND's diagnostics home: a mind decides once per tick over the whole
+    /// army, so the sentence that explains a tick belongs to nobody's command —
+    /// and on a tick with no live bodies there is no command to hang it on at
+    /// all.
+    /// </summary>
+    public string? DebugMessage { get; }
 
     /// <summary>
     /// Re-derives the tag each body carries after this turn, given the tags

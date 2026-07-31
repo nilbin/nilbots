@@ -1030,3 +1030,94 @@ and with `--roster levy` on top, **`warpath`**, **`horde`** and
 **`stockade`**. Anything smaller in this family spells its factors, and a
 combination that overflows the 64-character budget faults with a message
 telling you to register it: a pre-registration is a decision, not a fallback.
+
+## The mind
+
+The largest authoring change this campaign has made, and it changes nothing
+about the game. `--profile mind` runs the exact same immutable contract —
+same rules, same map, same format, same topology, same mode and economy — with
+**one runtime per participant instead of one per body life**. Only the
+capability tuple moves, which is why a cross-profile comparison is a statement
+about the driver rather than about the game.
+
+```bash
+nilbots new MyMind --profile generic-mind
+nilbots experiment frontline-labs --profile mind \
+  --bot ./MyMind --opponent ./TheirBot --seed 42 --viewer
+```
+
+### What changed for authors
+
+| Per-life | Mind |
+| --- | --- |
+| One instance per body life; empty fields on every respawn | **One instance per match.** Its fields are your memory. Nothing clears when a body dies. |
+| `Tick(context) -> decision` for one body | `Think(mind)` once per tick for the whole army, **unconditionally** — including ticks with no live body at all |
+| Return exactly one decision, for exactly this body | **Write** commands onto bodies. Every live body you do not write to waits. |
+| Missing key = the host lost a life; the batch fails | Forgetting a body costs that body one tick, visibly, in the replay |
+| Coordination is a pure function of the frozen observation every body must compute identically | There is one decider. Assignment is a function call. |
+| `movedThisTick` is derivable only from life-scoped memory a newborn lacks | `body.MovedLastTick` and `body.PreviousPosition`, published |
+| Slot table is a start-time fact | `mind.Slots` — the complete table, **every tick** |
+| Fuel 200M per body per tick, 64 MiB per body | `250M + 200M x live own bodies` per tick, 128 MiB once; startup 5B once per match |
+| A trap costs that body's private memory | **A trap forgets the match** — and at this contract's zero fault allowance, loses it |
+
+The set-piece this exists for is the escorted channel. Under the channel the
+claim is built by bodies that did not change tile, and hostile damage to a
+controlling body standing on the objective reverts its whole run — so the
+intended play has always been one body still on the point with others screening
+it. The last per-life cohort measured that as the play its authors could barely
+execute: every body had to independently derive who was holding, who was
+screening and on which side, and any disagreement cost a tick of stationary
+claim. Six of eight lineages shipped a dedicated file for that agreement
+problem, 3,788 lines across the population. Under a mind it is an assignment.
+
+### The wrapper: nothing to port
+
+**Every artifact built by the current CLI attests both profiles.** If your type
+implements only `IGenericActorBot`, the guest hosts it as one sub-brain per
+live body — constructed on that body's first tick, discarded when that body is
+no longer live, seeded from that body's own per-life random stream — so per-life
+memory semantics are reproduced exactly, respawn amnesia included. Your bot
+plays a mind match with **zero source edits**; it costs a rebuild.
+
+That is what makes a MIXED match ordinary rather than special: a native mind
+against a per-life artifact is one match, on one contract, and the host cannot
+tell which side is which. The CLI names the two models on its participant line
+so a reader can.
+
+### Role tags
+
+`body.SetRole("channeler")` publishes a free-vocabulary, lowercase-kebab label
+of at most 24 UTF-8 bytes. It is **entirely non-authoritative** — the engine
+never reads it, it is never an action parameter, and it cannot move one point of
+simulation state — and it is sticky until you change it.
+
+It is published on your own bodies **and on any of your bodies an enemy can
+see**, which is deliberate and consistent with how loudly this game already
+telegraphs: the scrap banks and tier purchases are public with no visibility
+requirement at all, anchor routes and windups are in the contract before tick 0,
+and the pile ledger leaks death sites on purpose. A visible body's declared job
+is a smaller leak than any of those, and it buys a real move in exchange:
+labelling your channeler a screen costs nothing and the engine will never check.
+
+The viewer renders the tag as a caption under the body in both renderers and as
+a line in the bot panel, coloured by a stable hash of the word so `channeler` is
+the same colour all match and across matches. An absent tag renders nothing at
+all. The vocabulary you choose is your strategy made legible — to a spectator,
+to your own debugging, and to your opponent.
+
+### Qualifying a mind
+
+```bash
+nilbots experiment frontline-labs qualify --profile mind \
+  --bot ./MyMind --suite frontline-mind-qualification-3
+```
+
+The parallel suites `frontline-mind-qualification-3/4/5` run on
+`frontline-mind-union-t{2,3,4}-v1`. Same probe contracts, plus two that only
+exist there: `body-handoff` at T2 (the body holding the objective is destroyed;
+another of yours must take the point within 12 ticks, without your own bodies
+blocking each other) and `escort-integrity` at T4 (one body still on the point
+with another beside it for six consecutive ticks, from both assignments). The
+documented `respawn-reorient` requirement is gone, because persistent memory
+made it vacuous, and the C1-C5 coordination axis folds into the tiers — the
+report reads `folded-into-tiers` rather than a grade.

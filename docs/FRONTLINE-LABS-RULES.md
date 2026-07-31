@@ -250,6 +250,55 @@ sees an ally's current action. Use only the delivered contract, observation,
 and `context.Random`; wall clocks, ambient entropy, file/network access,
 threads, and environment state are outside the deterministic sandbox contract.
 
+### Under the mind profile, every clause above inverts
+
+`nilbots experiment frontline-labs --profile mind` runs this exact contract on
+`generic-mind-match-1`. The rules, map, forms, actions, transitions, lifecycle,
+mode and economy are unchanged — it is the same game — and what changes is who
+drives it:
+
+- **One bot instance per PARTICIPANT, for the whole match.** It is constructed
+  before tick 0 and disposed after the terminal tick. Its fields ARE the
+  persistent memory; there is no memory API, and nothing is cleared when a body
+  dies.
+- **One deterministic private stream for the mind**, derived in the participant
+  domain, plus the team stream. Inside a single mind the team stream is
+  pointless — you do not need to agree with yourself — and it becomes
+  load-bearing only when a format with allied minds is admitted.
+- **A form change, destruction, return, fabrication and Split change nothing
+  about memory.** They change which bodies exist, which is a data question
+  (`mind.Bodies`) rather than a lifetime question.
+- **`Think` is called exactly once per tick, unconditionally**, from tick 0 to
+  the terminal tick, including ticks on which the mind owns no live body at all.
+  "Am I alive?" stops being a control-flow question.
+- **Commands are written onto bodies, not returned.** Every own live body is
+  pre-filled with `Wait` and the mind overwrites what it wants moved, so
+  forgetting a body costs that body one tick, visibly, in the replay — not the
+  match. Commanding a body that is not live, or not yours, is `Rejected` and
+  recorded. Commanding the same body twice is a fault.
+- **A mind that traps forgets the match.** There is no snapshot: a runtime fault
+  discards the Store and its entire match-long memory, and under this contract's
+  zero fault allowance it also disqualifies the participant. Robustness is part
+  of the doctrine.
+- **Team perception is unchanged and stays team-scoped.** The observable union
+  is computed per scoring team exactly as above and delivered to the mind once
+  rather than once per body. Observations are still frozen before any same-tick
+  decision. Nothing about fog, provenance, or `observedBy` moves. What the mind
+  adds is TIME, not space: the union was already shared within a tick, and a
+  mind pools it ACROSS ticks.
+- **What a mind is additionally told about its own bodies**, because it is
+  entitled to it and a per-life bot was not: `MovedLastTick`, `PreviousPosition`,
+  `LifeStartedTick`, `Origin`, the published role tag, and the participant's
+  complete slot table every tick.
+- **Role tags are public.** `SetRole` publishes a free-vocabulary label of at
+  most 24 bytes on your bodies and on any of your bodies an enemy can see. The
+  engine never reads it, so labelling your channeler a screen is a real move.
+
+An artifact whose author only wrote `IGenericActorBot` still plays this profile
+with no source edits — the guest hosts it as one sub-brain per live body,
+reproducing per-life memory semantics exactly, including a fresh instance on
+respawn and the same private random sequence. All it costs is a rebuild.
+
 The default final authoring check is:
 
 ```bash

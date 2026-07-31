@@ -594,7 +594,8 @@ public sealed class GenericMindRuntimeCoordinator : IDisposable
             // Reserved (§11.3): recorded and Rejected, never Faulted, until a
             // format with allied minds is admitted.
             submitted.Intents,
-            RuntimeFault: null);
+            RuntimeFault: null,
+            submitted.DebugMessage);
     }
 
     private GenericMindRuntimeTurn FaultedTurn(

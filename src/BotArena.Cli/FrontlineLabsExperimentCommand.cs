@@ -25,6 +25,7 @@ public static class FrontlineLabsExperimentCommand
             "seeds",
             "swap",
             "runtime",
+            "profile",
             "out",
             "open",
             "viewer",
@@ -69,6 +70,9 @@ public static class FrontlineLabsExperimentCommand
                 $"Unknown runtime '{runtimeKind}' " +
                 "(use wasm or in-process).");
         }
+
+        bool mindProfile = CliSupport.ParseLabsProfile(
+            options.GetValueOrDefault("profile"));
 
         ulong[] seeds = ParseSeeds(options);
         if (options.ContainsKey("open") && seeds.Length != 1)
@@ -490,6 +494,13 @@ public static class FrontlineLabsExperimentCommand
         {
             definition = FrontlineLabsDefinition.Create();
         }
+        // THE MIND (DECISIONS #191). The same match, driven by one runtime per
+        // participant instead of one per body life: same rules, same map, same
+        // format, same topology, same mode. Only the capability tuple moves,
+        // which is exactly the shape the null pin needs — a difference in
+        // outcome can then only have come from the driver.
+        if (mindProfile)
+            definition = definition.OnProfile(ActorMatchCapabilityVersions.Mind);
         if (printCandidateContract)
         {
             PrintCandidateContract(definition);
@@ -573,7 +584,10 @@ public static class FrontlineLabsExperimentCommand
         }
         Console.WriteLine(
             $"Contract profile:  " +
-            $"{definition.CapabilityVersions.ContractProfileId}");
+            $"{definition.CapabilityVersions.ContractProfileId}"
+            + (mindProfile
+                ? " (one mind per participant, for the whole match)"
+                : ""));
         Console.WriteLine(
             $"Map:               {definition.Map.Id} " +
             $"v{definition.Map.Version} " +
@@ -595,21 +609,30 @@ public static class FrontlineLabsExperimentCommand
         for (int seedIndex = 0; seedIndex < seeds.Length; seedIndex++)
         {
             ulong seed = seeds[seedIndex];
-            using ResolvedGenericActorBot bot0 =
-                ResolvedGenericActorBot.Resolve(
+            using ResolvedLabsEntrant bot0 =
+                ResolvedLabsEntrant.Resolve(
                     resolvedBotSpec,
                     runtimeKind,
+                    mindProfile,
                     quiet: seeds.Length > 1);
-            using ResolvedGenericActorBot bot1 =
-                ResolvedGenericActorBot.Resolve(
+            using ResolvedLabsEntrant bot1 =
+                ResolvedLabsEntrant.Resolve(
                     resolvedOpponentSpec,
                     runtimeKind,
+                    mindProfile,
                     quiet: seeds.Length > 1);
             if (seedIndex == 0)
             {
+                // On the mind profile the programming model is worth naming:
+                // a native mind against a wrapped per-life bot is a legitimate
+                // and interesting match, and the reader should be able to see
+                // which one they are watching.
+                string model0 = mindProfile ? $" {bot0.ProgrammingModel}" : "";
+                string model1 = mindProfile ? $" {bot1.ProgrammingModel}" : "";
                 Console.WriteLine(
-                    $"Participants:      {bot0.Name} [{bot0.RuntimeKind}] " +
-                    $"vs {bot1.Name} [{bot1.RuntimeKind}]");
+                    $"Participants:      {bot0.Name} " +
+                    $"[{bot0.RuntimeKind}{model0}] " +
+                    $"vs {bot1.Name} [{bot1.RuntimeKind}{model1}]");
                 Console.WriteLine();
             }
 
@@ -746,22 +769,15 @@ public static class FrontlineLabsExperimentCommand
                 new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static void PrintWasmDiagnostics(ResolvedGenericActorBot bot)
+    private static void PrintWasmDiagnostics(ResolvedLabsEntrant bot)
     {
-        foreach (
-            BotArena.Runtime.Wasm.WasmGenericActorRuntimeFactory
-                .RuntimeDiagnostic diagnostic
-            in bot.WasmDiagnostics.Where(value =>
-                value.FailureReason is not null))
+        foreach ((string subject, ulong peak, ulong budget, string reason)
+                 in bot.SandboxFailures)
         {
-            string actor = diagnostic.ActorId?.ToString() ?? "startup";
-            double peakFuelMillions =
-                diagnostic.MaxFuelUsedPerTick / 1_000_000.0;
-            double budgetMillions = diagnostic.FuelPerTick / 1_000_000.0;
             Console.Error.WriteLine(
-                $"  {bot.Name} {actor}: {diagnostic.FailureReason} " +
-                $"(peak completed tick fuel {peakFuelMillions:F1}M/" +
-                $"{budgetMillions:F1}M)");
+                $"  {bot.Name} {subject}: {reason} " +
+                $"(peak completed tick fuel {peak / 1_000_000.0:F1}M/" +
+                $"{budget / 1_000_000.0:F1}M)");
         }
     }
 

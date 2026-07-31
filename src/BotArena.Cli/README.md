@@ -82,8 +82,21 @@ This command runs the exact immutable hosted `frontline-labs-1` resolved
 contract through `GenericActorMatchSession`, then writes canonical replay v3.
 It bypasses App accounts, queues, and pilot quotas and remains local and
 unranked. Both entrants are required: a generic spec is an
-`IGenericActorBot` project or generic-profile WASM artifact, and no generic
-built-in opponent exists. Use `--swap` for the other team assignment.
+`IGenericActorBot` or `IGenericMindBot` project, or a generic-profile WASM
+artifact, and no generic built-in opponent exists. Use `--swap` for the other
+team assignment.
+
+`--profile mind` runs the same immutable contract on `generic-mind-match-1`:
+one runtime per PARTICIPANT for the whole match, driving every body it owns,
+instead of one runtime per body life. Rules, map, format, topology and mode are
+unchanged — only the capability tuple moves — so the rules and map fingerprints
+are identical and only the aggregate match fingerprint differs. Profile is a
+match-level choice, never per entrant: every artifact this CLI builds attests
+both profiles, so a per-life bot enters a mind match with no source edits (the
+guest hosts it as one sub-brain per body life) and a MIXED match is ordinary.
+`nilbots new <Name> --profile generic-mind` is the mind scaffold, and
+`qualify --profile mind` runs the parallel
+`frontline-mind-qualification-3/4/5` suites.
 
 For a registered local numeric arm, `--capture-threshold <positive-n>` creates
 a distinct ruleset such as

@@ -94,7 +94,7 @@ static int Help(int exitCode = 1)
         nilbots CLI (prototype)
 
         Usage:
-          nilbots new <Name> [--profile duel|generic-actor]
+          nilbots new <Name> [--profile duel|generic-actor|generic-mind]
                                                   create a bot project
           nilbots register [--server url]         create an account + sign in via the browser
                         [--email <a@b.c> --password <pw> [--name <display>]]
@@ -134,15 +134,23 @@ static int Help(int exitCode = 1)
           nilbots experiment frontline-labs
                         --bot <generic-spec> --opponent <generic-spec>
                         [--seed <n> | --seeds a,b,c] [--swap]
+                        [--profile actor|mind]
                         [--runtime wasm|in-process] [--out <dir>] [--viewer] [--open]
                                                   exact hosted Labs v1 contract,
-                                                  local/quota-free, replay v3
+                                                  local/quota-free, replay v3;
+                                                  --profile mind runs the same
+                                                  game with ONE runtime per
+                                                  participant driving all its
+                                                  bodies
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
-                        [--out <dir>]
+                        [--profile mind --suite frontline-mind-qualification-3|frontline-mind-qualification-4|frontline-mind-qualification-5]
+                        [--viewer] [--out <dir>]
                                                   versioned local capability
-                                                  probes; never ranked
+                                                  probes; never ranked.
+                                                  Viewers are opt-in (--viewer):
+                                                  a T4 run writes 38 replays
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
@@ -158,8 +166,11 @@ static int Help(int exitCode = 1)
         project directory, or a path to a .wasm artifact.
         A Frontline <actor-spec> is an actor built-in (`nilbots help experiment`),
         an IActorBot project directory, or an actor-protocol .wasm artifact.
-        A Labs <generic-spec> is an IGenericActorBot project directory or a
-        generic-actor-profile .wasm artifact; both entrants must be named.
+        A Labs <generic-spec> is an IGenericActorBot or IGenericMindBot project
+        directory, or a .wasm artifact; both entrants must be named. Every
+        artifact built by this CLI attests BOTH contract profiles, so a per-life
+        bot enters a `--profile mind` match with no source edits — the guest
+        wraps it, one sub-brain per body life.
         Defaults: --bot hunter --opponent wander --map basic-01 --seed 42
                   --runtime wasm --rules 0.5
         A `"rules"` field in your project's botarena.json pins the default --rules
@@ -182,12 +193,20 @@ static int CommandHelp(string command)
     string? help = command.ToLowerInvariant() switch
     {
         "new" => """
-            Usage: nilbots new <Name> [--profile duel|generic-actor]
+            Usage: nilbots new <Name> [--profile duel|generic-actor|generic-mind]
             Creates <Name>/ with bot source, botarena.json, a portable SDK
             reference, and profile-specific authoring instructions.
 
             duel is the shipped default. generic-actor creates an experimental
-            IGenericActorBot scaffold for `nilbots experiment frontline-labs`.
+            IGenericActorBot scaffold — one independent instance per body life —
+            for `nilbots experiment frontline-labs`.
+
+            generic-mind creates an IGenericMindBot scaffold: ONE program that
+            drives every body you own, for the whole match, with its fields as
+            persistent memory. Commands are written onto bodies rather than
+            returned, and every body you do not write to waits. Roles.cs is the
+            file you edit first. Run it with
+            `nilbots experiment frontline-labs --profile mind`.
             """,
         "build" => """
             Usage: nilbots build [dir] [--no-cache]
@@ -535,7 +554,7 @@ static int CommandHelp(string command)
 
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
-                   [--seed <n>]
+                   [--seed <n>] [--profile actor|mind] [--viewer]
                    [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
                    [--out <dir>]
 
@@ -548,6 +567,26 @@ static int CommandHelp(string command)
             positional doctrine and is the first balance-eligible tier.
             Probe failure returns exit code 3; runtime or contract failure
             returns 2. It is never ranked.
+
+            THE MIND SUITES. --profile mind selects
+            frontline-mind-qualification-3/4/5 on the parallel
+            frontline-mind-union-t2/t3/t4-v1 profiles. The probe contracts are
+            the same ones; what changes is that your artifact drives them as
+            ONE participant-scoped runtime. Two probes exist only there:
+            body-handoff at T2, where the body holding the objective is
+            destroyed and another of yours must take the point within 12 ticks
+            without your bodies blocking each other; and escort-integrity at
+            T4, the escorted channel — one body still on the point with another
+            beside it for six consecutive ticks, from both assignments. The
+            documented respawn-reorient requirement does not appear: a mind's
+            memory does not reset when a body dies, so it measured nothing.
+            The C1-C5 coordination axis folds into those tiers for a mind
+            (reported as coordinationGradeAwarded "folded-into-tiers") and
+            stays unchanged for per-life artifacts.
+
+            Viewers are OPT-IN. A cumulative T4 run writes 38 replays, and a
+            self-contained viewer embeds the whole replay into a multi-megabyte
+            theme template; pass --viewer when you actually want to watch one.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

@@ -24,6 +24,14 @@ namespace BotArena.Engine;
 /// RESERVED (§11.3). Any submitted intent is recorded here and Rejected —
 /// non-fatal — until a format with allied minds is admitted.
 /// </param>
+/// <param name="DebugMessage">
+/// The mind's own diagnostic text for this tick, or <see langword="null"/>.
+/// It is recorded on the TURN rather than on a command because a mind reasons
+/// once per tick over the whole army, so this is the only home its
+/// army-scoped diagnostics have — including on the ticks it owns no live body
+/// and therefore writes no command at all. A faulted turn keeps none: the
+/// reply that carried it never parsed.
+/// </param>
 public sealed record GenericMindRuntimeTurn(
     int ParticipantId,
     int TeamId,
@@ -32,4 +40,5 @@ public sealed record GenericMindRuntimeTurn(
     ImmutableArray<GenericMindCommandResolution> Commands,
     ImmutableArray<ActorIdentity> ResolvedBodies,
     ImmutableArray<GenericMindDeclaredIntent> RejectedIntents,
-    GenericMindRuntimeFault? RuntimeFault);
+    GenericMindRuntimeFault? RuntimeFault,
+    string? DebugMessage = null);

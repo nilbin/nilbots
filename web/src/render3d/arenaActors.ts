@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
+import { roleTagCaption, roleTagColor } from '../presentation/roleTag';
+
+/** Rasterised role-caption size; generous, because it is read at gameplay scale. */
+const ROLE_LABEL_WIDTH = 256;
+const ROLE_LABEL_HEIGHT = 64;
+const ROLE_LABEL_SCALE = 1.5;
 import type {
   ReplayActorLifeKey,
   ReplayModel,
@@ -978,6 +984,65 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     haul.userData.cue = 'carried-scrap-pool';
     haul.position.y = 0.02;
     haul.visible = false;
+    // THE ROLE CAPTION (§12.3), the 3D half of the flat renderer's. A sprite
+    // rather than geometry, because a label has to stay readable and upright
+    // from any camera angle; the glyphs, the dark hairline behind them and the
+    // per-word colour all come from the same shared presentation module the
+    // Canvas2D renderer uses, so the two renderers cannot drift into saying
+    // the same thing two ways.
+    // Guarded like every other rasterised texture here: the presentation tests
+    // build actors without a DOM, and a renderer that only works in a browser
+    // would make them unrunnable.
+    const roleCanvas =
+      typeof document === 'undefined'
+        ? null
+        : document.createElement('canvas');
+    if (roleCanvas) {
+      roleCanvas.width = ROLE_LABEL_WIDTH;
+      roleCanvas.height = ROLE_LABEL_HEIGHT;
+    }
+    const roleTexture = roleCanvas
+      ? new THREE.CanvasTexture(roleCanvas)
+      : null;
+    if (roleTexture) roleTexture.colorSpace = THREE.SRGBColorSpace;
+    const roleMaterial = new THREE.SpriteMaterial({
+      map: roleTexture,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const roleLabel = new THREE.Sprite(roleMaterial);
+    roleLabel.userData.cue = 'role-tag';
+    roleLabel.center.set(0.5, 0);
+    roleLabel.scale.set(ROLE_LABEL_SCALE, ROLE_LABEL_SCALE * 0.25, 1);
+    roleLabel.position.y = 0.02;
+    roleLabel.visible = false;
+    group.add(roleLabel);
+    if (roleTexture) disposables.push(roleTexture);
+    disposables.push(roleMaterial);
+    let paintedRole: string | null = null;
+    /** Repaints only when the word changes: a tag is sticky for many ticks. */
+    const paintRole = (tag: string | null) => {
+      if (tag === paintedRole) return;
+      paintedRole = tag;
+      roleLabel.visible = tag !== null;
+      if (tag === null || !roleCanvas || !roleTexture) return;
+      const context = roleCanvas.getContext('2d');
+      if (!context) return;
+      context.clearRect(0, 0, roleCanvas.width, roleCanvas.height);
+      context.font = `600 ${Math.round(ROLE_LABEL_HEIGHT * 0.62)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.lineJoin = 'round';
+      context.lineWidth = ROLE_LABEL_HEIGHT * 0.28;
+      context.strokeStyle = 'rgba(2, 6, 12, 0.85)';
+      const caption = roleTagCaption(tag);
+      context.strokeText(caption, roleCanvas.width / 2, roleCanvas.height / 2);
+      context.fillStyle = roleTagColor(tag);
+      context.fillText(caption, roleCanvas.width / 2, roleCanvas.height / 2);
+      roleTexture.needsUpdate = true;
+    };
+
     group.add(haul);
     group.add(carry);
     disposables.push(
@@ -1096,6 +1161,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       shardMaterial,
       haul,
       haulMaterial,
+      roleLabel,
+      paintRole,
       fading,
       fade,
     };
@@ -1500,6 +1567,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.upgradeRing.visible = false;
       bot.carry.visible = false;
       bot.haul.visible = false;
+      bot.roleLabel.visible = false;
       bot.highlight(false);
       bot.flash(0);
       // A life destroyed mid-windup would otherwise leave its charge burning on an empty
@@ -1689,6 +1757,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         bot.upgradeRing.scale.setScalar(1 + spread * 1.9);
         bot.upgradeMaterial.opacity = purchase.strength ** 1.4 * 0.85;
       }
+
+      // The mind's own word for what this body is doing, drawn for VISIBLE
+      // ENEMIES too — half the drama of a set-piece is seeing both sides'
+      // assignments and knowing one of them is wrong. An absent tag draws
+      // nothing at all: an unlabelled body should look unlabelled.
+      bot.paintRole(mechanics?.roleTag ?? null);
+      bot.roleLabel.visible =
+        bot.chassis.visible && (mechanics?.roleTag ?? null) !== null;
 
       const load = mechanics?.carriedScrap ?? 0;
       bot.carry.visible = load > 0 && bot.chassis.visible;

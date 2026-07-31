@@ -239,6 +239,80 @@ public class DocDriftTests
     }
 
     [Fact]
+    public void QualificationBrief_NamesEveryMindSuiteAndProfileItMinted()
+    {
+        // A suite ID is a pre-registration, and an unwritten one is a suite
+        // nobody can ask for. These are mechanical mirrors of engine
+        // constants, which is exactly the class of drift this file pins.
+        string brief = ReadRepoFile("docs", "BOT-QUALIFICATION-SUITE.md");
+        foreach (string token in new[]
+                 {
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsProfileId,
+                     FrontlineLabsQualificationDefinition
+                         .MindTacticalSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindTacticalProfileId,
+                     FrontlineLabsQualificationDefinition
+                         .MindPositionalSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindPositionalProfileId,
+                     FrontlineLabsQualificationDefinition.BodyHandoffProbeId,
+                     FrontlineLabsQualificationDefinition
+                         .EscortIntegrityProbeId,
+                 })
+        {
+            Assert.True(
+                brief.Contains(token, StringComparison.Ordinal),
+                $"BOT-QUALIFICATION-SUITE.md never mentions '{token}'.");
+        }
+    }
+
+    [Fact]
+    public void CliHelp_ReachesTheMindProfileFromEveryCommandThatTakesIt()
+    {
+        // The mind is only worth building if a player can get to it, and the
+        // help text is the whole discovery surface for a local-only profile
+        // that no hosted lane advertises.
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[]
+                 {
+                     "generic-mind",
+                     "--profile mind",
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsSuiteId,
+                     "IGenericMindBot",
+                 })
+        {
+            Assert.True(
+                help.Contains(token, StringComparison.Ordinal),
+                $"CLI help never mentions '{token}'.");
+        }
+    }
+
+    [Fact]
+    public void RulesCard_StatesTheMindMemoryModelAndItsFaultCost()
+    {
+        // Every clause of the per-life memory paragraph inverts under the
+        // mind, and the one that costs a match — a trap forgets everything —
+        // has to be loud rather than inferable.
+        string rules = ReadRepoFile("docs", "FRONTLINE-LABS-RULES.md");
+        foreach (string token in new[]
+                 {
+                     BotArenaVersions.GenericMindContractProfileId,
+                     "forgets the match",
+                     "SetRole",
+                 })
+        {
+            Assert.True(
+                rules.Contains(token, StringComparison.Ordinal),
+                $"FRONTLINE-LABS-RULES.md never mentions '{token}'.");
+        }
+    }
+
+    [Fact]
     public void SdkProjectVersion_MatchesToolchainVersion()
     {
         string toolchain = ReadRepoFile("src", "BotArena.Toolchain", "BotProject.cs");

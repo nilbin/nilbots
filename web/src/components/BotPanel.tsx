@@ -560,6 +560,25 @@ export default function BotPanel({
               {/* The mind's OWN word for this body's job, beside the derived
                   "Doing" and "Objective" lines. Rendered only when a mind set
                   one, because an unlabelled body should look unlabelled. */}
+              {/* A trap under the mind is a single dramatic frame: the whole
+                  instance and its match-long memory go, and under this
+                  contract's zero allowance so does the match. Say that, rather
+                  than leaving a lone "faulted" outcome word. */}
+              {unit.runtimeFault !== null && (
+                <>
+                  <dt className="lab">Fault</dt>
+                  <dd className="t-body col-span-2 text-(--color-arena-loss)">
+                    {mindProfile
+                      ? 'this mind trapped — it forgot the match'
+                      : 'runtime fault'}
+                    {unit.runtimeFault.disqualificationTriggered
+                      ? ' · disqualified'
+                      : ''}
+                    <span className="val"> · {unit.runtimeFault.faultCode}</span>
+                  </dd>
+                </>
+              )}
+
               {unit.roleTag !== null && (
                 <>
                   <dt className="lab">Role</dt>
@@ -703,7 +722,9 @@ export default function BotPanel({
           onChange={onToggleVisibility}
           className="accent-(--color-arena-text)"
         />
-        Show selected unit&apos;s field of view
+        {mindProfile
+          ? "Show this mind's field of view"
+          : "Show selected unit's field of view"}
       </label>
     </div>
   );

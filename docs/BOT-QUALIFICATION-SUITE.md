@@ -234,7 +234,8 @@ without invalidating its historical result.
 | `straight-evade` | Leaves a visible straight projectile's declared two-advance hazard path when movement is legal and a safe tile exists. |
 | `objective-path` | Reaches and holds an uncontested active objective without coordinate constants. |
 | `population-ready` | Activates or accepts the declared automatic activation of an immediately useful unlocked body. |
-| `respawn-reorient` | Resumes mode-directed play after a fresh life with isolated memory. |
+| `respawn-reorient` | Resumes mode-directed play after a fresh life with isolated memory. **Per-life artifacts only** — under the mind a bot's memory does not reset when a body dies, so this requirement is vacuous there. |
+| `body-handoff` | **Mind artifacts only, replacing `respawn-reorient`.** When the body executing a task is destroyed, the mind resumes the task with another body within a declared window, without its own bodies blocking each other. It measures the same competency and is strictly harder: per-life the plan had no carrier once the body holding it died. |
 
 These probes should be easy enough for the generated starter. Avoiding one
 visible straight projectile is boilerplate, not a game ceiling.
@@ -337,6 +338,19 @@ never “the game is solved.”
 
 ## Coordination probes
 
+**These grades apply to PER-LIFE artifacts. For a mind artifact they fold into
+the tiers instead**, and the report says so: `coordinationGradeAwarded` reads
+`folded-into-tiers` rather than a grade. C1 (stable roles, no blocking, no
+duplicated single-owner task), C2 (focus that follows health and position) and
+C4 (composition and role rotation after death) are one-line expressions under
+one decider, so they became pass predicates — C1 inside `body-handoff` at T2,
+the rest inside T4's `escort-integrity` and the existing positional cases. C3
+and C5 retire for minds: "two perpendicular shooters establish the executable
+crossfire" and "avoid synchronized predictability" are trivially satisfiable by
+a single program and stopped being diagnostic. The axis below is unchanged for
+per-life artifacts, where it still separates "one good program scales across its
+lives" from "several entrants can interoperate."
+
 | Grade | Probe family |
 | --- | --- |
 | C1 | Two bodies choose stable roles, avoid blocking, and do not duplicate a single-owner task. |
@@ -394,6 +408,38 @@ entrants carry:
 - evidence-file SHA-256;
 - awarded T/C values;
 - explicit balance-evidence eligibility.
+
+### The mind suites
+
+`frontline-mind-qualification-3` on `frontline-mind-union-t2-v1`,
+`frontline-mind-qualification-4` on `frontline-mind-union-t3-v1`, and
+`frontline-mind-qualification-5` on `frontline-mind-union-t4-v1` are
+the participant-scoped counterparts, run with
+`nilbots experiment frontline-labs qualify --profile mind`. They are PARALLEL
+identities, not shared ones: a profile ID is a pre-registration in this project,
+and a mind T4 and a per-life T4 are not the same evidence even though the same
+artifact might earn both.
+
+The probe CONTRACTS are untouched. Almost every probe is already one-body, and a
+mind commanding one body is a perfectly good subject for direct fire, evasion
+and objective pathing; only the runner's hosting changes, which is what keeps
+the existing reference artifacts comparable. Two probes exist only on the mind
+suites — `body-handoff` at T2 (above) and `escort-integrity` at T4, which asks
+for the #187/#188 set-piece directly: one body still on the objective with
+another own body adjacent to it for six consecutive ticks, holding sole control
+across that run, from both assignments. The opposing controllers are the same
+SDK-only programs, hosted through the guest's per-life wrap adapter so the
+opponent behaves identically on both suites; their recorded fingerprints carry a
+`-mind` suffix, because the same program hosted a different way is a different
+opponent identity.
+
+Everything else carries over verbatim: the exit-code contract (0 / 3 / 2), the
+prerequisite hash-linking chain, `tierAwarded` retention on clean failure, and
+`balanceEvidenceEligible = t4Passed`.
+
+Viewers are **opt-in** on every suite (`--viewer`). A cumulative T4 run writes
+38 replays, and embedding each into a self-contained theme template turned a
+21 MB evidence directory into 214 MB of files nobody opened.
 
 Profiles group semantic capability families rather than every numeric tune.
 Safe parameter changes may reuse a profile; adding strategically necessary

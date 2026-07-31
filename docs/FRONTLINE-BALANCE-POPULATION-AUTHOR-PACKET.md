@@ -64,8 +64,8 @@ as that author did.
 
 ## Non-negotiable implementation requirements
 
-- Implement `IGenericActorBot` and treat `StartLife.Contract` plus current
-  action legalities as authoritative.
+- Implement `IGenericActorBot` (or `IGenericMindBot` on a mind assignment) and
+  treat the delivered contract plus current action legalities as authoritative.
 - Never assume participant IDs are `0/1`, that participant ID equals team ID,
   that one participant owns every team body, or that IDs/counts are dense.
 - Read participants, teams, unit slots, controller ownership, forms, health,
@@ -74,8 +74,15 @@ as that author did.
 - Resolve numeric action codes and argument domains from current legality.
   Stable semantic IDs may recognize optional capabilities, but the bot must
   fall back safely when one is absent.
-- Expect one fresh bot instance and empty private memory for every new body
-  life. Use observations and declared team perception for coordination.
+- **Memory.** Per-life: expect one fresh bot instance and empty private memory
+  for every new body life. **On the mind profile: one instance for the whole
+  match, whose fields are your memory, and a runtime fault forgets the match**
+  (the Store is discarded and, at this contract's zero allowance, you are
+  disqualified). Coordination is no longer a problem to solve — there is one
+  decider — so spend the lines on doctrine instead. Additionally, on the mind
+  profile: `Think` runs every tick including with no live bodies, every own live
+  body defaults to `Wait` so forgetting one costs a tick rather than the match,
+  and `SetRole` publishes a free-vocabulary label your opponent can also read.
 - Handle both explicit Fabricate and declared automatic activation/return when
   the assigned qualification profile requires their union.
 - Use deterministic contract, observation, identity, and `context.Random`
