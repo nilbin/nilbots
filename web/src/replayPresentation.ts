@@ -2,6 +2,7 @@ import type {
   ReplayActorLifeKey,
   ReplayActorState,
   ReplayFormTransition,
+  ReplayModeState,
   ReplayModel,
   ReplayProjectileHeading,
   ReplayStableUnitKey,
@@ -34,6 +35,70 @@ export interface LegacyControlPresentation {
   names: [string, string];
 }
 
+/**
+ * A claim losing ground, and which of the two ways it is losing it.
+ *
+ * The channel has two subtractive paths and they are different events to
+ * watch: an **interrupt** is a bolt landing on a body that is holding the
+ * point, taking back the whole run's work in one beat, and an **erosion** is
+ * the enemy standing on your claim and grinding it down at a steady multiple
+ * every tick. Reading them as one "progress went down" is exactly the reading
+ * that made both invisible — a hit reaction and a drain look nothing alike.
+ *
+ * Derived rather than published: the wire moves `captureProgress` and says
+ * nothing about why, so this compares consecutive ticks of the same run and
+ * asks whether hostile damage landed on the controller's bodies standing in
+ * the active objective region.
+ */
+export interface CaptureRevertPresentation {
+  kind: 'interrupt' | 'erosion';
+  /** Points of progress taken back. */
+  amount: number;
+  /** Those points as a fraction of the threshold — what a renderer knocks back. */
+  fraction: number;
+  /** Where the claim stood before the revert, as a fraction of the threshold. */
+  fromFraction: number;
+  /** The team whose work was reverted. */
+  teamId: number;
+  /** Tiles the interrupting damage landed on; empty for an erosion. */
+  at: { x: number; y: number }[];
+  /**
+   * 0 on the tick it landed. An interrupt lingers for a short beat so the
+   * knockback is legible at playback speed; an erosion is only ever reported
+   * on the tick it happens, because it repeats on its own.
+   */
+  ticksSince: number;
+  /**
+   * 1 on the tick it landed, falling to 0 at the end of its beat. Resolved
+   * here rather than by each renderer, so the flash and the panel fade over
+   * the same window and neither has to know how long the beat is.
+   */
+  strength: number;
+}
+
+/**
+ * How long an interrupt stays readable. Playback runs 5 ticks a second at 1x,
+ * so a single-tick flash is 200ms — enough to miss, and this is the beat the
+ * whole mechanic turns on.
+ */
+const INTERRUPT_BEAT_TICKS = 3;
+
+/** The control policy string that says a ruleset captures by channelling. */
+const CHANNEL_CONTROL_POLICY_PREFIX =
+  'stationary-claim-weight-versus-total-denial-weight';
+
+/**
+ * How far from the objective a body still counts as escorting it.
+ *
+ * A screen is a body on the firing line to a channeler and off the objective
+ * itself. "On the firing line" is a heading the viewer cannot know without
+ * simulating, so proximity stands in for it: near the point and not on it,
+ * while a teammate channels. Far enough out and a body is doing something
+ * else entirely — harvesting the side lanes, most likely — and calling that an
+ * escort would make the cue meaningless.
+ */
+const SCREEN_REACH_TILES = 5;
+
 export interface FrontlineControlPresentation {
   kind: 'frontline';
   activePositionIndex: number;
@@ -61,11 +126,118 @@ export interface FrontlineControlPresentation {
   holdDurationTicks: number | null;
   winnerTeamId: number | null;
   phase: string;
+  /**
+   * True when the declared control policy is the capture channel: standing
+   * still is what captures, and taking damage on the point takes it back.
+   * False on every ruleset without it, which is what keeps a pre-channel
+   * replay rendering exactly as it always did.
+   */
+  channel: boolean;
+  /** Contract-declared ceiling on the channel's gain multiplier; null off it. */
+  channelGainCap: number | null;
+  /**
+   * This tick's channel surplus: the controlling team's stationary claim
+   * weight minus every opponent's total denial weight, capped. Null off the
+   * channel or while nobody controls.
+   */
+  channelGain: number | null;
+  /** Bodies channelling for the controlling team this tick. */
+  channelingUnitCount: number;
+  /** Bodies screening for them — near the point, off it, while a teammate channels. */
+  screeningUnitCount: number;
+  /** A claim losing ground this tick, and how. Null while nothing is lost. */
+  captureRevert: CaptureRevertPresentation | null;
 }
 
 export type ObjectivePresentation =
   | LegacyControlPresentation
   | FrontlineControlPresentation;
+
+/** One upgrade track's position on the declared ladder for one team. */
+export interface ScrapTrackPresentation {
+  trackId: string;
+  /** Display label — the track id, which is already the player's word for it. */
+  label: string;
+  tier: number;
+  maxTier: number;
+  /** Price of the next tier, or null once the track is maxed. */
+  nextCost: number | null;
+  /** Whether this team's bank covers that next tier right now. */
+  affordable: boolean;
+  /** Tiers bought within the purchase beat, newest first. */
+  boughtTicksSince: number | null;
+}
+
+/** One team's economic position: what it holds, and what it has turned it into. */
+export interface ScrapTeamPresentation {
+  teamId: number;
+  name: string;
+  accent: string;
+  /** Liquid scrap in the bank. */
+  bank: number;
+  /** Scrap this team's bodies are carrying and have not banked yet. */
+  carried: number;
+  tracks: ScrapTrackPresentation[];
+  tierTotal: number;
+  maxTotalTiers: number;
+}
+
+/** One live pile of loose scrap, with its clock resolved for a renderer. */
+export interface ScrapPilePresentation {
+  position: { x: number; y: number };
+  amount: number;
+  expiresAtTick: number;
+  /** Ticks until it is gone; 0 on the tick it disappears. */
+  remainingTicks: number;
+  /** 1 the tick it lands, falling to 0 at expiry. */
+  lifeFraction: number;
+  /** True in the last quarter of its life — renderers blink it out. */
+  expiring: boolean;
+  /** A scheduled deposit standing on a declared site, rather than a wreck. */
+  vein: boolean;
+}
+
+/** A tier bought this beat — the moment the enemy's bank became a better gun. */
+export interface ScrapPurchasePresentation {
+  teamId: number;
+  teamName: string;
+  accent: string;
+  trackId: string;
+  label: string;
+  tier: number;
+  /** 0 on the tick the purchase settled; renderers fade the beat out over it. */
+  ticksSince: number;
+  /** 1 on the tick it settled, falling to 0 at the end of the beat. */
+  strength: number;
+}
+
+/**
+ * The declared battlefield economy, resolved for this tick.
+ *
+ * Null on every replay whose ruleset declares none — which is every replay
+ * written before the arm existed — so a renderer that draws nothing when this
+ * is null keeps those exactly as they were.
+ */
+export interface ScrapEconomyPresentation {
+  kind: 'scrap';
+  teams: ScrapTeamPresentation[];
+  piles: ScrapPilePresentation[];
+  carryCapacity: number;
+  /** Declared deposit addresses, known before tick zero. */
+  veinSites: { x: number; y: number }[];
+  /** The next scheduled deposit tick, or null once the schedule is spent. */
+  nextVeinTick: number | null;
+  /** True on a tick a deposit is due — the metronome, made visible. */
+  veinDueNow: boolean;
+  /** Purchases inside the beat window, newest first. */
+  purchases: ScrapPurchasePresentation[];
+}
+
+/**
+ * How long a purchase stays a visible beat. Four ticks is about 0.8s at 1x,
+ * which is a flash rather than a state.
+ */
+const PURCHASE_BEAT_TICKS = 4;
 
 export interface UnitPresentation {
   unitKey: ReplayStableUnitKey;
@@ -104,12 +276,27 @@ export interface UnitPresentation {
   debug: string | null;
   visibleTiles: number;
   visibleEnemies: { x: number; y: number }[];
+  /**
+   * Scrap this body is carrying at the end of this tick. Always 0 without a
+   * declared economy. A loaded body is a courier: killing it drops the whole
+   * load plus its wreck on one tile, which is what makes it worth chasing.
+   */
+  carriedScrap: number;
+  /** Fraction of the declared carry cap in hand; 0 without an economy. */
+  carriedFraction: number;
+  /**
+   * What this body is doing for the channel this tick: holding the point
+   * still, or standing off it near a teammate who is.
+   */
+  channelRole: 'channeling' | 'screening' | null;
 }
 
 export interface TickPresentation {
   tick: number;
   objective: ObjectivePresentation | null;
   units: UnitPresentation[];
+  /** The declared scrap economy at this tick; null when the ruleset has none. */
+  economy: ScrapEconomyPresentation | null;
 }
 
 export interface ReplayPresenter {
@@ -122,6 +309,12 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
   const maxHealth = replayMaxHealth(replay);
   const tickCount = replay.ticks.length;
   const legacyZone = deriveLegacyZone(replay);
+  const economyRules = scrapEconomyRules(replay);
+  const captureRules = frontlineCaptureRules(replay);
+  // Both renderers call this once per animation frame, and the playhead crosses
+  // dozens of frames per tick. The answer is a pure function of the tick, so it
+  // is derived once and handed back until the tick changes.
+  let memo: { tickIndex: number; value: TickPresentation } | null = null;
 
   const at = (rawTick: number): TickPresentation => {
     if (tickCount === 0) {
@@ -137,16 +330,22 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
             null,
             legacyZone,
             0,
+            null,
+            null,
           ),
         ),
+        economy: null,
       };
     }
 
     const tickIndex = Math.max(0, Math.min(rawTick, tickCount - 1));
+    if (memo?.tickIndex === tickIndex) return memo.value;
     const tick = replay.ticks[tickIndex];
-    return {
+    const channel = channelReadingAt(replay, tickIndex, captureRules);
+    const carried = carriedScrapAt(replay, tickIndex, economyRules !== null);
+    const value: TickPresentation = {
       tick: tick.tick,
-      objective: objectiveAt(replay, tickIndex, legacyZone),
+      objective: objectiveAt(replay, tickIndex, legacyZone, channel),
       units: replay.units.map((unit) =>
         presentUnit(
           replay,
@@ -158,9 +357,19 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
           ) ?? null,
           legacyZone,
           tickIndex,
+          channel,
+          economyRules === null
+            ? null
+            : {
+                carried: carried.get(unit.unitKey) ?? 0,
+                capacity: economyRules.carryCapacity,
+              },
         ),
       ),
+      economy: economyAt(replay, tickIndex, economyRules, carried),
     };
+    memo = { tickIndex, value };
+    return value;
   };
 
   return { tickCount, maxHealth, at };
@@ -174,6 +383,8 @@ function presentUnit(
   turn: ReplayModel['ticks'][number]['actorTurns'][number] | null,
   legacyZone: LegacyZone | null,
   tickIndex: number,
+  channel: ChannelReading | null,
+  load: { carried: number; capacity: number } | null,
 ): UnitPresentation {
   const unit = replay.units.find(
     (candidate) => candidate.unitKey === unitKey,
@@ -285,6 +496,12 @@ function presentUnit(
         x: enemy.position.x,
         y: enemy.position.y,
       })) ?? [],
+    carriedScrap: load?.carried ?? 0,
+    carriedFraction:
+      load === null || load.capacity <= 0
+        ? 0
+        : Math.min(1, load.carried / load.capacity),
+    channelRole: channel?.roles.get(unitKey) ?? null,
   };
 }
 
@@ -296,6 +513,7 @@ function objectiveAt(
   replay: ReplayModel,
   tickIndex: number,
   legacyZone: LegacyZone | null,
+  channel: ChannelReading | null,
 ): ObjectivePresentation | null {
   const tick = replay.ticks[tickIndex];
   const objective = tick.after.objective;
@@ -327,11 +545,16 @@ function objectiveAt(
         ? null
         : Math.max(0, holdEndsAtTick - objective.nextTick);
     const holdDurationTicks = ratchetHoldDuration(replay);
-    const captureControl = frontlineCaptureControl(
-      replay,
-      tick.after,
-      objective.activePositionIndex,
-    );
+    // The channel resolves control itself — stationary claim weight against
+    // total denial weight — so it never falls through to the presence rule,
+    // which would read a native 2v1 push as a frozen contest.
+    const captureControl =
+      channel ??
+      frontlineCaptureControl(
+        replay,
+        tick.after,
+        objective.activePositionIndex,
+      );
     const capturePaused =
       objective.controlResumesAtTick > objective.nextTick;
     const holdPhase =
@@ -341,9 +564,25 @@ function objectiveAt(
           `${holdRemainingTicks} ${
             holdRemainingTicks === 1 ? 'TICK' : 'TICKS'
           }`;
+    // A completed breach ends the run by winning it, and the zeroed meter
+    // that follows is not work anybody took away.
+    const captureRevert =
+      channel === null || winnerTeamId !== null
+        ? null
+        : captureRevertAt(replay, tickIndex, threshold);
     let phase: string;
     if (winnerTeamId !== null) {
       phase = `${teamName(replay, winnerTeamId)} BREACHES`;
+    } else if (captureRevert !== null && captureRevert.ticksSince === 0) {
+      // The loudest true sentence about this tick. A revert is the whole point
+      // of the channel, and it outranks a standing ratchet or a redeploy clock
+      // for the one tick it lands on.
+      phase =
+        captureRevert.kind === 'interrupt'
+          ? `${teamName(replay, captureRevert.teamId)} INTERRUPTED · ` +
+            `−${captureRevert.amount}`
+          : `${teamName(replay, captureRevert.teamId)} CLAIM ERODING · ` +
+            `−${captureRevert.amount}`;
     } else if (objective.controlResumesAtTick > objective.nextTick) {
       phase =
         holdPhase === null
@@ -353,6 +592,15 @@ function objectiveAt(
       phase = holdPhase;
     } else if (objective.claimingTeamId === null) {
       phase = 'FRONTLINE NEUTRAL';
+    } else if (channel !== null) {
+      // Under the channel the verb is not "pushing": the bodies are standing
+      // still, and the multiplier is the thing a watcher wants.
+      phase =
+        `${teamName(replay, objective.claimingTeamId)} CHANNELING · ` +
+        `${objective.captureProgress}/${threshold}` +
+        (channel.gain !== null && channel.gain > 1
+          ? ` · ×${channel.gain}`
+          : '');
     } else {
       phase =
         `${teamName(replay, objective.claimingTeamId)} PUSHING · ` +
@@ -379,6 +627,12 @@ function objectiveAt(
       holdDurationTicks,
       winnerTeamId,
       phase,
+      channel: channel !== null,
+      channelGainCap: channel?.gainCap ?? null,
+      channelGain: channel?.gain ?? null,
+      channelingUnitCount: channel?.channelingCount ?? 0,
+      screeningUnitCount: channel?.screeningCount ?? 0,
+      captureRevert,
     };
   }
 
@@ -452,10 +706,527 @@ function objectiveAt(
 }
 
 function ratchetHoldDuration(replay: ReplayModel): number | null {
+  return frontlineCaptureRules(replay)?.ratchetHoldTicks ?? null;
+}
+
+type FrontlineCaptureRules = Extract<
+  ReplayModel['contract'],
+  { kind: 'v3-generic' }
+>['rawContract']['rules']['gameMode'] extends infer Mode
+  ? Mode extends { kind: 'frontline'; capture: infer Capture }
+    ? Capture
+    : never
+  : never;
+
+type ScrapEconomyRules = NonNullable<
+  Extract<
+    ReplayModel['contract'],
+    { kind: 'v3-generic' }
+  >['rawContract']['rules']['gameMode'] extends infer Mode
+    ? Mode extends { kind: 'frontline'; scrapEconomy?: infer Economy }
+      ? Economy
+      : never
+    : never
+>;
+
+/** The declared capture block, or null on a wire that carries no generic contract. */
+function frontlineCaptureRules(
+  replay: ReplayModel,
+): FrontlineCaptureRules | null {
   if (replay.contract.kind !== 'v3-generic') return null;
   const mode = replay.contract.rawContract.rules.gameMode;
-  if (mode.kind !== 'frontline') return null;
-  return mode.capture.ratchetHoldTicks ?? null;
+  return mode.kind === 'frontline' ? mode.capture : null;
+}
+
+/**
+ * The declared battlefield economy, or null when the ruleset declares none.
+ *
+ * Absent means the mechanic does not exist for that match — the same
+ * discipline the contract itself uses — so every replay written before the arm
+ * existed resolves to null here and renders exactly as it did.
+ */
+function scrapEconomyRules(
+  replay: ReplayModel,
+): ScrapEconomyRules | null {
+  if (replay.contract.kind !== 'v3-generic') return null;
+  const mode = replay.contract.rawContract.rules.gameMode;
+  return mode.kind === 'frontline' ? (mode.scrapEconomy ?? null) : null;
+}
+
+/**
+ * One tick of the capture channel, resolved through its own control rule.
+ *
+ * The channel does not count presence: a team's **claim weight** is only the
+ * objective weight of its bodies whose tile did not change this tick, while its
+ * **denial weight** is all of them. Control needs claim to strictly exceed
+ * every opponent's denial, which is why a defender who keeps moving still
+ * subtracts from an attacker's total and an attacker who takes a step
+ * contributes nothing that tick. Deriving that here rather than in a renderer
+ * is what lets the arena say who is channelling and who is screening without
+ * either viewer re-deciding the rule.
+ */
+interface ChannelReading {
+  /** Same shape `frontlineCaptureControl` returns, so it substitutes for it. */
+  teamId: number | null;
+  contested: boolean;
+  /** min(cap, claim − enemy denial) for the controlling team; null while none. */
+  gain: number | null;
+  gainCap: number | null;
+  roles: Map<ReplayStableUnitKey, 'channeling' | 'screening'>;
+  channelingCount: number;
+  screeningCount: number;
+}
+
+function channelReadingAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  captureRules: FrontlineCaptureRules | null,
+): ChannelReading | null {
+  if (
+    captureRules === null ||
+    !captureRules.controlPolicy.startsWith(CHANNEL_CONTROL_POLICY_PREFIX)
+  )
+    return null;
+  const tick = replay.ticks[tickIndex];
+  const objective = tick?.after.objective;
+  if (!tick || objective?.kind !== 'frontline') return null;
+  const tiles =
+    replay.map.frontline?.positions.find(
+      (position) =>
+        position.positionIndex === objective.activePositionIndex,
+    )?.tiles ?? [];
+  const roles = new Map<ReplayStableUnitKey, 'channeling' | 'screening'>();
+  if (tiles.length === 0)
+    return {
+      teamId: null,
+      contested: false,
+      gain: null,
+      gainCap: captureRules.stationaryGainMultiplierCap ?? null,
+      roles,
+      channelingCount: 0,
+      screeningCount: 0,
+    };
+
+  const footprint = new Set(
+    tiles.map((position) => `${position.x},${position.y}`),
+  );
+  const claim = new Map<number, number>();
+  const denial = new Map<number, number>();
+  const teamsChannelling = new Set<number>();
+  for (const actor of tick.after.actors) {
+    if (actor.status !== 'active') continue;
+    const onPoint = footprint.has(`${actor.position.x},${actor.position.y}`);
+    if (!onPoint) continue;
+    const weight =
+      replay.forms.find((form) => form.formId === actor.formId)
+        ?.objectiveWeight ?? 1;
+    // Objective weight gates the whole mechanic: an anchored turret neither
+    // claims nor denies, and it cannot channel.
+    if (weight <= 0) continue;
+    const previous = tick.before?.actors.find(
+      (candidate) => candidate.actorKey === actor.actorKey,
+    );
+    // Stillness is positional, not intentional — a blocked move did not move,
+    // and a life with no previous position (the tick it spawns) counts as
+    // stationary.
+    const stationary =
+      previous === undefined ||
+      (previous.position.x === actor.position.x &&
+        previous.position.y === actor.position.y);
+    const team = actor.identity.teamId;
+    denial.set(team, (denial.get(team) ?? 0) + weight);
+    if (!stationary) continue;
+    claim.set(team, (claim.get(team) ?? 0) + weight);
+    roles.set(actor.unitKey, 'channeling');
+    teamsChannelling.add(team);
+  }
+
+  const totalDenial = [...denial.values()].reduce(
+    (total, weight) => total + weight,
+    0,
+  );
+  let teamId: number | null = null;
+  let gain: number | null = null;
+  const cap = captureRules.stationaryGainMultiplierCap ?? null;
+  for (const [team, weight] of claim) {
+    const opposingDenial = totalDenial - (denial.get(team) ?? 0);
+    if (weight <= opposingDenial) continue;
+    teamId = team;
+    const surplus = weight - opposingDenial;
+    gain = cap === null ? surplus : Math.min(cap, surplus);
+  }
+
+  // Escorts: near the point, off it, while a teammate holds it still. The
+  // screen is what makes a solo channel survivable, so a viewer that shows the
+  // channeler without it shows half the formation.
+  if (teamsChannelling.size > 0) {
+    for (const actor of tick.after.actors) {
+      if (actor.status !== 'active') continue;
+      if (roles.has(actor.unitKey)) continue;
+      if (!teamsChannelling.has(actor.identity.teamId)) continue;
+      if (footprint.has(`${actor.position.x},${actor.position.y}`)) continue;
+      const reach = tiles.reduce(
+        (nearest, tile) =>
+          Math.min(
+            nearest,
+            Math.max(
+              Math.abs(tile.x - actor.position.x),
+              Math.abs(tile.y - actor.position.y),
+            ),
+          ),
+        Number.POSITIVE_INFINITY,
+      );
+      if (reach <= SCREEN_REACH_TILES)
+        roles.set(actor.unitKey, 'screening');
+    }
+  }
+
+  let channelingCount = 0;
+  let screeningCount = 0;
+  for (const role of roles.values())
+    if (role === 'channeling') channelingCount++;
+    else screeningCount++;
+
+  return {
+    teamId,
+    // Under the channel a second team on the point is not automatically a
+    // stall: it is a contest only while nobody's claim clears the opposition.
+    contested: teamId === null && denial.size > 1,
+    gain,
+    gainCap: cap,
+    roles,
+    channelingCount,
+    screeningCount,
+  };
+}
+
+/**
+ * A claim that lost ground on this tick, and which of the two paths took it.
+ *
+ * Both paths move exactly one published number, so the reading is a comparison
+ * of consecutive ticks of the same run plus one question about this tick's
+ * damage: did any land on a body of the controlling team standing in the
+ * active objective region? That is the interrupt's declared scope, verbatim.
+ *
+ * A position that advanced is a completed capture, not a revert — the claim is
+ * meant to be back at zero — so an index change ends the run instead.
+ */
+function captureRevertAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  threshold: number,
+): CaptureRevertPresentation | null {
+  for (let offset = 0; offset < INTERRUPT_BEAT_TICKS; offset++) {
+    const index = tickIndex - offset;
+    if (index < 0) return null;
+    const revert = revertOnTick(replay, index, threshold);
+    if (revert === null) continue;
+    // An erosion repeats every tick it is happening, so it never needs to be
+    // held over; only the one-off hit reaction does.
+    if (offset > 0 && revert.kind !== 'interrupt') return null;
+    return {
+      ...revert,
+      ticksSince: offset,
+      // An erosion is only reported on its own tick and repeats on its own, so
+      // it is always at full strength; only the hit reaction fades.
+      strength:
+        revert.kind === 'interrupt'
+          ? Math.max(0, 1 - offset / INTERRUPT_BEAT_TICKS)
+          : 1,
+    };
+  }
+  return null;
+}
+
+function revertOnTick(
+  replay: ReplayModel,
+  tickIndex: number,
+  threshold: number,
+): Omit<CaptureRevertPresentation, 'ticksSince' | 'strength'> | null {
+  const tick = replay.ticks[tickIndex];
+  const current = tick?.after.objective;
+  const previous =
+    (tickIndex > 0
+      ? replay.ticks[tickIndex - 1]?.after.objective
+      : replay.initialWorld?.objective) ?? null;
+  if (
+    !tick ||
+    current?.kind !== 'frontline' ||
+    previous?.kind !== 'frontline' ||
+    previous.activePositionIndex !== current.activePositionIndex
+  )
+    return null;
+  const claimantTeamId = previous.claimingTeamId;
+  if (claimantTeamId === null) return null;
+  if (
+    current.claimingTeamId !== null &&
+    current.claimingTeamId !== claimantTeamId
+  )
+    return null;
+  const held =
+    current.claimingTeamId === claimantTeamId ? current.captureProgress : 0;
+  const amount = previous.captureProgress - held;
+  if (amount <= 0) return null;
+
+  const tiles =
+    replay.map.frontline?.positions.find(
+      (position) =>
+        position.positionIndex === current.activePositionIndex,
+    )?.tiles ?? [];
+  const footprint = new Set(
+    tiles.map((position) => `${position.x},${position.y}`),
+  );
+  const at: { x: number; y: number }[] = [];
+  for (const event of tick.events) {
+    if (event.type !== 'damage') continue;
+    if (event.targetActor?.teamId !== claimantTeamId) continue;
+    // Generation-3 damage carries the contact tile as the event's position;
+    // the older wires spell the same fact `from`.
+    const position = event.to ?? event.from;
+    if (!position || !footprint.has(`${position.x},${position.y}`)) continue;
+    at.push({ x: position.x, y: position.y });
+  }
+
+  return {
+    kind: at.length > 0 ? 'interrupt' : 'erosion',
+    amount,
+    fraction: amount / Math.max(1, threshold),
+    fromFraction: Math.min(
+      1,
+      previous.captureProgress / Math.max(1, threshold),
+    ),
+    teamId: claimantTeamId,
+    at,
+  };
+}
+
+type FrontlineModeState = Extract<ReplayModeState, { kind: 'frontline' }>;
+
+/**
+ * The typed Frontline mode state, or null for any other mode.
+ *
+ * The model's third mode member is an open `{ kind: string }` bag, so a
+ * `kind === 'frontline'` comparison alone does not discriminate the union —
+ * a fact worth stating once here rather than casting at four call sites.
+ */
+function frontlineMode(
+  mode: ReplayModeState | undefined,
+): FrontlineModeState | null {
+  return mode !== undefined &&
+    mode.kind === 'frontline' &&
+    'captureProgress' in mode
+    ? mode
+    : null;
+}
+
+/**
+ * Every body's load at the end of this tick, by stable unit.
+ *
+ * The authoritative world state carries no load at all — only an observation
+ * publishes one — and an observation is frozen at the *start* of its tick. So
+ * the load a body ends this tick holding is the one the next tick observes,
+ * which is also exactly the tick whose world state shows the pile it took the
+ * load from as gone. Reading this tick's own observation instead would draw a
+ * courier one tick behind the pile it just picked up.
+ */
+function carriedScrapAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  declared: boolean,
+): Map<ReplayStableUnitKey, number> {
+  const loads = new Map<ReplayStableUnitKey, number>();
+  if (!declared) return loads;
+  const source = replay.ticks[tickIndex + 1] ?? replay.ticks[tickIndex];
+  if (!source) return loads;
+  for (const turn of source.actorTurns) {
+    const observed = [
+      turn.observation.self,
+      ...turn.observation.allies,
+      ...turn.observation.enemies,
+    ];
+    for (const body of observed) {
+      if (!body || body.actor.kind !== 'exact') continue;
+      const unitKey = body.actor.identity.unitKey;
+      // Every observer of the same frozen tick reports the same number; the
+      // maximum simply keeps a body that one observer cannot see from being
+      // written back down to zero.
+      loads.set(
+        unitKey,
+        Math.max(loads.get(unitKey) ?? 0, body.carriedScrap),
+      );
+    }
+  }
+  return loads;
+}
+
+/**
+ * The declared economy at this tick: both banks, both tier vectors, every live
+ * pile, and any tier bought inside the purchase beat.
+ *
+ * A tier change moves the mode state and rides the ordinary mode-changed fact,
+ * so the purchase is read the same way the enemy reads it — by the bank
+ * dropping and the tier rising together on the tick they happen.
+ */
+function economyAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  rules: ScrapEconomyRules | null,
+  carried: Map<ReplayStableUnitKey, number>,
+): ScrapEconomyPresentation | null {
+  if (rules === null) return null;
+  const tick = replay.ticks[tickIndex];
+  const state = frontlineMode(tick?.after.mode);
+  const banks = state?.scrapTeams ?? [];
+  const carriedByTeam = new Map<number, number>();
+  for (const unit of replay.units) {
+    const load = carried.get(unit.unitKey) ?? 0;
+    if (load > 0)
+      carriedByTeam.set(
+        unit.teamId,
+        (carriedByTeam.get(unit.teamId) ?? 0) + load,
+      );
+  }
+
+  const purchases = purchasesAt(replay, tickIndex, rules);
+  const teams: ScrapTeamPresentation[] = [...replay.teams]
+    .sort((left, right) => left.teamId - right.teamId)
+    .map((team) => {
+      const bank = banks.find((entry) => entry.teamId === team.teamId);
+      const tiers = bank?.tierLevels ?? rules.tracks.map(() => 0);
+      const unitKey = replay.units.find(
+        (unit) => unit.teamId === team.teamId,
+      )?.unitKey;
+      return {
+        teamId: team.teamId,
+        name: teamName(replay, team.teamId),
+        accent: playerAccent(
+          unitKey === undefined
+            ? '#94a3b8'
+            : unitAccent(replay, unitKey),
+        ),
+        bank: bank?.bank ?? 0,
+        carried: carriedByTeam.get(team.teamId) ?? 0,
+        tierTotal: tiers.reduce((total, tier) => total + tier, 0),
+        maxTotalTiers: rules.maxTotalTiers,
+        tracks: rules.tracks.map((track, index) => {
+          const tier = tiers[index] ?? 0;
+          const nextCost =
+            tier >= track.maxTier ? null : (track.tierCosts[tier] ?? null);
+          const bought = purchases.find(
+            (purchase) =>
+              purchase.teamId === team.teamId &&
+              purchase.trackId === track.trackId,
+          );
+          return {
+            trackId: track.trackId,
+            label: track.trackId,
+            tier,
+            maxTier: track.maxTier,
+            nextCost,
+            affordable:
+              nextCost !== null && (bank?.bank ?? 0) >= nextCost,
+            boughtTicksSince: bought?.ticksSince ?? null,
+          };
+        }),
+      };
+    });
+
+  const veinSites = rules.veinSites.map((site) => ({
+    x: site.x,
+    y: site.y,
+  }));
+  const siteKeys = new Set(veinSites.map((site) => `${site.x},${site.y}`));
+  const now = tick?.tick ?? 0;
+  const piles: ScrapPilePresentation[] = (state?.scrapPiles ?? []).map(
+    (pile) => {
+      const remainingTicks = Math.max(0, pile.expiresAtTick - now);
+      const lifeFraction = Math.max(
+        0,
+        Math.min(1, remainingTicks / Math.max(1, rules.pileLifetimeTicks)),
+      );
+      return {
+        position: { x: pile.position.x, y: pile.position.y },
+        amount: pile.amount,
+        expiresAtTick: pile.expiresAtTick,
+        remainingTicks,
+        lifeFraction,
+        expiring: lifeFraction <= 0.25,
+        vein: siteKeys.has(`${pile.position.x},${pile.position.y}`),
+      };
+    },
+  );
+
+  let nextVeinTick: number | null = null;
+  for (
+    let due = rules.veinFirstSpawnTick;
+    due <= rules.veinLastSpawnTick;
+    due += Math.max(1, rules.veinSpawnIntervalTicks)
+  ) {
+    if (due >= now) {
+      nextVeinTick = due;
+      break;
+    }
+  }
+
+  return {
+    kind: 'scrap',
+    teams,
+    piles,
+    carryCapacity: rules.carryCapacity,
+    veinSites,
+    nextVeinTick,
+    veinDueNow: nextVeinTick === now,
+    purchases,
+  };
+}
+
+function purchasesAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  rules: ScrapEconomyRules,
+): ScrapPurchasePresentation[] {
+  const purchases: ScrapPurchasePresentation[] = [];
+  for (let offset = 0; offset < PURCHASE_BEAT_TICKS; offset++) {
+    const index = tickIndex - offset;
+    if (index < 0) break;
+    const after = frontlineMode(replay.ticks[index]?.after.mode);
+    const before = frontlineMode(
+      index > 0
+        ? replay.ticks[index - 1]?.after.mode
+        : replay.initialWorld?.mode,
+    );
+    if (after === null) continue;
+    for (const team of after.scrapTeams ?? []) {
+      const previous = before?.scrapTeams?.find(
+        (entry) => entry.teamId === team.teamId,
+      );
+      team.tierLevels.forEach((tier, trackIndex) => {
+        const was = previous?.tierLevels[trackIndex] ?? 0;
+        const track = rules.tracks[trackIndex];
+        if (track === undefined) return;
+        for (let step = was + 1; step <= tier; step++) {
+          const unitKey = replay.units.find(
+            (unit) => unit.teamId === team.teamId,
+          )?.unitKey;
+          purchases.push({
+            teamId: team.teamId,
+            teamName: teamName(replay, team.teamId),
+            accent: playerAccent(
+              unitKey === undefined
+                ? '#94a3b8'
+                : unitAccent(replay, unitKey),
+            ),
+            trackId: track.trackId,
+            label: track.trackId,
+            tier: step,
+            ticksSince: offset,
+            strength: 1 - offset / PURCHASE_BEAT_TICKS,
+          });
+        }
+      });
+    }
+  }
+  return purchases;
 }
 
 /**

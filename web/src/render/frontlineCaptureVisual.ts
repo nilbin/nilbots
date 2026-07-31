@@ -1,4 +1,7 @@
-import type { TickPresentation } from '../replayPresentation';
+import type {
+  CaptureRevertPresentation,
+  TickPresentation,
+} from '../replayPresentation';
 
 export type FrontlineProgressDirection =
   | 'none'
@@ -40,6 +43,31 @@ export interface FrontlineCaptureVisual {
   claimantAccent: string | null;
   challengerAccent: string | null;
   holdAccent: string | null;
+  /**
+   * True when this ruleset captures by channelling. Renderers use it to decide
+   * whether the meter is a *channel* — a bar filling toward a threshold that a
+   * hit can knock back — rather than the older accumulating push. False on
+   * every replay written before the arm, which keeps those exactly as they
+   * were.
+   */
+  channel: boolean;
+  /** The channel's capped surplus this tick; null while nobody controls. */
+  channelGain: number | null;
+  /** Accent of the team whose work a revert took, or null when none did. */
+  revertAccent: string | null;
+  /**
+   * A revert this tick, with its beat resolved into a 0..1 strength so a
+   * renderer can flash on it without keeping state between frames.
+   *
+   * The two kinds are drawn differently on purpose: an interrupt is a hit
+   * reaction, and an erosion is a drain.
+   */
+  revert: FrontlineCaptureRevert | null;
+}
+
+export interface FrontlineCaptureRevert extends CaptureRevertPresentation {
+  /** Where the meter stood before the revert, as a fraction of the arc. */
+  ghostFraction: number;
 }
 
 export function frontlineCaptureVisual(
@@ -60,8 +88,21 @@ export function frontlineCaptureVisual(
     objective.holdRemainingTicks !== null &&
     objective.holdRemainingTicks > 0;
 
+  const revertReading = objective.captureRevert ?? null;
+  const revert: FrontlineCaptureRevert | null =
+    revertReading === null
+      ? null
+      : {
+          ...revertReading,
+          ghostFraction: clamp01(revertReading.fromFraction),
+        };
+
   let progressDirection: FrontlineProgressDirection;
-  if (objective.capturePaused || contested) {
+  if (revert !== null && revert.ticksSince === 0) {
+    // The meter moved backwards this tick. Whatever the presence rule says
+    // about who is standing where, that is the sentence to draw.
+    progressDirection = revert.kind === 'interrupt' ? 'frozen' : 'eroding';
+  } else if (objective.capturePaused || contested) {
     progressDirection = 'frozen';
   } else if (claimantTeamId === null || progressFraction === 0) {
     progressDirection = 'none';
@@ -122,6 +163,13 @@ export function frontlineCaptureVisual(
     holdAccent: accentFor(
       holdLive ? objective.holdOwnerTeamId : null,
     ),
+    channel: objective.channel ?? false,
+    channelGain: objective.channelGain ?? null,
+    // The team that lost the work, which is not always the current claimant:
+    // an erosion that reaches zero clears the claim outright, and the ghost of
+    // what was taken still belongs to whoever built it.
+    revertAccent: accentFor(revert?.teamId ?? null),
+    revert,
   };
 }
 

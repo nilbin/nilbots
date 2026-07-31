@@ -6339,6 +6339,8 @@ function v1ActorTurn(
             previousActionResult: null,
             pendingFormTransition: null,
             observedBy: [identity.actorKey],
+            // Replay-v1 predates every battlefield economy.
+            carriedScrap: 0,
           };
         }),
       visibleTiles: turn.visibleTiles
@@ -6614,6 +6616,9 @@ function observedActorFromState(
     previousActionResult: state.previousActionResult,
     pendingFormTransition: state.pendingFormTransition,
     observedBy,
+    // Authoritative world lives carry no load in any wire; only a replay-v3
+    // observation publishes one.
+    carriedScrap: 0,
   };
 }
 
@@ -7481,6 +7486,7 @@ function observationFromV2(
         pendingFormTransition: copyV2FormTransition(
           enemy.pendingFormTransition,
         ),
+        carriedScrap: 0,
         observedBy: [...enemy.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
@@ -7656,6 +7662,8 @@ function observedSelfFromV2(
       observed.pendingFormTransition,
     ),
     observedBy,
+    // Internal replay-v2 predates the scrap economy.
+    carriedScrap: 0,
   };
 }
 

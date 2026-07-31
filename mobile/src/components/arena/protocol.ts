@@ -212,6 +212,40 @@ export type ArenaFrontlineObjective = {
   holdDurationTicks: number | null;
   winnerTeamId: number | null;
   phase: string;
+  /**
+   * Whether this ruleset captures by channelling: standing still is what
+   * takes ground, and damage on the point takes it back. False on every
+   * ruleset without the arm, so a card that branches on it draws nothing new
+   * for an older replay.
+   */
+  channel: boolean;
+  /** Contract-declared ceiling on the channel's gain multiplier; null off it. */
+  channelGainCap: number | null;
+  /** Capped stationary surplus this tick; null off the channel or uncontrolled. */
+  channelGain: number | null;
+  /** Bodies holding the point still this tick. */
+  channelingUnitCount: number;
+  /** Bodies screening for them — near the point, off it. */
+  screeningUnitCount: number;
+  /** A claim losing ground this tick, and which way. */
+  captureRevert: ArenaCaptureRevert | null;
+};
+
+/**
+ * A claim losing ground, and which of the two paths took it: an interrupt is a
+ * hit reaction on the bodies holding the point, an erosion is the enemy
+ * grinding a standing claim down. Derived on the web side so the arena and the
+ * native cards cannot disagree about which one happened.
+ */
+export type ArenaCaptureRevert = {
+  kind: 'interrupt' | 'erosion';
+  amount: number;
+  fraction: number;
+  fromFraction: number;
+  teamId: number;
+  at: { x: number; y: number }[];
+  /** 0 on the tick it landed; an interrupt lingers a short beat. */
+  ticksSince: number;
 };
 
 export type ArenaObjective =
@@ -316,6 +350,12 @@ export type ArenaUnitPresentation = {
   debug: string | null;
   visibleTiles: number;
   visibleEnemies: { x: number; y: number }[];
+  /** Scrap this body is carrying; always 0 without a declared economy. */
+  carriedScrap: number;
+  /** That load as a fraction of the declared carry cap. */
+  carriedFraction: number;
+  /** What this body is doing for the channel: holding the point, or screening. */
+  channelRole: 'channeling' | 'screening' | null;
 };
 
 export type ArenaTick = {

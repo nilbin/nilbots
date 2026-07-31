@@ -6751,6 +6751,10 @@ function observedActor(
       actor.formId,
     ),
     observedBy,
+    // The wire omits the key while a body carries nothing, and omits it for
+    // the whole match on a ruleset with no declared economy. Both mean the
+    // same thing to a viewer, so normalization settles them into one number.
+    carriedScrap: actor.carriedScrap ?? 0,
   };
 }
 
@@ -6826,6 +6830,7 @@ function observationFromV3(
         enemy.formId,
       ),
       observedBy: enemy.observedBy.map((actor) => identity(actor).actorKey),
+      carriedScrap: enemy.carriedScrap ?? 0,
     })),
     visibleTiles: observation.visibleTiles.map((tile) => ({
       position: copyPosition(tile.position),

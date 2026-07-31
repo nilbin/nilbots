@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
   ReplayActorLifeKey,
   ReplayModel,
@@ -29,6 +30,7 @@ import {
   maxHealthForActor,
   replayMaxHealth,
 } from '../replayMetadata';
+import { createPresenter } from '../replayPresentation';
 import {
   isGenuineLookModel,
   lookModel,
@@ -164,6 +166,24 @@ const PIP_SETBACK = 0.55;
 const PIP_SPACING = 0.17;
 
 /**
+ * A load riding on a body, and the colour it rides in.
+ *
+ * Carried scrap is the one piece of state that makes a body worth *chasing*
+ * rather than worth shooting, so it has to be visible on the machine itself
+ * from across the arena — a panel row is read afterwards, and by then the
+ * courier is home. Shards orbiting above the hull do that at any camera angle,
+ * and they are deliberately in scrap's neutral colour rather than the team's:
+ * what is on the body is loot, and it changes hands the moment the body dies.
+ *
+ * Six is the declared carry cap on the shipped arm; the pool covers it and any
+ * larger cap simply saturates, which is the right failure for a cue whose job
+ * is "loaded" rather than "loaded with exactly this many".
+ */
+const CARRY_SHARD_LIMIT = 6;
+const CARRY_ORBIT_RADIUS = 0.34;
+const CARRY_HEIGHT = 0.52;
+
+/**
  * How a followed bot is lit up.
  *
  * The gain is **multiplicative, not additive**, and that distinction is the whole design.
@@ -269,6 +289,7 @@ export function installMobileModel(
 export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
+  const presenter = createPresenter(replay);
   // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
   // visibility still uses the effective form's own maximum.
   const maxHealth = replayMaxHealth(replay);
@@ -844,6 +865,134 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     group.add(pips);
     disposables.push(pipGeometry, litPip, lostPip);
 
+    // The channel ring: this body is holding the point still, or standing off
+    // it while a teammate does. Radially symmetric on purpose — it is parented
+    // to the chassis, which turns with the bot's facing, and a body may aim and
+    // fire without breaking its channel, so an arc would swing every time it
+    // looked somewhere else.
+    const channelGeometry = new THREE.RingGeometry(
+      size * 0.62,
+      size * 0.78,
+      36,
+    );
+    channelGeometry.rotateX(-Math.PI / 2);
+    const channelMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const channelRing = new THREE.Mesh(channelGeometry, channelMaterial);
+    channelRing.userData.cue = 'channel-ring';
+    channelRing.position.y = 0.026;
+    channelRing.visible = false;
+    chassis.add(channelRing);
+
+    // The screen's marker is the same ring, broken: six segments at a wider
+    // radius, dim and still. One glance separates the body making progress
+    // from the bodies keeping it alive.
+    const screenGeometry = new THREE.RingGeometry(
+      size * 0.86,
+      size * 0.96,
+      6,
+    );
+    screenGeometry.rotateX(-Math.PI / 2);
+    const screenMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const screenRing = new THREE.Mesh(screenGeometry, screenMaterial);
+    screenRing.userData.cue = 'screen-ring';
+    screenRing.position.y = 0.024;
+    screenRing.visible = false;
+    chassis.add(screenRing);
+
+    // The purchase beat, on the machines it was spent on.
+    //
+    // A tier is bought out of the bank and applied to the team's lives, so the
+    // honest place to say it is the bodies — not a toast, and not the home pad,
+    // which a generic contract need not even declare. A brass ring thrown
+    // outward from under every body of the buying team, once, for the length
+    // of the beat: unmistakable, gone in a second, and impossible to confuse
+    // with an impact, which is white and comes from a tile rather than from a
+    // machine.
+    const upgradeGeometry = new THREE.RingGeometry(
+      size * 0.55,
+      size * 0.72,
+      32,
+    );
+    upgradeGeometry.rotateX(-Math.PI / 2);
+    const upgradeMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(SCRAP_ACCENT),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const upgradeRing = new THREE.Mesh(upgradeGeometry, upgradeMaterial);
+    upgradeRing.userData.cue = 'scrap-purchase';
+    upgradeRing.position.y = 0.032;
+    upgradeRing.visible = false;
+    chassis.add(upgradeRing);
+
+    // The load. World-space like the pips, for the same reason: parented to
+    // the chassis these would swing round with the facing.
+    const carry = new THREE.Group();
+    carry.userData.cue = 'carried-scrap';
+    carry.userData.forUnitKey = unit.unitKey;
+    carry.visible = false;
+    const shardGeometry = new THREE.OctahedronGeometry(0.062, 0);
+    const shardMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(SCRAP_ACCENT).multiplyScalar(0.5),
+      emissive: new THREE.Color(SCRAP_ACCENT),
+      emissiveIntensity: 1.15,
+      roughness: 0.3,
+      metalness: 0.8,
+    });
+    const shards: THREE.Mesh[] = [];
+    for (let index = 0; index < CARRY_SHARD_LIMIT; index++) {
+      const shard = new THREE.Mesh(shardGeometry, shardMaterial);
+      shard.visible = false;
+      carry.add(shard);
+      shards.push(shard);
+    }
+    // A wash under a loaded body, so a courier reads as valuable even when the
+    // shards themselves are behind a wall from this camera.
+    const haulGeometry = new THREE.PlaneGeometry(size * 2.1, size * 2.1);
+    haulGeometry.rotateX(-Math.PI / 2);
+    const haulMaterial = new THREE.MeshBasicMaterial({
+      map: radialGlow(new THREE.Color(SCRAP_ACCENT)),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const haul = new THREE.Mesh(haulGeometry, haulMaterial);
+    haul.userData.cue = 'carried-scrap-pool';
+    haul.position.y = 0.02;
+    haul.visible = false;
+    group.add(haul);
+    group.add(carry);
+    disposables.push(
+      channelGeometry,
+      channelMaterial,
+      screenGeometry,
+      screenMaterial,
+      upgradeGeometry,
+      upgradeMaterial,
+      shardGeometry,
+      shardMaterial,
+      haulGeometry,
+      haulMaterial,
+    );
+
     chassis.visible = false;
     group.add(chassis);
     disposables.push(
@@ -936,6 +1085,17 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       pipMeshes,
       litPip,
       lostPip,
+      channelRing,
+      channelMaterial,
+      screenRing,
+      screenMaterial,
+      upgradeRing,
+      upgradeMaterial,
+      carry,
+      shards,
+      shardMaterial,
+      haul,
+      haulMaterial,
       fading,
       fade,
     };
@@ -1222,6 +1382,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       Math.min(Math.floor(time), replay.ticks.length - 1),
     );
     const currentTick = replay.ticks[tick];
+    // The rules-derived half of what a body is doing — its channel role and
+    // its load — comes from the shared presenter rather than being re-decided
+    // here, for the same reason the overlays take theirs from it: two
+    // renderers deciding what "channelling" means is two answers.
+    const presentation = presenter.at(tick);
     // What the followed bot could see this tick. The flat renderer ghosts an enemy it has
     // no line on rather than removing it, because the panel answers "what did this bot
     // know?" and an unseen opponent drawn at full strength would be lying.
@@ -1330,6 +1495,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.anchorRing.visible = false;
       bot.scan.visible = false;
       bot.stance.visible = false;
+      bot.channelRing.visible = false;
+      bot.screenRing.visible = false;
+      bot.upgradeRing.visible = false;
+      bot.carry.visible = false;
+      bot.haul.visible = false;
       bot.highlight(false);
       bot.flash(0);
       // A life destroyed mid-windup would otherwise leave its charge burning on an empty
@@ -1485,6 +1655,65 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         pip.position.x =
           (index - (effectiveMaxHealth - 1) / 2) * PIP_SPACING;
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
+      }
+
+      // What this body is doing about the two mechanics the arena now carries:
+      // holding the point (or guarding whoever is), and whether it is worth
+      // chasing across the map.
+      const mechanics = presentation.units.find(
+        (candidate) => candidate.unitKey === pose.unitKey,
+      );
+      const channelling =
+        bot.chassis.visible && mechanics?.channelRole === 'channeling';
+      const screening =
+        bot.chassis.visible && mechanics?.channelRole === 'screening';
+      bot.channelRing.visible = channelling;
+      bot.screenRing.visible = screening;
+      if (channelling) {
+        // A slow swell rather than a blink: a channel is a thing that runs,
+        // and the objective's own arc already reports how far along it is.
+        const swell = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6);
+        bot.channelMaterial.opacity = 0.42 + 0.3 * swell;
+        bot.channelRing.scale.setScalar(1 + 0.06 * swell);
+      }
+      if (screening) bot.screenMaterial.opacity = 0.24;
+
+      // A tier this body's team just bought, thrown outward and out.
+      const purchase = presentation.economy?.purchases.find(
+        (entry) => entry.teamId === pose.teamId,
+      );
+      bot.upgradeRing.visible =
+        purchase !== undefined && bot.chassis.visible;
+      if (purchase !== undefined) {
+        const spread = 1 - purchase.strength;
+        bot.upgradeRing.scale.setScalar(1 + spread * 1.9);
+        bot.upgradeMaterial.opacity = purchase.strength ** 1.4 * 0.85;
+      }
+
+      const load = mechanics?.carriedScrap ?? 0;
+      bot.carry.visible = load > 0 && bot.chassis.visible;
+      bot.haul.visible = bot.carry.visible;
+      if (bot.carry.visible) {
+        bot.carry.position.set(glide.x + 0.5, 0, glide.y + 0.5);
+        bot.haul.position.set(glide.x + 0.5, 0.02, glide.y + 0.5);
+        const carried = Math.min(load, bot.shards.length);
+        for (const [index, shard] of bot.shards.entries()) {
+          shard.visible = index < carried;
+          if (!shard.visible) continue;
+          const angle =
+            time * Math.PI * 0.8 + (index / carried) * Math.PI * 2;
+          shard.position.set(
+            Math.cos(angle) * CARRY_ORBIT_RADIUS,
+            CARRY_HEIGHT + 0.04 * Math.sin(time * Math.PI * 2 + index),
+            Math.sin(angle) * CARRY_ORBIT_RADIUS,
+          );
+          shard.rotation.y = angle * 1.6;
+          shard.rotation.x = 0.5;
+        }
+        // The pool answers "how loaded", so it grows with the load rather than
+        // simply announcing that there is one.
+        bot.haulMaterial.opacity =
+          0.16 + 0.34 * (mechanics?.carriedFraction ?? 0);
       }
 
       // The windup cue runs on the transition's clock, for exactly as long as it does — in

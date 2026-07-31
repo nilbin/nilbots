@@ -1033,6 +1033,17 @@ export interface ReplayObservedActor {
   previousActionResult: ReplayActionResult | null;
   pendingFormTransition: ReplayFormTransition | null;
   observedBy: ReplayActorLifeKey[];
+  /**
+   * Scrap this body is carrying, under a declared scrap economy.
+   *
+   * Zero rather than absent once normalized: the wire omits the key while a
+   * body carries nothing, and every wire without the economy omits it always,
+   * so an absent key and an empty load are the same picture to a viewer. This
+   * is the **only** place the fact exists — authoritative world lives carry no
+   * load, so a courier is readable only through the observations of the tick
+   * that follows the pickup.
+   */
+  carriedScrap: number;
 }
 
 export interface ReplayObservedTile {

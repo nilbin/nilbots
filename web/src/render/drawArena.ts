@@ -1,3 +1,4 @@
+import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
   ReplayActorIdentity,
   ReplayCausalEvent,
@@ -327,6 +328,8 @@ export function drawArena(
   // on the ground plane, so drawing it over the chassis here would make the flat viewer
   // paint over the machine it is delivering while the other one lights it from below.
   drawArrivals();
+  // Loose scrap sits on the floor under the bodies that come to take it.
+  drawScrapPiles();
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
@@ -571,6 +574,42 @@ export function drawArena(
       ctx.restore();
     }
 
+    // The knockback. A channel that lost work draws the length it *had*
+    // outside the length it has, hot and flashing for the beat, so the eye
+    // reads a gap rather than a bar that quietly got shorter. An erosion draws
+    // the same ghost dimly and without the flash — a drain, not a hit.
+    const revert = captureVisual.revert;
+    if (revert !== null && revert.ghostFraction > 0) {
+      const hot = revert.kind === 'interrupt';
+      const ghostAccent = hot
+        ? '#fff1d0'
+        : (captureVisual.revertAccent ?? claimAccent);
+      if (ghostAccent) {
+        if (hot) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = hexWithAlpha(
+            '#ffd9a1',
+            (0.06 + 0.1 * pulse) * revert.strength,
+          );
+          ctx.fill(shape);
+          ctx.restore();
+        }
+        for (const point of tiles) {
+          drawCaptureArc(
+            px(point.x) + tile / 2,
+            py(point.y) + tile / 2,
+            tile * 0.315,
+            revert.ghostFraction,
+            ghostAccent,
+            tile * (hot ? 0.085 : 0.06),
+            -Math.PI / 2,
+            revert.strength * (hot ? 0.6 + pulse * 0.4 : 0.3),
+          );
+        }
+      }
+    }
+
     for (const point of tiles) {
       const x = px(point.x) + tile / 2;
       const y = py(point.y) + tile / 2;
@@ -749,11 +788,15 @@ export function drawArena(
                 ? 'destroyed'
                 : null;
         if (!kind) continue;
-        if (!event.from) continue;
+        // A shot's origin is `from`; a generation-3 impact or destruction
+        // carries its one position as `to`. Reading only `from` left every v3
+        // hit unlit.
+        const at = event.from ?? (kind === 'shot' ? null : event.to);
+        if (!at) continue;
         sources.push({
           kind,
-          x: event.from.x,
-          y: event.from.y,
+          x: at.x,
+          y: at.y,
           age,
           color: eventAccent(event),
         });
@@ -1360,8 +1403,193 @@ export function drawArena(
       if (hiddenByFog(pose)) continue;
       drawShadow(pose);
     }
+    // Under the bodies, on the floor, exactly like the 3D renderer puts them
+    // there: a ring drawn over a chassis would paint on the machine it is
+    // describing.
+    for (const pose of poses) {
+      if (pose.status !== 'active' || hiddenByFog(pose)) continue;
+      drawBodyMechanics(pose);
+    }
     for (const pose of poses) {
       drawBot(pose);
+    }
+    // And the load rides above, because that is where it is.
+    for (const pose of poses) {
+      if (pose.status !== 'active' || hiddenByFog(pose)) continue;
+      drawCarriedScrap(pose);
+    }
+  }
+
+  /**
+   * What a body is doing about the two new mechanics: holding the point,
+   * guarding whoever is, or wearing the tier its team just bought.
+   *
+   * The flat renderer's cheap half of the 3D cues: a solid ring for a body
+   * channelling, a dashed one at a wider radius for its screen, and a brass
+   * ring thrown outward for a purchase. The first two are team-coloured
+   * because a channel belongs to a team; the third is scrap's own colour. All
+   * three are on the floor so the chassis stays legible.
+   */
+  function drawBodyMechanics(pose: BotPose): void {
+    const unit = tickPresentation?.units.find(
+      (candidate) => candidate.unitKey === pose.unitKey,
+    );
+    const purchase = tickPresentation?.economy?.purchases.find(
+      (entry) => entry.teamId === pose.teamId,
+    );
+    const cx = px(pose.x) + tile / 2;
+    const cy = py(pose.y) + tile / 2;
+    if (purchase) {
+      // A tier this body's team just bought, thrown outward and out. Brass,
+      // and from the machine rather than from a tile, so it cannot be read as
+      // an impact.
+      const spread = 1 - purchase.strength;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = hexWithAlpha(
+        SCRAP_ACCENT,
+        purchase.strength ** 1.4 * 0.9,
+      );
+      ctx.shadowColor = SCRAP_ACCENT;
+      ctx.shadowBlur = Math.max(4, tile * 0.2);
+      ctx.lineWidth = Math.max(2, tile * 0.07);
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * 0.42 * (1 + spread * 1.9), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (!unit?.channelRole) return;
+    const accent = accentFor(pose.unitKey);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (unit.channelRole === 'channeling') {
+      const swell = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.5 + 0.32 * swell);
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(4, tile * 0.16);
+      ctx.lineWidth = Math.max(2, tile * 0.055);
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * (0.4 + 0.02 * swell), 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = hexWithAlpha(accent, 0.34);
+      ctx.lineWidth = Math.max(1.5, tile * 0.035);
+      ctx.setLineDash([Math.max(3, tile * 0.1), Math.max(3, tile * 0.1)]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * 0.47, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  /**
+   * A loaded body, said in scrap's own neutral colour.
+   *
+   * Cheap by design — this is the floor for the self-contained CLI viewer and
+   * a device with no WebGL — so the orbiting shards of the 3D cue become a
+   * ring of dots over the hull and a wash under it. The dot count is the load,
+   * which is the number that decides whether the body is worth chasing.
+   */
+  function drawCarriedScrap(pose: BotPose): void {
+    const unit = tickPresentation?.units.find(
+      (candidate) => candidate.unitKey === pose.unitKey,
+    );
+    const load = unit?.carriedScrap ?? 0;
+    if (load <= 0) return;
+    const cx = px(pose.x) + tile / 2;
+    const cy = py(pose.y) + tile / 2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, tile * 0.7);
+    wash.addColorStop(
+      0,
+      hexWithAlpha(SCRAP_ACCENT, 0.16 + 0.2 * (unit?.carriedFraction ?? 0)),
+    );
+    wash.addColorStop(1, hexWithAlpha(SCRAP_ACCENT, 0));
+    ctx.fillStyle = wash;
+    ctx.beginPath();
+    ctx.arc(cx, cy, tile * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = hexWithAlpha(SCRAP_ACCENT, 0.95);
+    ctx.shadowColor = SCRAP_ACCENT;
+    ctx.shadowBlur = Math.max(3, tile * 0.12);
+    const shards = Math.min(load, 6);
+    for (let index = 0; index < shards; index++) {
+      const angle =
+        time * Math.PI * 0.8 + (index / shards) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(
+        cx + Math.cos(angle) * tile * 0.34,
+        cy - tile * 0.34 + Math.sin(angle) * tile * 0.12,
+        tile * 0.055,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Loose scrap on the floor.
+   *
+   * A diamond over its own wash, sized gently by amount and blinking out in
+   * the last quarter of its 80 ticks — the same sentence the 3D ingot says,
+   * in the two dimensions this renderer has.
+   */
+  function drawScrapPiles(): void {
+    for (const pile of tickPresentation?.economy?.piles ?? []) {
+      const cx = px(pile.position.x) + tile / 2;
+      const cy = py(pile.position.y) + tile / 2;
+      const blink = pile.expiring
+        ? 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * Math.PI * 6))
+        : 1;
+      const alive = 0.35 + 0.65 * pile.lifeFraction;
+      const bulk =
+        tile * 0.17 * (1 + 0.42 * Math.min(1, Math.log2(1 + pile.amount) / 3));
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, tile * 0.46);
+      wash.addColorStop(0, hexWithAlpha(SCRAP_ACCENT, 0.26 * alive * blink));
+      wash.addColorStop(1, hexWithAlpha(SCRAP_ACCENT, 0));
+      ctx.fillStyle = wash;
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * 0.46, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.translate(cx, cy);
+      ctx.rotate(time * Math.PI * 0.35);
+      ctx.fillStyle = hexWithAlpha(SCRAP_ACCENT, 0.9 * blink);
+      ctx.shadowColor = SCRAP_ACCENT;
+      ctx.shadowBlur = Math.max(4, tile * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(0, -bulk);
+      ctx.lineTo(bulk, 0);
+      ctx.lineTo(0, bulk);
+      ctx.lineTo(-bulk, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // The clock, as a hexagon that shrinks with what is left of the pile's life.
+      ctx.strokeStyle = hexWithAlpha(
+        SCRAP_ACCENT,
+        (0.2 + 0.5 * pile.lifeFraction) * blink,
+      );
+      ctx.lineWidth = Math.max(1.5, tile * 0.028);
+      ctx.beginPath();
+      const collar = bulk * (1.35 + 0.5 * pile.lifeFraction);
+      for (let corner = 0; corner < 6; corner++) {
+        const angle = (corner / 6) * Math.PI * 2;
+        const x = Math.cos(angle) * collar;
+        const y = Math.sin(angle) * collar;
+        if (corner === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -1977,7 +2205,7 @@ export function drawArena(
     const flash = (progress - 0.6) / 0.4;
     for (const event of currentTick?.events ?? []) {
       if (event.type === 'damage') {
-        const at = eventPoint(event.from);
+        const at = eventPoint(event.from ?? event.to);
         if (!at) continue;
         const ownerAccent = accentFor(
           event.sourceActor?.unitKey ?? null,
@@ -1999,7 +2227,7 @@ export function drawArena(
         continue;
       }
       if (isDestructionEvent(event.type)) {
-        const at = eventPoint(event.from);
+        const at = eventPoint(event.from ?? event.to);
         if (!at) continue;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';

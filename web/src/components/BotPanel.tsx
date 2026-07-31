@@ -7,8 +7,12 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { unitLook } from '../render/unitPresentation';
-import { createPresenter } from '../replayPresentation';
+import {
+  createPresenter,
+  type FrontlineControlPresentation,
+} from '../replayPresentation';
 import { playerAccent } from '../presentation/playerAccent';
+import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { styleVariables } from '../presentation/styleVariables';
 
 interface BotPanelProps {
@@ -68,6 +72,85 @@ function useCooldownScale(
   }, [replay]);
 }
 
+/**
+ * The capture meter, as the rules actually work it.
+ *
+ * Under the channel this is a segmented bar — one segment per point of the
+ * declared threshold, because the threshold is 8 and a count that small is
+ * faster to read as pips than as a percentage — filled in the claiming team's
+ * own colour. A revert leaves the work it removed standing in place as a hot
+ * ghost for its beat, which is the difference between "we lost four" and a bar
+ * that is simply shorter than it was a moment ago.
+ *
+ * Off the channel it stays the plain proportional meter it has always been.
+ */
+function ChannelMeter({
+  objective,
+  claimAccent,
+}: {
+  objective: FrontlineControlPresentation;
+  claimAccent: string | null;
+}) {
+  const revert = objective.captureRevert;
+  const threshold = Math.max(1, objective.captureThreshold);
+  const held = Math.max(0, Math.min(threshold, objective.captureProgress));
+  const ghost =
+    revert === null
+      ? held
+      : Math.min(threshold, Math.round(revert.fromFraction * threshold));
+  const accent = claimAccent ?? (revert ? '#f4c477' : null);
+
+  if (!objective.channel || threshold > 16) {
+    return (
+      <div className="mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
+        <div
+          className={clsx(
+            'runtime-progress h-full transition-[width]',
+            objective.claimingTeamId === null
+              ? 'bg-arena-edge2'
+              : 'bg-arena-dim',
+          )}
+          style={styleVariables({
+            '--runtime-progress': `${(100 * held) / threshold}%`,
+          })}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-2 flex gap-[3px]"
+      aria-label={`Capture ${held} of ${threshold}`}
+      style={
+        accent
+          ? styleVariables({ '--player-accent': playerAccent(accent, 'panel') })
+          : undefined
+      }
+    >
+      {Array.from({ length: threshold }, (_, index) => {
+        const filled = index < held;
+        const lost = !filled && index < ghost && revert !== null;
+        return (
+          <span
+            key={index}
+            className={clsx(
+              'h-[7px] flex-1 rounded-[2px] border',
+              filled && accent && 'player-accent-border player-accent-fill',
+              filled && !accent && 'border-arena-dim bg-arena-dim',
+              lost &&
+                (revert.kind === 'interrupt'
+                  ? 'border-arena-hot bg-arena-hot/40'
+                  : 'border-arena-dim border-dashed'),
+              !filled && !lost && 'border-arena-edge',
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function BotPanel({
   replay,
   tick,
@@ -77,8 +160,16 @@ export default function BotPanel({
   onToggleVisibility,
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
-  const { objective, units } = presenter.at(tick);
+  const { objective, units, economy } = presenter.at(tick);
   const cooldownScale = useCooldownScale(replay);
+  const claimAccent =
+    objective?.kind === 'frontline'
+      ? (units.find(
+          (unit) =>
+            unit.teamId ===
+            (objective.claimingTeamId ?? objective.captureRevert?.teamId),
+        )?.accent ?? null)
+      : null;
 
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
@@ -124,32 +215,154 @@ export default function BotPanel({
 
       {objective?.kind === 'frontline' && (
         <div className="panel-quiet pad">
-          <div className="flex items-center justify-between">
-            <span className="lab">Frontline</span>
-            <span className="lab">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="lab shrink-0">
+              {objective.channel ? 'Channel' : 'Frontline'}
+            </span>
+            <span className="lab text-right">
               Position{' '}
               <span className="val tracking-normal text-arena-text">
                 {objective.activePositionIndex + 1}/{objective.positionCount}
               </span>
             </span>
           </div>
-          <div className="mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
-            <div
-              className={clsx(
-                'runtime-progress h-full transition-[width]',
-                objective.claimingTeamId === null
-                  ? 'bg-arena-edge2'
-                  : 'bg-arena-dim',
+          {/* A channel is a bar filling toward a threshold that a hit can take
+              back, so it is drawn as one — in the claimant's own colour, with
+              the work a revert removed left standing beside it. Off the
+              channel this is the meter it has always been. */}
+          <ChannelMeter objective={objective} claimAccent={claimAccent} />
+          <p
+            className={clsx(
+              'lab mt-2 text-center',
+              objective.captureRevert?.ticksSince === 0 &&
+                'text-arena-hot',
+            )}
+          >
+            {objective.phase}
+          </p>
+          {/* The escort formation, counted. Two bodies standing still on the
+              point take it twice as fast; one standing still with a screen on
+              the firing line takes it at all. */}
+          {objective.channelingUnitCount > 0 && (
+            <p className="lab mt-1 text-center">
+              <span className="val tracking-normal text-arena-text">
+                {objective.channelingUnitCount}
+              </span>
+              {' holding'}
+              {objective.screeningUnitCount > 0 && (
+                <>
+                  {' · '}
+                  <span className="val tracking-normal text-arena-text">
+                    {objective.screeningUnitCount}
+                  </span>
+                  {' screening'}
+                </>
               )}
-              style={styleVariables({
-                '--runtime-progress': `${
-                  (100 * Math.abs(objective.captureProgress)) /
-                  Math.max(1, objective.captureThreshold)
-                }%`,
-              })}
-            />
+            </p>
+          )}
+        </div>
+      )}
+
+      {economy && (
+        <div className="panel-quiet pad">
+          <div className="flex items-center justify-between">
+            <span className="lab">Scrap</span>
+            <span className="lab">
+              {economy.nextVeinTick === null
+                ? 'DEPOSITS SPENT'
+                : economy.veinDueNow
+                  ? 'DEPOSIT NOW'
+                  : `NEXT T${economy.nextVeinTick}`}
+            </span>
           </div>
-          <p className="lab mt-2 text-center">{objective.phase}</p>
+          <dl className="mt-2 flex flex-col gap-2">
+            {economy.teams.map((team) => {
+              // The purchase beat, panel-side: the row the buy happened on
+              // lights its own accent edge and names the tier. It fades over
+              // four ticks, which is about a second of playback — a flash
+              // rather than a state.
+              const bought = economy.purchases.find(
+                (purchase) => purchase.teamId === team.teamId,
+              );
+              return (
+                <div
+                  key={team.teamId}
+                  className={clsx(
+                    'rounded-[3px] border px-2 py-1.5 transition-colors',
+                    bought
+                      ? 'player-accent-border bg-arena-raise'
+                      : 'border-arena-edge',
+                  )}
+                  style={styleVariables({
+                    '--player-accent': playerAccent(team.accent, 'panel'),
+                  })}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="t-body min-w-0 truncate text-arena-text">
+                      {team.name}
+                    </span>
+                    <span className="val shrink-0 text-arena-text">
+                      {team.bank}
+                      {team.carried > 0 && (
+                        <span className="text-arena-dim">
+                          {' '}
+                          +{team.carried} carried
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {team.tracks.map((track) => (
+                      <span
+                        key={track.trackId}
+                        className="flex items-center gap-1"
+                        aria-label={`${track.trackId} tier ${track.tier} of ${track.maxTier}`}
+                      >
+                        <span
+                          className={clsx(
+                            'lab',
+                            track.boughtTicksSince === null
+                              ? track.tier > 0
+                                ? 'text-arena-text'
+                                : undefined
+                              : 'player-accent-text',
+                          )}
+                        >
+                          {track.label}
+                        </span>
+                        {Array.from(
+                          { length: track.maxTier },
+                          (_, index) => (
+                            <span
+                              key={index}
+                              className={clsx(
+                                'h-[7px] w-[7px] rounded-[2px] border',
+                                index < track.tier
+                                  ? 'player-accent-border player-accent-fill'
+                                  : track.affordable &&
+                                      index === track.tier
+                                    ? 'border-arena-dim'
+                                    : 'border-arena-edge',
+                              )}
+                            />
+                          ),
+                        )}
+                      </span>
+                    ))}
+                    <span className="lab ml-auto">
+                      {team.tierTotal}/{team.maxTotalTiers}
+                    </span>
+                  </div>
+                  {bought && (
+                    <p className="lab player-accent-text mt-1.5">
+                      BOUGHT {bought.label.toUpperCase()}{' '}
+                      {'I'.repeat(bought.tier)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </dl>
         </div>
       )}
 
@@ -335,7 +548,31 @@ export default function BotPanel({
                 <>
                   <dt className="lab">Objective</dt>
                   <dd className="t-body col-span-2 text-arena-text">
-                    {unit.zoneTicks !== null ? (
+                    {/* What this body is doing *now* outranks what it has
+                        accumulated: under the channel, standing still on the
+                        point is the action, and a running tally of ticks held
+                        is the footnote. */}
+                    {unit.channelRole === 'channeling' ? (
+                      <>
+                        Channeling
+                        {unit.zoneTicks !== null && (
+                          <span className="text-arena-dim">
+                            {' '}
+                            · {unit.zoneTicks} held
+                          </span>
+                        )}
+                      </>
+                    ) : unit.channelRole === 'screening' ? (
+                      <>
+                        Screening
+                        {unit.zoneTicks !== null && (
+                          <span className="text-arena-dim">
+                            {' '}
+                            · {unit.zoneTicks} held
+                          </span>
+                        )}
+                      </>
+                    ) : unit.zoneTicks !== null ? (
                       <>
                         <span className="val text-arena-text">
                           {unit.zoneTicks}
@@ -349,6 +586,40 @@ export default function BotPanel({
                     ) : (
                       <span className="text-arena-dim">Not on it</span>
                     )}
+                  </dd>
+                </>
+              )}
+
+              {/* Only on a loaded body. A courier is the most valuable target
+                  on the map for as long as it is carrying, and this is the
+                  card saying so. */}
+              {economy !== null && unit.carriedScrap > 0 && (
+                <>
+                  <dt className="lab">Carrying</dt>
+                  <dd
+                    className="flex gap-[3px]"
+                    aria-label={`Carrying ${unit.carriedScrap} of ${economy.carryCapacity} scrap`}
+                    style={styleVariables({
+                      '--player-accent': SCRAP_ACCENT,
+                    })}
+                  >
+                    {Array.from(
+                      { length: economy.carryCapacity },
+                      (_, index) => (
+                        <span
+                          key={index}
+                          className={clsx(
+                            'h-[7px] flex-1 rounded-[2px] border',
+                            index < unit.carriedScrap
+                              ? 'player-accent-border player-accent-fill'
+                              : 'border-arena-edge',
+                          )}
+                        />
+                      ),
+                    )}
+                  </dd>
+                  <dd className="val">
+                    {unit.carriedScrap}/{economy.carryCapacity}
                   </dd>
                 </>
               )}

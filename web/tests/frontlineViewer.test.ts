@@ -92,7 +92,21 @@ test('generic Frontline replay-v3 presents contract tuning and the derived breac
     holdDurationTicks: null,
     winnerTeamId: 0,
     phase: 'participant-10 BREACHES',
+    // A ruleset that declares neither the channel nor an economy reads
+    // exactly as it did before either existed: every added fact is off, and
+    // the renderers that key off them draw nothing.
+    channel: false,
+    channelGainCap: null,
+    channelGain: null,
+    channelingUnitCount: 0,
+    screeningUnitCount: 0,
+    captureRevert: null,
   });
+  assert.equal(final.economy, null);
+  assert.deepEqual(
+    final.units.map((unit) => [unit.carriedScrap, unit.channelRole]),
+    final.units.map(() => [0, null]),
+  );
 });
 
 test('Frontline presentation carries the exact ratchet clocks and derives its countdown', () => {
@@ -436,6 +450,47 @@ test('Canvas Frontline fields render neutral, build, erosion, contest, and ratch
   );
 });
 
+test('Canvas draws the channel, its two reverts, and loose scrap as distinct pictures', () => {
+  const base = captureFrameReplay();
+  // The same claim, on the same footprint, with the same two bodies standing
+  // on it — everything that differs between these frames is one of the two new
+  // mechanics. If any pair collides, the arena is not saying which happened.
+  const channelling = channelState(base, { captureProgress: 4 });
+  const interrupted = channelState(base, {
+    captureProgress: 1,
+    previousProgress: 4,
+    damageAt: { x: 3, y: 3 },
+  });
+  const eroded = channelState(base, {
+    captureProgress: 1,
+    previousProgress: 4,
+  });
+  const carrying = channelState(base, {
+    captureProgress: 4,
+    carried: 4,
+  });
+  const piled = channelState(base, {
+    captureProgress: 4,
+    piles: [
+      { position: { x: 6, y: 2 }, amount: 6, expiresAtTick: 80 },
+      { position: { x: 2, y: 5 }, amount: 1, expiresAtTick: 3 },
+    ],
+  });
+
+  const hashes = [
+    channelling,
+    interrupted,
+    eroded,
+    carrying,
+    piled,
+  ].map((candidate) => frameHash(candidate, 0.5));
+  assert.equal(
+    new Set(hashes).size,
+    hashes.length,
+    'a channel, an interrupt, an erosion, a loaded courier and loose scrap each get their own Canvas treatment',
+  );
+});
+
 test('same-tick anchoring telegraphs before the body becomes a turret', () => {
   const anchored = structuredClone(replay);
   const tick = anchored.ticks[2]!;
@@ -593,6 +648,134 @@ function captureFrameReplay(): ReplayModel {
   objective.controlResumesAtTick = objective.nextTick;
   objective.holdOwnerTeamId = null;
   objective.holdEndsAtTick = null;
+  return candidate;
+}
+
+/**
+ * The same one-tick capture fixture, under the channel and the scrap economy.
+ *
+ * Both mechanics are read from the normalized model, so the states are built
+ * there: the previous claim comes from the initial world (which is what tick
+ * zero's revert compares against), the interrupt comes from a damage event
+ * landing on a claimant standing in the region, and the economy comes from the
+ * declared contract block plus the tick's own mode state.
+ */
+function channelState(
+  base: ReplayModel,
+  {
+    captureProgress,
+    previousProgress = captureProgress,
+    damageAt = null,
+    carried = 0,
+    piles = [],
+  }: {
+    captureProgress: number;
+    previousProgress?: number;
+    damageAt?: { x: number; y: number } | null;
+    carried?: number;
+    piles?: {
+      position: { x: number; y: number };
+      amount: number;
+      expiresAtTick: number;
+    }[];
+  },
+): ReplayModel {
+  const candidate = captureFrameState(base, {
+    claimingTeamId: 0,
+    captureProgress,
+    weights: [1, 1],
+  });
+  if (candidate.contract.kind !== 'v3-generic')
+    assert.fail('expected a generic replay-v3 contract');
+  const mode = candidate.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline')
+    assert.fail('expected a Frontline mode contract');
+  mode.capture.controlPolicy =
+    'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
+  mode.capture.stationaryGainMultiplierCap = 2;
+  mode.capture.threshold = 8;
+  mode.scrapEconomy = {
+    veinSites: [{ x: 6, y: 2 }],
+    veinFirstSpawnTick: 40,
+    veinSpawnIntervalTicks: 40,
+    veinLastSpawnTick: 120,
+    veinAmount: 6,
+    wreckAmount: 1,
+    assayAmount: 1,
+    carryCapacity: 6,
+    pileLifetimeTicks: 80,
+    maxSimultaneousPiles: 16,
+    bankRegionIds: [],
+    upgradeScope: 'prime-slot-lives-only',
+    maxTotalTiers: 3,
+    purchaseMode: 'invest-action',
+    tracks: [
+      {
+        trackId: 'edge',
+        effect: 'mobile-attack-travel-tiles-delta',
+        perTierMagnitude: 1,
+        maxTier: 2,
+        tierCosts: [10, 10],
+      },
+    ],
+  };
+
+  const initial = candidate.initialWorld?.objective;
+  if (initial?.kind === 'frontline') {
+    initial.claimingTeamId = 0;
+    initial.captureProgress = previousProgress;
+    initial.activePositionIndex =
+      candidate.ticks[0]!.after.objective.kind === 'frontline'
+        ? candidate.ticks[0]!.after.objective.activePositionIndex
+        : initial.activePositionIndex;
+  }
+
+  const tick = candidate.ticks[0]!;
+  const claimant = tick.after.actors.find(
+    (actor) => actor.identity.teamId === 0,
+  )!;
+  if (damageAt !== null) {
+    const template = tick.events[0]!;
+    tick.events = [
+      {
+        ...template,
+        eventId: 'channel:damage',
+        type: 'damage',
+        teamId: 1,
+        sourceActor: null,
+        targetActor: claimant.identity,
+        from: null,
+        to: { ...damageAt },
+        amount: previousProgress - captureProgress,
+      },
+    ];
+  } else {
+    tick.events = [];
+  }
+
+  const modeState = tick.after.mode;
+  if (modeState?.kind === 'frontline') {
+    modeState.scrapTeams = [
+      { teamId: 0, bank: 4, tierLevels: [0] },
+      { teamId: 1, bank: 1, tierLevels: [0] },
+    ];
+    modeState.scrapPiles = piles.map((pile) => ({
+      position: { ...pile.position },
+      amount: pile.amount,
+      expiresAtTick: pile.expiresAtTick,
+    }));
+  }
+
+  // A load is published by the observation of the tick that *follows* the
+  // pickup, so every tick carries it here rather than only the one being
+  // drawn.
+  for (const each of candidate.ticks)
+    for (const turn of each.actorTurns) {
+      if (turn.observation.self?.actor.kind === 'exact')
+        turn.observation.self.carriedScrap =
+          turn.observation.self.actor.identity.teamId === 0 ? carried : 0;
+    }
+
   return candidate;
 }
 

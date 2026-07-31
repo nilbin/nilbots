@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
   ReplayModel,
   ReplayPosition,
@@ -59,6 +60,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
+  const scrap = buildScrapPiles(disposables);
+  group.add(scrap.group);
+
   const lifecycle = buildLifecycleCues(replay, disposables);
   group.add(lifecycle.group);
 
@@ -107,8 +111,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
       );
     }
 
-    spawnPads.update(presentation);
+    spawnPads.update(presentation, time);
     objective.update(presentation, time);
+    scrap.update(presentation, time);
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
     impacts.update(tick, fraction);
@@ -237,7 +242,7 @@ function buildSpawnPads(
   disposables: { dispose: () => void }[],
 ): {
   group: THREE.Group;
-  update: (presentation: TickPresentation) => void;
+  update: (presentation: TickPresentation, time: number) => void;
 } {
   const group = new THREE.Group();
   group.userData.kind = 'frontline-spawn-pads';
@@ -288,6 +293,26 @@ function buildSpawnPads(
       hatches.position.y = 0.02;
       pad.add(hatches);
 
+      // The purchase beat. A tier is bought out of the bank and applied to the
+      // team's Prime lives, so the honest place to say it is the ground those
+      // lives come back to: the pad's own footprint lights up in scrap's
+      // colour for the length of the beat and goes out. No new geometry, no
+      // toast over the arena, and it cannot be confused with a spawn — a
+      // reservation ring is a circle on one tile, this is the whole pad.
+      const forgeGeometry = tiledInsetGeometry(home.protectedSpawnPad, 0.02);
+      const forgeMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(SCRAP_ACCENT),
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const forge = new THREE.Mesh(forgeGeometry, forgeMaterial);
+      forge.position.y = 0.026;
+      forge.userData.kind = 'scrap-purchase-flash';
+      forge.userData.teamId = home.teamId;
+      pad.add(forge);
+
       group.add(pad);
       disposables.push(
         bedGeometry,
@@ -296,11 +321,20 @@ function buildSpawnPads(
         sealMaterial,
         hatchGeometry,
         hatchMaterial,
+        forgeGeometry,
+        forgeMaterial,
       );
-      return { teamId: home.teamId, pad, sealMaterial, hatchMaterial };
+      return {
+        teamId: home.teamId,
+        pad,
+        sealMaterial,
+        hatchMaterial,
+        forge,
+        forgeMaterial,
+      };
     });
 
-  const update = (presentation: TickPresentation) => {
+  const update = (presentation: TickPresentation, time: number) => {
     for (const entry of entries) {
       const accent =
         presentation.units.find((unit) => unit.teamId === entry.teamId)
@@ -308,7 +342,162 @@ function buildSpawnPads(
       entry.sealMaterial.color.set(accent);
       entry.hatchMaterial.color.set(accent);
       entry.pad.userData.accent = accent;
+
+      const purchase = presentation.economy?.purchases.find(
+        (entryPurchase) => entryPurchase.teamId === entry.teamId,
+      );
+      entry.forge.userData.purchase = purchase
+        ? `${purchase.trackId}:${purchase.tier}`
+        : null;
+      // Struck hard on the tick it settles and released over the beat, with a
+      // fast flicker on top so it reads as a forge rather than a fade.
+      const flicker = 0.72 + 0.28 * Math.abs(Math.sin(time * Math.PI * 5));
+      entry.forgeMaterial.opacity = purchase
+        ? 0.1 + 0.34 * purchase.strength * flicker
+        : 0;
     }
+  };
+
+  return { group, update };
+}
+
+/**
+ * Loose scrap on the floor.
+ *
+ * A pile has to say three things at arena scale — *here*, *how much*, and *not
+ * for much longer* — and it has to say them without becoming a fifth kind of
+ * glowing ring, because the floor already carries capture arcs, spawn
+ * reservations, arrival rings and impact waves.
+ *
+ * So it is an object rather than a marking: a small faceted ingot standing a
+ * little off the tile, turning slowly, over a flat wash of its own light. Size
+ * carries the amount, but gently — a six-scrap deposit is a third larger than a
+ * one-scrap wreck, not six times — because the number that matters to a
+ * spectator is "worth crossing the map for" rather than the integer. Expiry
+ * takes the light out of it first and the ingot last, and the final quarter
+ * blinks, which is the one thing on this floor that blinks.
+ *
+ * Pooled and driven entirely by the tick's own state, like every other overlay
+ * here: nothing is remembered between frames, so scrubbing backwards into a
+ * tick where a pile had not landed yet shows no pile.
+ */
+function buildScrapPiles(
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (presentation: TickPresentation, time: number) => void;
+} {
+  const group = new THREE.Group();
+  group.userData.kind = 'scrap-piles';
+  // An octahedron reads as a cut ingot from a raised camera and needs eight
+  // triangles to do it.
+  const ingotGeometry = new THREE.OctahedronGeometry(0.17, 0);
+  const washGeometry = new THREE.CircleGeometry(0.42, 20);
+  washGeometry.rotateX(-Math.PI / 2);
+  const collarGeometry = new THREE.RingGeometry(0.2, 0.26, 6);
+  collarGeometry.rotateX(-Math.PI / 2);
+  disposables.push(ingotGeometry, washGeometry, collarGeometry);
+
+  const colour = new THREE.Color(SCRAP_ACCENT);
+  const piles: {
+    group: THREE.Group;
+    ingot: THREE.Mesh;
+    ingotMaterial: THREE.MeshStandardMaterial;
+    washMaterial: THREE.MeshBasicMaterial;
+    collar: THREE.Mesh;
+    collarMaterial: THREE.MeshBasicMaterial;
+  }[] = [];
+
+  const borrow = (index: number) => {
+    while (piles.length <= index) {
+      const pile = new THREE.Group();
+      pile.userData.kind = 'scrap-pile';
+      const ingotMaterial = new THREE.MeshStandardMaterial({
+        color: colour.clone().multiplyScalar(0.55),
+        emissive: colour,
+        emissiveIntensity: 0.9,
+        roughness: 0.35,
+        metalness: 0.75,
+        transparent: true,
+      });
+      const ingot = new THREE.Mesh(ingotGeometry, ingotMaterial);
+      ingot.castShadow = true;
+      pile.add(ingot);
+
+      const washMaterial = new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const wash = new THREE.Mesh(washGeometry, washMaterial);
+      wash.position.y = 0.015;
+      pile.add(wash);
+
+      // The collar is the clock: a hexagonal ring that shrinks and dims as the
+      // pile's 80 ticks run out, so "about to vanish" is legible without
+      // reading a number.
+      const collarMaterial = new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const collar = new THREE.Mesh(collarGeometry, collarMaterial);
+      collar.position.y = 0.028;
+      pile.add(collar);
+
+      pile.visible = false;
+      group.add(pile);
+      piles.push({
+        group: pile,
+        ingot,
+        ingotMaterial,
+        washMaterial,
+        collar,
+        collarMaterial,
+      });
+      disposables.push(ingotMaterial, washMaterial, collarMaterial);
+    }
+    return piles[index];
+  };
+
+  const update = (presentation: TickPresentation, time: number) => {
+    const economy = presentation.economy;
+    let used = 0;
+    for (const pile of economy?.piles ?? []) {
+      const slot = borrow(used++);
+      slot.group.visible = true;
+      slot.group.position.set(pile.position.x + 0.5, 0, pile.position.y + 0.5);
+      slot.group.userData.amount = pile.amount;
+      slot.group.userData.vein = pile.vein;
+      slot.group.userData.remainingTicks = pile.remainingTicks;
+
+      // Amount, compressed: a wreck and a full deposit differ by a third
+      // rather than by six times, because the tile is one tile either way.
+      const bulk = 1 + 0.42 * Math.min(1, Math.log2(1 + pile.amount) / 3);
+      // The last quarter blinks. Everything else on this floor pulses; only
+      // this goes out and comes back, which is what "leaving" looks like.
+      const blink = pile.expiring
+        ? 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * Math.PI * 6))
+        : 1;
+      const alive = 0.35 + 0.65 * pile.lifeFraction;
+
+      slot.ingot.position.y = 0.19 + 0.035 * Math.sin(time * Math.PI * 1.4);
+      slot.ingot.rotation.y = time * Math.PI * 0.35;
+      slot.ingot.rotation.x = 0.42;
+      slot.ingot.scale.setScalar(bulk);
+      slot.ingotMaterial.emissiveIntensity = 0.55 + 0.85 * alive * blink;
+      slot.ingotMaterial.opacity = 0.55 + 0.45 * blink;
+
+      slot.washMaterial.opacity = 0.1 + 0.24 * alive * blink;
+      slot.collar.scale.setScalar(bulk * (0.75 + 0.35 * pile.lifeFraction));
+      slot.collar.rotation.y = -time * Math.PI * 0.22;
+      slot.collarMaterial.opacity = 0.14 + 0.4 * pile.lifeFraction * blink;
+    }
+    for (let index = used; index < piles.length; index++)
+      piles[index].group.visible = false;
   };
 
   return { group, update };
@@ -445,6 +634,41 @@ function buildObjective(
       erosion.userData.kind = 'frontline-capture-erosion';
       field.add(erosion);
 
+      // The knockback. Under the channel a hit on a body standing here takes
+      // back the whole run's work, and a bar that simply got shorter between
+      // two frames says nothing about that — so the length the meter *had*
+      // stays on screen for the beat, hot and flashing, outside the length it
+      // now has. The eye reads the gap.
+      const revertGeometry = captureProgressGeometry(0.285, 0.345);
+      const revertMaterial = captureArcMaterial();
+      const revert = captureRingInstances(
+        position.tiles,
+        revertGeometry,
+        revertMaterial,
+      );
+      revert.position.y = 0.033;
+      revert.userData.kind = 'frontline-capture-revert';
+      field.add(revert);
+
+      // And the whole footprint takes the hit, so an interrupt is visible from
+      // wherever the camera happens to be rather than only on the tile the
+      // bolt landed on.
+      const interruptGeometry = tiledInsetGeometry(position.tiles, 0.075);
+      const interruptMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#ffd9a1'),
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const interrupt = new THREE.Mesh(
+        interruptGeometry,
+        interruptMaterial,
+      );
+      interrupt.position.y = 0.026;
+      interrupt.userData.kind = 'frontline-capture-interrupt';
+      field.add(interrupt);
+
       // The outer ratchet arc counts down from the contract-declared hold
       // duration and pulses in the exact hold owner's runtime accent.
       const holdGeometry = captureProgressGeometry(0.455, 0.505);
@@ -474,6 +698,10 @@ function buildObjective(
         erosionMaterial,
         holdGeometry,
         holdMaterial,
+        revertGeometry,
+        revertMaterial,
+        interruptGeometry,
+        interruptMaterial,
       );
       return {
         positionIndex: position.positionIndex,
@@ -493,6 +721,10 @@ function buildObjective(
         holdGeometry,
         holdMaterial,
         holdSpin: Number.NaN,
+        revert,
+        revertGeometry,
+        revertMaterial,
+        interruptMaterial,
       };
     });
 
@@ -514,6 +746,8 @@ function buildObjective(
         entry.progressMaterial.opacity = 0;
         entry.erosionMaterial.opacity = 0;
         entry.holdMaterial.opacity = 0;
+        entry.revertMaterial.opacity = 0;
+        entry.interruptMaterial.opacity = 0;
       }
       return;
     }
@@ -628,19 +862,52 @@ function buildObjective(
             : 0.9
           : 0;
 
+      // Erosion is a drain, and it draws like one: the challenger's arc turns
+      // steadily against the incumbent's, at a fixed brightness rather than a
+      // pulse, because the thing it reports is happening every tick at the
+      // same rate. The hit reaction below is what flashes.
+      const eroding =
+        active &&
+        (visual.progressDirection === 'eroding' ||
+          visual.revert?.kind === 'erosion');
       entry.erosionMaterial.color.set(
-        visual.challengerAccent ?? '#b8844f',
+        visual.challengerAccent ??
+          (visual.revert?.kind === 'erosion'
+            ? (visual.revertAccent ?? '#b8844f')
+            : '#b8844f'),
       );
-      entry.erosionMaterial.opacity =
-        active && visual.progressDirection === 'eroding'
-          ? 0.68 + pulse * 0.24
-          : 0;
+      entry.erosionMaterial.opacity = eroding ? 0.78 : 0;
       entry.erosionSpin = spinCaptureRings(
         entry.erosion,
         entry.tiles,
         entry.erosionSpin,
         -time * Math.PI * 0.72,
       );
+
+      // The knockback: the length the meter had, held outside the length it
+      // has, flashing out over the beat.
+      const revert = active ? visual.revert : null;
+      setCaptureArcFraction(
+        entry.revertGeometry,
+        revert ? revert.ghostFraction : 0,
+      );
+      entry.revertMaterial.color.set(
+        revert?.kind === 'interrupt'
+          ? '#fff1d0'
+          : (visual.revertAccent ?? '#b8844f'),
+      );
+      entry.revertMaterial.opacity =
+        revert === null
+          ? 0
+          : revert.kind === 'interrupt'
+            ? revert.strength * (0.62 + pulse * 0.38)
+            : revert.strength * 0.34;
+      entry.interruptMaterial.opacity =
+        revert?.kind === 'interrupt'
+          ? 0.1 + 0.22 * revert.strength * (0.5 + pulse * 0.5)
+          : 0;
+      entry.field.userData.revertKind = revert?.kind ?? null;
+      entry.field.userData.revertAmount = revert?.amount ?? 0;
 
       setCaptureArcFraction(
         entry.holdGeometry,
@@ -1045,9 +1312,11 @@ function buildImpacts(
     for (const event of replay.ticks[tick]?.events ?? []) {
       const killing = isDestructionEvent(event.type);
       if (event.type !== 'damage' && !killing) continue;
-      // Where the hit landed. The model records that in `from`, which is what the flat
-      // renderer has always drawn its impact at.
-      const at = event.from;
+      // Where the hit landed. Replay-v1 and v2 spell that `from`; a
+      // generation-3 damage event carries one `position`, which normalizes to
+      // `to`. Reading only `from` is why nothing flashed on a v3 replay at
+      // all — every hit and every kill was drawn at a null tile and skipped.
+      const at = event.from ?? event.to;
       if (!at) continue;
 
       // Impacts land late in the tick, on the same 0.6 the hit flash and the camera knock
@@ -1259,9 +1528,11 @@ function buildFlashes(
     let used = 0;
     for (const event of events) {
       const flash =
-        isAttackEvent(event.type) && event.from
+        isAttackEvent(event.type) && (event.from ?? event.to)
           ? {
-              position: event.from,
+              // The muzzle. Older wires spell it `from`; a generation-3 attack
+              // carries its one `origin`, which normalizes to `to`.
+              position: event.from ?? event.to!,
               colour: new THREE.Color(
                 event.sourceActor
                   ? accentForUnit(replay, event.sourceActor.unitKey)
