@@ -24,9 +24,15 @@ FIRST; bot waves are authored after the game stabilizes.
   IS watching replays (the morning report), and the owner's gate is
   watching games. Design for legible drama on screen — a spectator
   should see momentum, reversals, and why the winner won.
-- All of it serves **commander mode** (DECISIONS #195): the passive
-  manager layer — sheets, gambits, per-sheet drawn plans, stable of
-  ~5 from the roster, breadth-only rewards, the morning report.
+- All of it serves **commander mode** (DECISIONS #195), and — owner
+  clarification (#198) — the commander-mode PLAYER LAYER largely
+  STAYS: sheets, ordered gambits, per-sheet DRAWN map tactics
+  (paths, zones, rally lines), the stable drawn from the roster,
+  breadth-only rewards, the morning report, passive/blind play.
+  These are standing requirements, not leads — you may TANGENT and
+  IMPROVE on those ideas (better authoring shapes, better adaptive
+  grammar), but do not discard the layer. The "disposable" latitude
+  applies to the GAME under it (mode, mechanics, classes, map).
   docs/DESIGN-COMMANDER-MODE-2026-07-31.md is the vision document;
   read it before designing anything. Its class-seed examples are
   ILLUSTRATIVE ONLY — they are not a lead, and neither is anything

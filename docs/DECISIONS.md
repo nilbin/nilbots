@@ -4420,6 +4420,21 @@ engine platform (deterministic tile arena, the mind architecture, the
 WASM pipeline, the harness) while treating everything frontline
 layered on top as disposable.
 
+## 198. The commander-mode player layer stays; gates may live in chat
+
+Owner clarifications on #197. FIRST: "disposable" scopes to the GAME,
+not the player layer — sheets, ordered gambits, per-sheet drawn map
+tactics, the stable, breadth-only rewards, the morning report, and
+passive/blind play "largely stay." Codex may tangent and improve on
+those ideas but not discard the layer. SECOND, on gate mechanics: the
+gates need no ceremony — the owner may run them as chat check-ins
+with Codex's steering, and steer freely mid-run besides. What the
+gates actually protect is (a) a consolidated decision artifact at
+each fork and (b) no building on unratified foundations — so the
+hard rule is only that Codex POSTS the gate report and WAITS at the
+two big ratification points (concept/roster; the felt-experience
+loop) rather than barreling into build on its own say-so.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
