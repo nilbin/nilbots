@@ -180,6 +180,9 @@ A commander sheet for Arc Relay can express strategy without live input:
 
 - **Stable and composition:** fill the company's slots from a stable of about
   five unlocked classes; duplicates and exact slot count wait for Phase B.
+- **Stock mind:** choose the curated doctrine that interprets the sheet; the
+  saved sheet changes its priorities and spatial plan without becoming a live
+  controller.
 - **Opening allocation:** which bodies pressure each Well, which body stays as
   reserve, and which route each group takes.
 - **Carrier policy:** safest, fastest, healthiest, nearest, or explicitly named
@@ -191,13 +194,25 @@ A commander sheet for Arc Relay can express strategy without live input:
 - **Drawings:** outbound paths, return paths, ambush zones, avoid zones, handoff
   points, and cross-theater rally lines.
 - **Ordered gambits:** for example, “IF behind by one Pulse AND two enemy Cores
-  are carried → collapse north/south interceptors onto the nearer return line”; 
+  are carried → collapse north/south interceptors onto the nearer return line”;
   or “IF our carrier enters the final third with hull ≤2 → Switchback replaces
   it at rally beta.”
 
 Blind matchmaking remains honest: the sheet sees public match state only after
 the match begins, through pre-authored ordered conditions. No opponent-specific
 pregame counterpick or live redraw is required.
+
+The morning report has unusually concrete attribution material: which Well
+allocations won possession, where each Core changed hands, whether the chosen
+return path met its drawn route, which escort broke, which gambit fired, and
+what preceded every Pulse. Deterministic counterfactual re-sims can compare a
+different route, carrier policy, composition, or gambit ordering without
+pretending one stat caused the result.
+
+Commander rewards remain breadth-only: classes, stock minds, sheet/gambit
+capacity, map-specific sheet variants, and cosmetics may widen authorship.
+Nothing unlocked raises a class's hull, damage, travel, cooldown, Core value,
+or reactor score inside an otherwise identical match.
 
 ### 3.8 What the spectator sees
 
