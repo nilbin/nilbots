@@ -575,6 +575,30 @@ def run_campaign(args: argparse.Namespace) -> int:
         "matches": match_results,
     }
     write_json(output / "results.json", result)
+    result_by_id = {item["header"]["matchId"]: item for item in match_results}
+    frozen_review = read_json(review_path)
+    gallery_sample = {
+        "schema": "arc-relay-outcome-blind-gallery-input-v1",
+        "cohortId": cohort["cohortId"],
+        "frozenReviewSampleSha256": sha256(review_path),
+        "containsOutcomesScoresOrDurations": False,
+        "replays": [
+            {
+                "reviewId": item["reviewId"],
+                "matchId": item["matchId"],
+                "pairId": item["pairId"],
+                "assignment": item["assignment"],
+                "rules": item["pairId"],
+                "map": f"Threefold assignment {item['assignment']}",
+                "source": str(
+                    (output / result_by_id[item["matchId"]]["broadcast"]["path"])
+                    .resolve()
+                ),
+            }
+            for item in frozen_review["matches"]
+        ],
+    }
+    write_json(output / "gallery-sample.json", gallery_sample)
     highlights = {
         "schema": "arc-relay-outcome-aware-highlights-v1",
         "cohortId": cohort["cohortId"],
@@ -582,6 +606,25 @@ def run_campaign(args: argparse.Namespace) -> int:
         "matches": choose_highlights(match_results),
     }
     write_json(output / "highlights.json", highlights)
+    gallery_highlights = {
+        "schema": "arc-relay-outcome-aware-highlight-gallery-input-v1",
+        "cohortId": cohort["cohortId"],
+        "separateFromOutcomeBlindSample": True,
+        "replays": [
+            {
+                "matchId": item["matchId"],
+                "pairId": item["pairId"],
+                "rules": item["pairId"],
+                "map": "Threefold curated highlight",
+                "source": str(
+                    (output / result_by_id[item["matchId"]]["broadcast"]["path"])
+                    .resolve()
+                ),
+            }
+            for item in highlights["matches"]
+        ],
+    }
+    write_json(output / "gallery-highlights.json", gallery_highlights)
     print(
         f"complete: {len(records)} records + {len(broadcasts)} broadcasts; "
         f"{canonical_verified} canonical replays verified and 0 retained",
