@@ -126,6 +126,59 @@ public sealed class ArcRelayCoreInvariantTests
             value.TeamId == Carrier.TeamId).ChargePips);
     }
 
+    [Fact]
+    public void InFlightCoreCannotBePickedBackUpAtItsDepartureTile()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create());
+        driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
+
+        Assert.NotEmpty(driver.LaunchArcToss(
+            27,
+            Carrier,
+            CentreWell.Offset(5, 0),
+            completesAtTick: 30));
+        driver.PrepareTick(28, World(Life(Carrier, CentreWell)));
+
+        ArcRelayCoreState core = State(driver).VisibleCores.Single();
+        Assert.Equal(ArcRelayCoreState.CoreDisposition.InFlight,
+            core.Disposition);
+        Assert.Null(core.CarrierActorId);
+        Assert.Equal(CentreWell.Offset(5, 0), core.FlightTarget);
+        Assert.Equal(30, core.FlightCompletesAtTick);
+    }
+
+    [Fact]
+    public void PendingChargeRemainsPublicThroughoutItsRearmRing()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create());
+        driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
+        driver.PrepareTick(100, World(Life(Carrier, CentreWell)));
+        Position reactor = State(driver).Reactors.Single(value =>
+            value.TeamId == Carrier.TeamId).Position;
+        driver.ResolveForcedMovement(
+            102,
+            [Carrier],
+            World(Life(Carrier, reactor)));
+        driver.ApplyJointTick(
+            World(Life(Carrier, reactor)),
+            new GenericActorModeTickInput(102, [], []));
+
+        ArcRelayWellState rearming = State(driver).Wells.Single(value =>
+            value.WellId == "centre");
+        Assert.True(rearming.PendingCharge);
+        Assert.Null(rearming.OutstandingCoreId);
+        Assert.Equal(113, rearming.RearmCompletesAtTick);
+
+        driver.PrepareTick(113, World());
+        ArcRelayWellState rearmed = State(driver).Wells.Single(value =>
+            value.WellId == "centre");
+        Assert.False(rearmed.PendingCharge);
+        Assert.NotNull(rearmed.OutstandingCoreId);
+        Assert.Null(rearmed.RearmCompletesAtTick);
+    }
+
     private static ArcRelayEvent[] Facts(
         IEnumerable<GenericActorModeEvent> events) =>
         events.Select(value => Assert.IsType<

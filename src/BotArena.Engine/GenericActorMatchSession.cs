@@ -3748,7 +3748,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 visibleTiles.Select(value => value.Position).ToHashSet()));
     }
 
-    private static GenericActorRuntimeObservation.ModeObservationState
+    private GenericActorRuntimeObservation.ModeObservationState
         ProjectModeForTeam(
             GenericActorRuntimeObservation.ModeObservationState mode,
             int observingTeamId,
@@ -3759,6 +3759,14 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             return mode;
         }
+        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
+                _definition.Rules.GameMode).Signatures
+            .OfType<ArcRelaySignatureDefinition.TripNode>()
+            .Single().RevealRange;
+        Position[] ownBodies = _lives.Values
+            .Where(value => value.ActorId.TeamId == observingTeamId)
+            .Select(value => value.Position)
+            .ToArray();
 
         return new GenericActorRuntimeObservation.ModeObservationState.ArcRelay(
             arcRelay.ModeId,
@@ -3774,6 +3782,12 @@ public sealed class GenericActorMatchSession : IDisposable
                     // deterministic counterplay before the effect resolves.
                     || signature.Phase
                         == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body =>
+                                body.ChebyshevDistance(position)
+                                    <= tripNodeRevealRange))
                     || signature.Positions.Any(visibleTiles.Contains))
                 .ToImmutableArray(),
             arcRelay.LatestPulseTeamId,

@@ -84,6 +84,7 @@ public static class ReplayOutput
         string? template = FindTemplate(themeId);
         if (template is null || !File.Exists(template))
             return null;
+        Directory.CreateDirectory(outDir);
         string html = File.ReadAllText(template);
         if (!html.Contains(InjectionMarker))
             return null;

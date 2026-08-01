@@ -4051,6 +4051,12 @@ internal static class ReplayV3Serializer
                 factOrdinals,
                 eventSourceOrdinals,
                 $"tick {tick.Tick} start");
+            ValidateArcRelayChronologyPhase(
+                previousState,
+                tick.TickStart.State,
+                tick.TickStart.Events,
+                tick.Tick,
+                "tick start");
 
             foreach (ReplayV3.LifeStart start in tick.TickStart.LifeStarts)
                 seedsByActor[start.ActorId] = start.ActorRandomSeed;
@@ -4153,6 +4159,12 @@ internal static class ReplayV3Serializer
                 factOrdinals,
                 eventSourceOrdinals,
                 $"tick {tick.Tick} resolution");
+            ValidateArcRelayChronologyPhase(
+                tick.TickStart.State,
+                tick.PostState,
+                tick.Events,
+                tick.Tick,
+                "resolution");
             previousState = tick.PostState;
         }
 
@@ -4177,6 +4189,308 @@ internal static class ReplayV3Serializer
         }
 
         ValidateResult(replay.Result, replay.Ticks, previousState, contract);
+    }
+
+    /// <summary>
+    /// Replays the Core-owned part of one Arc Relay phase from its closed fact
+    /// ledger. This is intentionally a replay validation, not merely a state
+    /// shape check: a forged handoff, pickup, drop, bank, Well transition, or
+    /// signature transition must fail even after the payload hash is rebuilt.
+    /// </summary>
+    private static void ValidateArcRelayChronologyPhase(
+        ReplayV3.WorldState beforeWorld,
+        ReplayV3.WorldState afterWorld,
+        ImmutableArray<ReplayV3.AuthoritativeEvent> events,
+        int tick,
+        string phase)
+    {
+        if (beforeWorld.Mode is not ReplayV3.ModeState.ArcRelay before
+            || afterWorld.Mode is not ReplayV3.ModeState.ArcRelay after)
+        {
+            return;
+        }
+        ReplayV3.ArcRelayFact[] facts = events
+            .Select(value => value.Payload)
+            .OfType<ReplayV3.EventPayload.ArcRelay>()
+            .Select(value => value.Fact)
+            .ToArray();
+        string context = $"Replay-v3 tick {tick} {phase} Arc Relay";
+
+        var cores = before.VisibleCores.ToDictionary(value => value.CoreId);
+        var opaqueFlights = new HashSet<ReplayV3.ArcCoreId>();
+        foreach (ReplayV3.ArcRelayFact fact in facts)
+        {
+            switch (fact)
+            {
+                case ReplayV3.ArcRelayFact.CoreBorn value:
+                    if (!cores.TryAdd(
+                            value.CoreId,
+                            new ReplayV3.ArcCore(
+                                value.CoreId,
+                                value.Position,
+                                "loose",
+                                null,
+                                0,
+                                null,
+                                null)))
+                    {
+                        throw new ArgumentException(
+                            $"{context} births an already-live Core.");
+                    }
+                    break;
+                case ReplayV3.ArcRelayFact.CorePickedUp value:
+                    RequireCore(cores, value.CoreId, context);
+                    cores[value.CoreId] = new ReplayV3.ArcCore(
+                        value.CoreId,
+                        value.Position,
+                        "carried",
+                        value.CarrierActorId,
+                        value.NextRelocationTick,
+                        null,
+                        null);
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+                case ReplayV3.ArcRelayFact.CoreRelocated value:
+                    RequireCore(cores, value.CoreId, context);
+                    ReplayV3.ArcCore prior = cores[value.CoreId];
+                    if (prior.Position != value.From)
+                    {
+                        throw new ArgumentException(
+                            $"{context} relocates a Core from a forged position.");
+                    }
+                    cores[value.CoreId] = new ReplayV3.ArcCore(
+                        value.CoreId,
+                        value.To,
+                        value.CarrierActorId is null ? "loose" : "carried",
+                        value.CarrierActorId,
+                        value.NextRelocationTick,
+                        null,
+                        null);
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+                case ReplayV3.ArcRelayFact.CoreHandedOff value:
+                    ReplayV3.ArcCore handed = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (handed.CarrierActorId != value.SourceActorId)
+                    {
+                        throw new ArgumentException(
+                            $"{context} hands off a Core from a non-carrier.");
+                    }
+                    cores[value.CoreId] = new ReplayV3.ArcCore(
+                        value.CoreId,
+                        value.Position,
+                        "carried",
+                        value.TargetActorId,
+                        value.NextRelocationTick,
+                        null,
+                        null);
+                    break;
+                case ReplayV3.ArcRelayFact.CoreDropped value:
+                    ReplayV3.ArcCore dropped = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (!string.Equals(
+                            value.DropKind,
+                            "arc-toss-landing",
+                            StringComparison.Ordinal)
+                        && dropped.CarrierActorId != value.SourceActorId)
+                    {
+                        throw new ArgumentException(
+                            $"{context} drops a Core from a non-carrier.");
+                    }
+                    if (string.Equals(
+                            value.DropKind,
+                            "signature-departure",
+                            StringComparison.Ordinal)
+                        && facts.OfType<ReplayV3.ArcRelayFact
+                                .SignatureChanged>()
+                            .Any(changed => string.Equals(
+                                    changed.SignatureId,
+                                    "arc-toss",
+                                    StringComparison.Ordinal)
+                                && string.Equals(
+                                    changed.Reason,
+                                    "launched",
+                                    StringComparison.Ordinal)
+                                && changed.OwnerActorId
+                                    == value.SourceActorId))
+                    {
+                        // The public drop fact deliberately does not duplicate
+                        // the Arc Toss target/arrival clock. The paired
+                        // signature fact carries those; final state must still
+                        // prove the Core entered flight.
+                        opaqueFlights.Add(value.CoreId);
+                    }
+                    else
+                    {
+                        cores[value.CoreId] = new ReplayV3.ArcCore(
+                            value.CoreId,
+                            value.Position,
+                            "loose",
+                            null,
+                            value.NextRelocationTick,
+                            null,
+                            null);
+                    }
+                    break;
+                case ReplayV3.ArcRelayFact.CoreBanked value:
+                    ReplayV3.ArcCore banked = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (banked.CarrierActorId != value.CarrierActorId
+                        || banked.Position != value.Position
+                        || !cores.Remove(value.CoreId))
+                    {
+                        throw new ArgumentException(
+                            $"{context} banks a Core from a forged carrier or position.");
+                    }
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+            }
+        }
+
+        Dictionary<ReplayV3.ArcCoreId, ReplayV3.ArcCore> finalCores =
+            after.VisibleCores.ToDictionary(value => value.CoreId);
+        if (!cores.Keys.ToHashSet().SetEquals(finalCores.Keys))
+        {
+            throw new ArgumentException(
+                $"{context} Core births and banks do not produce the final live-Core set.");
+        }
+        foreach ((ReplayV3.ArcCoreId id, ReplayV3.ArcCore expected) in cores)
+        {
+            ReplayV3.ArcCore actual = finalCores[id];
+            if (opaqueFlights.Contains(id))
+            {
+                if (!string.Equals(
+                        actual.Disposition,
+                        "in-flight",
+                        StringComparison.Ordinal)
+                    || actual.CarrierActorId is not null
+                    || actual.FlightTarget is null
+                    || actual.FlightCompletesAtTick is null
+                    || !facts.OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+                        .Any(value => string.Equals(
+                                value.SignatureId,
+                                "arc-toss",
+                                StringComparison.Ordinal)
+                            && string.Equals(
+                                value.Reason,
+                                "launched",
+                                StringComparison.Ordinal)))
+                {
+                    throw new ArgumentException(
+                        $"{context} Arc Toss departure lacks matching in-flight state and launch fact.");
+                }
+            }
+            else if (actual != expected)
+            {
+                throw new ArgumentException(
+                    $"{context} Core facts do not produce the final Core state.");
+            }
+        }
+
+        Dictionary<string, ReplayV3.ArcRelayFact.WellChanged> wellFacts = facts
+            .OfType<ReplayV3.ArcRelayFact.WellChanged>()
+            .GroupBy(value => value.WellId, StringComparer.Ordinal)
+            .ToDictionary(
+                value => value.Key,
+                value => value.Last(),
+                StringComparer.Ordinal);
+        foreach ((ReplayV3.ArcWell oldWell, ReplayV3.ArcWell newWell) in
+                 before.Wells.Zip(after.Wells))
+        {
+            bool ledgerChanged = oldWell.PendingCharge != newWell.PendingCharge
+                || oldWell.RearmCompletesAtTick
+                    != newWell.RearmCompletesAtTick
+                || oldWell.OutstandingCoreId != newWell.OutstandingCoreId;
+            if (ledgerChanged
+                && (!wellFacts.TryGetValue(
+                        newWell.WellId,
+                        out ReplayV3.ArcRelayFact.WellChanged? changed)
+                    || changed.PendingCharge != newWell.PendingCharge
+                    || changed.RearmCompletesAtTick
+                        != newWell.RearmCompletesAtTick
+                    || changed.OutstandingCoreId
+                        != newWell.OutstandingCoreId))
+            {
+                throw new ArgumentException(
+                    $"{context} Well ledger changed without an exact WellChanged fact.");
+            }
+        }
+
+        bool reactorsChanged = !before.Reactors.SequenceEqual(after.Reactors);
+        if (reactorsChanged
+            && !facts.Any(value => value is
+                ReplayV3.ArcRelayFact.CoreBanked
+                or ReplayV3.ArcRelayFact.Pulse))
+        {
+            throw new ArgumentException(
+                $"{context} reactor state changed without a bank or Pulse fact.");
+        }
+        if (before.LatestPulseTeamId != after.LatestPulseTeamId
+            || before.LatestPulseTick != after.LatestPulseTick)
+        {
+            ReplayV3.ArcRelayFact.Pulse? pulse = facts
+                .OfType<ReplayV3.ArcRelayFact.Pulse>()
+                .LastOrDefault();
+            if (pulse is null
+                || after.LatestPulseTeamId != pulse.TeamId
+                || after.LatestPulseTick != tick)
+            {
+                throw new ArgumentException(
+                    $"{context} latest Pulse state lacks its exact Pulse fact.");
+            }
+        }
+
+        var beforeSignatures = before.VisibleSignatures.ToDictionary(
+            value => value.OperationId,
+            StringComparer.Ordinal);
+        var afterSignatures = after.VisibleSignatures.ToDictionary(
+            value => value.OperationId,
+            StringComparer.Ordinal);
+        HashSet<string> changedOperations = beforeSignatures.Keys
+            .Concat(afterSignatures.Keys)
+            .Where(id => !beforeSignatures.TryGetValue(id, out var oldValue)
+                || !afterSignatures.TryGetValue(id, out var newValue)
+                || oldValue != newValue)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> evidencedOperations = facts
+            .OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+            .Select(value => value.OperationId)
+            .ToHashSet(StringComparer.Ordinal);
+        bool nullFieldChanged = facts
+            .OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+            .Any(value => string.Equals(
+                value.SignatureId,
+                "null-field",
+                StringComparison.Ordinal));
+        changedOperations.RemoveWhere(id =>
+            nullFieldChanged
+            && beforeSignatures.TryGetValue(id, out var oldValue)
+            && afterSignatures.TryGetValue(id, out var newValue)
+            && oldValue with { Suppressed = newValue.Suppressed } == newValue);
+        if (!changedOperations.IsSubsetOf(evidencedOperations))
+        {
+            throw new ArgumentException(
+                $"{context} signature state changed without SignatureChanged evidence.");
+        }
+    }
+
+    private static ReplayV3.ArcCore RequireCore(
+        IReadOnlyDictionary<ReplayV3.ArcCoreId, ReplayV3.ArcCore> cores,
+        ReplayV3.ArcCoreId coreId,
+        string context)
+    {
+        if (!cores.TryGetValue(coreId, out ReplayV3.ArcCore? core))
+        {
+            throw new ArgumentException(
+                $"{context} references a Core that is not live.");
+        }
+        return core;
     }
 
     /// <summary>

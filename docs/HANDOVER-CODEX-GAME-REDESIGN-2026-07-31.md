@@ -27,8 +27,11 @@ FIRST; bot waves are authored after the game stabilizes.
 - All of it serves **commander mode** (DECISIONS #195), and — owner
   clarification (#198) — the commander-mode PLAYER LAYER largely
   STAYS: sheets, ordered gambits, per-sheet DRAWN map tactics
-  (paths, zones, rally lines), the stable drawn from the roster,
-  breadth-only rewards, the morning report, passive/blind play.
+  (paths, zones, rally lines), eight slots selected directly from the
+  unlocked roster under the format's copy cap, breadth-only rewards, the
+  morning report, passive/blind play. A separate stable is not part of the
+  launch sheet; it is registered only as a roster-scale response beyond
+  roughly 25 classes or as a draft/tournament format lever.
   These are standing requirements, not leads — you may TANGENT and
   IMPROVE on those ideas (better authoring shapes, better adaptive
   grammar), but do not discard the layer. The "disposable" latitude

@@ -254,15 +254,36 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
     ctx.lineWidth = Math.max(2, tile * (tell ? 0.045 : 0.07));
     if (tell) ctx.setLineDash([tile * 0.12, tile * 0.08]);
 
-    for (const point of points) {
-      ctx.fillRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
-      ctx.strokeRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
-    }
-    if (points.length > 1) {
+    const areaField = ['survey-flare', 'null-field', 'smoke-canister']
+      .includes(signature.signatureId);
+    if (areaField && points.length > 0) {
+      const minX = Math.min(...points.map((point) => point.x));
+      const maxX = Math.max(...points.map((point) => point.x));
+      const minY = Math.min(...points.map((point) => point.y));
+      const maxY = Math.max(...points.map((point) => point.y));
       ctx.beginPath();
-      ctx.moveTo(points[0]!.x, points[0]!.y);
-      for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+      ctx.ellipse(
+        (minX + maxX) / 2,
+        (minY + maxY) / 2,
+        (maxX - minX) / 2 + tile * 0.44,
+        (maxY - minY) / 2 + tile * 0.44,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
       ctx.stroke();
+    } else {
+      for (const point of points) {
+        ctx.fillRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
+        ctx.strokeRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
+      }
+      if (points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(points[0]!.x, points[0]!.y);
+        for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+      }
     }
 
     const anchor = points[0] ?? actorCentre(input, signature.ownerActor);

@@ -320,6 +320,50 @@ shader.
 Bot appearance belongs to the bot and is snapshotted into matches and replays.
 Do not introduce slot-owned selection except the existing legacy fallback.
 
+### Large 2D class-roster pass
+
+Use this specialization when one mode needs many mechanically distinct class
+defaults at once. It keeps a large pass coherent without collapsing every
+class into the same hull.
+
+1. Write one roster-wide brief first: shared palette and value hierarchy,
+   locomotion language, outline weight, gameplay camera, intended sprite size,
+   and the hardware or silhouette cue that tells each class apart. Give every
+   class a one-line silhouette specification before drawing any of them.
+2. Author canonical East-facing 512×512 genuine SVGs first. Prioritize the
+   outer contour and one rule-bearing feature at 40–70 gameplay pixels; small
+   panel detail is subordinate. A deterministic generator is encouraged when
+   it preserves each class's authored geometry and gives the whole roster a
+   repeatable shape language. Keep that generator as production source.
+3. Give each class only two or three direct semantic
+   `data-team-accent="true"` surfaces. Review at least two opposing team colors
+   on the actual arena. Team identity is restrained glow/inlay, not a whole-hull
+   recolor, and fixed material color must remain legible when the accent swaps.
+4. A mode may share one class-projectile package when the basic projectile is
+   mechanically common. The shared mask remains renderer-tinted and
+   presentation-only; class-specific ordnance is justified by a genuinely
+   different mechanic or a later cosmetic package, not by roster size alone.
+5. Generate a single roster contact sheet at gameplay scale before wiring the
+   pass. Show every class under both team accents, then review the same sprites
+   moving in a real replay. A large isolated preview cannot establish class
+   recognition.
+6. Put default class packages under `assets/class-looks` and resolve them from
+   authoritative class/form IDs through manifest-driven presentation mapping.
+   They are internal match defaults, not account appearance options. Alternate
+   skins stay independent entitlement/store packages and may reuse the class
+   identity without replacing old defaults.
+7. Preserve the generator, every `look.json`, the manifest mapping, and the
+   contact-sheet recipe so another season can add skins without reconstructing
+   intent. Under a 2D-only experiment ruling, stop here: SVG remains canonical
+   for the site and game, and the companion-model/provider/fidelity-gate steps
+   below are dormant until separately commissioned.
+
+Arc Relay is the reference pass: `scripts/build-arc-relay-class-art.mjs`
+authors sixteen `arc-*` class defaults plus the shared `arc-pulse` mask. It
+uses graphite, bronze, amber machinery light, restrained semantic team inlays,
+and `low-hover` across the roster. DECISIONS #196 keeps its 3D companions and
+paid generation dormant for Phase C.
+
 ## Projectile-look workflow
 
 1. Start with genuine SVG on a transparent `viewBox="0 0 256 256"`, authored

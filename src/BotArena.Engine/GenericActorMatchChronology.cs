@@ -4017,13 +4017,9 @@ public sealed record GenericActorMatchChronology
                 continue;
             }
 
-            Direction direction =
-                turn.ActionResolution.ValidatedAction.Arguments
-                    .OfType<GenericActorRuntimeActionArgument
-                        .DirectionArgument>()
-                    .Single()
-                    .Value;
-            var (dx, dy) = direction.Vector();
+            ProjectileHeading heading = MovementHeading(
+                turn.ActionResolution.ValidatedAction);
+            var (dx, dy) = heading.Vector();
             Position target = life.Position.Offset(dx, dy);
             bool foreignReturnReservation =
                 automaticReturnReservations.Any(reservation =>
@@ -4034,15 +4030,35 @@ public sealed record GenericActorMatchChronology
                 movementProfiles[forms[life.FormId].MovementProfileId]
                     .FacingCoupling;
             Direction queueFacing = poses[turn.ActorId].Facing;
+            bool arcBlocked = before.Mode is
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                    arc
+                && (ArcRelayForeignHomePad(
+                        definition,
+                        life.ActorId.TeamId,
+                        target)
+                    || arc.VisibleCores.Any(core =>
+                        core.CarrierActorId == life.ActorId
+                        && before.NextTick < core.NextRelocationTick)
+                    || arc.VisibleSignatures.Any(signature =>
+                        signature.Kind
+                            == ArcRelaySignatureDefinition.SignatureKind
+                                .HardlightBlock
+                        && signature.Phase
+                            == ArcRelaySignatureState.SignaturePhase.Active
+                        && signature.EndsAtTick > before.NextTick
+                        && !signature.Suppressed
+                        && signature.Positions.Contains(target)));
             bool blocked = definition.Map.IsWall(target)
                 || occupiedPositions.Contains(target)
                 || reservedLifecyclePositions.Contains(target)
                 || foreignReturnReservation
+                || arcBlocked
                 // Mirrors the session's defensive block: a FacingLocked mover
                 // that somehow validated an off-facing direction is Blocked,
                 // never displaced.
                 || (coupling == ActorMovementFacingCoupling.FacingLocked
-                    && direction != queueFacing);
+                    && heading != queueFacing.ToProjectileHeading());
             candidates.Add(
                 turn.ActorId,
                 new MovementQueueCandidate(
@@ -4051,7 +4067,11 @@ public sealed record GenericActorMatchChronology
                     queueFacing,
                     coupling
                         == ActorMovementFacingCoupling.FaceMovementDirection
-                        ? direction
+                        && heading is ProjectileHeading.North
+                            or ProjectileHeading.East
+                            or ProjectileHeading.South
+                            or ProjectileHeading.West
+                        ? (Direction)((int)heading / 2)
                         : queueFacing,
                     blocked));
         }
@@ -4300,6 +4320,44 @@ public sealed record GenericActorMatchChronology
         }
         return poses;
     }
+
+    private static bool ArcRelayForeignHomePad(
+        ActorResolvedMatchDefinition definition,
+        int actorTeamId,
+        Position target)
+    {
+        if (definition.ModeMapBinding is not
+            ArcRelayActorModeMapBindingDefinition binding)
+        {
+            return false;
+        }
+        Dictionary<int, int> teamByParticipant = definition.Topology
+            .Participants.ToDictionary(
+                participant => participant.ParticipantId,
+                participant => participant.TeamId);
+        HashSet<string> foreignRegionIds = definition
+            .ParticipantRegionAssignments
+            .Where(assignment => string.Equals(
+                    assignment.RegionRoleId,
+                    binding.HomePadRegionRoleId,
+                    StringComparison.Ordinal)
+                && teamByParticipant[assignment.ParticipantId] != actorTeamId)
+            .Select(assignment => assignment.MapRegionId)
+            .ToHashSet(StringComparer.Ordinal);
+        return definition.Map.Regions.Any(region =>
+            foreignRegionIds.Contains(region.RegionId)
+            && region.Tiles.Contains(target));
+    }
+
+    private static ProjectileHeading MovementHeading(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument
+                .ProjectileHeadingArgument>()
+            .SingleOrDefault()?.Value
+        ?? action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.DirectionArgument>()
+            .Single().Value.ToProjectileHeading();
 
     private static BoundedChildFabricationSlotSnapshot
         FabricationQueueSlot(

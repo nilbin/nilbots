@@ -437,7 +437,9 @@ function validateContract(
   }
   exact(mode, modePath, modeKeys, fail);
   nonEmpty(mode.modeId, `${modePath}.modeId`, fail);
-  if (mode.modeId !== mode.kind) {
+  const supportedModeId =
+    mode.kind === 'arc-relay' ? 'arc-relay-h0' : mode.kind;
+  if (mode.modeId !== supportedModeId) {
     fail(
       `${modePath}.modeId`,
       'must match the supported game-mode kind',
@@ -1429,7 +1431,8 @@ function validateContract(
     nonEmpty(tag.tagId, `${tagPath}.tagId`, fail);
     if (
       tag.kind !== 'transition-placement-forbidden' &&
-      tag.kind !== 'spawn-protected'
+      tag.kind !== 'spawn-protected' &&
+      tag.kind !== 'signature-placement-forbidden'
     ) {
       fail(`${tagPath}.kind`, 'unknown map tile-tag kind');
     }
@@ -1838,6 +1841,9 @@ function rawArgument(value: unknown, path: string, fail: ReplayV3Fail): void {
       integer(target.unitId, `${path}.value.unitId`, fail);
       return;
     }
+    case 'position-target':
+      position(item.value, `${path}.value`, fail);
+      return;
     default:
       fail(`${path}.kind`, `unknown raw action argument ${String(item.kind)}`);
   }
@@ -1877,6 +1883,9 @@ function actionArgument(
       integer(target.unitId, `${path}.value.unitId`, fail);
       return;
     }
+    case 'position-target':
+      position(item.value, `${path}.value`, fail);
+      return;
     default:
       fail(`${path}.kind`, `unknown action argument ${String(item.kind)}`);
   }
@@ -4519,6 +4528,41 @@ function jsonEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function observedModeMatchesWorld(
+  observed: V3.ReplayV3ModeState,
+  world: V3.ReplayV3ModeState,
+): boolean {
+  if (observed.kind !== 'arc-relay' || world.kind !== 'arc-relay') {
+    return jsonEqual(observed, world);
+  }
+  if (
+    observed.modeId !== world.modeId ||
+    !jsonEqual(observed.wells, world.wells) ||
+    !jsonEqual(observed.reactors, world.reactors) ||
+    observed.latestPulseTeamId !== world.latestPulseTeamId ||
+    observed.latestPulseTick !== world.latestPulseTick
+  ) {
+    return false;
+  }
+  const cores = new Map(
+    world.visibleCores.map((core) => [JSON.stringify(core.coreId), core]),
+  );
+  const signatures = new Map(
+    world.visibleSignatures.map((signature) => [
+      signature.operationId,
+      signature,
+    ]),
+  );
+  return (
+    observed.visibleCores.every((core) =>
+      jsonEqual(cores.get(JSON.stringify(core.coreId)), core),
+    ) &&
+    observed.visibleSignatures.every((signature) =>
+      jsonEqual(signatures.get(signature.operationId), signature),
+    )
+  );
+}
+
 function scoreboardsStableAcrossTickStart(
   before: V3.ReplayV3Scoreboard,
   after: V3.ReplayV3Scoreboard,
@@ -4560,18 +4604,26 @@ export function validateReplayV3TickStartBoundary(
   const after = tickStart.state;
   if (jsonEqual(before, after)) return;
 
+  const arcModeChange =
+    before.mode.kind === 'arc-relay' &&
+    after.mode.kind === 'arc-relay' &&
+    tickStart.events.some((event) =>
+      event.payload.kind === 'arc-relay' ||
+      event.payload.kind === 'mode-changed',
+    );
+
   if (
     before.matchContractFingerprint !== after.matchContractFingerprint ||
     before.nextTick !== tickStart.tick ||
     after.nextTick !== tickStart.tick ||
     before.nextProjectileId !== after.nextProjectileId ||
     !jsonEqual(before.participants, after.participants) ||
-    !jsonEqual(before.mode, after.mode) ||
+    (!jsonEqual(before.mode, after.mode) && !arcModeChange) ||
     !scoreboardsStableAcrossTickStart(before.scoreboard, after.scoreboard)
   ) {
     fail(
       path,
-      'tick-start lifecycle cannot change participants, mode, projectile issuance, eligibility, or non-derived scores',
+      'tick-start lifecycle cannot change participants, mode, projectile issuance, eligibility, or non-derived scores without exact Arc mode evidence',
     );
   }
 
@@ -4680,7 +4732,15 @@ export function validateReplayV3TickStartBoundary(
         event.payload.kind === 'form-transition' &&
         actorValue(event.payload.actorId) === actor,
     );
-    if (formEvents.length !== 1) {
+    const hasArcLifeEvidence = tickStart.events.some((event) =>
+      event.payload.kind === 'arc-relay' &&
+      ((event.payload.fact.kind === 'body-relocated' &&
+        actorValue(event.payload.fact.targetActorId) === actor) ||
+        ((event.payload.fact.kind === 'signature-damage' ||
+          event.payload.fact.kind === 'signature-repair') &&
+          actorValue(event.payload.fact.targetActorId) === actor)),
+    );
+    if (formEvents.length !== 1 && !hasArcLifeEvidence) {
       fail(
         `${path}.activeLives`,
         `surviving life ${actor} changed without exactly one form-transition event`,
@@ -6075,8 +6135,10 @@ function validateV3Relationships(
           JSON.stringify(tick.tickStart.state.participants) ||
         JSON.stringify(turn.observation.scoreboard) !==
           JSON.stringify(tick.tickStart.state.scoreboard) ||
-        JSON.stringify(turn.observation.mode) !==
-          JSON.stringify(tick.tickStart.state.mode)
+        !observedModeMatchesWorld(
+          turn.observation.mode,
+          tick.tickStart.state.mode,
+        )
       ) {
         fail(
           `${turnPath}.observation`,

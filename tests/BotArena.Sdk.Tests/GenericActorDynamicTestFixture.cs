@@ -23,6 +23,8 @@ internal static class GenericActorDynamicTestFixture
                     Direction.West),
                 new GenericActorActionArgument.ShotProgramArgument(
                     new ShotProgram(1, -1, 2, 3, 2)),
+                new GenericActorActionArgument.PositionTargetArgument(
+                    new Position(7, 9)),
             ],
             "diagnostic");
 
@@ -108,6 +110,9 @@ internal static class GenericActorDynamicTestFixture
                         [Direction.South, Direction.North]),
                 new GenericActorActionLegality.ArgumentConstraint
                     .ShotProgramConstraint(true),
+                new GenericActorActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint(
+                        [new Position(2, 3), new Position(4, 1)]),
             ]);
 
     public static GenericActorContext Context(

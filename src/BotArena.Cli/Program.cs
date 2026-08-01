@@ -43,6 +43,8 @@ try
             FrontlineLabsQualificationCommand.Run(rest),
         ["experiment", "frontline-labs", .. var rest] =>
             FrontlineLabsExperimentCommand.Run(rest),
+        ["experiment", "arc-relay-h0-smoke", .. var rest] =>
+            ArcRelayH0SmokeCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -120,6 +122,11 @@ static int Help(int exitCode = 1)
                                                   full prints the whole resolved
                                                   contract JSON (every declared
                                                   number) and exits
+          nilbots experiment arc-relay-h0-smoke [--out <dir>] [--viewer]
+                                                  [--seed 17|29]
+                                                  ENGINEERING SMOKE: writes
+                                                  two mind-profile Arc Relay
+                                                  replay files; no stock doctrine
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]

@@ -198,6 +198,7 @@ internal sealed class ArcRelayActorMatchModeDriver
             if (well.RearmCompletesAtTick == tick)
             {
                 well.RearmCompletesAtTick = null;
+                well.PendingCharge = false;
                 Birth(well, tick, world, events);
             }
         }
@@ -558,7 +559,8 @@ internal sealed class ArcRelayActorMatchModeDriver
         ImmutableArray<GenericActorModeEvent>.Builder events)
     {
         foreach (CoreRuntime core in _cores.Values
-                     .Where(value => value.CarrierActorId is null)
+                     .Where(value => value.CarrierActorId is null
+                         && value.FlightTarget is null)
                      .OrderBy(value => value.CoreId.SourceWellId,
                          StringComparer.Ordinal)
                      .ThenBy(value => value.CoreId.SourceOrdinal))
@@ -611,7 +613,6 @@ internal sealed class ArcRelayActorMatchModeDriver
             reactor.Charge)));
         if (well.PendingCharge)
         {
-            well.PendingCharge = false;
             well.RearmCompletesAtTick = checked(
                 tick + 1 + _gameMode.PendingRearmTicks);
         }

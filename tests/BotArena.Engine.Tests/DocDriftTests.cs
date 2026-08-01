@@ -497,6 +497,47 @@ public class DocDriftTests
         Assert.Contains("never on an enemy", brief, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Arc Relay's launch roster and one-signature-per-class table are the
+    /// mechanical authoring vocabulary. A renamed or omitted class/signature
+    /// must fail beside the approved brief rather than silently teaching mind
+    /// authors a stale list.
+    /// </summary>
+    [Fact]
+    public void ArcRelayBrief_NamesEveryLaunchClassAndSignature()
+    {
+        string brief = ReadRepoFile(
+            "docs",
+            "reports",
+            "GATE-2-MECHANICS-BRIEF.md");
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            ArcRelayH0Definition.Create().Rules.GameMode);
+
+        Assert.Contains(ArcRelayH0Definition.MapId, brief,
+            StringComparison.Ordinal);
+        Assert.Contains("no match-stable pre-filter", brief,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            ArcRelayLaunchClassIds.All.Order(StringComparer.Ordinal),
+            mode.Signatures.Select(value => value.ClassId)
+                .Order(StringComparer.Ordinal));
+
+        foreach (string classId in ArcRelayLaunchClassIds.All)
+        {
+            Assert.True(
+                brief.Contains(classId, StringComparison.OrdinalIgnoreCase),
+                $"The Arc Relay brief never names launch class '{classId}'.");
+        }
+        foreach (ArcRelaySignatureDefinition signature in mode.Signatures)
+        {
+            string label = signature.ActionId.Replace('-', ' ');
+            Assert.True(
+                brief.Contains(label, StringComparison.OrdinalIgnoreCase),
+                $"The Arc Relay brief never names signature "
+                + $"'{signature.ActionId}'.");
+        }
+    }
+
     [Fact]
     public void SdkProjectVersion_MatchesToolchainVersion()
     {

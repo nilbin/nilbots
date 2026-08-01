@@ -51,6 +51,11 @@ public sealed class GenericActorActionCodecTests
             Assert.IsType<
                 GenericActorActionArgument.UpgradeTrackArgument>(
                     decoded.Arguments[5]).TrackId);
+        Assert.Equal(
+            new Position(7, 9),
+            Assert.IsType<
+                GenericActorActionArgument.PositionTargetArgument>(
+                    decoded.Arguments[6]).Value);
     }
 
     [Fact]
@@ -93,6 +98,12 @@ public sealed class GenericActorActionCodecTests
                 GenericActorActionLegality.ArgumentConstraint
                     .UpgradeTrackConstraint>(
                         decoded.Constraints[5]).AllowedTrackIds.ToArray());
+        Assert.Equal(
+            [new Position(4, 1), new Position(2, 3)],
+            Assert.IsType<
+                GenericActorActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint>(
+                        decoded.Constraints[6]).AllowedValues.ToArray());
 
         var empty = new GenericActorActionLegality.ArgumentConstraint
             .ProjectileHeadingConstraint([]);

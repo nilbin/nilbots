@@ -1,4 +1,7 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.Sdk;
 
 namespace BotArena.Engine.Tests;
@@ -165,6 +168,29 @@ public sealed class ArcRelayH0DefinitionTests
             "Cores: scheduled 21, born 3",
             summary.Format(),
             StringComparison.Ordinal);
+
+        string forgedBirth = MutateAndRehash(
+            document.CanonicalJson,
+            root =>
+            {
+                JsonObject fact = root["ticks"]!.AsArray()[25]!["tickStart"]![
+                    "events"]!.AsArray()
+                    .Select(value => value!.AsObject())
+                    .Single(value => value["payload"]!["kind"]!
+                        .GetValue<string>() == "arc-relay"
+                        && value["payload"]!["fact"]!["kind"]!
+                            .GetValue<string>() == "core-born")
+                    ["payload"]!["fact"]!.AsObject();
+                fact["position"]!["x"] = 14;
+            });
+        Assert.False(
+            GenericActorReplayDocument.VerifyHash(
+                forgedBirth,
+                out string? chronologyFailure));
+        Assert.Contains(
+            "Core facts",
+            chronologyFailure,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -280,4 +306,27 @@ public sealed class ArcRelayH0DefinitionTests
                     "Arc signature exposed an unexpected argument constraint."),
             }),
         ];
+
+    private static string MutateAndRehash(
+        string json,
+        Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(json)!.AsObject();
+        mutate(root);
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (string propertyName in
+                     new[] { "header", "initialFrame", "ticks", "result" })
+            {
+                writer.WritePropertyName(propertyName);
+                root[propertyName]!.WriteTo(writer);
+            }
+            writer.WriteEndObject();
+        }
+        root["replayHash"] = Convert.ToHexStringLower(
+            SHA256.HashData(stream.ToArray()));
+        return root.ToJsonString();
+    }
 }
