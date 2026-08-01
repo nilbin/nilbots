@@ -632,6 +632,32 @@ internal static class GenericActorSdkModelMapper
                         }
                         : null,
                     fact.Reason),
+            ArcRelayEvent.BodyRelocated fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.BodyRelocated(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    ToSdk(fact.From),
+                    ToSdk(fact.To)),
+            ArcRelayEvent.SignatureDamage fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureDamage(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.SignatureRepair fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureRepair(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
             _ => throw UnknownUnion(value),
         };
 

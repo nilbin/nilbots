@@ -20,6 +20,9 @@ internal sealed class ArcRelayActorMatchModeDriver
     private readonly Dictionary<string, WellRuntime> _wellsById;
     private readonly Dictionary<ArcRelayCoreId, CoreRuntime> _cores = [];
     private readonly Dictionary<int, ReactorRuntime> _reactors;
+    private readonly ImmutableDictionary<int, ImmutableHashSet<Position>>
+        _homePads;
+    private readonly ArcRelaySignatureRuntime _signatures;
     private int _currentTick;
     private int? _latestPulseTeamId;
     private int? _latestPulseTick;
@@ -38,6 +41,7 @@ internal sealed class ArcRelayActorMatchModeDriver
                 "Arc Relay driver requires an Arc Relay map binding.",
                 nameof(definition));
         _topology = definition.Topology;
+        _signatures = new ArcRelaySignatureRuntime(definition, _gameMode);
         Dictionary<string, ActorMapRegionDefinition> regions = definition.Map
             .Regions.ToDictionary(value => value.RegionId, StringComparer.Ordinal);
         _wells = _gameMode.Wells.Select((schedule, index) =>
@@ -61,10 +65,27 @@ internal sealed class ArcRelayActorMatchModeDriver
                     participantTeam[value.ParticipantId],
                     regions[value.MapRegionId].Tiles.Single(),
                     _gameMode.ArcRelayVictory.PulsesToDestroyReactor));
+        _homePads = definition.ParticipantRegionAssignments
+            .Where(value => string.Equals(
+                value.RegionRoleId,
+                binding.HomePadRegionRoleId,
+                StringComparison.Ordinal))
+            .ToImmutableDictionary(
+                value => participantTeam[value.ParticipantId],
+                value => regions[value.MapRegionId].Tiles.ToImmutableHashSet());
     }
 
     public GenericActorModeState State =>
         new GenericActorModeState.ArcRelay(ProjectState());
+
+    internal ArcRelaySignatureRuntime Signatures => _signatures;
+
+    internal GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+        ProjectStateAtTick(int tick)
+    {
+        _currentTick = tick;
+        return ProjectState();
+    }
 
     public bool CarriesCore(ActorIdentity actorId) =>
         _cores.Values.Any(value => value.CarrierActorId == actorId);
@@ -73,6 +94,95 @@ internal sealed class ArcRelayActorMatchModeDriver
         _cores.Values.SingleOrDefault(value => value.CarrierActorId == actorId)
             is not { } core
         || tick >= core.NextRelocationTick;
+
+    public bool CanEnter(ActorIdentity actorId, Position position) =>
+        !_homePads.Any(value =>
+            value.Key != actorId.TeamId && value.Value.Contains(position));
+
+    public ImmutableArray<GenericActorModeEvent> LaunchArcToss(
+        int tick,
+        ActorIdentity actorId,
+        Position target,
+        int completesAtTick)
+    {
+        CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
+            value.CarrierActorId == actorId);
+        if (core is null || tick < core.NextRelocationTick)
+            return [];
+        core.CarrierActorId = null;
+        core.FlightTarget = target;
+        core.FlightCompletesAtTick = completesAtTick;
+        return
+        [
+            Spatial(
+                new ArcRelayEvent.CoreDropped(
+                    core.CoreId,
+                    actorId,
+                    core.Position,
+                    core.NextRelocationTick,
+                    ArcRelayEvent.CoreDropKind.SignatureDeparture),
+                core.Position),
+        ];
+    }
+
+    public ImmutableArray<GenericActorModeEvent> LandArcToss(
+        int tick,
+        ActorIdentity ownerActorId,
+        Position requestedTarget,
+        GenericActorModeWorldView world)
+    {
+        CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
+            value.FlightCompletesAtTick == tick
+            && value.FlightTarget == requestedTarget);
+        if (core is null)
+            return [];
+        Position from = core.Position;
+        Position landing = ArcTossLanding(from, requestedTarget);
+        core.Position = landing;
+        core.FlightTarget = null;
+        core.FlightCompletesAtTick = null;
+        core.NextRelocationTick = checked(
+            tick + _gameMode.CoreRelocationIntervalTicks);
+        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        events.Add(Spatial(
+            new ArcRelayEvent.CoreRelocated(
+                core.CoreId,
+                CarrierActorId: null,
+                from,
+                landing,
+                core.NextRelocationTick,
+                ArcRelayEvent.CoreRelocationKind.ArcTossLanding),
+            landing));
+        GenericActorModeActiveLife? catcher = world.ActiveLives
+            .Where(value => value.ActorId.TeamId == ownerActorId.TeamId
+                && value.Position == landing
+                && !CarriesCore(value.ActorId))
+            .OrderBy(value => value.ActorId)
+            .FirstOrDefault();
+        if (catcher is not null)
+        {
+            core.CarrierActorId = catcher.ActorId;
+            events.Add(Spatial(
+                new ArcRelayEvent.CorePickedUp(
+                    core.CoreId,
+                    catcher.ActorId,
+                    landing,
+                    core.NextRelocationTick),
+                landing));
+        }
+        else
+        {
+            events.Add(Spatial(
+                new ArcRelayEvent.CoreDropped(
+                    core.CoreId,
+                    ownerActorId,
+                    landing,
+                    core.NextRelocationTick,
+                    ArcRelayEvent.CoreDropKind.ArcTossLanding),
+                landing));
+        }
+        return events.ToImmutable();
+    }
 
     public GenericActorModeTickResult PrepareTick(
         int tick,
@@ -166,6 +276,92 @@ internal sealed class ArcRelayActorMatchModeDriver
         return events.ToImmutable();
     }
 
+    public ImmutableArray<GenericActorModeEvent> ResolveForcedMovement(
+        int tick,
+        IReadOnlyCollection<ActorIdentity> movedActors,
+        GenericActorModeWorldView world)
+    {
+        _currentTick = tick;
+        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        Dictionary<ActorIdentity, GenericActorModeActiveLife> lives = world
+            .ActiveLives.ToDictionary(value => value.ActorId);
+        foreach (ActorIdentity actorId in movedActors.Order())
+        {
+            CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
+                value.CarrierActorId == actorId);
+            if (core is null || !lives.TryGetValue(actorId, out var life)
+                || core.Position == life.Position)
+            {
+                continue;
+            }
+            Position from = core.Position;
+            core.Position = life.Position;
+            core.NextRelocationTick = checked(
+                tick + _gameMode.CoreRelocationIntervalTicks);
+            events.Add(Spatial(
+                new ArcRelayEvent.CoreRelocated(
+                    core.CoreId,
+                    actorId,
+                    from,
+                    core.Position,
+                    core.NextRelocationTick,
+                    ArcRelayEvent.CoreRelocationKind.ForcedDisplacement),
+                core.Position));
+        }
+        PickUpLooseCores(tick, world, events);
+        return events.ToImmutable();
+    }
+
+    public bool TrySignatureDepartureDrop(
+        int tick,
+        ActorIdentity sourceActorId,
+        out GenericActorModeEvent? modeEvent)
+    {
+        CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
+            value.CarrierActorId == sourceActorId);
+        if (core is null)
+        {
+            modeEvent = null;
+            return false;
+        }
+        core.CarrierActorId = null;
+        modeEvent = Spatial(
+            new ArcRelayEvent.CoreDropped(
+                core.CoreId,
+                sourceActorId,
+                core.Position,
+                core.NextRelocationTick,
+                ArcRelayEvent.CoreDropKind.SignatureDeparture),
+            core.Position);
+        return true;
+    }
+
+    public ImmutableArray<GenericActorModeEvent> HandleDestructions(
+        int tick,
+        IReadOnlyCollection<FrontlineScrapDestruction> destructions)
+    {
+        _currentTick = tick;
+        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        foreach (FrontlineScrapDestruction destruction in destructions)
+        {
+            CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
+                value.CarrierActorId == destruction.ActorId);
+            if (core is null)
+                continue;
+            core.CarrierActorId = null;
+            core.Position = destruction.Position;
+            events.Add(Spatial(
+                new ArcRelayEvent.CoreDropped(
+                    core.CoreId,
+                    destruction.ActorId,
+                    destruction.Position,
+                    core.NextRelocationTick,
+                    ArcRelayEvent.CoreDropKind.Destruction),
+                destruction.Position));
+        }
+        return events.ToImmutable();
+    }
+
     public bool TryDrop(
         int tick,
         ActorIdentity sourceActorId,
@@ -241,23 +437,7 @@ internal sealed class ArcRelayActorMatchModeDriver
                 value => (value.Value.Pulses, value.Value.Charge));
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
 
-        foreach (FrontlineScrapDestruction destruction in input.Destructions)
-        {
-            CoreRuntime? core = _cores.Values.SingleOrDefault(
-                value => value.CarrierActorId == destruction.ActorId);
-            if (core is null)
-                continue;
-            core.CarrierActorId = null;
-            core.Position = destruction.Position;
-            events.Add(Spatial(
-                new ArcRelayEvent.CoreDropped(
-                    core.CoreId,
-                    destruction.ActorId,
-                    destruction.Position,
-                    core.NextRelocationTick,
-                    ArcRelayEvent.CoreDropKind.Destruction),
-                destruction.Position));
-        }
+        events.AddRange(HandleDestructions(input.Tick, input.Destructions));
 
         foreach (GenericActorModeActiveLife life in world.ActiveLives
                      .OrderBy(value => value.ActorId))
@@ -480,15 +660,37 @@ internal sealed class ArcRelayActorMatchModeDriver
                 .Select(value => new ArcRelayCoreState(
                     value.CoreId,
                     value.Position,
-                    value.CarrierActorId is null
-                        ? ArcRelayCoreState.CoreDisposition.Loose
-                        : ArcRelayCoreState.CoreDisposition.Carried,
+                    value.FlightTarget is not null
+                        ? ArcRelayCoreState.CoreDisposition.InFlight
+                        : value.CarrierActorId is null
+                            ? ArcRelayCoreState.CoreDisposition.Loose
+                            : ArcRelayCoreState.CoreDisposition.Carried,
                     value.CarrierActorId,
-                    value.NextRelocationTick))
+                    value.NextRelocationTick,
+                    value.FlightTarget,
+                    value.FlightCompletesAtTick))
                 .ToImmutableArray(),
-            visibleSignatures: [],
+            _signatures.Project(_currentTick),
             _latestPulseTeamId,
             _latestPulseTick);
+
+    private Position ArcTossLanding(Position from, Position requested)
+    {
+        ProjectileHeading heading = ProjectileHeadingExtensions.Between(
+            from,
+            requested);
+        var (dx, dy) = heading.Vector();
+        Position current = from;
+        int distance = from.ChebyshevDistance(requested);
+        for (int step = 0; step < distance; step++)
+        {
+            Position next = current.Offset(dx, dy);
+            if (_definition.Map.IsWall(next))
+                break;
+            current = next;
+        }
+        return current;
+    }
 
     private static int? NextScheduledBirth(
         ArcRelayWellScheduleDefinition schedule,
@@ -612,6 +814,8 @@ internal sealed class ArcRelayActorMatchModeDriver
         public Position Position { get; set; }
         public ActorIdentity? CarrierActorId { get; set; }
         public int NextRelocationTick { get; set; }
+        public Position? FlightTarget { get; set; }
+        public int? FlightCompletesAtTick { get; set; }
     }
 
     private sealed class ReactorRuntime

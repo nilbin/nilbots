@@ -2859,6 +2859,32 @@ public sealed record GenericActorContext
             ActorIdentity OwnerActorId,
             ArcRelaySignaturePhase? Phase,
             string Reason) : ArcRelayEvent;
+        /// <summary>A signature moved a body between exact tiles.</summary>
+        public sealed record BodyRelocated(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            Position From,
+            Position To) : ArcRelayEvent;
+        /// <summary>A signature applied direct hull damage.</summary>
+        public sealed record SignatureDamage(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A signature restored hull.</summary>
+        public sealed record SignatureRepair(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
     }
 
     /// <summary>One team's published economic position.</summary>

@@ -806,6 +806,32 @@ internal sealed record ReplayV3(
             ActorId OwnerActorId,
             string? Phase,
             string Reason) : ArcRelayFact("signature-changed");
+
+        internal sealed record BodyRelocated(
+            string OperationId,
+            string SignatureId,
+            ActorId OwnerActorId,
+            ActorId TargetActorId,
+            PositionValue From,
+            PositionValue To) : ArcRelayFact("body-relocated");
+
+        internal sealed record SignatureDamage(
+            string OperationId,
+            string SignatureId,
+            ActorId OwnerActorId,
+            ActorId TargetActorId,
+            int Amount,
+            int NewHealth,
+            PositionValue Position) : ArcRelayFact("signature-damage");
+
+        internal sealed record SignatureRepair(
+            string OperationId,
+            string SignatureId,
+            ActorId OwnerActorId,
+            ActorId TargetActorId,
+            int Amount,
+            int NewHealth,
+            PositionValue Position) : ArcRelayFact("signature-repair");
     }
 
     internal sealed record AuthoritativeEvent(
@@ -1115,7 +1141,46 @@ internal sealed record ReplayV3(
         ImmutableArray<PositionValue> Positions,
         ActorId? TargetActorId,
         int RemainingCapacity,
-        bool Suppressed);
+        bool Suppressed)
+    {
+        public bool Equals(ArcSignature? other) =>
+            other is not null
+            && string.Equals(OperationId, other.OperationId,
+                StringComparison.Ordinal)
+            && string.Equals(SignatureId, other.SignatureId,
+                StringComparison.Ordinal)
+            && string.Equals(SignatureKind, other.SignatureKind,
+                StringComparison.Ordinal)
+            && OwnerActorId == other.OwnerActorId
+            && OwnerTeamId == other.OwnerTeamId
+            && string.Equals(Phase, other.Phase, StringComparison.Ordinal)
+            && StartedTick == other.StartedTick
+            && CompletesAtTick == other.CompletesAtTick
+            && EndsAtTick == other.EndsAtTick
+            && Positions.SequenceEqual(other.Positions)
+            && TargetActorId == other.TargetActorId
+            && RemainingCapacity == other.RemainingCapacity
+            && Suppressed == other.Suppressed;
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(OperationId, StringComparer.Ordinal);
+            hash.Add(SignatureId, StringComparer.Ordinal);
+            hash.Add(SignatureKind, StringComparer.Ordinal);
+            hash.Add(OwnerActorId);
+            hash.Add(OwnerTeamId);
+            hash.Add(Phase, StringComparer.Ordinal);
+            hash.Add(StartedTick);
+            hash.Add(CompletesAtTick);
+            hash.Add(EndsAtTick);
+            foreach (PositionValue position in Positions) hash.Add(position);
+            hash.Add(TargetActorId);
+            hash.Add(RemainingCapacity);
+            hash.Add(Suppressed);
+            return hash.ToHashCode();
+        }
+    }
 
     /// <summary>
     /// One team's published economic position. Serialized only on a ruleset

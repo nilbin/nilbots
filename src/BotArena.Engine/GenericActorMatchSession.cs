@@ -98,6 +98,7 @@ public sealed class GenericActorMatchSession : IDisposable
     /// </para>
     /// </summary>
     private readonly Dictionary<ActorIdentity, string> _roleTags = [];
+    private readonly HashSet<ActorIdentity> _arcSignatureDamagedThisTick = [];
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
     private ImmutableDictionary<ActorIdentity, Position>
@@ -346,6 +347,52 @@ public sealed class GenericActorMatchSession : IDisposable
             tickStartEvents);
         if (_mode is ArcRelayActorMatchModeDriver arcRelay)
         {
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                beforeSignatures = ((GenericActorModeState.ArcRelay)
+                    arcRelay.State).State;
+            ArcRelaySignatureRuntime.TickResult signatureTick =
+                arcRelay.Signatures.Advance(Tick, ArcRelaySignatureLives());
+            EmitModeEvents(signatureTick.Events, tickStartEvents);
+            ArcSignatureApplication signatureApplication =
+                ApplyArcRelaySignatureEffects(
+                    arcRelay,
+                    signatureTick.Effects,
+                    tickStartEvents);
+            EmitModeEvents(
+                arcRelay.ResolveForcedMovement(
+                    Tick,
+                    signatureApplication.RelocatedActors,
+                    ModeWorldView()),
+                tickStartEvents);
+            ImmutableArray<FrontlineScrapDestruction> signatureDestructions =
+                FinalizeDestroyedLives(
+                    ImmutableHashSet<int>.Empty,
+                    tickStartEvents);
+            if (!signatureDestructions.IsEmpty)
+            {
+                var signatureEvents = ImmutableArray
+                    .CreateBuilder<GenericActorModeEvent>();
+                arcRelay.Signatures.NotifyDestroyed(
+                    Tick,
+                    signatureDestructions.Select(value => value.ActorId)
+                        .ToImmutableArray(),
+                    signatureEvents);
+                EmitModeEvents(signatureEvents, tickStartEvents);
+                EmitModeEvents(
+                    arcRelay.HandleDestructions(Tick, signatureDestructions),
+                    tickStartEvents);
+            }
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                afterSignatures = arcRelay.ProjectStateAtTick(Tick);
+            if (!Equals(beforeSignatures, afterSignatures))
+            {
+                EmitModeChanges(
+                    new GenericActorModeTickResult(
+                        scoreChanges: [],
+                        afterSignatures,
+                        modeObjectiveReached: false),
+                    tickStartEvents);
+            }
             EmitModeChanges(
                 arcRelay.PrepareTick(Tick, ModeWorldView()),
                 tickStartEvents);
@@ -448,6 +495,7 @@ public sealed class GenericActorMatchSession : IDisposable
         var contacts = new List<PendingDamageContact>();
         var deflections = new List<PendingDeflection>();
         int contactOrdinal = 0;
+        _arcSignatureDamagedThisTick.Clear();
 
         ResolveRotations(resolutions, events);
         ResolveMovement(
@@ -475,7 +523,27 @@ public sealed class GenericActorMatchSession : IDisposable
                     movedActors,
                     ModeWorldView()),
                 events);
+            var movedSignatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            arcRelayAfterMovement.Signatures.NotifyMoved(
+                Tick,
+                movedActors,
+                movedSignatureEvents);
+            EmitModeEvents(movedSignatureEvents, events);
+            ArcRelaySignatureRuntime.TickResult postMovementSignatures =
+                arcRelayAfterMovement.Signatures.ResolvePostMovement(
+                    Tick,
+                    ArcRelaySignatureLives());
+            EmitModeEvents(postMovementSignatures.Events, events);
+            ApplyArcRelaySignatureEffects(
+                arcRelayAfterMovement,
+                postMovementSignatures.Effects,
+                events);
             ResolveArcRelayObjectiveActions(resolutions, events);
+            ResolveArcRelaySignatureActions(
+                resolutions,
+                arcRelayAfterMovement,
+                events);
         }
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
@@ -507,6 +575,19 @@ public sealed class GenericActorMatchSession : IDisposable
         StartAutomaticReturns(events);
         ImmutableArray<GenericActorModeDamageContact> scoredContacts =
             ApplyDamage(contacts, events);
+        if (_mode is ArcRelayActorMatchModeDriver signatureDamageMode)
+        {
+            var signatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            signatureDamageMode.Signatures.NotifyDamaged(
+                Tick,
+                contacts.Select(value => value.TargetActorId)
+                    .Concat(_arcSignatureDamagedThisTick)
+                    .Distinct()
+                    .ToImmutableArray(),
+                signatureEvents);
+            EmitModeEvents(signatureEvents, events);
+        }
 
         foreach (GenericActorRuntimeFault fault in runtimeTick.Faults)
         {
@@ -1131,7 +1212,11 @@ public sealed class GenericActorMatchSession : IDisposable
                 }
                 return;
             case ActorActionKind.Signature:
-                if (_mode is not ArcRelayActorMatchModeDriver)
+                if (_mode is not ArcRelayActorMatchModeDriver signatureMode
+                    || !ArcRelaySignatureAvailable(
+                        signatureMode,
+                        life,
+                        action))
                     Block(state);
                 return;
             case ActorActionKind.Replication:
@@ -1282,6 +1367,10 @@ public sealed class GenericActorMatchSession : IDisposable
             Position target = life.Position.Offset(dx, dy);
             targets.Add(life.ActorId, target);
             if (_definition.Map.IsWall(target)
+                || _mode is ArcRelayActorMatchModeDriver arcMovement
+                    && !arcMovement.CanEnter(life.ActorId, target)
+                || _mode is ArcRelayActorMatchModeDriver constructMode
+                    && constructMode.Signatures.BlocksBody(target, Tick)
                 || IsForeignReservedReturnTile(life, target)
                 || IsReservedLifecycleTile(target)
                 || occupants.ContainsKey(target)
@@ -1327,7 +1416,10 @@ public sealed class GenericActorMatchSession : IDisposable
                         projectile.OwnerTeamId,
                         projectile.OwnerActorId,
                         projectile.Id,
-                        projectile.Profile.Projectile.DamagePerHit,
+                        ProjectileDamage(
+                            projectile,
+                            life,
+                            events),
                         contactOrdinal++));
                 }
                 else if (contact.Deflected)
@@ -1491,6 +1583,495 @@ public sealed class GenericActorMatchSession : IDisposable
             EmitModeEvent(modeEvent!, events);
         }
     }
+
+    private void ResolveArcRelaySignatureActions(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome.Success
+                || action.Kind != ActorActionKind.Signature)
+            {
+                continue;
+            }
+
+            ArcRelaySignatureDefinition signature =
+                mode.Signatures.DefinitionForAction(action.Id);
+            if (signature is ArcRelaySignatureDefinition.Exchange)
+            {
+                GenericActorRuntimeActionArgument.UnitTarget target =
+                    resolution.ValidatedAction.Arguments
+                        .OfType<GenericActorRuntimeActionArgument
+                            .UnitTargetArgument>()
+                        .Single().Value;
+                LifeState? targetLife = _lives.Values.SingleOrDefault(value =>
+                    value.ActorId.TeamId == target.TeamId
+                    && value.ActorId.UnitId == target.UnitId);
+                bool targetWaited = targetLife is not null
+                    && resolutions.TryGetValue(
+                        targetLife.ActorId,
+                        out ActionState? targetResolution)
+                    && targetResolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[targetResolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Wait;
+                if (!targetWaited)
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+
+            LifeState owner = _lives[resolution.ActorId];
+            ArcRelaySignatureRuntime.TickResult started = mode.Signatures.Start(
+                Tick,
+                owner.ActorId,
+                owner.Position,
+                action.Id,
+                resolution.ValidatedAction.Arguments,
+                ArcRelaySignatureLives());
+            EmitModeEvents(started.Events, events);
+            ArcSignatureApplication application =
+                ApplyArcRelaySignatureEffects(mode, started.Effects, events);
+            EmitModeEvents(
+                mode.ResolveForcedMovement(
+                    Tick,
+                    application.RelocatedActors,
+                    ModeWorldView()),
+                events);
+        }
+    }
+
+    private ArcSignatureApplication ApplyArcRelaySignatureEffects(
+        ArcRelayActorMatchModeDriver mode,
+        IEnumerable<ArcRelaySignatureRuntime.Effect> effects,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        var relocated = ImmutableArray.CreateBuilder<ActorIdentity>();
+        foreach (ArcRelaySignatureRuntime.Effect effect in effects)
+        {
+            switch (effect)
+            {
+                case ArcRelaySignatureRuntime.Effect.VectorDash dash:
+                    ApplyVectorDash(mode, dash, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.TractorHook hook:
+                    ApplyTractorHook(mode, hook, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.Repair repair:
+                    ApplySignatureRepair(mode, repair, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.FallingStar star:
+                    foreach (LifeState target in _lives.Values
+                                 .Where(value => IsFallingStarTile(
+                                     value.Position,
+                                     star.Target))
+                                 .OrderBy(value => value.ActorId)
+                                 .ToArray())
+                    {
+                        ApplySignatureDamage(
+                            mode,
+                            star.OperationId,
+                            star.Owner,
+                            target,
+                            ((ArcRelaySignatureDefinition.FallingStar)
+                                mode.Signatures.DefinitionFor(star.Owner)).Damage,
+                            events);
+                    }
+                    break;
+                case ArcRelaySignatureRuntime.Effect.TripNode node:
+                    if (_lives.TryGetValue(
+                            node.Target,
+                            out LifeState? nodeTarget))
+                    {
+                        ApplySignatureDamage(
+                            mode,
+                            node.OperationId,
+                            node.Owner,
+                            nodeTarget,
+                            node.Damage,
+                            events);
+                    }
+                    break;
+                case ArcRelaySignatureRuntime.Effect.ArcTossLaunch launch:
+                    EmitModeEvents(
+                        mode.LaunchArcToss(
+                            Tick,
+                            launch.Owner,
+                            launch.Target,
+                            launch.CompletesAtTick),
+                        events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.ArcTossLand landing:
+                    EmitModeEvents(
+                        mode.LandArcToss(
+                            Tick,
+                            landing.Owner,
+                            landing.Target,
+                            ModeWorldView()),
+                        events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.Exchange exchange:
+                    ApplyExchange(mode, exchange, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.RailLine rail:
+                    ApplyRailLine(mode, rail, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.KineticBurst burst:
+                    ApplyKineticBurst(mode, burst, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.SentinelFire sentinel:
+                    ApplySentinelFire(mode, sentinel, events);
+                    break;
+            }
+        }
+        if (relocated.Count > 0)
+        {
+            var signatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            mode.Signatures.NotifyMoved(
+                Tick,
+                relocated.ToImmutable(),
+                signatureEvents);
+            EmitModeEvents(signatureEvents, events);
+        }
+        return new ArcSignatureApplication(relocated.ToImmutable());
+    }
+
+    private void ApplyVectorDash(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.VectorDash effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? life))
+            return;
+        if (mode.TrySignatureDepartureDrop(
+                Tick,
+                effect.Owner,
+                out GenericActorModeEvent? drop))
+        {
+            EmitModeEvent(drop!, events);
+        }
+        int range = ((ArcRelaySignatureDefinition.VectorDash)
+            mode.Signatures.DefinitionFor(effect.Owner)).MaxTiles;
+        Position destination = FurthestLegalSignatureTile(
+            life.ActorId,
+            life.Position,
+            effect.Heading,
+            range);
+        RelocateBySignature(
+            mode,
+            effect.OperationId,
+            effect.Owner,
+            life,
+            destination,
+            relocated,
+            events);
+    }
+
+    private void ApplyTractorHook(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.TractorHook effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner))
+            return;
+        ArcRelaySignatureDefinition.TractorHook rule =
+            (ArcRelaySignatureDefinition.TractorHook)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        var (dx, dy) = effect.Heading.Vector();
+        LifeState? target = null;
+        for (int step = 1; step <= rule.Range; step++)
+        {
+            Position tile = owner.Position.Offset(dx * step, dy * step);
+            if (_definition.Map.IsWall(tile))
+                break;
+            target = _lives.Values.SingleOrDefault(value =>
+                value.Position == tile);
+            if (target is not null)
+                break;
+        }
+        if (target is null)
+            return;
+        Position destination = target.Position;
+        for (int step = 0; step < rule.MaxPullTiles; step++)
+        {
+            Position next = destination.Offset(-dx, -dy);
+            if (next == owner.Position
+                || _definition.Map.IsWall(next)
+                || _lives.Values.Any(value =>
+                    value.ActorId != target.ActorId
+                    && value.Position == next))
+            {
+                break;
+            }
+            destination = next;
+        }
+        RelocateBySignature(mode, effect.OperationId, effect.Owner, target,
+            destination, relocated, events);
+    }
+
+    private void ApplyExchange(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.Exchange effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner)
+            || !_lives.TryGetValue(effect.Target, out LifeState? target)
+            || owner.Position != effect.SourceStart
+            || target.Position != effect.TargetStart
+            || !mode.CanEnter(owner.ActorId, effect.TargetStart)
+            || !mode.CanEnter(target.ActorId, effect.SourceStart))
+        {
+            return;
+        }
+        if (mode.TrySignatureDepartureDrop(
+                Tick,
+                target.ActorId,
+                out GenericActorModeEvent? drop))
+        {
+            EmitModeEvent(drop!, events);
+        }
+        Position ownerFrom = owner.Position;
+        Position targetFrom = target.Position;
+        owner.Position = targetFrom;
+        target.Position = ownerFrom;
+        relocated.Add(owner.ActorId);
+        relocated.Add(target.ActorId);
+        EmitSignatureRelocation(mode, effect.OperationId, effect.Owner,
+            owner.ActorId, ownerFrom, owner.Position, events);
+        EmitSignatureRelocation(mode, effect.OperationId, effect.Owner,
+            target.ActorId, targetFrom, target.Position, events);
+    }
+
+    private void ApplyKineticBurst(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.KineticBurst effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        LifeState[] adjacent = _lives.Values.Where(value =>
+                value.ActorId != effect.Owner
+                && value.Position.ChebyshevDistance(effect.Origin) == 1)
+            .OrderBy(value => value.ActorId).ToArray();
+        Dictionary<ActorIdentity, Position> requested = adjacent.ToDictionary(
+            value => value.ActorId,
+            value => value.Position.Offset(
+                Math.Sign(value.Position.X - effect.Origin.X),
+                Math.Sign(value.Position.Y - effect.Origin.Y)));
+        HashSet<Position> duplicateTargets = requested.Values
+            .GroupBy(value => value)
+            .Where(value => value.Count() > 1)
+            .Select(value => value.Key).ToHashSet();
+        foreach (LifeState target in adjacent)
+        {
+            Position destination = requested[target.ActorId];
+            if (duplicateTargets.Contains(destination)
+                || _definition.Map.IsWall(destination)
+                || _lives.Values.Any(value =>
+                    value.ActorId != target.ActorId
+                    && value.Position == destination))
+            {
+                continue;
+            }
+            RelocateBySignature(mode, effect.OperationId, effect.Owner, target,
+                destination, relocated, events);
+        }
+    }
+
+    private void ApplyRailLine(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.RailLine effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner))
+            return;
+        ArcRelaySignatureDefinition.RailLine rule =
+            (ArcRelaySignatureDefinition.RailLine)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        var (dx, dy) = effect.Heading.Vector();
+        for (int step = 1; step <= rule.Range; step++)
+        {
+            Position tile = owner.Position.Offset(dx * step, dy * step);
+            if (_definition.Map.IsWall(tile))
+                break;
+            foreach (LifeState target in _lives.Values
+                         .Where(value => value.Position == tile)
+                         .OrderBy(value => value.ActorId)
+                         .ToArray())
+            {
+                ApplySignatureDamage(mode, effect.OperationId, effect.Owner,
+                    target, rule.Damage, events);
+            }
+        }
+    }
+
+    private void ApplySentinelFire(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.SentinelFire effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureDefinition.SentinelSeed rule =
+            (ArcRelaySignatureDefinition.SentinelSeed)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        LifeState? target = _lives.Values
+            .Where(value => value.ActorId.TeamId != effect.Owner.TeamId
+                && value.Position.ChebyshevDistance(effect.Origin)
+                    <= rule.Range)
+            .OrderBy(value => value.Position.ChebyshevDistance(effect.Origin))
+            .ThenBy(value => value.ActorId)
+            .FirstOrDefault();
+        if (target is not null)
+        {
+            ApplySignatureDamage(mode, effect.OperationId, effect.Owner,
+                target, rule.Damage, events);
+        }
+    }
+
+    private void ApplySignatureRepair(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.Repair effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Target, out LifeState? target))
+            return;
+        int maximum = EffectiveMaxHealth(
+            target.FormId,
+            target.ActorId.TeamId,
+            target.ActorId.UnitId);
+        int amount = Math.Min(effect.Amount, maximum - target.Health);
+        if (amount <= 0)
+            return;
+        target.Health += amount;
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(effect.Owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.SignatureRepair(
+                    effect.OperationId,
+                    signature.SignatureId,
+                    effect.Owner,
+                    target.ActorId,
+                    amount,
+                    target.Health,
+                    target.Position)),
+            target.Position), events);
+    }
+
+    private void ApplySignatureDamage(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        LifeState target,
+        int amount,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (target.Health <= 0)
+            return;
+        target.Health = Math.Max(0, target.Health - amount);
+        _arcSignatureDamagedThisTick.Add(target.ActorId);
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.SignatureDamage(
+                    operationId,
+                    signature.SignatureId,
+                    owner,
+                    target.ActorId,
+                    amount,
+                    target.Health,
+                    target.Position)),
+            target.Position), events);
+    }
+
+    private void RelocateBySignature(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        LifeState target,
+        Position destination,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (destination == target.Position
+            || _definition.Map.IsWall(destination)
+            || !mode.CanEnter(target.ActorId, destination)
+            || _lives.Values.Any(value =>
+                value.ActorId != target.ActorId
+                && value.Position == destination))
+            return;
+        Position from = target.Position;
+        target.Position = destination;
+        relocated.Add(target.ActorId);
+        EmitSignatureRelocation(mode, operationId, owner, target.ActorId,
+            from, destination, events);
+    }
+
+    private void EmitSignatureRelocation(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        ActorIdentity target,
+        Position from,
+        Position to,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.BodyRelocated(
+                    operationId,
+                    signature.SignatureId,
+                    owner,
+                    target,
+                    from,
+                    to)),
+            to), events);
+    }
+
+    private Position FurthestLegalSignatureTile(
+        ActorIdentity actorId,
+        Position source,
+        ProjectileHeading heading,
+        int range)
+    {
+        var (dx, dy) = heading.Vector();
+        Position current = source;
+        for (int step = 0; step < range; step++)
+        {
+            Position next = current.Offset(dx, dy);
+            if (_definition.Map.IsWall(next)
+                || _mode is ArcRelayActorMatchModeDriver arcRelay
+                    && !arcRelay.CanEnter(actorId, next)
+                || _lives.Values.Any(value =>
+                    value.ActorId != actorId && value.Position == next))
+            {
+                break;
+            }
+            current = next;
+        }
+        return current;
+    }
+
+    private static bool IsFallingStarTile(Position value, Position centre) =>
+        value == centre
+        || Math.Abs(value.X - centre.X)
+            + Math.Abs(value.Y - centre.Y) == 1;
+
+    private sealed record ArcSignatureApplication(
+        ImmutableArray<ActorIdentity> RelocatedActors);
 
     private void ReserveLifecycleCreations(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
@@ -2116,6 +2697,20 @@ public sealed class GenericActorMatchSession : IDisposable
             projectile.Position = next;
             entered.Add(next);
             projectile.RemainingTiles--;
+            if (_mode is ArcRelayActorMatchModeDriver arcRelay
+                && arcRelay.Signatures.TryConsumeProjectile(
+                    projectile.Position,
+                    projectile.OwnerTeamId,
+                    Tick,
+                    out GenericActorModeEvent? constructContact))
+            {
+                EmitModeEvent(constructContact!, events);
+                projectile.Consumed = true;
+                _projectiles.Remove(projectile);
+                terminal = new GenericActorProjectileTraversal
+                    .TerminalDisposition.WallOrPathExhausted();
+                break;
+            }
             LifeState? target = _lives.Values
                 .Where(life => life.Position == projectile.Position)
                 .OrderBy(life => life.ActorId)
@@ -2140,7 +2735,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     projectile.OwnerTeamId,
                     projectile.OwnerActorId,
                     projectile.Id,
-                    projectile.Profile.Projectile.DamagePerHit,
+                    ProjectileDamage(
+                        projectile,
+                        target,
+                        events),
                     contactOrdinal++));
             }
             else if (contact.Deflected)
@@ -2171,6 +2769,28 @@ public sealed class GenericActorMatchSession : IDisposable
             from,
             entered.ToImmutable(),
             terminal));
+    }
+
+    private int ProjectileDamage(
+        ProjectileState projectile,
+        LifeState target,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        int damage = projectile.Profile.Projectile.DamagePerHit;
+        if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
+            return damage;
+        int bonus = arcRelay.Signatures.TargetPaintBonus(
+            projectile.OwnerActorId,
+            target.ActorId,
+            Tick,
+            out string? operationId);
+        if (bonus == 0 || operationId is null)
+            return damage;
+        GenericActorModeEvent? modeEvent =
+            arcRelay.Signatures.ConsumeTargetPaint(operationId);
+        if (modeEvent is not null)
+            EmitModeEvent(modeEvent, events);
+        return checked(damage + bonus);
     }
 
     private ImmutableArray<GenericActorModeDamageContact> ApplyDamage(
@@ -3588,7 +4208,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 _mode is ArcRelayActorMatchModeDriver objectiveMode
                 && ArcRelayObjectiveAvailable(objectiveMode, life, action),
             ActorActionKind.Signature =>
-                _mode is ArcRelayActorMatchModeDriver,
+                _mode is ArcRelayActorMatchModeDriver signatureMode
+                && ArcRelaySignatureAvailable(signatureMode, life, action),
             _ => false,
         };
     }
@@ -3619,6 +4240,70 @@ public sealed class GenericActorMatchSession : IDisposable
               && mode.CarriesCore(life.ActorId)
               && mode.CanCarrierRelocate(life.ActorId, Tick)
               && ArcRelayHandoffTargets(life).Length > 0;
+
+    private bool ArcRelaySignatureAvailable(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life,
+        ActorActionDefinition action)
+    {
+        if (!mode.Signatures.CanStart(
+                life.ActorId,
+                action.Id,
+                Tick,
+                life.Position))
+        {
+            return false;
+        }
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionForAction(action.Id);
+        if (signature is ArcRelaySignatureDefinition.ArcToss
+            && (!mode.CarriesCore(life.ActorId)
+                || !mode.CanCarrierRelocate(life.ActorId, Tick)))
+        {
+            return false;
+        }
+        return action.ParameterKinds.All(kind => kind switch
+        {
+            ActorActionParameterKind.PositionTarget =>
+                ArcRelaySignaturePositionTargets(mode, life).Length > 0,
+            ActorActionParameterKind.UnitTarget =>
+                ArcRelaySignatureUnitTargets(mode, life).Length > 0,
+            _ => true,
+        });
+    }
+
+    private ImmutableArray<Position> ArcRelaySignaturePositionTargets(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life) =>
+        mode.Signatures.PositionTargets(
+            life.ActorId,
+            life.Position,
+            VisibleTilesFor(life),
+            ArcRelaySignatureLives(),
+            mode.CarriesCore(life.ActorId));
+
+    private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+        ArcRelaySignatureUnitTargets(
+            ArcRelayActorMatchModeDriver mode,
+            LifeState life) =>
+        mode.Signatures.UnitTargets(
+            life.ActorId,
+            life.Position,
+            VisibleTilesFor(life),
+            ArcRelaySignatureLives());
+
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>
+        ArcRelaySignatureLives() =>
+        _lives.Values.OrderBy(value => value.ActorId)
+            .Select(value => new ArcRelaySignatureRuntime.Life(
+                value.ActorId,
+                value.Position,
+                value.Health,
+                EffectiveMaxHealth(
+                    value.FormId,
+                    value.ActorId.TeamId,
+                    value.ActorId.UnitId)))
+            .ToImmutableArray();
 
     private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
         ArcRelayHandoffTargets(LifeState source) =>
@@ -3721,6 +4406,13 @@ public sealed class GenericActorMatchSession : IDisposable
                         .UnitTargetConstraint(
                             action.Kind == ActorActionKind.Fabrication
                                 ? FabricationTargets(life, action)
+                                : action.Kind == ActorActionKind.Signature
+                                  && _mode
+                                      is ArcRelayActorMatchModeDriver
+                                          signatureMode
+                                    ? ArcRelaySignatureUnitTargets(
+                                        signatureMode,
+                                        life)
                                 : action.Kind == ActorActionKind.Objective
                                     ? ArcRelayHandoffTargets(life)
                                 : _definition.Topology.UnitSlots
@@ -3768,7 +4460,14 @@ public sealed class GenericActorMatchSession : IDisposable
                             ]),
                 ActorActionParameterKind.PositionTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
-                        .PositionTargetConstraint([]),
+                        .PositionTargetConstraint(
+                            action.Kind == ActorActionKind.Signature
+                            && _mode is ArcRelayActorMatchModeDriver
+                                signatureMode
+                                ? ArcRelaySignaturePositionTargets(
+                                    signatureMode,
+                                    life)
+                                : []),
                 _ => throw new InvalidOperationException(
                     "Unknown actor action parameter kind."),
             });
@@ -3828,6 +4527,27 @@ public sealed class GenericActorMatchSession : IDisposable
                 {
                     hasLineOfSight = false;
                     break;
+                }
+            }
+            if (hasLineOfSight
+                && distance > 1
+                && _mode is ArcRelayActorMatchModeDriver arcRelay)
+            {
+                foreach (Position position in Visibility.SupercoverLine(
+                             sensor.Position,
+                             target))
+                {
+                    if (position == sensor.Position)
+                        continue;
+                    if (arcRelay.Signatures.IsSmokeAt(position, Tick)
+                        && !arcRelay.Signatures.IsRevealedForTeam(
+                            position,
+                            sensor.ActorId.TeamId,
+                            Tick))
+                    {
+                        hasLineOfSight = false;
+                        break;
+                    }
                 }
             }
             if (hasLineOfSight)

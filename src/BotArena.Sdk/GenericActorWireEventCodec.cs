@@ -622,6 +622,25 @@ internal static class GenericActorWireEventCodec
                     fact.Phase is { } phase ? ActorWireValue.Enum(phase) : null);
                 writer.Field(6, GenericActorWireCodecValues.SemanticId(fact.Reason));
                 break;
+            case GenericActorContext.ArcRelayEvent.BodyRelocated fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("body-relocated"));
+                writer.Field(2, GenericActorWireCodecValues.Handle(fact.OperationId));
+                writer.Field(3, GenericActorWireCodecValues.SemanticId(fact.SignatureId));
+                writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(fact.OwnerActorId));
+                writer.Field(5, GenericActorWireCodecValues.EncodeIdentity(fact.TargetActorId));
+                writer.Field(6, GenericActorWireCodecValues.EncodePosition(fact.From));
+                writer.Field(7, GenericActorWireCodecValues.EncodePosition(fact.To));
+                break;
+            case GenericActorContext.ArcRelayEvent.SignatureDamage fact:
+                EncodeArcSignatureHealthFact(writer, "signature-damage", fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            case GenericActorContext.ArcRelayEvent.SignatureRepair fact:
+                EncodeArcSignatureHealthFact(writer, "signature-repair", fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
             default:
                 throw new InvalidOperationException(
                     "Unknown Arc Relay event fact variant.");
@@ -695,6 +714,16 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireCodecValues.Int32(reader, 4)),
                 "signature-changed" =>
                     DecodeArcSignatureChanged(reader, depth),
+                "body-relocated" =>
+                    new GenericActorContext.ArcRelayEvent.BodyRelocated(
+                        GenericActorWireCodecValues.Handle(reader.Required(2)),
+                        GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+                        GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(reader.Required(6), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(reader.Required(7), depth + 1)),
+                "signature-damage" => DecodeArcSignatureDamage(reader, depth),
+                "signature-repair" => DecodeArcSignatureRepair(reader, depth),
                 _ => throw new FormatException(
                     "Unknown Arc Relay fact discriminator."),
             },
@@ -749,6 +778,49 @@ internal static class GenericActorWireEventCodec
                     GenericActorContext.ArcRelaySignaturePhase>(phase),
             GenericActorWireCodecValues.SemanticId(reader.Required(6)));
     }
+
+    private static void EncodeArcSignatureHealthFact(
+        ActorWireObjectWriter writer,
+        string kind,
+        string operationId,
+        string signatureId,
+        ActorIdentity owner,
+        ActorIdentity target,
+        int amount,
+        int newHealth,
+        Position position)
+    {
+        writer.Field(1, GenericActorWireCodecValues.SemanticId(kind));
+        writer.Field(2, GenericActorWireCodecValues.Handle(operationId));
+        writer.Field(3, GenericActorWireCodecValues.SemanticId(signatureId));
+        writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(owner));
+        writer.Field(5, GenericActorWireCodecValues.EncodeIdentity(target));
+        writer.Field(6, ActorWireValue.Int32(amount));
+        writer.Field(7, ActorWireValue.Int32(newHealth));
+        writer.Field(8, GenericActorWireCodecValues.EncodePosition(position));
+    }
+
+    private static GenericActorContext.ArcRelayEvent.SignatureDamage
+        DecodeArcSignatureDamage(ActorWireObjectReader reader, int depth) =>
+        new(
+            GenericActorWireCodecValues.Handle(reader.Required(2)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.Int32(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(reader.Required(8), depth + 1));
+
+    private static GenericActorContext.ArcRelayEvent.SignatureRepair
+        DecodeArcSignatureRepair(ActorWireObjectReader reader, int depth) =>
+        new(
+            GenericActorWireCodecValues.Handle(reader.Required(2)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.Int32(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(reader.Required(8), depth + 1));
 
     private static GenericActorContext.EventPayload.Rotation DecodeRotation(
         ActorWireObjectReader reader,

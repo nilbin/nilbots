@@ -1995,11 +1995,55 @@ internal static class ReplayV3Serializer
                 WriteNullableString(writer, "phase", fact.Phase);
                 writer.WriteString("reason", fact.Reason);
                 break;
+            case ReplayV3.ArcRelayFact.BodyRelocated fact:
+                writer.WriteString("operationId", fact.OperationId);
+                writer.WriteString("signatureId", fact.SignatureId);
+                writer.WritePropertyName("ownerActorId");
+                WriteActorId(writer, fact.OwnerActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, fact.TargetActorId);
+                writer.WritePropertyName("from");
+                WritePosition(writer, fact.From);
+                writer.WritePropertyName("to");
+                WritePosition(writer, fact.To);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureDamage fact:
+                WriteArcSignatureHealthFact(writer, fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureRepair fact:
+                WriteArcSignatureHealthFact(writer, fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported Arc Relay fact '{value.GetType().Name}'.");
         }
         writer.WriteEndObject();
+    }
+
+    private static void WriteArcSignatureHealthFact(
+        Utf8JsonWriter writer,
+        string operationId,
+        string signatureId,
+        ReplayV3.ActorId owner,
+        ReplayV3.ActorId target,
+        int amount,
+        int newHealth,
+        ReplayV3.PositionValue position)
+    {
+        writer.WriteString("operationId", operationId);
+        writer.WriteString("signatureId", signatureId);
+        writer.WritePropertyName("ownerActorId");
+        WriteActorId(writer, owner);
+        writer.WritePropertyName("targetActorId");
+        WriteActorId(writer, target);
+        writer.WriteNumber("amount", amount);
+        writer.WriteNumber("newHealth", newHealth);
+        writer.WritePropertyName("position");
+        WritePosition(writer, position);
     }
 
     private static void WriteArcCoreId(
@@ -7318,6 +7362,16 @@ internal static class ReplayV3Serializer
                     && value.Phase is not (
                         "tell" or "active" or "channel" or "in-flight")
                 || string.IsNullOrWhiteSpace(value.Reason),
+            ReplayV3.ArcRelayFact.BodyRelocated value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.From == value.To,
+            ReplayV3.ArcRelayFact.SignatureDamage value =>
+                InvalidArcSignatureHealthFact(value.OperationId,
+                    value.SignatureId, value.Amount, value.NewHealth),
+            ReplayV3.ArcRelayFact.SignatureRepair value =>
+                InvalidArcSignatureHealthFact(value.OperationId,
+                    value.SignatureId, value.Amount, value.NewHealth),
             _ => true,
         };
         if (invalid)
@@ -7326,6 +7380,16 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} Arc Relay fact is invalid.");
         }
     }
+
+    private static bool InvalidArcSignatureHealthFact(
+        string operationId,
+        string signatureId,
+        int amount,
+        int newHealth) =>
+        string.IsNullOrWhiteSpace(operationId)
+        || string.IsNullOrWhiteSpace(signatureId)
+        || amount <= 0
+        || newHealth < 0;
 
     private static void ValidateClosedVocabulary(ReplayV3 replay)
     {
@@ -8069,6 +8133,12 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.ArcRelayFact.Pulse),
                     ["signature-changed"] =
                         typeof(ReplayV3.ArcRelayFact.SignatureChanged),
+                    ["body-relocated"] =
+                        typeof(ReplayV3.ArcRelayFact.BodyRelocated),
+                    ["signature-damage"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureDamage),
+                    ["signature-repair"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureRepair),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventAudience>(

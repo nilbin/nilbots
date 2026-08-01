@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using BotArena.Sdk;
 
 namespace BotArena.Engine.Tests;
@@ -133,4 +134,118 @@ public sealed class ArcRelayH0DefinitionTests
                 Fact: ReplayV3.ArcRelayFact.CoreBorn,
             });
     }
+
+    [Fact]
+    public void LaunchSignatures_UseTypedMasksAndPublishTheirPhaseGrammar()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+        ActorActionDefinition wait = definition.Rules.Actions.Single(value =>
+            value.Kind == ActorActionKind.Wait);
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(
+                definition,
+                (_, observation) => new GenericMindRuntimeDecisions(
+                [
+                    .. observation.Bodies.Select(body =>
+                    {
+                        GenericActorRuntimeActionLegality? signature =
+                            observation.Tick == 0
+                                ? body.ActionLegalities.FirstOrDefault(value =>
+                                    value.ActionCode
+                                        >= ArcRelayActionIds.FirstSignatureCode
+                                    && value.Available)
+                                : null;
+                        return signature is null
+                            ? new GenericMindCommand(
+                                body.ActorId.UnitId,
+                                body.ActorId.LifeId,
+                                wait.Id,
+                                wait.Code,
+                                [])
+                            : new GenericMindCommand(
+                                body.ActorId.UnitId,
+                                body.ActorId.LifeId,
+                                signature.ActionId,
+                                signature.ActionCode,
+                                Arguments(signature));
+                    }),
+                ]));
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 20_260_802UL);
+        for (int tick = 0; tick < 20; tick++)
+            session.Step();
+
+        GenericActorMatchChronology chronology = session.Chronology;
+        ArcRelayEvent.SignatureChanged[] signatureFacts = chronology.Ticks
+            .SelectMany(value => value.Events.Concat(value.TickStart.Events))
+            .Select(value => value.Payload)
+            .OfType<GenericActorRuntimeObservation.EventPayload.ArcRelay>()
+            .Select(value => value.Fact)
+            .OfType<ArcRelayEvent.SignatureChanged>()
+            .ToArray();
+        Assert.True(
+            signatureFacts.Where(value => value.Reason == "started")
+                .Select(value => value.SignatureId)
+                .Distinct(StringComparer.Ordinal).Count() >= 10);
+        Assert.Contains(signatureFacts, value => value.Phase
+            == ArcRelaySignatureState.SignaturePhase.Tell);
+        Assert.Contains(signatureFacts, value => value.Phase
+            == ArcRelaySignatureState.SignaturePhase.Active);
+        Assert.Contains(signatureFacts, value => value.Phase
+            == ArcRelaySignatureState.SignaturePhase.InFlight);
+        ReplayV3 projected = ReplayV3Projection.Project(chronology);
+        ReplayV3.TickFrame tickOne = projected.Ticks[1];
+        var observedArc = Assert.IsType<ReplayV3.ModeState.ArcRelay>(
+            tickOne.MindTurns[0].Observation.Mode);
+        var stateArc = Assert.IsType<ReplayV3.ModeState.ArcRelay>(
+            tickOne.TickStart.State.Mode);
+        HashSet<ReplayV3.PositionValue> visible = tickOne.MindTurns[0]
+            .Observation.VisibleTiles.Select(value => value.Position)
+            .ToHashSet();
+        Assert.True(stateArc.Wells.SequenceEqual(observedArc.Wells));
+        Assert.True(stateArc.Reactors.SequenceEqual(observedArc.Reactors));
+        Assert.True(
+            stateArc.VisibleSignatures.Where(value =>
+                value.OwnerTeamId == 0 || value.Phase == "tell"
+                || value.Positions.Any(visible.Contains))
+            .SequenceEqual(observedArc.VisibleSignatures));
+        string replayJson = ReplayV3Serializer.ToJson(projected);
+        Assert.Contains("\"signature-changed\"", replayJson,
+            StringComparison.Ordinal);
+        Assert.Contains("\"visibleSignatures\"", replayJson,
+            StringComparison.Ordinal);
+    }
+
+    private static ImmutableArray<GenericActorRuntimeActionArgument> Arguments(
+        GenericActorRuntimeActionLegality legality) =>
+        [
+            .. legality.Constraints.Select(value => value switch
+            {
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .DirectionConstraint constraint =>
+                    (GenericActorRuntimeActionArgument)new
+                        GenericActorRuntimeActionArgument.DirectionArgument(
+                            constraint.AllowedValues[0]),
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint constraint =>
+                    new GenericActorRuntimeActionArgument
+                        .ProjectileHeadingArgument(
+                            constraint.AllowedValues[0]),
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .UnitTargetConstraint constraint =>
+                    new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                        constraint.AllowedValues[0]),
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint constraint =>
+                    new GenericActorRuntimeActionArgument
+                        .PositionTargetArgument(
+                            constraint.AllowedValues[0]),
+                _ => throw new InvalidOperationException(
+                    "Arc signature exposed an unexpected argument constraint."),
+            }),
+        ];
 }

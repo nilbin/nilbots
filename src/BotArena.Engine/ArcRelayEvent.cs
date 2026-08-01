@@ -64,6 +64,32 @@ public abstract record ArcRelayEvent
         ArcRelaySignatureState.SignaturePhase? Phase,
         string Reason) : ArcRelayEvent;
 
+    public sealed record BodyRelocated(
+        string OperationId,
+        string SignatureId,
+        ActorIdentity OwnerActorId,
+        ActorIdentity TargetActorId,
+        Position From,
+        Position To) : ArcRelayEvent;
+
+    public sealed record SignatureDamage(
+        string OperationId,
+        string SignatureId,
+        ActorIdentity OwnerActorId,
+        ActorIdentity TargetActorId,
+        int Amount,
+        int NewHealth,
+        Position Position) : ArcRelayEvent;
+
+    public sealed record SignatureRepair(
+        string OperationId,
+        string SignatureId,
+        ActorIdentity OwnerActorId,
+        ActorIdentity TargetActorId,
+        int Amount,
+        int NewHealth,
+        Position Position) : ArcRelayEvent;
+
     public enum CoreRelocationKind
     {
         CarriedMovement = 0,

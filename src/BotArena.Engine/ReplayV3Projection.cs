@@ -1150,6 +1150,32 @@ internal static class ReplayV3Projection
                         }
                         : null,
                     fact.Reason),
+            ArcRelayEvent.BodyRelocated fact =>
+                new ReplayV3.ArcRelayFact.BodyRelocated(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    Position(fact.From),
+                    Position(fact.To)),
+            ArcRelayEvent.SignatureDamage fact =>
+                new ReplayV3.ArcRelayFact.SignatureDamage(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
+            ArcRelayEvent.SignatureRepair fact =>
+                new ReplayV3.ArcRelayFact.SignatureRepair(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

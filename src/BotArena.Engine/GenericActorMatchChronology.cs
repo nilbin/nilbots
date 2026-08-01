@@ -6033,6 +6033,10 @@ public sealed record GenericActorMatchChronology
                 .ToLookup(item =>
                     ((GenericActorRuntimeObservation.EventPayload
                         .FormTransition)item.Payload).ActorId);
+        ILookup<ActorIdentity, GenericActorAuthoritativeEvent>
+            arcFactsByTarget = events
+                .Where(item => ArcSignatureTarget(item) is not null)
+                .ToLookup(item => ArcSignatureTarget(item)!);
         foreach (GenericActorWorldSnapshot.LifeSnapshot beforeLife in
                  before.ActiveLives)
         {
@@ -6045,14 +6049,27 @@ public sealed record GenericActorMatchChronology
 
             GenericActorAuthoritativeEvent[] transitionEvents =
                 transitionsByActor[beforeLife.ActorId].ToArray();
+            GenericActorAuthoritativeEvent[] arcEvents =
+                arcFactsByTarget[beforeLife.ActorId]
+                    .OrderBy(value => value.GlobalOrdinal)
+                    .ToArray();
             if (LifeSnapshotsSemanticallyEqual(beforeLife, afterLife))
             {
-                if (transitionEvents.Length != 0)
+                if (transitionEvents.Length != 0 || arcEvents.Length != 0)
                 {
                     throw new ArgumentException(
                         "A tick-start form-transition event must cause its declared same-life state transition.",
                         parameterName);
                 }
+                continue;
+            }
+            if (transitionEvents.Length == 0
+                && arcEvents.Length > 0
+                && ArcSignatureFactsExplainLifeChange(
+                    beforeLife,
+                    afterLife,
+                    arcEvents))
+            {
                 continue;
             }
             if (transitionEvents.Length != 1
@@ -6081,6 +6098,85 @@ public sealed record GenericActorMatchChronology
                 "Tick-start form-transition evidence must identify one surviving life.",
                 parameterName);
         }
+    }
+
+    private static ActorIdentity? ArcSignatureTarget(
+        GenericActorAuthoritativeEvent item) =>
+        item.Payload is GenericActorRuntimeObservation.EventPayload.ArcRelay arc
+            ? arc.Fact switch
+            {
+                ArcRelayEvent.BodyRelocated value => value.TargetActorId,
+                ArcRelayEvent.SignatureDamage value => value.TargetActorId,
+                ArcRelayEvent.SignatureRepair value => value.TargetActorId,
+                _ => null,
+            }
+            : null;
+
+    private static bool ArcSignatureFactsExplainLifeChange(
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        GenericActorWorldSnapshot.LifeSnapshot after,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        Position position = before.Position;
+        int health = before.Health;
+        foreach (GenericActorAuthoritativeEvent item in events)
+        {
+            if (item.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.ArcRelay arc)
+            {
+                return false;
+            }
+            switch (arc.Fact)
+            {
+                case ArcRelayEvent.BodyRelocated relocation:
+                    if (relocation.From != position
+                        || relocation.To == relocation.From)
+                    {
+                        return false;
+                    }
+                    position = relocation.To;
+                    break;
+                case ArcRelayEvent.SignatureDamage damage:
+                    if (damage.Position != position
+                        || damage.Amount <= 0
+                        || damage.NewHealth
+                            != Math.Max(0, health - damage.Amount))
+                    {
+                        return false;
+                    }
+                    health = damage.NewHealth;
+                    break;
+                case ArcRelayEvent.SignatureRepair repair:
+                    if (repair.Position != position
+                        || repair.Amount <= 0
+                        || repair.NewHealth != health + repair.Amount)
+                    {
+                        return false;
+                    }
+                    health = repair.NewHealth;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        var expected = new GenericActorWorldSnapshot.LifeSnapshot(
+            before.ActorId,
+            before.ParticipantId,
+            before.Generation,
+            before.FormId,
+            position,
+            before.Facing,
+            health,
+            before.Cooldown,
+            before.Energy,
+            before.SpawnedAtTick,
+            before.SpawnReason,
+            before.ParentActorId,
+            before.SourceTransitionId,
+            before.SourceOperationId,
+            before.PreviousActionResolution,
+            before.PendingSameLifeTransition);
+        return LifeSnapshotsSemanticallyEqual(expected, after);
     }
 
     private static bool SameLifeTransitionExplainsChange(
