@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "freezeId": "arc-relay-stock-mind-v0-2026-08-01",
+  "status": "frozen-for-gate-3-depth-audit",
+  "mindSource": {
+    "file": "ArcRelayStockMind.cs",
+    "sha256": "6a3af0975ff83f4678e6d85772269d83eabbbf6b121806525b42e30bfb592447"
+  },
+  "evaluationSheet": {
+    "schema": "arc-relay-evaluation-sheet-v0",
+    "provisionalNotProductSchema": true,
+    "file": "sheet.json",
+    "sha256": "2ff8364970ce7ec7e57a25f813bbe52b9fe9723e4bfbf98cca6a0044a1e3ab09",
+    "generatedFile": "StockSheet.g.cs",
+    "generatedSha256": "f474d4a49d9472fd27278ba8e209b87d98d8cfb9a10a130cfc5e201462fede9f"
+  },
+  "artifact": {
+    "file": "bot.wasm",
+    "sha256": "5aedf602ef1810c124ca57c801b0963280da2389a8c43feaf22d1c10d9f2c78a",
+    "bytes": 3598857,
+    "sdkVersion": "0.10.11"
+  },
+  "contract": {
+    "rulesetId": "arc-relay-h0-01",
+    "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+    "mapId": "arc-relay-threefold-01",
+    "mapFingerprint": "f4649d6d17e80c02cd4b09fec849de5729435855cf411592a5e2c73cd889bbbe",
+    "runtimeProfile": "generic-mind-match-1"
+  },
+  "preflight": {
+    "seed": "42",
+    "matchRecord": "preflight/match-record.json",
+    "matchRecordSha256": "c85523d0a7124861f2a47f2a0f2b3b87a14142144234fe7004c43c89c5cfbd86",
+    "matchRecordBytes": 1933,
+    "broadcast": "preflight/broadcast.json.gz",
+    "broadcastSha256": "15edb9387085c3b391ee03bb99c5a488de510e7e1723f9ac766c10981d07a2c7",
+    "broadcastGzipBytes": 160894,
+    "durableBytes": 162827,
+    "canonicalReplayHash": "fb92bb681fe0c2407c5bb446f90ba1e22592bb08f2001a5035258c5877e2400a",
+    "regenerationProved": true,
+    "eligibleTeamIds": [0, 1],
+    "runtimeFaults": 0,
+    "canonicalReplayShipped": false
+  }
+}

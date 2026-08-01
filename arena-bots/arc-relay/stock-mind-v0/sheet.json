@@ -1,0 +1,149 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "stock-balanced-gambit-v0",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "kestrel",
+    "towline",
+    "relay",
+    "palisade",
+    "switchback",
+    "hush",
+    "lantern",
+    "patchbay"
+  ],
+  "slots": [
+    {
+      "unitId": 0,
+      "theater": "north",
+      "role": "carrier",
+      "partnerUnitId": 1,
+      "outboundPath": [[4, 8], [8, 7], [12, 6], [15, 4]],
+      "returnPath": [[12, 6], [8, 8], [5, 10], [2, 11]]
+    },
+    {
+      "unitId": 1,
+      "theater": "north",
+      "role": "screen",
+      "partnerUnitId": 0,
+      "outboundPath": [[4, 9], [8, 8], [12, 7], [14, 5]],
+      "returnPath": [[11, 7], [7, 9], [4, 10], [2, 12]]
+    },
+    {
+      "unitId": 2,
+      "theater": "centre",
+      "role": "carrier",
+      "partnerUnitId": 3,
+      "outboundPath": [[5, 10], [8, 9], [12, 9], [15, 11]],
+      "returnPath": [[12, 13], [8, 13], [5, 12], [2, 11]]
+    },
+    {
+      "unitId": 3,
+      "theater": "centre",
+      "role": "screen",
+      "partnerUnitId": 2,
+      "outboundPath": [[4, 11], [8, 11], [12, 11], [14, 11]],
+      "returnPath": [[11, 11], [7, 11], [4, 11], [2, 10]]
+    },
+    {
+      "unitId": 4,
+      "theater": "south",
+      "role": "carrier",
+      "partnerUnitId": 5,
+      "outboundPath": [[4, 13], [8, 15], [12, 16], [15, 18]],
+      "returnPath": [[12, 16], [8, 14], [5, 12], [2, 11]]
+    },
+    {
+      "unitId": 5,
+      "theater": "south",
+      "role": "intercept",
+      "partnerUnitId": 4,
+      "outboundPath": [[5, 14], [9, 15], [13, 16], [15, 18]],
+      "returnPath": [[12, 15], [8, 13], [4, 12], [2, 12]]
+    },
+    {
+      "unitId": 6,
+      "theater": "centre",
+      "role": "intercept",
+      "partnerUnitId": 2,
+      "outboundPath": [[5, 13], [8, 12], [11, 12], [14, 12]],
+      "returnPath": [[10, 12], [6, 12], [3, 12], [2, 11]]
+    },
+    {
+      "unitId": 7,
+      "theater": "centre",
+      "role": "reserve",
+      "partnerUnitId": 3,
+      "outboundPath": [[5, 14], [8, 13], [11, 13], [13, 12]],
+      "returnPath": [[9, 13], [6, 13], [3, 12], [2, 11]]
+    }
+  ],
+  "zones": {
+    "north": [11, 1, 19, 8],
+    "centre": [10, 7, 20, 15],
+    "south": [11, 14, 19, 21],
+    "intercept": [9, 2, 21, 20]
+  },
+  "rallyLines": {
+    "home": [[5, 8], [5, 10], [5, 12], [5, 14]],
+    "middle": [[9, 7], [9, 10], [9, 13], [9, 16]],
+    "forward": [[13, 6], [13, 9], [13, 12], [13, 16]]
+  },
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 2,
+      "preferAssignedTheater": true,
+      "routeFailureTicks": 12
+    },
+    "escort": {
+      "followDistance": 1,
+      "focusEnemyCarrier": true
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "gambits": [
+    {
+      "priority": 10,
+      "id": "pulse-backstop",
+      "trigger": "after-enemy-pulse",
+      "durationTicks": 75,
+      "roleOverride": "intercept",
+      "rallyLine": "home"
+    },
+    {
+      "priority": 20,
+      "id": "two-core-collapse",
+      "trigger": "double-enemy-possession",
+      "durationTicks": 45,
+      "roleOverride": "intercept",
+      "rallyLine": "middle"
+    },
+    {
+      "priority": 30,
+      "id": "pulse-release",
+      "trigger": "after-own-pulse",
+      "durationTicks": 55,
+      "roleOverride": "carrier",
+      "rallyLine": "forward"
+    },
+    {
+      "priority": 40,
+      "id": "wipe-rally",
+      "trigger": "wipe",
+      "durationTicks": 60,
+      "roleOverride": "reserve",
+      "rallyLine": "home"
+    },
+    {
+      "priority": 50,
+      "id": "route-release",
+      "trigger": "route-failure",
+      "durationTicks": 35,
+      "roleOverride": "carrier",
+      "rallyLine": "forward"
+    }
+  ]
+}
