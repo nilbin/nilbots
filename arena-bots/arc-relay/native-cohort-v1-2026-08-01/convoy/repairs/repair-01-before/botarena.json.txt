@@ -1,0 +1,10 @@
+{
+  "name": "ArcConvoy",
+  "entryType": "ArcConvoy",
+  "sdkVersion": "0.10.11",
+  "appearance": {
+    "accent": "#38bdf8",
+    "look": "convoy",
+    "projectile": "pulse-bolt"
+  }
+}

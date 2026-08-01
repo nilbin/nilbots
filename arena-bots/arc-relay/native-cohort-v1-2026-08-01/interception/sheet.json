@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "cutline-interception-v1",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "towline",
+    "towline",
+    "sunder",
+    "sunder",
+    "longshot",
+    "repulsor",
+    "lantern",
+    "relay"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "SplitControlMind",
+  "entryType": "SplitControlMind",
+  "sdkVersion": "0.10.11",
+  "appearance": {
+    "accent": "#a78bfa",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

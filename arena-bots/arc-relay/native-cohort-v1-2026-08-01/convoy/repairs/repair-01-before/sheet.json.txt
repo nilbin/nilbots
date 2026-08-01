@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "native-cohort-v1-convoy",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "relay",
+    "relay",
+    "palisade",
+    "palisade",
+    "patchbay",
+    "hush",
+    "towline",
+    "lantern"
+  ]
+}

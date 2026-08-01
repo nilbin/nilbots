@@ -1,0 +1,61 @@
+{
+  "schema": "arc-relay-native-cohort-manifest-v1",
+  "entrantId": "information-route-control",
+  "sourceSha256": "84a65deeac93a568c359f6607880b1809f0848de21645cb591b4c56a5a7881ae",
+  "sourceHashMethod": "ordinal filename + NUL + decimal byte length + NUL + exact file bytes for active .cs/.csproj",
+  "sourceFiles": {
+    "InformationRouteControl.cs": "5d5709289f58e8d881abed4783cbd21bb3b86d73295cc8681fcaa077996c342e",
+    "InformationRouteControl.csproj": "0a3d0b3470172cc3f2643c57a0d5f1f3dc0e679da41979a9a1a54cbac90d5abb",
+    "Navigation.cs": "b928b1e4739aa45b947da0060c9956d207f4621c9b9753b81095896c039054f5"
+  },
+  "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7",
+  "artifactSha256": "8c89636b0ba971429be7c4a33516191bf49f2c6caeaf3f1c664c76bf00b0384f",
+  "doctrineCell": "D",
+  "sdkVersion": "0.10.11",
+  "selfPlay": {
+    "seed": 314159,
+    "runtime": "in-process",
+    "replayWritten": true,
+    "eligibleTeamIds": [0, 1],
+    "runtimeFaults": 0,
+    "resultSignalInspected": false,
+    "abortOnlyDiagnosticRuns": 4
+  },
+  "repairHistory": [
+    {
+      "revision": "revision-00-authored",
+      "kind": "authored",
+      "summary": "Initial single-pass doctrine source before compilation."
+    },
+    {
+      "revision": "revision-01-archive-exclusion",
+      "kind": "compile",
+      "summary": "Excluded archived sources from project compilation and corrected the public PublicUnitSlot qualification."
+    },
+    {
+      "revision": "revision-02-nullability",
+      "kind": "compile",
+      "summary": "Accepted PriorityQueue.TryDequeue nullability and guarded the impossible null element."
+    },
+    {
+      "revision": "revision-03-abort-tracing",
+      "kind": "diagnostic",
+      "summary": "Added temporary own-source stderr tracing after an exit-4 run wrote no replay."
+    },
+    {
+      "revision": "revision-04-terminal-node-suppression",
+      "kind": "runtime-mechanical",
+      "summary": "Withheld a terminal-tick Trip Node after tracing the last mode-changing submission."
+    },
+    {
+      "revision": "revision-05-node-branch-containment",
+      "kind": "runtime-mechanical",
+      "summary": "Withheld the implicated persistent Trip Node branch after terminal-only suppression still left earlier nodes in terminal mode."
+    },
+    {
+      "revision": "revision-06-trace-removal",
+      "kind": "diagnostic-cleanup",
+      "summary": "Removed stderr tracing with gameplay commands unchanged."
+    }
+  ]
+}

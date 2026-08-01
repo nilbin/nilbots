@@ -1,0 +1,72 @@
+{
+  "schema": "arc-relay-native-cohort-manifest-v1",
+  "entrantId": "interception",
+  "botName": "CutlineMind",
+  "doctrineCell": "C-interception",
+  "sdkVersion": "0.10.11",
+  "sourceSha256": "aa7feaaf4d05177d53232ec76a8a3b018414203ad7a0584f10a77b45521cd710",
+  "sourceHashAlgorithm": "SHA-256 of the six sha256sum output lines in sourceFiles order, including two-space filename separators and LF terminators",
+  "sourceFiles": [
+    {
+      "path": "ArenaBasics.cs",
+      "sha256": "66d93a99898052b15723acc0cae133631d8e255ae27e8d4bdaedfc018810cc62"
+    },
+    {
+      "path": "CutlineMind.cs",
+      "sha256": "859a14d56ab77e366b96d260a36be6c74ead09aee7614fdcff8b78c754bbe13f"
+    },
+    {
+      "path": "CutlineMind.csproj",
+      "sha256": "8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573"
+    },
+    {
+      "path": "Recall.cs",
+      "sha256": "0b7808b5848b37d506ca9784845056c12347f52f44c9955f4b87ca3f09fb7f22"
+    },
+    {
+      "path": "Roles.cs",
+      "sha256": "6bcf0564813d13762cfa59dc53dd95d35fe5435d7600b29ac960c4434f485ab1"
+    },
+    {
+      "path": "botarena.json",
+      "sha256": "a812afd3c806d1990817cd7580cccf31f667cf70ddcf899835dacd4c5d8396c2"
+    }
+  ],
+  "sheetSha256": "b44610cab33e13639d833915f5d7d7bc3e00b4fbfc2d596db64f1c0fb7964a51",
+  "artifactSha256": "96fbeb0747ae7af35c398dc8d0a497668f78a7a72da343d208bcaa48acd7099c",
+  "artifactPath": "bot.wasm",
+  "build": {
+    "controlledBuildCount": 1,
+    "cache": "miss",
+    "cacheKey": "b87662a63b97f3d1bee17a7949acb2043d72905ccf1bb7c81574f4a5226ce692",
+    "compiler": "NativeAOT-LLVM 10.0.0-rc.1.26306.1"
+  },
+  "mechanicalSmoke": {
+    "seed": "314159",
+    "runtime": "in-process-generic-mind",
+    "completed": true,
+    "endTick": 599,
+    "eligibleTeamIds": [0, 1],
+    "runtimeFaults": 0,
+    "acceptedCommands": 7270,
+    "malformedOrFaultedCommands": 0,
+    "replaySha256": "fd75a140b9eb5e7962e819fe9ec51b556f75f9c146bfba9407baee5e820d8cf8",
+    "replayArchived": false
+  },
+  "repairHistory": [
+    {
+      "revisionArchive": "repairs/revision-00-smoke-build-failure.tar.gz",
+      "revisionSha256": "e63f9c3eb1cd17a9fef28f674bbb3c7ffa6cbf77b4f8dc136fb9e6969546723a",
+      "category": "compile",
+      "symptom": "Relocated scaffold could not resolve BotArena.Sdk.",
+      "repair": "Changed only the csproj ProjectReference depth from ../../../src to ../../../../src."
+    },
+    {
+      "revisionArchive": "repairs/revision-01-post-path-fix-runtime-abort.tar.gz",
+      "revisionSha256": "53e9203506c53c9e7faeeaf472127c6ee2352d1b41fe49506c386ca6201a540c",
+      "category": "runtime-abort",
+      "symptom": "Self-play aborted with ArgumentOutOfRangeException parameter health and wrote no replay.",
+      "repair": "Disabled only the rail-line signature submission branch; Longshot retained its long basic attack and every other doctrine decision was unchanged."
+    }
+  ]
+}

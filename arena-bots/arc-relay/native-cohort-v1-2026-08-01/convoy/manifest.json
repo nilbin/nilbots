@@ -1,0 +1,80 @@
+{
+  "schema": "arc-relay-native-cohort-manifest-v1",
+  "entrantId": "convoy",
+  "entryType": "ArcConvoy",
+  "doctrineCell": "B — convoy",
+  "sdkVersion": "0.10.11",
+  "sourceSha256": "9e496b52f91633ce23ca1d19e2621864255e752a5adda68e790b664106b5806a",
+  "sourceSha256Method": "SHA-256 of the exact `sha256sum ArcConvoy.cs ArcConvoy.csproj ArenaBasics.cs Recall.cs Roles.cs botarena.json` UTF-8 output, including filenames, two-space separators, and LF terminators",
+  "sourceFiles": {
+    "ArcConvoy.cs": "e6d9eb4d9342e2aabcd1f9a27ac72ba102614b2a69d3bc03163657f9c7a7b23a",
+    "ArcConvoy.csproj": "8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573",
+    "ArenaBasics.cs": "32aa1d4623836f29f18229b04efca40fd931f450c128f74b3d3ec8b529cd2c65",
+    "Recall.cs": "93c47219202813f409c41a0f6ab45445fec225dd93a7dbe33e18b72ff8b06c85",
+    "Roles.cs": "68a3ec269c70afdcafea0d66f886bb17eeaf8548ad17e3954490218f0ce4bab1",
+    "botarena.json": "f0ee670111c16c0c8f5ac0b2f93fabfc3e50c863214aafa275719c5f4d338334"
+  },
+  "sheet": {
+    "schema": "arc-relay-evaluation-sheet-v0",
+    "path": "sheet.json",
+    "sha256": "065ca2325afaafa1a129ccba23e9bae4daa29a426271be7d1351608cffa79c17",
+    "provisionalEvaluationRecord": true
+  },
+  "artifact": {
+    "path": "bot.wasm",
+    "sha256": "b88f6e913cea6320955885a003ff48774e8ad75f1c39add08d4073ef66b8a857",
+    "controlledBuildCount": 1,
+    "noCache": true,
+    "compiler": "NativeAOT-LLVM 10.0.0-rc.1.26306.1"
+  },
+  "composition": [
+    "relay",
+    "relay",
+    "palisade",
+    "palisade",
+    "patchbay",
+    "hush",
+    "towline",
+    "lantern"
+  ],
+  "smoke": {
+    "runtime": "in-process",
+    "seed": 314159,
+    "executedMatchCount": 1,
+    "ticks": 600,
+    "completion": "max-ticks",
+    "eligibleTeamIds": [
+      0,
+      1
+    ],
+    "runtimeFaultsByParticipant": {
+      "0": 0,
+      "1": 0
+    },
+    "replaySha256": "23bbe3491e18f8594028d8b62afed8aafe55b9b687b78308558e17f8a4a9885d",
+    "mechanicalStatus": "pass"
+  },
+  "sourceFreeze": {
+    "date": "2026-08-01",
+    "afterMechanicalSmoke": true,
+    "strategyChangesAfterSmoke": 0
+  },
+  "repairHistory": [
+    {
+      "repairId": "repair-01",
+      "stage": "pre-execution compile",
+      "fault": "CS0103 in ArenaBasics.TryRepair: undefined local name `body`",
+      "change": "Changed only the command receiver from `body.Command(...)` to the existing `repairer.Command(...)` parameter.",
+      "archive": "repairs/repair-01-before/",
+      "strategyChanged": false
+    },
+    {
+      "repairId": "repair-02",
+      "stage": "pre-execution archive compilation",
+      "fault": "Repair snapshots with `.cs` extensions were recursively compiled as duplicate live types.",
+      "change": "Preserved every snapshot byte and appended `.txt` to each archived filename so it is not a compile input.",
+      "archive": "repairs/repair-01-before/",
+      "strategyChanged": false
+    }
+  ]
+}
