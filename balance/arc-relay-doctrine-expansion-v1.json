@@ -1,0 +1,82 @@
+{
+  "schema": "arc-relay-doctrine-expansion-study-v1",
+  "status": "pre-registered-before-outcomes",
+  "classification": "evaluation-doctrine expansion; no rules, class, map, objective, or economy change",
+  "hypothesis": "The approved H0 roster supports at least twelve mechanically and spatially distinct, competent doctrines without a dominant sheet shape or felt-degeneracy failure.",
+  "authority": "owner requested more sheets and delegated execution, 2026-08-01",
+  "productBoundary": {
+    "evaluationGradeOnly": true,
+    "playerFacingSheetSchema": false,
+    "stableOfFive": false,
+    "fieldedBodies": 8,
+    "duplicatesFollowExistingSlotRules": true
+  },
+  "candidate": {
+    "rulesetId": "arc-relay-h0-01",
+    "mapProfile": "home-gates-wide",
+    "runtime": "wasm",
+    "sharedAlgorithm": "arena-bots/arc-relay/balance-audit-v2-2026-08-01/out/bot.wasm",
+    "artifactHashFrozenBySweepPlan": true,
+    "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v2.json"
+  },
+  "doctrines": [
+    "balanced",
+    "split",
+    "convoy",
+    "interception",
+    "control-grid",
+    "relay-chain",
+    "fortress-counterattack",
+    "trap-punish",
+    "fireline-picks",
+    "displacement-control",
+    "sustain-attrition",
+    "feint-switch"
+  ],
+  "stages": [
+    {
+      "id": "anchor-screen",
+      "seed": "424243",
+      "population": "each new doctrine against Balanced and Interception, both participant assignments",
+      "purpose": "fault, gross competence, assignment bias, and v2 felt-degeneracy repair"
+    },
+    {
+      "id": "full-round-robin",
+      "seed": "982451653",
+      "population": "all retained doctrines, every unordered pair, both participant assignments",
+      "purpose": "record shape, class/mechanic coverage, counter-web and doctrine redundancy read"
+    },
+    {
+      "id": "blind-gallery",
+      "seed": "2718281",
+      "population": "twelve preselected pairings with every doctrine appearing twice and assignments balanced 6/6",
+      "purpose": "owner review of legibility, variety, counterplay, and visible nonsense"
+    }
+  ],
+  "hardGates": {
+    "runtimeFaults": 0,
+    "exactReplayVerification": "every retained cell",
+    "feltDegeneracyEligibility": "every retained side passes v2",
+    "goldenReplayHashes": "6/6 byte-identical after algorithm-only work"
+  },
+  "depthRead": {
+    "requiredDistinctAxes": [
+      "theater allocation",
+      "carrier logistics",
+      "escort density",
+      "steal/interception pressure",
+      "signature mix",
+      "cross-theater movement",
+      "objective tempo"
+    ],
+    "redundancyRule": "A renamed composition with the same execution shape is repaired, merged, or excluded; win rate alone never establishes distinctness.",
+    "humanClaim": "held until owner blind review and later interactive playtesting"
+  },
+  "forbiddenResponses": [
+    "comeback mechanic",
+    "score-to-power",
+    "post-outcome class-stat tuning",
+    "eligibility threshold redefinition",
+    "presenting evaluation sheets as the product UX"
+  ]
+}

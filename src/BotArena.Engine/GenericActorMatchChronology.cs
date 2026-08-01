@@ -6179,36 +6179,18 @@ public sealed record GenericActorMatchChronology
                 arcFactsByTarget[beforeLife.ActorId]
                     .OrderBy(value => value.GlobalOrdinal)
                     .ToArray();
-            if (LifeSnapshotsSemanticallyEqual(beforeLife, afterLife))
-            {
-                if (transitionEvents.Length != 0 || arcEvents.Length != 0)
-                {
-                    throw new ArgumentException(
-                        "A tick-start form-transition event must cause its declared same-life state transition.",
-                        parameterName);
-                }
-                continue;
-            }
-            if (transitionEvents.Length == 0
-                && arcEvents.Length > 0
-                && ArcSignatureFactsExplainLifeChange(
+            if (TickStartLifeEvidenceExplainsState(
+                    definition,
                     beforeLife,
                     afterLife,
+                    transitionEvents,
                     arcEvents))
             {
                 continue;
             }
-            if (transitionEvents.Length != 1
-                || !SameLifeTransitionExplainsChange(
-                    definition,
-                    beforeLife,
-                    afterLife,
-                    transitionEvents[0]))
-            {
-                throw new ArgumentException(
-                    "A surviving life must remain exact across tick-start unless one declared same-life transition event fully explains the change.",
-                    parameterName);
-            }
+            throw new ArgumentException(
+                "A surviving life must remain exact across tick-start unless declared same-life or Arc Relay signature evidence fully explains the change, including a net-zero sequence.",
+                parameterName);
         }
 
         HashSet<ActorIdentity> survivingActors = before.ActiveLives
@@ -6224,6 +6206,31 @@ public sealed record GenericActorMatchChronology
                 "Tick-start form-transition evidence must identify one surviving life.",
                 parameterName);
         }
+    }
+
+    internal static bool TickStartLifeEvidenceExplainsState(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        GenericActorWorldSnapshot.LifeSnapshot after,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> transitionEvents,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> arcEvents)
+    {
+        if (transitionEvents.Count == 0)
+        {
+            return arcEvents.Count == 0
+                ? LifeSnapshotsSemanticallyEqual(before, after)
+                : ArcSignatureFactsExplainLifeChange(
+                    before,
+                    after,
+                    arcEvents);
+        }
+        return arcEvents.Count == 0
+            && transitionEvents.Count == 1
+            && SameLifeTransitionExplainsChange(
+                definition,
+                before,
+                after,
+                transitionEvents.Single());
     }
 
     private static ActorIdentity? ArcSignatureTarget(

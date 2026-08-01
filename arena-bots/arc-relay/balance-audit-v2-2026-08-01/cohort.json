@@ -1,0 +1,99 @@
+{
+  "cohortId": "arc-relay-doctrine-expansion-v1",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v2.json",
+  "entrants": [
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "balanced",
+      "sheet": "sheets/balanced.json",
+      "sheetSha256": "fa50655613271c92c6ad4f62fdfb2bca04d93ecb6e2d9b1ba8fb2a5b3bbe60cd"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "control-grid",
+      "sheet": "sheets/control-grid.json",
+      "sheetSha256": "71ee5d2b4f1cc7200324c0e8c4aedd8d874ebeba749a65b11816d855e3f60bdd"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "convoy",
+      "sheet": "sheets/convoy.json",
+      "sheetSha256": "96a10d1f417f40fc230d4645f84e611bd0e90e49334a6dc01e9fa38d5408f7f6"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "interception",
+      "sheet": "sheets/interception.json",
+      "sheetSha256": "d73505178753b82b15d0a3c98f758ac11ee3edb683f8ddc14a2b03f10a69a6cc"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "split",
+      "sheet": "sheets/split.json",
+      "sheetSha256": "266e0a30ecd1f92861520b7c664618dec1827038e9e86efd7485201482e6d02a"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "relay-chain",
+      "sheet": "sheets/relay-chain.json",
+      "sheetSha256": "a32db848cd159e4a6f430fdbdaa83ca71e748ca7c22f8bfde68761b29129087b"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "fortress-counterattack",
+      "sheet": "sheets/fortress-counterattack.json",
+      "sheetSha256": "b62d9c9d318e055a8895820cc134ede8ab5605170c26c112a2f008addaebfc46"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "trap-punish",
+      "sheet": "sheets/trap-punish.json",
+      "sheetSha256": "8f977b2dc765990763330d6627ef401e3d6e99b7b0df62a83ae7a349e054dc77"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "fireline-picks",
+      "sheet": "sheets/fireline-picks.json",
+      "sheetSha256": "eb32a4ce2aaf103b0b4c09f4ceb9ad43578f0e07c89fd7ae4a80732c83f9789f"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "displacement-control",
+      "sheet": "sheets/displacement-control.json",
+      "sheetSha256": "4d6d6b6c750fd7055273343878db1775ac56ba264efa1d71775dc7edec7c2372"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "sustain-attrition",
+      "sheet": "sheets/sustain-attrition.json",
+      "sheetSha256": "9b2a0540a14efa4d8aa20b5fcd66f01830beaa2c8f2afd62b4bf0e3a7154cd3a"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+      "entrantId": "feint-switch",
+      "sheet": "sheets/feint-switch.json",
+      "sheetSha256": "2a4655e062cc5bdbd68e5d2e096a08ad4311c7ed3a5b0fb105ffdfbee7499253"
+    }
+  ],
+  "excludedBeforeOutcomeReads": [],
+  "provenance": {
+    "authoringBoundary": "evaluation-grade ARS1 sheets, not player-facing product schema",
+    "claimScope": "same-engine doctrine depth and gross balance screen; not independent-lineage or human-fun authority",
+    "rulesChange": "none",
+    "sharedExecutionEngine": "out/bot.wasm",
+    "sharedExecutionEngineSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890"
+  },
+  "schema": "arc-relay-native-eligible-population-v1"
+}

@@ -505,6 +505,62 @@ public sealed class ArcRelayH0DefinitionTests
     }
 
     [Fact]
+    public void TickStartSignatureDamageAndRepairMayNetToTheSameLifeState()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+        ActorIdentity target = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+        Position position = new(2, 11);
+        var life = new GenericActorWorldSnapshot.LifeSnapshot(
+            target,
+            participantId: 0,
+            generation: 0,
+            ArcRelayH0Definition.FormPrefix + ArcRelayLaunchClassIds.Kestrel,
+            position,
+            Direction.East,
+            health: 3,
+            cooldown: 0,
+            energy: null,
+            spawnedAtTick: 0,
+            GenericActorRuntimeStart.SpawnReason.Initial,
+            parentActorId: null,
+            sourceTransitionId: null,
+            sourceOperationId: null,
+            previousActionResolution: null,
+            pendingSameLifeTransition: null);
+        GenericActorAuthoritativeEvent[] events =
+        [
+            ArcFact(
+                0,
+                new ArcRelayEvent.SignatureDamage(
+                    "damage-op",
+                    "falling-star",
+                    ActorIdentity.FromTeamUnitLife(1, 0, 0),
+                    target,
+                    Amount: 1,
+                    NewHealth: 2,
+                    position)),
+            ArcFact(
+                1,
+                new ArcRelayEvent.SignatureRepair(
+                    "repair-op",
+                    "repair-beam",
+                    ActorIdentity.FromTeamUnitLife(0, 1, 0),
+                    target,
+                    Amount: 1,
+                    NewHealth: 3,
+                    position)),
+        ];
+
+        Assert.True(GenericActorMatchChronology
+            .TickStartLifeEvidenceExplainsState(
+                definition,
+                life,
+                life,
+                transitionEvents: [],
+                arcEvents: events));
+    }
+
+    [Fact]
     public void ArcTossMask_DoesNotOfferTargetsThatClipBackToTheCarrier()
     {
         string[] composition =
@@ -588,6 +644,50 @@ public sealed class ArcRelayH0DefinitionTests
         Assert.Contains(new Position(7, 13), targets);
     }
 
+    [Fact]
+    public void SurveyFlareRemainsValidWhenDisplacementReachesItsTargetTile()
+    {
+        string[] composition =
+        [
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Hush,
+            ArcRelayLaunchClassIds.Switchback,
+        ];
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            composition,
+            composition);
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            definition.Rules.GameMode);
+        var runtime = new ArcRelaySignatureRuntime(definition, mode);
+        ActorIdentity actor = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+        Position resolvedSourceAndTarget = new(15, 4);
+
+        runtime.Start(
+            tick: 10,
+            actor,
+            resolvedSourceAndTarget,
+            "survey-flare",
+            [
+                new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                    resolvedSourceAndTarget),
+            ],
+            [
+                new ArcRelaySignatureRuntime.Life(
+                    actor,
+                    resolvedSourceAndTarget,
+                    3,
+                    3),
+            ]);
+
+        ArcRelaySignatureState flare = Assert.Single(runtime.Project(10));
+        Assert.Equal(resolvedSourceAndTarget, Assert.Single(flare.Positions));
+    }
+
     private static ImmutableArray<GenericActorRuntimeActionArgument> Arguments(
         GenericActorRuntimeActionLegality legality) =>
         [
@@ -616,6 +716,17 @@ public sealed class ArcRelayH0DefinitionTests
                     "Arc signature exposed an unexpected argument constraint."),
             }),
         ];
+
+    private static GenericActorAuthoritativeEvent ArcFact(
+        int ordinal,
+        ArcRelayEvent fact) =>
+        new(
+            $"arc-{ordinal}",
+            tick: 1,
+            globalOrdinal: ordinal,
+            GenericActorRuntimeObservation.EventKind.ArcRelay,
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(fact),
+            new GenericActorAuthoritativeEvent.Audience.Public());
 
     private static string MutateAndRehash(
         string json,

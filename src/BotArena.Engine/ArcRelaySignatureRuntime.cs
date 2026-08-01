@@ -584,7 +584,7 @@ internal sealed class ArcRelaySignatureRuntime
                 break;
             case ArcRelaySignatureDefinition.RepairBeam:
                 phase = ArcRelaySignatureState.SignaturePhase.Channel;
-                positions = [source, targetPosition!.Value];
+                positions = Endpoints(source, targetPosition!.Value);
                 break;
             case ArcRelaySignatureDefinition.SurveyFlare value:
                 phase = ArcRelaySignatureState.SignaturePhase.InFlight;
@@ -593,7 +593,7 @@ internal sealed class ArcRelaySignatureRuntime
                     (source.ChebyshevDistance(targetPosition!.Value)
                      + value.TravelTilesPerTick - 1)
                     / value.TravelTilesPerTick));
-                positions = [source, targetPosition.Value];
+                positions = Endpoints(source, targetPosition.Value);
                 break;
             case ArcRelaySignatureDefinition.FallingStar value:
                 phase = ArcRelaySignatureState.SignaturePhase.Tell;
@@ -613,12 +613,12 @@ internal sealed class ArcRelaySignatureRuntime
             case ArcRelaySignatureDefinition.ArcToss value:
                 phase = ArcRelaySignatureState.SignaturePhase.Tell;
                 completes = checked(tick + value.TellTicks);
-                positions = [source, targetPosition!.Value];
+                positions = Endpoints(source, targetPosition!.Value);
                 break;
             case ArcRelaySignatureDefinition.Exchange value:
                 phase = ArcRelaySignatureState.SignaturePhase.Tell;
                 completes = checked(tick + value.TellTicks);
-                positions = [source, targetPosition!.Value];
+                positions = Endpoints(source, targetPosition!.Value);
                 break;
             case ArcRelaySignatureDefinition.RailLine value:
                 phase = ArcRelaySignatureState.SignaturePhase.Tell;
@@ -671,6 +671,11 @@ internal sealed class ArcRelaySignatureRuntime
             positions,
             capacity);
     }
+
+    private static ImmutableArray<Position> Endpoints(
+        Position source,
+        Position target) =>
+        source == target ? [source] : [source, target];
 
     private void AdvanceMaintained(
         Operation operation,

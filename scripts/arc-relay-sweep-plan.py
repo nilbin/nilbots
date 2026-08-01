@@ -73,6 +73,46 @@ def contract(
     return value
 
 
+def selected_pair_assignments(
+    raw_pairs: list[str],
+    raw_pair_assignments: list[str],
+    entrant_ids: set[str],
+) -> dict[frozenset[str], set[int]]:
+    if raw_pairs and raw_pair_assignments:
+        raise ValueError("use --pair or --pair-assignment, not both")
+    selected: dict[frozenset[str], set[int]] = {}
+    for raw_pair in raw_pairs:
+        values = [value.strip() for value in raw_pair.split(",")]
+        if len(values) != 2 or not all(values) or values[0] == values[1]:
+            raise ValueError("--pair needs two distinct entrant ids: left,right")
+        unknown = [value for value in values if value not in entrant_ids]
+        if unknown:
+            raise ValueError(f"--pair references unknown entrants: {unknown}")
+        pair = frozenset(values)
+        if pair in selected:
+            raise ValueError(f"duplicate --pair: {raw_pair}")
+        selected[pair] = {0, 1}
+    for raw_cell in raw_pair_assignments:
+        values = [value.strip() for value in raw_cell.split(",")]
+        if (len(values) != 3 or not all(values[:2])
+                or values[0] == values[1] or values[2] not in ("0", "1")):
+            raise ValueError(
+                "--pair-assignment needs left,right,0|1 with distinct entrants"
+            )
+        unknown = [value for value in values[:2] if value not in entrant_ids]
+        if unknown:
+            raise ValueError(
+                f"--pair-assignment references unknown entrants: {unknown}"
+            )
+        pair = frozenset(values[:2])
+        assignment = int(values[2])
+        assignments = selected.setdefault(pair, set())
+        if assignment in assignments:
+            raise ValueError(f"duplicate --pair-assignment: {raw_cell}")
+        assignments.add(assignment)
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cohort", required=True, type=Path)
@@ -81,6 +121,24 @@ def main() -> int:
     parser.add_argument("--profile", required=True)
     parser.add_argument("--seeds", required=True)
     parser.add_argument("--include", action="append", default=[])
+    parser.add_argument(
+        "--pair",
+        action="append",
+        default=[],
+        help=(
+            "limit cells to one unordered entrant pair, written left,right; "
+            "repeat for a sparse registered screen"
+        ),
+    )
+    parser.add_argument(
+        "--pair-assignment",
+        action="append",
+        default=[],
+        help=(
+            "limit cells to one unordered entrant pair and participant "
+            "assignment, written left,right,0|1; repeat for a frozen gallery"
+        ),
+    )
     parser.add_argument("--runtime", choices=("wasm", "in-process"), default="wasm")
     parser.add_argument(
         "--blind-review-order-seed",
@@ -126,6 +184,12 @@ def main() -> int:
     if len(entrants) < 2:
         raise ValueError("selected sweep population needs at least two entrants")
 
+    selected_pairs = selected_pair_assignments(
+        args.pair,
+        args.pair_assignment,
+        set(entrants),
+    )
+
     seeds = [value.strip() for value in args.seeds.split(",") if value.strip()]
     if not seeds:
         raise ValueError("--seeds needs at least one value")
@@ -133,10 +197,16 @@ def main() -> int:
     common: dict[str, str] | None = None
     for seed in seeds:
         for first, second in itertools.combinations(sorted(entrants), 2):
+            allowed_assignments = selected_pairs.get(frozenset((first, second)))
+            if selected_pairs and allowed_assignments is None:
+                continue
             pair_id = f"{first}--{second}"
             for assignment, (team0, team1) in enumerate(
                 ((first, second), (second, first))
             ):
+                if (allowed_assignments is not None
+                        and assignment not in allowed_assignments):
+                    continue
                 resolved_contract = contract(
                     args.cli.resolve(),
                     args.profile,
@@ -164,7 +234,8 @@ def main() -> int:
                     "matchContractFingerprint": resolved_contract[
                         "matchContractFingerprint"],
                 })
-    assert common is not None
+    if common is None:
+        raise ValueError("selected pairs produced no sweep cells")
     plan = {
         "schema": "arc-relay-sweep-plan-v1",
         "sweepId": args.sweep_id,
