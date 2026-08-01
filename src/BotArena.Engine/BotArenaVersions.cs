@@ -106,7 +106,9 @@ public static class BotArenaVersions
     /// <see cref="GenericActorEngineVersion"/> so introducing the new path
     /// does not relabel per-life matches.
     /// </summary>
-    public const string GenericMindEngineVersion = "1.0.0";
+    // 1.0.1: Arc Toss legality no longer offers targets whose wall-clipped
+    // landing degenerates to the carrier's source tile.
+    public const string GenericMindEngineVersion = "1.0.1";
 
     public const int GenericMindRuntimeContractVersion = 1;
     public const int GenericMindMatchStartSchemaVersion = 1;
