@@ -38,8 +38,9 @@ write your own. Each step small.
 Grounded in the current warpath numbers (tranches +2 at tick 150 and
 +3 at 300, veins ticking 8 scrap, six-tier board, channel captures):
 
-- STABLE PICK: which classes (from the player's stable) this sheet
-  fields, and which stock mind drives them.
+- ROSTER PICK: which unlocked classes this sheet fields across its eight
+  slots, subject to the format's two-copy cap, and which stock mind drives
+  them.
 - COMPOSITION PLAN: chassis per slot at opening and per tranche.
 - UPGRADE PRIORITY: an ordered spend list with a reserve trigger
   ("buy when bank >= cost + 6").
@@ -76,13 +77,17 @@ doctrine requirement. Path-following, spacing under fire, and
 reforming must be GOOD or drawn plans feel ignored — the feature
 lives or dies on this, not on the UI.
 
-## Classes: the stable and the launch band
+## Classes: direct roster selection and the launch band
 
-Owner direction: many more classes; a player fields a STABLE of ~5
-drawn from the full roster. Target a launch band of ~10-12
-MECHANICALLY DISTINCT classes (not stat shuffles), grown seasonally —
-with a stable of 5 and eight slots, the composition space is already
-enormous; tens of classes at launch is a content treadmill.
+Gate 1 and Gate 2 owner direction supersedes the original stable sketch:
+the launch band is sixteen MECHANICALLY DISTINCT classes (not stat
+shuffles), and a sheet fills all eight slots directly from the player's
+unlocked roster with at most two copies of one class. Unlocks already bound
+the early candidate list and eight slots bound a match composition, so a
+separate five-class stable is redundant. Register a stable only as a future
+roster-scale response if the catalog grows beyond roughly 25 classes, or as
+an explicit draft/tournament format lever; ordinary sheets do not contain
+one.
 
 Prime dissolution (#194) is what makes classes cheap: a class is now
 a chassis — one statline, a kit, one signature mechanic — not a
@@ -105,7 +110,7 @@ harness scales to it (that is what the campaign built).
 
 ## Rewards: breadth, never power
 
-Unlockables: new classes (the stable widens), new stock minds, SHEET
+Unlockables: new classes (the unlocked roster widens), new stock minds, SHEET
 PARTS (a third gambit slot, conditional tranche plans, per-map
 overrides — FF12 literally sold gambit slots), cosmetics via the
 role-tag layer. The hard principle: unlocks are BREADTH — more
