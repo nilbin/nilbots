@@ -732,6 +732,10 @@ internal static class ReplayV3Projection
                 argument =>
                 new ReplayV3.RawActionArgument.UpgradeTrack(
                     argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument
+                argument =>
+                new ReplayV3.RawActionArgument.PositionTarget(
+                    Position(argument.Value)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -789,6 +793,10 @@ internal static class ReplayV3Projection
             GenericActorRuntimeActionArgument.UpgradeTrackArgument
                 argument =>
                 new ReplayV3.ActionArgument.UpgradeTrack(argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument
+                argument =>
+                new ReplayV3.ActionArgument.PositionTarget(
+                    Position(argument.Value)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -853,6 +861,11 @@ internal static class ReplayV3Projection
                 .UpgradeTrackConstraint constraint =>
                 new ReplayV3.ActionConstraint.UpgradeTrack(
                     constraint.AllowedTrackIds),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .PositionTargetConstraint constraint =>
+                new ReplayV3.ActionConstraint.PositionTarget(
+                    constraint.AllowedValues.Select(Position)
+                        .ToImmutableArray()),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1006,6 +1019,9 @@ internal static class ReplayV3Projection
                     payload.TargetUnitId,
                     UnitSlotState(payload.CancelledState),
                     payload.CancellationReason),
+            GenericActorRuntimeObservation.EventPayload.ArcRelay payload =>
+                new ReplayV3.EventPayload.ArcRelay(
+                    ArcRelayFact(payload.Fact)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1038,6 +1054,103 @@ internal static class ReplayV3Projection
                 nameof(value),
                 value,
                 "Unknown event audience."),
+        };
+
+    private static ReplayV3.ArcCoreId ArcCoreId(ArcRelayCoreId value) =>
+        new(value.SourceWellId, value.SourceOrdinal);
+
+    private static ReplayV3.ArcRelayFact ArcRelayFact(ArcRelayEvent value) =>
+        value switch
+        {
+            ArcRelayEvent.CoreBorn fact =>
+                new ReplayV3.ArcRelayFact.CoreBorn(
+                    ArcCoreId(fact.CoreId),
+                    Position(fact.Position)),
+            ArcRelayEvent.CorePickedUp fact =>
+                new ReplayV3.ArcRelayFact.CorePickedUp(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.CarrierActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreRelocated fact =>
+                new ReplayV3.ArcRelayFact.CoreRelocated(
+                    ArcCoreId(fact.CoreId),
+                    fact.CarrierActorId is { } carrier
+                        ? ActorId(carrier)
+                        : null,
+                    Position(fact.From),
+                    Position(fact.To),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreRelocationKind.CarriedMovement =>
+                            "carried-movement",
+                        ArcRelayEvent.CoreRelocationKind.ForcedDisplacement =>
+                            "forced-displacement",
+                        ArcRelayEvent.CoreRelocationKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    }),
+            ArcRelayEvent.CoreHandedOff fact =>
+                new ReplayV3.ArcRelayFact.CoreHandedOff(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.SourceActorId),
+                    ActorId(fact.TargetActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreDropped fact =>
+                new ReplayV3.ArcRelayFact.CoreDropped(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.SourceActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreDropKind.Voluntary => "voluntary",
+                        ArcRelayEvent.CoreDropKind.Destruction => "destruction",
+                        ArcRelayEvent.CoreDropKind.SignatureDeparture =>
+                            "signature-departure",
+                        ArcRelayEvent.CoreDropKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    }),
+            ArcRelayEvent.CoreBanked fact =>
+                new ReplayV3.ArcRelayFact.CoreBanked(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.CarrierActorId),
+                    fact.TeamId,
+                    Position(fact.Position),
+                    fact.ChargePips),
+            ArcRelayEvent.WellChanged fact =>
+                new ReplayV3.ArcRelayFact.WellChanged(
+                    fact.WellId,
+                    fact.PendingCharge,
+                    fact.RearmCompletesAtTick,
+                    fact.OutstandingCoreId is { } coreId
+                        ? ArcCoreId(coreId)
+                        : null),
+            ArcRelayEvent.Pulse fact =>
+                new ReplayV3.ArcRelayFact.Pulse(
+                    fact.TeamId,
+                    fact.PulseOrdinal,
+                    fact.OpposingReactorIntegrity),
+            ArcRelayEvent.SignatureChanged fact =>
+                new ReplayV3.ArcRelayFact.SignatureChanged(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    fact.Phase is { } phase
+                        ? phase switch
+                        {
+                            ArcRelaySignatureState.SignaturePhase.Tell => "tell",
+                            ArcRelaySignatureState.SignaturePhase.Active => "active",
+                            ArcRelaySignatureState.SignaturePhase.Channel => "channel",
+                            ArcRelaySignatureState.SignaturePhase.InFlight => "in-flight",
+                            _ => throw new ArgumentOutOfRangeException(),
+                        }
+                        : null,
+                    fact.Reason),
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
     private static ReplayV3.ProjectileTraversal Traversal(
@@ -1227,6 +1340,9 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.ModeObservationState.Frontline
                 frontline =>
                 FrontlineModeState(frontline),
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                arcRelay =>
+                ArcRelayModeState(arcRelay),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1259,6 +1375,67 @@ internal static class ReplayV3Projection
                     pile.Amount,
                     pile.ExpiresAtTick)),
             ]);
+
+    private static ReplayV3.ModeState.ArcRelay ArcRelayModeState(
+        GenericActorRuntimeObservation.ModeObservationState.ArcRelay value) =>
+        new(
+            value.ModeId,
+            [.. value.Wells.Select(well => new ReplayV3.ArcWell(
+                well.WellId,
+                Position(well.Position),
+                well.NextScheduledBirthTick,
+                well.OutstandingCoreId is { } coreId
+                    ? ArcCoreId(coreId)
+                    : null,
+                well.PendingCharge,
+                well.RearmCompletesAtTick))],
+            [.. value.Reactors.Select(reactor => new ReplayV3.ArcReactor(
+                reactor.TeamId,
+                Position(reactor.Position),
+                reactor.ChargePips,
+                reactor.IntegritySegments))],
+            [.. value.VisibleCores.Select(core => new ReplayV3.ArcCore(
+                ArcCoreId(core.CoreId),
+                Position(core.Position),
+                core.Disposition switch
+                {
+                    ArcRelayCoreState.CoreDisposition.Loose => "loose",
+                    ArcRelayCoreState.CoreDisposition.Carried => "carried",
+                    ArcRelayCoreState.CoreDisposition.InFlight => "in-flight",
+                    _ => throw new ArgumentOutOfRangeException(),
+                },
+                core.CarrierActorId is { } carrier
+                    ? ActorId(carrier)
+                    : null,
+                core.NextRelocationTick,
+                core.FlightTarget is { } target ? Position(target) : null,
+                core.FlightCompletesAtTick))],
+            [.. value.VisibleSignatures.Select(signature =>
+                new ReplayV3.ArcSignature(
+                    signature.OperationId,
+                    signature.SignatureId,
+                    ActorContractCanonicalIds.Id(signature.Kind),
+                    ActorId(signature.OwnerActorId),
+                    signature.OwnerTeamId,
+                    signature.Phase switch
+                    {
+                        ArcRelaySignatureState.SignaturePhase.Tell => "tell",
+                        ArcRelaySignatureState.SignaturePhase.Active => "active",
+                        ArcRelaySignatureState.SignaturePhase.Channel => "channel",
+                        ArcRelaySignatureState.SignaturePhase.InFlight => "in-flight",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    },
+                    signature.StartedTick,
+                    signature.CompletesAtTick,
+                    signature.EndsAtTick,
+                    [.. signature.Positions.Select(Position)],
+                    signature.TargetActorId is { } target
+                        ? ActorId(target)
+                        : null,
+                    signature.RemainingCapacity,
+                    signature.Suppressed))],
+            value.LatestPulseTeamId,
+            value.LatestPulseTick);
 
     private static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>
@@ -1321,6 +1498,10 @@ internal static class ReplayV3Projection
                                 score.TeamId,
                                 Decimal(score.TerritorialProgress)))
                         .ToImmutableArray()),
+            GenericActorMatchModeResult.ArcRelay arcRelay =>
+                new ReplayV3.ModeResult.ArcRelay(
+                    ArcRelayEndReason(arcRelay.Reason),
+                    ArcRelayModeState(arcRelay.State)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1505,6 +1686,7 @@ internal static class ReplayV3Projection
                 "lifecycle-clock-cancelled",
             GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 "projectile-deflected",
+            GenericActorRuntimeObservation.EventKind.ArcRelay => "arc-relay",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1564,6 +1746,9 @@ internal static class ReplayV3Projection
                 "active-health",
             ScoreChannelDefinition.ChannelKind.TerritorialProgress =>
                 "territorial-progress",
+            ScoreChannelDefinition.ChannelKind.Pulses => "pulses",
+            ScoreChannelDefinition.ChannelKind.ReactorCharge =>
+                "reactor-charge",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1586,6 +1771,15 @@ internal static class ReplayV3Projection
                 "fault-eligibility",
             GenericFrontlineEndReason.BaseBreach => "base-breach",
             GenericFrontlineEndReason.MaxTicks => "max-ticks",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string ArcRelayEndReason(
+        GenericArcRelayEndReason value) => value switch
+        {
+            GenericArcRelayEndReason.FaultEligibility => "fault-eligibility",
+            GenericArcRelayEndReason.ReactorDestroyed => "reactor-destroyed",
+            GenericArcRelayEndReason.MaxTicks => "max-ticks",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 }

@@ -87,4 +87,50 @@ public sealed class ArcRelayH0DefinitionTests
         Assert.Throws<ArgumentException>(() =>
             ArcRelayH0Definition.Create(rejected, accepted));
     }
+
+    [Fact]
+    public void MindMatch_ReplayRoundTripsWithArcObjectiveLedger()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+        ActorActionDefinition wait = definition.Rules.Actions.Single(value =>
+            value.Kind == ActorActionKind.Wait);
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(
+                definition,
+                (_, observation) => new GenericMindRuntimeDecisions(
+                [
+                    .. observation.Bodies.Select(body =>
+                        new GenericMindCommand(
+                            body.ActorId.UnitId,
+                            body.ActorId.LifeId,
+                            wait.Id,
+                            wait.Code,
+                            [])),
+                ]));
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 20_260_801UL);
+
+        session.Run();
+        GenericActorReplayDocument document =
+            GenericActorReplayDocument.Create(session);
+
+        Assert.True(
+            GenericActorReplayDocument.VerifyHash(
+                document.CanonicalJson,
+                out string? failure),
+            failure);
+        ReplayV3 reread = ReplayV3Serializer.ReadCanonicalComplete(
+            document.CanonicalJson);
+        Assert.Equal(document.ReplayHash, ReplayV3Serializer.ComputeHash(reread));
+        Assert.Contains(
+            reread.Ticks.SelectMany(value => value.TickStart.Events),
+            value => value.Payload is ReplayV3.EventPayload.ArcRelay
+            {
+                Fact: ReplayV3.ArcRelayFact.CoreBorn,
+            });
+    }
 }

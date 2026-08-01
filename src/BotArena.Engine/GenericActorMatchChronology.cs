@@ -357,7 +357,11 @@ public sealed record GenericActorMatchChronology
                 "A mind's published slot table must be exactly its own slots.",
                 nameof(frame));
         }
-        if (turn.Observation.Mode != state.Mode)
+        if (!ModeObservationMatches(
+                turn.Observation.Mode,
+                state.Mode,
+                turn.TeamId,
+                turn.Observation.VisibleTiles.Select(value => value.Position)))
         {
             throw new ArgumentException(
                 "A mind observation's mode must exactly match the authoritative pre-state.",
@@ -373,6 +377,46 @@ public sealed record GenericActorMatchChronology
         {
             RequirePublishedTag(ally.RoleTag, ally.ActorId, tags);
         }
+    }
+
+    private static bool ModeObservationMatches(
+        GenericActorRuntimeObservation.ModeObservationState observed,
+        GenericActorRuntimeObservation.ModeObservationState authoritative,
+        int observingTeamId,
+        IEnumerable<Position> visiblePositions)
+    {
+        if (observed is not GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay arcObserved
+            || authoritative is not GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay arcAuthoritative)
+        {
+            return observed == authoritative;
+        }
+
+        HashSet<Position> visible = visiblePositions.ToHashSet();
+        ImmutableArray<ArcRelayCoreState> expectedCores = arcAuthoritative
+            .VisibleCores.Where(core =>
+                core.CarrierActorId?.TeamId == observingTeamId
+                || visible.Contains(core.Position))
+            .ToImmutableArray();
+        ImmutableArray<ArcRelaySignatureState> expectedSignatures =
+            arcAuthoritative.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    || signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Positions.Any(visible.Contains))
+                .ToImmutableArray();
+        return string.Equals(
+                arcObserved.ModeId,
+                arcAuthoritative.ModeId,
+                StringComparison.Ordinal)
+            && arcObserved.Wells.SequenceEqual(arcAuthoritative.Wells)
+            && arcObserved.Reactors.SequenceEqual(arcAuthoritative.Reactors)
+            && arcObserved.VisibleCores.SequenceEqual(expectedCores)
+            && arcObserved.VisibleSignatures.SequenceEqual(expectedSignatures)
+            && arcObserved.LatestPulseTeamId
+                == arcAuthoritative.LatestPulseTeamId
+            && arcObserved.LatestPulseTick == arcAuthoritative.LatestPulseTick;
     }
 
     private static void RequirePublishedTag(
@@ -1507,6 +1551,9 @@ public sealed record GenericActorMatchChronology
             GenericActorMatchModeResult.Frontline frontline =>
                 frontline.Reason
                     == GenericFrontlineEndReason.FaultEligibility,
+            GenericActorMatchModeResult.ArcRelay arcRelay =>
+                arcRelay.Reason
+                    == GenericArcRelayEndReason.FaultEligibility,
             _ => false,
         };
         GenericActorWorldSnapshot? finalState =
@@ -1561,16 +1608,32 @@ public sealed record GenericActorMatchChronology
             definition,
             tickStart.Events,
             parameterName);
+        bool evidencedArcModeChange =
+            before.Mode is GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay
+            && after.Mode is GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay
+            && tickStart.Events.Any(value =>
+                value.UnredactedPayload is GenericActorRuntimeObservation
+                    .EventPayload.ModeChanged changed
+                && Equals(changed.State, after.Mode));
+        bool derivedArcScheduleAdvance = ArcScheduleOnlyAdvance(
+            before.Mode,
+            after.Mode,
+            tickStart.Tick);
         if (before.NextTick != tickStart.Tick
             || before.NextProjectileId != after.NextProjectileId
             || !before.Participants.SequenceEqual(after.Participants)
             || !Equals(before.Mode, after.Mode)
+                && !evidencedArcModeChange
+                && !derivedArcScheduleAdvance
             || !ScoreboardsStableAcrossLifecycleBoundary(
                 before.Scoreboard,
                 after.Scoreboard))
         {
             throw new ArgumentException(
-                "Tick-start lifecycle processing cannot change participants, mode, projectile issuance, eligibility, or non-derived scores.",
+                $"Tick-start {tickStart.Tick} lifecycle processing cannot change participants, mode, projectile issuance, eligibility, or non-derived scores " +
+                $"(clock={before.NextTick == tickStart.Tick}, projectile={before.NextProjectileId == after.NextProjectileId}, participants={before.Participants.SequenceEqual(after.Participants)}, mode={Equals(before.Mode, after.Mode)}, arcEvidence={evidencedArcModeChange}, arcSchedule={derivedArcScheduleAdvance}, scoreboard={ScoreboardsStableAcrossLifecycleBoundary(before.Scoreboard, after.Scoreboard)}).",
                 parameterName);
         }
 
@@ -1617,6 +1680,58 @@ public sealed record GenericActorMatchChronology
             tickStart.Events,
             tickStart.Traversals,
             parameterName);
+    }
+
+    private static bool ArcScheduleOnlyAdvance(
+        GenericActorRuntimeObservation.ModeObservationState before,
+        GenericActorRuntimeObservation.ModeObservationState after,
+        int tick)
+    {
+        if (before is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay left
+            || after is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay right
+            || !string.Equals(left.ModeId, right.ModeId, StringComparison.Ordinal)
+            || !left.Reactors.SequenceEqual(right.Reactors)
+            || !left.VisibleCores.SequenceEqual(right.VisibleCores)
+            || !left.VisibleSignatures.SequenceEqual(right.VisibleSignatures)
+            || left.LatestPulseTeamId != right.LatestPulseTeamId
+            || left.LatestPulseTick != right.LatestPulseTick
+            || left.Wells.Length != right.Wells.Length)
+        {
+            return false;
+        }
+
+        bool changed = false;
+        for (int index = 0; index < left.Wells.Length; index++)
+        {
+            ArcRelayWellState oldWell = left.Wells[index];
+            ArcRelayWellState newWell = right.Wells[index];
+            if (!string.Equals(
+                    oldWell.WellId,
+                    newWell.WellId,
+                    StringComparison.Ordinal)
+                || oldWell.Position != newWell.Position
+                || oldWell.OutstandingCoreId != newWell.OutstandingCoreId
+                || oldWell.PendingCharge != newWell.PendingCharge
+                || oldWell.RearmCompletesAtTick
+                    != newWell.RearmCompletesAtTick)
+            {
+                return false;
+            }
+            if (oldWell.NextScheduledBirthTick
+                    == newWell.NextScheduledBirthTick)
+            {
+                continue;
+            }
+            if (oldWell.NextScheduledBirthTick != tick
+                || newWell.NextScheduledBirthTick is int next && next <= tick)
+            {
+                return false;
+            }
+            changed = true;
+        }
+        return changed;
     }
 
     /// <summary>
@@ -6414,6 +6529,10 @@ public sealed record GenericActorMatchChronology
                     FrontlineGameModeDefinition,
                     GenericActorMatchModeResult.Frontline
                 ) => true,
+                (
+                    ArcRelayGameModeDefinition,
+                    GenericActorMatchModeResult.ArcRelay
+                ) => true,
                 _ => false,
             };
         if (!modeMatches)
@@ -6466,6 +6585,17 @@ public sealed record GenericActorMatchChronology
         }
 
         ValidateTerminalScores(finalState, result);
+        if (result.Mode is GenericActorMatchModeResult.ArcRelay arcRelay)
+        {
+            if (finalState.Mode is not GenericActorRuntimeObservation
+                    .ModeObservationState.ArcRelay finalArc
+                || !Equals(finalArc, arcRelay.State))
+            {
+                throw new ArgumentException(
+                    "Arc Relay terminal facts must exactly equal the final world.",
+                    nameof(result));
+            }
+        }
         if (descriptor.Definition.Rules.GameMode
             is DeathmatchGameModeDefinition)
         {

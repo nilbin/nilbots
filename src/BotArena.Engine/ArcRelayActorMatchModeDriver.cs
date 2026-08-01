@@ -114,6 +114,12 @@ internal sealed class ArcRelayActorMatchModeDriver
                     well.OutstandingCoreId)));
             }
         }
+        // A loose Core may have been left under a surviving body by a death
+        // drop or other end-of-tick effect. Tick-start pickup is therefore a
+        // general phase, not merely a side effect of birth. This is also what
+        // makes the frozen observation honest: possession is settled before
+        // minds see the new tick.
+        PickUpLooseCores(tick, world, events);
 
         GenericActorRuntimeObservation.ModeObservationState.ArcRelay after =
             ProjectState();
@@ -488,13 +494,13 @@ internal sealed class ArcRelayActorMatchModeDriver
         ArcRelayWellScheduleDefinition schedule,
         int tick)
     {
-        if (tick > schedule.FinalBirthTick)
+        if (tick >= schedule.FinalBirthTick)
             return null;
-        if (tick <= schedule.FirstBirthTick)
+        if (tick < schedule.FirstBirthTick)
             return schedule.FirstBirthTick;
         int elapsed = tick - schedule.FirstBirthTick;
         int steps = checked(
-            (elapsed + schedule.CadenceTicks - 1) / schedule.CadenceTicks);
+            elapsed / schedule.CadenceTicks + 1);
         int next = checked(
             schedule.FirstBirthTick + steps * schedule.CadenceTicks);
         return next <= schedule.FinalBirthTick ? next : null;

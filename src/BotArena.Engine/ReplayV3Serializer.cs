@@ -1450,6 +1450,10 @@ internal static class ReplayV3Serializer
                     "trackId",
                     argument.TrackId);
                 break;
+            case ReplayV3.RawActionArgument.PositionTarget argument:
+                writer.WritePropertyName("value");
+                WritePosition(writer, argument.Value);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 raw action argument '{value.GetType().Name}'.");
@@ -1536,6 +1540,10 @@ internal static class ReplayV3Serializer
                 break;
             case ReplayV3.ActionArgument.UpgradeTrack argument:
                 writer.WriteString("trackId", argument.TrackId);
+                break;
+            case ReplayV3.ActionArgument.PositionTarget argument:
+                writer.WritePropertyName("value");
+                WritePosition(writer, argument.Value);
                 break;
             default:
                 throw new NotSupportedException(
@@ -1630,6 +1638,13 @@ internal static class ReplayV3Serializer
                     writer,
                     "allowedTrackIds",
                     constraint.AllowedTrackIds);
+                break;
+            case ReplayV3.ActionConstraint.PositionTarget constraint:
+                WriteArray(
+                    writer,
+                    "allowedValues",
+                    constraint.AllowedValues,
+                    WritePosition);
                 break;
             default:
                 throw new NotSupportedException(
@@ -1882,10 +1897,127 @@ internal static class ReplayV3Serializer
                     "cancellationReason",
                     payload.CancellationReason);
                 break;
+            case ReplayV3.EventPayload.ArcRelay payload:
+                writer.WritePropertyName("fact");
+                WriteArcRelayFact(writer, payload.Fact);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 event payload '{value.GetType().Name}'.");
         }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcRelayFact(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcRelayFact value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("kind", value.Kind);
+        switch (value)
+        {
+            case ReplayV3.ArcRelayFact.CoreBorn fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.CorePickedUp fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                WriteActorId(writer, fact.CarrierActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                break;
+            case ReplayV3.ArcRelayFact.CoreRelocated fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                if (fact.CarrierActorId is null) writer.WriteNullValue();
+                else WriteActorId(writer, fact.CarrierActorId);
+                writer.WritePropertyName("from");
+                WritePosition(writer, fact.From);
+                writer.WritePropertyName("to");
+                WritePosition(writer, fact.To);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                writer.WriteString("relocationKind", fact.RelocationKind);
+                break;
+            case ReplayV3.ArcRelayFact.CoreHandedOff fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("sourceActorId");
+                WriteActorId(writer, fact.SourceActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, fact.TargetActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                break;
+            case ReplayV3.ArcRelayFact.CoreDropped fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("sourceActorId");
+                WriteActorId(writer, fact.SourceActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                writer.WriteString("dropKind", fact.DropKind);
+                break;
+            case ReplayV3.ArcRelayFact.CoreBanked fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                WriteActorId(writer, fact.CarrierActorId);
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("chargePips", fact.ChargePips);
+                break;
+            case ReplayV3.ArcRelayFact.WellChanged fact:
+                writer.WriteString("wellId", fact.WellId);
+                writer.WriteBoolean("pendingCharge", fact.PendingCharge);
+                WriteNullableNumber(
+                    writer,
+                    "rearmCompletesAtTick",
+                    fact.RearmCompletesAtTick);
+                writer.WritePropertyName("outstandingCoreId");
+                if (fact.OutstandingCoreId is null) writer.WriteNullValue();
+                else WriteArcCoreId(writer, fact.OutstandingCoreId);
+                break;
+            case ReplayV3.ArcRelayFact.Pulse fact:
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WriteNumber("pulseOrdinal", fact.PulseOrdinal);
+                writer.WriteNumber(
+                    "opposingReactorIntegrity",
+                    fact.OpposingReactorIntegrity);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureChanged fact:
+                writer.WriteString("operationId", fact.OperationId);
+                writer.WriteString("signatureId", fact.SignatureId);
+                writer.WritePropertyName("ownerActorId");
+                WriteActorId(writer, fact.OwnerActorId);
+                WriteNullableString(writer, "phase", fact.Phase);
+                writer.WriteString("reason", fact.Reason);
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported Arc Relay fact '{value.GetType().Name}'.");
+        }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcCoreId(
+        Utf8JsonWriter writer,
+        string propertyName,
+        ReplayV3.ArcCoreId value)
+    {
+        writer.WritePropertyName(propertyName);
+        WriteArcCoreId(writer, value);
+    }
+
+    private static void WriteArcCoreId(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcCoreId value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("sourceWellId", value.SourceWellId);
+        writer.WriteNumber("sourceOrdinal", value.SourceOrdinal);
         writer.WriteEndObject();
     }
 
@@ -2290,10 +2422,119 @@ internal static class ReplayV3Serializer
                 WriteScrapTeams(writer, frontline.ScrapTeams);
                 WriteScrapPiles(writer, frontline.ScrapPiles);
                 break;
+            case ReplayV3.ModeState.ArcRelay arcRelay:
+                WriteArray(writer, "wells", arcRelay.Wells, WriteArcWell);
+                WriteArray(
+                    writer,
+                    "reactors",
+                    arcRelay.Reactors,
+                    WriteArcReactor);
+                WriteArray(
+                    writer,
+                    "visibleCores",
+                    arcRelay.VisibleCores,
+                    WriteArcCore);
+                WriteArray(
+                    writer,
+                    "visibleSignatures",
+                    arcRelay.VisibleSignatures,
+                    WriteArcSignature);
+                WriteNullableNumber(
+                    writer,
+                    "latestPulseTeamId",
+                    arcRelay.LatestPulseTeamId);
+                WriteNullableNumber(
+                    writer,
+                    "latestPulseTick",
+                    arcRelay.LatestPulseTick);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 mode state '{value.GetType().Name}'.");
         }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcWell(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcWell value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("wellId", value.WellId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        WriteNullableNumber(
+            writer,
+            "nextScheduledBirthTick",
+            value.NextScheduledBirthTick);
+        writer.WritePropertyName("outstandingCoreId");
+        if (value.OutstandingCoreId is null) writer.WriteNullValue();
+        else WriteArcCoreId(writer, value.OutstandingCoreId);
+        writer.WriteBoolean("pendingCharge", value.PendingCharge);
+        WriteNullableNumber(
+            writer,
+            "rearmCompletesAtTick",
+            value.RearmCompletesAtTick);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcReactor(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcReactor value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        writer.WriteNumber("chargePips", value.ChargePips);
+        writer.WriteNumber("integritySegments", value.IntegritySegments);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcCore(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcCore value)
+    {
+        writer.WriteStartObject();
+        WriteArcCoreId(writer, "coreId", value.CoreId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        writer.WriteString("disposition", value.Disposition);
+        writer.WritePropertyName("carrierActorId");
+        if (value.CarrierActorId is null) writer.WriteNullValue();
+        else WriteActorId(writer, value.CarrierActorId);
+        writer.WriteNumber("nextRelocationTick", value.NextRelocationTick);
+        writer.WritePropertyName("flightTarget");
+        if (value.FlightTarget is null) writer.WriteNullValue();
+        else WritePosition(writer, value.FlightTarget);
+        WriteNullableNumber(
+            writer,
+            "flightCompletesAtTick",
+            value.FlightCompletesAtTick);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcSignature(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcSignature value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("operationId", value.OperationId);
+        writer.WriteString("signatureId", value.SignatureId);
+        writer.WriteString("signatureKind", value.SignatureKind);
+        writer.WritePropertyName("ownerActorId");
+        WriteActorId(writer, value.OwnerActorId);
+        writer.WriteNumber("ownerTeamId", value.OwnerTeamId);
+        writer.WriteString("phase", value.Phase);
+        writer.WriteNumber("startedTick", value.StartedTick);
+        WriteNullableNumber(writer, "completesAtTick", value.CompletesAtTick);
+        WriteNullableNumber(writer, "endsAtTick", value.EndsAtTick);
+        WriteArray(writer, "positions", value.Positions, WritePosition);
+        writer.WritePropertyName("targetActorId");
+        if (value.TargetActorId is null) writer.WriteNullValue();
+        else WriteActorId(writer, value.TargetActorId);
+        writer.WriteNumber("remainingCapacity", value.RemainingCapacity);
+        writer.WriteBoolean("suppressed", value.Suppressed);
         writer.WriteEndObject();
     }
 
@@ -2418,6 +2659,11 @@ internal static class ReplayV3Serializer
                             nonNegative: false);
                         json.WriteEndObject();
                     });
+                break;
+            case ReplayV3.ModeResult.ArcRelay arcRelay:
+                writer.WriteString("reason", arcRelay.Reason);
+                writer.WritePropertyName("state");
+                WriteModeState(writer, arcRelay.State);
                 break;
             default:
                 throw new NotSupportedException(
@@ -3343,7 +3589,69 @@ internal static class ReplayV3Serializer
                     ratchet,
                     ratchetHoldTicks,
                     secondaryControl,
-                    secondaryThresholdTicks));
+                    secondaryThresholdTicks),
+                ArcRelay: null);
+        }
+        if (string.Equals(kind, "arc-relay", StringComparison.Ordinal))
+        {
+            RequireExactObject(
+                modeMapBinding,
+                "embedded Arc Relay mode-map binding",
+                "kind",
+                "orderedWellRegionIds",
+                "reactorRegionRoleId",
+                "homePadRegionRoleId");
+            if (!string.Equals(
+                    RequiredString(modeMapBinding, "kind"),
+                    "arc-relay",
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Embedded Arc Relay mode-map binding kind is invalid.");
+            }
+            JsonElement arcVictory = RequiredObject(gameMode, "victory");
+            int pulsesToDestroy = RequiredInt32(
+                arcVictory,
+                "pulsesToDestroyReactor");
+            int coresPerPulse = RequiredInt32(gameMode, "coresPerPulse");
+            int relocationTicks = RequiredInt32(
+                gameMode,
+                "coreRelocationIntervalTicks");
+            JsonElement wells = RequiredArray(gameMode, "wells");
+            JsonElement wellRegions = RequiredArray(
+                modeMapBinding,
+                "orderedWellRegionIds");
+            if (pulsesToDestroy <= 0
+                || coresPerPulse <= 0
+                || relocationTicks <= 0
+                || wells.GetArrayLength() == 0
+                || wells.GetArrayLength() != wellRegions.GetArrayLength())
+            {
+                throw new ArgumentException(
+                    "Embedded Arc Relay mode configuration is invalid.");
+            }
+            ImmutableArray<ContractRanking> arcRankings = RequiredArray(
+                    arcVictory,
+                    "timeoutRanking")
+                .EnumerateArray()
+                .Select(value => new ContractRanking(
+                    RequiredString(value, "channel"),
+                    RequiredString(value, "direction")))
+                .ToImmutableArray();
+            return new ContractMode(
+                kind,
+                modeId,
+                maxTicks,
+                KillsToWin: null,
+                arcRankings,
+                Frontline: null,
+                new ContractArcRelay(
+                    pulsesToDestroy,
+                    coresPerPulse,
+                    relocationTicks,
+                    wells.EnumerateArray()
+                        .Select(value => RequiredString(value, "wellId"))
+                        .ToImmutableArray()));
         }
         if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
         {
@@ -3403,7 +3711,8 @@ internal static class ReplayV3Serializer
             maxTicks,
             killsToWin,
             rankings,
-            Frontline: null);
+            Frontline: null,
+            ArcRelay: null);
     }
 
     private static ImmutableArray<ContractReplication>
@@ -4287,7 +4596,11 @@ internal static class ReplayV3Serializer
         CanonicalContractIndex contract,
         string context)
     {
-        if (observation.Mode != state.Mode)
+        if (!ModeObservationMatches(
+                observation.Mode,
+                state.Mode,
+                observation.TeamId,
+                observation.VisibleTiles.Select(value => value.Position)))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
@@ -5278,7 +5591,11 @@ internal static class ReplayV3Serializer
         CanonicalContractIndex contract,
         string context)
     {
-        if (observation.Mode != state.Mode)
+        if (!ModeObservationMatches(
+                observation.Mode,
+                state.Mode,
+                observation.Self.ActorId.TeamId,
+                observation.VisibleTiles.Select(value => value.Position)))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
@@ -5349,6 +5666,46 @@ internal static class ReplayV3Serializer
                     $"Replay-v3 {context} visible projectile does not match the authoritative pre-state and attack profile.");
             }
         }
+    }
+
+    private static bool ModeObservationMatches(
+        ReplayV3.ModeState observed,
+        ReplayV3.ModeState authoritative,
+        int observingTeamId,
+        IEnumerable<ReplayV3.PositionValue> visiblePositions)
+    {
+        if (observed is not ReplayV3.ModeState.ArcRelay arcObserved
+            || authoritative is not ReplayV3.ModeState.ArcRelay arcAuthoritative)
+        {
+            return observed == authoritative;
+        }
+
+        HashSet<ReplayV3.PositionValue> visible = visiblePositions.ToHashSet();
+        ImmutableArray<ReplayV3.ArcCore> expectedCores = arcAuthoritative
+            .VisibleCores.Where(core =>
+                core.CarrierActorId?.TeamId == observingTeamId
+                || visible.Contains(core.Position))
+            .ToImmutableArray();
+        ImmutableArray<ReplayV3.ArcSignature> expectedSignatures =
+            arcAuthoritative.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    || string.Equals(
+                        signature.Phase,
+                        "tell",
+                        StringComparison.Ordinal)
+                    || signature.Positions.Any(visible.Contains))
+                .ToImmutableArray();
+        return string.Equals(
+                arcObserved.Id,
+                arcAuthoritative.Id,
+                StringComparison.Ordinal)
+            && arcObserved.Wells.SequenceEqual(arcAuthoritative.Wells)
+            && arcObserved.Reactors.SequenceEqual(arcAuthoritative.Reactors)
+            && arcObserved.VisibleCores.SequenceEqual(expectedCores)
+            && arcObserved.VisibleSignatures.SequenceEqual(expectedSignatures)
+            && arcObserved.LatestPulseTeamId
+                == arcAuthoritative.LatestPulseTeamId
+            && arcObserved.LatestPulseTick == arcAuthoritative.LatestPulseTick;
     }
 
     private static ReplayV3.SpawnReservation? SpawnReservationAt(
@@ -5898,12 +6255,154 @@ internal static class ReplayV3Serializer
                 finalState,
                 contract);
         }
+        else if (result.Mode is ReplayV3.ModeResult.ArcRelay arcRelay)
+        {
+            ValidateArcRelayResult(
+                result,
+                arcRelay,
+                finalState,
+                contract);
+        }
         else
         {
             throw new ArgumentException(
                 "Replay-v3 result contains an unsupported terminal mode arm.");
         }
         ValidateCompetitionRanks(result.Standings);
+    }
+
+    private static void ValidateArcRelayResult(
+        ReplayV3.MatchResult result,
+        ReplayV3.ModeResult.ArcRelay arcRelay,
+        ReplayV3.WorldState finalState,
+        CanonicalContractIndex contract)
+    {
+        if (!string.Equals(
+                contract.Mode.Kind,
+                "arc-relay",
+                StringComparison.Ordinal)
+            || contract.Mode.ArcRelay is not { } configuration)
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay result does not match the embedded game mode.");
+        }
+        if (!IsArcRelayEndReason(arcRelay.Reason)
+            || !string.Equals(
+                result.CompletionReason,
+                arcRelay.Reason,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay completion reason is invalid or inconsistent.");
+        }
+        if (finalState.Mode is not ReplayV3.ModeState.ArcRelay finalArc
+            || !Equals(arcRelay.State, finalArc))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay terminal state must exactly equal the final mode state.");
+        }
+
+        HashSet<int> eligible = result.EligibleTeamIds.ToHashSet();
+        bool legalReason = arcRelay.Reason switch
+        {
+            "fault-eligibility" =>
+                eligible.Count <= 1
+                && result.EndTick < contract.Mode.MaxTicks,
+            "reactor-destroyed" =>
+                eligible.Count > 1
+                && result.EndTick < contract.Mode.MaxTicks
+                && finalArc.Reactors.Any(value =>
+                    value.IntegritySegments == 0),
+            "max-ticks" =>
+                eligible.Count > 1
+                && result.EndTick == contract.Mode.MaxTicks - 1
+                && finalArc.Reactors.All(value =>
+                    value.IntegritySegments > 0),
+            _ => false,
+        };
+        if (!legalReason)
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay completion reason is not legal for the final state.");
+        }
+
+        Dictionary<int, (long Pulses, long Charge)> scores = [];
+        foreach (int teamId in contract.TeamIds)
+        {
+            ReplayV3.ArcReactor own = finalArc.Reactors.Single(value =>
+                value.TeamId == teamId);
+            ReplayV3.ArcReactor opposing = finalArc.Reactors.Single(value =>
+                value.TeamId != teamId);
+            long pulses = configuration.PulsesToDestroyReactor
+                - opposing.IntegritySegments;
+            ReplayV3.TeamScore finalScore = finalState.Scoreboard.Teams.Single(
+                value => value.TeamId == teamId);
+            if (!ScoreEquals(
+                    finalScore,
+                    "pulses",
+                    pulses.ToString(CultureInfo.InvariantCulture))
+                || !ScoreEquals(
+                    finalScore,
+                    "reactor-charge",
+                    own.ChargePips.ToString(CultureInfo.InvariantCulture)))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 Arc Relay reactor facts and scoreboard disagree.");
+            }
+            scores.Add(teamId, (pulses, own.ChargePips));
+        }
+
+        int Compare(int left, int right)
+        {
+            int pulses = scores[right].Pulses.CompareTo(scores[left].Pulses);
+            return pulses != 0
+                ? pulses
+                : scores[right].Charge.CompareTo(scores[left].Charge);
+        }
+        int[] rankedEligible = [.. eligible];
+        Array.Sort(rankedEligible, (left, right) =>
+        {
+            int comparison = Compare(left, right);
+            return comparison != 0 ? comparison : left.CompareTo(right);
+        });
+        var ranks = new Dictionary<int, int>();
+        for (int index = 0; index < rankedEligible.Length; index++)
+        {
+            ranks[rankedEligible[index]] = index == 0
+                ? 1
+                : Compare(rankedEligible[index - 1], rankedEligible[index]) == 0
+                    ? ranks[rankedEligible[index - 1]]
+                    : index + 1;
+        }
+        int ineligibleRank = rankedEligible.Length + 1;
+        foreach (int teamId in contract.TeamIds)
+        {
+            if (!eligible.Contains(teamId))
+                ranks.Add(teamId, ineligibleRank);
+        }
+        int topCount = ranks.Count(value => value.Value == 1);
+        ReplayV3.TeamStanding[] expected = contract.TeamIds.Select(teamId =>
+                new ReplayV3.TeamStanding(
+                    teamId,
+                    ranks[teamId],
+                    ranks[teamId] == 1
+                        ? topCount == 1 ? "win" : "draw"
+                        : "loss",
+                    []))
+            .OrderBy(value => value.Rank)
+            .ThenBy(value => value.TeamId)
+            .ToArray();
+        if (!result.Standings.Teams.Zip(expected).All(pair =>
+                pair.First.TeamId == pair.Second.TeamId
+                && pair.First.Rank == pair.Second.Rank
+                && string.Equals(
+                    pair.First.Outcome,
+                    pair.Second.Outcome,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay standings do not follow the embedded victory policy.");
+        }
     }
 
     private static void ValidateFrontlineResult(
@@ -6422,6 +6921,15 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} mode state does not match the embedded game mode.");
         }
 
+        if (mode is ReplayV3.ModeState.ArcRelay arcRelay)
+        {
+            ValidateArcRelayModeState(
+                arcRelay,
+                nextTick,
+                contract,
+                context);
+            return;
+        }
         if (mode is not ReplayV3.ModeState.Frontline frontline)
             return;
         if (contract.Mode.Frontline is not { } configuration)
@@ -6501,6 +7009,110 @@ internal static class ReplayV3Serializer
         }
     }
 
+    private static void ValidateArcRelayModeState(
+        ReplayV3.ModeState.ArcRelay state,
+        int nextTick,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (contract.Mode.ArcRelay is not { } configuration)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay state does not match the embedded game mode.");
+        }
+        RequireInitialized(state.Wells, $"{context} Arc Relay Wells");
+        RequireInitialized(state.Reactors, $"{context} Arc Relay reactors");
+        RequireInitialized(state.VisibleCores, $"{context} Arc Relay Cores");
+        RequireInitialized(
+            state.VisibleSignatures,
+            $"{context} Arc Relay signatures");
+        if (!state.Wells.Select(value => value.WellId)
+                .SequenceEqual(configuration.WellIds)
+            || !state.Reactors.Select(value => value.TeamId)
+                .SequenceEqual(contract.TeamIds)
+            || (state.LatestPulseTeamId is null)
+                != (state.LatestPulseTick is null)
+            || state.LatestPulseTeamId is int pulseTeam
+                && !contract.TeamIds.Contains(pulseTeam)
+            || state.LatestPulseTick is int pulseTick
+                && (pulseTick < 0 || pulseTick >= nextTick))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay public ledger is invalid.");
+        }
+
+        foreach (ReplayV3.ArcWell well in state.Wells)
+        {
+            if ((well.PendingCharge || well.OutstandingCoreId is not null)
+                    && well.NextScheduledBirthTick is int scheduled
+                    && scheduled < 0
+                || (well.RearmCompletesAtTick is not null)
+                    != (well.PendingCharge
+                        && well.OutstandingCoreId is null)
+                || well.RearmCompletesAtTick is int rearm && rearm < nextTick
+                || well.OutstandingCoreId is { } outstanding
+                    && (!string.Equals(
+                        outstanding.SourceWellId,
+                        well.WellId,
+                        StringComparison.Ordinal)
+                        || outstanding.SourceOrdinal < 0))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} Arc Relay Well state is invalid.");
+            }
+        }
+        if (state.VisibleCores.Select(value => value.CoreId).Distinct().Count()
+                != state.VisibleCores.Length
+            || state.VisibleCores.Any(core =>
+                !configuration.WellIds.Contains(
+                    core.CoreId.SourceWellId,
+                    StringComparer.Ordinal)
+                || core.CoreId.SourceOrdinal < 0
+                || core.NextRelocationTick < 0
+                || core.Disposition is not ("loose" or "carried" or "in-flight")
+                || (core.Disposition == "carried") != (core.CarrierActorId is not null)
+                || (core.Disposition == "in-flight")
+                    != (core.FlightTarget is not null
+                        && core.FlightCompletesAtTick is not null)
+                || core.FlightCompletesAtTick < nextTick))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay Core state is invalid.");
+        }
+        foreach (ReplayV3.ArcReactor reactor in state.Reactors)
+        {
+            if (reactor.ChargePips < 0
+                || reactor.ChargePips >= configuration.CoresPerPulse
+                || reactor.IntegritySegments < 0
+                || reactor.IntegritySegments
+                    > configuration.PulsesToDestroyReactor)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} Arc Relay reactor state is invalid.");
+            }
+        }
+        if (state.VisibleSignatures.Select(value => value.OperationId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != state.VisibleSignatures.Length
+            || state.VisibleSignatures.Any(value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.OwnerActorId.TeamId != value.OwnerTeamId
+                || !contract.TeamIds.Contains(value.OwnerTeamId)
+                || value.Phase is not ("tell" or "active" or "channel" or "in-flight")
+                || value.StartedTick < 0
+                || value.StartedTick >= nextTick
+                || value.CompletesAtTick < nextTick
+                || value.EndsAtTick < nextTick
+                || value.Positions.IsDefaultOrEmpty
+                || value.Positions.Distinct().Count() != value.Positions.Length
+                || value.RemainingCapacity < 0))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay signature state is invalid.");
+        }
+    }
+
     /// <summary>
     /// The team a signed side-objective claim belongs to: positive counts for
     /// team 0 and negative for team 1, the direction the public team-advance
@@ -6543,6 +7155,7 @@ internal static class ReplayV3Serializer
             "lifecycle-clock-cancelled" =>
                 "lifecycle-clock-cancelled",
             "projectile-deflected" => "projectile-deflected",
+            "arc-relay" => "arc-relay",
             _ => throw new ArgumentException(
                 $"Replay-v3 {context} event kind '{kind}' is invalid."),
         };
@@ -6646,6 +7259,71 @@ internal static class ReplayV3Serializer
                         $"Replay-v3 {context} mind-runtime-fault must carry no actor identity.");
                 }
                 break;
+            case ReplayV3.EventPayload.ArcRelay arcRelay:
+                ValidateArcRelayFact(arcRelay.Fact, context);
+                break;
+        }
+    }
+
+    private static void ValidateArcRelayFact(
+        ReplayV3.ArcRelayFact fact,
+        string context)
+    {
+        ArgumentNullException.ThrowIfNull(fact);
+        static bool InvalidCoreId(ReplayV3.ArcCoreId value) =>
+            string.IsNullOrWhiteSpace(value.SourceWellId)
+            || value.SourceOrdinal < 0;
+        bool invalid = fact switch
+        {
+            ReplayV3.ArcRelayFact.CoreBorn value =>
+                InvalidCoreId(value.CoreId),
+            ReplayV3.ArcRelayFact.CorePickedUp value =>
+                InvalidCoreId(value.CoreId)
+                || value.NextRelocationTick < 0,
+            ReplayV3.ArcRelayFact.CoreRelocated value =>
+                InvalidCoreId(value.CoreId)
+                || value.From == value.To
+                || value.NextRelocationTick < 0
+                || value.RelocationKind is not (
+                    "carried-movement" or "forced-displacement"
+                    or "arc-toss-landing"),
+            ReplayV3.ArcRelayFact.CoreHandedOff value =>
+                InvalidCoreId(value.CoreId)
+                || value.SourceActorId.TeamId != value.TargetActorId.TeamId
+                || value.SourceActorId == value.TargetActorId
+                || value.NextRelocationTick < 0,
+            ReplayV3.ArcRelayFact.CoreDropped value =>
+                InvalidCoreId(value.CoreId)
+                || value.NextRelocationTick < 0
+                || value.DropKind is not (
+                    "voluntary" or "destruction" or "signature-departure"
+                    or "arc-toss-landing"),
+            ReplayV3.ArcRelayFact.CoreBanked value =>
+                InvalidCoreId(value.CoreId)
+                || value.CarrierActorId.TeamId != value.TeamId
+                || value.ChargePips < 0,
+            ReplayV3.ArcRelayFact.WellChanged value =>
+                string.IsNullOrWhiteSpace(value.WellId)
+                || value.RearmCompletesAtTick < 0
+                || value.OutstandingCoreId is { } coreId
+                    && InvalidCoreId(coreId),
+            ReplayV3.ArcRelayFact.Pulse value =>
+                value.TeamId < 0
+                || value.PulseOrdinal <= 0
+                || value.OpposingReactorIntegrity < 0,
+            ReplayV3.ArcRelayFact.SignatureChanged value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.Phase is not null
+                    && value.Phase is not (
+                        "tell" or "active" or "channel" or "in-flight")
+                || string.IsNullOrWhiteSpace(value.Reason),
+            _ => true,
+        };
+        if (invalid)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay fact is invalid.");
         }
     }
 
@@ -6692,6 +7370,16 @@ internal static class ReplayV3Serializer
         {
             throw new ArgumentException(
                 "Replay-v3 Frontline result reason is invalid.");
+        }
+        if (replay.Result is
+            {
+                Mode:
+                ReplayV3.ModeResult.ArcRelay arcRelay
+            }
+            && !IsArcRelayEndReason(arcRelay.Reason))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay result reason is invalid.");
         }
     }
 
@@ -6905,6 +7593,9 @@ internal static class ReplayV3Serializer
     private static bool IsFrontlineEndReason(string value) =>
         value is "fault-eligibility" or "base-breach" or "max-ticks";
 
+    private static bool IsArcRelayEndReason(string value) =>
+        value is "fault-eligibility" or "reactor-destroyed" or "max-ticks";
+
     private sealed record CanonicalContractIndex(
         string Fingerprint,
         string SeedProfileId,
@@ -6968,7 +7659,8 @@ internal static class ReplayV3Serializer
         int MaxTicks,
         int? KillsToWin,
         ImmutableArray<ContractRanking> TimeoutRanking,
-        ContractFrontline? Frontline);
+        ContractFrontline? Frontline,
+        ContractArcRelay? ArcRelay);
 
     private sealed record ContractRanking(
         string Channel,
@@ -6989,6 +7681,12 @@ internal static class ReplayV3Serializer
     private sealed record ContractTeamAdvance(
         int TeamId,
         int ObjectiveIndexDelta);
+
+    private sealed record ContractArcRelay(
+        int PulsesToDestroyReactor,
+        int CoresPerPulse,
+        int CoreRelocationIntervalTicks,
+        ImmutableArray<string> WellIds);
 
     private static void ValidatePresentation(
         ReplayV3.PresentationMetadata? presentation)
@@ -7302,6 +8000,8 @@ internal static class ReplayV3Serializer
                             ReplayV3.ActionConstraint.ProjectileHeading),
                     ["upgrade-track"] =
                         typeof(ReplayV3.ActionConstraint.UpgradeTrack),
+                    ["position-target"] =
+                        typeof(ReplayV3.ActionConstraint.PositionTarget),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventPayload>(
@@ -7344,6 +8044,31 @@ internal static class ReplayV3Serializer
                                 .LifecycleClockCancelled),
                     ["projectile-deflected"] =
                         typeof(ReplayV3.EventPayload.ProjectileDeflected),
+                    ["arc-relay"] =
+                        typeof(ReplayV3.EventPayload.ArcRelay),
+                }));
+        options.Converters.Add(
+            new TaggedUnionJsonConverter<ReplayV3.ArcRelayFact>(
+                new Dictionary<string, Type>(StringComparer.Ordinal)
+                {
+                    ["core-born"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreBorn),
+                    ["core-picked-up"] =
+                        typeof(ReplayV3.ArcRelayFact.CorePickedUp),
+                    ["core-relocated"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreRelocated),
+                    ["core-handed-off"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreHandedOff),
+                    ["core-dropped"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreDropped),
+                    ["core-banked"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreBanked),
+                    ["well-changed"] =
+                        typeof(ReplayV3.ArcRelayFact.WellChanged),
+                    ["pulse"] =
+                        typeof(ReplayV3.ArcRelayFact.Pulse),
+                    ["signature-changed"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureChanged),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventAudience>(
@@ -7620,6 +8345,13 @@ internal static class ReplayV3Serializer
                     RequireProperties(root, "kind", "trackId");
                     return new ReplayV3.RawActionArgument.UpgradeTrack(
                         NullableString(root, "trackId"));
+                case "position-target":
+                    RequireProperties(root, "kind", "value");
+                    return new ReplayV3.RawActionArgument.PositionTarget(
+                        RequiredValue<ReplayV3.PositionValue>(
+                            root,
+                            "value",
+                            options));
                 default:
                     throw new JsonException(
                         $"Unknown raw replay-v3 action argument kind '{kind}'.");
@@ -7692,6 +8424,13 @@ internal static class ReplayV3Serializer
                     RequireProperties(root, "kind", "trackId");
                     return new ReplayV3.ActionArgument.UpgradeTrack(
                         RequiredString(root, "trackId"));
+                case "position-target":
+                    RequireProperties(root, "kind", "value");
+                    return new ReplayV3.ActionArgument.PositionTarget(
+                        RequiredValue<ReplayV3.PositionValue>(
+                            root,
+                            "value",
+                            options));
                 default:
                     throw new JsonException(
                         $"Unknown resolved replay-v3 action argument kind '{kind}'.");
@@ -7781,6 +8520,29 @@ internal static class ReplayV3Serializer
                             scrapTeams ? ReadScrapTeams(teams) : [],
                             scrapPiles ? ReadScrapPiles(piles) : []);
                     }
+                case "arc-relay":
+                    RequireProperties(
+                        root,
+                        "kind",
+                        "modeId",
+                        "wells",
+                        "reactors",
+                        "visibleCores",
+                        "visibleSignatures",
+                        "latestPulseTeamId",
+                        "latestPulseTick");
+                    return new ReplayV3.ModeState.ArcRelay(
+                        modeId,
+                        RequiredArrayValue<ReplayV3.ArcWell>(
+                            root, "wells", options),
+                        RequiredArrayValue<ReplayV3.ArcReactor>(
+                            root, "reactors", options),
+                        RequiredArrayValue<ReplayV3.ArcCore>(
+                            root, "visibleCores", options),
+                        RequiredArrayValue<ReplayV3.ArcSignature>(
+                            root, "visibleSignatures", options),
+                        NullableInt32(root, "latestPulseTeamId"),
+                        NullableInt32(root, "latestPulseTick"));
                 default:
                     throw new JsonException(
                         $"Unknown replay-v3 mode kind '{kind}'.");
@@ -7793,6 +8555,21 @@ internal static class ReplayV3Serializer
             JsonSerializerOptions options) =>
             throw new NotSupportedException(
                 "Replay-v3 uses its explicit canonical writer.");
+
+        private static ImmutableArray<T> RequiredArrayValue<T>(
+            JsonElement value,
+            string propertyName,
+            JsonSerializerOptions options)
+        {
+            JsonElement property = value.GetProperty(propertyName);
+            if (property.ValueKind != JsonValueKind.Array)
+                throw new JsonException($"Replay-v3 '{propertyName}' must be an array.");
+            ImmutableArray<T> result =
+                property.Deserialize<ImmutableArray<T>>(options);
+            if (result.IsDefault)
+                throw new JsonException($"Replay-v3 '{propertyName}' must be initialized.");
+            return result;
+        }
     }
 
     private sealed class ModeResultJsonConverter
@@ -7855,7 +8632,23 @@ internal static class ReplayV3Serializer
                                 ReplayV3.FrontlineTeamScore>(
                                     root,
                                     "scores",
-                                    options));
+                            options));
+                    }
+                case "arc-relay":
+                    {
+                        RequireProperties(root, "kind", "reason", "state");
+                        ReplayV3.ModeState state = root.GetProperty("state")
+                            .Deserialize<ReplayV3.ModeState>(options)
+                            ?? throw new JsonException(
+                                "Replay-v3 Arc Relay terminal state cannot be null.");
+                        if (state is not ReplayV3.ModeState.ArcRelay arcRelay)
+                        {
+                            throw new JsonException(
+                                "Replay-v3 Arc Relay terminal state must use the Arc Relay state arm.");
+                        }
+                        return new ReplayV3.ModeResult.ArcRelay(
+                            RequiredString(root, "reason"),
+                            arcRelay);
                     }
                 default:
                     throw new JsonException(

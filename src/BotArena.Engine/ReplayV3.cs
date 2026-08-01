@@ -518,6 +518,9 @@ internal sealed record ReplayV3(
 
         internal sealed record UpgradeTrack(string? TrackId)
             : RawActionArgument("upgrade-track");
+
+        internal sealed record PositionTarget(PositionValue Value)
+            : RawActionArgument("position-target");
     }
 
     internal sealed record ActionResolution(
@@ -551,6 +554,9 @@ internal sealed record ReplayV3(
 
         internal sealed record UpgradeTrack(string TrackId)
             : ActionArgument("upgrade-track");
+
+        internal sealed record PositionTarget(PositionValue Value)
+            : ActionArgument("position-target");
     }
 
     internal sealed record RuntimeFault(
@@ -592,6 +598,10 @@ internal sealed record ReplayV3(
         internal sealed record UpgradeTrack(
             ImmutableArray<string> AllowedTrackIds)
             : ActionConstraint("upgrade-track");
+
+        internal sealed record PositionTarget(
+            ImmutableArray<PositionValue> AllowedValues)
+            : ActionConstraint("position-target");
     }
 
     internal sealed record UnitTargetValue(
@@ -733,6 +743,69 @@ internal sealed record ReplayV3(
             UnitSlotState CancelledState,
             string CancellationReason)
             : EventPayload("lifecycle-clock-cancelled");
+
+        internal sealed record ArcRelay(ArcRelayFact Fact)
+            : EventPayload("arc-relay");
+    }
+
+    internal abstract record ArcRelayFact(string Kind)
+    {
+        internal sealed record CoreBorn(
+            ArcCoreId CoreId,
+            PositionValue Position) : ArcRelayFact("core-born");
+
+        internal sealed record CorePickedUp(
+            ArcCoreId CoreId,
+            ActorId CarrierActorId,
+            PositionValue Position,
+            int NextRelocationTick) : ArcRelayFact("core-picked-up");
+
+        internal sealed record CoreRelocated(
+            ArcCoreId CoreId,
+            ActorId? CarrierActorId,
+            PositionValue From,
+            PositionValue To,
+            int NextRelocationTick,
+            string RelocationKind) : ArcRelayFact("core-relocated");
+
+        internal sealed record CoreHandedOff(
+            ArcCoreId CoreId,
+            ActorId SourceActorId,
+            ActorId TargetActorId,
+            PositionValue Position,
+            int NextRelocationTick) : ArcRelayFact("core-handed-off");
+
+        internal sealed record CoreDropped(
+            ArcCoreId CoreId,
+            ActorId SourceActorId,
+            PositionValue Position,
+            int NextRelocationTick,
+            string DropKind) : ArcRelayFact("core-dropped");
+
+        internal sealed record CoreBanked(
+            ArcCoreId CoreId,
+            ActorId CarrierActorId,
+            int TeamId,
+            PositionValue Position,
+            int ChargePips) : ArcRelayFact("core-banked");
+
+        internal sealed record WellChanged(
+            string WellId,
+            bool PendingCharge,
+            int? RearmCompletesAtTick,
+            ArcCoreId? OutstandingCoreId) : ArcRelayFact("well-changed");
+
+        internal sealed record Pulse(
+            int TeamId,
+            int PulseOrdinal,
+            int OpposingReactorIntegrity) : ArcRelayFact("pulse");
+
+        internal sealed record SignatureChanged(
+            string OperationId,
+            string SignatureId,
+            ActorId OwnerActorId,
+            string? Phase,
+            string Reason) : ArcRelayFact("signature-changed");
     }
 
     internal sealed record AuthoritativeEvent(
@@ -967,7 +1040,82 @@ internal sealed record ReplayV3(
                 return hash.ToHashCode();
             }
         }
+
+        internal sealed record ArcRelay(
+            string Id,
+            ImmutableArray<ArcWell> Wells,
+            ImmutableArray<ArcReactor> Reactors,
+            ImmutableArray<ArcCore> VisibleCores,
+            ImmutableArray<ArcSignature> VisibleSignatures,
+            int? LatestPulseTeamId,
+            int? LatestPulseTick)
+            : ModeState("arc-relay", Id)
+        {
+            public bool Equals(ArcRelay? other) =>
+                other is not null
+                && string.Equals(Id, other.Id, StringComparison.Ordinal)
+                && Wells.SequenceEqual(other.Wells)
+                && Reactors.SequenceEqual(other.Reactors)
+                && VisibleCores.SequenceEqual(other.VisibleCores)
+                && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
+                && LatestPulseTeamId == other.LatestPulseTeamId
+                && LatestPulseTick == other.LatestPulseTick;
+
+            public override int GetHashCode()
+            {
+                var hash = default(HashCode);
+                hash.Add(Id, StringComparer.Ordinal);
+                foreach (ArcWell value in Wells) hash.Add(value);
+                foreach (ArcReactor value in Reactors) hash.Add(value);
+                foreach (ArcCore value in VisibleCores) hash.Add(value);
+                foreach (ArcSignature value in VisibleSignatures)
+                    hash.Add(value);
+                hash.Add(LatestPulseTeamId);
+                hash.Add(LatestPulseTick);
+                return hash.ToHashCode();
+            }
+        }
     }
+
+    internal sealed record ArcCoreId(string SourceWellId, int SourceOrdinal);
+
+    internal sealed record ArcWell(
+        string WellId,
+        PositionValue Position,
+        int? NextScheduledBirthTick,
+        ArcCoreId? OutstandingCoreId,
+        bool PendingCharge,
+        int? RearmCompletesAtTick);
+
+    internal sealed record ArcReactor(
+        int TeamId,
+        PositionValue Position,
+        int ChargePips,
+        int IntegritySegments);
+
+    internal sealed record ArcCore(
+        ArcCoreId CoreId,
+        PositionValue Position,
+        string Disposition,
+        ActorId? CarrierActorId,
+        int NextRelocationTick,
+        PositionValue? FlightTarget,
+        int? FlightCompletesAtTick);
+
+    internal sealed record ArcSignature(
+        string OperationId,
+        string SignatureId,
+        string SignatureKind,
+        ActorId OwnerActorId,
+        int OwnerTeamId,
+        string Phase,
+        int StartedTick,
+        int? CompletesAtTick,
+        int? EndsAtTick,
+        ImmutableArray<PositionValue> Positions,
+        ActorId? TargetActorId,
+        int RemainingCapacity,
+        bool Suppressed);
 
     /// <summary>
     /// One team's published economic position. Serialized only on a ruleset
@@ -1043,6 +1191,11 @@ internal sealed record ReplayV3(
             ModeState.Frontline Control,
             ImmutableArray<FrontlineTeamScore> Scores)
             : ModeResult("frontline");
+
+        internal sealed record ArcRelay(
+            string Reason,
+            ModeState.ArcRelay State)
+            : ModeResult("arc-relay");
     }
 
     internal sealed record DeathmatchTeamScore(

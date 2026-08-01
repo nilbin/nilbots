@@ -3108,7 +3108,42 @@ public sealed class GenericActorMatchSession : IDisposable
                 ? null
                 : heardSounds.ToImmutable(),
             modeProjection.Scoreboard,
-            modeProjection.Mode);
+            ProjectModeForTeam(
+                modeProjection.Mode,
+                observingTeamId,
+                visibleTiles.Select(value => value.Position).ToHashSet()));
+    }
+
+    private static GenericActorRuntimeObservation.ModeObservationState
+        ProjectModeForTeam(
+            GenericActorRuntimeObservation.ModeObservationState mode,
+            int observingTeamId,
+            IReadOnlySet<Position> visibleTiles)
+    {
+        if (mode is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay arcRelay)
+        {
+            return mode;
+        }
+
+        return new GenericActorRuntimeObservation.ModeObservationState.ArcRelay(
+            arcRelay.ModeId,
+            arcRelay.Wells,
+            arcRelay.Reactors,
+            arcRelay.VisibleCores.Where(core =>
+                    core.CarrierActorId?.TeamId == observingTeamId
+                    || visibleTiles.Contains(core.Position))
+                .ToImmutableArray(),
+            arcRelay.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    // Tells are public because their only purpose is to offer
+                    // deterministic counterplay before the effect resolves.
+                    || signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Positions.Any(visibleTiles.Contains))
+                .ToImmutableArray(),
+            arcRelay.LatestPulseTeamId,
+            arcRelay.LatestPulseTick);
     }
 
     /// <summary>
@@ -5220,7 +5255,13 @@ public sealed class GenericActorMatchSession : IDisposable
                 slot.ClassId is not null
                 && !GenericMindContractReservations
                     .RegisteredCompositionTokens
-                    .Contains(slot.ClassId, StringComparer.Ordinal)))
+                    .Contains(slot.ClassId, StringComparer.Ordinal)
+                && (definition.Rules.GameMode
+                        is not ArcRelayGameModeDefinition arcRelay
+                    || !arcRelay.Signatures.Any(signature => string.Equals(
+                        signature.ClassId,
+                        slot.ClassId,
+                        StringComparison.Ordinal)))))
         {
             // A profile ID is a pre-registration in this project, and so is a
             // composition token. An unregistered chassis on a slot faults here
