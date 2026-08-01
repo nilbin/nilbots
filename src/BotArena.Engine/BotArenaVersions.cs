@@ -106,9 +106,11 @@ public static class BotArenaVersions
     /// <see cref="GenericActorEngineVersion"/> so introducing the new path
     /// does not relabel per-life matches.
     /// </summary>
-    // 1.0.1: Arc Toss legality no longer offers targets whose wall-clipped
-    // landing degenerates to the carrier's source tile.
-    public const string GenericMindEngineVersion = "1.0.1";
+    // 1.0.1: Arc Relay legality no longer offers position targets that create
+    // degenerate signature state.
+    // 1.0.2: a life reduced to zero by a tick-start signature is excluded from
+    // mode projection while its destruction chronology is finalized.
+    public const string GenericMindEngineVersion = "1.0.2";
 
     public const int GenericMindRuntimeContractVersion = 1;
     public const int GenericMindMatchStartSchemaVersion = 1;

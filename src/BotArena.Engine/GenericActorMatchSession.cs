@@ -5625,6 +5625,11 @@ public sealed class GenericActorMatchSession : IDisposable
             ActiveHealthByTeam(),
             EligibleTeamIds(),
             _lives.Values
+                // Signature effects can reduce a body to zero during tick
+                // start, immediately before the canonical destruction pass.
+                // Such a body is still present for destruction chronology but
+                // is no longer an active life in a mode world projection.
+                .Where(life => life.Health > 0)
                 .OrderBy(life => life.ActorId)
                 .Select(life => new GenericActorModeActiveLife(
                     life.ActorId,
