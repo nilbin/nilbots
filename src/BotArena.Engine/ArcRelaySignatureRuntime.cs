@@ -167,6 +167,12 @@ internal sealed class ArcRelaySignatureRuntime
             .Select(value => (Direction?)value.Value)
             .SingleOrDefault();
 
+        if (definition is ArcRelaySignatureDefinition.ArcToss
+            && targetPosition is Position requestedLanding)
+        {
+            targetPosition = ClipStraightLanding(source, requestedLanding);
+        }
+
         Operation operation = CreateOperation(
             operationId,
             definition,
@@ -177,12 +183,12 @@ internal sealed class ArcRelaySignatureRuntime
             heading,
             direction,
             tick);
-        ReplaceOwnedConstruct(operation);
+        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        ReplaceOwnedConstruct(operation, events);
         _operations.Add(operationId, operation);
         if (CooldownStartsAtActivation(definition))
             _readyAtTick[actor] = checked(tick + definition.CooldownTicks);
 
-        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         events.Add(SignatureEvent(operation, "started"));
         var effects = ImmutableArray.CreateBuilder<Effect>();
         if (definition is ArcRelaySignatureDefinition.TractorHook)
@@ -219,7 +225,7 @@ internal sealed class ArcRelaySignatureRuntime
         {
             bool suppressed = SuppressedByHostileNullField(
                 operation.OwnerActorId.TeamId,
-                operation.Positions[0],
+                operation.Positions,
                 tick,
                 operation.OperationId);
             if (suppressed
@@ -274,6 +280,8 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.OwnerActorId,
                         operation.TargetPosition.Value,
                         operation.CompletesAtTick.Value));
+                    _readyAtTick[operation.OwnerActorId] = checked(
+                        tick + toss.CooldownTicks);
                     events.Add(SignatureEvent(operation, "launched"));
                     break;
                 case ArcRelaySignatureDefinition.Exchange:
@@ -407,13 +415,24 @@ internal sealed class ArcRelaySignatureRuntime
     {
         HashSet<ActorIdentity> set = destroyed.ToHashSet();
         foreach (Operation operation in _operations.Values
-                     .Where(value => set.Contains(value.OwnerActorId)
+                     .Where(value =>
+                         set.Contains(value.OwnerActorId)
                          && value.Phase is ArcRelaySignatureState.SignaturePhase
                              .Tell or ArcRelaySignatureState.SignaturePhase
-                             .Channel)
+                             .Channel
+                         || value.Definition
+                             is ArcRelaySignatureDefinition.RepairBeam
+                         && value.TargetActorId is ActorIdentity target
+                         && set.Contains(target))
                      .ToArray())
         {
-            Complete(operation, tick, "owner-destroyed", events);
+            Complete(
+                operation,
+                tick,
+                set.Contains(operation.OwnerActorId)
+                    ? "owner-destroyed"
+                    : "target-destroyed",
+                events);
         }
     }
 
@@ -434,7 +453,7 @@ internal sealed class ArcRelaySignatureRuntime
                 value.RemainingCapacity,
                 SuppressedByHostileNullField(
                     value.OwnerActorId.TeamId,
-                    value.Positions[0],
+                    value.Positions,
                     tick)))
             .ToImmutableArray();
 
@@ -659,6 +678,11 @@ internal sealed class ArcRelaySignatureRuntime
                 || operation.TargetActorId is not ActorIdentity targetId
                 || !lives.TryGetValue(targetId, out Life? target)
                 || owner.Position.ChebyshevDistance(target.Position) > beam.Range
+                || !HasUnoccludedLine(
+                    owner.Position,
+                    target.Position,
+                    owner.ActorId.TeamId,
+                    tick)
                 || target.Health >= target.MaxHealth)
             {
                 Complete(operation, tick, "channel-ended", events);
@@ -686,14 +710,34 @@ internal sealed class ArcRelaySignatureRuntime
                  && (tick - operation.StartedTick)
                     % sentinel.FireCooldownTicks == 0)
         {
-            effects.Add(new Effect.SentinelFire(
-                operation.OperationId,
-                operation.OwnerActorId,
-                operation.Positions[0]));
+            Position origin = operation.Positions[0];
+            Life? target = lives.Values.Where(target =>
+                    target.ActorId.TeamId
+                        != operation.OwnerActorId.TeamId
+                    && origin.ChebyshevDistance(target.Position)
+                        <= sentinel.Range
+                    && HasUnoccludedLine(
+                        origin,
+                        target.Position,
+                        operation.OwnerActorId.TeamId,
+                        tick))
+                .OrderBy(value => origin.ChebyshevDistance(value.Position))
+                .ThenBy(value => value.ActorId)
+                .FirstOrDefault();
+            if (target is not null)
+            {
+                effects.Add(new Effect.SentinelFire(
+                    operation.OperationId,
+                    operation.OwnerActorId,
+                    origin,
+                    target.ActorId));
+            }
         }
     }
 
-    private void ReplaceOwnedConstruct(Operation replacement)
+    private void ReplaceOwnedConstruct(
+        Operation replacement,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
     {
         if (replacement.Definition is not (
                 ArcRelaySignatureDefinition.PrismWall
@@ -708,7 +752,7 @@ internal sealed class ArcRelaySignatureRuntime
                      && value.Definition.Kind == replacement.Definition.Kind)
                  .ToArray())
         {
-            _operations.Remove(existing.OperationId);
+            Remove(existing, "replaced", events);
         }
     }
 
@@ -784,6 +828,64 @@ internal sealed class ArcRelaySignatureRuntime
             && value.OwnerActorId.TeamId != teamId
             && value.EndsAtTick > tick
             && value.Positions.Contains(position));
+
+    private bool SuppressedByHostileNullField(
+        int teamId,
+        IEnumerable<Position> positions,
+        int tick,
+        string? excludedOperationId = null) =>
+        positions.Any(position => SuppressedByHostileNullField(
+            teamId,
+            position,
+            tick,
+            excludedOperationId));
+
+    private bool HasUnoccludedLine(
+        Position origin,
+        Position target,
+        int teamId,
+        int tick)
+    {
+        int distance = origin.ChebyshevDistance(target);
+        foreach (Position position in Visibility.SupercoverLine(origin, target))
+        {
+            if (position == origin || position == target)
+                continue;
+            if (_map.IsWall(position))
+                return false;
+        }
+        if (distance <= 1)
+            return true;
+        foreach (Position position in Visibility.SupercoverLine(origin, target))
+        {
+            if (position == origin)
+                continue;
+            if (IsSmokeAt(position, tick)
+                && !IsRevealedForTeam(position, teamId, tick))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Position ClipStraightLanding(Position source, Position requested)
+    {
+        ProjectileHeading heading = ProjectileHeadingExtensions.Between(
+            source,
+            requested);
+        var (dx, dy) = heading.Vector();
+        Position current = source;
+        int distance = source.ChebyshevDistance(requested);
+        for (int step = 0; step < distance; step++)
+        {
+            Position next = current.Offset(dx, dy);
+            if (_map.IsWall(next))
+                break;
+            current = next;
+        }
+        return current;
+    }
 
     private IEnumerable<Position> PlacementTargets(
         Position source,
@@ -932,7 +1034,8 @@ internal sealed class ArcRelaySignatureRuntime
         internal sealed record SentinelFire(
             string Id,
             ActorIdentity Actor,
-            Position Origin) : Effect(Id, Actor);
+            Position Origin,
+            ActorIdentity Target) : Effect(Id, Actor);
     }
 
     private sealed class Operation

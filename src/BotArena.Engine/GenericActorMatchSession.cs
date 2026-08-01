@@ -347,6 +347,7 @@ public sealed class GenericActorMatchSession : IDisposable
             tickStartEvents);
         if (_mode is ArcRelayActorMatchModeDriver arcRelay)
         {
+            _arcSignatureDamagedThisTick.Clear();
             GenericActorRuntimeObservation.ModeObservationState.ArcRelay
                 beforeSignatures = ((GenericActorModeState.ArcRelay)
                     arcRelay.State).State;
@@ -364,6 +365,17 @@ public sealed class GenericActorMatchSession : IDisposable
                     signatureApplication.RelocatedActors,
                     ModeWorldView()),
                 tickStartEvents);
+            if (_arcSignatureDamagedThisTick.Count > 0)
+            {
+                var damageInterruptEvents = ImmutableArray
+                    .CreateBuilder<GenericActorModeEvent>();
+                arcRelay.Signatures.NotifyDamaged(
+                    Tick,
+                    _arcSignatureDamagedThisTick.ToImmutableArray(),
+                    damageInterruptEvents);
+                EmitModeEvents(damageInterruptEvents, tickStartEvents);
+                _arcSignatureDamagedThisTick.Clear();
+            }
             ImmutableArray<FrontlineScrapDestruction> signatureDestructions =
                 FinalizeDestroyedLives(
                     ImmutableHashSet<int>.Empty,
@@ -539,11 +551,11 @@ public sealed class GenericActorMatchSession : IDisposable
                 arcRelayAfterMovement,
                 postMovementSignatures.Effects,
                 events);
-            ResolveArcRelayObjectiveActions(resolutions, events);
             ResolveArcRelaySignatureActions(
                 resolutions,
                 arcRelayAfterMovement,
                 events);
+            ResolveArcRelayObjectiveActions(resolutions, events);
         }
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
@@ -1603,6 +1615,13 @@ public sealed class GenericActorMatchSession : IDisposable
 
             ArcRelaySignatureDefinition signature =
                 mode.Signatures.DefinitionForAction(action.Id);
+            if (signature is ArcRelaySignatureDefinition.ArcToss
+                && (!mode.CarriesCore(resolution.ActorId)
+                    || !mode.CanCarrierRelocate(resolution.ActorId, Tick)))
+            {
+                Block(resolution);
+                continue;
+            }
             if (signature is ArcRelaySignatureDefinition.Exchange)
             {
                 GenericActorRuntimeActionArgument.UnitTarget target =
@@ -1924,14 +1943,9 @@ public sealed class GenericActorMatchSession : IDisposable
         ArcRelaySignatureDefinition.SentinelSeed rule =
             (ArcRelaySignatureDefinition.SentinelSeed)
                 mode.Signatures.DefinitionFor(effect.Owner);
-        LifeState? target = _lives.Values
-            .Where(value => value.ActorId.TeamId != effect.Owner.TeamId
-                && value.Position.ChebyshevDistance(effect.Origin)
-                    <= rule.Range)
-            .OrderBy(value => value.Position.ChebyshevDistance(effect.Origin))
-            .ThenBy(value => value.ActorId)
-            .FirstOrDefault();
-        if (target is not null)
+        if (_lives.TryGetValue(effect.Target, out LifeState? target)
+            && target.ActorId.TeamId != effect.Owner.TeamId
+            && target.Position.ChebyshevDistance(effect.Origin) <= rule.Range)
         {
             ApplySignatureDamage(mode, effect.OperationId, effect.Owner,
                 target, rule.Damage, events);

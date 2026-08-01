@@ -133,6 +133,15 @@ public sealed class ArcRelayH0DefinitionTests
             {
                 Fact: ReplayV3.ArcRelayFact.CoreBorn,
             });
+        GenericActorArcRelayReplaySummary summary =
+            GenericActorArcRelayReplaySummary.Read(document.CanonicalJson);
+        Assert.Equal(21, summary.ScheduledBirths);
+        Assert.Equal(3, summary.ActualBirths);
+        Assert.Equal(0, summary.Banks);
+        Assert.Contains(
+            "Cores: scheduled 21, born 3",
+            summary.Format(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
