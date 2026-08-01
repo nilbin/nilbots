@@ -71,6 +71,36 @@ public sealed class GenericActorChronologyFoundationTests
     }
 
     [Fact]
+    public void MindDescriptor_UsesTheIndependentMindEngineVersion()
+    {
+        string[] composition =
+        [
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Switchback,
+            ArcRelayLaunchClassIds.Hush,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Patchbay,
+        ];
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            composition,
+            composition);
+
+        GenericActorMatchDescriptor descriptor =
+            GenericActorMatchDescriptor.Create(
+                definition,
+                42,
+                Configurations(definition));
+
+        Assert.True(definition.CapabilityVersions.IsMindProfile);
+        Assert.Equal(
+            BotArenaVersions.GenericMindEngineVersion,
+            descriptor.EngineVersion);
+    }
+
+    [Fact]
     public void ParticipantSnapshotAndDescriptor_RejectMalformedMetadataAndTopology()
     {
         ActorResolvedMatchDefinition definition =
