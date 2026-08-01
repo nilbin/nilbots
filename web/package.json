@@ -7,6 +7,7 @@
     "dev": "npm run atlas:variants && vite",
     "build": "npm run build:cli && npm run atlas:variants && tsc -b && vite build",
     "build:review": "npm run atlas:variants && tsc -b && vite build --config vite.review.config.ts",
+    "build:gate3": "npm run atlas:variants && tsc -b && vite build --config vite.gate3.config.ts",
     "build:site-review": "npm run atlas:variants && tsc -b && vite build --config vite.site-review.config.ts",
     "preview": "vite preview",
     "test": "npm run harness && node --import ./tests/support/register.mjs --test tests/*.test.ts",

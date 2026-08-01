@@ -327,11 +327,12 @@ def build(args: argparse.Namespace) -> None:
     hosted = args.viewer == "hosted"
 
     if hosted:
-        dist = REPO / "web" / "dist"
+        dist = (args.viewer_build.resolve() if args.viewer_build
+                else REPO / "web" / "dist")
         template_path = dist / "index.html"
         if not template_path.exists():
             raise SystemExit(
-                "web/dist/index.html missing — run `npm run build` in web/")
+                f"{template_path} missing — build the selected hosted viewer")
         # Everything `web/dist` ships beside the entry point comes along,
         # DIRECTORIES INCLUDED. Copying `assets/` plus the loose files was
         # the whole gallery's audio bug: Vite bundles the three sound-effect
@@ -477,6 +478,8 @@ def main() -> int:
                              "(see module docstring)")
     parser.add_argument("--viewer", choices=("hosted", "self-contained"),
                         default="hosted")
+    parser.add_argument("--viewer-build", type=Path, default=None,
+                        help="hosted viewer build directory (default: web/dist)")
     parser.add_argument("--theme", default="control-room",
                         help="dist-cli theme for self-contained mode")
     parser.add_argument("--review-panel", action="store_true")
