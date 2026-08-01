@@ -90,6 +90,29 @@ public sealed class ArcRelayH0DefinitionTests
     }
 
     [Fact]
+    public void ReplayPresentation_AuthorsEveryClassLookAndSharedProjectile()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+
+        GenericActorReplayPresentation presentation =
+            ArcRelayH0ReplayPresentation.Create(definition);
+
+        Assert.Equal("ember-forge", presentation.ThemeId);
+        Assert.Equal(16, presentation.Forms.Length);
+        Assert.Equal(
+            ArcRelayLaunchClassIds.All.Order(StringComparer.Ordinal),
+            presentation.Forms.Select(form =>
+                form.FormId[ArcRelayH0Definition.FormPrefix.Length..]));
+        Assert.All(presentation.Forms, form =>
+        {
+            string classId = form.FormId[
+                ArcRelayH0Definition.FormPrefix.Length..];
+            Assert.Equal($"arc-{classId}", form.LookId);
+            Assert.Equal("arc-pulse", form.ProjectileLookId);
+        });
+    }
+
+    [Fact]
     public void MindMatch_ReplayRoundTripsWithArcObjectiveLedger()
     {
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();

@@ -1,0 +1,10 @@
+{
+  "id": "arc-palisade",
+  "label": "Arc Relay Palisade",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "palisade",
+  "locomotionCue": "low-hover",
+  "scale": 1.1
+}

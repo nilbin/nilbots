@@ -31,6 +31,24 @@ const expectedLooks = new Map([
   ['lattice-loom', ['fabricator', 'lattice-rivet']],
   ['trident-wasp', ['striker', 'trident-spark']],
   ['trident-wasp-volley', ['striker', 'trident-spark']],
+  ...[
+    'kestrel',
+    'palisade',
+    'towline',
+    'patchbay',
+    'lantern',
+    'mortar',
+    'minesmith',
+    'hush',
+    'relay',
+    'switchback',
+    'longshot',
+    'mason',
+    'sunder',
+    'repulsor',
+    'veil',
+    'nest',
+  ].map((classId) => [`arc-${classId}`, [classId, 'arc-pulse']]),
 ]);
 
 test('internal class looks are genuine tagged SVG packages with paired shots', () => {
@@ -82,7 +100,12 @@ test('internal class looks are genuine tagged SVG packages with paired shots', (
 });
 
 test('internal class projectiles are compact white-alpha SVG masks', () => {
-  const expected = ['lattice-rivet', 'rebound-diamond', 'trident-spark'];
+  const expected = [
+    'arc-pulse',
+    'lattice-rivet',
+    'rebound-diamond',
+    'trident-spark',
+  ];
   const found: string[] = [];
   for (const directory of readdirSync(projectilesRoot, {
     withFileTypes: true,
@@ -130,6 +153,8 @@ test('internal class looks expose typed class metadata without entering cosmetic
   assert.equal(presentationBotLook('trident-wasp').classId, 'striker');
   assert.equal(presentationBotLook('aegis-tortoise').classId, 'bulwark');
   assert.equal(presentationBotLook('lattice-loom').classId, 'fabricator');
+  assert.equal(presentationBotLook('arc-kestrel').classId, 'kestrel');
+  assert.equal(presentationBotLook('arc-nest').classId, 'nest');
 });
 
 test('the concept registry preserves three exact pairs per class', () => {

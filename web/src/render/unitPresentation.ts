@@ -87,7 +87,33 @@ const CLASS_FORM_PRESENTATION: ReadonlyMap<
       projectile: 'lattice-rivet',
     },
   ],
+  ...[
+    'kestrel',
+    'palisade',
+    'towline',
+    'patchbay',
+    'lantern',
+    'mortar',
+    'minesmith',
+    'hush',
+    'relay',
+    'switchback',
+    'longshot',
+    'mason',
+    'sunder',
+    'repulsor',
+    'veil',
+    'nest',
+  ].map(
+    (classId) =>
+      [
+        classId,
+        { mobile: `arc-${classId}`, projectile: 'arc-pulse' },
+      ] as const,
+  ),
 ]);
+
+const ARC_RELAY_FORM_PREFIX = 'arc-body-';
 
 /**
  * The same-life stances the class-skill kit adds, keyed by the token the engine appends
@@ -132,7 +158,9 @@ export function classFamilyForForm(
   formId: string | null | undefined,
 ): string | null {
   if (!formId) return null;
-  const family = formId.split('-', 1)[0];
+  const family = formId.startsWith(ARC_RELAY_FORM_PREFIX)
+    ? formId.slice(ARC_RELAY_FORM_PREFIX.length)
+    : formId.split('-', 1)[0];
   return CLASS_FORM_PRESENTATION.has(family) ? family : null;
 }
 

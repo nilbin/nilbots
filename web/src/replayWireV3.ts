@@ -266,9 +266,40 @@ export interface ReplayV3FrontlineCaptureGainPhase
   gainPerSoleTeamTick: number;
 }
 
+export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
+  kind: 'arc-relay';
+  modeId: string;
+  victory: ReplayV3JsonObject & {
+    kind: 'arc-relay';
+    timeoutRanking: ReplayV3RankingRule[];
+    pulsesToDestroyReactor: number;
+  };
+  scoreCatalog: ReplayV3ScoreCatalogEntry[];
+  pendingRearmTicks: number;
+  coreRelocationIntervalTicks: number;
+  coresPerPulse: number;
+  fieldedSlotsPerTeam: number;
+  maxCopiesPerClass: number;
+  respawnDelayTicks: number;
+  wells: {
+    wellId: string;
+    firstBirthTick: number;
+    cadenceTicks: number;
+    finalBirthTick: number;
+  }[];
+  signatures: (ReplayV3JsonObject & {
+    kind: string;
+    signatureId: string;
+    classId: string;
+    actionId: string;
+    cooldownTicks: number;
+  })[];
+}
+
 export type ReplayV3GameModeDefinition =
   | ReplayV3DeathmatchModeDefinition
-  | ReplayV3FrontlineModeDefinition;
+  | ReplayV3FrontlineModeDefinition
+  | ReplayV3ArcRelayModeDefinition;
 
 export interface ReplayV3RulesContract {
   schemaVersion: number;
@@ -421,9 +452,17 @@ export interface ReplayV3FrontlineModeMapBinding {
   }[];
 }
 
+export interface ReplayV3ArcRelayModeMapBinding {
+  kind: 'arc-relay';
+  orderedWellRegionIds: string[];
+  reactorRegionRoleId: string;
+  homePadRegionRoleId: string;
+}
+
 export type ReplayV3ModeMapBinding =
   | ReplayV3DeathmatchModeMapBinding
-  | ReplayV3FrontlineModeMapBinding;
+  | ReplayV3FrontlineModeMapBinding
+  | ReplayV3ArcRelayModeMapBinding;
 
 export interface ReplayV3ResolvedContract {
   schemaVersion: number;
@@ -538,6 +577,7 @@ export type ReplayV3RawActionArgument =
   | { kind: 'direction'; value: number }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string | null }
+  | { kind: 'position-target'; value: ReplayV3Position }
   | { kind: 'projectile-heading'; value: number }
   | { kind: 'upgrade-track'; trackId: string | null };
 
@@ -546,6 +586,7 @@ export type ReplayV3ActionArgument =
   | { kind: 'direction'; value: ReplayV3Direction }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string }
+  | { kind: 'position-target'; value: ReplayV3Position }
   | { kind: 'projectile-heading'; value: ReplayV3ProjectileHeading }
   | { kind: 'upgrade-track'; trackId: string };
 
@@ -684,7 +725,66 @@ export type ReplayV3ModeState =
       scrapTeams?: ReplayV3ScrapTeam[];
       /** Live piles of loose scrap, ordered by (y, x). */
       scrapPiles?: ReplayV3ScrapPile[];
-    };
+    }
+  | ReplayV3ArcRelayModeState;
+
+export interface ReplayV3ArcCoreId {
+  sourceWellId: string;
+  sourceOrdinal: number;
+}
+
+export interface ReplayV3ArcWell {
+  wellId: string;
+  position: ReplayV3Position;
+  nextScheduledBirthTick: number | null;
+  outstandingCoreId: ReplayV3ArcCoreId | null;
+  pendingCharge: boolean;
+  rearmCompletesAtTick: number | null;
+}
+
+export interface ReplayV3ArcReactor {
+  teamId: number;
+  position: ReplayV3Position;
+  chargePips: number;
+  integritySegments: number;
+}
+
+export interface ReplayV3ArcCore {
+  coreId: ReplayV3ArcCoreId;
+  position: ReplayV3Position;
+  disposition: 'loose' | 'carried' | 'in-flight';
+  carrierActorId: ReplayV3ActorId | null;
+  nextRelocationTick: number;
+  flightTarget: ReplayV3Position | null;
+  flightCompletesAtTick: number | null;
+}
+
+export interface ReplayV3ArcSignature {
+  operationId: string;
+  signatureId: string;
+  signatureKind: string;
+  ownerActorId: ReplayV3ActorId;
+  ownerTeamId: number;
+  phase: 'tell' | 'active' | 'channel' | 'in-flight';
+  startedTick: number;
+  completesAtTick: number | null;
+  endsAtTick: number | null;
+  positions: ReplayV3Position[];
+  targetActorId: ReplayV3ActorId | null;
+  remainingCapacity: number;
+  suppressed: boolean;
+}
+
+export interface ReplayV3ArcRelayModeState {
+  kind: 'arc-relay';
+  modeId: string;
+  wells: ReplayV3ArcWell[];
+  reactors: ReplayV3ArcReactor[];
+  visibleCores: ReplayV3ArcCore[];
+  visibleSignatures: ReplayV3ArcSignature[];
+  latestPulseTeamId: number | null;
+  latestPulseTick: number | null;
+}
 
 /** One team's published economic position under a declared scrap economy. */
 export interface ReplayV3ScrapTeam extends ReplayV3JsonObject {
@@ -840,6 +940,7 @@ export type ReplayV3ActionConstraint =
       kind: 'projectile-heading';
       allowedValues: ReplayV3ProjectileHeading[];
     }
+  | { kind: 'position-target'; allowedValues: ReplayV3Position[] }
   | { kind: 'upgrade-track'; allowedTrackIds: string[] };
 
 export interface ReplayV3ActionLegality {
@@ -987,7 +1088,22 @@ export type ReplayV3EventPayload =
       targetFacing: string;
       heading: string;
       position: ReplayV3Position;
-    };
+    }
+  | { kind: 'arc-relay'; fact: ReplayV3ArcRelayFact };
+
+export type ReplayV3ArcRelayFact =
+  | (ReplayV3JsonObject & { kind: 'core-born'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'core-picked-up'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
+  | (ReplayV3JsonObject & { kind: 'core-relocated'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId | null; from: ReplayV3Position; to: ReplayV3Position; nextRelocationTick: number; relocationKind: string })
+  | (ReplayV3JsonObject & { kind: 'core-handed-off'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
+  | (ReplayV3JsonObject & { kind: 'core-dropped'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number; dropKind: string })
+  | (ReplayV3JsonObject & { kind: 'core-banked'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; teamId: number; position: ReplayV3Position; chargePips: number })
+  | (ReplayV3JsonObject & { kind: 'well-changed'; wellId: string; pendingCharge: boolean; rearmCompletesAtTick: number | null; outstandingCoreId: ReplayV3ArcCoreId | null })
+  | (ReplayV3JsonObject & { kind: 'pulse'; teamId: number; pulseOrdinal: number; opposingReactorIntegrity: number })
+  | (ReplayV3JsonObject & { kind: 'signature-changed'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; phase: string | null; reason: string })
+  | (ReplayV3JsonObject & { kind: 'body-relocated'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; from: ReplayV3Position; to: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'signature-damage'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'signature-repair'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position });
 
 export type ReplayV3EventKind =
   | 'rotation'
@@ -1010,7 +1126,8 @@ export type ReplayV3EventKind =
   | 'score-changed'
   | 'mode-changed'
   | 'lifecycle-clock-cancelled'
-  | 'projectile-deflected';
+  | 'projectile-deflected'
+  | 'arc-relay';
 
 export interface ReplayV3ObservedEvent {
   eventHandle: string;
@@ -1322,9 +1439,16 @@ export interface ReplayV3FrontlineResult {
   }[];
 }
 
+export interface ReplayV3ArcRelayResult {
+  kind: 'arc-relay';
+  reason: 'fault-eligibility' | 'reactor-destroyed' | 'max-ticks';
+  state: ReplayV3ArcRelayModeState;
+}
+
 export type ReplayV3ModeResult =
   | ReplayV3DeathmatchResult
-  | ReplayV3FrontlineResult;
+  | ReplayV3FrontlineResult
+  | ReplayV3ArcRelayResult;
 
 export interface ReplayV3Document {
   header: ReplayV3Header;

@@ -1,7 +1,26 @@
 import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
 
-export type BotLookClassId = 'striker' | 'bulwark' | 'fabricator';
+export type BotLookClassId =
+  | 'striker'
+  | 'bulwark'
+  | 'fabricator'
+  | 'kestrel'
+  | 'palisade'
+  | 'towline'
+  | 'patchbay'
+  | 'lantern'
+  | 'mortar'
+  | 'minesmith'
+  | 'hush'
+  | 'relay'
+  | 'switchback'
+  | 'longshot'
+  | 'mason'
+  | 'sunder'
+  | 'repulsor'
+  | 'veil'
+  | 'nest';
 export type BotLocomotionCue = 'low-hover';
 
 export interface BotLook {
@@ -244,6 +263,22 @@ const classIds = new Set<BotLookClassId>([
   'striker',
   'bulwark',
   'fabricator',
+  'kestrel',
+  'palisade',
+  'towline',
+  'patchbay',
+  'lantern',
+  'mortar',
+  'minesmith',
+  'hush',
+  'relay',
+  'switchback',
+  'longshot',
+  'mason',
+  'sunder',
+  'repulsor',
+  'veil',
+  'nest',
 ]);
 const themes = buildThemes();
 const looks = buildLooks(lookManifests, lookImages, lookSvgSources);

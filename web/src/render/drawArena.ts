@@ -54,6 +54,10 @@ import {
   createPresenter,
   type ReplayPresenter,
 } from '../replayPresentation';
+import {
+  drawArcRelayGround,
+  drawArcRelayOverlay,
+} from './arcRelayVisual';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -319,6 +323,21 @@ export function drawArena(
   drawZone();
   drawVision();
   drawWalls();
+  const arcRelayVisual = {
+    ctx,
+    replay,
+    tick: currentTick,
+    time,
+    fraction,
+    tile,
+    mapWidth,
+    mapHeight,
+    px,
+    py,
+    poses,
+    accentFor,
+  };
+  drawArcRelayGround(arcRelayVisual);
   drawSpill();
   if (showVisibility && selectedUnitKey !== null)
     drawFog(selectedUnitKey);
@@ -332,6 +351,7 @@ export function drawArena(
   // Loose scrap sits on the floor under the bodies that come to take it.
   drawScrapPiles();
   drawShadowsAndBots();
+  drawArcRelayOverlay(arcRelayVisual);
   drawShots();
   drawImpacts();
 

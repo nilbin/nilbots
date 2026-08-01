@@ -1,0 +1,10 @@
+{
+  "id": "arc-kestrel",
+  "label": "Arc Relay Kestrel",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "kestrel",
+  "locomotionCue": "low-hover",
+  "scale": 1.08
+}

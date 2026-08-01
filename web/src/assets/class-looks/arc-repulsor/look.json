@@ -1,0 +1,10 @@
+{
+  "id": "arc-repulsor",
+  "label": "Arc Relay Repulsor",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "repulsor",
+  "locomotionCue": "low-hover",
+  "scale": 1.08
+}

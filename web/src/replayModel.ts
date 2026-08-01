@@ -150,7 +150,8 @@ export type ReplayActionParameterKind =
   | 'unit-target'
   | 'form-target'
   | 'projectile-heading'
-  | 'upgrade-track';
+  | 'upgrade-track'
+  | 'position-target';
 export type ReplayActionKind =
   | 'wait'
   | 'movement'
@@ -578,6 +579,15 @@ export type ReplayGenericModeDefinition =
         teamId: number;
         positionIndexDelta: -1 | 1;
       }[];
+    }
+  | {
+      kind: 'arc-relay';
+      modeId: string;
+      pendingRearmTicks: number;
+      coreRelocationIntervalTicks: number;
+      coresPerPulse: number;
+      pulsesToDestroyReactor: number;
+      orderedWellRegionIds: string[];
     };
 
 export interface ReplayGenericMatchContract
@@ -716,6 +726,8 @@ export interface ReplayStableUnit {
   initialActorKey: ReplayActorLifeKey | null;
   initialLifeId: number | null;
   initialFormId: string | null;
+  /** Fixed per-slot launch class when the resolved topology declares one. */
+  classId?: string | null;
 }
 
 export interface ReplayForm {
@@ -878,6 +890,7 @@ export type ReplayModeState =
       kind: 'deathmatch';
       modeId: string;
     }
+  | ReplayArcRelayModeState
   | {
       kind: 'frontline';
       modeId: string;
@@ -920,6 +933,56 @@ export type ReplayModeState =
       modeId: string;
       state: Readonly<Record<string, unknown>>;
     };
+
+export interface ReplayArcCoreId {
+  sourceWellId: string;
+  sourceOrdinal: number;
+}
+
+export interface ReplayArcRelayModeState {
+  kind: 'arc-relay';
+  modeId: string;
+  wells: {
+    wellId: string;
+    position: ReplayPosition;
+    nextScheduledBirthTick: number | null;
+    outstandingCoreId: ReplayArcCoreId | null;
+    pendingCharge: boolean;
+    rearmCompletesAtTick: number | null;
+  }[];
+  reactors: {
+    teamId: number;
+    position: ReplayPosition;
+    chargePips: number;
+    integritySegments: number;
+  }[];
+  visibleCores: {
+    coreId: ReplayArcCoreId;
+    position: ReplayPosition;
+    disposition: 'loose' | 'carried' | 'in-flight';
+    carrierActor: ReplayActorIdentity | null;
+    nextRelocationTick: number;
+    flightTarget: ReplayPosition | null;
+    flightCompletesAtTick: number | null;
+  }[];
+  visibleSignatures: {
+    operationId: string;
+    signatureId: string;
+    signatureKind: string;
+    ownerActor: ReplayActorIdentity;
+    ownerTeamId: number;
+    phase: 'tell' | 'active' | 'channel' | 'in-flight';
+    startedTick: number;
+    completesAtTick: number | null;
+    endsAtTick: number | null;
+    positions: ReplayPosition[];
+    targetActor: ReplayActorIdentity | null;
+    remainingCapacity: number;
+    suppressed: boolean;
+  }[];
+  latestPulseTeamId: number | null;
+  latestPulseTick: number | null;
+}
 
 export interface ReplayProjectileState {
   projectileId: string;
@@ -1144,6 +1207,7 @@ export interface ReplayObservedActionAvailability {
   allowedProjectileHeadings: ReplayProjectileHeading[] | null;
   allowedUnitKeys: ReplayStableUnitKey[] | null;
   allowedFormTargets: string[] | null;
+  allowedPositions?: ReplayPosition[] | null;
   /**
    * Upgrade tracks this body's team may buy the next tier of this tick, or
    * null when the action declares no such parameter. Affordability and the
@@ -1205,6 +1269,8 @@ export interface ReplayActionPayload {
   launchHeading: ReplayProjectileHeading | null;
   unitKey: ReplayStableUnitKey | null;
   formTargetId: string | null;
+  /** Exact targeted map tile for position-parameter actions in replay v3. */
+  positionTarget?: ReplayPosition | null;
 }
 
 export interface ReplayActorDecision {
@@ -1321,11 +1387,99 @@ export interface ReplayCausalEvent {
   completeness: ReplayObservationCompleteness;
   globalOrdinal?: string;
   payloadKind?: string;
+  arcRelayFact?: ReplayArcRelayFact;
   audience?:
     | { kind: 'public' }
     | { kind: 'spatial'; primaryPosition: ReplayPosition }
     | { kind: 'team-private'; teamId: number };
 }
+
+export type ReplayArcRelayFact =
+  | {
+      kind: 'core-born';
+      coreId: ReplayArcCoreId;
+      position: ReplayPosition;
+    }
+  | {
+      kind: 'core-picked-up';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+    }
+  | {
+      kind: 'core-relocated';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity | null;
+      from: ReplayPosition;
+      to: ReplayPosition;
+      nextRelocationTick: number;
+      relocationKind: string;
+    }
+  | {
+      kind: 'core-handed-off';
+      coreId: ReplayArcCoreId;
+      sourceActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+    }
+  | {
+      kind: 'core-dropped';
+      coreId: ReplayArcCoreId;
+      sourceActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+      dropKind: string;
+    }
+  | {
+      kind: 'core-banked';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity;
+      teamId: number;
+      position: ReplayPosition;
+      chargePips: number;
+    }
+  | {
+      kind: 'well-changed';
+      wellId: string;
+      pendingCharge: boolean;
+      rearmCompletesAtTick: number | null;
+      outstandingCoreId: ReplayArcCoreId | null;
+    }
+  | {
+      kind: 'pulse';
+      teamId: number;
+      pulseOrdinal: number;
+      opposingReactorIntegrity: number;
+    }
+  | {
+      kind: 'signature-changed';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      phase: string | null;
+      reason: string;
+    }
+  | {
+      kind: 'body-relocated';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      from: ReplayPosition;
+      to: ReplayPosition;
+    }
+  | {
+      kind: 'signature-damage' | 'signature-repair';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      amount: number;
+      newHealth: number;
+      position: ReplayPosition;
+    };
 
 export interface ReplayProjectileTraversal {
   projectileId: string;
@@ -1413,6 +1567,12 @@ export interface ReplayFrontlineResult {
   }[];
 }
 
+export interface ReplayArcRelayResult {
+  kind: 'arc-relay';
+  reason: 'fault-eligibility' | 'reactor-destroyed' | 'max-ticks';
+  state: ReplayArcRelayModeState;
+}
+
 export interface ReplayTerminalResult {
   winnerTeamId: number | null;
   reason: string;
@@ -1423,7 +1583,7 @@ export interface ReplayTerminalResult {
   /** Exact wire value; null is permitted by the generic result contract. */
   reportedEndTick?: number | null;
   eligibleTeamIds?: number[];
-  mode?: ReplayDeathmatchResult | ReplayFrontlineResult;
+  mode?: ReplayDeathmatchResult | ReplayFrontlineResult | ReplayArcRelayResult;
 }
 
 export interface ReplayHeaderVersions {

@@ -1,0 +1,10 @@
+{
+  "id": "arc-mason",
+  "label": "Arc Relay Mason",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "mason",
+  "locomotionCue": "low-hover",
+  "scale": 1.09
+}

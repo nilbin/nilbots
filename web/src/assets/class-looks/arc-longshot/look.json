@@ -1,0 +1,10 @@
+{
+  "id": "arc-longshot",
+  "label": "Arc Relay Longshot",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "longshot",
+  "locomotionCue": "low-hover",
+  "scale": 1.1
+}

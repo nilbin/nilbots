@@ -1,0 +1,10 @@
+{
+  "id": "arc-nest",
+  "label": "Arc Relay Nest",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "nest",
+  "locomotionCue": "low-hover",
+  "scale": 1.08
+}

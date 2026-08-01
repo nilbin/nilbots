@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
+  <g stroke-linejoin="round" stroke-linecap="round">
+
+      <path fill="#18212b" stroke="#0b1118" stroke-width="18" d="M72 198 154 126 278 116 382 154 446 214 446 298 382 358 278 396 154 386 72 314Z"/>
+      <path fill="#344252" stroke="#0b1118" stroke-width="12" d="M118 216 176 166 272 156 354 186 400 230v52l-46 44-82 30-96-10-58-50Z"/>
+      <path fill="#8a6547" stroke="#0b1118" stroke-width="10" d="M174 212 250 172 330 206 348 276 292 336 208 328 160 270Z"/>
+      <circle fill="#101820" stroke="#0b1118" stroke-width="9" cx="230" cy="232" r="30"/>
+      <circle fill="#101820" stroke="#0b1118" stroke-width="9" cx="298" cy="260" r="30"/>
+      <circle fill="#101820" stroke="#0b1118" stroke-width="9" cx="236" cy="302" r="30"/>
+      <path fill="none" stroke="#a58b6c" stroke-width="20" stroke-linecap="round" d="M342 218 424 178M350 256h88M342 294l82 40"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="98" y="214" width="36" height="84" rx="14"/>
+      <circle data-team-accent="true" fill="#38bdf8" cx="230" cy="232" r="13"/>
+      <circle data-team-accent="true" fill="#38bdf8" cx="236" cy="302" r="13"/>
+      <circle fill="#f6b73c" cx="298" cy="260" r="13"/>
+  </g>
+</svg>

@@ -416,7 +416,22 @@ function validateContract(
             // objective, because both claim the side lanes' attention.
             ...(own(mode, 'scrapEconomy') ? ['scrapEconomy'] : []),
           ]
-        : null;
+        : mode.kind === 'arc-relay'
+          ? [
+              'kind',
+              'modeId',
+              'victory',
+              'scoreCatalog',
+              'pendingRearmTicks',
+              'coreRelocationIntervalTicks',
+              'coresPerPulse',
+              'fieldedSlotsPerTeam',
+              'maxCopiesPerClass',
+              'respawnDelayTicks',
+              'wells',
+              'signatures',
+            ]
+          : null;
   if (modeKeys === null) {
     fail(`${modePath}.kind`, `unknown game mode ${String(mode.kind)}`);
   }
@@ -597,7 +612,7 @@ function validateContract(
         );
       }
     }
-  } else {
+  } else if (mode.kind === 'frontline') {
     const victory = exact(
       mode.victory,
       victoryPath,
@@ -1100,6 +1115,93 @@ function validateContract(
         'frontline requires territorial-progress higher-wins',
       );
     }
+  } else {
+    const victory = exact(
+      mode.victory,
+      victoryPath,
+      ['kind', 'timeoutRanking', 'pulsesToDestroyReactor'],
+      fail,
+    );
+    if (victory.kind !== 'arc-relay') {
+      fail(`${victoryPath}.kind`, 'must match the Arc Relay mode');
+    }
+    validateRankings(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    );
+    for (const key of [
+      'pendingRearmTicks',
+      'coreRelocationIntervalTicks',
+      'coresPerPulse',
+      'fieldedSlotsPerTeam',
+      'maxCopiesPerClass',
+      'respawnDelayTicks',
+    ]) {
+      integer(mode[key], `${modePath}.${key}`, fail);
+      if ((mode[key] as number) <= 0) {
+        fail(`${modePath}.${key}`, 'must be positive');
+      }
+    }
+    integer(
+      victory.pulsesToDestroyReactor,
+      `${victoryPath}.pulsesToDestroyReactor`,
+      fail,
+    );
+    if ((victory.pulsesToDestroyReactor as number) <= 0) {
+      fail(`${victoryPath}.pulsesToDestroyReactor`, 'must be positive');
+    }
+    const wells = array(mode.wells, `${modePath}.wells`, fail);
+    wells.forEach((entry, index) => {
+      const wellPath = `${modePath}.wells[${index}]`;
+      const well = exact(
+        entry,
+        wellPath,
+        ['wellId', 'firstBirthTick', 'cadenceTicks', 'finalBirthTick'],
+        fail,
+      );
+      nonEmpty(well.wellId, `${wellPath}.wellId`, fail);
+      for (const key of ['firstBirthTick', 'cadenceTicks', 'finalBirthTick'])
+        integer(well[key], `${wellPath}.${key}`, fail);
+    });
+    const signatures = array(
+      mode.signatures,
+      `${modePath}.signatures`,
+      fail,
+    );
+    signatures.forEach((entry, index) => {
+      const signaturePath = `${modePath}.signatures[${index}]`;
+      const signature = object(entry, signaturePath, fail);
+      for (const key of ['kind', 'signatureId', 'classId', 'actionId'])
+        nonEmpty(signature[key], `${signaturePath}.${key}`, fail);
+      integer(
+        signature.cooldownTicks,
+        `${signaturePath}.cooldownTicks`,
+        fail,
+      );
+      jsonValue(signature, signaturePath, fail);
+    });
+    if (wells.length !== 3 || signatures.length !== 16) {
+      fail(
+        modePath,
+        'Arc Relay H0 declares exactly three Wells and sixteen signatures',
+      );
+    }
+    const expectedChannels = ['pulses', 'reactor-charge'];
+    if (
+      scoreCatalog.length !== expectedChannels.length ||
+      !scoreCatalog.every(
+        (entry, index) =>
+          (entry as Record<string, unknown>).channel ===
+            expectedChannels[index] &&
+          (entry as Record<string, unknown>).domain === 'non-negative',
+      )
+    ) {
+      fail(
+        `${modePath}.scoreCatalog`,
+        'Arc Relay requires pulses then reactor-charge',
+      );
+    }
   }
   for (const key of [
     'forms',
@@ -1405,6 +1507,46 @@ function validateContract(
         }
       },
     );
+  } else if (binding.kind === 'arc-relay') {
+    const arc = exact(
+      binding,
+      bindingPath,
+      [
+        'kind',
+        'orderedWellRegionIds',
+        'reactorRegionRoleId',
+        'homePadRegionRoleId',
+      ],
+      fail,
+    );
+    const wellIds = array(
+      arc.orderedWellRegionIds,
+      `${bindingPath}.orderedWellRegionIds`,
+      fail,
+    );
+    wellIds.forEach((regionId, index) =>
+      nonEmpty(
+        regionId,
+        `${bindingPath}.orderedWellRegionIds[${index}]`,
+        fail,
+      ),
+    );
+    nonEmpty(
+      arc.reactorRegionRoleId,
+      `${bindingPath}.reactorRegionRoleId`,
+      fail,
+    );
+    nonEmpty(
+      arc.homePadRegionRoleId,
+      `${bindingPath}.homePadRegionRoleId`,
+      fail,
+    );
+    if (wellIds.length !== 3 || new Set(wellIds.map(String)).size !== 3) {
+      fail(
+        `${bindingPath}.orderedWellRegionIds`,
+        'Arc Relay requires three distinct Well regions',
+      );
+    }
   } else {
     fail(`${bindingPath}.kind`, `unknown mode-map binding ${String(binding.kind)}`);
   }
@@ -2143,6 +2285,183 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
     }
     return;
   }
+  if (base.kind === 'arc-relay') {
+    const item = exact(
+      base,
+      path,
+      [
+        'kind',
+        'modeId',
+        'wells',
+        'reactors',
+        'visibleCores',
+        'visibleSignatures',
+        'latestPulseTeamId',
+        'latestPulseTick',
+      ],
+      fail,
+    );
+    nonEmpty(item.modeId, `${path}.modeId`, fail);
+    const coreId = (value: unknown, corePath: string) => {
+      const core = exact(
+        value,
+        corePath,
+        ['sourceWellId', 'sourceOrdinal'],
+        fail,
+      );
+      nonEmpty(core.sourceWellId, `${corePath}.sourceWellId`, fail);
+      integer(core.sourceOrdinal, `${corePath}.sourceOrdinal`, fail);
+    };
+    array(item.wells, `${path}.wells`, fail).forEach((entry, index) => {
+      const wellPath = `${path}.wells[${index}]`;
+      const well = exact(
+        entry,
+        wellPath,
+        [
+          'wellId',
+          'position',
+          'nextScheduledBirthTick',
+          'outstandingCoreId',
+          'pendingCharge',
+          'rearmCompletesAtTick',
+        ],
+        fail,
+      );
+      nonEmpty(well.wellId, `${wellPath}.wellId`, fail);
+      position(well.position, `${wellPath}.position`, fail);
+      nullable(
+        well.nextScheduledBirthTick,
+        `${wellPath}.nextScheduledBirthTick`,
+        integer,
+        fail,
+      );
+      if (well.outstandingCoreId !== null)
+        coreId(well.outstandingCoreId, `${wellPath}.outstandingCoreId`);
+      boolean(well.pendingCharge, `${wellPath}.pendingCharge`, fail);
+      nullable(
+        well.rearmCompletesAtTick,
+        `${wellPath}.rearmCompletesAtTick`,
+        integer,
+        fail,
+      );
+    });
+    array(item.reactors, `${path}.reactors`, fail).forEach((entry, index) => {
+      const reactorPath = `${path}.reactors[${index}]`;
+      const reactor = exact(
+        entry,
+        reactorPath,
+        ['teamId', 'position', 'chargePips', 'integritySegments'],
+        fail,
+      );
+      integer(reactor.teamId, `${reactorPath}.teamId`, fail);
+      position(reactor.position, `${reactorPath}.position`, fail);
+      integer(reactor.chargePips, `${reactorPath}.chargePips`, fail);
+      integer(
+        reactor.integritySegments,
+        `${reactorPath}.integritySegments`,
+        fail,
+      );
+    });
+    array(item.visibleCores, `${path}.visibleCores`, fail).forEach(
+      (entry, index) => {
+        const corePath = `${path}.visibleCores[${index}]`;
+        const core = exact(
+          entry,
+          corePath,
+          [
+            'coreId',
+            'position',
+            'disposition',
+            'carrierActorId',
+            'nextRelocationTick',
+            'flightTarget',
+            'flightCompletesAtTick',
+          ],
+          fail,
+        );
+        coreId(core.coreId, `${corePath}.coreId`);
+        position(core.position, `${corePath}.position`, fail);
+        if (!['loose', 'carried', 'in-flight'].includes(String(core.disposition)))
+          fail(`${corePath}.disposition`, 'unknown Core disposition');
+        if (core.carrierActorId !== null)
+          actorId(core.carrierActorId, `${corePath}.carrierActorId`, fail);
+        integer(core.nextRelocationTick, `${corePath}.nextRelocationTick`, fail);
+        if (core.flightTarget !== null)
+          position(core.flightTarget, `${corePath}.flightTarget`, fail);
+        nullable(
+          core.flightCompletesAtTick,
+          `${corePath}.flightCompletesAtTick`,
+          integer,
+          fail,
+        );
+      },
+    );
+    array(
+      item.visibleSignatures,
+      `${path}.visibleSignatures`,
+      fail,
+    ).forEach((entry, index) => {
+      const signaturePath = `${path}.visibleSignatures[${index}]`;
+      const signature = exact(
+        entry,
+        signaturePath,
+        [
+          'operationId',
+          'signatureId',
+          'signatureKind',
+          'ownerActorId',
+          'ownerTeamId',
+          'phase',
+          'startedTick',
+          'completesAtTick',
+          'endsAtTick',
+          'positions',
+          'targetActorId',
+          'remainingCapacity',
+          'suppressed',
+        ],
+        fail,
+      );
+      for (const key of ['operationId', 'signatureId', 'signatureKind'])
+        nonEmpty(signature[key], `${signaturePath}.${key}`, fail);
+      actorId(signature.ownerActorId, `${signaturePath}.ownerActorId`, fail);
+      integer(signature.ownerTeamId, `${signaturePath}.ownerTeamId`, fail);
+      if (!['tell', 'active', 'channel', 'in-flight'].includes(String(signature.phase)))
+        fail(`${signaturePath}.phase`, 'unknown signature phase');
+      integer(signature.startedTick, `${signaturePath}.startedTick`, fail);
+      nullable(
+        signature.completesAtTick,
+        `${signaturePath}.completesAtTick`,
+        integer,
+        fail,
+      );
+      nullable(
+        signature.endsAtTick,
+        `${signaturePath}.endsAtTick`,
+        integer,
+        fail,
+      );
+      array(signature.positions, `${signaturePath}.positions`, fail).forEach(
+        (point, pointIndex) =>
+          position(point, `${signaturePath}.positions[${pointIndex}]`, fail),
+      );
+      if (signature.targetActorId !== null)
+        actorId(
+          signature.targetActorId,
+          `${signaturePath}.targetActorId`,
+          fail,
+        );
+      integer(
+        signature.remainingCapacity,
+        `${signaturePath}.remainingCapacity`,
+        fail,
+      );
+      boolean(signature.suppressed, `${signaturePath}.suppressed`, fail);
+    });
+    nullable(item.latestPulseTeamId, `${path}.latestPulseTeamId`, integer, fail);
+    nullable(item.latestPulseTick, `${path}.latestPulseTick`, integer, fail);
+    return;
+  }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
 }
 
@@ -2660,6 +2979,13 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       nonEmpty(item.cancellationReason, `${path}.cancellationReason`, fail);
       return;
     }
+    case 'arc-relay': {
+      const item = exact(base, path, ['kind', 'fact'], fail);
+      const fact = object(item.fact, `${path}.fact`, fail);
+      nonEmpty(fact.kind, `${path}.fact.kind`, fail);
+      jsonValue(fact, `${path}.fact`, fail);
+      return;
+    }
     default:
       fail(`${path}.kind`, `unknown event payload ${String(base.kind)}`);
   }
@@ -2687,6 +3013,7 @@ function validateEventKindAndPayload(
       case 'score-changed':
       case 'mode-changed':
       case 'lifecycle-clock-cancelled':
+      case 'arc-relay':
         return kind;
       case 'participant-disqualified':
         return 'participant';
@@ -2781,6 +3108,12 @@ function actionConstraint(
       integer(target.teamId, `${path}.allowedValues[${index}].teamId`, fail);
       integer(target.unitId, `${path}.allowedValues[${index}].unitId`, fail);
     });
+    return;
+  }
+  if (base.kind === 'position-target') {
+    values.forEach((entry, index) =>
+      position(entry, `${path}.allowedValues[${index}]`, fail),
+    );
     return;
   }
   fail(`${path}.kind`, `unknown action constraint ${String(base.kind)}`);
@@ -3833,6 +4166,30 @@ function validateResult(value: unknown, path: string, fail: ReplayV3Fail): void 
         );
       },
     );
+    return;
+  }
+  if (mode.kind === 'arc-relay') {
+    const arc = exact(
+      mode,
+      `${path}.mode`,
+      ['kind', 'reason', 'state'],
+      fail,
+    );
+    if (
+      arc.reason !== 'fault-eligibility' &&
+      arc.reason !== 'reactor-destroyed' &&
+      arc.reason !== 'max-ticks'
+    ) {
+      fail(`${path}.mode.reason`, 'unknown Arc Relay end reason');
+    }
+    modeState(arc.state, `${path}.mode.state`, fail);
+    const state = object(arc.state, `${path}.mode.state`, fail);
+    if (state.kind !== 'arc-relay') {
+      fail(
+        `${path}.mode.state.kind`,
+        'Arc Relay result requires Arc Relay state',
+      );
+    }
     return;
   }
   fail(`${path}.mode.kind`, `unknown mode result ${String(mode.kind)}`);
@@ -6028,30 +6385,33 @@ function validateV3Relationships(
     ) {
       fail('replay.result.mode', 'must match completion reason and final mode');
     }
-    ensureUnique(
-      result.mode.scores.map((score) => score.teamId),
-      (teamId) => teamId,
-      'replay.result.mode.scores',
-      fail,
-    );
-    result.mode.scores.forEach((score, index) => {
+    if (result.mode.kind !== 'arc-relay') {
+      const modeScores = result.mode.scores;
+      ensureUnique(
+        modeScores.map((score) => score.teamId),
+        (teamId) => teamId,
+        'replay.result.mode.scores',
+        fail,
+      );
+      modeScores.forEach((score, index) => {
+        if (
+          index > 0 &&
+          score.teamId <= modeScores[index - 1]!.teamId
+        ) {
+          fail(
+            `replay.result.mode.scores[${index}].teamId`,
+            'must be in canonical ascending team order',
+          );
+        }
+      });
       if (
-        index > 0 &&
-        score.teamId <= result.mode.scores[index - 1]!.teamId
+        !sameSet(
+          modeScores.map((score) => String(score.teamId)),
+          topology.teams.map((team) => String(team.teamId)),
+        )
       ) {
-        fail(
-          `replay.result.mode.scores[${index}].teamId`,
-          'must be in canonical ascending team order',
-        );
+        fail('replay.result.mode.scores', 'must cover exactly topology teams');
       }
-    });
-    if (
-      !sameSet(
-        result.mode.scores.map((score) => String(score.teamId)),
-        topology.teams.map((team) => String(team.teamId)),
-      )
-    ) {
-      fail('replay.result.mode.scores', 'must cover exactly topology teams');
     }
     if (
       result.mode.kind === 'deathmatch' &&
@@ -6428,6 +6788,45 @@ function validateV3Relationships(
         );
       }
     }
+    if (
+      result.mode.kind === 'arc-relay' &&
+      finalWorld.mode.kind === 'arc-relay' &&
+      contract.rules.gameMode.kind === 'arc-relay'
+    ) {
+      if (JSON.stringify(result.mode.state) !== JSON.stringify(finalWorld.mode)) {
+        fail(
+          'replay.result.mode.state',
+          'must exactly match final authoritative Arc Relay state',
+        );
+      }
+      if (
+        result.mode.reason === 'max-ticks' &&
+        finalWorld.nextTick !== contract.rules.limits.maxTicks
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'max-ticks requires the configured maximum tick boundary',
+        );
+      }
+      if (
+        result.mode.reason === 'reactor-destroyed' &&
+        !finalWorld.mode.reactors.some((reactor) => reactor.integritySegments === 0)
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'reactor-destroyed requires a reactor with no integrity segments',
+        );
+      }
+      if (
+        result.mode.reason === 'fault-eligibility' &&
+        result.eligibleTeamIds.length > 1
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'fault eligibility requires at most one eligible team',
+        );
+      }
+    }
   }
 }
 
@@ -6542,6 +6941,7 @@ export function normalizeReplayV3(
         initialActorKey: initialActor?.actorKey ?? null,
         initialLifeId: initialLife?.lifeId ?? null,
         initialFormId: initialLife?.formId ?? null,
+        classId: slot.classId ?? null,
       };
     });
   const teams = [...contract.topology.teams]
@@ -6688,6 +7088,24 @@ function contractFromV3(
       return {
         kind: 'deathmatch',
         modeId: contract.rules.gameMode.modeId,
+      };
+    }
+    if (contract.rules.gameMode.kind === 'arc-relay') {
+      if (contract.modeMapBinding.kind !== 'arc-relay') {
+        throw new Error('validated replay-v3 lost its Arc Relay map binding');
+      }
+      return {
+        kind: 'arc-relay',
+        modeId: contract.rules.gameMode.modeId,
+        pendingRearmTicks: contract.rules.gameMode.pendingRearmTicks,
+        coreRelocationIntervalTicks:
+          contract.rules.gameMode.coreRelocationIntervalTicks,
+        coresPerPulse: contract.rules.gameMode.coresPerPulse,
+        pulsesToDestroyReactor:
+          contract.rules.gameMode.victory.pulsesToDestroyReactor,
+        orderedWellRegionIds: [
+          ...contract.modeMapBinding.orderedWellRegionIds,
+        ],
       };
     }
     if (contract.modeMapBinding.kind !== 'frontline') {
@@ -7073,9 +7491,10 @@ function secondaryClaimant(claimProgress: number): number | null {
 }
 
 function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
-  return mode.kind === 'deathmatch'
-    ? { kind: 'deathmatch', modeId: mode.modeId }
-    : {
+  if (mode.kind === 'deathmatch')
+    return { kind: 'deathmatch', modeId: mode.modeId };
+  if (mode.kind === 'frontline')
+    return {
         kind: 'frontline',
         modeId: mode.modeId,
         activePositionIndex: mode.activePositionIndex,
@@ -7109,6 +7528,53 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
               })),
             }),
       };
+  return {
+    kind: 'arc-relay',
+    modeId: mode.modeId,
+    wells: mode.wells.map((well) => ({
+      ...well,
+      position: copyPosition(well.position),
+      outstandingCoreId: well.outstandingCoreId
+        ? { ...well.outstandingCoreId }
+        : null,
+    })),
+    reactors: mode.reactors.map((reactor) => ({
+      ...reactor,
+      position: copyPosition(reactor.position),
+    })),
+    visibleCores: mode.visibleCores.map((core) => ({
+      coreId: { ...core.coreId },
+      position: copyPosition(core.position),
+      disposition: core.disposition,
+      carrierActor: core.carrierActorId
+        ? identity(core.carrierActorId)
+        : null,
+      nextRelocationTick: core.nextRelocationTick,
+      flightTarget: core.flightTarget
+        ? copyPosition(core.flightTarget)
+        : null,
+      flightCompletesAtTick: core.flightCompletesAtTick,
+    })),
+    visibleSignatures: mode.visibleSignatures.map((signature) => ({
+      operationId: signature.operationId,
+      signatureId: signature.signatureId,
+      signatureKind: signature.signatureKind,
+      ownerActor: identity(signature.ownerActorId),
+      ownerTeamId: signature.ownerTeamId,
+      phase: signature.phase,
+      startedTick: signature.startedTick,
+      completesAtTick: signature.completesAtTick,
+      endsAtTick: signature.endsAtTick,
+      positions: signature.positions.map(copyPosition),
+      targetActor: signature.targetActorId
+        ? identity(signature.targetActorId)
+        : null,
+      remainingCapacity: signature.remainingCapacity,
+      suppressed: signature.suppressed,
+    })),
+    latestPulseTeamId: mode.latestPulseTeamId,
+    latestPulseTick: mode.latestPulseTick,
+  };
 }
 
 function objectiveFromV3(
@@ -7395,6 +7861,7 @@ function payloadFromArguments(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    positionTarget: null,
   };
   for (const argument of argumentsValue) {
     switch (argument.kind) {
@@ -7416,6 +7883,9 @@ function payloadFromArguments(
       case 'form-target':
         payload.formTargetId = argument.formId;
         break;
+      case 'position-target':
+        payload.positionTarget = copyPosition(argument.value);
+        break;
     }
   }
   return payload;
@@ -7431,6 +7901,7 @@ function rawPayload(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    positionTarget: null,
   };
   for (const argument of argumentsValue) {
     if (argument === null) continue;
@@ -7446,6 +7917,9 @@ function rawPayload(
         break;
       case 'form-target':
         payload.formTargetId = argument.formId;
+        break;
+      case 'position-target':
+        payload.positionTarget = copyPosition(argument.value);
         break;
       // Raw numeric enum arguments deliberately remain only on the retained
       // wire document until they have been accepted into a named value.
@@ -7710,6 +8184,9 @@ function observationFromV3(
       const forms = legality.constraints.find(
         (constraint) => constraint.kind === 'form-target',
       );
+      const positions = legality.constraints.find(
+        (constraint) => constraint.kind === 'position-target',
+      );
       const tracks = legality.constraints.find(
         (constraint) => constraint.kind === 'upgrade-track',
       );
@@ -7739,6 +8216,10 @@ function observationFromV3(
             : null,
         allowedFormTargets:
           forms?.kind === 'form-target' ? [...forms.allowedFormIds] : null,
+        allowedPositions:
+          positions?.kind === 'position-target'
+            ? positions.allowedValues.map(copyPosition)
+            : null,
         allowedUpgradeTracks:
           tracks?.kind === 'upgrade-track'
             ? [...tracks.allowedTrackIds]
@@ -7829,6 +8310,114 @@ function actionFromPayload(
   payload: Record<string, unknown>,
 ): V3.ReplayV3ResolvedAction | null {
   return (payload.action as V3.ReplayV3ResolvedAction | undefined) ?? null;
+}
+
+function arcRelayFactFromV3(
+  fact: V3.ReplayV3ArcRelayFact,
+): Model.ReplayArcRelayFact {
+  switch (fact.kind) {
+    case 'core-born':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        position: copyPosition(fact.position),
+      };
+    case 'core-picked-up':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: identity(fact.carrierActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+      };
+    case 'core-relocated':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: fact.carrierActorId
+          ? identity(fact.carrierActorId)
+          : null,
+        from: copyPosition(fact.from),
+        to: copyPosition(fact.to),
+        nextRelocationTick: fact.nextRelocationTick,
+        relocationKind: fact.relocationKind,
+      };
+    case 'core-handed-off':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        sourceActor: identity(fact.sourceActorId),
+        targetActor: identity(fact.targetActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+      };
+    case 'core-dropped':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        sourceActor: identity(fact.sourceActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+        dropKind: fact.dropKind,
+      };
+    case 'core-banked':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: identity(fact.carrierActorId),
+        teamId: fact.teamId,
+        position: copyPosition(fact.position),
+        chargePips: fact.chargePips,
+      };
+    case 'well-changed':
+      return {
+        kind: fact.kind,
+        wellId: fact.wellId,
+        pendingCharge: fact.pendingCharge,
+        rearmCompletesAtTick: fact.rearmCompletesAtTick,
+        outstandingCoreId: fact.outstandingCoreId
+          ? { ...fact.outstandingCoreId }
+          : null,
+      };
+    case 'pulse':
+      return {
+        kind: fact.kind,
+        teamId: fact.teamId,
+        pulseOrdinal: fact.pulseOrdinal,
+        opposingReactorIntegrity: fact.opposingReactorIntegrity,
+      };
+    case 'signature-changed':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        phase: fact.phase,
+        reason: fact.reason,
+      };
+    case 'body-relocated':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        targetActor: identity(fact.targetActorId),
+        from: copyPosition(fact.from),
+        to: copyPosition(fact.to),
+      };
+    case 'signature-damage':
+    case 'signature-repair':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        targetActor: identity(fact.targetActorId),
+        amount: fact.amount,
+        newHealth: fact.newHealth,
+        position: copyPosition(fact.position),
+      };
+  }
 }
 
 function observedEventFromV3(
@@ -7986,6 +8575,10 @@ function eventFromV3(
     completeness: 'exact',
     globalOrdinal: event.globalOrdinal,
     payloadKind: event.payload.kind,
+    arcRelayFact:
+      event.payload.kind === 'arc-relay'
+        ? arcRelayFactFromV3(event.payload.fact)
+        : undefined,
     audience:
       event.audience.kind === 'spatial'
         ? {
@@ -8120,18 +8713,24 @@ function resultFromV3(
               ...score,
             })),
           }
-        : {
-            kind: 'frontline',
-            reason: result.mode.reason,
-            control: {
-              ...result.mode.control,
-              holdOwnerTeamId: result.mode.control.holdOwnerTeamId,
-              holdEndsAtTick: result.mode.control.holdEndsAtTick,
+        : result.mode.kind === 'frontline'
+          ? {
+              kind: 'frontline',
+              reason: result.mode.reason,
+              control: {
+                ...result.mode.control,
+                holdOwnerTeamId: result.mode.control.holdOwnerTeamId,
+                holdEndsAtTick: result.mode.control.holdEndsAtTick,
+              },
+              scores: result.mode.scores.map((score) => ({
+                teamKey: replayTeamKey(score.teamId),
+                ...score,
+              })),
+            }
+          : {
+              kind: 'arc-relay',
+              reason: result.mode.reason,
+              state: modeFromV3(result.mode.state) as Model.ReplayArcRelayModeState,
             },
-            scores: result.mode.scores.map((score) => ({
-              teamKey: replayTeamKey(score.teamId),
-              ...score,
-            })),
-          },
   };
 }

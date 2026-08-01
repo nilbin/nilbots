@@ -1,0 +1,10 @@
+{
+  "id": "arc-relay",
+  "label": "Arc Relay Relay",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "relay",
+  "locomotionCue": "low-hover",
+  "scale": 1.05
+}

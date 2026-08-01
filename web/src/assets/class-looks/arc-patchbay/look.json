@@ -1,0 +1,10 @@
+{
+  "id": "arc-patchbay",
+  "label": "Arc Relay Patchbay",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "patchbay",
+  "locomotionCue": "low-hover",
+  "scale": 1.04
+}

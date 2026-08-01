@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
+  <g stroke-linejoin="round" stroke-linecap="round">
+
+      <path fill="#111820" stroke="#0b1118" stroke-width="18" d="M68 256 148 188 224 174 260 102 346 122 388 190 458 216 486 256 458 296 388 322 346 390 260 410 224 338 148 324Z"/>
+      <path fill="#2b3744" stroke="#0b1118" stroke-width="12" d="M122 256 176 216 242 210 276 152 330 166 360 216 424 232 448 256 424 280 360 296 330 346 276 360 242 302 176 296Z"/>
+      <path fill="#8a6547" stroke="#0b1118" stroke-width="10" d="m202 256 66-70 92 22 38 48-38 48-92 22Z"/>
+      <ellipse fill="#101820" stroke="#0b1118" stroke-width="9" cx="292" cy="216" rx="42" ry="28"/>
+      <ellipse fill="#101820" stroke="#0b1118" stroke-width="9" cx="292" cy="296" rx="42" ry="28"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m136 206 64-48 18 32-62 48Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m136 306 64 48 18-32-62-48Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m392 226 62 30-62 30 18-30Z"/>
+      <ellipse fill="#f6b73c" cx="292" cy="216" rx="16" ry="10"/>
+      <ellipse fill="#f6b73c" cx="292" cy="296" rx="16" ry="10"/>
+  </g>
+</svg>

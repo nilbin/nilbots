@@ -262,6 +262,8 @@ test('class form IDs resolve to the selected class-owned looks and projectiles',
   assert.equal(classFamilyForForm('striker-prime'), 'striker');
   assert.equal(classFamilyForForm('bulwark-child-turret'), 'bulwark');
   assert.equal(classFamilyForForm('fabricator-prime'), 'fabricator');
+  assert.equal(classFamilyForForm('arc-body-kestrel'), 'kestrel');
+  assert.equal(classFamilyForForm('arc-body-nest'), 'nest');
 
   assert.deepEqual(
     ['striker', 'bulwark', 'fabricator'].map((family) => [
@@ -277,6 +279,13 @@ test('class form IDs resolve to the selected class-owned looks and projectiles',
   assert.equal(
     fallbackLookIdForForm('bulwark-child-turret'),
     'aegis-tortoise-turret',
+  );
+  assert.deepEqual(
+    [
+      fallbackLookIdForForm('arc-body-longshot'),
+      fallbackProjectileLookIdForForm('arc-body-longshot'),
+    ],
+    ['arc-longshot', 'arc-pulse'],
   );
 
   // Legacy and Frontline form IDs are not class forms and must keep their pixels.

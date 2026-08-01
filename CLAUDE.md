@@ -126,11 +126,16 @@ Project boundaries that must not be violated:
   actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
   isolated WASM life instances exist. Web/mobile can present v2 through their
   version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
-  Canvas2D renderer share those derivations. **3D is the web viewer**, with no
-  mode to choose: Canvas2D is retained only as the floor for the self-contained
-  CLI viewer, which excludes Three.js, and for a device that gives no WebGL
-  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains
-  required. Package 8 now exposes this only through the explicit local
+  Canvas2D renderer share those derivations. **3D is the shipped Frontline web
+  viewer**, with no mode to choose: Canvas2D is retained as the floor for the
+  self-contained CLI viewer, which excludes Three.js, and for a device that
+  gives no WebGL context. Arc Relay H0 deliberately reverses the delivery
+  priority while its renderer grammar is proved: its Wells, Cores, reactors,
+  Pulse, signatures, cooldown reads, and class sprites ship in Canvas2D; the
+  parked WebGL renderer only has to keep compiling and consume its normal
+  version-neutral fallback. The mobile WebView is still Canvas2D. Manual
+  GPU/mobile QA remains required. Package 8 now exposes Frontline only through
+  the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
   separate descriptive evaluation tool. Historical `play`, replay-v1
   summary/verification, and ladders still do not select this frozen alpha;
