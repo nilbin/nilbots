@@ -40,7 +40,9 @@ public sealed record ArcRelaySignatureState
         if (shape.Length == 0 || shape.Distinct().Count() != shape.Length)
         {
             throw new ArgumentException(
-                "A signature state needs a non-empty unique position shape.",
+                $"Signature operation '{operationId}' ({signatureId}) needs a "
+                + "non-empty unique position shape; received "
+                + $"[{string.Join(",", shape)}].",
                 nameof(positions));
         }
 

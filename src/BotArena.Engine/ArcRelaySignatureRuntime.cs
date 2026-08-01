@@ -84,7 +84,12 @@ internal sealed class ArcRelaySignatureRuntime
                     IsStraight(source, target)
                     && source.ChebyshevDistance(target) is > 0
                         and var distance
-                    && distance <= value.Range),
+                    && distance <= value.Range
+                    // A target behind an adjacent wall clips back to the
+                    // source tile. Offering it would create a degenerate
+                    // [source,source] tell and abort the authoritative state
+                    // before the mind can observe another frame.
+                    && ClipStraightLanding(source, target) != source),
             ArcRelaySignatureDefinition.HardlightBlock =>
                 PlacementTargets(source, lives, forbidTaggedTile: true),
             ArcRelaySignatureDefinition.SmokeCanister value =>

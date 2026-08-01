@@ -278,6 +278,48 @@ public sealed class ArcRelayH0DefinitionTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ArcTossMask_DoesNotOfferTargetsThatClipBackToTheCarrier()
+    {
+        string[] composition =
+        [
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Hush,
+            ArcRelayLaunchClassIds.Switchback,
+        ];
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            composition,
+            composition);
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            definition.Rules.GameMode);
+        var runtime = new ArcRelaySignatureRuntime(definition, mode);
+        ActorIdentity actor = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+        var source = new Position(6, 13);
+        var lives = new[]
+        {
+            new ArcRelaySignatureRuntime.Life(actor, source, 4, 4),
+        };
+
+        ImmutableArray<Position> targets = runtime.PositionTargets(
+            actor,
+            source,
+            definition.Map.TileRows
+                .SelectMany((row, y) => row.Select((tile, x) => (tile, x, y)))
+                .Where(value => value.tile != '#')
+                .Select(value => new Position(value.x, value.y))
+                .ToHashSet(),
+            lives,
+            carriesCore: true);
+
+        Assert.DoesNotContain(new Position(4, 11), targets);
+        Assert.Contains(new Position(7, 13), targets);
+    }
+
     private static ImmutableArray<GenericActorRuntimeActionArgument> Arguments(
         GenericActorRuntimeActionLegality legality) =>
         [
