@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Longshot">
+  <defs>
+    <linearGradient id="longshot-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#535e67"/><stop offset=".42" stop-color="#1d2831"/><stop offset="1" stop-color="#00060f"/>
+    </linearGradient>
+    <linearGradient id="longshot-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#96a9b8"/><stop offset=".38" stop-color="#647786"/><stop offset="1" stop-color="#2a3d4c"/>
+    </linearGradient>
+    <linearGradient id="longshot-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fffffe"/><stop offset=".46" stop-color="#d5d0c4"/><stop offset="1" stop-color="#9b968a"/>
+    </linearGradient>
+    <linearGradient id="longshot-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#29343d"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="longshot-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#0d1821"/><stop offset=".44" stop-color="#00020b"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="longshot-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#ffec83"/><stop offset=".64" stop-color="#f1a83f"/><stop offset="1" stop-color="#995000"/>
+    </radialGradient>
+    <pattern id="longshot-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="longshot-clip"><path d="M64 214 150 154 302 176 366 214 474 224 474 288 366 298 302 336 150 358 64 298Z"/></clipPath>
+    <filter id="longshot-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="longshot-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <path fill="none" stroke="#080b0f" stroke-width="30" d="M126 170 190 144M126 342l64 26M324 144l74 30M324 368l74-30"/>
+      <path fill="none" stroke="#747a7d" stroke-width="9" d="M132 164 194 140M132 348l62 24M322 140l80 28M322 372l80-28"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M64 214 150 154 302 176 366 214 474 224 474 288 366 298 302 336 150 358 64 298Z" transform="translate(0 22)" fill="url(#longshot-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M64 214 150 154 302 176 366 214 474 224 474 288 366 298 302 336 150 358 64 298Z" transform="translate(0 16)" fill="none" stroke="#2f3a43" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#longshot-bevel)">
+      <path fill="url(#longshot-chassis)" stroke="#0b1118" stroke-width="18" d="M64 214 150 154 302 176 366 214 474 224 474 288 366 298 302 336 150 358 64 298Z"/>
+      <path fill="url(#longshot-plate)" stroke="#0b1118" stroke-width="7" d="m106 222 64-34 122 18 58 34h112v32H350l-58 34-122 18-64-34Z"/>
+      <g id="material-finish" clip-path="url(#longshot-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#longshot-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#longshot-plate)" stroke="#7a8d9c" stroke-width="4">
+        <path d="m102 226 72-38 112 18-44 42-124 10Z"/><path fill="#223544" stroke="#465968" d="m118 274 124 10 44 42-112 18-72-38Z"/><path fill="url(#longshot-hardware)" stroke="#ede8dc" d="m286 214 64 24 102 6-34 20-120-4Z"/><path fill="#a7a296" stroke="#c3beb2" d="m298 274 120-4 34 20-102 6-64 24Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#a2b5c4" stroke-opacity=".58" stroke-width="5">
+        <path d="m112 230 66-34 110 18 54 32M112 282l66 34 110-18 54-32M158 240h114m-114 32h114"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000005" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="m112 230 66-34 110 18 54 32M112 282l66 34 110-18 54-32M158 240h114m-114 32h114"/>
+      </g>
+      <g id="fasteners" fill="#fffaee" stroke="#090d12" stroke-width="3">
+        <circle cx="146" cy="222" r="6"/><circle cx="146" cy="290" r="6"/><circle cx="306" cy="226" r="6"/><circle cx="306" cy="286" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000003" stroke="#070a0f" stroke-width="6" d="M188 208h126l62 34v28l-62 34H188l44-48Z" transform="translate(0 9)"/>
+      <rect fill="#000003" stroke="#070a0f" stroke-width="5" x="298" y="238" width="164" height="36" rx="14" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#longshot-hardware)" stroke="#0b1118" stroke-width="6" d="M188 208h126l62 34v28l-62 34H188l44-48Z"/>
+      <rect fill="url(#longshot-deep)" stroke="#0b1118" stroke-width="5" x="298" y="238" width="164" height="36" rx="14"/>
+      <g id="signature-machinery" fill="none" stroke="#fffffa" stroke-width="6" stroke-opacity=".88">
+        <path d="M210 256h250"/><path d="M302 232h150v48H302Z"/><path d="M332 244v24m28-24v24m28-24v24m28-24v24"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#longshot-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="m102 216 62-34 18 30-60 34Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m102 296 62 34 18-30-60-34Z"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="330" y="244" width="110" height="24" rx="10"/>
+    </g>
+    <g id="emissives">
+      <rect fill="url(#longshot-emissive)" x="444" y="248" width="26" height="16" rx="8"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="454" cy="252" r="4"/>
+    </g>
+  </g>
+</svg>

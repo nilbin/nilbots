@@ -1,7 +1,7 @@
 {
   "id": "arc-veil",
   "label": "Arc Relay Veil",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "veil",

@@ -22,8 +22,14 @@ export interface PlaybackState {
   setSpeed: (speed: number) => void;
 }
 
-/** Presentation timeline (plan §28.1): ~5 ticks/second at 1x, decoupled from simulation. */
-const BASE_TICKS_PER_SECOND = 5;
+/**
+ * Presentation timeline, decoupled from simulation.
+ *
+ * The former five-tick cadence made a sixteen-body Arc Relay match legible to a probe
+ * but not to a person. 1x is now deliberately cinematic: every authoritative tick gets
+ * 400ms of screen time, while the speed control still offers faster review.
+ */
+export const PRESENTATION_TICKS_PER_SECOND = 2.5;
 
 /** Arc Relay's simultaneous eight-body objective play needs a slower first watch. */
 export function defaultPlaybackSpeed(replay: ReplayModel): number {
@@ -94,7 +100,7 @@ export function usePlayback(
       const dt = lastStamp.current === null ? 0 : (stamp - lastStamp.current) / 1000;
       lastStamp.current = stamp;
       setTime((current) => {
-        const next = current + dt * BASE_TICKS_PER_SECOND * speed;
+        const next = current + dt * PRESENTATION_TICKS_PER_SECOND * speed;
         if (next >= tickCount) {
           setPlaying(false);
           setEndedNaturally(true);

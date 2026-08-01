@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kestrel">
+  <defs>
+    <linearGradient id="kestrel-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5b636f"/><stop offset=".42" stop-color="#252d39"/><stop offset="1" stop-color="#030b17"/>
+    </linearGradient>
+    <linearGradient id="kestrel-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#fffffb"/><stop offset=".38" stop-color="#d7d5c9"/><stop offset="1" stop-color="#9d9b8f"/>
+    </linearGradient>
+    <linearGradient id="kestrel-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e3896c"/><stop offset=".46" stop-color="#a94f32"/><stop offset="1" stop-color="#6f1500"/>
+    </linearGradient>
+    <linearGradient id="kestrel-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#313945"/><stop offset="1" stop-color="#000005"/>
+    </linearGradient>
+    <linearGradient id="kestrel-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#151d29"/><stop offset=".44" stop-color="#000713"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="kestrel-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#ffeb8f"/><stop offset=".64" stop-color="#f3a74b"/><stop offset="1" stop-color="#9b4f00"/>
+    </radialGradient>
+    <pattern id="kestrel-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="kestrel-clip"><path d="M76 256 176 174 286 112 438 210 470 256 438 302 286 400 176 338Z"/></clipPath>
+    <filter id="kestrel-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="kestrel-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <ellipse fill="#06090d" fill-opacity="0.72" cx="256" cy="324" rx="142" ry="46"/>
+      <path fill="#f3a74b" fill-opacity="0.38" d="M142 304h72l-22 48h-64Zm156 0h72l14 48h-64Z"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M76 256 176 174 286 112 438 210 470 256 438 302 286 400 176 338Z" transform="translate(0 22)" fill="url(#kestrel-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M76 256 176 174 286 112 438 210 470 256 438 302 286 400 176 338Z" transform="translate(0 16)" fill="none" stroke="#373f4b" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#kestrel-bevel)">
+      <path fill="url(#kestrel-chassis)" stroke="#0b1118" stroke-width="18" d="M76 256 176 174 286 112 438 210 470 256 438 302 286 400 176 338Z"/>
+      <path fill="url(#kestrel-hardware)" stroke="#0b1118" stroke-width="7" d="m128 256 96-50 118-76-42 104 118 22-118 22 42 104-118-76Z"/>
+      <g id="material-finish" clip-path="url(#kestrel-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#kestrel-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#kestrel-plate)" stroke="#edebdf" stroke-width="4">
+        <path d="M104 238 178 186l62 30-42 35-78 8Z"/><path d="m120 270 78 8 42 35-62 30-74-52Z"/><path fill="url(#kestrel-hardware)" stroke="#c1674a" d="m250 210 62-34 92 44-84 21Z"/><path fill="#7b2104" stroke="#973d20" d="m250 302 62 34 92-44-84-21Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#ffffff" stroke-opacity=".58" stroke-width="5">
+        <path d="M112 247 218 192l82-42M112 265l106 55 82 42M194 222l70 34-70 34"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#00010d" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="M112 247 218 192l82-42M112 265l106 55 82 42M194 222l70 34-70 34"/>
+      </g>
+      <g id="fasteners" fill="#d3795c" stroke="#090d12" stroke-width="3">
+        <circle cx="144" cy="222" r="6"/><circle cx="144" cy="290" r="6"/><circle cx="286" cy="174" r="6"/><circle cx="286" cy="338" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#00000b" stroke="#070a0f" stroke-width="6" d="m250 212 94 44-94 44-82-44Z" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#kestrel-plate)" stroke="#0b1118" stroke-width="6" d="m250 212 94 44-94 44-82-44Z"/>
+      <g id="signature-machinery" fill="none" stroke="#df8568" stroke-width="6" stroke-opacity=".88">
+        <path d="M248 226 410 256 248 286M286 242l94 14-94 14"/><path d="M178 206 224 178m-46 128 46 28"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#kestrel-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="m302 220 94 36-94 36 24-36Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m178 202 64-46-28 72Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m178 310 64 46-28-72Z"/>
+    </g>
+    <g id="emissives">
+      <path fill="url(#kestrel-emissive)" d="m93 244 58 12-58 12Z"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="118" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

@@ -1,7 +1,7 @@
 {
   "id": "arc-sunder",
   "label": "Arc Relay Sunder",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "sunder",

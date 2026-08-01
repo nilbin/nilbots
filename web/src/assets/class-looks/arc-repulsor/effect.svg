@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Repulsor signature effect">
+  <g id="signature-effect" fill="none" stroke="#0b1118" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle fill="#71454a" cx="128" cy="128" r="70"/><path stroke="#9b8880" d="M128 18v48m0 124v48M18 128h48m124 0h48M50 50l34 34m88 88 34 34m0-156-34 34m-88 88-34 34"/>
+  </g>
+  <g id="team-accents">
+    <circle data-team-accent="true" fill="#38bdf8" cx="128" cy="128" r="22"/>
+    <path data-team-accent="true" fill="#38bdf8" d="m128 24 16 34h-32Zm0 208 16-34h-32Z"/>
+  </g>
+  <g id="emissives"><circle fill="#f3bc55" cx="128" cy="128" r="8"/></g>
+</svg>

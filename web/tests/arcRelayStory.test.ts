@@ -5,6 +5,7 @@ import {
   createPresenter,
   defaultPlaybackSpeed,
 } from './.harness/harness.entry.js';
+import { replayAudioEventsAt } from '../src/audio/replayAudioEvents.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import type {
   ReplayArcRelayFact,
@@ -194,5 +195,15 @@ test('Arc Relay presents the carrier and all five spectator beats', () => {
   assert.deepEqual(
     [0, 2, 3, 4, 5].map((tick) => presenter.at(tick).arcRelay?.beat?.kind),
     ['birth', 'drop', 'steal', 'bank', 'pulse'],
+  );
+});
+
+test('Arc Relay birth, steal, bank, and Pulse facts drive their diegetic audio cues', () => {
+  const replay = arcRelayReplay();
+  assert.deepEqual(
+    [0, 3, 4, 5].map((tick) =>
+      replayAudioEventsAt(replay, tick).map((event) => event.cue),
+    ),
+    [['arc-birth'], ['arc-steal'], ['arc-bank'], ['arc-pulse']],
   );
 });

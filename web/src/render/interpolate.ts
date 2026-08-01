@@ -95,7 +95,12 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
   }
   const clamped = Math.max(0, Math.min(time, tickCount));
   const tick = Math.min(Math.floor(clamped), tickCount - 1);
-  const fraction = easeInOut(Math.max(0, Math.min(clamped - tick, 1)));
+  const fraction = Math.max(0, Math.min(clamped - tick, 1));
+  // Position is linear inside the authoritative A→B segment. Easing every tile caused
+  // a visible stop/start at every tick boundary; linear interpolation preserves velocity
+  // across consecutive moves and, crucially, never leaves the segment the replay states.
+  // Facing and discrete presentation changes keep their ease so a turn does not snap.
+  const actionFraction = easeInOut(fraction);
   const before = replay.ticks[tick].before.actors;
   const after = replay.ticks[tick].after.actors;
 
@@ -145,18 +150,18 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
       teamId: start.identity.teamId,
       unitId: start.identity.unitId,
       lifeId: start.identity.lifeId,
-      formId: fraction < 0.9 ? start.formId : end.formId,
+      formId: actionFraction < 0.9 ? start.formId : end.formId,
       x:
         start.position.x +
         (end.position.x - start.position.x) * fraction,
       y:
         start.position.y +
         (end.position.y - start.position.y) * fraction,
-      angle: fromAngle + rotation * fraction,
-      health: fraction < 0.6 ? start.health : end.health,
+      angle: fromAngle + rotation * actionFraction,
+      health: actionFraction < 0.6 ? start.health : end.health,
       cooldown: end.cooldown,
       pendingFormTransition,
-      status: fraction < 0.9 ? start.status : end.status,
+      status: actionFraction < 0.9 ? start.status : end.status,
     };
   });
 }

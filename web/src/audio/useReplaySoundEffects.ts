@@ -8,6 +8,7 @@ import { ArenaAudioSession } from './ArenaAudioSession';
 import { beginAsset } from '../render/assetReadiness';
 import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
+import { PRESENTATION_TICKS_PER_SECOND } from '../playback';
 import {
   readSoundEffectsMutedPreference,
   readSoundEffectsVolumePreference,
@@ -15,7 +16,6 @@ import {
   writeSoundEffectsVolumePreference,
 } from './soundEffectsPreferences';
 
-const BASE_TICKS_PER_SECOND = 5;
 const MAX_ACTIVE_VOICES = 8;
 const MAX_CROSSED_TICKS = 3;
 /**
@@ -29,15 +29,31 @@ const cueGain: Record<SoundEffectCueId, number> = {
   projectile: 0.36,
   impact: 0.48,
   destroyed: 0.56,
+  'arc-birth': 0.44,
+  'arc-steal': 0.56,
+  'arc-bank': 0.62,
+  'arc-pulse': 0.72,
 };
 const cueVoiceLimit: Record<SoundEffectCueId, number> = {
   projectile: 3,
   impact: 2,
   destroyed: 1,
+  'arc-birth': 2,
+  'arc-steal': 1,
+  'arc-bank': 1,
+  'arc-pulse': 1,
 };
 
 /** The cues a match cannot start without. Same set `preloadEffects` decodes. */
-const PRELOADED_CUES = ['projectile', 'impact', 'destroyed'] as const;
+const PRELOADED_CUES = [
+  'projectile',
+  'impact',
+  'destroyed',
+  'arc-birth',
+  'arc-steal',
+  'arc-bank',
+  'arc-pulse',
+] as const;
 
 interface AudioGraph {
   context: AudioContext;
@@ -228,9 +244,7 @@ export function useReplaySoundEffects({
   const preloadEffects = useCallback(
     () =>
       Promise.all(
-        (['projectile', 'impact', 'destroyed'] as const).map((cue) =>
-          loadCue(cue),
-        ),
+        PRELOADED_CUES.map((cue) => loadCue(cue)),
       ),
     [loadCue],
   );
@@ -431,7 +445,8 @@ export function useReplaySoundEffects({
     previousTick.current = currentTick;
 
     function scheduleTick(tick: number, elapsedTicks: number) {
-      const tickDuration = 1_000 / (BASE_TICKS_PER_SECOND * speed);
+      const tickDuration =
+        1_000 / (PRESENTATION_TICKS_PER_SECOND * speed);
       const expectedGeneration = generation.current;
       for (const event of replayAudioEventsAt(replay, tick)) {
         scheduleCue(

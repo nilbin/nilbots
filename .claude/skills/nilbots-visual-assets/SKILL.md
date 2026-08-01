@@ -273,6 +273,9 @@ shader.
    merely to claim vector.
 2. Use the canonical transparent 512×512 canvas or SVG viewBox, facing East.
    A genuine SVG must not contain `<image>` or `data:image` raster payloads.
+   A raster-backed SVG wrapper is sometimes useful for a semantic team mask,
+   but it still counts as the PNG exception: name it honestly in evidence and
+   never describe the wrapper as a genuine SVG.
 3. Keep high-resolution raster masters and exact generation prompts outside
    the runtime package. Remove backgrounds before deriving the 512×512 PNG.
    When replacing a shipped raster with SVG, retain the old image under
@@ -335,6 +338,12 @@ class into the same hull.
    panel detail is subordinate. A deterministic generator is encouraged when
    it preserves each class's authored geometry and gives the whole roster a
    repeatable shape language. Keep that generator as production source.
+   When the world uses a mild oblique projection, author that projection in
+   the source: show a narrow side/lower-hull face, recessed underbody and
+   elevated rule-bearing hardware. A Y-axis squash of a straight top-down
+   sprite changes proportions but does not create Tilt and must not be labeled
+   oblique. The one East-facing source must still tolerate renderer rotation
+   through every legal heading.
 3. Give each class only two or three direct semantic
    `data-team-accent="true"` surfaces. Review at least two opposing team colors
    on the actual arena. Team identity is restrained glow/inlay, not a whole-hull
@@ -358,11 +367,41 @@ class into the same hull.
    for the site and game, and the companion-model/provider/fidelity-gate steps
    below are dormant until separately commissioned.
 
+8. If the SVG-first roster fails the art bar specifically because the approved
+   direction depends on painterly material separation or dense texture, run a
+   same-scale vector-versus-raster proof before taking the exception. Archive
+   the rejected vector result; do not auto-trace the raster or silently embed
+   it and call it vector. For a generated raster roster:
+
+   - approve the roster concept and fixed class order before isolation;
+   - request isolated sprites on real alpha; if the provider bakes a
+     checkerboard, replace only the background with one recorded chroma key;
+   - key, spill-clean, trim, normalize and encode deterministically from the
+     archived atlas, with no manual per-output paint edits;
+   - separate the prompted semantic team-light color into a neutral base and
+     an alpha mask offline; the renderer supplies cyan/red and bloom;
+   - correct any fixed class palette that collides with a semantic team color;
+   - if a compact raster derivative and its mask are embedded in a layered SVG
+     for renderer compatibility, retain the required named groups and record
+     it as the raster exception, not as genuine SVG;
+   - review both teams at contact-sheet and real-match scale under fog,
+     movement, all headings and normal camera distance; compare first-use and
+     packaged bytes with the vector fallback.
+
+   High-resolution concepts, isolation intermediates, exact prompts and keyed
+   masters remain under `art/`. Runtime packages receive only optimized
+   derivatives. A provider's attractive contact sheet is not proof: the
+   exception earns its place only when the real-replay comparison is better.
+
 Arc Relay is the reference pass: `scripts/build-arc-relay-class-art.mjs`
-authors sixteen `arc-*` class defaults plus the shared `arc-pulse` mask. It
-uses graphite, bronze, amber machinery light, restrained semantic team inlays,
-and `low-hover` across the roster. DECISIONS #196 keeps its 3D companions and
-paid generation dormant for Phase C.
+builds sixteen `arc-*` class defaults from the approved premium roster source;
+the exact prompts, chroma atlas, deterministic keyed masters and rejected
+genuine-vector fallback are under
+`art/class-look-concepts/arc-relay/premium-roster-v1/`. The shipping wrapper is
+the measured raster exception: one rotatable mild-oblique sprite, varied
+renderer-owned locomotion cues, class-specific palettes and hardware, and a
+separate semantic team-light mask. `arc-pulse` remains a shared genuine SVG
+mask. Paid 3D companions remain dormant until separately commissioned.
 
 ## Projectile-look workflow
 

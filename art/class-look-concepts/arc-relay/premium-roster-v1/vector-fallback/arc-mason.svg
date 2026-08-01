@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mason">
+  <defs>
+    <linearGradient id="mason-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5f5e58"/><stop offset=".42" stop-color="#292822"/><stop offset="1" stop-color="#070600"/>
+    </linearGradient>
+    <linearGradient id="mason-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#e5b35f"/><stop offset=".38" stop-color="#b3812d"/><stop offset="1" stop-color="#794700"/>
+    </linearGradient>
+    <linearGradient id="mason-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#b5b1a5"/><stop offset=".46" stop-color="#7b776b"/><stop offset="1" stop-color="#413d31"/>
+    </linearGradient>
+    <linearGradient id="mason-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#35342e"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="mason-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#191812"/><stop offset=".44" stop-color="#030200"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="mason-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#ffffa5"/><stop offset=".64" stop-color="#ffd061"/><stop offset="1" stop-color="#a77809"/>
+    </radialGradient>
+    <pattern id="mason-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="mason-clip"><path d="M78 164 178 112 334 112 434 164 466 220 466 292 434 348 334 400 178 400 78 348 46 292 46 220Z"/></clipPath>
+    <filter id="mason-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="mason-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <rect fill="#090c10" stroke="#0b1118" stroke-width="14" x="106" y="126" width="250" height="76" rx="34"/>
+      <rect fill="#090c10" stroke="#0b1118" stroke-width="14" x="106" y="310" width="250" height="76" rx="34"/>
+      <path fill="none" stroke="#586069" stroke-width="12" stroke-dasharray="24 14" d="M132 164h198M132 348h198"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M78 164 178 112 334 112 434 164 466 220 466 292 434 348 334 400 178 400 78 348 46 292 46 220Z" transform="translate(0 22)" fill="url(#mason-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M78 164 178 112 334 112 434 164 466 220 466 292 434 348 334 400 178 400 78 348 46 292 46 220Z" transform="translate(0 16)" fill="none" stroke="#3b3a34" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#mason-bevel)">
+      <path fill="url(#mason-chassis)" stroke="#0b1118" stroke-width="18" d="M78 164 178 112 334 112 434 164 466 220 466 292 434 348 334 400 178 400 78 348 46 292 46 220Z"/>
+      <path fill="url(#mason-plate)" stroke="#0b1118" stroke-width="7" d="M112 188 194 148h124l82 40 28 48v40l-28 48-82 40H194l-82-40-28-48v-40Z"/>
+      <g id="material-finish" clip-path="url(#mason-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#mason-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#mason-plate)" stroke="#c99743" stroke-width="4">
+        <path d="M106 204 194 158h62v72l-54 24-86-4Z"/><path fill="#713f00" stroke="#95630f" d="m116 270 86-4 54 24v72h-62l-88-46Z"/><path fill="url(#mason-hardware)" stroke="#938f83" d="m276 158 56 4 78 42-60 40-74-18Z"/><path fill="#4d493d" stroke="#696559" d="m276 286 74-18 60 40-78 42-56 4Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#f1bf6b" stroke-opacity=".58" stroke-width="5">
+        <path d="M120 196 198 158h116l78 38M120 316l78 38h116l78-38M136 232h52m-52 48h52"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000000" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="M120 196 198 158h116l78 38M120 316l78 38h116l78-38M136 232h52m-52 48h52"/>
+      </g>
+      <g id="fasteners" fill="#a5a195" stroke="#090d12" stroke-width="3">
+        <circle cx="152" cy="190" r="6"/><circle cx="152" cy="322" r="6"/><circle cx="360" cy="190" r="6"/><circle cx="360" cy="322" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000000" stroke="#070a0f" stroke-width="6" d="M164 184h176v144H164Z" transform="translate(0 9)"/>
+      <path fill="#000000" stroke="#070a0f" stroke-width="5" d="M212 216h80v80h-80Z" transform="translate(0 9)"/>
+      <path fill="#000000" stroke="#070a0f" stroke-width="6" d="M338 198h88v44h-46v28h46v44h-88Z" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#mason-hardware)" stroke="#0b1118" stroke-width="6" d="M164 184h176v144H164Z"/>
+      <path fill="url(#mason-chassis)" stroke="#0b1118" stroke-width="5" d="M212 216h80v80h-80Z"/>
+      <path fill="url(#mason-hardware)" stroke="#0b1118" stroke-width="6" d="M338 198h88v44h-46v28h46v44h-88Z"/>
+      <g id="signature-machinery" fill="none" stroke="#b1ada1" stroke-width="6" stroke-opacity=".88">
+        <path d="M174 194h156v124H174Z"/><path d="M208 222h88v68h-88ZM338 208h78v34h-40v28h40v34h-78Z"/><path d="M252 222v68M208 256h88"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#mason-team-glow)">
+      <rect data-team-accent="true" fill="#38bdf8" x="98" y="202" width="38" height="108" rx="10"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="176" y="154" width="144" height="26" rx="10"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="176" y="332" width="144" height="26" rx="10"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#mason-emissive)" cx="252" cy="256" r="18"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="252" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

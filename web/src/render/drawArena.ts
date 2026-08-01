@@ -58,6 +58,10 @@ import {
   drawArcRelayGround,
   drawArcRelayOverlay,
 } from './arcRelayVisual';
+import {
+  logicalArenaHeight,
+  WORLD_VERTICAL_SCALE,
+} from './arenaProjection';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -163,7 +167,7 @@ export function drawArena(
     mapWidth,
     mapHeight,
     width,
-    height,
+    logicalArenaHeight(height),
   );
   const px = (x: number) => originX + x * tile;
   const py = (y: number) => originY + y * tile;
@@ -188,9 +192,11 @@ export function drawArena(
    */
   const liftX = (x: number) => (x + 0.5 - mapWidth / 2) * tile * WALL_LIFT;
   const liftY = (y: number) => (y + 0.5 - mapHeight / 2) * tile * WALL_LIFT;
-
+  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
 
   ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = theme.palette.canvas;
+  ctx.fillRect(0, 0, width, height);
 
   const tickCount = replay.ticks.length;
   const tick =
@@ -218,7 +224,6 @@ export function drawArena(
   const arrivals = new Map<string, Arrival>(
     arrivalsAt(replay, time).map((arrival) => [arrival.actorKey, arrival]),
   );
-  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const boundaryWall = validWallFamily(
     replay.map.presentation?.boundaryWall ?? undefined,
     theme.walls.defaults.boundary,
@@ -317,6 +322,10 @@ export function drawArena(
   // moves on every shot stops meaning anything.
   const shake = shakeOffset();
   ctx.save();
+  // A single owner-ruled projection keeps tile arithmetic, fog, routes and event effects
+  // in one coordinate system. The inverse is used by the canvas hit-test; nothing here
+  // changes an authoritative position.
+  ctx.scale(1, WORLD_VERTICAL_SCALE);
   if (shake) ctx.translate(shake.x, shake.y);
 
   drawFloor();
@@ -381,9 +390,6 @@ export function drawArena(
   }
 
   function drawFloor(): void {
-    ctx.fillStyle = theme.palette.canvas;
-    ctx.fillRect(0, 0, width, height);
-
     ctx.save();
     ctx.shadowColor = 'rgba(22, 119, 174, 0.18)';
     ctx.shadowBlur = Math.max(12, tile * 0.7);
@@ -1424,6 +1430,10 @@ export function drawArena(
       if (hiddenByFog(pose)) continue;
       drawShadow(pose);
     }
+    for (const pose of poses) {
+      if (pose.status !== 'active' || hiddenByFog(pose)) continue;
+      drawLocomotionMotion(pose);
+    }
     // Under the bodies, on the floor, exactly like the 3D renderer puts them
     // there: a ring drawn over a chassis would paint on the machine it is
     // describing.
@@ -1464,9 +1474,10 @@ export function drawArena(
     const tag = unit?.roleTag;
     if (!tag) return;
     const caption = roleTagCaption(tag);
-    const size = Math.max(7, Math.round(tile * 0.24));
+    // Camera close-ups must enlarge the machine, not turn sheet metadata into a billboard.
+    const size = Math.min(13, Math.max(7, Math.round(tile * 0.24)));
     const cx = px(pose.x) + tile / 2;
-    const cy = px(pose.y) + tile * 0.99;
+    const cy = py(pose.y) + tile * 0.99;
     ctx.save();
     ctx.font = `${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     ctx.textAlign = 'center';
@@ -1673,8 +1684,11 @@ export function drawArena(
       (candidate) => candidate.formId === pose.formId,
     );
     const visualIndex = visualIndexForUnit(replay, pose.unitKey);
+    const look = unitLook(replay, pose.unitKey, pose.formId);
     const hover =
-      pose.status === 'active' && form?.canMove !== false
+      pose.status === 'active' &&
+      form?.canMove !== false &&
+      look.locomotionCue === 'low-hover'
         ? Math.sin((time + visualIndex * 0.31) * Math.PI * 2) *
           tile *
           0.018
@@ -1683,18 +1697,92 @@ export function drawArena(
     const emerge = emergence(pose);
     ctx.save();
     ctx.filter = `blur(${Math.max(1, tile * 0.045)}px)`;
-    ctx.fillStyle = `rgba(0, 0, 0, ${0.52 * emerge})`;
+    ctx.fillStyle = `rgba(0, 0, 0, ${
+      (look.locomotionCue === 'low-hover' ? 0.38 : 0.58) * emerge
+    })`;
     ctx.beginPath();
     ctx.ellipse(
       cx,
       cy - hover,
-      tile * 0.36 * emerge,
-      tile * 0.17 * emerge,
+      tile * (look.locomotionCue === 'low-hover' ? 0.33 : 0.4) * emerge,
+      tile * (look.locomotionCue === 'low-hover' ? 0.14 : 0.18) * emerge,
       0,
       0,
       Math.PI * 2,
     );
     ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLocomotionMotion(pose: BotPose): void {
+    const look = unitLook(replay, pose.unitKey, pose.formId);
+    const before = currentTick?.before.actors.find(
+      (actor) => actor.actorKey === pose.actorKey,
+    );
+    const after = currentTick?.after.actors.find(
+      (actor) => actor.actorKey === pose.actorKey,
+    );
+    const dx = (after?.position.x ?? pose.x) - (before?.position.x ?? pose.x);
+    const dy = (after?.position.y ?? pose.y) - (before?.position.y ?? pose.y);
+    const distance = Math.hypot(dx, dy);
+    const cx = px(pose.x) + tile / 2;
+    const cy = py(pose.y) + tile / 2;
+    if (look.locomotionCue === 'low-hover') {
+      const pulse = 0.5 + 0.5 * Math.sin((time + pose.unitId * 0.17) * Math.PI * 2);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(229, 208, 157, ${0.14 + pulse * 0.13})`;
+      ctx.lineWidth = Math.max(1, tile * 0.025);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + tile * 0.18, tile * 0.3, tile * 0.1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    if (distance === 0) return;
+    const nx = dx / distance;
+    const ny = dy / distance;
+    const sideX = -ny;
+    const sideY = nx;
+    const life = Math.sin(fraction * Math.PI);
+    const backX = cx - nx * tile * 0.36;
+    const backY = cy - ny * tile * 0.36;
+    ctx.save();
+    ctx.strokeStyle = `rgba(197, 177, 137, ${0.34 * life})`;
+    ctx.fillStyle = `rgba(197, 177, 137, ${0.2 * life})`;
+    ctx.lineCap = 'round';
+    if (look.locomotionCue === 'skids') {
+      ctx.lineWidth = Math.max(1.5, tile * 0.035);
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(
+          backX + sideX * side * tile * 0.2,
+          backY + sideY * side * tile * 0.2,
+        );
+        ctx.lineTo(
+          backX - nx * tile * 0.32 + sideX * side * tile * 0.2,
+          backY - ny * tile * 0.32 + sideY * side * tile * 0.2,
+        );
+        ctx.stroke();
+      }
+    } else {
+      const count = look.locomotionCue === 'treads' ? 5 : 3;
+      for (let index = 0; index < count; index += 1) {
+        const spread = (index - (count - 1) / 2) * tile * 0.11;
+        const trail = tile * (0.12 + index * 0.04) * life;
+        ctx.beginPath();
+        ctx.ellipse(
+          backX - nx * trail + sideX * spread,
+          backY - ny * trail + sideY * spread,
+          tile * 0.055,
+          tile * 0.03,
+          Math.atan2(ny, nx),
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      }
+    }
     ctx.restore();
   }
 
@@ -1716,7 +1804,9 @@ export function drawArena(
     const stance = stanceKindForForm(pose.formId);
     const cx = px(pose.x) + tile / 2;
     const hover =
-      pose.status === 'active' && form?.canMove !== false
+      pose.status === 'active' &&
+      form?.canMove !== false &&
+      look.locomotionCue === 'low-hover'
         ? Math.sin((time + visualIndex * 0.31) * Math.PI * 2) *
           tile *
           0.022

@@ -8,12 +8,17 @@
   "channels": 2,
   "provenance": {
     "generatedBy": "scripts/generate-audio-v2-candidates.mjs",
+    "arcRelayGeneratedBy": "scripts/generate-arc-relay-sfx.mjs",
     "rightsStatus": "rights-cleared",
     "shipApproval": "approved"
   },
   "cues": {
     "projectile": "projectile.m4a",
     "impact": "impact.m4a",
-    "destroyed": "destroyed.m4a"
+    "destroyed": "destroyed.m4a",
+    "arc-birth": "arc-birth.m4a",
+    "arc-steal": "arc-steal.m4a",
+    "arc-bank": "arc-bank.m4a",
+    "arc-pulse": "arc-pulse.m4a"
   }
 }

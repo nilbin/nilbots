@@ -30,7 +30,7 @@ export default function CameraFitToggle({
           : 'The camera holds the whole arena. Turn on to follow the action.'
       }
     >
-      ⤢ fit
+      {enabled ? '◉ director' : '▦ overview'}
     </ToggleButton>
   );
 }

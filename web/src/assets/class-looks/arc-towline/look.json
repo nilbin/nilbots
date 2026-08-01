@@ -1,10 +1,10 @@
 {
   "id": "arc-towline",
   "label": "Arc Relay Towline",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "towline",
-  "locomotionCue": "low-hover",
+  "locomotionCue": "wheels",
   "scale": 1.07
 }

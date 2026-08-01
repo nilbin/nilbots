@@ -8,6 +8,8 @@ import type {
   ReplayTick,
 } from '../replayModel';
 import type { BotPose } from './interpolate';
+import { unitLook } from './unitPresentation';
+import { teamAccentedEffectImage } from './arenaThemes';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -44,6 +46,7 @@ export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
 
   drawCores(input, state, true);
   drawTransferEffects(input);
+  drawDiegeticEvents(input, state);
   drawSignatureReadiness(input, state);
 }
 
@@ -287,7 +290,15 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
     }
 
     const anchor = points[0] ?? actorCentre(input, signature.ownerActor);
-    if (anchor) drawSignatureGlyph(ctx, signature.signatureId, anchor.x, anchor.y, tile, accent);
+    if (anchor)
+      drawClassSignatureGlyph(
+        input,
+        signature.ownerActor,
+        signature.signatureId,
+        anchor.x,
+        anchor.y,
+        accent,
+      );
     if (signature.targetActor) {
       const target = actorCentre(input, signature.targetActor);
       const owner = actorCentre(input, signature.ownerActor);
@@ -312,6 +323,28 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
     }
     ctx.restore();
   }
+}
+
+function drawClassSignatureGlyph(
+  input: ArcRelayVisualContext,
+  owner: ReplayActorIdentity,
+  signatureId: string,
+  x: number,
+  y: number,
+  accent: string,
+): void {
+  const pose = input.poses.find((candidate) => candidate.actorKey === owner.actorKey);
+  const look = unitLook(input.replay, owner.unitKey, pose?.formId);
+  const image = teamAccentedEffectImage(look, accent);
+  if (image?.complete && image.naturalWidth > 0) {
+    const size = input.tile * 1.08;
+    input.ctx.save();
+    input.ctx.globalCompositeOperation = 'source-over';
+    input.ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+    input.ctx.restore();
+    return;
+  }
+  drawSignatureGlyph(input.ctx, signatureId, x, y, input.tile, accent);
 }
 
 function drawSignatureGlyph(
@@ -618,6 +651,136 @@ function drawTransferEffects(input: ArcRelayVisualContext): void {
     ctx.fill();
     ctx.restore();
   }
+}
+
+/**
+ * The four big beats formerly stated by a banner, now spoken in the world itself.
+ * Geometry and cadence are deliberately distinct so the animation still communicates
+ * without team colour: birth blooms, a steal snaps inward, a bank locks, a Pulse strikes.
+ */
+function drawDiegeticEvents(
+  input: ArcRelayVisualContext,
+  state: ArcState,
+): void {
+  const { ctx, tile, fraction } = input;
+  for (const event of input.tick?.events ?? []) {
+    const fact = event.arcRelayFact;
+    if (!fact) continue;
+    let point: { x: number; y: number } | null = null;
+    let accent = '#f5f8fb';
+    let kind: 'birth' | 'steal' | 'bank' | 'pulse' | null = null;
+    if (fact.kind === 'core-born') {
+      point = centre(input, fact.position);
+      kind = 'birth';
+    } else if (fact.kind === 'core-picked-up') {
+      const previousTeam = previousOwnerTeam(input, fact.coreId);
+      if (previousTeam !== null && previousTeam !== fact.carrierActor.teamId) {
+        point = actorCentre(input, fact.carrierActor) ?? centre(input, fact.position);
+        accent = input.accentFor(fact.carrierActor.unitKey);
+        kind = 'steal';
+      }
+    } else if (fact.kind === 'core-banked') {
+      point = centre(input, fact.position);
+      accent = teamAccent(input, fact.teamId);
+      kind = 'bank';
+    } else if (fact.kind === 'pulse') {
+      const target = state.reactors.find(
+        (reactor) => reactor.teamId !== fact.teamId,
+      );
+      if (target) point = centre(input, target.position);
+      accent = teamAccent(input, fact.teamId);
+      kind = 'pulse';
+    }
+    if (!point || !kind) continue;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = withAlpha(accent, (1 - fraction) * 0.96);
+    ctx.fillStyle = withAlpha(accent, (1 - fraction) * 0.15);
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = Math.max(8, tile * 0.35);
+    ctx.lineWidth = Math.max(2.5, tile * 0.075);
+    if (kind === 'birth') {
+      for (let ring = 0; ring < 3; ring += 1) {
+        const progress = Math.max(0, Math.min(1, fraction * 1.4 - ring * 0.14));
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, tile * (0.18 + progress * 0.7), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (kind === 'steal') {
+      const radius = tile * (0.9 - fraction * 0.45);
+      ctx.setLineDash([tile * 0.16, tile * 0.08]);
+      ctx.lineDashOffset = fraction * tile * 1.4;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, tile * (0.28 + 0.15 * fraction), 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'bank') {
+      const radius = tile * (0.38 + 0.52 * fraction);
+      ctx.beginPath();
+      for (let corner = 0; corner < 6; corner += 1) {
+        const angle = corner * Math.PI / 3;
+        const x = point.x + Math.cos(angle) * radius;
+        const y = point.y + Math.sin(angle) * radius;
+        if (corner === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      for (let pip = 0; pip < 3; pip += 1) {
+        ctx.beginPath();
+        ctx.arc(
+          point.x + (pip - 1) * tile * 0.2,
+          point.y,
+          tile * (0.05 + 0.035 * (1 - fraction)),
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      }
+    } else {
+      const flash = Math.sin(fraction * Math.PI);
+      ctx.lineWidth = Math.max(4, tile * 0.12);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, tile * (0.35 + fraction * 1.15), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = withAlpha('#ffffff', flash * 0.42);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, tile * (0.42 - fraction * 0.18), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function previousOwnerTeam(
+  input: ArcRelayVisualContext,
+  coreId: ReplayArcCoreId,
+): number | null {
+  const before = input.tick?.before.mode;
+  if (before?.kind === 'arc-relay' && 'visibleCores' in before) {
+    const core = before.visibleCores.find(
+      (candidate) => coreKey(candidate.coreId) === coreKey(coreId),
+    );
+    if (core?.carrierActor) return core.carrierActor.teamId;
+  }
+  const beforeTick = input.tick?.tick ?? 0;
+  for (let index = beforeTick - 1; index >= 0; index -= 1) {
+    for (const event of [...(input.replay.ticks[index]?.events ?? [])].reverse()) {
+      const fact = event.arcRelayFact;
+      if (!fact || !('coreId' in fact) || coreKey(fact.coreId) !== coreKey(coreId))
+        continue;
+      if (fact.kind === 'core-picked-up') return fact.carrierActor.teamId;
+      if (fact.kind === 'core-handed-off') return fact.targetActor.teamId;
+      if (fact.kind === 'core-relocated') return fact.carrierActor?.teamId ?? null;
+      if (fact.kind === 'core-dropped') return fact.sourceActor.teamId;
+      if (fact.kind === 'core-banked') return fact.teamId;
+    }
+  }
+  return null;
 }
 
 function drawSignatureReadiness(

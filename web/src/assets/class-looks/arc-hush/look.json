@@ -1,7 +1,7 @@
 {
   "id": "arc-hush",
   "label": "Arc Relay Hush",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "hush",

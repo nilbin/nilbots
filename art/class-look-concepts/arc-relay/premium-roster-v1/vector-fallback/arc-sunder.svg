@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sunder">
+  <defs>
+    <linearGradient id="sunder-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#575160"/><stop offset=".42" stop-color="#211b2a"/><stop offset="1" stop-color="#000008"/>
+    </linearGradient>
+    <linearGradient id="sunder-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#8b799e"/><stop offset=".38" stop-color="#59476c"/><stop offset="1" stop-color="#1f0d32"/>
+    </linearGradient>
+    <linearGradient id="sunder-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f2dffc"/><stop offset=".46" stop-color="#b8a5c2"/><stop offset="1" stop-color="#7e6b88"/>
+    </linearGradient>
+    <linearGradient id="sunder-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#2d2736"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="sunder-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#110b1a"/><stop offset=".44" stop-color="#000004"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="sunder-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#fffb91"/><stop offset=".64" stop-color="#f1b74d"/><stop offset="1" stop-color="#995f00"/>
+    </radialGradient>
+    <pattern id="sunder-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="sunder-clip"><path d="m54 256 74-54-22-84 92 40 58-86 58 86 92-40-22 84 86 54-86 54 22 84-92-40-58 86-58-86-92 40 22-84Z"/></clipPath>
+    <filter id="sunder-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="sunder-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <ellipse fill="#06090d" fill-opacity="0.72" cx="256" cy="324" rx="142" ry="46"/>
+      <path fill="#f1b74d" fill-opacity="0.38" d="M142 304h72l-22 48h-64Zm156 0h72l14 48h-64Z"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="m54 256 74-54-22-84 92 40 58-86 58 86 92-40-22 84 86 54-86 54 22 84-92-40-58 86-58-86-92 40 22-84Z" transform="translate(0 22)" fill="url(#sunder-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="m54 256 74-54-22-84 92 40 58-86 58 86 92-40-22 84 86 54-86 54 22 84-92-40-58 86-58-86-92 40 22-84Z" transform="translate(0 16)" fill="none" stroke="#332d3c" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#sunder-bevel)">
+      <path fill="url(#sunder-chassis)" stroke="#0b1118" stroke-width="18" d="m54 256 74-54-22-84 92 40 58-86 58 86 92-40-22 84 86 54-86 54 22 84-92-40-58 86-58-86-92 40 22-84Z"/>
+      <path fill="url(#sunder-plate)" stroke="#0b1118" stroke-width="7" d="m116 256 54-38-14-48 58 24 42-62 42 62 58-24-14 48 54 38-54 38 14 48-58-24-42 62-42-62-58 24 14-48Z"/>
+      <g id="material-finish" clip-path="url(#sunder-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#sunder-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#sunder-plate)" stroke="#6f5d82" stroke-width="4">
+        <path d="m116 238 58-42 50 20 32-52 34 54-42 32-106 14Z"/><path fill="#17052a" stroke="#3b294e" d="m142 280 106 14 42 32-34 54-32-52-50 20-58-42Z"/><path fill="url(#sunder-hardware)" stroke="#d0bdda" d="m306 210 52-24 42 48-68 22Z"/><path fill="#8a7794" stroke="#a693b0" d="m332 272 68 22-42 48-52-24Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#9785aa" stroke-opacity=".58" stroke-width="5">
+        <path d="m122 234 52-36 54 20 28-42 28 42 54-20 52 36M122 278l52 36 54-20 28 42 28-42 54 20 52-36"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000000" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="m122 234 52-36 54 20 28-42 28 42 54-20 52 36M122 278l52 36 54-20 28 42 28-42 54 20 52-36"/>
+      </g>
+      <g id="fasteners" fill="#e2cfec" stroke="#090d12" stroke-width="3">
+        <circle cx="154" cy="210" r="6"/><circle cx="154" cy="302" r="6"/><circle cx="358" cy="210" r="6"/><circle cx="358" cy="302" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000000" stroke="#070a0f" stroke-width="6" d="m184 256 88-68 102 68-102 68Z" transform="translate(0 9)"/>
+      <path fill="#000000" stroke="#070a0f" stroke-width="5" d="m276 212 100 44-100 44 28-44Z" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#sunder-hardware)" stroke="#0b1118" stroke-width="6" d="m184 256 88-68 102 68-102 68Z"/>
+      <path fill="url(#sunder-deep)" stroke="#0b1118" stroke-width="5" d="m276 212 100 44-100 44 28-44Z"/>
+      <g id="signature-machinery" fill="none" stroke="#eedbf8" stroke-width="6" stroke-opacity=".88">
+        <circle cx="286" cy="256" r="54"/><circle cx="286" cy="256" r="26"/><path d="M286 180v42m0 68v42M210 256h42m68 0h76"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#sunder-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="m130 204 62-50 22 30-62 50Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m130 308 62 50 22-30-62-50Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m362 224 82 32-82 32 20-32Z"/>
+    </g>
+    <g id="emissives">
+      <circle fill="none" stroke="url(#sunder-emissive)" stroke-width="16" cx="286" cy="256" r="38"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="286" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

@@ -13,6 +13,10 @@ import {
   type ArenaFraming,
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
+import {
+  logicalArenaHeight,
+  unprojectCanvasY,
+} from '../render/arenaProjection';
 
 interface ArenaCanvasProps {
   replay: ReplayModel;
@@ -58,6 +62,7 @@ export default function ArenaCanvas({
     mapWidth: replay.map.width,
     mapHeight: replay.map.height,
     aspect: 1,
+    minSpan: arcRelayDirectorMinSpan(replay),
   });
 
   const gesturesRef = useRef<{ panned: () => boolean } | null>(null);
@@ -79,7 +84,7 @@ export default function ArenaCanvas({
         replay.map.width,
         replay.map.height,
         canvas.clientWidth || 1,
-        canvas.clientHeight || 1,
+        logicalArenaHeight(canvas.clientHeight || 1),
       ).tile;
 
     const gestures = cameraGestures
@@ -116,7 +121,8 @@ export default function ArenaCanvas({
         framingRef.current = {
           mapWidth: replay.map.width,
           mapHeight: replay.map.height,
-          aspect: width / height,
+          aspect: width / logicalArenaHeight(height),
+          minSpan: arcRelayDirectorMinSpan(replay),
         };
         const camera =
           cameraRef.current ?? (cameraRef.current = new ArenaCamera(framingRef.current));
@@ -180,13 +186,16 @@ export default function ArenaCanvas({
       replay.map.width,
       replay.map.height,
       rect.width,
-      rect.height,
+      logicalArenaHeight(rect.height),
     );
 
     for (const pose of posesAt(replay, stateRef.current.time)) {
       const cx = originX + pose.x * tile + tile / 2;
       const cy = originY + pose.y * tile + tile / 2;
-      if (Math.hypot(clickX - cx, clickY - cy) < tile * 0.5) {
+      if (
+        Math.hypot(clickX - cx, unprojectCanvasY(clickY) - cy) <
+        tile * 0.5
+      ) {
         onSelectUnit(
           selectedUnitKey === pose.unitKey ? null : pose.unitKey,
         );
@@ -210,4 +219,12 @@ export default function ArenaCanvas({
       aria-label="nilbots match playback"
     />
   );
+}
+
+/** Arc Relay close-ups retain the bank, nearby cover, and approach lanes around a beat. */
+function arcRelayDirectorMinSpan(replay: ReplayModel): number | undefined {
+  return replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay'
+    ? 10
+    : undefined;
 }

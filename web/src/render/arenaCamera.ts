@@ -1,4 +1,5 @@
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
+import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { posesAt } from './interpolate';
 
 /**
@@ -56,7 +57,8 @@ const FOCUS_MARGIN_TILES = 1.5;
  *
  * A single surviving bot fits in about two tiles, and a camera that honours that shows a
  * machine and no arena — no cover, no objective, no idea where the shot came from. Six is
- * about two tiles of context either side of a duel, which is where cover lives.
+ * about two tiles of context either side of a duel, which is where cover lives. Modes with
+ * a stronger spectator grammar can ask for a wider floor through `minSpan`.
  */
 const MIN_SPAN_TILES = 6;
 
@@ -251,13 +253,163 @@ export function focusPointsAt(
         null;
   const chosen =
     teamId === null
-      ? active
+      ? autoDirectorPoints(replay, time, active)
       : active.filter((pose) => pose.teamId === teamId);
   // A tile's centre, which is where both renderers draw the body standing on it.
   return (chosen.length > 0 ? chosen : active).map((pose) => ({
     x: pose.x + 0.5,
     y: pose.y + 0.5,
   }));
+}
+
+type DirectorPoint = { x: number; y: number };
+
+/**
+ * Arc Relay's outcome-blind camera director.
+ *
+ * It reads only facts already revealed at `time`. The ordering is the spectator grammar:
+ * a carrier entering the bank run, then violence, then a loose Core contest, then the next
+ * scheduled birth. A quiet board falls back to the closest opposing pair rather than all
+ * sixteen bodies, which is what made the old "fit" indistinguishable from overview.
+ */
+function autoDirectorPoints(
+  replay: ReplayModel,
+  time: number,
+  active: readonly ReturnType<typeof posesAt>[number][],
+): DirectorPoint[] {
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.modeKind !== 'arc-relay'
+  ) {
+    return [...active];
+  }
+  const tickIndex = Math.max(
+    0,
+    Math.min(Math.floor(time), replay.ticks.length - 1),
+  );
+  const mode =
+    replay.ticks[tickIndex]?.after.mode ?? replay.initialWorld?.mode;
+  if (mode?.kind !== 'arc-relay' || !('visibleCores' in mode)) return [...active];
+
+  const carrierRuns = mode.visibleCores
+    .filter(
+      (core) => core.disposition === 'carried' && core.carrierActor !== null,
+    )
+    .map((core) => {
+      const carrier = active.find(
+        (pose) => pose.actorKey === core.carrierActor!.actorKey,
+      );
+      const reactor = mode.reactors.find(
+        (candidate) => candidate.teamId === core.carrierActor!.teamId,
+      );
+      return carrier && reactor
+        ? {
+            carrier,
+            reactor,
+            distance: Math.max(
+              Math.abs(reactor.position.x - carrier.x),
+              Math.abs(reactor.position.y - carrier.y),
+            ),
+            pulseCore: reactor.chargePips >= 2,
+          }
+        : null;
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort(
+      (left, right) =>
+        Number(right.pulseCore) - Number(left.pulseCore) ||
+        left.distance - right.distance,
+    );
+  const bankRun = carrierRuns.find((run) => run.distance <= 6);
+  if (bankRun) {
+    return includeNearby(
+      active,
+      [
+        bankRun.carrier,
+        { x: bankRun.reactor.position.x, y: bankRun.reactor.position.y },
+      ],
+      2.75,
+    );
+  }
+
+  // Hold a fight for three ticks so one impact does not make the target flicker away on
+  // the next frame. These are historical, already-revealed events only.
+  for (let age = 0; age <= 2; age += 1) {
+    const tick = replay.ticks[tickIndex - age];
+    if (!tick) continue;
+    const fight = tick.events.filter(
+      (event) =>
+        event.type === 'damage' ||
+        isDestructionEvent(event.type) ||
+        isAttackEvent(event.type),
+    );
+    if (fight.length === 0) continue;
+    const points: DirectorPoint[] = [];
+    for (const event of fight) {
+      const source = event.sourceActor
+        ? active.find((pose) => pose.actorKey === event.sourceActor!.actorKey)
+        : null;
+      const target = event.targetActor
+        ? active.find((pose) => pose.actorKey === event.targetActor!.actorKey)
+        : null;
+      if (source) points.push(source);
+      else if (event.from) points.push(event.from);
+      if (target) points.push(target);
+      else if (event.to) points.push(event.to);
+    }
+    if (points.length > 0) return includeNearby(active, points, 2.5);
+  }
+
+  const loose = [...mode.visibleCores]
+    .filter((core) => core.disposition === 'loose')
+    .sort((left, right) =>
+      left.coreId.sourceWellId.localeCompare(right.coreId.sourceWellId) ||
+      left.coreId.sourceOrdinal - right.coreId.sourceOrdinal,
+    )[0];
+  if (loose) return includeNearby(active, [loose.position], 3.5);
+
+  const nextWell = [...mode.wells]
+    .filter((well) => well.nextScheduledBirthTick !== null)
+    .sort(
+      (left, right) =>
+        left.nextScheduledBirthTick! - right.nextScheduledBirthTick! ||
+        left.wellId.localeCompare(right.wellId),
+    )[0];
+  if (nextWell)
+    return includeNearby(active, [nextWell.position], 3.25);
+
+  let closest: [DirectorPoint, DirectorPoint] | null = null;
+  let closestDistance = Infinity;
+  for (const left of active) {
+    for (const right of active) {
+      if (left.teamId === right.teamId) continue;
+      const distance = Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
+      if (distance < closestDistance) {
+        closest = [left, right];
+        closestDistance = distance;
+      }
+    }
+  }
+  return closest ? includeNearby(active, closest, 2.5) : [...active];
+}
+
+function includeNearby(
+  active: readonly DirectorPoint[],
+  anchors: readonly DirectorPoint[],
+  radius: number,
+): DirectorPoint[] {
+  const chosen: DirectorPoint[] = [...anchors];
+  for (const pose of active) {
+    if (
+      anchors.some(
+        (anchor) =>
+          Math.hypot(pose.x - anchor.x, pose.y - anchor.y) <= radius,
+      )
+    ) {
+      chosen.push(pose);
+    }
+  }
+  return chosen;
 }
 
 /**

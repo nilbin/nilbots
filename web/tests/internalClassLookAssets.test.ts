@@ -51,7 +51,7 @@ const expectedLooks = new Map([
   ].map((classId) => [`arc-${classId}`, [classId, 'arc-pulse']]),
 ]);
 
-test('internal class looks are genuine tagged SVG packages with paired shots', () => {
+test('internal class looks are tagged SVG packages with explicit raster exceptions', () => {
   const found = new Set<string>();
   for (const directory of readdirSync(classLooksRoot, {
     withFileTypes: true,
@@ -65,20 +65,38 @@ test('internal class looks are genuine tagged SVG packages with paired shots', (
       sprite: string;
       classId: string;
       defaultProjectile: string;
+      locomotionCue?: string;
       scale: number;
     };
     found.add(manifest.id);
     assert.equal(manifest.id, directory.name);
-    assert.equal(manifest.sprite, 'sprite.svg');
+    const isArcRelayRasterException = manifest.id.startsWith('arc-');
+    assert.equal(
+      manifest.sprite,
+      isArcRelayRasterException ? 'sprite.png' : 'sprite.svg',
+    );
     assert.ok(manifest.scale >= 0.8 && manifest.scale <= 1.4);
     assert.deepEqual(
       [manifest.classId, manifest.defaultProjectile],
       expectedLooks.get(manifest.id),
     );
 
-    const source = readFileSync(join(root, manifest.sprite), 'utf8');
+    const source = readFileSync(
+      join(root, isArcRelayRasterException ? 'team.svg' : manifest.sprite),
+      'utf8',
+    );
     assert.match(source, /viewBox="0 0 512 512"/);
-    assert.doesNotMatch(source, /<image\b|data:image\//i);
+    if (isArcRelayRasterException) {
+      assert.match(source, /data-runtime-art="raster-exception"/);
+      assert.match(source, /href="__BASE_IMAGE_URL__"/);
+      assert.match(source, /href="__TEAM_MASK_URL__"/);
+      assert.doesNotMatch(source, /data:image\//i);
+      assert.ok(readFileSync(join(root, 'sprite.png')).byteLength > 0);
+      assert.ok(readFileSync(join(root, 'team-mask.png')).byteLength > 0);
+    } else {
+      assert.doesNotMatch(source, /<image\b|data:image\//i);
+      assert.doesNotMatch(source, /data-runtime-art="raster-exception"/);
+    }
     const tagged = source.match(
       /<(?:path|circle|ellipse|rect|polygon)\b[^>]*data-team-accent="true"[^>]*>/gi,
     ) ?? [];
@@ -94,6 +112,23 @@ test('internal class looks are genuine tagged SVG packages with paired shots', (
     for (const element of tagged) {
       assert.match(element, /\bfill="#[0-9a-f]{6}"/i);
       assert.doesNotMatch(element, /\bfill="none"/i);
+    }
+    if (manifest.id.startsWith('arc-')) {
+      assert.match(source, /<g id="chassis">/);
+      assert.match(source, /<g id="weapon-hardware">/);
+      assert.match(source, /<g id="underbody-locomotion">/);
+      assert.match(source, /<g id="team-accents">/);
+      assert.match(source, /<g id="emissives">/);
+      assert.ok(
+        ['low-hover', 'wheels', 'treads', 'skids'].includes(
+          manifest.locomotionCue ?? '',
+        ),
+      );
+      const effect = readFileSync(join(root, 'effect.svg'), 'utf8');
+      assert.match(effect, /viewBox="0 0 256 256"/);
+      assert.match(effect, /<g id="signature-effect"/);
+      assert.match(effect, /data-team-accent="true"/);
+      assert.doesNotMatch(effect, /<image\b|data:image\//i);
     }
   }
   assert.deepEqual([...found].sort(), [...expectedLooks.keys()].sort());

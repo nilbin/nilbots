@@ -1,7 +1,7 @@
 {
   "id": "arc-switchback",
   "label": "Arc Relay Switchback",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "switchback",

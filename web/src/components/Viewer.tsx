@@ -31,7 +31,6 @@ import IdentityChip from './IdentityChip';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import LiveStatus, { LiveDot } from './LiveStatus';
-import ArcRelayStory from './ArcRelayStory';
 
 /**
  * The hosted viewer's 3D renderer — what the web viewer is.
@@ -255,6 +254,9 @@ export default function Viewer({
   }, [immersive.active]);
 
   const { result } = replay;
+  const isArcRelay =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay';
   const winnerTeam =
     result?.winnerTeamId === null || result?.winnerTeamId === undefined
       ? null
@@ -482,7 +484,6 @@ export default function Viewer({
               onManualCamera={() => setAutoFit(false)}
             />
           )}
-          <ArcRelayStory replay={replay} tick={tick} />
           {/* Where we are, over the game rather than under it: the eye is on the arena,
               and this is the one number a spectator is always reading. It is also the
               thing that must never disappear — when the immersive chrome fades, this
@@ -522,9 +523,7 @@ export default function Viewer({
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">
               <div className="panel px-8 py-6 text-center">
-                <p className="lab">
-                  Match complete — {result.reason} · tick {result.endTick}
-                </p>
+                <p className="lab">Match complete · tick {result.endTick}</p>
                 <p className="type-display mt-2 text-[21px]">
                   {winnerTeam ? (
                     <>
@@ -551,6 +550,9 @@ export default function Viewer({
                     'DRAW'
                   )}
                 </p>
+                {result.mode?.kind === 'arc-relay' && (
+                  <ArcRelayResultSummary replay={replay} />
+                )}
                 {result.teams.some((team) => team.zoneTicks !== null) && (
                   <p className="val mt-1">
                     zone{' '}
@@ -620,12 +622,14 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
-            <EventFeed
-              replay={replay}
-              tick={tick}
-              selectedUnitKey={selectedUnitKey}
-              onSeek={isLive ? undefined : playback.seek}
-            />
+            {!isArcRelay && (
+              <EventFeed
+                replay={replay}
+                tick={tick}
+                selectedUnitKey={selectedUnitKey}
+                onSeek={isLive ? undefined : playback.seek}
+              />
+            )}
           </div>
         </aside>
       </div>
@@ -696,3 +700,33 @@ const NON_ACTIVATING_AUDIO_KEYS = new Set([
   'Shift',
   'Tab',
 ]);
+
+function ArcRelayResultSummary({ replay }: { replay: ReplayModel }) {
+  const result = replay.result;
+  if (!result || result.mode?.kind !== 'arc-relay') return null;
+  const reason =
+    result.mode.reason === 'reactor-destroyed'
+      ? 'REACTOR DESTROYED'
+      : result.mode.reason === 'max-ticks'
+        ? 'HORIZON RANKING'
+        : 'FAULT ELIGIBILITY';
+  const reactors = [...result.mode.state.reactors].sort(
+    (left, right) => left.teamId - right.teamId,
+  );
+  return (
+    <div className="mt-3 border-t border-arena-edge pt-3">
+      <p className="type-display text-[13px] tracking-[0.16em]">{reason}</p>
+      <div className="mt-2 grid grid-cols-2 gap-4 text-left">
+        {reactors.map((reactor) => (
+          <div key={reactor.teamId}>
+            <p className="lab">{teamName(replay, reactor.teamId)}</p>
+            <p className="val mt-1 text-arena-text">
+              integrity {reactor.integritySegments}/3
+            </p>
+            <p className="val">charge {reactor.chargePips}/3</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

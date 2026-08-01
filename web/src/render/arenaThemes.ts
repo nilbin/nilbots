@@ -21,7 +21,7 @@ export type BotLookClassId =
   | 'repulsor'
   | 'veil'
   | 'nest';
-export type BotLocomotionCue = 'low-hover';
+export type BotLocomotionCue = 'low-hover' | 'wheels' | 'treads' | 'skids';
 
 export interface BotLook {
   id: string;
@@ -43,6 +43,10 @@ export interface BotLook {
   imageUrl: string;
   /** Raw SVG only when the asset carries semantic team-accent surfaces. */
   teamAccentSvg: string | null;
+  /** Raster-exception semantic light mask; composited with renderer-owned colour. */
+  teamMaskImage: HTMLImageElement | null;
+  /** Class-owned signature stamp, authored beside the chassis and tinted the same way. */
+  effectTeamAccentSvg: string | null;
   scale: number;
 }
 
@@ -235,11 +239,19 @@ const classLookManifests = import.meta.glob<BotLookManifest>(
   { eager: true, import: 'default' },
 );
 const classLookImages = import.meta.glob<string>(
-  '../assets/class-looks/*/*.svg',
+  [
+    '../assets/class-looks/*/sprite.svg',
+    '../assets/class-looks/*/sprite.png',
+    '../assets/class-looks/*/team-mask.png',
+    '../assets/class-looks/*/effect.svg',
+  ],
   { eager: true, import: 'default', query: '?url' },
 );
 const classLookSvgSources = import.meta.glob<string>(
-  '../assets/class-looks/*/*.svg',
+  [
+    '../assets/class-looks/*/sprite.svg',
+    '../assets/class-looks/*/effect.svg',
+  ],
   { eager: true, import: 'default', query: '?raw' },
 );
 const projectileLookManifests = import.meta.glob<ProjectileLookManifest>(
@@ -626,6 +638,7 @@ function buildLooks(
       manifest.id,
     );
     const source = svgSources[`${directory}/${manifest.sprite}`] ?? null;
+    const teamMaskUrl = images[`${directory}/team-mask.png`] ?? null;
     const teamAccentSvg =
       source?.includes('data-team-accent="true"') === true
         ? source
@@ -636,7 +649,9 @@ function buildLooks(
       );
     if (
       manifest.locomotionCue !== undefined &&
-      manifest.locomotionCue !== 'low-hover'
+      !['low-hover', 'wheels', 'treads', 'skids'].includes(
+        manifest.locomotionCue,
+      )
     )
       throw new Error(
         `Bot look '${manifest.id}' has unknown locomotion cue ` +
@@ -654,6 +669,9 @@ function buildLooks(
       image: loadImage(imageUrl),
       imageUrl,
       teamAccentSvg,
+      teamMaskImage: teamMaskUrl ? loadImage(teamMaskUrl) : null,
+      effectTeamAccentSvg:
+        svgSources[`${directory}/effect.svg`] ?? null,
       scale: manifest.scale,
     });
   }
@@ -705,6 +723,7 @@ function buildProjectileLooks(
 
 const accentedBotImages = new Map<string, HTMLImageElement>();
 const maxAccentedBotImages = 48;
+const accentedEffectImages = new Map<string, HTMLImageElement>();
 
 /**
  * The sprite source for one bot/team pairing.
@@ -717,6 +736,7 @@ export function teamAccentedBotImage(
   look: BotLook,
   accent: string,
 ): HTMLImageElement | null {
+  if (look.teamMaskImage) return teamAccentedRasterImage(look, accent);
   if (!look.teamAccentSvg || typeof Image === 'undefined')
     return look.image;
   const source = applyTeamAccentToSvg(look.teamAccentSvg, accent);
@@ -739,6 +759,92 @@ export function teamAccentedBotImage(
   if (accentedBotImages.size > maxAccentedBotImages) {
     const oldest = accentedBotImages.keys().next().value;
     if (oldest !== undefined) accentedBotImages.delete(oldest);
+  }
+  return image;
+}
+
+function teamAccentedRasterImage(
+  look: BotLook,
+  accent: string,
+): HTMLImageElement | null {
+  if (
+    typeof document === 'undefined' ||
+    typeof Image === 'undefined' ||
+    !/^#[0-9a-f]{6}$/i.test(accent) ||
+    !look.image ||
+    !look.teamMaskImage
+  )
+    return look.image;
+
+  const key = `${look.id}:${accent.toLowerCase()}`;
+  const cached = accentedBotImages.get(key);
+  if (cached) {
+    accentedBotImages.delete(key);
+    accentedBotImages.set(key, cached);
+    return cached;
+  }
+  if (
+    !look.image.complete ||
+    look.image.naturalWidth <= 0 ||
+    !look.teamMaskImage.complete ||
+    look.teamMaskImage.naturalWidth <= 0
+  )
+    return look.image;
+
+  const width = look.image.naturalWidth;
+  const height = look.image.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  const lightCanvas = document.createElement('canvas');
+  lightCanvas.width = width;
+  lightCanvas.height = height;
+  const light = lightCanvas.getContext('2d');
+  if (!context || !light) return look.image;
+
+  context.drawImage(look.image, 0, 0, width, height);
+  light.drawImage(look.teamMaskImage, 0, 0, width, height);
+  light.globalCompositeOperation = 'source-in';
+  light.fillStyle = accent;
+  light.fillRect(0, 0, width, height);
+  context.save();
+  context.globalAlpha = 0.62;
+  context.filter = `blur(${Math.max(3, Math.round(width / 55))}px)`;
+  context.drawImage(lightCanvas, 0, 0);
+  context.restore();
+  context.drawImage(lightCanvas, 0, 0);
+
+  const image = new Image();
+  image.decoding = 'async';
+  trackDecode(image);
+  image.src = canvas.toDataURL('image/png');
+  accentedBotImages.set(key, image);
+  if (accentedBotImages.size > maxAccentedBotImages) {
+    const oldest = accentedBotImages.keys().next().value;
+    if (oldest !== undefined) accentedBotImages.delete(oldest);
+  }
+  return image;
+}
+
+/** The class-owned signature stamp for one bot/team pairing. */
+export function teamAccentedEffectImage(
+  look: BotLook,
+  accent: string,
+): HTMLImageElement | null {
+  if (!look.effectTeamAccentSvg || typeof Image === 'undefined') return null;
+  const source = applyTeamAccentToSvg(look.effectTeamAccentSvg, accent);
+  const key = `${look.id}:effect:${accent.toLowerCase()}`;
+  const cached = accentedEffectImages.get(key);
+  if (cached) return cached;
+  const image = new Image();
+  image.decoding = 'async';
+  trackDecode(image);
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+  accentedEffectImages.set(key, image);
+  if (accentedEffectImages.size > maxAccentedBotImages) {
+    const oldest = accentedEffectImages.keys().next().value;
+    if (oldest !== undefined) accentedEffectImages.delete(oldest);
   }
   return image;
 }

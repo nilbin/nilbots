@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Sunder signature effect">
+  <g id="signature-effect" fill="none" stroke="#0b1118" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle fill="#59476c" cx="128" cy="128" r="80"/><path stroke="#b8a5c2" d="M128 34v188M34 128h188"/>
+  </g>
+  <g id="team-accents">
+    <circle data-team-accent="true" fill="#38bdf8" cx="128" cy="128" r="22"/>
+    <path data-team-accent="true" fill="#38bdf8" d="m128 24 16 34h-32Zm0 208 16-34h-32Z"/>
+  </g>
+  <g id="emissives"><circle fill="#f1b74d" cx="128" cy="128" r="8"/></g>
+</svg>

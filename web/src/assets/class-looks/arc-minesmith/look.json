@@ -1,10 +1,10 @@
 {
   "id": "arc-minesmith",
   "label": "Arc Relay Minesmith",
-  "sprite": "sprite.svg",
+  "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
   "classId": "minesmith",
-  "locomotionCue": "low-hover",
+  "locomotionCue": "wheels",
   "scale": 1.06
 }

@@ -11,7 +11,15 @@ const root = join(
   'audio',
   'effects',
 );
-const expectedCues = ['destroyed', 'impact', 'projectile'];
+const expectedCues = [
+  'arc-bank',
+  'arc-birth',
+  'arc-pulse',
+  'arc-steal',
+  'destroyed',
+  'impact',
+  'projectile',
+];
 
 test('the approved Obsidian Foundry runtime pack is complete and rights-cleared', () => {
   const directories = readdirSync(root, { withFileTypes: true })
@@ -34,6 +42,7 @@ test('the approved Obsidian Foundry runtime pack is complete and rights-cleared'
       channels: number;
       provenance: {
         generatedBy: string;
+        arcRelayGeneratedBy: string;
         rightsStatus: string;
         shipApproval: string;
       };
@@ -47,6 +56,7 @@ test('the approved Obsidian Foundry runtime pack is complete and rights-cleared'
     assert.equal(manifest.channels, 2);
     assert.deepEqual(manifest.provenance, {
       generatedBy: 'scripts/generate-audio-v2-candidates.mjs',
+      arcRelayGeneratedBy: 'scripts/generate-arc-relay-sfx.mjs',
       rightsStatus: 'rights-cleared',
       shipApproval: 'approved',
     });
@@ -61,5 +71,5 @@ test('the approved Obsidian Foundry runtime pack is complete and rights-cleared'
       totalBytes += statSync(join(directory, manifest.cues[cue])).size;
     }
   }
-  assert.ok(totalBytes < 100_000, `runtime sound effects are ${totalBytes} bytes`);
+  assert.ok(totalBytes < 180_000, `runtime sound effects are ${totalBytes} bytes`);
 });

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Patchbay">
+  <defs>
+    <linearGradient id="patchbay-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5c696d"/><stop offset=".42" stop-color="#263337"/><stop offset="1" stop-color="#041115"/>
+    </linearGradient>
+    <linearGradient id="patchbay-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#e8fbe9"/><stop offset=".38" stop-color="#b6c9b7"/><stop offset="1" stop-color="#7c8f7d"/>
+    </linearGradient>
+    <linearGradient id="patchbay-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffffff"/><stop offset=".46" stop-color="#e7e0ce"/><stop offset="1" stop-color="#ada694"/>
+    </linearGradient>
+    <linearGradient id="patchbay-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#323f43"/><stop offset="1" stop-color="#000003"/>
+    </linearGradient>
+    <linearGradient id="patchbay-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#162327"/><stop offset=".44" stop-color="#000d11"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="patchbay-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#fff99f"/><stop offset=".64" stop-color="#f3b55b"/><stop offset="1" stop-color="#9b5d03"/>
+    </radialGradient>
+    <pattern id="patchbay-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="patchbay-clip"><path d="M88 212 150 146 226 146 256 92 286 146 366 146 430 212 430 300 366 366 286 366 256 420 226 366 150 366 88 300Z"/></clipPath>
+    <filter id="patchbay-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="patchbay-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <path fill="none" stroke="#080b0f" stroke-width="30" d="M126 170 190 144M126 342l64 26M324 144l74 30M324 368l74-30"/>
+      <path fill="none" stroke="#747a7d" stroke-width="9" d="M132 164 194 140M132 348l62 24M322 140l80 28M322 372l80-28"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M88 212 150 146 226 146 256 92 286 146 366 146 430 212 430 300 366 366 286 366 256 420 226 366 150 366 88 300Z" transform="translate(0 22)" fill="url(#patchbay-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M88 212 150 146 226 146 256 92 286 146 366 146 430 212 430 300 366 366 286 366 256 420 226 366 150 366 88 300Z" transform="translate(0 16)" fill="none" stroke="#384549" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#patchbay-bevel)">
+      <path fill="url(#patchbay-chassis)" stroke="#0b1118" stroke-width="18" d="M88 212 150 146 226 146 256 92 286 146 366 146 430 212 430 300 366 366 286 366 256 420 226 366 150 366 88 300Z"/>
+      <path fill="url(#patchbay-plate)" stroke="#0b1118" stroke-width="7" d="M136 224 184 176h144l54 48v64l-54 48H184l-48-48Z"/>
+      <g id="material-finish" clip-path="url(#patchbay-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#patchbay-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#patchbay-plate)" stroke="#ccdfcd" stroke-width="4">
+        <path d="M132 220 182 176h74v54l-42 18h-78Z"/><path fill="#748775" stroke="#98ab99" d="m136 272 78-8 42 18v54h-74l-50-44Z"/><path fill="url(#patchbay-hardware)" stroke="#fff8e6" d="m270 176 62 8 48 42-52 22-58-18Z"/><path fill="#b9b2a0" stroke="#d5cebc" d="m270 282 58-18 52 22-48 42-62 8Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#f4fff5" stroke-opacity=".58" stroke-width="5">
+        <path d="M144 214 188 174h136l48 40M144 306l44 40h136l48-40M188 256h136"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#00070b" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="M144 214 188 174h136l48 40M144 306l44 40h136l48-40M188 256h136"/>
+      </g>
+      <g id="fasteners" fill="#fffff8" stroke="#090d12" stroke-width="3">
+        <circle cx="164" cy="202" r="6"/><circle cx="164" cy="318" r="6"/><circle cx="348" cy="202" r="6"/><circle cx="348" cy="318" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000509" stroke="#070a0f" stroke-width="6" d="M220 174h72v50h50v72h-50v50h-72v-50h-50v-72h50Z" transform="translate(0 9)"/>
+      <circle fill="#000509" stroke="#070a0f" stroke-width="5" cx="256" cy="260" r="42" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#patchbay-hardware)" stroke="#0b1118" stroke-width="6" d="M220 174h72v50h50v72h-50v50h-72v-50h-50v-72h50Z"/>
+      <circle fill="url(#patchbay-chassis)" stroke="#0b1118" stroke-width="5" cx="256" cy="260" r="42"/>
+      <g id="signature-machinery" fill="none" stroke="#ffffff" stroke-width="6" stroke-opacity=".88">
+        <path d="M232 196h48v44h44v48h-44v44h-48v-44h-44v-48h44Z"/><path d="M122 248h46m176 0h50"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#patchbay-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="M238 186h36v52h52v36h-52v52h-36v-52h-52v-36h52Z"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="112" y="238" width="44" height="44" rx="10"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="356" y="238" width="50" height="44" rx="10"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#patchbay-emissive)" cx="256" cy="260" r="18"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="256" cy="260" r="4"/>
+    </g>
+  </g>
+</svg>
