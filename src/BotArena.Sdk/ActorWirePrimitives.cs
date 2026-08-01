@@ -186,16 +186,24 @@ internal static class ActorWireValue
         Func<T, byte[]> encode)
     {
         ArgumentNullException.ThrowIfNull(values);
-        T[] materialized = values.ToArray();
-        if (materialized.Length > ActorWireProtocol.MaxCollectionCount)
+        ArgumentNullException.ThrowIfNull(encode);
+
+        IEnumerable<T> items = values;
+        if (!values.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] materialized = values.ToArray();
+            items = materialized;
+            count = materialized.Length;
+        }
+        if (count > ActorWireProtocol.MaxCollectionCount)
             throw new InvalidOperationException(
                 "Actor wire collection exceeds its item limit.");
 
         using var stream = new MemoryStream();
         Span<byte> integer = stackalloc byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(integer, materialized.Length);
+        BinaryPrimitives.WriteInt32LittleEndian(integer, count);
         stream.Write(integer);
-        foreach (T item in materialized)
+        foreach (T item in items)
         {
             byte[] encoded = encode(item);
             if (encoded.Length > ActorWireProtocol.MaxHostFrameBytes

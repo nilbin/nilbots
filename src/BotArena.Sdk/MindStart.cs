@@ -72,4 +72,12 @@ public sealed record MindStart
     /// here rather than hard-coding them.
     /// </summary>
     public required GenericActorResolvedMatchContract Contract { get; init; }
+
+    /// <summary>
+    /// Optional participant-local, deterministic evaluation data delivered
+    /// once before tick 0. Gate 3 uses this to link a separately hashed
+    /// provisional sheet to a frozen algorithm without rebuilding the WASM.
+    /// It is not the future player-facing sheet schema.
+    /// </summary>
+    public ImmutableArray<byte> EvaluationData { get; init; } = [];
 }

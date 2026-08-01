@@ -77,7 +77,8 @@ internal sealed class ResolvedLabsEntrant : IDisposable
 
     public GenericActorParticipantConfiguration ToParticipant(
         int participantId,
-        int teamId) =>
+        int teamId,
+        byte[]? mindEvaluationData = null) =>
         new()
         {
             ParticipantId = participantId,
@@ -87,6 +88,9 @@ internal sealed class ResolvedLabsEntrant : IDisposable
             MindRuntimeFactory = MindRuntimeFactory,
             RuntimeKind = RuntimeKind,
             ArtifactHash = ArtifactHash,
+            MindEvaluationData = mindEvaluationData is null
+                ? []
+                : [.. mindEvaluationData],
             Accent = Accent,
             LookId = LookId,
             ProjectileLookId = ProjectileLookId,

@@ -34,6 +34,7 @@ internal static class GenericMindSdkModelMapper
             Contract = Sdk.ActorCanonicalContractReader.Parse(
                 ActorContractManifestSerializer.ToCanonicalJson(
                     start.Contract)),
+            EvaluationData = start.EvaluationData,
         };
     }
 

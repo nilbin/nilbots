@@ -1,0 +1,824 @@
+using BotArena.Sdk;
+
+/// <summary>
+/// One participant-scoped Arc Relay mind. Its doctrine turns public vision,
+/// smoke, suppression, hazards, and constructs into changing route costs for
+/// Core pickup and return rather than casting signatures on cooldown.
+/// </summary>
+public sealed class InformationRouteControl : IGenericMindBot
+{
+    private GenericActorResolvedMatchContract? _contract;
+    private GenericActorRulesContract.ArcRelayGameMode? _rules;
+    private readonly Dictionary<int, string> _roles = [];
+    private readonly Dictionary<int, string> _classByUnit = [];
+    private int _teamId;
+    private Direction _forward;
+
+    public void StartMatch(MindStart start)
+    {
+        _contract = start.Contract;
+        _rules = start.Contract.Rules.GameMode
+            as GenericActorRulesContract.ArcRelayGameMode
+            ?? throw new InvalidOperationException(
+                "InformationRouteControl requires an Arc Relay contract.");
+        _teamId = start.TeamId;
+
+        GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding =
+            start.Contract.ModeMapBinding
+                as GenericActorResolvedMatchContract.ArcRelayModeMapBinding
+            ?? throw new InvalidOperationException(
+                "Arc Relay mode binding was not supplied.");
+        _forward = start.Contract.ParticipantRegionAssignments
+            .First(assignment =>
+                assignment.ParticipantId == start.ParticipantId
+                && string.Equals(
+                    assignment.RegionRoleId,
+                    binding.ReactorRegionRoleId,
+                    StringComparison.Ordinal))
+            .Facing;
+
+        Dictionary<string, int> ordinalByClass =
+            new(StringComparer.Ordinal);
+        foreach (PublicUnitSlot slot
+                 in start.Contract.Topology.UnitSlots
+                     .Where(slot =>
+                         slot.ControllerParticipantId == start.ParticipantId)
+                     .OrderBy(slot => slot.UnitId))
+        {
+            string classId = slot.ClassId ?? string.Empty;
+            int ordinal = ordinalByClass.GetValueOrDefault(classId);
+            ordinalByClass[classId] = ordinal + 1;
+            _classByUnit[slot.UnitId] = classId;
+            _roles[slot.UnitId] = RoleFor(classId, ordinal);
+        }
+    }
+
+    public void Think(MindContext mind)
+    {
+        GenericActorResolvedMatchContract contract = _contract
+            ?? throw new InvalidOperationException("StartMatch was not called.");
+        GenericActorContext.ModeObservationState.ArcRelay arc = mind.Mode
+            as GenericActorContext.ModeObservationState.ArcRelay
+            ?? throw new InvalidOperationException(
+                "Arc Relay observation was not supplied.");
+
+        if (mind.Bodies.IsEmpty)
+        {
+            mind.Debug.Write($"all slots returning; tick {mind.Tick}");
+            return;
+        }
+
+        var claims = Navigation.Claims.ForTick(contract, mind, arc);
+        Dictionary<int, GenericActorContext.ArcRelayCoreState> assignments =
+            AssignLooseCores(mind, arc);
+        HashSet<ActorIdentity> enemyCarrierIds = arc.VisibleCores
+            .Where(core =>
+                core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId is { TeamId: var team }
+                && team != _teamId)
+            .Select(core => core.CarrierActorId!)
+            .ToHashSet();
+
+        IEnumerable<MindBody> ordered = mind.Bodies
+            .OrderByDescending(body => CarriedCore(arc, body) is not null)
+            .ThenByDescending(body => assignments.ContainsKey(body.UnitId))
+            .ThenBy(body => body.UnitId);
+
+        foreach (MindBody body in ordered)
+        {
+            body.SetRole(_roles.GetValueOrDefault(body.UnitId, "route-reserve"));
+
+            GenericActorContext.ArcRelayCoreState? carried =
+                CarriedCore(arc, body);
+            if (carried is not null)
+            {
+                ActCarrier(
+                    contract,
+                    mind,
+                    arc,
+                    body,
+                    carried,
+                    enemyCarrierIds,
+                    claims);
+                continue;
+            }
+
+            if (assignments.TryGetValue(body.UnitId, out var targetCore))
+            {
+                ActCollector(
+                    contract,
+                    mind,
+                    arc,
+                    body,
+                    targetCore,
+                    enemyCarrierIds,
+                    claims);
+                continue;
+            }
+
+            ActControl(
+                contract,
+                mind,
+                arc,
+                body,
+                enemyCarrierIds,
+                claims);
+        }
+    }
+
+    public void EndMatch(MindEnd end) => _ = end;
+
+    private Dictionary<int, GenericActorContext.ArcRelayCoreState>
+        AssignLooseCores(
+            MindContext mind,
+            GenericActorContext.ModeObservationState.ArcRelay arc)
+    {
+        List<GenericActorContext.ArcRelayCoreState> loose = arc.VisibleCores
+            .Where(core =>
+                core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
+            .ThenBy(core => core.CoreId.SourceOrdinal)
+            .ToList();
+        Dictionary<int, GenericActorContext.ArcRelayCoreState> assigned = [];
+
+        IEnumerable<MindBody> candidates = mind.Bodies
+            .OrderBy(body => CollectorPriority(body))
+            .ThenBy(body => body.UnitId);
+        foreach (MindBody body in candidates)
+        {
+            if (loose.Count == 0)
+                break;
+            GenericActorContext.ArcRelayCoreState core = loose
+                .OrderBy(candidate =>
+                    body.Position.ChebyshevDistance(candidate.Position))
+                .ThenBy(candidate =>
+                    candidate.CoreId.SourceWellId,
+                    StringComparer.Ordinal)
+                .ThenBy(candidate => candidate.CoreId.SourceOrdinal)
+                .First();
+            assigned[body.UnitId] = core;
+            loose.Remove(core);
+        }
+        return assigned;
+    }
+
+    private void ActCarrier(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        GenericActorContext.ArcRelayCoreState carried,
+        IReadOnlySet<ActorIdentity> enemyCarrierIds,
+        Navigation.Claims claims)
+    {
+        Position? reactor = OwnReactor(arc)?.Position;
+        if (reactor is not Position home)
+        {
+            body.Hold("own reactor is absent from public mode state");
+            return;
+        }
+
+        if (TryArcToss(contract, mind, arc, body, home, claims))
+            return;
+        if (TrySmoke(contract, mind, arc, body, home))
+            return;
+        if (TryNullField(contract, mind, arc, body))
+            return;
+        if (TryHardlightBlock(contract, mind, arc, body))
+            return;
+        if (Navigation.TryMove(
+                contract,
+                mind,
+                arc,
+                body,
+                [home],
+                claims,
+                _forward,
+                preferFriendlyCover: true,
+                "returning Core on safest live route"))
+        {
+            return;
+        }
+
+        if (TryShoot(contract, mind, body, arc, enemyCarrierIds))
+            return;
+        body.Hold($"Core {carried.CoreId.SourceWellId} held for safe opening");
+    }
+
+    private void ActCollector(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        GenericActorContext.ArcRelayCoreState target,
+        IReadOnlySet<ActorIdentity> enemyCarrierIds,
+        Navigation.Claims claims)
+    {
+        if (TrySmoke(contract, mind, arc, body, target.Position))
+            return;
+        if (Navigation.TryMove(
+                contract,
+                mind,
+                arc,
+                body,
+                [target.Position],
+                claims,
+                _forward,
+                preferFriendlyCover: true,
+                $"acquiring {target.CoreId.SourceWellId} Core"))
+        {
+            return;
+        }
+        if (TryShoot(contract, mind, body, arc, enemyCarrierIds))
+            return;
+        body.Hold("holding pickup tile through Core recovery clock");
+    }
+
+    private void ActControl(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        IReadOnlySet<ActorIdentity> enemyCarrierIds,
+        Navigation.Claims claims)
+    {
+        string role = _roles.GetValueOrDefault(body.UnitId, "route-reserve");
+        if (role.StartsWith("pathfinder-", StringComparison.Ordinal)
+            && TrySurveyFlare(contract, mind, arc, body))
+        {
+            return;
+        }
+        if (role.StartsWith("smoke-screen-", StringComparison.Ordinal)
+            && TrySmoke(contract, mind, arc, body, null))
+        {
+            return;
+        }
+        if (string.Equals(role, "route-miner", StringComparison.Ordinal)
+            && TryTripNode(contract, mind, arc, body))
+        {
+            return;
+        }
+        if (string.Equals(role, "suppression-anchor", StringComparison.Ordinal)
+            && TryNullField(contract, mind, arc, body))
+        {
+            return;
+        }
+        if (string.Equals(role, "gate-builder", StringComparison.Ordinal)
+            && TryHardlightBlock(contract, mind, arc, body))
+        {
+            return;
+        }
+        if (TryShoot(contract, mind, body, arc, enemyCarrierIds))
+            return;
+
+        Position[] goals = ControlGoals(contract, mind, arc, body, role);
+        if (Navigation.TryMove(
+                contract,
+                mind,
+                arc,
+                body,
+                goals,
+                claims,
+                _forward,
+                preferFriendlyCover: false,
+                $"controlling route as {role}"))
+        {
+            return;
+        }
+        body.Hold($"holding route geometry as {role}");
+    }
+
+    private bool TrySurveyFlare(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "survey-flare");
+        GenericActorActionLegality? action = Available(body, signature);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = PositionTargets(action);
+        if (signature is null || action is null || targets is null)
+            return false;
+
+        Position? informationTarget = arc.VisibleCores
+            .Where(core =>
+                core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId is { TeamId: var team }
+                && team != _teamId)
+            .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+            .Select(core => (Position?)core.Position)
+            .FirstOrDefault();
+
+        if (informationTarget is null)
+        {
+            HashSet<GenericActorContext.ArcRelayCoreId> seen = arc.VisibleCores
+                .Select(core => core.CoreId)
+                .ToHashSet();
+            informationTarget = arc.Wells
+                .Where(well =>
+                    well.OutstandingCoreId is { } id && !seen.Contains(id))
+                .OrderBy(well => body.Position.ChebyshevDistance(well.Position))
+                .ThenBy(well => well.WellId, StringComparer.Ordinal)
+                .Select(well => (Position?)well.Position)
+                .FirstOrDefault();
+        }
+        if (informationTarget is not Position desired)
+            return false;
+
+        int radius = signature.RevealRadius ?? 0;
+        bool alreadyCovered = arc.VisibleSignatures.Any(active =>
+            active.OwnerTeamId == _teamId
+            && string.Equals(
+                active.SignatureId,
+                signature.SignatureId,
+                StringComparison.Ordinal)
+            && active.Positions.Any(position =>
+                position.ChebyshevDistance(desired) <= radius));
+        if (alreadyCovered)
+            return false;
+
+        Position selected = targets.AllowedValues
+            .OrderBy(position => position.ChebyshevDistance(desired))
+            .ThenBy(position => Navigation.RelativeTie(position, body.Position, _forward))
+            .First();
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [new GenericActorActionArgument.PositionTargetArgument(selected)],
+            $"flaring unresolved information at {desired}");
+        return true;
+    }
+
+    private bool TrySmoke(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        Position? explicitFocus)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "smoke-canister");
+        GenericActorActionLegality? action = Available(body, signature);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = PositionTargets(action);
+        if (signature is null || action is null || targets is null)
+            return false;
+
+        GenericActorContext.ArcRelayCoreState? ownCarrier = arc.VisibleCores
+            .Where(core =>
+                core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId is { TeamId: var team }
+                && team == _teamId)
+            .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+            .FirstOrDefault();
+        Position? focus = ownCarrier?.Position ?? explicitFocus;
+        if (focus is not Position protectedTile)
+            return false;
+
+        int threatRange = Math.Max(3, signature.Range ?? 0) + 2;
+        bool threatened = mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(protectedTile) <= threatRange)
+            || (mind.VisibleProjectiles ?? []).Any(projectile =>
+                projectile.OwnerTeamId != _teamId
+                && projectile.Position.ChebyshevDistance(protectedTile) <= 4);
+        if (!threatened)
+            return false;
+
+        int radius = signature.Radius ?? 0;
+        bool alreadyCovered = arc.VisibleSignatures.Any(active =>
+            active.OwnerTeamId == _teamId
+            && string.Equals(
+                active.SignatureId,
+                signature.SignatureId,
+                StringComparison.Ordinal)
+            && active.Positions.Any(position =>
+                position.ChebyshevDistance(protectedTile) <= radius + 1));
+        if (alreadyCovered)
+            return false;
+
+        Position selected = targets.AllowedValues
+            .OrderBy(position => position.ChebyshevDistance(protectedTile))
+            .ThenBy(position => Navigation.RelativeTie(position, body.Position, _forward))
+            .First();
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [new GenericActorActionArgument.PositionTargetArgument(selected)],
+            $"smoking threatened Core route at {selected}");
+        return true;
+    }
+
+    private bool TryTripNode(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "trip-node");
+        GenericActorActionLegality? action = Available(body, signature);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = PositionTargets(action);
+        if (signature is null || action is null || targets is null)
+            return false;
+
+        Position? desired = EnemyCarrier(arc, body)?.Position;
+        if (desired is null)
+            desired = FriendlyCarrier(arc, body)?.Position;
+        if (desired is null)
+            desired = arc.VisibleCores
+                .Where(core =>
+                    core.Disposition
+                        == GenericActorContext.ArcRelayCoreDisposition.Loose)
+                .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+                .Select(core => (Position?)core.Position)
+                .FirstOrDefault();
+        if (desired is not Position routeFocus
+            || body.Position.ChebyshevDistance(routeFocus) > 6)
+        {
+            return false;
+        }
+
+        Position selected = targets.AllowedValues
+            .OrderBy(position => position.ChebyshevDistance(routeFocus))
+            .ThenBy(position => Navigation.RelativeTie(position, body.Position, _forward))
+            .First();
+        bool duplicate = arc.VisibleSignatures.Any(active =>
+            active.OwnerTeamId == _teamId
+            && string.Equals(
+                active.SignatureId,
+                signature.SignatureId,
+                StringComparison.Ordinal)
+            && active.Positions.Any(position =>
+                position.ChebyshevDistance(selected) <= 3));
+        if (duplicate)
+            return false;
+
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [new GenericActorActionArgument.PositionTargetArgument(selected)],
+            $"mining live Core route at {selected}");
+        return true;
+    }
+
+    private bool TryNullField(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "null-field");
+        GenericActorActionLegality? action = Available(body, signature);
+        if (signature is null || action is null)
+            return false;
+
+        int radius = signature.Radius ?? 0;
+        bool carrierSuppression = arc.VisibleCores.Any(core =>
+            core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId is { TeamId: var team }
+            && team != _teamId
+            && core.Position.ChebyshevDistance(body.Position) <= radius);
+        bool signatureSuppression = arc.VisibleSignatures.Any(active =>
+            active.OwnerTeamId != _teamId
+            && active.Positions.Any(position =>
+                position.ChebyshevDistance(body.Position) <= radius)
+            && arc.VisibleCores.Any(core =>
+                core.Position.ChebyshevDistance(body.Position) <= radius + 1));
+        if (!carrierSuppression && !signatureSuppression)
+            return false;
+
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [],
+            "suppressing a live carrier/Core signature contest");
+        return true;
+    }
+
+    private bool TryHardlightBlock(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "hardlight-block");
+        GenericActorActionLegality? action = Available(body, signature);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = PositionTargets(action);
+        if (signature is null || action is null || targets is null)
+            return false;
+
+        GenericActorContext.ArcRelayCoreState? friendly =
+            FriendlyCarrier(arc, body);
+        GenericActorContext.ArcRelayCoreState? hostile = EnemyCarrier(arc, body);
+        Position? desired = null;
+        if (friendly is not null)
+        {
+            GenericActorContext.ObservedEnemyState? threat = mind.Enemies
+                .OrderBy(enemy =>
+                    enemy.Position.ChebyshevDistance(friendly.Position))
+                .FirstOrDefault();
+            if (threat is not null
+                && threat.Position.ChebyshevDistance(friendly.Position) <= 7)
+            {
+                desired = Between(friendly.Position, threat.Position);
+            }
+        }
+        if (desired is null && hostile is not null)
+        {
+            GenericActorContext.ArcRelayReactorState? reactor = arc.Reactors
+                .FirstOrDefault(candidate =>
+                    candidate.TeamId == hostile.CarrierActorId!.TeamId);
+            if (reactor is not null
+                && hostile.Position.ChebyshevDistance(body.Position) <= 7)
+            {
+                desired = Between(hostile.Position, reactor.Position);
+            }
+        }
+        if (desired is not Position blockLine)
+            return false;
+
+        Position selected = targets.AllowedValues
+            .OrderBy(position => position.ChebyshevDistance(blockLine))
+            .ThenBy(position => Navigation.RelativeTie(position, body.Position, _forward))
+            .First();
+        bool duplicate = arc.VisibleSignatures.Any(active =>
+            active.OwnerTeamId == _teamId
+            && string.Equals(
+                active.SignatureId,
+                signature.SignatureId,
+                StringComparison.Ordinal)
+            && active.Positions.Any(position =>
+                position.ChebyshevDistance(selected) <= 3));
+        if (duplicate)
+            return false;
+
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [new GenericActorActionArgument.PositionTargetArgument(selected)],
+            $"building carrier gate at {selected}");
+        return true;
+    }
+
+    private bool TryArcToss(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        Position reactor,
+        Navigation.Claims claims)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            Signature(body, "arc-toss");
+        GenericActorActionLegality? action = Available(body, signature);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = PositionTargets(action);
+        if (signature is null || action is null || targets is null)
+            return false;
+
+        int currentDistance = body.Position.ChebyshevDistance(reactor);
+        Position? selected = targets.AllowedValues
+            .Where(position =>
+                position.ChebyshevDistance(reactor) <= currentDistance - 2
+                && !claims.IsClaimed(position))
+            .OrderBy(position =>
+                Navigation.RiskAt(
+                    contract,
+                    mind,
+                    arc,
+                    position,
+                    _teamId,
+                    preferFriendlyCover: true))
+            .ThenBy(position => position.ChebyshevDistance(reactor))
+            .ThenBy(position => Navigation.RelativeTie(position, body.Position, _forward))
+            .Select(position => (Position?)position)
+            .FirstOrDefault();
+        if (selected is not Position landing)
+            return false;
+
+        body.Command(
+            action.ActionId,
+            action.ActionCode,
+            [new GenericActorActionArgument.PositionTargetArgument(landing)],
+            $"tossing Core into safer return lane at {landing}");
+        return true;
+    }
+
+    private bool TryShoot(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        IReadOnlySet<ActorIdentity> enemyCarrierIds)
+    {
+        GenericActorActionLegality? action = body.ActionLegalities
+            .Where(candidate => candidate.Available)
+            .Join(
+                contract.Rules.Actions.Where(definition =>
+                    definition.Kind
+                        == GenericActorRulesContract.ActionKind.Attack),
+                candidate => candidate.ActionId,
+                definition => definition.Id,
+                (candidate, _) => candidate,
+                StringComparer.Ordinal)
+            .OrderBy(candidate => candidate.ActionId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        if (action is null || headings is null)
+            return false;
+
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, body.FormId, StringComparison.Ordinal));
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string profileId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, profileId, StringComparison.Ordinal))
+                : null;
+        if (attack is null)
+            return false;
+
+        HashSet<Position> looseTiles = arc.VisibleCores
+            .Where(core =>
+                core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            .Select(core => core.Position)
+            .ToHashSet();
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies
+                     .OrderByDescending(enemy =>
+                         enemyCarrierIds.Contains(enemy.ActorId))
+                     .ThenByDescending(enemy =>
+                         looseTiles.Any(tile =>
+                             tile.ChebyshevDistance(enemy.Position) <= 1))
+                     .ThenBy(enemy => enemy.Health)
+                     .ThenBy(enemy =>
+                         body.Position.ChebyshevDistance(enemy.Position))
+                     .ThenBy(enemy => enemy.ActorId))
+        {
+            ProjectileHeading? heading = Navigation.ExactHeading(
+                body.Position,
+                enemy.Position);
+            int distance = body.Position.ChebyshevDistance(enemy.Position);
+            if (heading is not ProjectileHeading aim
+                || distance > attack.Projectile.MaxTravelTiles
+                || !headings.AllowedValues.Contains(aim)
+                || !Navigation.ClearShot(contract.Map, body.Position, enemy.Position))
+            {
+                continue;
+            }
+
+            body.Command(
+                action.ActionId,
+                action.ActionCode,
+                [new GenericActorActionArgument.ProjectileHeadingArgument(aim)],
+                enemyCarrierIds.Contains(enemy.ActorId)
+                    ? $"denying hostile carrier {enemy.ActorId}"
+                    : $"clearing Core route through {enemy.ActorId}");
+            return true;
+        }
+        return false;
+    }
+
+    private Position[] ControlGoals(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        string role)
+    {
+        GenericActorContext.ArcRelayCoreState? hostile = EnemyCarrier(arc, body);
+        if (hostile is not null)
+        {
+            return Navigation.AdjacentFloor(contract.Map, hostile.Position)
+                .ToArray();
+        }
+        GenericActorContext.ArcRelayCoreState? friendly =
+            FriendlyCarrier(arc, body);
+        if (friendly is not null)
+        {
+            return Navigation.AdjacentFloor(contract.Map, friendly.Position)
+                .ToArray();
+        }
+
+        bool north = role.EndsWith("north", StringComparison.Ordinal);
+        bool south = role.EndsWith("south", StringComparison.Ordinal);
+        IEnumerable<GenericActorContext.ArcRelayWellState> wells = arc.Wells;
+        if (north)
+            wells = wells.OrderBy(well => well.Position.Y);
+        else if (south)
+            wells = wells.OrderByDescending(well => well.Position.Y);
+        else
+        {
+            wells = wells
+                .OrderByDescending(well => well.OutstandingCoreId is not null)
+                .ThenBy(well =>
+                    body.Position.ChebyshevDistance(well.Position));
+        }
+
+        GenericActorContext.ArcRelayWellState? selected = wells.FirstOrDefault();
+        if (selected is null)
+            return [];
+        return Navigation.AdjacentFloor(contract.Map, selected.Position)
+            .Append(selected.Position)
+            .ToArray();
+    }
+
+    private GenericActorRulesContract.ArcRelaySignature? Signature(
+        MindBody body,
+        string kind) => _rules?.Signatures.FirstOrDefault(candidate =>
+            string.Equals(candidate.Kind, kind, StringComparison.Ordinal)
+            && string.Equals(
+                candidate.ClassId,
+                _classByUnit.GetValueOrDefault(body.UnitId),
+                StringComparison.Ordinal));
+
+    private static GenericActorActionLegality? Available(
+        MindBody body,
+        GenericActorRulesContract.ArcRelaySignature? signature) =>
+        signature is null
+            ? null
+            : body.Action(signature.ActionId) is { Available: true } action
+                ? action
+                : null;
+
+    private static GenericActorActionLegality.ArgumentConstraint
+        .PositionTargetConstraint? PositionTargets(
+            GenericActorActionLegality? action) =>
+        action?.Constraints
+            .OfType<GenericActorActionLegality.ArgumentConstraint
+                .PositionTargetConstraint>()
+            .SingleOrDefault() is { AllowedValues.IsEmpty: false } values
+                ? values
+                : null;
+
+    private GenericActorContext.ArcRelayCoreState? FriendlyCarrier(
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body) => arc.VisibleCores
+        .Where(core =>
+            core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId is { TeamId: var team }
+            && team == _teamId)
+        .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+        .FirstOrDefault();
+
+    private GenericActorContext.ArcRelayCoreState? EnemyCarrier(
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body) => arc.VisibleCores
+        .Where(core =>
+            core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId is { TeamId: var team }
+            && team != _teamId)
+        .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+        .FirstOrDefault();
+
+    private static GenericActorContext.ArcRelayCoreState? CarriedCore(
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body) => arc.VisibleCores.FirstOrDefault(core =>
+            core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId == body.ActorId);
+
+    private GenericActorContext.ArcRelayReactorState? OwnReactor(
+        GenericActorContext.ModeObservationState.ArcRelay arc) =>
+        arc.Reactors.FirstOrDefault(reactor => reactor.TeamId == _teamId);
+
+    private int CollectorPriority(MindBody body)
+    {
+        string role = _roles.GetValueOrDefault(body.UnitId, "route-reserve");
+        if (string.Equals(role, "core-runner", StringComparison.Ordinal))
+            return 0;
+        if (role.StartsWith("pathfinder-", StringComparison.Ordinal))
+            return 1;
+        if (role.StartsWith("smoke-screen-", StringComparison.Ordinal))
+            return 2;
+        return 3;
+    }
+
+    private static string RoleFor(string classId, int ordinal) => classId switch
+    {
+        "lantern" => ordinal == 0 ? "pathfinder-north" : "pathfinder-south",
+        "veil" => ordinal == 0 ? "smoke-screen-north" : "smoke-screen-south",
+        "minesmith" => "route-miner",
+        "hush" => "suppression-anchor",
+        "mason" => "gate-builder",
+        "relay" => "core-runner",
+        _ => "route-reserve",
+    };
+
+    private static Position Between(Position from, Position toward) =>
+        from.Offset(Math.Sign(toward.X - from.X), Math.Sign(toward.Y - from.Y));
+}

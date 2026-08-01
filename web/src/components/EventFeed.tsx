@@ -102,6 +102,38 @@ export default function EventFeed({
     const stableName = stableUnit
       ? unitName(replay, stableUnit.unitKey)
       : `team ${event.teamId ?? '?'} unit ${event.unitId ?? '?'}`;
+    const arc = event.arcRelayFact;
+    if (arc) {
+      const source = 'coreId' in arc
+        ? arc.coreId.sourceWellId.replace(/[-_]/g, ' ')
+        : '';
+      switch (arc.kind) {
+        case 'core-born':
+          return `${source} Core is born · contest begins at ${arc.position.x},${arc.position.y}`;
+        case 'core-picked-up':
+          return `${actorName(replay, arc.carrierActor)} claims the ${source} Core`;
+        case 'core-handed-off':
+          return `${actorName(replay, arc.sourceActor)} hands the ${source} Core to ${actorName(replay, arc.targetActor)}`;
+        case 'core-dropped':
+          return `${actorName(replay, arc.sourceActor)} drops the ${source} Core · loose at ${arc.position.x},${arc.position.y}`;
+        case 'core-banked':
+          return `${teamName(replay, arc.teamId)} banks the ${source} Core · charge ${arc.chargePips}/3`;
+        case 'pulse':
+          return `${teamName(replay, arc.teamId)} fires Pulse ${arc.pulseOrdinal} · opposing reactor ${arc.opposingReactorIntegrity}/3`;
+        case 'core-relocated':
+          return `${source} Core relocates · ${arc.relocationKind}`;
+        case 'well-changed':
+          return `${arc.wellId} Well ${arc.pendingCharge ? 'rearms' : 'is ready'}`;
+        case 'signature-changed':
+          return `${actorName(replay, arc.ownerActor)} ${arc.reason} ${arc.signatureId}`;
+        case 'body-relocated':
+          return `${actorName(replay, arc.ownerActor)} relocates ${actorName(replay, arc.targetActor)} · ${arc.signatureId}`;
+        case 'signature-damage':
+          return `${actorName(replay, arc.ownerActor)} deals ${arc.amount} with ${arc.signatureId}`;
+        case 'signature-repair':
+          return `${actorName(replay, arc.ownerActor)} repairs ${actorName(replay, arc.targetActor)} for ${arc.amount}`;
+      }
+    }
     // Attack/destruction/disqualification arrive in version-specific
     // spellings; the model predicates own that equivalence.
     if (isAttackEvent(event.type)) {

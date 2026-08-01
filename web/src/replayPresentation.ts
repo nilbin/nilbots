@@ -1,4 +1,5 @@
 import type {
+  ReplayArcRelayFact,
   ReplayActorLifeKey,
   ReplayActorState,
   ReplayFormTransition,
@@ -318,12 +319,63 @@ export interface UnitPresentation {
   } | null;
 }
 
+export interface ArcRelayBeatPresentation {
+  kind: 'birth' | 'steal' | 'drop' | 'bank' | 'pulse';
+  tick: number;
+  headline: string;
+  detail: string;
+  teamId: number | null;
+  accent: string | null;
+  /** Five-tick broadcast beat: 1 on impact, fading to 0. */
+  strength: number;
+}
+
+export interface ArcRelayCorePresentation {
+  key: string;
+  sourceLabel: string;
+  position: { x: number; y: number };
+  disposition: 'loose' | 'carried' | 'in-flight';
+  carrierUnitKey: ReplayStableUnitKey | null;
+  carrierTeamId: number | null;
+  carrierName: string | null;
+  distanceToBank: number | null;
+  pulseCore: boolean;
+}
+
+export interface ArcRelayStoryPresentation {
+  kind: 'arc-relay';
+  beat: ArcRelayBeatPresentation | null;
+  cue: {
+    headline: string;
+    detail: string;
+    teamId: number | null;
+    accent: string | null;
+  };
+  cores: ArcRelayCorePresentation[];
+  wells: {
+    wellId: string;
+    sourceLabel: string;
+    position: { x: number; y: number };
+    nextBirthTick: number | null;
+    outstanding: boolean;
+  }[];
+  reactors: {
+    teamId: number;
+    position: { x: number; y: number };
+    chargePips: number;
+    integritySegments: number;
+    accent: string;
+  }[];
+}
+
 export interface TickPresentation {
   tick: number;
   objective: ObjectivePresentation | null;
   units: UnitPresentation[];
   /** The declared scrap economy at this tick; null when the ruleset has none. */
   economy: ScrapEconomyPresentation | null;
+  /** Arc Relay's spectator story; null on every other ruleset. */
+  arcRelay: ArcRelayStoryPresentation | null;
 }
 
 export interface ReplayPresenter {
@@ -338,6 +390,7 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
   const legacyZone = deriveLegacyZone(replay);
   const economyRules = scrapEconomyRules(replay);
   const captureRules = frontlineCaptureRules(replay);
+  const arcRelayBeats = arcRelayBeatTimeline(replay);
   // Both renderers call this once per animation frame, and the playhead crosses
   // dozens of frames per tick. The answer is a pure function of the tick, so it
   // is derived once and handed back until the tick changes.
@@ -362,6 +415,7 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
           ),
         ),
         economy: null,
+        arcRelay: null,
       };
     }
 
@@ -394,6 +448,7 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
         ),
       ),
       economy: economyAt(replay, tickIndex, economyRules, carried),
+      arcRelay: arcRelayAt(replay, tickIndex, arcRelayBeats),
     };
     memo = { tickIndex, value };
     return value;
@@ -1423,4 +1478,239 @@ function objectiveOccupants(
         zone.tiles.has(`${actor.position.x},${actor.position.y}`),
     )
     .map((actor) => actor.unitKey);
+}
+
+const ARC_RELAY_BEAT_TICKS = 5;
+
+type ArcRelayBeat = Omit<ArcRelayBeatPresentation, 'strength'>;
+
+function arcCoreKey(core: { sourceWellId: string; sourceOrdinal: number }): string {
+  return `${core.sourceWellId}:${core.sourceOrdinal}`;
+}
+
+function arcSourceLabel(wellId: string): string {
+  const label = wellId.replace(/[-_]/g, ' ');
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function arcActorName(
+  replay: ReplayModel,
+  actor: { unitKey: ReplayStableUnitKey },
+): string {
+  return unitName(replay, actor.unitKey);
+}
+
+function arcBeat(
+  replay: ReplayModel,
+  tick: number,
+  fact: ReplayArcRelayFact,
+  lastOwner: Map<string, { teamId: number; unitKey: ReplayStableUnitKey }>,
+): ArcRelayBeat | null {
+  switch (fact.kind) {
+    case 'core-born':
+      return {
+        kind: 'birth',
+        tick,
+        headline: 'CORE BORN',
+        detail: `${arcSourceLabel(fact.coreId.sourceWellId)} Well is live`,
+        teamId: null,
+        accent: null,
+      };
+    case 'core-picked-up': {
+      const previous = lastOwner.get(arcCoreKey(fact.coreId));
+      lastOwner.set(arcCoreKey(fact.coreId), fact.carrierActor);
+      if (previous === undefined || previous.teamId === fact.carrierActor.teamId)
+        return null;
+      return {
+        kind: 'steal',
+        tick,
+        headline: 'CORE STOLEN',
+        detail: `${arcActorName(replay, fact.carrierActor)} takes the ${arcSourceLabel(fact.coreId.sourceWellId)} Core`,
+        teamId: fact.carrierActor.teamId,
+        accent: unitAccent(replay, fact.carrierActor.unitKey),
+      };
+    }
+    case 'core-handed-off':
+      lastOwner.set(arcCoreKey(fact.coreId), fact.targetActor);
+      return null;
+    case 'core-relocated':
+      if (fact.carrierActor)
+        lastOwner.set(arcCoreKey(fact.coreId), fact.carrierActor);
+      return null;
+    case 'core-dropped':
+      lastOwner.set(arcCoreKey(fact.coreId), fact.sourceActor);
+      return {
+        kind: 'drop',
+        tick,
+        headline: 'CORE DROPPED',
+        detail: `${arcSourceLabel(fact.coreId.sourceWellId)} Core is loose at ${fact.position.x},${fact.position.y}`,
+        teamId: fact.sourceActor.teamId,
+        accent: unitAccent(replay, fact.sourceActor.unitKey),
+      };
+    case 'core-banked':
+      lastOwner.set(arcCoreKey(fact.coreId), fact.carrierActor);
+      return {
+        kind: 'bank',
+        tick,
+        headline: 'CORE BANKED',
+        detail: `${teamName(replay, fact.teamId)} reaches ${fact.chargePips}/3 charge`,
+        teamId: fact.teamId,
+        accent: unitAccent(replay, fact.carrierActor.unitKey),
+      };
+    case 'pulse': {
+      const unit = replay.units.find((candidate) =>
+        candidate.teamId === fact.teamId,
+      );
+      return {
+        kind: 'pulse',
+        tick,
+        headline: `PULSE ${fact.pulseOrdinal}`,
+        detail: `${teamName(replay, fact.teamId)} hits the opposing reactor · ${fact.opposingReactorIntegrity} integrity left`,
+        teamId: fact.teamId,
+        accent: unit ? unitAccent(replay, unit.unitKey) : null,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+function arcRelayBeatTimeline(replay: ReplayModel): ArcRelayBeat[] {
+  if (replay.contract.kind !== 'v3-generic' || replay.contract.modeKind !== 'arc-relay')
+    return [];
+  const owner = new Map<
+    string,
+    { teamId: number; unitKey: ReplayStableUnitKey }
+  >();
+  const beats: ArcRelayBeat[] = [];
+  for (const tick of replay.ticks) {
+    for (const event of tick.events) {
+      if (!event.arcRelayFact) continue;
+      const beat = arcBeat(replay, tick.tick, event.arcRelayFact, owner);
+      if (beat) beats.push(beat);
+    }
+  }
+  return beats;
+}
+
+function arcRelayAt(
+  replay: ReplayModel,
+  tickIndex: number,
+  beats: readonly ArcRelayBeat[],
+): ArcRelayStoryPresentation | null {
+  const tick = replay.ticks[tickIndex];
+  const state = tick?.after.mode;
+  if (!tick || state?.kind !== 'arc-relay' || !('wells' in state)) return null;
+
+  const reactors = new Map(state.reactors.map((reactor) => [reactor.teamId, reactor]));
+  const cores: ArcRelayCorePresentation[] = state.visibleCores.map((core) => {
+    const carrier = core.carrierActor;
+    const reactor = carrier ? reactors.get(carrier.teamId) : undefined;
+    const distance = reactor
+      ? Math.max(
+          Math.abs(reactor.position.x - core.position.x),
+          Math.abs(reactor.position.y - core.position.y),
+        )
+      : null;
+    return {
+      key: arcCoreKey(core.coreId),
+      sourceLabel: arcSourceLabel(core.coreId.sourceWellId),
+      position: core.position,
+      disposition: core.disposition,
+      carrierUnitKey: carrier?.unitKey ?? null,
+      carrierTeamId: carrier?.teamId ?? null,
+      carrierName: carrier ? arcActorName(replay, carrier) : null,
+      distanceToBank: distance,
+      pulseCore: reactor?.chargePips === 2,
+    };
+  });
+  const carried = cores
+    .filter((core) => core.carrierTeamId !== null)
+    .sort((left, right) =>
+      Number(right.pulseCore) - Number(left.pulseCore) ||
+      (left.distanceToBank ?? Number.MAX_SAFE_INTEGER) -
+        (right.distanceToBank ?? Number.MAX_SAFE_INTEGER) ||
+      left.key.localeCompare(right.key),
+    )[0];
+  let cue: ArcRelayStoryPresentation['cue'];
+  if (carried) {
+    const unit = replay.units.find((candidate) =>
+      candidate.unitKey === carried.carrierUnitKey,
+    );
+    cue = {
+      headline: carried.pulseCore
+        ? `${teamName(replay, carried.carrierTeamId!)} HAS THE PULSE CORE`
+        : `${teamName(replay, carried.carrierTeamId!)} IS CARRYING`,
+      detail: `${carried.sourceLabel} Core · ${carried.carrierName} · ${carried.distanceToBank} tiles from bank`,
+      teamId: carried.carrierTeamId,
+      accent: unit ? unitAccent(replay, unit.unitKey) : null,
+    };
+  } else if (cores.length > 0) {
+    const loose = [...cores].sort((left, right) =>
+      left.key.localeCompare(right.key),
+    )[0]!;
+    cue = {
+      headline: `LOOSE ${loose.sourceLabel.toUpperCase()} CORE`,
+      detail: `Contest at ${loose.position.x},${loose.position.y}`,
+      teamId: null,
+      accent: null,
+    };
+  } else {
+    const next = [...state.wells]
+      .filter((well) => well.nextScheduledBirthTick !== null)
+      .sort((left, right) =>
+        left.nextScheduledBirthTick! - right.nextScheduledBirthTick! ||
+        left.wellId.localeCompare(right.wellId),
+      )[0];
+    cue = next
+      ? {
+          headline: `${arcSourceLabel(next.wellId).toUpperCase()} CORE NEXT`,
+          detail: `Birth in ${Math.max(0, next.nextScheduledBirthTick! - tick.tick)} ticks`,
+          teamId: null,
+          accent: null,
+        }
+      : {
+          headline: 'WELLS REARMING',
+          detail: 'No live Core — teams are setting the next contest',
+          teamId: null,
+          accent: null,
+        };
+  }
+
+  const latest = [...beats]
+    .reverse()
+    .find((candidate) =>
+      candidate.tick <= tick.tick &&
+      tick.tick - candidate.tick < ARC_RELAY_BEAT_TICKS,
+    );
+  return {
+    kind: 'arc-relay',
+    cue,
+    cores,
+    wells: state.wells.map((well) => ({
+      wellId: well.wellId,
+      sourceLabel: arcSourceLabel(well.wellId),
+      position: well.position,
+      nextBirthTick: well.nextScheduledBirthTick,
+      outstanding: well.outstandingCoreId !== null,
+    })),
+    reactors: state.reactors.map((reactor) => {
+      const unit = replay.units.find((candidate) =>
+        candidate.teamId === reactor.teamId,
+      );
+      return {
+        teamId: reactor.teamId,
+        position: reactor.position,
+        chargePips: reactor.chargePips,
+        integritySegments: reactor.integritySegments,
+        accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
+      };
+    }),
+    beat: latest
+      ? {
+          ...latest,
+          strength: 1 - (tick.tick - latest.tick) / ARC_RELAY_BEAT_TICKS,
+        }
+      : null,
+  };
 }

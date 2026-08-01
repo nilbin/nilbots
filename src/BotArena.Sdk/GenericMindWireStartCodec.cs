@@ -44,6 +44,11 @@ internal static class GenericMindWireStartCodec
             GenericActorWireCodecValues.Array(
                 value.AlliedParticipantIds,
                 ActorWireValue.Int32));
+        writer.Optional(
+            GenericMindWireFieldIds.MindStart.EvaluationData,
+            value.EvaluationData.IsDefaultOrEmpty
+                ? null
+                : value.EvaluationData.ToArray());
         return writer.ToArray();
     }
 
@@ -82,6 +87,9 @@ internal static class GenericMindWireStartCodec
                         GenericMindWireFieldIds.MindStart
                             .AlliedParticipantIds),
                     ActorWireValue.Int32),
+                EvaluationData = reader.Optional(
+                        GenericMindWireFieldIds.MindStart.EvaluationData)
+                    ?.ToImmutableArray() ?? [],
             };
             Validate(result);
             return result;
@@ -109,6 +117,16 @@ internal static class GenericMindWireStartCodec
             throw new FormatException(
                 "MindStart must carry an allied-participant collection, "
                 + "empty in head-to-head.");
+        }
+        if (value.EvaluationData.IsDefault)
+        {
+            throw new FormatException(
+                "MindStart evaluation data must be empty rather than default.");
+        }
+        if (value.EvaluationData.Length > 64 * 1024)
+        {
+            throw new FormatException(
+                "MindStart evaluation data exceeds 64 KiB.");
         }
         if (value.AlliedParticipantIds.Contains(value.ParticipantId))
         {

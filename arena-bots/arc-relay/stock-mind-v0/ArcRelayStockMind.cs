@@ -2,8 +2,9 @@ using System.Collections.Immutable;
 using BotArena.Sdk;
 
 /// <summary>
-/// Frozen Arc Relay stock mind v0. Commander choices live in StockSheet.g.cs;
-/// the engine below is held byte-identical across sheet-space experiments.
+/// Frozen Arc Relay stock mind v0. Commander choices arrive as separately
+/// hashed evaluation data; the engine below is held byte-identical across
+/// sheet-space experiments.
 /// </summary>
 public sealed class ArcRelayStockMind : IGenericMindBot
 {
@@ -14,8 +15,15 @@ public sealed class ArcRelayStockMind : IGenericMindBot
     private readonly Dictionary<int, int> _returnIndex = [];
     private readonly Dictionary<int, int> _blockedTicks = [];
     private readonly Dictionary<int, bool> _carrying = [];
+    private readonly Dictionary<string, bool> _triggerWasActive = [];
+    private readonly Dictionary<string, int> _gambitCooldownUntil = [];
+    private readonly Dictionary<GenericActorContext.ArcRelayCoreId, ActorIdentity>
+        _lastCarrierByCore = [];
+    private readonly Dictionary<GenericActorContext.ArcRelayCoreId, ActorIdentity>
+        _previousCarrierByCore = [];
 
     private GenericActorResolvedMatchContract? _contract;
+    private StockSheet? _sheet;
     private int _teamId;
     private bool _mirror;
     private string? _activeGambitId;
@@ -25,13 +33,14 @@ public sealed class ArcRelayStockMind : IGenericMindBot
 
     public void StartMatch(MindStart start)
     {
+        _sheet = StockSheet.Load(start.EvaluationData);
         if (!string.Equals(
                 start.Contract.Map.MapId,
-                StockSheet.MapId,
+                Sheet.MapId,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Sheet {StockSheet.SheetId} targets {StockSheet.MapId}, not "
+                $"Sheet {Sheet.SheetId} targets {Sheet.MapId}, not "
                 + start.Contract.Map.MapId + ".");
         }
         if (start.Contract.Rules.GameMode
@@ -45,12 +54,17 @@ public sealed class ArcRelayStockMind : IGenericMindBot
         _teamId = start.TeamId;
         Position reactor = OwnReactor(start.Contract, start.ParticipantId);
         _mirror = reactor.X > (start.Contract.Map.Width - 1) / 2;
-        foreach (UnitPlan plan in StockSheet.Units)
+        foreach (UnitPlan plan in Sheet.Units)
         {
             _outboundIndex[plan.UnitId] = 0;
             _returnIndex[plan.UnitId] = 0;
             _blockedTicks[plan.UnitId] = 0;
             _carrying[plan.UnitId] = false;
+        }
+        foreach (GambitPlan gambit in Sheet.Gambits)
+        {
+            _triggerWasActive[gambit.Id] = false;
+            _gambitCooldownUntil[gambit.Id] = 0;
         }
     }
 
@@ -60,6 +74,7 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             ?? throw new InvalidOperationException("StartMatch was not called.");
         GenericActorContext.ModeObservationState.ArcRelay arc = Arc(mind);
 
+        ObserveCoreCarriers(arc);
         ObserveRouteProgress(mind, arc);
         UpdateGambit(mind, arc);
 
@@ -78,13 +93,17 @@ public sealed class ArcRelayStockMind : IGenericMindBot
 
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
         {
-            UnitPlan plan = StockSheet.Units.Single(value =>
+            UnitPlan plan = Sheet.Units.Single(value =>
                 value.UnitId == body.UnitId);
-            string role = EffectiveRole(plan.Role);
+            string role = EffectiveRole(plan);
             if (!string.Equals(body.RoleTag, role, StringComparison.Ordinal))
                 body.SetRole(role);
 
             bool carries = ownCarriers.Contains(body.ActorId);
+            GenericActorContext.ArcRelayCoreState? carriedCore = carries
+                ? arc.VisibleCores.Single(core =>
+                    core.CarrierActorId == body.ActorId)
+                : null;
             Position goal = Goal(
                 mind,
                 arc,
@@ -97,8 +116,8 @@ public sealed class ArcRelayStockMind : IGenericMindBot
                 reactor);
 
             if (carries
-                && body.Health <= StockSheet.Carrier.HandoffHealthAtOrBelow
-                && TryHandoff(mind, body, reactor))
+                && body.Health <= Sheet.Carrier.HandoffHealthAtOrBelow
+                && TryHandoff(mind, body, reactor, carriedCore!))
             {
                 continue;
             }
@@ -115,6 +134,22 @@ public sealed class ArcRelayStockMind : IGenericMindBot
     }
 
     public void EndMatch(MindEnd end) => _ = end;
+
+    private void ObserveCoreCarriers(
+        GenericActorContext.ModeObservationState.ArcRelay arc)
+    {
+        foreach (GenericActorContext.ArcRelayCoreState core in arc.VisibleCores)
+        {
+            if (core.CarrierActorId is not { } carrier)
+                continue;
+            if (_lastCarrierByCore.TryGetValue(core.CoreId, out var last)
+                && last != carrier)
+            {
+                _previousCarrierByCore[core.CoreId] = last;
+            }
+            _lastCarrierByCore[core.CoreId] = carrier;
+        }
+    }
 
     private void ObserveRouteProgress(
         MindContext mind,
@@ -162,54 +197,58 @@ public sealed class ArcRelayStockMind : IGenericMindBot
         bool doubleEnemyPossession = arc.VisibleCores.Count(core =>
             core.CarrierActorId is { } carrier && carrier.TeamId != _teamId) >= 2;
         bool wipe = mind.Bodies.IsEmpty && _lastLiveCount > 0;
-        bool routeFailure = _blockedTicks.Values.Any(value =>
-            value >= StockSheet.Carrier.RouteFailureTicks);
-
         if (_activeGambitId is not null && mind.Tick >= _activeGambitUntil)
             _activeGambitId = null;
 
-        // A continuous condition must not restart its own timer every tick.
-        // Ordered gambits are commitments; the next trigger is considered
-        // only after the current window has run.
-        if (_activeGambitId is not null)
+        var conditions = new Dictionary<string, bool>(StringComparer.Ordinal)
         {
-            if (newPulse)
-                _handledPulseTick = arc.LatestPulseTick;
-            return;
+            ["after-enemy-pulse"] = enemyPulse,
+            ["double-enemy-possession"] = doubleEnemyPossession,
+            ["after-own-pulse"] = ownPulse,
+            ["wipe"] = wipe,
+            ["route-failure"] = _blockedTicks.Values.Any(value =>
+                value >= Sheet.Carrier.RouteFailureTicks),
+        };
+
+        if (_activeGambitId is null)
+        {
+            foreach (GambitPlan gambit in Sheet.Gambits)
+            {
+                bool active = conditions[gambit.Trigger];
+                bool risingEdge = active && !_triggerWasActive[gambit.Id];
+                if (!risingEdge
+                    || mind.Tick < _gambitCooldownUntil[gambit.Id])
+                {
+                    continue;
+                }
+                _activeGambitId = gambit.Id;
+                _activeGambitUntil = mind.Tick + gambit.DurationTicks;
+                _gambitCooldownUntil[gambit.Id] =
+                    mind.Tick + gambit.CooldownTicks;
+                break;
+            }
         }
 
-        foreach (GambitPlan gambit in StockSheet.Gambits)
-        {
-            bool triggered = gambit.Trigger switch
-            {
-                "after-enemy-pulse" => enemyPulse,
-                "double-enemy-possession" => doubleEnemyPossession,
-                "after-own-pulse" => ownPulse,
-                "wipe" => wipe,
-                "route-failure" => routeFailure,
-                _ => false,
-            };
-            if (!triggered)
-                continue;
-            _activeGambitId = gambit.Id;
-            _activeGambitUntil = mind.Tick + gambit.DurationTicks;
-            if (routeFailure)
-            {
-                foreach (int unitId in _blockedTicks.Keys.ToArray())
-                    _blockedTicks[unitId] = 0;
-            }
-            break;
-        }
+        foreach (GambitPlan gambit in Sheet.Gambits)
+            _triggerWasActive[gambit.Id] = conditions[gambit.Trigger];
         if (newPulse)
             _handledPulseTick = arc.LatestPulseTick;
     }
 
-    private string EffectiveRole(string baseRole) => ActiveGambit()?.RoleOverride
-        ?? baseRole;
+    private string EffectiveRole(UnitPlan plan)
+    {
+        GambitPlan? gambit = ActiveGambit();
+        return gambit is not null && Applies(gambit, plan)
+            ? gambit.RoleOverride
+            : plan.Role;
+    }
+
+    private static bool Applies(GambitPlan gambit, UnitPlan plan) =>
+        gambit.ScopeRoles.Contains(plan.Role, StringComparer.Ordinal);
 
     private GambitPlan? ActiveGambit() => _activeGambitId is null
         ? null
-        : StockSheet.Gambits.Single(value =>
+        : Sheet.Gambits.Single(value =>
             string.Equals(value.Id, _activeGambitId, StringComparison.Ordinal));
 
     private Position Goal(
@@ -227,11 +266,11 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             return NextPathGoal(body, plan.ReturnPath, _returnIndex, reactor);
 
         GambitPlan? gambit = ActiveGambit();
-        if (gambit is not null)
+        if (gambit is not null && Applies(gambit, plan))
         {
             Position rally = Closest(
                 body.Position,
-                StockSheet.RallyLines[gambit.RallyLine]
+                Sheet.RallyLines[gambit.RallyLine]
                     .Select(Mirror).ToArray());
             if (body.Position.ChebyshevDistance(rally) > 1)
                 return rally;
@@ -243,7 +282,7 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             .ThenBy(enemy => enemy.ActorId)
             .FirstOrDefault();
         if (role == "intercept"
-            && StockSheet.Interception.FocusEnemyCarrier
+            && Sheet.Interception.FocusEnemyCarrier
             && enemyCarrier is not null)
             return enemyCarrier.Position;
 
@@ -261,7 +300,7 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             if (protectedBody is not null)
             {
                 if (body.Position.ChebyshevDistance(protectedBody.Position)
-                    <= StockSheet.Escort.FollowDistance)
+                    <= Sheet.Escort.FollowDistance)
                 {
                     return body.Position;
                 }
@@ -273,11 +312,11 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             }
         }
 
-        Zone theater = StockSheet.Zones[plan.Theater];
+        Zone theater = Sheet.Zones[plan.Theater];
         GenericActorContext.ArcRelayCoreState? loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
-            .Where(core => !StockSheet.Carrier.PreferAssignedTheater
+            .Where(core => !Sheet.Carrier.PreferAssignedTheater
                 || theater.Contains(Unmirror(core.Position)))
             .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
             .ThenBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
@@ -286,7 +325,7 @@ public sealed class ArcRelayStockMind : IGenericMindBot
         if (loose is not null && role is "carrier" or "reserve" or "intercept")
             return loose.Position;
 
-        if (role == "intercept" && StockSheet.Interception.LooseCoreFallback)
+        if (role == "intercept" && Sheet.Interception.LooseCoreFallback)
         {
             loose = arc.VisibleCores
                 .Where(core => core.Disposition
@@ -324,7 +363,11 @@ public sealed class ArcRelayStockMind : IGenericMindBot
             : fallback;
     }
 
-    private bool TryHandoff(MindContext mind, MindBody body, Position reactor)
+    private bool TryHandoff(
+        MindContext mind,
+        MindBody body,
+        Position reactor,
+        GenericActorContext.ArcRelayCoreState core)
     {
         GenericActorActionLegality? handoff = body.Action("handoff-core");
         GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
@@ -336,14 +379,23 @@ public sealed class ArcRelayStockMind : IGenericMindBot
         {
             return false;
         }
-        GenericActorActionArgument.UnitTarget target = targets.AllowedValues
+        ActorIdentity? previous = _previousCarrierByCore.GetValueOrDefault(
+            core.CoreId);
+        GenericActorActionArgument.UnitTarget? target = targets.AllowedValues
+            .Where(value => previous is null
+                || value.TeamId != previous.TeamId
+                || value.UnitId != previous.UnitId)
             .OrderBy(value => mind.Body(value.UnitId)?.Position
                 .ChebyshevDistance(reactor) ?? int.MaxValue)
             .ThenBy(value => value.UnitId)
-            .First();
+            .Select(value =>
+                (GenericActorActionArgument.UnitTarget?)value)
+            .FirstOrDefault();
+        if (target is null)
+            return false;
         body.Command(
             handoff,
-            new GenericActorActionArgument.UnitTargetArgument(target));
+            new GenericActorActionArgument.UnitTargetArgument(target.Value));
         return true;
     }
 
@@ -729,6 +781,9 @@ public sealed class ArcRelayStockMind : IGenericMindBot
 
     private Position Unmirror(Position position) => Mirror(position);
 
+    private StockSheet Sheet => _sheet
+        ?? throw new InvalidOperationException("StartMatch was not called.");
+
     private static Position Offset(Position position, ProjectileHeading heading)
     {
         (int dx, int dy) = heading.Vector();
@@ -874,5 +929,7 @@ internal sealed record GambitPlan(
     string Id,
     string Trigger,
     int DurationTicks,
+    int CooldownTicks,
+    string[] ScopeRoles,
     string RoleOverride,
     string RallyLine);

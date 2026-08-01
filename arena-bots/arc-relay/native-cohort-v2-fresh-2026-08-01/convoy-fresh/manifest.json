@@ -1,0 +1,91 @@
+{
+  "schema": "arc-relay-native-doctrine-manifest-v1",
+  "entrantId": "convoy-fresh",
+  "doctrineCell": "convoy",
+  "sdkVersion": "0.10.11",
+  "entryType": "ConvoyFresh",
+  "source": {
+    "hashDefinition": "SHA-256 of the exact ConvoyFresh.cs bytes",
+    "sha256": "02b6a2f60306c03a4d303d3d1b015b471959ec9914a036b403cccd6c50d32176"
+  },
+  "sheet": {
+    "path": "sheet.json",
+    "schema": "arc-relay-evaluation-sheet-v0",
+    "sheetId": "convoy-fresh-north-lane-catch-ladder-01",
+    "sha256": "129a2b0e582b45df56d4404d32681f2a5865c9b77e9cd2982db7099a4d6ac216"
+  },
+  "artifact": {
+    "path": "bot.wasm",
+    "bytes": 3691386,
+    "sha256": "2188598a1243d8c201e9ad0449327d86e1849b85bef5eeb24409b43293e63ee7"
+  },
+  "composition": [
+    "relay",
+    "repulsor",
+    "palisade",
+    "patchbay",
+    "hush",
+    "towline",
+    "sunder",
+    "lantern"
+  ],
+  "buildEvidence": {
+    "managedBuild": {
+      "command": "dotnet build ConvoyFresh.csproj --no-restore",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    "controlledWasmBuild": {
+      "command": "nilbots build . --no-cache",
+      "compiler": "NativeAOT-LLVM 10.0.0-rc.1.26306.1",
+      "sdkVersion": "0.10.11",
+      "cacheResult": "miss-compiled",
+      "cacheKey": "874c739e4b0b3a0e628cac10438175c344f236911ec7c25a00e7ffe362569b91",
+      "contractProfile": "generic-mind-match-1",
+      "exitCode": 0
+    },
+    "mechanicalSeed": 314159,
+    "inProcessMechanicalSmokeExitCode": 0,
+    "finalWasmLoadSmokeExitCode": 0,
+    "smokeOutcomeInspected": false,
+    "scratchRetained": false
+  },
+  "authoringBudget": {
+    "doctrineImplementationPasses": 1,
+    "strategyImprovementPasses": 0,
+    "evaluationSheets": 1,
+    "finalWasmArtifacts": 1,
+    "controlledWasmCompileAttempts": 2,
+    "mechanicalRepairCount": 2,
+    "mechanicalSeedCount": 1,
+    "externalAdversariesObserved": 0,
+    "matchOutcomesInspected": 0
+  },
+  "repairHistory": [
+    {
+      "id": 1,
+      "kind": "compile-only",
+      "archive": "repairs/001-nullable-unit-target.patch",
+      "preRepairSourceSha256": "21d0b042d89e29eb613aef0a855186177ae38180a8da4ff5c61a9a84ec385da1",
+      "change": "Unwrapped two guarded nullable UnitTarget values at constructors.",
+      "doctrineChanged": false
+    },
+    {
+      "id": 2,
+      "kind": "malformed-action-only",
+      "archive": "repairs/002-default-unit-target.patch",
+      "preRepairSourceSha256": "98bfaaf361bf9db932e1cf225fc48feb665fd64675afd5fc3334cc8e577e4198",
+      "faultStage": "decision-validation",
+      "faultCode": "argument-out-of-domain",
+      "change": "Prevented absent value-type constraint matches from becoming the default UnitTarget (0,0).",
+      "doctrineChanged": false
+    }
+  ],
+  "informationBoundary": {
+    "priorConvoyInspected": false,
+    "cohortResultsInspected": false,
+    "adversaryDataInspected": false,
+    "outcomesInspected": false
+  }
+}

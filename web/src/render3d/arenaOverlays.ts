@@ -60,6 +60,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
+  const arcRelay = buildArcRelayStory(disposables);
+  group.add(arcRelay.group);
+
   const scrap = buildScrapPiles(disposables);
   group.add(scrap.group);
 
@@ -113,6 +116,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
 
     spawnPads.update(presentation, time);
     objective.update(presentation, time);
+    arcRelay.update(presentation, time);
     scrap.update(presentation, time);
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
@@ -1485,6 +1489,272 @@ function buildAbsorptions(
       arcs[index].visible = false;
     for (let index = usedSparks; index < sparks.length; index++)
       sparks[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/** Arc Relay's objective objects and the unmistakable carrier beacon. */
+function buildArcRelayStory(
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (presentation: TickPresentation, time: number) => void;
+} {
+  const group = new THREE.Group();
+  group.userData.kind = 'arc-relay-story';
+
+  const wellGeometry = new THREE.CylinderGeometry(0.31, 0.38, 0.09, 24);
+  const wellRingGeometry = new THREE.RingGeometry(0.39, 0.47, 32);
+  wellRingGeometry.rotateX(-Math.PI / 2);
+  const reactorGeometry = new THREE.CylinderGeometry(0.38, 0.46, 0.18, 28);
+  const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
+  reactorRingGeometry.rotateX(Math.PI / 2);
+  const pipGeometry = new THREE.SphereGeometry(0.055, 10, 8);
+  const coreGeometry = new THREE.OctahedronGeometry(0.15, 0);
+  const carrierRingGeometry = new THREE.RingGeometry(0.5, 0.69, 40);
+  carrierRingGeometry.rotateX(-Math.PI / 2);
+  const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 0.85, 12);
+  disposables.push(
+    wellGeometry,
+    wellRingGeometry,
+    reactorGeometry,
+    reactorRingGeometry,
+    pipGeometry,
+    coreGeometry,
+    carrierRingGeometry,
+    beamGeometry,
+  );
+
+  type WellRig = {
+    group: THREE.Group;
+    body: THREE.Mesh;
+    ring: THREE.Mesh;
+    bodyMaterial: THREE.MeshStandardMaterial;
+    ringMaterial: THREE.MeshBasicMaterial;
+  };
+  const wells: WellRig[] = [];
+  const well = (index: number): WellRig => {
+    while (wells.length <= index) {
+      const rig = new THREE.Group();
+      const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: '#1b2732',
+        emissive: '#dceaf2',
+        emissiveIntensity: 0.35,
+        roughness: 0.45,
+        metalness: 0.65,
+      });
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: '#e5f1f7',
+        transparent: true,
+        opacity: 0.65,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const body = new THREE.Mesh(wellGeometry, bodyMaterial);
+      body.position.y = 0.045;
+      const ring = new THREE.Mesh(wellRingGeometry, ringMaterial);
+      ring.position.y = 0.025;
+      rig.add(body, ring);
+      rig.visible = false;
+      group.add(rig);
+      wells.push({ group: rig, body, ring, bodyMaterial, ringMaterial });
+      disposables.push(bodyMaterial, ringMaterial);
+    }
+    return wells[index]!;
+  };
+
+  type ReactorRig = {
+    group: THREE.Group;
+    material: THREE.MeshStandardMaterial;
+    ringMaterial: THREE.MeshBasicMaterial;
+    integrity: THREE.Mesh[];
+    integrityMaterials: THREE.MeshBasicMaterial[];
+    charge: THREE.Mesh[];
+    chargeMaterials: THREE.MeshBasicMaterial[];
+  };
+  const reactors: ReactorRig[] = [];
+  const reactor = (index: number): ReactorRig => {
+    while (reactors.length <= index) {
+      const rig = new THREE.Group();
+      const material = new THREE.MeshStandardMaterial({
+        color: '#101820',
+        emissive: '#64748b',
+        emissiveIntensity: 0.45,
+        roughness: 0.38,
+        metalness: 0.72,
+      });
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const body = new THREE.Mesh(reactorGeometry, material);
+      body.position.y = 0.09;
+      const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
+      ring.position.y = 0.12;
+      rig.add(body, ring);
+      const integrity: THREE.Mesh[] = [];
+      const integrityMaterials: THREE.MeshBasicMaterial[] = [];
+      const charge: THREE.Mesh[] = [];
+      const chargeMaterials: THREE.MeshBasicMaterial[] = [];
+      for (let pip = 0; pip < 3; pip++) {
+        const outerMaterial = new THREE.MeshBasicMaterial();
+        const outer = new THREE.Mesh(pipGeometry, outerMaterial);
+        const angle = -Math.PI / 2 + pip * (Math.PI * 2 / 3);
+        outer.position.set(Math.cos(angle) * 0.58, 0.16, Math.sin(angle) * 0.58);
+        rig.add(outer);
+        integrity.push(outer);
+        integrityMaterials.push(outerMaterial);
+        const innerMaterial = new THREE.MeshBasicMaterial();
+        const inner = new THREE.Mesh(pipGeometry, innerMaterial);
+        inner.position.set((pip - 1) * 0.15, 0.24, 0);
+        rig.add(inner);
+        charge.push(inner);
+        chargeMaterials.push(innerMaterial);
+        disposables.push(outerMaterial, innerMaterial);
+      }
+      rig.visible = false;
+      group.add(rig);
+      reactors.push({
+        group: rig,
+        material,
+        ringMaterial,
+        integrity,
+        integrityMaterials,
+        charge,
+        chargeMaterials,
+      });
+      disposables.push(material, ringMaterial);
+    }
+    return reactors[index]!;
+  };
+
+  type CoreRig = {
+    group: THREE.Group;
+    gem: THREE.Mesh;
+    ring: THREE.Mesh;
+    beam: THREE.Mesh;
+    gemMaterial: THREE.MeshStandardMaterial;
+    ringMaterial: THREE.MeshBasicMaterial;
+    beamMaterial: THREE.MeshBasicMaterial;
+  };
+  const cores: CoreRig[] = [];
+  const core = (index: number): CoreRig => {
+    while (cores.length <= index) {
+      const rig = new THREE.Group();
+      const gemMaterial = new THREE.MeshStandardMaterial({
+        color: '#eef8fc',
+        emissive: '#eef8fc',
+        emissiveIntensity: 1.2,
+        roughness: 0.22,
+        metalness: 0.65,
+      });
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.72,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const beamMaterial = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const gem = new THREE.Mesh(coreGeometry, gemMaterial);
+      const ring = new THREE.Mesh(carrierRingGeometry, ringMaterial);
+      ring.position.y = 0.035;
+      const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+      beam.position.y = 0.44;
+      rig.add(gem, ring, beam);
+      rig.visible = false;
+      group.add(rig);
+      cores.push({
+        group: rig,
+        gem,
+        ring,
+        beam,
+        gemMaterial,
+        ringMaterial,
+        beamMaterial,
+      });
+      disposables.push(gemMaterial, ringMaterial, beamMaterial);
+    }
+    return cores[index]!;
+  };
+
+  const update = (presentation: TickPresentation, time: number) => {
+    const story = presentation.arcRelay;
+    group.visible = story !== null;
+    if (!story) return;
+
+    for (const [index, state] of story.wells.entries()) {
+      const rig = well(index);
+      rig.group.visible = true;
+      rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
+      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6 + index);
+      rig.ring.rotation.y = time * 0.35 * (index % 2 === 0 ? 1 : -1);
+      rig.ring.scale.setScalar(1 + pulse * 0.08);
+      rig.ringMaterial.opacity = state.outstanding ? 0.28 : 0.55 + pulse * 0.28;
+      rig.bodyMaterial.emissiveIntensity = state.outstanding ? 0.15 : 0.38;
+    }
+    for (let index = story.wells.length; index < wells.length; index++)
+      wells[index]!.group.visible = false;
+
+    for (const [index, state] of story.reactors.entries()) {
+      const rig = reactor(index);
+      rig.group.visible = true;
+      rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
+      rig.material.emissive.set(state.accent);
+      rig.ringMaterial.color.set(state.accent);
+      for (let pip = 0; pip < 3; pip++) {
+        rig.integrityMaterials[pip]!.color.set(
+          pip < state.integritySegments ? state.accent : '#334155',
+        );
+        rig.chargeMaterials[pip]!.color.set(
+          pip < state.chargePips ? state.accent : '#25313d',
+        );
+      }
+    }
+    for (let index = story.reactors.length; index < reactors.length; index++)
+      reactors[index]!.group.visible = false;
+
+    for (const [index, state] of story.cores.entries()) {
+      const rig = core(index);
+      const carried = state.disposition === 'carried';
+      const accent = state.carrierTeamId === null
+        ? '#eef8fc'
+        : story.reactors.find((entry) => entry.teamId === state.carrierTeamId)
+            ?.accent ?? '#eef8fc';
+      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + index * 1.7);
+      rig.group.visible = true;
+      rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
+      rig.gem.position.set(
+        carried ? Math.cos(time * 4 + index) * 0.28 : 0,
+        carried ? 0.56 + Math.sin(time * 5 + index) * 0.05 : 0.24,
+        carried ? Math.sin(time * 4 + index) * 0.19 : 0,
+      );
+      rig.gem.rotation.y = time * 1.8;
+      rig.gem.rotation.x = time * 1.1;
+      rig.gem.scale.setScalar(state.pulseCore ? 1.25 + pulse * 0.2 : 1);
+      rig.gemMaterial.color.set(accent);
+      rig.gemMaterial.emissive.set(accent);
+      rig.gemMaterial.emissiveIntensity = carried ? 1.55 : 0.9;
+      rig.ring.visible = carried;
+      rig.beam.visible = carried;
+      rig.ringMaterial.color.set(accent);
+      rig.beamMaterial.color.set(accent);
+      rig.ringMaterial.opacity = 0.5 + pulse * 0.38;
+      rig.beamMaterial.opacity = state.pulseCore ? 0.26 + pulse * 0.22 : 0.1 + pulse * 0.1;
+      rig.ring.scale.setScalar(1 + pulse * (state.pulseCore ? 0.16 : 0.08));
+      rig.ring.rotation.y = time * 0.9;
+    }
+    for (let index = story.cores.length; index < cores.length; index++)
+      cores[index]!.group.visible = false;
   };
 
   return { group, update };

@@ -23,6 +23,7 @@ export {
   fullArenaFrame,
 } from '../../src/render/arenaCamera';
 export { createPresenter } from '../../src/replayPresentation';
+export { defaultPlaybackSpeed } from '../../src/playback';
 export {
   classFamilyForForm,
   fallbackProjectileLookIdForForm,

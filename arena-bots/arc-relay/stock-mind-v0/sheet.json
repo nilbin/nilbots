@@ -109,7 +109,9 @@
       "priority": 10,
       "id": "pulse-backstop",
       "trigger": "after-enemy-pulse",
-      "durationTicks": 75,
+      "durationTicks": 24,
+      "cooldownTicks": 60,
+      "scopeRoles": ["reserve"],
       "roleOverride": "intercept",
       "rallyLine": "home"
     },
@@ -117,7 +119,9 @@
       "priority": 20,
       "id": "two-core-collapse",
       "trigger": "double-enemy-possession",
-      "durationTicks": 45,
+      "durationTicks": 16,
+      "cooldownTicks": 32,
+      "scopeRoles": ["screen", "reserve"],
       "roleOverride": "intercept",
       "rallyLine": "middle"
     },
@@ -125,23 +129,9 @@
       "priority": 30,
       "id": "pulse-release",
       "trigger": "after-own-pulse",
-      "durationTicks": 55,
-      "roleOverride": "carrier",
-      "rallyLine": "forward"
-    },
-    {
-      "priority": 40,
-      "id": "wipe-rally",
-      "trigger": "wipe",
-      "durationTicks": 60,
-      "roleOverride": "reserve",
-      "rallyLine": "home"
-    },
-    {
-      "priority": 50,
-      "id": "route-release",
-      "trigger": "route-failure",
-      "durationTicks": 35,
+      "durationTicks": 18,
+      "cooldownTicks": 45,
+      "scopeRoles": ["reserve"],
       "roleOverride": "carrier",
       "rallyLine": "forward"
     }

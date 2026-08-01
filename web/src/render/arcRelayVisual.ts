@@ -421,6 +421,28 @@ function drawCores(
       input.ctx.quadraticCurveTo(base.x, y - input.tile * 0.18, x, y);
       input.ctx.stroke();
       input.ctx.restore();
+
+      // The carrier is the story. A small orbiting Core identified the object but
+      // disappeared into a sixteen-body fight; this broken, breathing ring marks the
+      // machine that matters without repainting its chassis or confusing team identity.
+      input.ctx.save();
+      input.ctx.globalCompositeOperation = 'lighter';
+      input.ctx.strokeStyle = withAlpha(accent, 0.72);
+      input.ctx.shadowColor = accent;
+      input.ctx.shadowBlur = Math.max(8, input.tile * 0.34);
+      input.ctx.lineWidth = Math.max(3, input.tile * 0.075);
+      input.ctx.setLineDash([input.tile * 0.3, input.tile * 0.13]);
+      input.ctx.lineDashOffset = -input.time * input.tile * 0.7;
+      input.ctx.beginPath();
+      input.ctx.arc(
+        base.x,
+        base.y,
+        input.tile * (0.5 + 0.035 * Math.sin(input.time * Math.PI * 2)),
+        0,
+        Math.PI * 2,
+      );
+      input.ctx.stroke();
+      input.ctx.restore();
     } else if (core.disposition === 'in-flight' && core.flightTarget) {
       const target = centre(input, core.flightTarget);
       const progress = input.fraction;

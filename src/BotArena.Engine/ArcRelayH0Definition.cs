@@ -28,8 +28,10 @@ public static class ArcRelayH0Definition
     public static ActorResolvedMatchDefinition Create(
         IReadOnlyList<string>? teamZeroClasses = null,
         IReadOnlyList<string>? teamOneClasses = null,
-        ActorMatchCapabilityVersions? capabilityVersions = null)
+        ActorMatchCapabilityVersions? capabilityVersions = null,
+        ArcRelayLoopProfile? loopProfile = null)
     {
+        loopProfile ??= ArcRelayLoopProfile.H0;
         teamZeroClasses ??=
         [
             ArcRelayLaunchClassIds.Kestrel,
@@ -55,12 +57,12 @@ public static class ArcRelayH0Definition
         ValidateSheet(teamZeroClasses, nameof(teamZeroClasses));
         ValidateSheet(teamOneClasses, nameof(teamOneClasses));
 
-        ActorMapDefinition map = CreateMap();
+        ActorMapDefinition map = CreateMap(loopProfile);
         PublicMatchTopology topology = CreateTopology(
             teamZeroClasses,
             teamOneClasses);
         return new ActorResolvedMatchDefinition(
-            CreateRules(),
+            CreateRules(loopProfile),
             map,
             new HeadToHeadMatchFormatDefinition(),
             topology,
@@ -74,8 +76,12 @@ public static class ArcRelayH0Definition
             capabilityVersions ?? ActorMatchCapabilityVersions.Mind);
     }
 
-    public static ActorMapDefinition CreateMap()
+    public static ActorMapDefinition CreateMap() =>
+        CreateMap(ArcRelayLoopProfile.H0);
+
+    public static ActorMapDefinition CreateMap(ArcRelayLoopProfile loopProfile)
     {
+        ArgumentNullException.ThrowIfNull(loopProfile);
         ImmutableArray<string> rows =
         [
             "###############################",
@@ -102,6 +108,7 @@ public static class ArcRelayH0Definition
             "#....#...................#....#",
             "###############################",
         ];
+        rows = ApplyGeometry(rows, loopProfile.Geometry);
         var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
         Position[] west =
         [
@@ -129,7 +136,7 @@ public static class ArcRelayH0Definition
             new(2, 11), new(28, 11),
         ];
         return new ActorMapDefinition(
-            MapId,
+            loopProfile.MapId,
             version: 1,
             rows,
             anchors.ToImmutable(),
@@ -161,9 +168,14 @@ public static class ArcRelayH0Definition
             ]);
     }
 
-    public static ActorRulesDefinition CreateRules()
+    public static ActorRulesDefinition CreateRules() =>
+        CreateRules(ArcRelayLoopProfile.H0);
+
+    public static ActorRulesDefinition CreateRules(
+        ArcRelayLoopProfile loopProfile)
     {
-        ArcRelayGameModeDefinition mode = CreateMode();
+        ArgumentNullException.ThrowIfNull(loopProfile);
+        ArcRelayGameModeDefinition mode = CreateMode(loopProfile);
         ActorMovementProfileDefinition[] movement =
         [
             new("swift", ActorMovementLayer.Ground,
@@ -215,7 +227,7 @@ public static class ArcRelayH0Definition
                 SignatureParameters(signature))));
 
         return new ActorRulesDefinition(
-            RulesetId,
+            loopProfile.RulesetId,
             new ActorRulesLimits(
                 maxTicks: 600,
                 new ActorRuntimeFaultDefinition(
@@ -236,7 +248,7 @@ public static class ArcRelayH0Definition
                     LifecycleProfileId(entry.ClassId),
                     ActorLifecycleProfileDefinition.DestructionPolicyKind
                         .AutomaticRespawn,
-                    delayTicks: 20,
+                    delayTicks: loopProfile.RespawnDelayTicks,
                     automaticReturnFormId: FormId(entry.ClassId)))),
             Classes.Select(entry => new ActorFormDefinition(
                 FormId(entry.ClassId),
@@ -286,7 +298,8 @@ public static class ArcRelayH0Definition
                     .AdvancesWithTime));
     }
 
-    private static ArcRelayGameModeDefinition CreateMode() =>
+    private static ArcRelayGameModeDefinition CreateMode(
+        ArcRelayLoopProfile loopProfile) =>
         new(
             ArcRelayGameModeDefinition.Id,
             new ArcRelayVictoryDefinition(
@@ -307,18 +320,33 @@ public static class ArcRelayH0Definition
             ],
             [
                 new ArcRelayWellScheduleDefinition(
-                    "centre", 25, 75, 475),
+                    "centre",
+                    loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.WellCadenceTicks,
+                    loopProfile.FirstGlobalBeatTicks
+                        + (loopProfile.ScheduledBirthRounds - 1)
+                            * loopProfile.WellCadenceTicks),
                 new ArcRelayWellScheduleDefinition(
-                    "north", 50, 75, 500),
+                    "north",
+                    2 * loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.WellCadenceTicks,
+                    2 * loopProfile.FirstGlobalBeatTicks
+                        + (loopProfile.ScheduledBirthRounds - 1)
+                            * loopProfile.WellCadenceTicks),
                 new ArcRelayWellScheduleDefinition(
-                    "south", 75, 75, 525),
+                    "south",
+                    3 * loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.WellCadenceTicks,
+                    3 * loopProfile.FirstGlobalBeatTicks
+                        + (loopProfile.ScheduledBirthRounds - 1)
+                            * loopProfile.WellCadenceTicks),
             ],
             pendingRearmTicks: 10,
             coreRelocationIntervalTicks: 2,
             coresPerPulse: 3,
             fieldedSlotsPerTeam: 8,
             maxCopiesPerClass: 2,
-            respawnDelayTicks: 20,
+            respawnDelayTicks: loopProfile.RespawnDelayTicks,
             Classes.Select(entry => entry.Signature));
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
@@ -538,6 +566,58 @@ public static class ArcRelayH0Definition
         new(1, ReactorRoleId, "reactor-east", Direction.West),
         new(1, HomePadRoleId, "home-east", Direction.West),
     ];
+
+    private static ImmutableArray<string> ApplyGeometry(
+        ImmutableArray<string> rows,
+        ArcRelayMapGeometry geometry)
+    {
+        if (geometry == ArcRelayMapGeometry.H0)
+            return rows;
+
+        string[] changed = rows.ToArray();
+        if (geometry == ArcRelayMapGeometry.HomeGatesWide)
+        {
+            foreach (int y in new[] { 1, 5, 8, 14, 17, 21 })
+            {
+                changed[y] = Open(changed[y], 5, 25);
+            }
+        }
+        else if (geometry == ArcRelayMapGeometry.HomeGatesThree)
+        {
+            foreach (int y in new[]
+                { 1, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 21 })
+            {
+                changed[y] = Open(changed[y], 5, 25);
+            }
+        }
+        else if (geometry == ArcRelayMapGeometry.HomeConcourse)
+        {
+            foreach (int y in new[] { 8, 10, 11, 12, 14 })
+            {
+                changed[y] = Open(changed[y], 5, 25);
+            }
+        }
+        else if (geometry == ArcRelayMapGeometry.CoverTrim)
+        {
+            foreach (int y in new[] { 3, 4, 5, 10, 11, 12, 17, 18, 19 })
+            {
+                changed[y] = Open(changed[y], 10, 20);
+            }
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(geometry));
+        }
+        return [.. changed];
+    }
+
+    private static string Open(string row, params int[] columns)
+    {
+        char[] changed = row.ToCharArray();
+        foreach (int x in columns)
+            changed[x] = '.';
+        return new string(changed);
+    }
 
     private static ActorMapSpawnAnchorDefinition Anchor(
         int teamId,

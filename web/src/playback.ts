@@ -25,6 +25,14 @@ export interface PlaybackState {
 /** Presentation timeline (plan §28.1): ~5 ticks/second at 1x, decoupled from simulation. */
 const BASE_TICKS_PER_SECOND = 5;
 
+/** Arc Relay's simultaneous eight-body objective play needs a slower first watch. */
+export function defaultPlaybackSpeed(replay: ReplayModel): number {
+  return replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay'
+    ? 0.5
+    : 1;
+}
+
 /**
  * @param ready Hold at tick 0 until the arena's assets have arrived. Without this the
  * clock runs behind a loading screen, and the match is already underway when it lifts.
@@ -48,7 +56,7 @@ export function usePlayback(
   const [playing, setPlaying] = useState(active && autoStart);
   const [endedNaturally, setEndedNaturally] = useState(false);
   const [transportRevision, setTransportRevision] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(() => defaultPlaybackSpeed(replay));
   const timeRef = useRef(0);
   const frame = useRef<number>(0);
   const lastStamp = useRef<number | null>(null);

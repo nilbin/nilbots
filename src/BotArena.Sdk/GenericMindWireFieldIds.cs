@@ -54,6 +54,11 @@ public static class GenericMindWireFieldIds
         public const ushort Contract = 7;
         /// <summary>Empty in head-to-head and free-for-all; the team-format hook.</summary>
         public const ushort AlliedParticipantIds = 8;
+        /// <summary>
+        /// Optional provisional participant-local evaluation data. Unknown
+        /// field IDs are skipped, so pre-existing artifacts remain compatible.
+        /// </summary>
+        public const ushort EvaluationData = 9;
     }
 
     /// <summary>

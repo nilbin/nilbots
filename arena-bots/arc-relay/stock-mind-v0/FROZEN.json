@@ -1,23 +1,24 @@
 {
   "schemaVersion": 1,
-  "freezeId": "arc-relay-stock-mind-v0-2026-08-01",
-  "status": "frozen-for-gate-3-depth-audit",
+  "freezeId": "arc-relay-stock-mind-v0-gate3-2-2026-08-01",
+  "status": "frozen-for-gate-3-2-loop-audit",
   "mindSource": {
     "file": "ArcRelayStockMind.cs",
-    "sha256": "6a3af0975ff83f4678e6d85772269d83eabbbf6b121806525b42e30bfb592447"
+    "sha256": "c8182e133a202733ef7c6b43367097eb118d2295a91dcdbf592e6fe13ff48f79"
   },
   "evaluationSheet": {
     "schema": "arc-relay-evaluation-sheet-v0",
     "provisionalNotProductSchema": true,
     "file": "sheet.json",
-    "sha256": "2ff8364970ce7ec7e57a25f813bbe52b9fe9723e4bfbf98cca6a0044a1e3ab09",
-    "generatedFile": "StockSheet.g.cs",
-    "generatedSha256": "f474d4a49d9472fd27278ba8e209b87d98d8cfb9a10a130cfc5e201462fede9f"
+    "sha256": "010a64bf4e1241007765fcef2a230fa147a765857a0598acdc8352c0a18b6c61",
+    "delivery": "participant-local deterministic WASI evaluation data",
+    "linkerFile": "StockSheet.cs",
+    "linkerSha256": "3ca71ee3752776c5ba4d0236ced865d67939259bc60ab2d274f2b8a533390f14"
   },
   "artifact": {
     "file": "bot.wasm",
-    "sha256": "5aedf602ef1810c124ca57c801b0963280da2389a8c43feaf22d1c10d9f2c78a",
-    "bytes": 3598857,
+    "sha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+    "bytes": 3665765,
     "sdkVersion": "0.10.11"
   },
   "contract": {
@@ -29,14 +30,16 @@
   },
   "preflight": {
     "seed": "42",
+    "runtime": "wasm",
+    "loopProfile": "h0",
     "matchRecord": "preflight/match-record.json",
-    "matchRecordSha256": "74884771ce6725f599540588a869c53a659cc15296eff5ac28eb011ac0070489",
-    "matchRecordBytes": 1933,
+    "matchRecordSha256": "243fd98977a3d752307abd73b8336a17887e1e0888d87cfd405ab4eeea5359f4",
+    "matchRecordBytes": 2064,
     "broadcast": "preflight/broadcast.json.gz",
-    "broadcastSha256": "9cdb00b8114447879b57d74bdcad53ab713dbaebb24c1ad16ed13875b394a179",
-    "broadcastGzipBytes": 169972,
-    "durableBytes": 171905,
-    "canonicalReplayHash": "fb92bb681fe0c2407c5bb446f90ba1e22592bb08f2001a5035258c5877e2400a",
+    "broadcastSha256": "58230d3a684a6526a159373d15cb90fbcadd29e5cbbc282e1a2f663a720f3304",
+    "broadcastGzipBytes": 182181,
+    "durableBytes": 184245,
+    "canonicalReplayHash": "79577c3d46c3bc88d5ad9be29a6e709cf1ead134ec26f7243600ac004633325a",
     "regenerationProved": true,
     "eligibleTeamIds": [0, 1],
     "runtimeFaults": 0,

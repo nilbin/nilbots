@@ -1,0 +1,87 @@
+{
+  "cells": [
+    {
+      "cellId": "information-route-control-repaired--interception--s104729--a0",
+      "matchContractFingerprint": "77495f93496eeb6c5795bc1615e3e3bdc8439fd548e26939e595114ef1b23c4f",
+      "seed": "104729",
+      "team0": "information-route-control-repaired",
+      "team1": "interception",
+      "topologyFingerprint": "cd772eac4f7db2bce128e0fcb254c825b8758f7e903534556ab855c287d41712"
+    },
+    {
+      "cellId": "information-route-control-repaired--interception--s104729--a1",
+      "matchContractFingerprint": "c56c5946ca049187d10a010dc02f05209cc786278bbe71cb0e25bc1214a880ad",
+      "seed": "104729",
+      "team0": "interception",
+      "team1": "information-route-control-repaired",
+      "topologyFingerprint": "7d1003c281e0c269e9d207ff48c27dc21b04e670167e09012a4b9b59364ea141"
+    },
+    {
+      "cellId": "information-route-control-repaired--split-control--s104729--a0",
+      "matchContractFingerprint": "3f951761c6cd4f5192b28cb80265fe31899872fa98c3fffdf25e1f5db0187717",
+      "seed": "104729",
+      "team0": "information-route-control-repaired",
+      "team1": "split-control",
+      "topologyFingerprint": "7529628861fcc8ef9f4a77f8880828da7edbdea613b409cf9666e1ec40188325"
+    },
+    {
+      "cellId": "information-route-control-repaired--split-control--s104729--a1",
+      "matchContractFingerprint": "d9a7d65a8bfdb66d9348c6d87b27046c17e9a84dd64c12c6929d646ae85272d8",
+      "seed": "104729",
+      "team0": "split-control",
+      "team1": "information-route-control-repaired",
+      "topologyFingerprint": "ae0192988472a061e7a3987b9f1827df2ddd948eff578a87e8a7e240085415ac"
+    },
+    {
+      "cellId": "interception--split-control--s104729--a0",
+      "matchContractFingerprint": "8b6e58af58e041244a2492fa9f756ac9fed43a99ba1e4edca03f3581059aef97",
+      "seed": "104729",
+      "team0": "interception",
+      "team1": "split-control",
+      "topologyFingerprint": "1a03eec498554cf4bbe2baea9dd9974dce0d9386afc9235e9977751a50ad41be"
+    },
+    {
+      "cellId": "interception--split-control--s104729--a1",
+      "matchContractFingerprint": "fbfc7dead38421aab0b5a1959d14d92cd4a871e1d4b806b892af6d263a8bdc17",
+      "seed": "104729",
+      "team0": "split-control",
+      "team1": "interception",
+      "topologyFingerprint": "90055e229215f85fdabceb1ab135d4ea5208a83a4c1969bbb43ad38129012d37"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/native-cohort-v2-fresh-2026-08-01/eligible-pulse-cohort.json",
+  "cohortId": "arc-relay-gate3-2-eligible-native-pulse-v1",
+  "cohortSha256": "00883eacc454bdc12a6fa3b76881b0328d5653d60a4a6b87140020746d2bc15f",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v1.json",
+  "eligibilityBarsSha256": "1d024636805e42c8ee05ebdee8144db8cd65439e9e4f271664289718b5e7ffc5",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "information-route-control-repaired": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v2-fresh-2026-08-01/information-route-control-repaired/bot.wasm",
+      "artifactSha256": "8011298ea0132acd490343d0cef2abc3be221da161cac3827d5ba012a2fa5fb4",
+      "sheet": "arena-bots/arc-relay/native-cohort-v2-fresh-2026-08-01/information-route-control-repaired/sheet.json",
+      "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7"
+    },
+    "interception": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/interception/bot.wasm",
+      "artifactSha256": "96fbeb0747ae7af35c398dc8d0a497668f78a7a72da343d208bcaa48acd7099c",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/interception/sheet.json",
+      "sheetSha256": "b44610cab33e13639d833915f5d7d7bc3e00b4fbfc2d596db64f1c0fb7964a51"
+    },
+    "split-control": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/split-control/bot.wasm",
+      "artifactSha256": "223bc7c557c6ae5e3b6a7e7fb493032b3a5d0a9de788214de58d0f4ea7ccb8d2",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/split-control/sheet.json",
+      "sheetSha256": "4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374"
+    }
+  },
+  "loopProfile": "spacious-90",
+  "mapFingerprint": "f4649d6d17e80c02cd4b09fec849de5729435855cf411592a5e2c73cd889bbbe",
+  "mapId": "arc-relay-threefold-01",
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "0bf6badc2c36f89ea5cf7470d9266cadf9efa08e4c8818fc93e46a621678c54a",
+  "rulesetId": "arc-relay-spacious-90-01",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "gate3-2-pulse-spacious-90-v1"
+}

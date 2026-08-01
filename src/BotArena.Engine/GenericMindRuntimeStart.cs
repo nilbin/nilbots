@@ -39,4 +39,11 @@ public sealed record GenericMindRuntimeStart
         AlliedParticipantIds
     { get; init; }
     public required ActorResolvedMatchDefinition Contract { get; init; }
+    /// <summary>
+    /// Optional provisional evaluation data for this participant. It is
+    /// carried once at start, never repeated per tick, and is outside the
+    /// player-facing sheet schema.
+    /// </summary>
+    public System.Collections.Immutable.ImmutableArray<byte> EvaluationData
+    { get; init; } = [];
 }

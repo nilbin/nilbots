@@ -32,6 +32,13 @@ public sealed record GenericActorParticipantConfiguration
     /// forcing the simulation layer to invent provenance.
     /// </summary>
     public string? ArtifactHash { get; init; }
+    /// <summary>
+    /// Provisional evaluation-grade program data delivered once to a mind.
+    /// The harness owns its content hash; ordinary matches leave it empty.
+    /// This is not a player-facing sheet contract.
+    /// </summary>
+    public System.Collections.Immutable.ImmutableArray<byte> MindEvaluationData
+    { get; init; } = [];
     public string Accent { get; init; } = "#38bdf8";
     public string? LookId { get; init; }
     public string? ProjectileLookId { get; init; }

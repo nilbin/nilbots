@@ -112,10 +112,17 @@ def validate(data: dict) -> None:
             fail(f"unknown gambit trigger {entry.get('trigger')}")
         if entry.get("roleOverride") not in ROLES:
             fail(f"unknown gambit role {entry.get('roleOverride')}")
+        scope_roles = entry.get("scopeRoles")
+        if (not isinstance(scope_roles, list) or not scope_roles
+                or any(role not in ROLES for role in scope_roles)
+                or len(scope_roles) != len(set(scope_roles))):
+            fail("gambit scopeRoles must be unique known roles")
         if entry.get("rallyLine") not in rally:
             fail(f"unknown gambit rally line {entry.get('rallyLine')}")
         if not isinstance(entry.get("durationTicks"), int) or entry["durationTicks"] <= 0:
             fail("gambit durationTicks must be positive")
+        if not isinstance(entry.get("cooldownTicks"), int) or entry["cooldownTicks"] <= 0:
+            fail("gambit cooldownTicks must be positive")
 
 
 def generate(data: dict, digest: str) -> str:
@@ -144,6 +151,8 @@ def generate(data: dict, digest: str) -> str:
             "        new("
             f"{entry['priority']}, {quote(entry['id'])}, "
             f"{quote(entry['trigger'])}, {entry['durationTicks']}, "
+            f"{entry['cooldownTicks']}, "
+            "[" + ", ".join(quote(role) for role in entry['scopeRoles']) + "], "
             f"{quote(entry['roleOverride'])}, {quote(entry['rallyLine'])})")
     carrier = data["policies"]["carrier"]
     escort = data["policies"]["escort"]
@@ -206,13 +215,23 @@ internal static class StockSheet
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sheet", type=Path)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--validate-only", action="store_true")
     args = parser.parse_args()
+    if args.validate_only and args.output is not None:
+        parser.error("--validate-only and --output cannot be combined")
+    if not args.validate_only and args.output is None:
+        parser.error("--output is required unless --validate-only is used")
     raw = args.sheet.read_bytes()
     data = json.loads(raw)
     if not isinstance(data, dict):
         fail("sheet root must be an object")
     validate(data)
+    if args.validate_only:
+        print(
+            f"{args.sheet}: valid; sha256={hashlib.sha256(raw).hexdigest()}"
+        )
+        return 0
     output = generate(data, hashlib.sha256(raw).hexdigest())
     args.output.write_text(output, encoding="utf-8")
     print(f"{args.sheet}: valid; wrote {args.output}")

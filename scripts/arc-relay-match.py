@@ -80,10 +80,17 @@ def execute(
     match_id: str,
     entrant0_id: str,
     entrant1_id: str,
+    runtime: str = "wasm",
+    loop_profile: str = "h0",
 ) -> dict:
-    for path in (cli, artifact0, artifact1, sheet0, sheet1):
+    for path in (cli, sheet0, sheet1):
         if not path.is_file():
             raise FileNotFoundError(path)
+    for path in (artifact0, artifact1):
+        if not path.exists():
+            raise FileNotFoundError(path)
+    if runtime not in ("wasm", "in-process"):
+        raise ValueError(f"unsupported runtime: {runtime}")
     output.mkdir(parents=True, exist_ok=True)
     run_process(
         [
@@ -102,7 +109,9 @@ def execute(
             "--seed",
             seed,
             "--runtime",
-            "wasm",
+            runtime,
+            "--loop-profile",
+            loop_profile,
             "--out",
             str(output.resolve()),
         ],
@@ -131,9 +140,10 @@ def execute(
         (entrant1_id, artifact1, sheet1),
     ]
     for participant, (_, artifact, sheet) in zip(participants, inputs):
-        actual_artifact = sha256(artifact)
+        actual_artifact = sha256(artifact) if artifact.is_file() else None
         actual_sheet = sha256(sheet)
-        if participant["ArtifactHash"] != actual_artifact:
+        if (actual_artifact is not None
+                and participant["ArtifactHash"] != actual_artifact):
             raise RuntimeError(
                 f"runtime artifact hash {participant['ArtifactHash']} does not "
                 f"match {artifact}: {actual_artifact}"
@@ -156,6 +166,8 @@ def execute(
         "mapFingerprint": run_receipt["MapFingerprint"],
         "topologyFingerprint": run_receipt["TopologyFingerprint"],
         "matchContractFingerprint": run_receipt["MatchContractFingerprint"],
+        "executionRuntime": runtime,
+        "loopProfile": loop_profile,
         "runtime": canonical["header"]["runtime"],
         "seed": seed,
         "participants": [
@@ -164,6 +176,7 @@ def execute(
                 "teamId": participant["TeamId"],
                 "entrantId": entrant_id,
                 "name": participant["Name"],
+                "runtimeKind": participant["RuntimeKind"],
                 "artifactHash": participant["ArtifactHash"],
                 "artifactPath": relative(artifact, record_dir),
                 "sheetHash": participant["SheetHash"],
@@ -210,9 +223,12 @@ def execute(
 
 def comparable(record: dict) -> dict:
     clone = json.loads(json.dumps(record))
+    clone.pop("executionRuntime", None)
+    clone.pop("loopProfile", None)
     for participant in clone["participants"]:
         participant.pop("artifactPath", None)
         participant.pop("sheetPath", None)
+        participant.pop("runtimeKind", None)
     clone["broadcast"].pop("file", None)
     return clone
 
@@ -230,6 +246,8 @@ def run_command(args: argparse.Namespace) -> int:
         match_id=args.match_id,
         entrant0_id=args.entrant0_id,
         entrant1_id=args.entrant1_id,
+        runtime=args.runtime,
+        loop_profile=args.loop_profile,
     )
     record_bytes = (args.output / "match-record.json").stat().st_size
     broadcast_bytes = record["broadcast"]["gzipBytes"]
@@ -266,6 +284,8 @@ def regenerate_command(args: argparse.Namespace) -> int:
             match_id=expected["matchId"],
             entrant0_id=participants[0]["entrantId"],
             entrant1_id=participants[1]["entrantId"],
+            runtime=expected.get("executionRuntime", "wasm"),
+            loop_profile=expected.get("loopProfile", "h0"),
         )
         if comparable(actual) != comparable(expected):
             raise RuntimeError(
@@ -297,6 +317,12 @@ def main() -> int:
     run.add_argument("--match-id", required=True)
     run.add_argument("--entrant0-id", required=True)
     run.add_argument("--entrant1-id", required=True)
+    run.add_argument(
+        "--runtime",
+        choices=("wasm", "in-process"),
+        default="wasm",
+    )
+    run.add_argument("--loop-profile", default="h0")
     run.set_defaults(handler=run_command)
 
     regenerate = sub.add_parser("regenerate")

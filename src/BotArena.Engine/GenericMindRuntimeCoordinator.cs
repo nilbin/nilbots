@@ -691,6 +691,7 @@ public sealed class GenericMindRuntimeCoordinator : IDisposable
                 _contract.Rules.SeedMechanics.SeedProfileId),
             AlliedParticipantIds = participant.AlliedParticipantIds,
             Contract = _contract,
+            EvaluationData = participant.EvaluationData,
         };
 
     private Dictionary<int, GenericMindRuntimeObservation>
@@ -1039,12 +1040,14 @@ public sealed class GenericMindRuntimeCoordinator : IDisposable
             TeamId = configuration.TeamId;
             MindFactory = configuration.MindRuntimeFactory!;
             AlliedParticipantIds = alliedParticipantIds;
+            EvaluationData = configuration.MindEvaluationData;
         }
 
         public int ParticipantId { get; }
         public int TeamId { get; }
         public IGenericMindRuntimeFactory MindFactory { get; }
         public ImmutableArray<int> AlliedParticipantIds { get; }
+        public ImmutableArray<byte> EvaluationData { get; }
         public IGenericMindRuntime? Runtime { get; set; }
         public long FaultCount { get; set; }
         public bool Disqualified { get; set; }

@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "convoy-fresh-north-lane-catch-ladder-01",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "relay",
+    "repulsor",
+    "palisade",
+    "patchbay",
+    "hush",
+    "towline",
+    "sunder",
+    "lantern"
+  ]
+}

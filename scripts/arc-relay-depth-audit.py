@@ -3,9 +3,9 @@
 
 This is evaluation infrastructure, not the player-facing sheet format. It
 crosses four coverage families with static and ordered-gambit variants while
-holding the frozen stock-mind source byte-identical. Every variant receives a
-separate no-cache WASM build for audit identity; build-speed work is out of
-scope.
+holding the frozen stock-mind source byte-identical. The stock algorithm and
+stable data linker build once; every separately hashed sheet is supplied as
+participant-local deterministic data by the Arc Relay runner.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
 
 
 REPO = Path(__file__).resolve().parent.parent
@@ -31,7 +32,8 @@ GENERATOR = REPO / "scripts/generate-arc-relay-sheet.py"
 MATCH_RUNNER = REPO / "scripts/arc-relay-match.py"
 SCORECARD = REPO / "scripts/arc-relay-scorecard.py"
 DEFAULT_CLI = REPO / "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
-STOCK_SOURCE_SHA256 = "6a3af0975ff83f4678e6d85772269d83eabbbf6b121806525b42e30bfb592447"
+STOCK_SOURCE_SHA256 = "c8182e133a202733ef7c6b43367097eb118d2295a91dcdbf592e6fe13ff48f79"
+STOCK_LINKER = STOCK / "StockSheet.cs"
 SEED = "130363"
 
 RECORD_LIMIT = 4 * 1024
@@ -90,6 +92,15 @@ def run_process(command: list[str]) -> str:
             + completed.stdout[-5000:]
         )
     return completed.stdout
+
+
+def contract(cli: Path, sheet0: Path, sheet1: Path) -> dict:
+    return json.loads(run_process([
+        "dotnet", str(cli.resolve()), "experiment", "arc-relay",
+        "--sheet0", str(sheet0.resolve()),
+        "--sheet1", str(sheet1.resolve()),
+        "--loop-profile", "h0", "--print-contract",
+    ]))
 
 
 PATHS = {
@@ -257,7 +268,9 @@ GAMBITS = [
         "priority": 10,
         "id": "pulse-backstop",
         "trigger": "after-enemy-pulse",
-        "durationTicks": 75,
+        "durationTicks": 24,
+        "cooldownTicks": 60,
+        "scopeRoles": ["reserve"],
         "roleOverride": "intercept",
         "rallyLine": "home",
     },
@@ -265,7 +278,9 @@ GAMBITS = [
         "priority": 20,
         "id": "two-core-collapse",
         "trigger": "double-enemy-possession",
-        "durationTicks": 45,
+        "durationTicks": 16,
+        "cooldownTicks": 32,
+        "scopeRoles": ["screen", "reserve"],
         "roleOverride": "intercept",
         "rallyLine": "middle",
     },
@@ -273,23 +288,9 @@ GAMBITS = [
         "priority": 30,
         "id": "pulse-release",
         "trigger": "after-own-pulse",
-        "durationTicks": 55,
-        "roleOverride": "carrier",
-        "rallyLine": "forward",
-    },
-    {
-        "priority": 40,
-        "id": "wipe-rally",
-        "trigger": "wipe",
-        "durationTicks": 60,
-        "roleOverride": "reserve",
-        "rallyLine": "home",
-    },
-    {
-        "priority": 50,
-        "id": "route-release",
-        "trigger": "route-failure",
-        "durationTicks": 35,
+        "durationTicks": 18,
+        "cooldownTicks": 45,
+        "scopeRoles": ["reserve"],
         "roleOverride": "carrier",
         "rallyLine": "forward",
     },
@@ -356,15 +357,45 @@ def prepare(args: argparse.Namespace) -> int:
     if sha256(STOCK / "ArcRelayStockMind.cs") != STOCK_SOURCE_SHA256:
         raise RuntimeError("frozen stock-mind source hash changed")
     output.mkdir(parents=True, exist_ok=True)
+
+    algorithm_dir = output / "stock-algorithm"
+    algorithm_dir.mkdir()
+    shutil.copy2(STOCK / "ArcRelayStockMind.cs", algorithm_dir)
+    shutil.copy2(STOCK_LINKER, algorithm_dir)
+    shutil.copy2(STOCK / "botarena.json", algorithm_dir)
+    build_project_file(algorithm_dir)
+    build_started = time.perf_counter()
+    run_process(
+        [
+            "dotnet",
+            str(args.cli.resolve()),
+            "build",
+            str(algorithm_dir),
+            "--no-cache",
+        ]
+    )
+    build_seconds = time.perf_counter() - build_started
+    artifact = algorithm_dir / "out" / "bot.wasm"
+    if not artifact.is_file():
+        raise RuntimeError(f"build did not produce {artifact}")
+    algorithm = {
+        "schema": "arc-relay-stock-algorithm-manifest-v1",
+        "buildCount": 1,
+        "stockMindSourceSha256": STOCK_SOURCE_SHA256,
+        "dataLinkerSha256": sha256(STOCK_LINKER),
+        "artifactSha256": sha256(artifact),
+        "artifactBytes": artifact.stat().st_size,
+        "buildSeconds": round(build_seconds, 6),
+        "sheetDelivery": "participant-local deterministic WASI data",
+    }
+    write_json(algorithm_dir / "manifest.json", algorithm)
+
     variants = []
     for family in FAMILIES:
         for style in ("static", "gambit"):
             variant_id = f"{family['familyId']}--{style}"
             destination = output / "variants" / variant_id
             destination.mkdir(parents=True)
-            shutil.copy2(STOCK / "ArcRelayStockMind.cs", destination)
-            shutil.copy2(STOCK / "botarena.json", destination)
-            build_project_file(destination)
             sheet_path = destination / "sheet.json"
             write_json(sheet_path, sheet(family, style))
             run_process(
@@ -372,22 +403,9 @@ def prepare(args: argparse.Namespace) -> int:
                     sys.executable,
                     str(GENERATOR),
                     str(sheet_path),
-                    "--output",
-                    str(destination / "StockSheet.g.cs"),
+                    "--validate-only",
                 ]
             )
-            run_process(
-                [
-                    "dotnet",
-                    str(args.cli.resolve()),
-                    "build",
-                    str(destination),
-                    "--no-cache",
-                ]
-            )
-            artifact = destination / "out" / "bot.wasm"
-            if not artifact.is_file():
-                raise RuntimeError(f"build did not produce {artifact}")
             manifest = {
                 "schema": "arc-relay-depth-variant-manifest-v1",
                 "variantId": variant_id,
@@ -395,12 +413,12 @@ def prepare(args: argparse.Namespace) -> int:
                 "adaptationStyle": style,
                 "evaluationSchemaProvisional": True,
                 "productSheetSchema": False,
-                "stockMindSourceSha256": sha256(destination / "ArcRelayStockMind.cs"),
+                "stockMindSourceSha256": STOCK_SOURCE_SHA256,
                 "sheetSha256": sha256(sheet_path),
-                "generatedSheetSha256": sha256(destination / "StockSheet.g.cs"),
-                "artifactSha256": sha256(artifact),
-                "artifactBytes": artifact.stat().st_size,
-                "buildPolicy": "one separate no-cache audit build; no speed optimization",
+                "artifactSha256": algorithm["artifactSha256"],
+                "artifactBytes": algorithm["artifactBytes"],
+                "buildPolicy": "one shared frozen stock-algorithm build",
+                "sheetDelivery": algorithm["sheetDelivery"],
                 "dimensions": sheet(family, style)["auditDimensions"],
             }
             write_json(destination / "manifest.json", manifest)
@@ -416,6 +434,11 @@ def prepare(args: argparse.Namespace) -> int:
 
     matches = []
     for first, second in itertools.combinations(variants, 2):
+        if (args.within_family_only
+                and (first["familyId"] != second["familyId"]
+                     or first["adaptationStyle"]
+                     == second["adaptationStyle"])):
+            continue
         pair_id = "--vs--".join((first["variantId"], second["variantId"]))
         for assignment, (team0, team1) in enumerate(((first, second), (second, first))):
             matches.append(
@@ -434,8 +457,9 @@ def prepare(args: argparse.Namespace) -> int:
         "purpose": "coverage and reproducibility for Gate 3",
         "playerFacingSheetDesignDeferredUntilAfterGate3": True,
         "previewPlaygroundDeferred": True,
-        "buildSpeedOptimizationInScope": False,
+        "buildSpeedOptimizationInScope": True,
         "stockMindSourceSha256": STOCK_SOURCE_SHA256,
+        "stockAlgorithm": algorithm,
         "seed": SEED,
         "variantCount": len(variants),
         "plannedMatchCount": len(matches),
@@ -454,6 +478,63 @@ def prepare(args: argparse.Namespace) -> int:
         "variantCount": len(variants),
         "plannedMatchCount": len(matches),
     }
+    write_json(output / "FROZEN.json", freeze)
+
+    entrants = {
+        item["variantId"]: {
+            "artifact": os.path.relpath(output / item["artifact"], REPO),
+            "artifactSha256": item["artifactSha256"],
+            "sheet": os.path.relpath(output / item["sheet"], REPO),
+            "sheetSha256": item["sheetSha256"],
+        }
+        for item in variants
+    }
+    cells = []
+    common = None
+    for match in matches:
+        team0 = variants[[item["variantId"] for item in variants].index(
+            match["team0VariantId"])]
+        team1 = variants[[item["variantId"] for item in variants].index(
+            match["team1VariantId"])]
+        resolved = contract(
+            args.cli,
+            output / team0["sheet"],
+            output / team1["sheet"],
+        )
+        identity = {
+            "rulesetId": resolved["rules"]["rulesetId"],
+            "rulesFingerprint": resolved["rules"]["rulesFingerprint"],
+            "mapId": resolved["map"]["mapId"],
+            "mapFingerprint": resolved["map"]["mapFingerprint"],
+        }
+        if common is None:
+            common = identity
+        elif common != identity:
+            raise RuntimeError("depth sweep rules/map identity changed")
+        cells.append({
+            "cellId": match["matchId"],
+            "seed": match["seed"],
+            "team0": match["team0VariantId"],
+            "team1": match["team1VariantId"],
+            "topologyFingerprint": resolved["topology"]["topologyFingerprint"],
+            "matchContractFingerprint": resolved["matchContractFingerprint"],
+        })
+    assert common is not None
+    sweep = {
+        "schema": "arc-relay-sweep-plan-v1",
+        "sweepId": "gate3-2-gambit-grammar-within-family-v2",
+        "preparedBeforeOutcomes": True,
+        "cohortId": "arc-relay-depth-gambit-grammar-v2",
+        "runtime": "wasm",
+        "loopProfile": "h0",
+        "engineVersion": "1.0.5",
+        **common,
+        "entrants": entrants,
+        "cells": cells,
+    }
+    write_json(output / "sweep-plan.json", sweep)
+    freeze["sweepPlan"] = "sweep-plan.json"
+    freeze["sweepPlanSha256"] = sha256(output / "sweep-plan.json")
     write_json(output / "FROZEN.json", freeze)
     print(
         f"froze provisional depth audit: {len(variants)} variants, "
@@ -725,6 +806,7 @@ def main() -> int:
     freeze = sub.add_parser("prepare")
     freeze.add_argument("--output", required=True, type=Path)
     freeze.add_argument("--cli", type=Path, default=DEFAULT_CLI)
+    freeze.add_argument("--within-family-only", action="store_true")
     freeze.set_defaults(handler=prepare)
     run = sub.add_parser("run")
     run.add_argument("--output", required=True, type=Path)

@@ -31,6 +31,7 @@ import IdentityChip from './IdentityChip';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import LiveStatus, { LiveDot } from './LiveStatus';
+import ArcRelayStory from './ArcRelayStory';
 
 /**
  * The hosted viewer's 3D renderer — what the web viewer is.
@@ -481,6 +482,7 @@ export default function Viewer({
               onManualCamera={() => setAutoFit(false)}
             />
           )}
+          <ArcRelayStory replay={replay} tick={tick} />
           {/* Where we are, over the game rather than under it: the eye is on the arena,
               and this is the one number a spectator is always reading. It is also the
               thing that must never disappear — when the immersive chrome fades, this

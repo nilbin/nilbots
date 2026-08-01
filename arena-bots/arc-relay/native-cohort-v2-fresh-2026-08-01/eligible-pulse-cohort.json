@@ -1,0 +1,38 @@
+{
+  "schema": "arc-relay-native-eligible-population-v1",
+  "cohortId": "arc-relay-gate3-2-eligible-native-pulse-v1",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v1.json",
+  "excludedBeforeOutcomeReads": [
+    {
+      "entrantId": "convoy",
+      "reason": "rapid same-pair handoff reversal bar tripped in every Gate 3 pairing"
+    },
+    {
+      "entrantId": "information-route-control",
+      "reason": "60-of-75 sustained passivity bar tripped; replaced by the pre-read repaired revision"
+    }
+  ],
+  "entrants": [
+    {
+      "entrantId": "interception",
+      "artifact": "../native-cohort-v1-2026-08-01/interception/bot.wasm",
+      "artifactSha256": "96fbeb0747ae7af35c398dc8d0a497668f78a7a72da343d208bcaa48acd7099c",
+      "sheet": "../native-cohort-v1-2026-08-01/interception/sheet.json",
+      "sheetSha256": "b44610cab33e13639d833915f5d7d7bc3e00b4fbfc2d596db64f1c0fb7964a51"
+    },
+    {
+      "entrantId": "split-control",
+      "artifact": "../native-cohort-v1-2026-08-01/split-control/bot.wasm",
+      "artifactSha256": "223bc7c557c6ae5e3b6a7e7fb493032b3a5d0a9de788214de58d0f4ea7ccb8d2",
+      "sheet": "../native-cohort-v1-2026-08-01/split-control/sheet.json",
+      "sheetSha256": "4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374"
+    },
+    {
+      "entrantId": "information-route-control-repaired",
+      "artifact": "information-route-control-repaired/bot.wasm",
+      "artifactSha256": "8011298ea0132acd490343d0cef2abc3be221da161cac3827d5ba012a2fa5fb4",
+      "sheet": "information-route-control-repaired/sheet.json",
+      "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7"
+    }
+  ]
+}

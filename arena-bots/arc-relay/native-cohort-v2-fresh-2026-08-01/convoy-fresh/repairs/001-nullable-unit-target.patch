@@ -1,0 +1,22 @@
+Mechanical compile repair 001
+
+Pre-repair ConvoyFresh.cs SHA-256:
+21d0b042d89e29eb613aef0a855186177ae38180a8da4ff5c61a9a84ec385da1
+
+Compiler evidence:
+CS1503 at the two UnitTargetArgument constructors: a nullable UnitTarget?
+selected from FirstOrDefault could not be passed as UnitTarget.
+
+Doctrine-neutral patch:
+
+```diff
+- new GenericActorActionArgument.UnitTargetArgument(target)
++ new GenericActorActionArgument.UnitTargetArgument(target.Value)
+
+- new GenericActorActionArgument.UnitTargetArgument(allowed)
++ new GenericActorActionArgument.UnitTargetArgument(allowed.Value)
+```
+
+The existing null guards remain immediately before both conversions. No role,
+route, composition, target ordering, action priority, or handoff condition was
+changed.

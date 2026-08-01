@@ -20,6 +20,22 @@ from statistics import mean, median
 
 SCHEMA = "arc-relay-scorecard-v1"
 TICKS_PER_SECOND = 5
+BARS_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "balance/arc-relay-felt-degeneracy-bars-v1.json"
+)
+BARS = json.loads(BARS_PATH.read_text(encoding="utf-8"))
+PING_PONG_REVERSAL_BAR = BARS["handoffPingPong"][
+    "tripAtReversalsInOneSamePairEpisode"]
+PING_PONG_GAP_INTERVALS = BARS["handoffPingPong"][
+    "maximumGapCoreRelocationIntervals"]
+PASSIVITY_WINDOW_TICKS = BARS["sustainedPassivity"]["windowTicks"]
+PASSIVITY_MIN_QUIET_TICKS = BARS["sustainedPassivity"][
+    "tripAtQuietTicksInWindow"]
+PASSIVITY_WAIT_SHARE = BARS["sustainedPassivity"][
+    "quietTickMinimumWaitShare"]
+CONTEST_DISTANCE = BARS["sustainedPassivity"][
+    "liveCoreTheaterChebyshevDistance"]
 
 
 def read_json(path: Path) -> dict:
@@ -145,6 +161,197 @@ def fact(event: dict) -> tuple[str, dict]:
         value = event["payload"]["fact"]
         return value["kind"], value
     return event["kind"], event["payload"]
+
+
+def ping_pong_metrics(
+    handoff_events: dict[str, list[dict]],
+    team_ids: list[int],
+    maximum_gap_ticks: int,
+) -> dict:
+    episodes: list[dict] = []
+    reversals = collections.Counter()
+    max_reversals = collections.Counter()
+    for core_id, events in sorted(handoff_events.items()):
+        active: dict | None = None
+        previous: dict | None = None
+        for event in events:
+            reverse = (
+                previous is not None
+                and event["epoch"] == previous["epoch"]
+                and event["tick"] - previous["tick"] <= maximum_gap_ticks
+                and event["source"] == previous["target"]
+                and event["target"] == previous["source"]
+            )
+            pair = (
+                tuple(sorted((event["source"], event["target"])))
+                if reverse
+                else None
+            )
+            if reverse and active is not None and active["pair"] == pair:
+                active["endTick"] = event["tick"]
+                active["reversals"] += 1
+                active["handoffs"] += 1
+            elif reverse:
+                if active is not None:
+                    episodes.append(active)
+                active = {
+                    "coreId": core_id,
+                    "teamId": event["source"][0],
+                    "pair": pair,
+                    "startTick": previous["tick"],
+                    "endTick": event["tick"],
+                    "reversals": 1,
+                    "handoffs": 2,
+                }
+            elif active is not None:
+                episodes.append(active)
+                active = None
+            previous = event
+        if active is not None:
+            episodes.append(active)
+
+    serialized = []
+    for episode in episodes:
+        team = episode["teamId"]
+        reversals[team] += episode["reversals"]
+        max_reversals[team] = max(
+            max_reversals[team], episode["reversals"])
+        serialized.append({
+            **{key: value for key, value in episode.items() if key != "pair"},
+            "actorPair": [list(actor) for actor in episode["pair"]],
+            "barTripped": episode["reversals"] >= PING_PONG_REVERSAL_BAR,
+        })
+    return {
+        "definition": (
+            "consecutive A->B, B->A handoff reversals for one Core and life "
+            f"pair, each no more than {maximum_gap_ticks} ticks apart"
+        ),
+        "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": PING_PONG_REVERSAL_BAR,
+        },
+        "episodes": serialized,
+        "totalReversalsByTeam": team_counter(reversals, team_ids),
+        "maxEpisodeReversalsByTeam": team_counter(max_reversals, team_ids),
+        "barTrippedByTeam": {
+            str(team): max_reversals[team] >= PING_PONG_REVERSAL_BAR
+            for team in team_ids
+        },
+    }
+
+
+def sustained_passivity_windows(flags: list[bool]) -> tuple[int, list[dict]]:
+    counts = [
+        sum(flags[start:start + PASSIVITY_WINDOW_TICKS])
+        for start in range(max(0, len(flags) - PASSIVITY_WINDOW_TICKS + 1))
+    ]
+    maximum = max(counts, default=0)
+    tripped = [
+        index for index, count in enumerate(counts)
+        if count >= PASSIVITY_MIN_QUIET_TICKS
+    ]
+    windows: list[dict] = []
+    if not tripped:
+        return maximum, windows
+    start = prior = tripped[0]
+    for index in tripped[1:] + [None]:
+        if index is not None and index == prior + 1:
+            prior = index
+            continue
+        windows.append({
+            "firstWindowStartTick": start,
+            "lastWindowStartTick": prior,
+            "throughTick": prior + PASSIVITY_WINDOW_TICKS - 1,
+            "maxQuietTicksInWindow": max(counts[start:prior + 1]),
+        })
+        if index is not None:
+            start = prior = index
+    return maximum, windows
+
+
+def passivity_metrics(
+    broadcast: dict,
+    team_ids: list[int],
+    first_birth_tick: int,
+) -> dict:
+    quiet_flags: dict[int, list[bool]] = {team: [] for team in team_ids}
+    no_theater_ticks = collections.Counter()
+    high_wait_ticks = collections.Counter()
+    quiet_ticks = collections.Counter()
+
+    for tick, world in enumerate(broadcast["worlds"]):
+        lives = active_lives(world)
+        visible_cores = mode(world)["visibleCores"]
+        for team in team_ids:
+            own = [life for life in lives if life["team"] == team]
+            turns = [
+                turn for turn in broadcast["turns"][tick]
+                if turn[0][0] == team
+            ]
+            wait_count = sum(turn[4][0] == "wait" for turn in turns)
+            high_wait = (
+                bool(turns)
+                and wait_count / len(turns) >= PASSIVITY_WAIT_SHARE
+            )
+            owns_carrier = any(
+                actor_key(core.get("carrierActorId")) is not None
+                and actor_key(core.get("carrierActorId"))[0] == team
+                for core in visible_cores
+            )
+            near_live_core = any(
+                chebyshev(life["position"], position(core["position"]))
+                <= CONTEST_DISTANCE
+                for life in own
+                for core in visible_cores
+            )
+            has_objective_theater_presence = owns_carrier or near_live_core
+            if own and not has_objective_theater_presence:
+                no_theater_ticks[team] += 1
+            if high_wait:
+                high_wait_ticks[team] += 1
+            quiet = (
+                tick >= first_birth_tick
+                and bool(own)
+                and high_wait
+                and not has_objective_theater_presence
+            )
+            quiet_flags[team].append(quiet)
+            if quiet:
+                quiet_ticks[team] += 1
+
+    maximum: dict[int, int] = {}
+    windows: dict[int, list[dict]] = {team: [] for team in team_ids}
+    for team in team_ids:
+        maximum[team], windows[team] = sustained_passivity_windows(
+            quiet_flags[team])
+
+    return {
+        "definition": (
+            "from the first scheduled Core birth, a quiet tick has at least "
+            f"{PASSIVITY_WAIT_SHARE:.0%} of commanded bodies waiting while "
+            "the team carries no Core and has no body within Chebyshev "
+            f"{CONTEST_DISTANCE} of a live Core"
+        ),
+        "bar": {
+            "windowTicks": PASSIVITY_WINDOW_TICKS,
+            "operator": ">=",
+            "quietTicks": PASSIVITY_MIN_QUIET_TICKS,
+        },
+        "noTheaterPresenceTicksByTeam": team_counter(
+            no_theater_ticks, team_ids),
+        "highWaitTicksByTeam": team_counter(high_wait_ticks, team_ids),
+        "quietTicksByTeam": team_counter(quiet_ticks, team_ids),
+        "maxQuietTicksInWindowByTeam": {
+            str(team): maximum[team] for team in team_ids
+        },
+        "trippingWindowRunsByTeam": {
+            str(team): windows[team] for team in team_ids
+        },
+        "barTrippedByTeam": {
+            str(team): maximum[team] >= PASSIVITY_MIN_QUIET_TICKS
+            for team in team_ids
+        },
+    }
 
 
 def shortest_distance(
@@ -450,6 +657,8 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     core_histories: dict[str, dict] = {}
     last_owner_team: dict[str, int] = {}
     current_carrier: dict[str, tuple[int, int, int] | None] = {}
+    core_handoff_epoch = collections.Counter()
+    handoff_events: dict[str, list[dict]] = collections.defaultdict(list)
     pulse_sequence = []
     reactors = {
         item["teamId"]: position(item["position"])
@@ -467,6 +676,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             kind, value = fact(event)
             if kind == "core-born":
                 key = core_key(value["coreId"])
+                core_handoff_epoch[key] += 1
                 core_histories[key] = {
                     "coreId": value["coreId"],
                     "bornTick": tick,
@@ -478,6 +688,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
                 current_carrier[key] = None
             elif kind == "core-picked-up":
                 key = core_key(value["coreId"])
+                core_handoff_epoch[key] += 1
                 carrier = actor_key(value["carrierActorId"])
                 if carrier is None:
                     continue
@@ -501,14 +712,22 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
                 last_owner_team[key] = team
             elif kind == "core-handed-off":
                 key = core_key(value["coreId"])
+                source = actor_key(value["sourceActorId"])
                 target = actor_key(value["targetActorId"])
-                if target is not None:
+                if source is not None and target is not None:
+                    handoff_events[key].append({
+                        "tick": tick,
+                        "epoch": core_handoff_epoch[key],
+                        "source": source,
+                        "target": target,
+                    })
                     handoffs[target[0]] += 1
                     carrier_changes[target[0]] += 1
                     current_carrier[key] = target
                     last_owner_team[key] = target[0]
             elif kind == "core-dropped":
                 key = core_key(value["coreId"])
+                core_handoff_epoch[key] += 1
                 source_actor = actor_key(value["sourceActorId"])
                 if source_actor is not None:
                     drops[(source_actor[0], value["dropKind"])] += 1
@@ -543,6 +762,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
                     history["lastPosition"] = to_pos
             elif kind == "core-banked":
                 key = core_key(value["coreId"])
+                core_handoff_epoch[key] += 1
                 team = value["teamId"]
                 banks[team] += 1
                 banks_by_source[(team, value["coreId"]["sourceWellId"])] += 1
@@ -646,6 +866,24 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         for item in broadcast["worlds"][-1][2]
     }
     first_pulse_team = pulse_sequence[0]["teamId"] if pulse_sequence else None
+    ping_pong = ping_pong_metrics(
+        handoff_events,
+        team_ids,
+        maximum_gap_ticks=max(
+            1,
+            rules["coreRelocationIntervalTicks"] * PING_PONG_GAP_INTERVALS,
+        ),
+    )
+    first_birth_tick = min(
+        well["firstBirthTick"] for well in rules["wells"])
+    passivity = passivity_metrics(broadcast, team_ids, first_birth_tick)
+    eligibility_by_team = {
+        str(team): not (
+            ping_pong["barTrippedByTeam"][str(team)]
+            or passivity["barTrippedByTeam"][str(team)]
+        )
+        for team in team_ids
+    }
     return {
         "schema": SCHEMA,
         "source": {
@@ -712,6 +950,12 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "arcTossLandingsByTeam": team_counter(arc_tosses, team_ids),
             "forcedCarrierDisplacementsByCarrierTeam": team_counter(forced_displacements, team_ids),
         },
+        "feltDegeneracy": {
+            "handoffPingPong": ping_pong,
+            "sustainedPassivity": passivity,
+            "cohortEligibilityByTeam": eligibility_by_team,
+            "matchEligibleForCohortRead": all(eligibility_by_team.values()),
+        },
         "routes": {
             "relocationsByKind": counter_dict(relocation_kind),
             "relocationIntervalTicks": series_stats(relocation_intervals),
@@ -767,6 +1011,13 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "contestedPickup": "proxy only: enemy body within Chebyshev distance 2 immediately before pickup",
             "birthAccess": "proxy only: number of teams within Chebyshev distance 3 at the birth post-state",
             "signatureUsefulEffects": "counted effect facts/transitions; not a causal value judgment",
+            "feltDegeneracyEligibility": (
+                "the frozen registration in balance/arc-relay-felt-"
+                "degeneracy-bars-v1.json excludes a team when any Core has "
+                "three rapid same-pair handoff reversals in one episode, or "
+                "when a 75-tick post-birth window contains at least 60 quiet "
+                "ticks (75% waiting, no Core carry, no live-Core proximity)"
+            ),
         },
     }
 

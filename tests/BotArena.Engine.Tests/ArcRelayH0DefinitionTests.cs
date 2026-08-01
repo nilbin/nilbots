@@ -9,6 +9,99 @@ namespace BotArena.Engine.Tests;
 public sealed class ArcRelayH0DefinitionTests
 {
     [Fact]
+    public void LoopProfiles_AreRegisteredOneFactorArmsWithDistinctIdentity()
+    {
+        ActorResolvedMatchDefinition baseline = ArcRelayH0Definition.Create();
+        ActorResolvedMatchDefinition gates = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.HomeGatesWide);
+        ActorResolvedMatchDefinition gatesThree = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.HomeGatesThree);
+        ActorResolvedMatchDefinition concourse = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.HomeConcourse);
+        ActorResolvedMatchDefinition cover = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.CoverTrim);
+        ActorResolvedMatchDefinition return16 = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Return16);
+        ActorResolvedMatchDefinition return24 = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Return24);
+        ActorResolvedMatchDefinition hot = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Hot60);
+        ActorResolvedMatchDefinition spacious = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Spacious90);
+
+        string baselineRules = ActorContractFingerprint.ComputeRules(
+            baseline.Rules);
+        string baselineMap = ActorContractFingerprint.ComputeMap(baseline.Map);
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(gates.Rules));
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(gatesThree.Rules));
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(concourse.Rules));
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(cover.Rules));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(gates.Map));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(gatesThree.Map));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(concourse.Map));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(cover.Map));
+        Assert.Equal(537, OpenTileCount(gates));
+        Assert.Equal(549, OpenTileCount(gatesThree));
+        Assert.Equal(535, OpenTileCount(concourse));
+        Assert.Equal(543, OpenTileCount(cover));
+
+        Assert.Equal(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(return16.Map));
+        Assert.Equal(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(return24.Map));
+        Assert.All(
+            return16.Rules.Lifecycle.Profiles,
+            profile => Assert.Equal(16, profile.DelayTicks));
+        Assert.All(
+            return24.Rules.Lifecycle.Profiles,
+            profile => Assert.Equal(24, profile.DelayTicks));
+        Assert.Equal(
+            16,
+            Assert.IsType<ArcRelayGameModeDefinition>(
+                return16.Rules.GameMode).RespawnDelayTicks);
+        Assert.Equal(
+            24,
+            Assert.IsType<ArcRelayGameModeDefinition>(
+                return24.Rules.GameMode).RespawnDelayTicks);
+
+        Assert.Equal(
+            [(20, 60, 500), (40, 60, 520), (60, 60, 540)],
+            Schedule(hot));
+        Assert.Equal(
+            [(30, 90, 480), (60, 90, 510), (90, 90, 540)],
+            Schedule(spacious));
+        Assert.All(
+            new[] { return16, return24, hot, spacious },
+            definition =>
+            {
+                Assert.NotEqual(
+                    baselineRules,
+                    ActorContractFingerprint.ComputeRules(definition.Rules));
+                Assert.Equal(
+                    baselineMap,
+                    ActorContractFingerprint.ComputeMap(definition.Map));
+            });
+    }
+
+    [Fact]
     public void ApprovedContract_IsExactAndRoundTripsThroughThePublicSdk()
     {
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
@@ -61,6 +154,19 @@ public sealed class ArcRelayH0DefinitionTests
             GenericActorResolvedMatchContract.ArcRelayModeMapBinding>(
                 sdk.ModeMapBinding);
     }
+
+    private static int OpenTileCount(ActorResolvedMatchDefinition definition) =>
+        definition.Map.TileRows.Sum(row => row.Count(tile => tile == '.'));
+
+    private static (int First, int Cadence, int Final)[] Schedule(
+        ActorResolvedMatchDefinition definition) =>
+        Assert.IsType<ArcRelayGameModeDefinition>(definition.Rules.GameMode)
+            .Wells
+            .Select(well => (
+                well.FirstBirthTick,
+                well.CadenceTicks,
+                well.FinalBirthTick))
+            .ToArray();
 
     [Fact]
     public void Sheet_SelectsDirectlyFromUnlockedClasses_WithOnlyTwoCopyCap()

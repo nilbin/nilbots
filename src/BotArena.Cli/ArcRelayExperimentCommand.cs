@@ -26,9 +26,12 @@ public static class ArcRelayExperimentCommand
             "sheet1",
             "classes0",
             "classes1",
+            "loop-profile",
             "print-contract");
 
         bool printContract = OptionalFlag(options, "print-contract");
+        ArcRelayLoopProfile loopProfile = ArcRelayLoopProfile.Resolve(
+            options.GetValueOrDefault("loop-profile", "h0"));
         SheetSelection teamZero = Sheet(
             options,
             "sheet0",
@@ -41,7 +44,8 @@ public static class ArcRelayExperimentCommand
             DefaultTeamOne());
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             teamZero.Classes,
-            teamOne.Classes);
+            teamOne.Classes,
+            loopProfile: loopProfile);
         if (printContract)
         {
             Console.WriteLine(
@@ -77,8 +81,14 @@ public static class ArcRelayExperimentCommand
             quiet: false);
         GenericActorParticipantConfiguration[] participants =
         [
-            first.ToParticipant(participantId: 0, teamId: 0),
-            second.ToParticipant(participantId: 1, teamId: 1),
+            first.ToParticipant(
+                participantId: 0,
+                teamId: 0,
+                mindEvaluationData: teamZero.Data),
+            second.ToParticipant(
+                participantId: 1,
+                teamId: 1,
+                mindEvaluationData: teamOne.Data),
         ];
 
         (GenericActorMatchResult result, GenericActorReplayDocument replay) =
@@ -119,7 +129,8 @@ public static class ArcRelayExperimentCommand
                 new JsonSerializerOptions { WriteIndented = true }));
 
         Console.WriteLine(
-            $"Arc Relay H0: {first.Name} vs {second.Name}, seed {seed}");
+            $"Arc Relay {loopProfile.Id}: {first.Name} vs {second.Name}, "
+            + $"seed {seed}");
         Console.WriteLine(
             $"Result: {Verdict(result, first.Name, second.Name)} — "
             + $"{Reason(result)} at tick {result.EndTick ?? -1}");
@@ -232,10 +243,15 @@ public static class ArcRelayExperimentCommand
                     ?? throw new InvalidDataException(
                         $"{fullPath}: composition entries must be strings."))
                 .ToArray();
+            string sheetHash = Convert.ToHexStringLower(
+                SHA256.HashData(bytes));
             return new SheetSelection(
                 classes,
-                Convert.ToHexStringLower(SHA256.HashData(bytes)),
-                fullPath);
+                sheetHash,
+                fullPath,
+                HasExecutableEvaluationData(root)
+                    ? EncodeEvaluationSheet(root, sheetHash)
+                    : null);
         }
 
         string[] selected = hasClasses
@@ -245,8 +261,138 @@ public static class ArcRelayExperimentCommand
         return new SheetSelection(
             selected,
             Convert.ToHexStringLower(SHA256.HashData(identity)),
-            Path: null);
+            Path: null,
+            Data: null);
     }
+
+    private static bool HasExecutableEvaluationData(JsonElement root) =>
+        root.TryGetProperty("slots", out _)
+        && root.TryGetProperty("zones", out _)
+        && root.TryGetProperty("rallyLines", out _)
+        && root.TryGetProperty("policies", out _)
+        && root.TryGetProperty("gambits", out _);
+
+    private static byte[] EncodeEvaluationSheet(
+        JsonElement root,
+        string sourceSha256)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(
+            stream,
+            System.Text.Encoding.UTF8,
+            leaveOpen: true);
+        writer.Write(0x31535241); // ARS1, little-endian.
+        writer.Write(sourceSha256);
+        writer.Write(RequiredSheetString(root, "schema"));
+        writer.Write(RequiredSheetString(root, "sheetId"));
+        writer.Write(RequiredSheetString(root, "mapId"));
+
+        JsonElement[] composition = root.GetProperty("composition")
+            .EnumerateArray().ToArray();
+        writer.Write(composition.Length);
+        foreach (JsonElement value in composition)
+            writer.Write(value.GetString() ?? throw SheetError("composition"));
+
+        JsonElement[] slots = root.GetProperty("slots").EnumerateArray()
+            .OrderBy(value => value.GetProperty("unitId").GetInt32())
+            .ToArray();
+        writer.Write(slots.Length);
+        foreach (JsonElement slot in slots)
+        {
+            writer.Write(slot.GetProperty("unitId").GetInt32());
+            writer.Write(RequiredSheetString(slot, "theater"));
+            writer.Write(RequiredSheetString(slot, "role"));
+            writer.Write(slot.GetProperty("partnerUnitId").GetInt32());
+            WritePositions(writer, slot.GetProperty("outboundPath"));
+            WritePositions(writer, slot.GetProperty("returnPath"));
+        }
+
+        JsonProperty[] zones = root.GetProperty("zones").EnumerateObject()
+            .OrderBy(value => value.Name, StringComparer.Ordinal).ToArray();
+        writer.Write(zones.Length);
+        foreach (JsonProperty zone in zones)
+        {
+            writer.Write(zone.Name);
+            int[] values = zone.Value.EnumerateArray()
+                .Select(value => value.GetInt32()).ToArray();
+            if (values.Length != 4)
+                throw SheetError($"zones.{zone.Name}");
+            foreach (int value in values)
+                writer.Write(value);
+        }
+
+        JsonProperty[] rally = root.GetProperty("rallyLines").EnumerateObject()
+            .OrderBy(value => value.Name, StringComparer.Ordinal).ToArray();
+        writer.Write(rally.Length);
+        foreach (JsonProperty line in rally)
+        {
+            writer.Write(line.Name);
+            WritePositions(writer, line.Value);
+        }
+
+        JsonElement policies = root.GetProperty("policies");
+        JsonElement carrier = policies.GetProperty("carrier");
+        writer.Write(carrier.GetProperty("handoffHealthAtOrBelow").GetInt32());
+        writer.Write(carrier.GetProperty("preferAssignedTheater").GetBoolean());
+        writer.Write(carrier.GetProperty("routeFailureTicks").GetInt32());
+        JsonElement escort = policies.GetProperty("escort");
+        writer.Write(escort.GetProperty("followDistance").GetInt32());
+        writer.Write(escort.GetProperty("focusEnemyCarrier").GetBoolean());
+        JsonElement interception = policies.GetProperty("interception");
+        writer.Write(interception.GetProperty("focusEnemyCarrier").GetBoolean());
+        writer.Write(interception.GetProperty("looseCoreFallback").GetBoolean());
+
+        JsonElement[] gambits = root.GetProperty("gambits").EnumerateArray()
+            .OrderBy(value => value.GetProperty("priority").GetInt32())
+            .ToArray();
+        writer.Write(gambits.Length);
+        foreach (JsonElement gambit in gambits)
+        {
+            writer.Write(gambit.GetProperty("priority").GetInt32());
+            writer.Write(RequiredSheetString(gambit, "id"));
+            writer.Write(RequiredSheetString(gambit, "trigger"));
+            writer.Write(gambit.GetProperty("durationTicks").GetInt32());
+            writer.Write(gambit.GetProperty("cooldownTicks").GetInt32());
+            string[] scopeRoles = gambit.GetProperty("scopeRoles")
+                .EnumerateArray()
+                .Select(value => value.GetString()
+                    ?? throw new InvalidDataException(
+                        "Gambit scopeRoles values must be strings."))
+                .ToArray();
+            writer.Write(scopeRoles.Length);
+            foreach (string role in scopeRoles)
+                writer.Write(role);
+            writer.Write(RequiredSheetString(gambit, "roleOverride"));
+            writer.Write(RequiredSheetString(gambit, "rallyLine"));
+        }
+        writer.Flush();
+        if (stream.Length > 64 * 1024)
+            throw new InvalidDataException("Evaluation sheet data exceeds 64 KiB.");
+        return stream.ToArray();
+    }
+
+    private static void WritePositions(
+        BinaryWriter writer,
+        JsonElement values)
+    {
+        JsonElement[] positions = values.EnumerateArray().ToArray();
+        writer.Write(positions.Length);
+        foreach (JsonElement position in positions)
+        {
+            int[] coordinates = position.EnumerateArray()
+                .Select(value => value.GetInt32()).ToArray();
+            if (coordinates.Length != 2)
+                throw SheetError("position");
+            writer.Write(coordinates[0]);
+            writer.Write(coordinates[1]);
+        }
+    }
+
+    private static string RequiredSheetString(JsonElement value, string name) =>
+        value.GetProperty(name).GetString() ?? throw SheetError(name);
+
+    private static InvalidDataException SheetError(string field) =>
+        new($"Evaluation sheet field '{field}' is invalid.");
 
     private static string[] ParseClasses(string raw, string option)
     {
@@ -364,7 +510,8 @@ public static class ArcRelayExperimentCommand
     private sealed record SheetSelection(
         string[] Classes,
         string Hash,
-        string? Path);
+        string? Path,
+        byte[]? Data);
 }
 
 public sealed record ArcRelayRunReceipt(
