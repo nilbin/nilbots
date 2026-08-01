@@ -72,7 +72,9 @@ internal sealed class ArcRelaySignatureRuntime
         {
             ArcRelaySignatureDefinition.SurveyFlare value =>
                 candidates.Where(target =>
-                    source.ChebyshevDistance(target) <= value.Range),
+                    source.ChebyshevDistance(target) is > 0
+                        and var distance
+                    && distance <= value.Range),
             ArcRelaySignatureDefinition.FallingStar value =>
                 candidates.Where(target =>
                     source.ChebyshevDistance(target) <= value.Range
