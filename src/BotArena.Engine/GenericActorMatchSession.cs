@@ -1850,7 +1850,9 @@ public sealed class GenericActorMatchSession : IDisposable
             || owner.Position != effect.SourceStart
             || target.Position != effect.TargetStart
             || !mode.CanEnter(owner.ActorId, effect.TargetStart)
-            || !mode.CanEnter(target.ActorId, effect.SourceStart))
+            || !mode.CanEnter(target.ActorId, effect.SourceStart)
+            || IsForeignReservedReturnTile(owner, effect.TargetStart)
+            || IsForeignReservedReturnTile(target, effect.SourceStart))
         {
             return;
         }
@@ -2021,6 +2023,7 @@ public sealed class GenericActorMatchSession : IDisposable
         if (destination == target.Position
             || _definition.Map.IsWall(destination)
             || !mode.CanEnter(target.ActorId, destination)
+            || IsForeignReservedReturnTile(target, destination)
             || _lives.Values.Any(value =>
                 value.ActorId != target.ActorId
                 && value.Position == destination))
@@ -2069,6 +2072,7 @@ public sealed class GenericActorMatchSession : IDisposable
             if (_definition.Map.IsWall(next)
                 || _mode is ArcRelayActorMatchModeDriver arcRelay
                     && !arcRelay.CanEnter(actorId, next)
+                || IsForeignReservedReturnTile(_lives[actorId], next)
                 || _lives.Values.Any(value =>
                     value.ActorId != actorId && value.Position == next))
             {
@@ -5258,9 +5262,13 @@ public sealed class GenericActorMatchSession : IDisposable
         if (slot.ActiveLife is not null
             || _lives.Values.Any(life => life.Position == position))
         {
+            LifeState? tileOccupant = _lives.Values.SingleOrDefault(
+                life => life.Position == position);
             throw new InvalidOperationException(
                 $"Cannot create a life in occupied slot/tile " +
-                $"{slot.TeamId}:{slot.UnitId} at {position}.");
+                $"{slot.TeamId}:{slot.UnitId} at {position}; "
+                + $"slot occupant={slot.ActiveLife?.ActorId.ToString() ?? "none"}, "
+                + $"tile occupant={tileOccupant?.ActorId.ToString() ?? "none"}.");
         }
         if (!slot.Assignment.AllowedFormIds.Contains(
                 formId,

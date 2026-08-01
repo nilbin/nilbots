@@ -110,7 +110,9 @@ public static class BotArenaVersions
     // degenerate signature state.
     // 1.0.2: a life reduced to zero by a tick-start signature is excluded from
     // mode projection while its destruction chronology is finalized.
-    public const string GenericMindEngineVersion = "1.0.2";
+    // 1.0.3: signature relocation respects permanent automatic-return spawn
+    // reservations, as ordinary movement already did.
+    public const string GenericMindEngineVersion = "1.0.3";
 
     public const int GenericMindRuntimeContractVersion = 1;
     public const int GenericMindMatchStartSchemaVersion = 1;
