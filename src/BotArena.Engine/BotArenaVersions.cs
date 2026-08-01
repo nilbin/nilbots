@@ -112,7 +112,9 @@ public static class BotArenaVersions
     // mode projection while its destruction chronology is finalized.
     // 1.0.3: signature relocation respects permanent automatic-return spawn
     // reservations, as ordinary movement already did.
-    public const string GenericMindEngineVersion = "1.0.3";
+    // 1.0.4: tick-start chronology admits an exactly evidenced signature
+    // relocation followed by signature destruction of that same life.
+    public const string GenericMindEngineVersion = "1.0.4";
 
     public const int GenericMindRuntimeContractVersion = 1;
     public const int GenericMindMatchStartSchemaVersion = 1;

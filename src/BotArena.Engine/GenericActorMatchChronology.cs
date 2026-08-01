@@ -2082,14 +2082,8 @@ public sealed record GenericActorMatchChronology
                                 activationLife.FormId,
                                 activationFormId,
                                 StringComparison.Ordinal)
-                            || activationLife.Position
-                                != activationArrival
                             || activationLife.Facing
                                 != activationSpawn.Facing
-                            || !IsSpawnHealthInBand(
-                                definition,
-                                activationLife.Health,
-                                activationForm)
                             || activationLife.Cooldown != 0
                             || activationLife.Energy != activationEnergy
                             || activationLife.SpawnedAtTick
@@ -2135,6 +2129,10 @@ public sealed record GenericActorMatchChronology
                                 activationForm)
                             || activationSpawned.Position
                                 != activationArrival
+                            || !SpawnedLifeMatchesTickStartState(
+                                activationLife,
+                                activationSpawned,
+                                tickStart.Events)
                             || activationSpawned.SourceTransitionId
                                 is not null
                             || activationSpawned.SourceOperationId
@@ -2275,12 +2273,7 @@ public sealed record GenericActorMatchChronology
                             life.FormId,
                             pending.TargetFormId,
                             StringComparison.Ordinal)
-                        || life.Position != arrival
                         || life.Facing != spawn.Facing
-                        || !IsSpawnHealthInBand(
-                            definition,
-                            life.Health,
-                            form)
                         || life.Cooldown != 0
                         || life.Energy != expectedEnergy
                         || life.SpawnedAtTick != tickStart.Tick
@@ -2319,6 +2312,10 @@ public sealed record GenericActorMatchChronology
                             spawned.Health,
                             form)
                         || spawned.Position != arrival
+                        || !SpawnedLifeMatchesTickStartState(
+                            life,
+                            spawned,
+                            tickStart.Events)
                         || spawned.SourceTransitionId is not null
                         || spawned.SourceOperationId is not null)
                     {
@@ -5544,8 +5541,10 @@ public sealed record GenericActorMatchChronology
                     spawned.FormId,
                     life.FormId,
                     StringComparison.Ordinal)
-                || spawned.Health != life.Health
-                || spawned.Position != life.Position
+                || !SpawnedLifeMatchesTickStartState(
+                    life,
+                    spawned,
+                    events)
                 || spawned.Reason != start.Origin.Reason
                 || !string.Equals(
                     spawned.SourceTransitionId,
@@ -5561,6 +5560,38 @@ public sealed record GenericActorMatchChronology
                     parameterName);
             }
         }
+    }
+
+    private static bool SpawnedLifeMatchesTickStartState(
+        GenericActorWorldSnapshot.LifeSnapshot life,
+        GenericActorRuntimeObservation.EventPayload.LifeSpawned spawned,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        var atSpawn = new GenericActorWorldSnapshot.LifeSnapshot(
+            life.ActorId,
+            life.ParticipantId,
+            life.Generation,
+            life.FormId,
+            spawned.Position,
+            life.Facing,
+            spawned.Health,
+            life.Cooldown,
+            life.Energy,
+            life.SpawnedAtTick,
+            life.SpawnReason,
+            life.ParentActorId,
+            life.SourceTransitionId,
+            life.SourceOperationId,
+            life.PreviousActionResolution,
+            life.PendingSameLifeTransition);
+        GenericActorAuthoritativeEvent[] arcEvents = events
+            .Where(item => ArcSignatureTarget(item) == life.ActorId)
+            .OrderBy(item => item.GlobalOrdinal)
+            .ToArray();
+        return ArcSignatureFactsExplainLifeChange(
+            atSpawn,
+            life,
+            arcEvents);
     }
 
     private static void ValidateLifeRemovalEvidence(
@@ -5611,7 +5642,11 @@ public sealed record GenericActorMatchChronology
                         life.FormId,
                         StringComparison.Ordinal)
                     && (!requireUnchangedPosition
-                        || destruction.Position == life.Position),
+                        || ArcSignatureFactsExplainRemoval(
+                            life,
+                            destruction.Position,
+                            destroyed: true,
+                            events)),
                 GenericActorRuntimeObservation.EventPayload.LifeRetired
                     retired =>
                     retired.Generation == life.Generation
@@ -5620,13 +5655,23 @@ public sealed record GenericActorMatchChronology
                         life.FormId,
                         StringComparison.Ordinal)
                     && (!requireUnchangedPosition
-                        || retired.Position == life.Position),
+                        || ArcSignatureFactsExplainRemoval(
+                            life,
+                            retired.Position,
+                            destroyed: false,
+                            events)),
                 _ => false,
             };
             if (!exact)
             {
                 throw new ArgumentException(
-                    "Life removal evidence must identify the removed life's exact generation and form, plus its unchanged position at a tick-start boundary.",
+                    "Life removal evidence for " + actorId
+                    + " must identify generation " + life.Generation
+                    + ", form '" + life.FormId + "', and"
+                    + (requireUnchangedPosition
+                        ? " unchanged position " + life.Position
+                        : " the removed life")
+                    + "; received " + item.Payload + ".",
                     parameterName);
             }
         }
@@ -6235,6 +6280,67 @@ public sealed record GenericActorMatchChronology
             before.PreviousActionResolution,
             before.PendingSameLifeTransition);
         return LifeSnapshotsSemanticallyEqual(expected, after);
+    }
+
+    private static bool ArcSignatureFactsExplainRemoval(
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        Position removalPosition,
+        bool destroyed,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        GenericActorAuthoritativeEvent[] arcEvents = events
+            .Where(item => ArcSignatureTarget(item) == before.ActorId)
+            .OrderBy(item => item.GlobalOrdinal)
+            .ToArray();
+        if (!destroyed)
+        {
+            return arcEvents.Length == 0
+                && removalPosition == before.Position;
+        }
+
+        Position position = before.Position;
+        int health = before.Health;
+        foreach (GenericActorAuthoritativeEvent item in arcEvents)
+        {
+            if (item.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.ArcRelay arc)
+            {
+                return false;
+            }
+            switch (arc.Fact)
+            {
+                case ArcRelayEvent.BodyRelocated relocation:
+                    if (relocation.From != position
+                        || relocation.To == relocation.From)
+                    {
+                        return false;
+                    }
+                    position = relocation.To;
+                    break;
+                case ArcRelayEvent.SignatureDamage damage:
+                    if (damage.Position != position
+                        || damage.Amount <= 0
+                        || damage.NewHealth
+                            != Math.Max(0, health - damage.Amount))
+                    {
+                        return false;
+                    }
+                    health = damage.NewHealth;
+                    break;
+                case ArcRelayEvent.SignatureRepair repair:
+                    if (repair.Position != position
+                        || repair.Amount <= 0
+                        || repair.NewHealth != health + repair.Amount)
+                    {
+                        return false;
+                    }
+                    health = repair.NewHealth;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return health == 0 && removalPosition == position;
     }
 
     private static bool SameLifeTransitionExplainsChange(
