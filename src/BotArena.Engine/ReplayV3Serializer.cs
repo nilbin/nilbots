@@ -3661,6 +3661,15 @@ internal static class ReplayV3Serializer
             int relocationTicks = RequiredInt32(
                 gameMode,
                 "coreRelocationIntervalTicks");
+            JsonElement tripNode = RequiredArray(gameMode, "signatures")
+                .EnumerateArray()
+                .Single(value => string.Equals(
+                    RequiredString(value, "kind"),
+                    "trip-node",
+                    StringComparison.Ordinal));
+            int tripNodeRevealRange = RequiredInt32(
+                tripNode,
+                "revealRange");
             JsonElement wells = RequiredArray(gameMode, "wells");
             JsonElement wellRegions = RequiredArray(
                 modeMapBinding,
@@ -3668,6 +3677,7 @@ internal static class ReplayV3Serializer
             if (pulsesToDestroy <= 0
                 || coresPerPulse <= 0
                 || relocationTicks <= 0
+                || tripNodeRevealRange < 0
                 || wells.GetArrayLength() == 0
                 || wells.GetArrayLength() != wellRegions.GetArrayLength())
             {
@@ -3693,6 +3703,7 @@ internal static class ReplayV3Serializer
                     pulsesToDestroy,
                     coresPerPulse,
                     relocationTicks,
+                    tripNodeRevealRange,
                     wells.EnumerateArray()
                         .Select(value => RequiredString(value, "wellId"))
                         .ToImmutableArray()));
@@ -4958,7 +4969,11 @@ internal static class ReplayV3Serializer
                 observation.Mode,
                 state.Mode,
                 observation.TeamId,
-                observation.VisibleTiles.Select(value => value.Position)))
+                observation.VisibleTiles.Select(value => value.Position),
+                state.ActiveLives
+                    .Where(value => value.ActorId.TeamId == observation.TeamId)
+                    .Select(value => value.Position),
+                contract))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
@@ -5953,7 +5968,12 @@ internal static class ReplayV3Serializer
                 observation.Mode,
                 state.Mode,
                 observation.Self.ActorId.TeamId,
-                observation.VisibleTiles.Select(value => value.Position)))
+                observation.VisibleTiles.Select(value => value.Position),
+                state.ActiveLives
+                    .Where(value => value.ActorId.TeamId
+                        == observation.Self.ActorId.TeamId)
+                    .Select(value => value.Position),
+                contract))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
@@ -6030,7 +6050,9 @@ internal static class ReplayV3Serializer
         ReplayV3.ModeState observed,
         ReplayV3.ModeState authoritative,
         int observingTeamId,
-        IEnumerable<ReplayV3.PositionValue> visiblePositions)
+        IEnumerable<ReplayV3.PositionValue> visiblePositions,
+        IEnumerable<ReplayV3.PositionValue> ownBodyPositions,
+        CanonicalContractIndex contract)
     {
         if (observed is not ReplayV3.ModeState.ArcRelay arcObserved
             || authoritative is not ReplayV3.ModeState.ArcRelay arcAuthoritative)
@@ -6039,6 +6061,9 @@ internal static class ReplayV3Serializer
         }
 
         HashSet<ReplayV3.PositionValue> visible = visiblePositions.ToHashSet();
+        ReplayV3.PositionValue[] ownBodies = ownBodyPositions.ToArray();
+        int tripNodeRevealRange = contract.Mode.ArcRelay!
+            .TripNodeRevealRange;
         ImmutableArray<ReplayV3.ArcCore> expectedCores = arcAuthoritative
             .VisibleCores.Where(core =>
                 core.CarrierActorId?.TeamId == observingTeamId
@@ -6051,6 +6076,15 @@ internal static class ReplayV3Serializer
                         signature.Phase,
                         "tell",
                         StringComparison.Ordinal)
+                    || string.Equals(
+                        signature.SignatureKind,
+                        "trip-node",
+                        StringComparison.Ordinal)
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body => Math.Max(
+                                Math.Abs(body.X - position.X),
+                                Math.Abs(body.Y - position.Y))
+                                    <= tripNodeRevealRange))
                     || signature.Positions.Any(visible.Contains))
                 .ToImmutableArray();
         return string.Equals(
@@ -8064,6 +8098,7 @@ internal static class ReplayV3Serializer
         int PulsesToDestroyReactor,
         int CoresPerPulse,
         int CoreRelocationIntervalTicks,
+        int TripNodeRevealRange,
         ImmutableArray<string> WellIds);
 
     private static void ValidatePresentation(

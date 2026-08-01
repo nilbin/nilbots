@@ -1,0 +1,28 @@
+{
+  "schema": "arc-relay-felt-degeneracy-bars-v2",
+  "status": "frozen-after-gate-3-2-gallery-revealed-v1-miss",
+  "authority": "owner delegated balance steer, 2026-08-01",
+  "purpose": "Cohort eligibility, not an outcome or fun score",
+  "supersedes": "balance/arc-relay-felt-degeneracy-bars-v1.json",
+  "handoffPingPong": {
+    "maximumGapCoreRelocationIntervals": 2,
+    "tripAtReversalsInOneSamePairEpisode": 3
+  },
+  "sustainedPassivity": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtQuietTicksInWindow": 60,
+    "quietTickMinimumWaitShare": 0.75,
+    "liveCoreTheaterChebyshevDistance": 4
+  },
+  "formationFreeze": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtHighWaitTicksInWindow": 60,
+    "highWaitMinimumShare": 0.75
+  },
+  "stuckCarrier": {
+    "tripAtConsecutiveSameCarrierPositionTicks": 30
+  },
+  "eligibility": "A doctrine or sheet side that trips ping-pong, off-theater passivity, formation freeze, or stuck-carrier bars is excluded from cohort reads and galleries until fixed; exclusions are disclosed."
+}

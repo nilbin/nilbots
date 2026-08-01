@@ -45,6 +45,12 @@ def main() -> int:
                     "maxEpisodeReversalsByTeam"][team],
                 "quietTicksInWindow": eligibility["sustainedPassivity"][
                     "maxQuietTicksInWindowByTeam"][team],
+                "highWaitTicksInWindow": eligibility.get(
+                    "formationFreeze", {}
+                ).get("maxHighWaitTicksInWindowByTeam", {}).get(team, 0),
+                "stationaryCarrierTicks": eligibility.get(
+                    "stuckCarrier", {}
+                ).get("maxConsecutiveTicksByTeam", {}).get(team, 0),
             })
         rows.append({"cell": cell, "scorecard": card, "result": result})
 

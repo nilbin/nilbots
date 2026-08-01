@@ -22,7 +22,7 @@ SCHEMA = "arc-relay-scorecard-v1"
 TICKS_PER_SECOND = 5
 BARS_PATH = (
     Path(__file__).resolve().parent.parent
-    / "balance/arc-relay-felt-degeneracy-bars-v1.json"
+    / "balance/arc-relay-felt-degeneracy-bars-v2.json"
 )
 BARS = json.loads(BARS_PATH.read_text(encoding="utf-8"))
 PING_PONG_REVERSAL_BAR = BARS["handoffPingPong"][
@@ -36,6 +36,12 @@ PASSIVITY_WAIT_SHARE = BARS["sustainedPassivity"][
     "quietTickMinimumWaitShare"]
 CONTEST_DISTANCE = BARS["sustainedPassivity"][
     "liveCoreTheaterChebyshevDistance"]
+FREEZE_WINDOW_TICKS = BARS["formationFreeze"]["windowTicks"]
+FREEZE_MIN_HIGH_WAIT_TICKS = BARS["formationFreeze"][
+    "tripAtHighWaitTicksInWindow"]
+FREEZE_WAIT_SHARE = BARS["formationFreeze"]["highWaitMinimumShare"]
+STUCK_CARRIER_TICKS = BARS["stuckCarrier"][
+    "tripAtConsecutiveSameCarrierPositionTicks"]
 
 
 def read_json(path: Path) -> dict:
@@ -240,15 +246,19 @@ def ping_pong_metrics(
     }
 
 
-def sustained_passivity_windows(flags: list[bool]) -> tuple[int, list[dict]]:
+def threshold_windows(
+    flags: list[bool],
+    window_ticks: int,
+    minimum_true_ticks: int,
+) -> tuple[int, list[dict]]:
     counts = [
-        sum(flags[start:start + PASSIVITY_WINDOW_TICKS])
-        for start in range(max(0, len(flags) - PASSIVITY_WINDOW_TICKS + 1))
+        sum(flags[start:start + window_ticks])
+        for start in range(max(0, len(flags) - window_ticks + 1))
     ]
     maximum = max(counts, default=0)
     tripped = [
         index for index, count in enumerate(counts)
-        if count >= PASSIVITY_MIN_QUIET_TICKS
+        if count >= minimum_true_ticks
     ]
     windows: list[dict] = []
     if not tripped:
@@ -261,20 +271,29 @@ def sustained_passivity_windows(flags: list[bool]) -> tuple[int, list[dict]]:
         windows.append({
             "firstWindowStartTick": start,
             "lastWindowStartTick": prior,
-            "throughTick": prior + PASSIVITY_WINDOW_TICKS - 1,
-            "maxQuietTicksInWindow": max(counts[start:prior + 1]),
+            "throughTick": prior + window_ticks - 1,
+            "maxMatchingTicksInWindow": max(counts[start:prior + 1]),
         })
         if index is not None:
             start = prior = index
     return maximum, windows
 
 
+def sustained_passivity_windows(flags: list[bool]) -> tuple[int, list[dict]]:
+    return threshold_windows(
+        flags,
+        PASSIVITY_WINDOW_TICKS,
+        PASSIVITY_MIN_QUIET_TICKS,
+    )
+
+
 def passivity_metrics(
     broadcast: dict,
     team_ids: list[int],
     first_birth_tick: int,
-) -> dict:
+) -> tuple[dict, dict]:
     quiet_flags: dict[int, list[bool]] = {team: [] for team in team_ids}
+    high_wait_flags: dict[int, list[bool]] = {team: [] for team in team_ids}
     no_theater_ticks = collections.Counter()
     high_wait_ticks = collections.Counter()
     quiet_ticks = collections.Counter()
@@ -316,6 +335,8 @@ def passivity_metrics(
                 and not has_objective_theater_presence
             )
             quiet_flags[team].append(quiet)
+            high_wait_flags[team].append(
+                tick >= first_birth_tick and bool(own) and high_wait)
             if quiet:
                 quiet_ticks[team] += 1
 
@@ -325,7 +346,16 @@ def passivity_metrics(
         maximum[team], windows[team] = sustained_passivity_windows(
             quiet_flags[team])
 
-    return {
+    freeze_maximum: dict[int, int] = {}
+    freeze_windows: dict[int, list[dict]] = {team: [] for team in team_ids}
+    for team in team_ids:
+        freeze_maximum[team], freeze_windows[team] = threshold_windows(
+            high_wait_flags[team],
+            FREEZE_WINDOW_TICKS,
+            FREEZE_MIN_HIGH_WAIT_TICKS,
+        )
+
+    passivity = {
         "definition": (
             "from the first scheduled Core birth, a quiet tick has at least "
             f"{PASSIVITY_WAIT_SHARE:.0%} of commanded bodies waiting while "
@@ -349,6 +379,102 @@ def passivity_metrics(
         },
         "barTrippedByTeam": {
             str(team): maximum[team] >= PASSIVITY_MIN_QUIET_TICKS
+            for team in team_ids
+        },
+    }
+    formation_freeze = {
+        "definition": (
+            "from the first scheduled Core birth, a high-wait tick has at "
+            f"least {FREEZE_WAIT_SHARE:.0%} of commanded bodies waiting; "
+            "Core proximity and possession do not excuse a frozen formation"
+        ),
+        "bar": {
+            "windowTicks": FREEZE_WINDOW_TICKS,
+            "operator": ">=",
+            "highWaitTicks": FREEZE_MIN_HIGH_WAIT_TICKS,
+        },
+        "maxHighWaitTicksInWindowByTeam": {
+            str(team): freeze_maximum[team] for team in team_ids
+        },
+        "trippingWindowRunsByTeam": {
+            str(team): freeze_windows[team] for team in team_ids
+        },
+        "barTrippedByTeam": {
+            str(team): freeze_maximum[team] >= FREEZE_MIN_HIGH_WAIT_TICKS
+            for team in team_ids
+        },
+    }
+    return passivity, formation_freeze
+
+
+def stuck_carrier_metrics(broadcast: dict, team_ids: list[int]) -> dict:
+    active: dict[str, dict] = {}
+    completed: list[dict] = []
+    maximum = collections.Counter()
+
+    def finish(key: str, through_tick: int) -> None:
+        state = active.pop(key, None)
+        if state is None:
+            return
+        maximum[state["teamId"]] = max(maximum[state["teamId"]], state["ticks"])
+        if state["ticks"] >= STUCK_CARRIER_TICKS:
+            completed.append({
+                "coreId": key,
+                "teamId": state["teamId"],
+                "carrierActorId": list(state["carrier"]),
+                "position": list(state["position"]),
+                "fromTick": state["fromTick"],
+                "throughTick": through_tick,
+                "ticks": state["ticks"],
+            })
+
+    for tick, world in enumerate(broadcast["worlds"]):
+        present: set[str] = set()
+        for core in mode(world)["visibleCores"]:
+            carrier = actor_key(core.get("carrierActorId"))
+            if core["disposition"] != "carried" or carrier is None:
+                continue
+            key = core_key(core["coreId"])
+            present.add(key)
+            current = {
+                "teamId": carrier[0],
+                "carrier": carrier,
+                "position": position(core["position"]),
+            }
+            prior = active.get(key)
+            if (prior is not None
+                    and prior["teamId"] == current["teamId"]
+                    and prior["carrier"] == current["carrier"]
+                    and prior["position"] == current["position"]):
+                prior["ticks"] += 1
+                continue
+            finish(key, tick - 1)
+            active[key] = {
+                **current,
+                "fromTick": tick,
+                "ticks": 1,
+            }
+        for key in list(active):
+            if key not in present:
+                finish(key, tick - 1)
+
+    final_tick = len(broadcast["worlds"]) - 1
+    for key in list(active):
+        finish(key, final_tick)
+
+    return {
+        "definition": (
+            "one Core remains carried by the same life on the same tile for "
+            "consecutive spectator worlds"
+        ),
+        "bar": {
+            "operator": ">=",
+            "consecutiveTicks": STUCK_CARRIER_TICKS,
+        },
+        "maxConsecutiveTicksByTeam": team_counter(maximum, team_ids),
+        "trippingRuns": completed,
+        "barTrippedByTeam": {
+            str(team): maximum[team] >= STUCK_CARRIER_TICKS
             for team in team_ids
         },
     }
@@ -876,11 +1002,15 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     )
     first_birth_tick = min(
         well["firstBirthTick"] for well in rules["wells"])
-    passivity = passivity_metrics(broadcast, team_ids, first_birth_tick)
+    passivity, formation_freeze = passivity_metrics(
+        broadcast, team_ids, first_birth_tick)
+    stuck_carrier = stuck_carrier_metrics(broadcast, team_ids)
     eligibility_by_team = {
         str(team): not (
             ping_pong["barTrippedByTeam"][str(team)]
             or passivity["barTrippedByTeam"][str(team)]
+            or formation_freeze["barTrippedByTeam"][str(team)]
+            or stuck_carrier["barTrippedByTeam"][str(team)]
         )
         for team in team_ids
     }
@@ -953,6 +1083,8 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         "feltDegeneracy": {
             "handoffPingPong": ping_pong,
             "sustainedPassivity": passivity,
+            "formationFreeze": formation_freeze,
+            "stuckCarrier": stuck_carrier,
             "cohortEligibilityByTeam": eligibility_by_team,
             "matchEligibleForCohortRead": all(eligibility_by_team.values()),
         },
@@ -1013,10 +1145,10 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "signatureUsefulEffects": "counted effect facts/transitions; not a causal value judgment",
             "feltDegeneracyEligibility": (
                 "the frozen registration in balance/arc-relay-felt-"
-                "degeneracy-bars-v1.json excludes a team when any Core has "
-                "three rapid same-pair handoff reversals in one episode, or "
-                "when a 75-tick post-birth window contains at least 60 quiet "
-                "ticks (75% waiting, no Core carry, no live-Core proximity)"
+                "degeneracy-bars-v2.json excludes a team for three rapid "
+                "same-pair handoff reversals, 60-of-75 off-theater quiet "
+                "ticks, 60-of-75 high-wait formation ticks, or a carried "
+                "Core held by one life on one tile for 30 ticks"
             ),
         },
     }

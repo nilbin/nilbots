@@ -268,7 +268,11 @@ public sealed record GenericActorMatchChronology
                         nameof(ticks));
                 }
                 turn.ValidateAgainst(descriptor);
-                ValidateMindObservationAgainstState(frame, turn, tags);
+                ValidateMindObservationAgainstState(
+                    descriptor.Definition,
+                    frame,
+                    turn,
+                    tags);
             }
 
             // The tags this tick's accepted commands set are what the NEXT
@@ -299,6 +303,7 @@ public sealed record GenericActorMatchChronology
     /// is one the owning mind actually set.
     /// </summary>
     private static void ValidateMindObservationAgainstState(
+        ActorResolvedMatchDefinition definition,
         GenericActorMatchTickFrame frame,
         GenericActorMatchMindTurn turn,
         IReadOnlyDictionary<ActorIdentity, string> tags)
@@ -361,7 +366,9 @@ public sealed record GenericActorMatchChronology
                 turn.Observation.Mode,
                 state.Mode,
                 turn.TeamId,
-                turn.Observation.VisibleTiles.Select(value => value.Position)))
+                turn.Observation.VisibleTiles.Select(value => value.Position),
+                definition,
+                state))
         {
             throw new ArgumentException(
                 "A mind observation's mode must exactly match the authoritative pre-state.",
@@ -383,7 +390,9 @@ public sealed record GenericActorMatchChronology
         GenericActorRuntimeObservation.ModeObservationState observed,
         GenericActorRuntimeObservation.ModeObservationState authoritative,
         int observingTeamId,
-        IEnumerable<Position> visiblePositions)
+        IEnumerable<Position> visiblePositions,
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot state)
     {
         if (observed is not GenericActorRuntimeObservation
                 .ModeObservationState.ArcRelay arcObserved
@@ -394,6 +403,14 @@ public sealed record GenericActorMatchChronology
         }
 
         HashSet<Position> visible = visiblePositions.ToHashSet();
+        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
+                definition.Rules.GameMode).Signatures
+            .OfType<ArcRelaySignatureDefinition.TripNode>()
+            .Single().RevealRange;
+        Position[] ownBodies = state.ActiveLives
+            .Where(value => value.ActorId.TeamId == observingTeamId)
+            .Select(value => value.Position)
+            .ToArray();
         ImmutableArray<ArcRelayCoreState> expectedCores = arcAuthoritative
             .VisibleCores.Where(core =>
                 core.CarrierActorId?.TeamId == observingTeamId
@@ -404,6 +421,12 @@ public sealed record GenericActorMatchChronology
                     signature.OwnerTeamId == observingTeamId
                     || signature.Phase
                         == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body =>
+                                body.ChebyshevDistance(position)
+                                    <= tripNodeRevealRange))
                     || signature.Positions.Any(visible.Contains))
                 .ToImmutableArray();
         return string.Equals(

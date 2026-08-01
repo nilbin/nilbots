@@ -59,6 +59,60 @@ class FeltDegeneracyTests(unittest.TestCase):
         self.assertEqual(59, maximum)
         self.assertEqual([], windows)
 
+    def test_sixty_high_wait_ticks_trip_formation_freeze_bar(self) -> None:
+        maximum, windows = SCORE.threshold_windows(
+            [True] * 60 + [False] * 15,
+            SCORE.FREEZE_WINDOW_TICKS,
+            SCORE.FREEZE_MIN_HIGH_WAIT_TICKS,
+        )
+        self.assertEqual(60, maximum)
+        self.assertEqual(1, len(windows))
+
+    def test_thirty_tick_stationary_carrier_trips_bar(self) -> None:
+        def world(x: int) -> list:
+            value = [None] * 8
+            value[7] = {
+                "kind": "arc-relay",
+                "visibleCores": [{
+                    "coreId": {
+                        "sourceWellId": "centre",
+                        "sourceOrdinal": 1,
+                    },
+                    "disposition": "carried",
+                    "carrierActorId": [0, 3, 1],
+                    "position": [x, 11],
+                }],
+            }
+            return value
+
+        output = SCORE.stuck_carrier_metrics(
+            {"worlds": [world(9)] * 30}, [0, 1])
+        self.assertTrue(output["barTrippedByTeam"]["0"])
+        self.assertEqual(30, output["maxConsecutiveTicksByTeam"]["0"])
+        self.assertFalse(output["barTrippedByTeam"]["1"])
+
+    def test_carrier_progress_resets_stationary_run(self) -> None:
+        def world(x: int) -> list:
+            value = [None] * 8
+            value[7] = {
+                "kind": "arc-relay",
+                "visibleCores": [{
+                    "coreId": {
+                        "sourceWellId": "centre",
+                        "sourceOrdinal": 1,
+                    },
+                    "disposition": "carried",
+                    "carrierActorId": [0, 3, 1],
+                    "position": [x, 11],
+                }],
+            }
+            return value
+
+        output = SCORE.stuck_carrier_metrics(
+            {"worlds": [world(9)] * 29 + [world(8)] * 29}, [0])
+        self.assertFalse(output["barTrippedByTeam"]["0"])
+        self.assertEqual(29, output["maxConsecutiveTicksByTeam"]["0"])
+
 
 if __name__ == "__main__":
     unittest.main()

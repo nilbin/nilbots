@@ -385,6 +385,126 @@ public sealed class ArcRelayH0DefinitionTests
     }
 
     [Fact]
+    public void TripNodeProximityReveal_RoundTripsOutsideFacingVision()
+    {
+        string[] teamZero =
+        [
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Minesmith,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Hush,
+        ];
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            teamZero,
+            teamOneClasses: null);
+        ActorActionDefinition wait = definition.Rules.Actions.Single(value =>
+            value.Kind == ActorActionKind.Wait);
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(
+                definition,
+                (start, observation) => new GenericMindRuntimeDecisions(
+                [
+                    .. observation.Bodies.Select(body =>
+                    {
+                        GenericActorRuntimeActionLegality action;
+                        ImmutableArray<GenericActorRuntimeActionArgument>
+                            arguments;
+                        if (start.TeamId == 0 && body.ActorId.UnitId == 2
+                            && observation.Tick <= 8)
+                        {
+                            action = body.ActionLegalities.Single(value =>
+                                value.ActionId == ArcRelayH0Definition.MoveActionId);
+                            arguments =
+                            [
+                                new GenericActorRuntimeActionArgument
+                                    .ProjectileHeadingArgument(
+                                        ProjectileHeading.East),
+                            ];
+                        }
+                        else if (start.TeamId == 0 && body.ActorId.UnitId == 2
+                                 && observation.Tick == 9)
+                        {
+                            action = body.ActionLegalities.Single(value =>
+                                value.ActionId == "trip-node");
+                            arguments =
+                            [
+                                new GenericActorRuntimeActionArgument
+                                    .PositionTargetArgument(
+                                        new Position(13, 10)),
+                            ];
+                        }
+                        else if (start.TeamId == 0 && body.ActorId.UnitId == 2
+                                 && observation.Tick == 10)
+                        {
+                            action = body.ActionLegalities.Single(value =>
+                                value.ActionId == ArcRelayH0Definition.MoveActionId);
+                            arguments =
+                            [
+                                new GenericActorRuntimeActionArgument
+                                    .ProjectileHeadingArgument(
+                                        ProjectileHeading.North),
+                            ];
+                        }
+                        else if (start.TeamId == 1 && body.ActorId.UnitId == 2
+                                 && observation.Tick <= 15)
+                        {
+                            action = body.ActionLegalities.Single(value =>
+                                value.ActionId == ArcRelayH0Definition.MoveActionId);
+                            arguments =
+                            [
+                                new GenericActorRuntimeActionArgument
+                                    .ProjectileHeadingArgument(
+                                        ProjectileHeading.West),
+                            ];
+                        }
+                        else
+                        {
+                            action = body.ActionLegalities.Single(value =>
+                                value.ActionId == wait.Id);
+                            arguments = [];
+                        }
+                        return new GenericMindCommand(
+                            body.ActorId.UnitId,
+                            body.ActorId.LifeId,
+                            action.ActionId,
+                            action.ActionCode,
+                            arguments);
+                    }),
+                ]));
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 20_260_803UL);
+        for (int tick = 0; tick < 18; tick++)
+            session.Step();
+
+        GenericMindRuntimeObservation observed = factories[1].Observations
+            .Single(value => value.Tick == 16);
+        var arc = Assert.IsType<
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                observed.Mode);
+        ArcRelaySignatureState node = Assert.Single(
+            arc.VisibleSignatures,
+            value => value.Kind
+                == ArcRelaySignatureDefinition.SignatureKind.TripNode);
+        Position nodePosition = Assert.Single(node.Positions);
+        Assert.Equal(new Position(13, 10), nodePosition);
+        Assert.DoesNotContain(
+            observed.VisibleTiles,
+            value => value.Position == nodePosition);
+
+        ReplayV3 projected = ReplayV3Projection.Project(session.Chronology);
+        string replayJson = ReplayV3Serializer.ToJson(projected);
+        Assert.Contains("\"trip-node\"", replayJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ArcTossMask_DoesNotOfferTargetsThatClipBackToTheCarrier()
     {
         string[] composition =
