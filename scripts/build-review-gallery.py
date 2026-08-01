@@ -367,7 +367,15 @@ def build(args: argparse.Namespace) -> None:
     for entry in entries:
         sid = entry["id"]
         if hosted:
-            shutil.copyfile(entry["source"], replays / f"{sid}.json")
+            source = Path(entry["source"])
+            # Compact Phase-D broadcasts are gzip-only durable artifacts.
+            # Keep them that way: serve-gallery maps a request for sample.json
+            # to its sample.json.gz sibling with Content-Encoding: gzip, so
+            # neither the gallery nor the browser needs an inflated copy.
+            target = (replays / f"{sid}.json.gz"
+                      if source.suffix == ".gz"
+                      else replays / f"{sid}.json")
+            shutil.copyfile(source, target)
             page = hosted_page(template, f"replays/{sid}.json")
         else:
             page = inlined_page(

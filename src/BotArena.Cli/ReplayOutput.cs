@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using BotArena.Engine;
 
 namespace BotArena.Cli;
@@ -41,6 +42,61 @@ public static class ReplayOutput
             ? WriteViewer(json, outDir, themeId)
             : null;
         return new WrittenReplay(replayPath, viewerPath);
+    }
+
+    /// <summary>
+    /// Writes one canonical replay as <c>replay.json.gz</c> without ever
+    /// materialising an uncompressed durable sibling. Evaluation campaigns use
+    /// this path: the canonical document remains available for audit and hash
+    /// verification, while galleries receive a separately derived broadcast
+    /// slice.
+    /// </summary>
+    public static WrittenReplay WriteGzipJson(
+        string json,
+        string outDir)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        Directory.CreateDirectory(outDir);
+        string replayPath = Path.GetFullPath(
+            Path.Combine(outDir, "replay.json.gz"));
+        string temp = replayPath + ".tmp";
+        try
+        {
+            using (FileStream output = File.Create(temp))
+            using (var compressed = new GZipStream(
+                       output,
+                       CompressionLevel.SmallestSize))
+            using (var writer = new StreamWriter(
+                       compressed,
+                       new UTF8Encoding(
+                           encoderShouldEmitUTF8Identifier: false,
+                           throwOnInvalidBytes: true)))
+            {
+                writer.Write(json);
+            }
+
+            string roundTrip = ReplayInput.ReadAllText(temp);
+            if (!string.Equals(json, roundTrip, StringComparison.Ordinal))
+            {
+                throw new IOException(
+                    "Compressed replay write verification failed: the "
+                    + "decompressed bytes differ from the canonical input.");
+            }
+            File.Move(temp, replayPath, overwrite: true);
+            return new WrittenReplay(replayPath, ViewerPath: null);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // Preserve the original failure.
+            }
+            throw;
+        }
     }
 
     /// <summary>

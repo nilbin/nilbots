@@ -9,7 +9,7 @@ public static class ReplayCommand
     public static int Run(string file, IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
-        string json = File.ReadAllText(file);
+        string json = ReplayInput.ReadAllText(file);
         using JsonDocument envelope = JsonDocument.Parse(json);
         JsonElement root = envelope.RootElement;
         int replayVersion = root.GetProperty("header")

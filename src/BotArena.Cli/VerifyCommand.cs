@@ -7,7 +7,7 @@ public static class VerifyCommand
 {
     public static int Run(string file)
     {
-        string json = File.ReadAllText(file);
+        string json = ReplayInput.ReadAllText(file);
         using JsonDocument envelope = JsonDocument.Parse(json);
         int replayVersion = envelope.RootElement
             .GetProperty("header")

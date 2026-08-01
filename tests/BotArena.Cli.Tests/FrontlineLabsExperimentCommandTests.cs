@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.IO.Compression;
 using BotArena.Cli;
 using BotArena.Engine;
 
@@ -53,6 +54,19 @@ public sealed class FrontlineLabsExperimentCommandTests
                 64,
                 root.GetProperty("replayHash").GetString()!.Length);
             Assert.Equal(0, Verify(firstPath));
+
+            string compressedPath = Path.Combine(
+                temporary,
+                "replay-content-addressed.bin");
+            using (FileStream output = File.Create(compressedPath))
+            using (var compressed = new GZipStream(
+                       output,
+                       CompressionLevel.SmallestSize))
+            using (var writer = new StreamWriter(compressed))
+            {
+                writer.Write(firstJson);
+            }
+            Assert.Equal(0, Verify(compressedPath));
 
             string tamperedPath = Path.Combine(
                 temporary,

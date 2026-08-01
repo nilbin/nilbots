@@ -45,6 +45,8 @@ try
             FrontlineLabsExperimentCommand.Run(rest),
         ["experiment", "arc-relay-h0-smoke", .. var rest] =>
             ArcRelayH0SmokeCommand.Run(rest),
+        ["experiment", "arc-relay", .. var rest] =>
+            ArcRelayExperimentCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -127,6 +129,15 @@ static int Help(int exitCode = 1)
                                                   ENGINEERING SMOKE: writes
                                                   two mind-profile Arc Relay
                                                   replay files; no stock doctrine
+          nilbots experiment arc-relay
+                        --bot <generic-mind-project-or-wasm>
+                        --opponent <generic-mind-project-or-wasm>
+                        [--sheet0 <json> --sheet1 <json>]
+                        [--classes0 a,b,... --classes1 a,b,...]
+                        [--seed <n>] [--runtime wasm|in-process] [--out <dir>]
+                                                  LOCAL H0 EVALUATION: native
+                                                  mind match, gzip canonical
+                                                  replay, and run receipt
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
@@ -140,9 +151,9 @@ static int Help(int exitCode = 1)
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
           nilbots watch [dir] [play options]      rebuild + replay on every change
-          nilbots replay <replay.json> [--summary [--no-debug] [--full]] [--out]
+          nilbots replay <replay.json[.gz]> [--summary [--no-debug] [--full]] [--out]
                                                   compact match digest, or the visual viewer
-          nilbots verify <replay.json>            check a replay's hash
+          nilbots verify <replay.json[.gz]>        check a replay's hash
           nilbots doctor                          toolchain and environment status
           nilbots cache [status|clear]            build cache maintenance
           nilbots bots | nilbots maps             list built-ins
