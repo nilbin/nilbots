@@ -2021,6 +2021,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         if (destination == target.Position
+            || !mode.CanCarrierRelocate(target.ActorId, Tick)
             || _definition.Map.IsWall(destination)
             || !mode.CanEnter(target.ActorId, destination)
             || IsForeignReservedReturnTile(target, destination)

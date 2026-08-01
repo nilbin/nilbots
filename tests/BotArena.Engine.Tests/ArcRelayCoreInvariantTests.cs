@@ -93,6 +93,31 @@ public sealed class ArcRelayCoreInvariantTests
     }
 
     [Fact]
+    public void CarrierRelocationAvailabilityFollowsTheObjectOwnedClock()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create());
+        Position receiverPosition = CentreWell.Offset(-1, 0);
+        driver.PrepareTick(
+            25,
+            World(
+                Life(Carrier, CentreWell),
+                Life(Receiver, receiverPosition)));
+
+        Assert.False(driver.CanCarrierRelocate(Carrier, 26));
+        Assert.True(driver.CanCarrierRelocate(Carrier, 27));
+        Assert.True(driver.TryHandoff(
+            27,
+            Carrier,
+            Receiver,
+            CentreWell,
+            receiverPosition,
+            out _));
+        Assert.False(driver.CanCarrierRelocate(Receiver, 28));
+        Assert.True(driver.CanCarrierRelocate(Receiver, 29));
+    }
+
+    [Fact]
     public void DestructionDropPrecedesBankAndCannotShortenRecovery()
     {
         var driver = new ArcRelayActorMatchModeDriver(

@@ -114,7 +114,9 @@ public static class BotArenaVersions
     // reservations, as ordinary movement already did.
     // 1.0.4: tick-start chronology admits an exactly evidenced signature
     // relocation followed by signature destruction of that same life.
-    public const string GenericMindEngineVersion = "1.0.4";
+    // 1.0.5: signature pulls and bursts respect a carried Core's object-owned
+    // relocation recovery instead of moving its carrier between legal beats.
+    public const string GenericMindEngineVersion = "1.0.5";
 
     public const int GenericMindRuntimeContractVersion = 1;
     public const int GenericMindMatchStartSchemaVersion = 1;
