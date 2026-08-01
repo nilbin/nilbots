@@ -212,6 +212,7 @@ def project(replay: dict) -> dict:
     }
     worlds = []
     turns = []
+    start_events_by_tick = []
     events_by_tick = []
     traversals_by_tick = []
     births_by_tick = []
@@ -220,6 +221,10 @@ def project(replay: dict) -> dict:
         for item in replay["initialFrame"]["state"]["activeLives"]
     }
     for tick in replay["ticks"]:
+        start_events = [
+            event for event in tick["tickStart"]["events"]
+            if event["kind"] in KEEP_EVENTS
+        ]
         events = [
             event for event in tick["events"] if event["kind"] in KEEP_EVENTS
         ]
@@ -229,6 +234,7 @@ def project(replay: dict) -> dict:
         # the H0 all-signatures stress replay without changing one fact.
         worlds.append(world(tick["postState"]))
         turns.append(compact_turns(tick, signature_ids))
+        start_events_by_tick.append(start_events)
         events_by_tick.append(events)
         traversals_by_tick.append(tick["traversals"])
         tick_start_lives = tick["tickStart"]["state"]["activeLives"]
@@ -250,6 +256,7 @@ def project(replay: dict) -> dict:
         "initial": world(replay["initialFrame"]["state"]),
         "worlds": worlds,
         "turns": turns,
+        "startEvents": start_events_by_tick,
         "events": events_by_tick,
         "traversals": traversals_by_tick,
         "births": births_by_tick,

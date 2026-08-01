@@ -75,6 +75,7 @@ export interface ArcRelayBroadcastV1 {
   initial: WorldTuple;
   worlds: WorldTuple[];
   turns: TurnTuple[][];
+  startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
   births: LifeTuple[][];
@@ -101,6 +102,7 @@ export function expandArcRelayBroadcastV1(
   const count = broadcast.worlds.length;
   if (
     broadcast.turns.length !== count ||
+    broadcast.startEvents.length !== count ||
     broadcast.events.length !== count ||
     broadcast.traversals.length !== count ||
     broadcast.births.length !== count
@@ -130,7 +132,7 @@ export function expandArcRelayBroadcastV1(
         state: before,
         activeActorIds: before.activeLives.map((entry) => entry.actorId),
         lifeStarts,
-        events: [],
+        events: broadcast.startEvents[tick],
         traversals: [],
       },
       // normalizeReplayV3 consumes actorTurns first. Broadcasts are already a

@@ -143,7 +143,7 @@ Before authoring opened, the coordinator proved:
   `f4649d6d17e80c02cd4b09fec849de5729435855cf411592a5e2c73cd889bbbe`;
 - exact WASM seed-42 canonical hash reproduced from the match record alone:
   `fb92bb681fe0c2407c5bb446f90ba1e22592bb08f2001a5035258c5877e2400a`;
-- durable record `1,933 B` plus broadcast `160,894 B`, total `162,827 B`,
+- durable record `1,933 B` plus broadcast `169,972 B`, total `171,905 B`,
   under the hard `304 KiB` per-game ceiling.
 
 No cohort outcome existed when these facts were frozen.
