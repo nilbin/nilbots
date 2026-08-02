@@ -383,9 +383,13 @@ public static class ToolchainInfo
     /// inert-omitted fields and one appended spawn reason, so a bot compiled
     /// yesterday reads today's contract, but the staged assembly bytes moved
     /// and every artifact rebuilds.
+    /// 0.9.31 adds the evaluation-only Arc Relay strategy-sheet v1 linker.
+    /// The separately hashed sheet data can express bounded coordinated
+    /// spatial gambits without rebuilding the frozen stock algorithm; no
+    /// hosted contract, SDK wire shape, or player-facing sheet format moves.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.30";
+    public const string CliVersion = "0.9.31";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
