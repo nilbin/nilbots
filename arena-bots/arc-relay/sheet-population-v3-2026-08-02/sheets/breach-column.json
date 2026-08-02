@@ -35,7 +35,7 @@
       "trigger": "after-own-pulse"
     }
   ],
-  "mapId": "arc-relay-threefold-01",
+  "mapId": "arc-relay-threefold-home-gates-wide-01",
   "policies": {
     "carrier": {
       "handoffHealthAtOrBelow": 2,

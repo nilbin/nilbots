@@ -18,6 +18,10 @@ LAUNCH_CLASSES = {
     "minesmith", "hush", "relay", "switchback", "longshot", "mason",
     "sunder", "repulsor", "veil", "nest",
 }
+EVALUATION_MAPS = {
+    "arc-relay-threefold-01",
+    "arc-relay-threefold-home-gates-wide-01",
+}
 ROLES = {"carrier", "screen", "intercept", "reserve"}
 THEATERS = {"north", "centre", "south"}
 TRIGGERS = {
@@ -54,8 +58,8 @@ def csharp_positions(values: list[object], label: str) -> str:
 def validate(data: dict) -> None:
     if data.get("schema") != "arc-relay-evaluation-sheet-v0":
         fail("schema must be arc-relay-evaluation-sheet-v0")
-    if data.get("mapId") != "arc-relay-threefold-01":
-        fail("v0 sheets must target arc-relay-threefold-01")
+    if data.get("mapId") not in EVALUATION_MAPS:
+        fail("v0 sheets must target a registered Arc Relay evaluation map")
     composition = data.get("composition")
     if not isinstance(composition, list) or len(composition) != 8:
         fail("composition must contain exactly eight classes")

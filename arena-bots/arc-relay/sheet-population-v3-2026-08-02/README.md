@@ -1,7 +1,8 @@
 # Arc Relay 32-sheet evaluation population
 
-This archive retains the twelve 2026-08-01 evaluation controls and adds twenty
-new sheets for the frozen Arc Relay stock mind. It is a sheet-space and gross
+This archive retains the twelve 2026-08-01 evaluation controls, binds those
+copies to the current `home-gates-wide` map identity, and adds twenty new
+sheets for the frozen Arc Relay stock mind. It is a sheet-space and gross
 balance instrument, not a population of independent bot authors and not the
 player-facing sheet format.
 

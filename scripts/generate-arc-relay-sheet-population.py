@@ -28,6 +28,7 @@ COHORT = ARCHIVE / "cohort.json"
 DISTINCTNESS = ARCHIVE / "static-distinctness.json"
 VALIDATOR = REPO / "scripts/generate-arc-relay-sheet.py"
 MINIMUM_NEW_STATIC_DISTANCE = 0.18
+POPULATION_MAP_ID = "arc-relay-threefold-home-gates-wide-01"
 
 BASE_ENTRANTS = [
     "balanced", "control-grid", "convoy", "interception", "split",
@@ -554,6 +555,7 @@ def make_sheet(base: dict[str, Any], doctrine: dict[str, Any]) -> dict[str, Any]
     )
     value = json.loads(json.dumps(base))
     value["sheetId"] = f"population-{doctrine['entrantId']}-v1"
+    value["mapId"] = POPULATION_MAP_ID
     value["composition"] = doctrine["composition"]
     value["slots"] = [
         make_slot(index, definition)
@@ -793,11 +795,13 @@ def main() -> int:
     sheets: dict[str, dict[str, Any]] = {}
     expected: dict[Path, bytes] = {}
     for entrant_id in BASE_ENTRANTS:
-        content = (BASE_PACK / f"{entrant_id}.json").read_bytes()
-        value = json.loads(content)
+        value = json.loads(
+            (BASE_PACK / f"{entrant_id}.json").read_text(encoding="utf-8")
+        )
+        value["mapId"] = POPULATION_MAP_ID
         validator.validate(value)
         sheets[entrant_id] = value
-        expected[PACK / f"{entrant_id}.json"] = content
+        expected[PACK / f"{entrant_id}.json"] = encoded(value)
     for doctrine in NEW_DOCTRINES:
         entrant_id = doctrine["entrantId"]
         if entrant_id in sheets:
