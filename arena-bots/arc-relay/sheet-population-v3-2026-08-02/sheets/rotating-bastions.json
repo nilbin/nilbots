@@ -1,10 +1,11 @@
 {
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
-    "allocation": "2 north / 4 centre / 2 south",
+    "allocation": "3 north / 2 centre / 3 south",
     "executionStyle": "fortress-counterattack",
     "failureMode": "the construct pair can be stranded after the mobile half commits to a distant birth",
     "policyStyle": "two planted outer bastions feed a four-body centre that rotates into the next scoring lane",
+    "sheetRevision": 3,
     "visibleCounter": "break a bastion before its centre reserve arrives or pull the rotation away with a loose Core"
   },
   "auditStatus": {
@@ -117,7 +118,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-rotating-bastions-style-fortress-counterattack-v2",
+  "sheetId": "population-rotating-bastions-style-fortress-counterattack-v3",
   "slots": [
     {
       "outboundPath": [
@@ -138,7 +139,7 @@
           4
         ]
       ],
-      "partnerUnitId": 2,
+      "partnerUnitId": 6,
       "returnPath": [
         [
           13,
@@ -184,7 +185,7 @@
           18
         ]
       ],
-      "partnerUnitId": 3,
+      "partnerUnitId": 7,
       "returnPath": [
         [
           13,
@@ -230,7 +231,7 @@
           4
         ]
       ],
-      "partnerUnitId": 0,
+      "partnerUnitId": 6,
       "returnPath": [
         [
           12,
@@ -249,7 +250,7 @@
           11
         ]
       ],
-      "role": "carrier",
+      "role": "screen",
       "theater": "north",
       "unitId": 2
     },
@@ -272,7 +273,7 @@
           18
         ]
       ],
-      "partnerUnitId": 1,
+      "partnerUnitId": 7,
       "returnPath": [
         [
           12,
@@ -291,7 +292,7 @@
           11
         ]
       ],
-      "role": "carrier",
+      "role": "screen",
       "theater": "south",
       "unitId": 3
     },
@@ -333,7 +334,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "centre",
       "unitId": 4
     },
@@ -375,7 +376,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "centre",
       "unitId": 5
     },
@@ -383,34 +384,34 @@
       "outboundPath": [
         [
           4,
-          9
+          6
         ],
         [
           8,
-          9
+          6
         ],
         [
           13,
-          9
+          6
         ],
         [
           15,
-          11
+          4
         ]
       ],
-      "partnerUnitId": 4,
+      "partnerUnitId": 0,
       "returnPath": [
         [
           13,
-          9
+          6
         ],
         [
           9,
-          9
+          6
         ],
         [
           5,
-          9
+          6
         ],
         [
           2,
@@ -418,45 +419,41 @@
         ]
       ],
       "role": "carrier",
-      "theater": "centre",
+      "theater": "north",
       "unitId": 6
     },
     {
       "outboundPath": [
         [
           4,
-          13
+          16
         ],
         [
           8,
-          13
+          16
         ],
         [
           13,
-          13
+          16
         ],
         [
           15,
-          11
+          18
         ]
       ],
-      "partnerUnitId": 5,
+      "partnerUnitId": 1,
       "returnPath": [
         [
           13,
-          13
+          16
         ],
         [
           9,
-          13
+          16
         ],
         [
           5,
-          13
-        ],
-        [
-          3,
-          12
+          16
         ],
         [
           2,
@@ -464,7 +461,7 @@
         ]
       ],
       "role": "carrier",
-      "theater": "centre",
+      "theater": "south",
       "unitId": 7
     }
   ],

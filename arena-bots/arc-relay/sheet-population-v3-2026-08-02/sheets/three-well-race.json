@@ -5,6 +5,7 @@
     "executionStyle": "split",
     "failureMode": "too many pickup candidates can leave live carriers without enough protection",
     "policyStyle": "four assigned runners compete for all three births rather than waiting to identify one best lane",
+    "sheetRevision": 2,
     "visibleCounter": "win local fights against the thin screens and turn one failed race into an exposed return"
   },
   "auditStatus": {

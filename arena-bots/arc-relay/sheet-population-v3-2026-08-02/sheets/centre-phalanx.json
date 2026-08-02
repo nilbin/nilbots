@@ -5,6 +5,7 @@
     "executionStyle": "fortress-counterattack",
     "failureMode": "the centre stack can win its lane yet lose two simultaneous outer deliveries",
     "policyStyle": "a six-body central phalanx builds a protected relay lane with two outer reserves",
+    "sheetRevision": 4,
     "visibleCounter": "take both outer births and force the construction ball to rotate through distance"
   },
   "auditStatus": {
@@ -117,7 +118,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-centre-phalanx-style-fortress-counterattack-v2",
+  "sheetId": "population-centre-phalanx-style-fortress-counterattack-v4",
   "slots": [
     {
       "outboundPath": [
@@ -157,7 +158,7 @@
           10
         ]
       ],
-      "role": "screen",
+      "role": "intercept",
       "theater": "centre",
       "unitId": 0
     },
@@ -199,7 +200,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "north",
       "unitId": 1
     },
@@ -283,7 +284,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "south",
       "unitId": 3
     },
@@ -371,7 +372,7 @@
           11
         ]
       ],
-      "role": "screen",
+      "role": "intercept",
       "theater": "centre",
       "unitId": 5
     },

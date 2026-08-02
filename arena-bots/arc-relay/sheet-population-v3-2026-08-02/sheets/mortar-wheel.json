@@ -5,6 +5,7 @@
     "executionStyle": "trap-punish",
     "failureMode": "the fire base and courier wing can separate into two individually fragile groups",
     "policyStyle": "mobile carriers wheel between births while twin mortars punish the route they just vacated",
+    "sheetRevision": 2,
     "visibleCounter": "close on the artillery and hold the centre so rotations cross a contested seam"
   },
   "auditStatus": {

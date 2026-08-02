@@ -5,6 +5,7 @@
     "executionStyle": "displacement-control",
     "failureMode": "the narrow column advertises its axis and has only one native pickup runner",
     "policyStyle": "a six-body centre breach column uses blast, burst, projection, and paint before releasing south",
+    "sheetRevision": 3,
     "visibleCounter": "take north and avoid the centre collision until the lone carrier has to leave its column"
   },
   "auditStatus": {
@@ -49,7 +50,7 @@
     },
     "interception": {
       "focusEnemyCarrier": true,
-      "looseCoreFallback": false
+      "looseCoreFallback": true
     }
   },
   "rallyLines": {
@@ -105,7 +106,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-breach-column-style-displacement-control-v2",
+  "sheetId": "population-breach-column-style-displacement-control-v3",
   "slots": [
     {
       "outboundPath": [
@@ -229,7 +230,7 @@
           11
         ]
       ],
-      "role": "intercept",
+      "role": "carrier",
       "theater": "centre",
       "unitId": 2
     },
@@ -401,7 +402,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "north",
       "unitId": 6
     },

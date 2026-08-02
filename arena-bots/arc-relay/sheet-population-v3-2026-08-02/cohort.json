@@ -14,21 +14,21 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "beacon-hunt",
       "sheet": "sheets/beacon-hunt.json",
-      "sheetSha256": "368a072b1e9d08cd092ccaed8ad8a661dbc71d88158deba28d4871583455b509"
+      "sheetSha256": "22d0e5b996182e30f679b21a3fad4f288f19075c73a397f9d90973942aba6fff"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "breach-column",
       "sheet": "sheets/breach-column.json",
-      "sheetSha256": "679616b45ed8a22742c4e94f0554a98f1028db7a45a83562b87204f7f65e0520"
+      "sheetSha256": "b56399de19587e2d797bea0196e1516269ba122ad402dc0d00f6db188886e2e2"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "centre-phalanx",
       "sheet": "sheets/centre-phalanx.json",
-      "sheetSha256": "192ade868867f4dca7ec4fc27a6585257f7655f070ca1a5b0801e53bec6449fd"
+      "sheetSha256": "ef1519373f20f4dcd0d2fe7d0800508f3da607709e313457d5ee0979c13c384c"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -49,14 +49,14 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "counter-courier",
       "sheet": "sheets/counter-courier.json",
-      "sheetSha256": "36cc71f1430f5a81bf9db050035de5ab59cdfaf9eec99d8ba632f993d116b38a"
+      "sheetSha256": "e0aec734e2edb4dc0aa2f1901f700e419d0eea20ec2fd2822758f59a94452b03"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "courier-sprint",
       "sheet": "sheets/courier-sprint.json",
-      "sheetSha256": "ef8015392d03e979ef9f4a98f4acde533db26fd6141d39d83a62600603307ec1"
+      "sheetSha256": "d12d8008fb98e3216055cb0af004a8494ef08359c7a57c06e8f03c2527e140d3"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -70,7 +70,7 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "elastic-reserve",
       "sheet": "sheets/elastic-reserve.json",
-      "sheetSha256": "bf1b255cd30611780a88cd5821cd3d8cb92d4f62c438e2b4286d3b664a4a5019"
+      "sheetSha256": "c50e0f7dd981a8045bc449baef59688280a7aa2e9274034e4d78013fe18227da"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -98,14 +98,14 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "home-counterpunch",
       "sheet": "sheets/home-counterpunch.json",
-      "sheetSha256": "e02f9f58019a770a22b6abd3e3880ca0fed579d640bec863c36e642db289eacd"
+      "sheetSha256": "ca7a8d9b1462a885b008961bb55cfb7e001d8817938b2a3638215e958a450972"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "hook-burst",
       "sheet": "sheets/hook-burst.json",
-      "sheetSha256": "6fe5f2f50c6b3abe4eb4ae00d9d2345b1a390fd8602884ce828195c39dc98e10"
+      "sheetSha256": "4a462477a79fa764451719e84cef8afec3f6139d00efc4f50a1a34674610b62d"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -119,42 +119,42 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "mine-crescent",
       "sheet": "sheets/mine-crescent.json",
-      "sheetSha256": "1673079878b2498d51888c68edc3a590b58be408de006ed20152ea8935f6c406"
+      "sheetSha256": "12b86d94609ad38d1787ddda3c2478806e4bdbf75aa6c5bbae4b115508aca886"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "mortar-wheel",
       "sheet": "sheets/mortar-wheel.json",
-      "sheetSha256": "4b5beb5f169417ef0020c8e52a1cc33ef18544444da78a14140d9a84f3bf0074"
+      "sheetSha256": "f3c69d8fd7a082ac837273f7069fd9d82db879fe4aabc17610acc38ae9a62fbc"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "null-veil",
       "sheet": "sheets/null-veil.json",
-      "sheetSha256": "025e7922ad613ace85e6b03d19f86cb5bb439c88a06bbe7dd95992736ad387e1"
+      "sheetSha256": "4080b4bf48d459acad31acccf33f56358427129bf4e3fd0b1c7d66de4e4ae5f6"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "outer-pincers",
       "sheet": "sheets/outer-pincers.json",
-      "sheetSha256": "9705073419e2437764b862d096eebb983723665c8939df15d3978c5167198bfb"
+      "sheetSha256": "4cbf9a4135a068399c2f0d7d944a9e34e7aeb68d6ef12d0734368875dee2eefc"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "pod-lattice",
       "sheet": "sheets/pod-lattice.json",
-      "sheetSha256": "6148e5aa8f9af2e1c56fa3ab716c13358d555880a0e5346107eddc638b1ec75c"
+      "sheetSha256": "f804126e68be0d80d133556f704ca2e14941c8c5cb9a0922b03168f3454739ef"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "rail-screen",
       "sheet": "sheets/rail-screen.json",
-      "sheetSha256": "bc977190b646ba0d7fc980a68a9994893dc7f506a98d0472cd5de79b20ccb4b3"
+      "sheetSha256": "bbf877c156e0a34eeb6b02b90757c787d2d3acb7604f606ea04641dbebace4bf"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -168,35 +168,35 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "repair-web",
       "sheet": "sheets/repair-web.json",
-      "sheetSha256": "187842c27acab1ccd5d07483785f3682f7d7842b901d79dd7841ed4bb1056cba"
+      "sheetSha256": "db9f0f60bbea657a3ff0c6fc3f20e19673a616db9cc61376b4c511a49c696776"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "rotating-bastions",
       "sheet": "sheets/rotating-bastions.json",
-      "sheetSha256": "8a3958fb61b47fccdb12efb2327f7823591acb464cdd18541164de7140393d98"
+      "sheetSha256": "f35c03702385a0e971742d9cc58826d7a8e76c48a2f5711dca99160be6543888"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "sensor-grid",
       "sheet": "sheets/sensor-grid.json",
-      "sheetSha256": "2cd6eec82ecc254db959bfd7f28ff8846fa66109527478442fdea32afc588fec"
+      "sheetSha256": "166d40999a259afd2305302fa1cc4d161c660cec48d20196914fe739f75d2ffd"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "smoke-and-mines",
       "sheet": "sheets/smoke-and-mines.json",
-      "sheetSha256": "7b5c135d85a7b4c2cdea50547f1e6468fa789b9c14d0f5f15fcde781ead0dcad"
+      "sheetSha256": "6bb60ceac6f5a12a53c3f00edab254557a80025fd7cc68315dfcbfe4cfcd8e6f"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "smoke-convoy",
       "sheet": "sheets/smoke-convoy.json",
-      "sheetSha256": "796aa5fc653c24b615ff778cd058dfcd8431b87d638eb69f23228aa8285494d0"
+      "sheetSha256": "57d25b2c1698755dbba80ad03eca61b727c8ff99bce6112b2b847811aa514583"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
@@ -217,7 +217,7 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "three-well-race",
       "sheet": "sheets/three-well-race.json",
-      "sheetSha256": "491f4496e5d2859b10ff9150643b9438ac66bd08a935dd3485c98d15adb90869"
+      "sheetSha256": "7bd5a020714f48c011b345d7b2e19a34bf86fc4e76682726c6ef5a321d401f71"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",

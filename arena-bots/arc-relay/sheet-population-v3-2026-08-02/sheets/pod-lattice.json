@@ -5,6 +5,7 @@
     "executionStyle": "control-grid",
     "failureMode": "spreading construction across all Wells can leave every local cluster incomplete",
     "policyStyle": "three carrier lanes grow a distributed lattice of pods, blocks, repair, and walls",
+    "sheetRevision": 2,
     "visibleCounter": "break one branch quickly, then rotate before the other lattice arms can reinforce"
   },
   "auditStatus": {

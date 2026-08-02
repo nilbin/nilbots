@@ -105,6 +105,94 @@
         "rotating-bastions": "fortress-counterattack"
       },
       "retest": "Repeat the 120-cell outcome-blind anchor gate under the new sheet hashes before reading revised outcomes."
+    },
+    {
+      "id": "population-sheet-v3-zero-win-objective-repair",
+      "timing": "after the style-corrected 120-cell anchor outcome read and before any cross-population screen",
+      "trigger": "pre-registered no-zero-win guardrail; six sheets finished 0-0-6 against Balanced, Interception, and Sustain Attrition",
+      "scope": [
+        "breach-column",
+        "centre-phalanx",
+        "null-veil",
+        "rail-screen",
+        "repair-web",
+        "rotating-bastions"
+      ],
+      "change": {
+        "breach-column": "promote the centre Repulsor and north Sunder to pickup runners and enable loose-Core fallback; preserve the six-body breach axis and composition",
+        "centre-phalanx": "promote the two outer reserves to pickup runners; preserve the central five-body protection package and composition",
+        "null-veil": "promote the centre Switchback reserve to a third carrier; preserve smoke, suppression, and composition",
+        "rail-screen": "send the two Lanterns to the outer Wells as pickup runners while the rails hold their firing lanes; preserve composition",
+        "repair-web": "replace the two carrier Palisades and one duplicate Nest with a Towline, Kestrel, and one Palisade so the sustain web can actually rotate; keep two Patchbays, a Nest, Hush, and Relay",
+        "rotating-bastions": "plant Mason/Palisade screens in both outer theaters, move the two Relays to outer carrier duty, and leave paired Switchback couriers in the centre; preserve composition"
+      },
+      "forbidden": "no class-stat, rule, map, cadence, eligibility, or execution-engine change",
+      "retest": "Run a mirrored targeted repair screen before cross-population outcomes; retain only eligibility-clean, behaviorally distinct revisions that no longer have zero wins."
+    },
+    {
+      "id": "centre-phalanx-v4-active-flanks",
+      "timing": "after the v3 targeted repair eligibility read and before opening its outcomes",
+      "trigger": "Centre Phalanx alone tripped formation freeze in one assignment against Rotating Bastions (74 high-wait ticks in a 75-tick window)",
+      "change": "Convert two of five central screen roles to intercept roles so the construction core actively contests its lane; keep the same composition, three carrier lanes, paths, policies, and fortress execution style.",
+      "retest": "Repeat every targeted-repair pair involving Centre Phalanx under the v4 hash; do not alter the frozen eligibility threshold."
+    },
+    {
+      "id": "null-veil-v4-smoke-couriers",
+      "timing": "after the eligibility-clean v3 targeted-repair outcome read and before the cross-population screen",
+      "trigger": "Null Veil alone remained 0-0-6 after the first objective repair",
+      "change": "Promote the two outer Veils from screen to carrier roles so their smoke accompanies actual north/south courier routes; retain Relay and Switchback as the concealed central carrier pair, both Hush interceptors, composition, policies, and sustain execution style.",
+      "retest": "Repeat the same mirrored Interception, Sustain Attrition, and Repair Web target pairs under the v4 hash; retain only if eligible, distinct, and non-zero-win."
+    }
+  ],
+  "stageAmendments": [
+    {
+      "id": "five-regular-cross-population-screen",
+      "timing": "frozen after anchor and targeted-repair outcomes, before any cross-population outcome",
+      "reason": "The 992-cell exhaustive round robin is disproportionate for a provisional shared-mind screen. The corrected Release harness still costs about four wall-seconds per fully audited cell across four workers.",
+      "dispositionOfFullRoundRobin": "deferred, not silently replaced as product balance authority; commission only if the sparse screen leaves a decision boundary unresolved",
+      "seed": "32452843",
+      "runtime": "wasm",
+      "participantAssignments": "both",
+      "entrants": 32,
+      "degreePerEntrant": 5,
+      "unorderedPairs": 80,
+      "cells": 160,
+      "construction": "One outcome-seeded circular order; pair every index at offsets +1 and +5, plus the opposite index +16. This gives every sheet two nearby-strength opponents, two broader-strength opponents, and one high/low bridge without adapting to cross-screen results.",
+      "offsets": [1, 5, 16],
+      "seededOrder": [
+        "interception",
+        "counter-courier",
+        "control-grid",
+        "split",
+        "sensor-grid",
+        "hook-burst",
+        "balanced",
+        "displacement-control",
+        "courier-sprint",
+        "smoke-and-mines",
+        "sustain-attrition",
+        "mine-crescent",
+        "elastic-reserve",
+        "outer-pincers",
+        "three-well-race",
+        "fortress-counterattack",
+        "feint-switch",
+        "trap-punish",
+        "breach-column",
+        "beacon-hunt",
+        "home-counterpunch",
+        "mortar-wheel",
+        "pod-lattice",
+        "smoke-convoy",
+        "repair-web",
+        "null-veil",
+        "relay-chain",
+        "fireline-picks",
+        "rotating-bastions",
+        "rail-screen",
+        "centre-phalanx",
+        "convoy"
+      ]
     }
   ],
   "hardGates": {

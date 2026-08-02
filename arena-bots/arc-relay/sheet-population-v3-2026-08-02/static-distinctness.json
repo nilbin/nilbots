@@ -18,14 +18,14 @@
       "passes": true
     },
     {
-      "closestEntrantId": "centre-phalanx",
-      "distance": 0.650556,
+      "closestEntrantId": "rotating-bastions",
+      "distance": 0.656746,
       "entrantId": "breach-column",
       "passes": true
     },
     {
       "closestEntrantId": "pod-lattice",
-      "distance": 0.521587,
+      "distance": 0.491587,
       "entrantId": "centre-phalanx",
       "passes": true
     },
@@ -72,8 +72,8 @@
       "passes": true
     },
     {
-      "closestEntrantId": "smoke-convoy",
-      "distance": 0.58381,
+      "closestEntrantId": "balanced",
+      "distance": 0.641429,
       "entrantId": "null-veil",
       "passes": true
     },
@@ -84,26 +84,26 @@
       "passes": true
     },
     {
-      "closestEntrantId": "repair-web",
-      "distance": 0.375556,
+      "closestEntrantId": "fortress-counterattack",
+      "distance": 0.479762,
       "entrantId": "pod-lattice",
       "passes": true
     },
     {
       "closestEntrantId": "fireline-picks",
-      "distance": 0.370794,
+      "distance": 0.325794,
       "entrantId": "rail-screen",
       "passes": true
     },
     {
-      "closestEntrantId": "pod-lattice",
-      "distance": 0.375556,
+      "closestEntrantId": "sustain-attrition",
+      "distance": 0.395794,
       "entrantId": "repair-web",
       "passes": true
     },
     {
-      "closestEntrantId": "mortar-wheel",
-      "distance": 0.50119,
+      "closestEntrantId": "fortress-counterattack",
+      "distance": 0.497698,
       "entrantId": "rotating-bastions",
       "passes": true
     },

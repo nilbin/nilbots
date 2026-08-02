@@ -1,10 +1,11 @@
 {
   "auditDimensions": {
     "adaptationStyle": "static",
-    "allocation": "2 north / 4 centre / 2 south",
+    "allocation": "3 north / 2 centre / 3 south",
     "executionStyle": "fireline-picks",
     "failureMode": "fixed firing geometry can be bypassed after the opponent reads the chosen corridors",
     "policyStyle": "projector faces and sensor masts establish two public rails around a central courier",
+    "sheetRevision": 3,
     "visibleCounter": "smoke or flank the firing bases and make their slow carrier solve multiple births"
   },
   "auditStatus": {
@@ -92,7 +93,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-rail-screen-style-fireline-picks-v2",
+  "sheetId": "population-rail-screen-style-fireline-picks-v3",
   "slots": [
     {
       "outboundPath": [
@@ -273,76 +274,76 @@
     {
       "outboundPath": [
         [
-          5,
-          10
+          4,
+          8
         ],
         [
           8,
-          9
+          7
         ],
         [
           12,
-          9
+          6
         ],
         [
           15,
-          11
+          4
         ]
       ],
-      "partnerUnitId": 6,
+      "partnerUnitId": 2,
       "returnPath": [
         [
           12,
-          13
+          6
         ],
         [
           8,
-          13
+          8
         ],
         [
           5,
-          12
+          10
         ],
         [
           2,
           11
         ]
       ],
-      "role": "reserve",
-      "theater": "centre",
+      "role": "carrier",
+      "theater": "north",
       "unitId": 4
     },
     {
       "outboundPath": [
         [
-          5,
+          4,
           13
         ],
         [
           8,
-          12
+          15
         ],
         [
-          11,
-          12
+          12,
+          16
         ],
         [
-          14,
-          12
+          15,
+          18
         ]
       ],
-      "partnerUnitId": 6,
+      "partnerUnitId": 3,
       "returnPath": [
         [
-          10,
-          12
+          12,
+          16
         ],
         [
-          6,
-          12
+          8,
+          14
         ],
         [
-          3,
+          5,
           12
         ],
         [
@@ -350,8 +351,8 @@
           11
         ]
       ],
-      "role": "reserve",
-      "theater": "centre",
+      "role": "carrier",
+      "theater": "south",
       "unitId": 5
     },
     {

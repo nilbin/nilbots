@@ -5,6 +5,7 @@
     "executionStyle": "interception",
     "failureMode": "information hardware loses value when fights remain split beyond shared vision",
     "policyStyle": "reveal, paint, and collapse on enemy carriers while two darts handle births",
+    "sheetRevision": 2,
     "visibleCounter": "use smoke and cover to deny sight, then pressure the lightly screened Kestrels"
   },
   "auditStatus": {

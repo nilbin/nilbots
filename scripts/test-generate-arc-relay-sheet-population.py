@@ -44,6 +44,19 @@ class SheetPopulationTests(unittest.TestCase):
             for doctrine in POPULATION.NEW_DOCTRINES
         ))
 
+    def test_targeted_repairs_are_explicitly_versioned(self) -> None:
+        self.assertEqual(
+            {
+                "breach-column",
+                "centre-phalanx",
+                "null-veil",
+                "rail-screen",
+                "repair-web",
+                "rotating-bastions",
+            },
+            set(POPULATION.TARGETED_REPAIR_REVISIONS),
+        )
+
     def test_every_new_sheet_obeys_slot_and_copy_limits(self) -> None:
         for doctrine in POPULATION.NEW_DOCTRINES:
             with self.subTest(doctrine=doctrine["entrantId"]):

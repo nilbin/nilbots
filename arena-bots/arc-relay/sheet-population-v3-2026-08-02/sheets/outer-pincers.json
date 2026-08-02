@@ -5,6 +5,7 @@
     "executionStyle": "displacement-control",
     "failureMode": "almost no protective screen leaves a wing brittle after its first failed pickup",
     "policyStyle": "paired outer wings race their own Core and displace the opposing return at once",
+    "sheetRevision": 2,
     "visibleCounter": "hold centre and refuse isolated outer fights until the two wings overextend"
   },
   "auditStatus": {

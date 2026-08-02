@@ -221,12 +221,12 @@ NEW_DOCTRINES = [
         "fortress-counterattack",
         ["palisade", "palisade", "mason", "mason", "patchbay",
          "patchbay", "relay", "nest"],
-        [s("centre", "screen", 6, "centre-flat"),
-         s("north", "reserve", 6, "north-hook"),
+        [s("centre", "intercept", 6, "centre-flat"),
+         s("north", "carrier", 6, "north-hook"),
          s("centre", "screen", 6, "centre-high"),
-         s("south", "reserve", 6, "south-hook"),
+         s("south", "carrier", 6, "south-hook"),
          s("centre", "screen", 6, "centre-safe"),
-         s("centre", "screen", 6, "centre-low"),
+         s("centre", "intercept", 6, "centre-low"),
          s("centre", "carrier", 7, "centre-fast"),
          s("centre", "screen", 6, "centre-flat")],
         (3, True, 16, 2, True, True, True),
@@ -303,8 +303,8 @@ NEW_DOCTRINES = [
          s("south", "intercept", 3, "south-safe"),
          s("north", "screen", 0, "north-screen"),
          s("south", "screen", 1, "south-screen"),
-         s("centre", "reserve", 6, "centre-high"),
-         s("centre", "reserve", 6, "centre-low"),
+         s("north", "carrier", 2, "north-high"),
+         s("south", "carrier", 3, "south-low"),
          s("centre", "intercept", 7, "centre-flat"),
          s("centre", "carrier", 6, "centre-fast")],
         (1, True, 10, 2, True, True, True),
@@ -337,11 +337,11 @@ NEW_DOCTRINES = [
          "switchback", "palisade"],
         [s("north", "intercept", 2, "north-high"),
          s("south", "intercept", 3, "south-low"),
-         s("north", "screen", 5, "north-screen"),
-         s("south", "screen", 5, "south-screen"),
+         s("north", "carrier", 5, "north-screen"),
+         s("south", "carrier", 5, "south-screen"),
          s("centre", "screen", 5, "centre-high"),
          s("centre", "carrier", 4, "centre-fast"),
-         s("centre", "reserve", 5, "centre-low"),
+         s("centre", "carrier", 5, "centre-low"),
          s("centre", "carrier", 6, "centre-safe")],
         (2, False, 9, 2, True, True, True),
         "smoke hides a two-carrier centre while null fields erase the signatures used to collapse it",
@@ -353,7 +353,7 @@ NEW_DOCTRINES = [
     d(
         "repair-web",
         "sustain-attrition",
-        ["patchbay", "patchbay", "palisade", "palisade", "nest", "nest",
+        ["patchbay", "patchbay", "towline", "kestrel", "palisade", "nest",
          "hush", "relay"],
         [s("north", "screen", 2, "north-safe"),
          s("south", "screen", 3, "south-safe"),
@@ -435,13 +435,13 @@ NEW_DOCTRINES = [
          "palisade", "sunder", "relay"],
         [s("centre", "intercept", 7, "centre-high"),
          s("centre", "intercept", 7, "centre-low"),
-         s("centre", "intercept", 6, "centre-fast"),
+         s("centre", "carrier", 6, "centre-fast"),
          s("centre", "intercept", 6, "centre-safe"),
          s("centre", "screen", 7, "centre-flat"),
          s("centre", "screen", 7, "centre-flat"),
-         s("north", "reserve", 7, "north-hook"),
+         s("north", "carrier", 7, "north-hook"),
          s("south", "carrier", 6, "south-fast")],
-        (2, False, 9, 2, True, True, False),
+        (2, False, 9, 2, True, True, True),
         "a six-body centre breach column uses blast, burst, projection, and paint before releasing south",
         "take north and avoid the centre collision until the lone carrier has to leave its column",
         "the narrow column advertises its axis and has only one native pickup runner",
@@ -533,14 +533,14 @@ NEW_DOCTRINES = [
         "fortress-counterattack",
         ["mason", "mason", "palisade", "palisade", "switchback",
          "switchback", "relay", "relay"],
-        [s("north", "screen", 2, "north-safe"),
-         s("south", "screen", 3, "south-safe"),
-         s("north", "carrier", 0, "north-high"),
-         s("south", "carrier", 1, "south-low"),
-         s("centre", "reserve", 6, "centre-high"),
-         s("centre", "reserve", 7, "centre-low"),
-         s("centre", "carrier", 4, "centre-fast"),
-         s("centre", "carrier", 5, "centre-safe")],
+        [s("north", "screen", 6, "north-safe"),
+         s("south", "screen", 7, "south-safe"),
+         s("north", "screen", 6, "north-high"),
+         s("south", "screen", 7, "south-low"),
+         s("centre", "carrier", 6, "centre-high"),
+         s("centre", "carrier", 7, "centre-low"),
+         s("north", "carrier", 0, "north-fast"),
+         s("south", "carrier", 1, "south-fast")],
         (2, True, 10, 2, True, True, True),
         "two planted outer bastions feed a four-body centre that rotates into the next scoring lane",
         "break a bastion before its centre reserve arrives or pull the rotation away with a loose Core",
@@ -551,6 +551,15 @@ NEW_DOCTRINES = [
                 ["reserve"], "carrier", "forward")],
     ),
 ]
+
+TARGETED_REPAIR_REVISIONS = {
+    "breach-column": 3,
+    "centre-phalanx": 4,
+    "null-veil": 4,
+    "rail-screen": 3,
+    "repair-web": 3,
+    "rotating-bastions": 3,
+}
 
 
 def load_validator():
@@ -580,9 +589,10 @@ def make_sheet(base: dict[str, Any], doctrine: dict[str, Any]) -> dict[str, Any]
         doctrine["policy"]
     )
     value = json.loads(json.dumps(base))
+    revision = TARGETED_REPAIR_REVISIONS.get(doctrine["entrantId"], 2)
     value["sheetId"] = (
         f"population-{doctrine['entrantId']}-"
-        f"style-{doctrine['executionStyle']}-v2"
+        f"style-{doctrine['executionStyle']}-v{revision}"
     )
     value["mapId"] = POPULATION_MAP_ID
     value["composition"] = doctrine["composition"]
@@ -617,6 +627,7 @@ def make_sheet(base: dict[str, Any], doctrine: dict[str, Any]) -> dict[str, Any]
         ),
         "policyStyle": doctrine["thesis"],
         "executionStyle": doctrine["executionStyle"],
+        "sheetRevision": revision,
         "visibleCounter": doctrine["counter"],
         "failureMode": doctrine["failure"],
     }

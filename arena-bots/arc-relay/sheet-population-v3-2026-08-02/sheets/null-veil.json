@@ -5,6 +5,7 @@
     "executionStyle": "sustain-attrition",
     "failureMode": "low direct reach lets revealed opponents dictate engagement distance",
     "policyStyle": "smoke hides a two-carrier centre while null fields erase the signatures used to collapse it",
+    "sheetRevision": 4,
     "visibleCounter": "use basic fire and wide pickups so suppression cannot deny every relevant action"
   },
   "auditStatus": {
@@ -106,7 +107,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-null-veil-style-sustain-attrition-v2",
+  "sheetId": "population-null-veil-style-sustain-attrition-v4",
   "slots": [
     {
       "outboundPath": [
@@ -230,7 +231,7 @@
           12
         ]
       ],
-      "role": "screen",
+      "role": "carrier",
       "theater": "north",
       "unitId": 2
     },
@@ -272,7 +273,7 @@
           12
         ]
       ],
-      "role": "screen",
+      "role": "carrier",
       "theater": "south",
       "unitId": 3
     },
@@ -398,7 +399,7 @@
           11
         ]
       ],
-      "role": "reserve",
+      "role": "carrier",
       "theater": "centre",
       "unitId": 6
     },

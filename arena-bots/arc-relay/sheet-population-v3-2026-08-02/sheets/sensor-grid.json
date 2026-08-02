@@ -5,6 +5,7 @@
     "executionStyle": "control-grid",
     "failureMode": "six static controllers can accumulate information without converting it into deliveries",
     "policyStyle": "sensors reveal routes into a three-Well mine-and-sentry grid for one protected runner",
+    "sheetRevision": 2,
     "visibleCounter": "overload the single courier or clear one theater faster than the grid can be rebuilt"
   },
   "auditStatus": {

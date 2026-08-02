@@ -5,6 +5,7 @@
     "executionStyle": "trap-punish",
     "failureMode": "the formation may spend cooldowns on empty route assumptions and leave its courier alone",
     "policyStyle": "smoke conceals mines and delayed fire while a null-backed central pair converts the trap",
+    "sheetRevision": 2,
     "visibleCounter": "reveal the setup or stay wide enough that the trap package cannot cover both returns"
   },
   "auditStatus": {
