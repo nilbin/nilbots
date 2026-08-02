@@ -113,10 +113,56 @@ def chebyshev(a: tuple[int, int], b: tuple[int, int]) -> int:
     return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
 
 
-def theater(pos: tuple[int, int]) -> str:
-    if pos[1] <= 7:
+def map_analysis_layout(contract: dict) -> dict:
+    """Derive descriptive theater/camp bands from the resolved map.
+
+    The original Threefold map happened to use y<=7/y>=15 and x<=9/x>=21.
+    Keeping those as literals would silently mismeasure a taller design arm.
+    Deriving them from named contract regions reproduces the original bands
+    byte-for-byte while remaining honest for registered geometry candidates.
+    """
+    map_contract = contract["map"]
+    regions = {
+        item["regionId"]: [position(tile) for tile in item["tiles"]]
+        for item in map_contract["regions"]
+    }
+    required = (
+        "well-north",
+        "well-centre",
+        "well-south",
+        "home-west",
+        "home-east",
+    )
+    missing = [region_id for region_id in required if region_id not in regions]
+    if missing:
+        raise ValueError(f"Arc Relay map is missing analysis regions: {missing}")
+    well_y = {
+        name: regions[f"well-{name}"][0][1]
+        for name in ("north", "centre", "south")
+    }
+    if not well_y["north"] < well_y["centre"] < well_y["south"]:
+        raise ValueError(f"Arc Relay Well ordering is invalid: {well_y}")
+    width = len(map_contract["tileRows"][0])
+    camp_depth = max(1, width // 5)
+    west_home_max_x = max(tile[0] for tile in regions["home-west"])
+    east_home_min_x = min(tile[0] for tile in regions["home-east"])
+    return {
+        "theaterNorthMaximumY": (
+            well_y["north"] + well_y["centre"]
+        ) // 2,
+        "theaterSouthMinimumY": (
+            well_y["centre"] + well_y["south"] + 1
+        ) // 2,
+        "westHomeCampMaximumX": west_home_max_x + camp_depth,
+        "eastHomeCampMinimumX": east_home_min_x - camp_depth,
+        "wellY": well_y,
+    }
+
+
+def theater(pos: tuple[int, int], layout: dict) -> str:
+    if pos[1] <= layout["theaterNorthMaximumY"]:
         return "north"
-    if pos[1] >= 15:
+    if pos[1] >= layout["theaterSouthMinimumY"]:
         return "south"
     return "centre"
 
@@ -850,6 +896,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     if broadcast.get("broadcastVersion") != 1:
         raise ValueError("expected Arc Relay broadcast v1")
     header = broadcast["header"]
+    analysis_layout = map_analysis_layout(header["contract"])
     rules = header["contract"]["rules"]["gameMode"]
     if rules.get("kind") != "arc-relay":
         raise ValueError("expected Arc Relay rules")
@@ -931,7 +978,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         tick_theaters = collections.defaultdict(set)
         for life in lives:
             team = life["team"]
-            current_theater = theater(life["position"])
+            current_theater = theater(life["position"], analysis_layout)
             body_ticks[(team, current_theater)] += 1
             tick_theaters[team].add(current_theater)
             actor = life["actor"]
@@ -939,8 +986,14 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             if prior is not None and prior != current_theater:
                 theater_transitions[team] += 1
             previous_theater_by_actor[actor] = current_theater
-            if (team == 0 and life["position"][0] >= 21) or (
-                team == 1 and life["position"][0] <= 9
+            if (
+                team == 0
+                and life["position"][0]
+                >= analysis_layout["eastHomeCampMinimumX"]
+            ) or (
+                team == 1
+                and life["position"][0]
+                <= analysis_layout["westHomeCampMaximumX"]
             ):
                 camp_body_ticks[team] += 1
         for team in team_ids:
@@ -1153,15 +1206,27 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
                 pulse_sequence.append({"tick": tick, "teamId": team})
             elif kind == "damage":
                 source_team = value.get("sourceTeamId")
-                damage[(source_team, theater(position(value["position"])))] += int(value["amount"])
+                damage[(
+                    source_team,
+                    theater(position(value["position"]), analysis_layout),
+                )] += int(value["amount"])
             elif kind == "destruction":
                 source_team = value.get("sourceTeamId")
-                event_theater = theater(position(value["position"]))
+                event_theater = theater(
+                    position(value["position"]), analysis_layout)
                 destruction[(source_team, event_theater)] += 1
                 event_x = position(value["position"])[0]
                 if source_team is not None and (
-                    (source_team == 0 and event_x >= 21)
-                    or (source_team == 1 and event_x <= 9)
+                    (
+                        source_team == 0
+                        and event_x
+                        >= analysis_layout["eastHomeCampMinimumX"]
+                    )
+                    or (
+                        source_team == 1
+                        and event_x
+                        <= analysis_layout["westHomeCampMaximumX"]
+                    )
                 ):
                     camp_kills[source_team] += 1
 
@@ -1277,6 +1342,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "seed": header["seed"],
             "entrantsByTeam": entrant_by_team,
             "compositionsByTeam": compositions,
+            "analysisLayout": analysis_layout,
         },
         "outcome": {
             "winnerTeamId": winner,
@@ -1375,8 +1441,15 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         "signatures": signature_metrics(broadcast, all_events, team_ids),
         "method": {
             "authority": "durable spectator broadcast; no mind observations or legality masks",
-            "theaters": "north y<=7; centre 8<=y<=14; south y>=15",
-            "homeCamp": "team 0 x>=21; team 1 x<=9",
+            "theaters": (
+                "derived from midpoints between the three named Well y "
+                "coordinates; exact bands are recorded in "
+                "identity.analysisLayout"
+            ),
+            "homeCamp": (
+                "derived from each home-region edge plus one fifth of map "
+                "width; exact thresholds are recorded in identity.analysisLayout"
+            ),
             "convoy": "allied non-carrier bodies at Chebyshev distance <=2",
             "routeDistance": "sum of authoritative Core relocation Chebyshev distances",
             "routeBaseline": "shortest traversable eight-way tile distance from source Well to scoring reactor",

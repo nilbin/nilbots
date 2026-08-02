@@ -20,6 +20,10 @@ public sealed class ArcRelayH0DefinitionTests
             loopProfile: ArcRelayLoopProfile.HomeConcourse);
         ActorResolvedMatchDefinition cover = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.CoverTrim);
+        ActorResolvedMatchDefinition larger = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.DepthLarger);
+        ActorResolvedMatchDefinition counterflow = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.DepthCounterflow);
         ActorResolvedMatchDefinition return16 = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Return16);
         ActorResolvedMatchDefinition return24 = ArcRelayH0Definition.Create(
@@ -44,6 +48,12 @@ public sealed class ArcRelayH0DefinitionTests
         Assert.Equal(
             baselineRules,
             ActorContractFingerprint.ComputeRules(cover.Rules));
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(larger.Rules));
+        Assert.Equal(
+            baselineRules,
+            ActorContractFingerprint.ComputeRules(counterflow.Rules));
         Assert.NotEqual(
             baselineMap,
             ActorContractFingerprint.ComputeMap(gates.Map));
@@ -56,10 +66,27 @@ public sealed class ArcRelayH0DefinitionTests
         Assert.NotEqual(
             baselineMap,
             ActorContractFingerprint.ComputeMap(cover.Map));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(larger.Map));
+        Assert.NotEqual(
+            baselineMap,
+            ActorContractFingerprint.ComputeMap(counterflow.Map));
         Assert.Equal(537, OpenTileCount(gates));
         Assert.Equal(549, OpenTileCount(gatesThree));
         Assert.Equal(535, OpenTileCount(concourse));
         Assert.Equal(543, OpenTileCount(cover));
+        Assert.Equal((31, 29, 687),
+            (larger.Map.Width, larger.Map.Height, OpenTileCount(larger)));
+        Assert.Equal(OpenTileCount(gates), OpenTileCount(counterflow));
+        Assert.Equal(
+            counterflow.Map.TileRows,
+            counterflow.Map.TileRows.Reverse()
+                .Select(row => new string(row.Reverse().ToArray())));
+        Assert.NotEqual(
+            counterflow.Map.TileRows,
+            counterflow.Map.TileRows.Select(row =>
+                new string(row.Reverse().ToArray())));
 
         Assert.Equal(
             baselineMap,

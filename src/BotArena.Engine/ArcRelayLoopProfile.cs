@@ -85,6 +85,36 @@ public sealed record ArcRelayLoopProfile
         25,
         7);
 
+    /// <summary>
+    /// Design-study arm: the Threefold relationships are retained on a
+    /// 31-by-29 field, inside the frozen 32-by-32 engine ceiling. Rules and
+    /// cadence remain H0.
+    /// </summary>
+    public static ArcRelayLoopProfile DepthLarger { get; } = new(
+        "depth-larger",
+        ArcRelayH0Definition.RulesetId,
+        "arc-relay-threefold-depth-larger-01",
+        ArcRelayMapGeometry.DepthLarger,
+        20,
+        75,
+        25,
+        7);
+
+    /// <summary>
+    /// Design-study arm: unequal north/south lane character with exact
+    /// 180-degree fairness. Rules, dimensions, objectives, and cover count
+    /// remain the home-gates-wide baseline.
+    /// </summary>
+    public static ArcRelayLoopProfile DepthCounterflow { get; } = new(
+        "depth-counterflow",
+        ArcRelayH0Definition.RulesetId,
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7);
+
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
         "arc-relay-return-16-01",
@@ -132,6 +162,8 @@ public sealed record ArcRelayLoopProfile
         HomeGatesThree,
         HomeConcourse,
         CoverTrim,
+        DepthLarger,
+        DepthCounterflow,
         Return16,
         Return24,
         Hot60,
@@ -156,4 +188,6 @@ internal enum ArcRelayMapGeometry
     HomeGatesThree,
     HomeConcourse,
     CoverTrim,
+    DepthLarger,
+    DepthCounterflow,
 }

@@ -82,7 +82,10 @@ public static class ArcRelayH0Definition
     public static ActorMapDefinition CreateMap(ArcRelayLoopProfile loopProfile)
     {
         ArgumentNullException.ThrowIfNull(loopProfile);
-        ImmutableArray<string> rows =
+        ImmutableArray<string> rows = loopProfile.Geometry
+            == ArcRelayMapGeometry.DepthLarger
+            ? CreateLargerRows()
+            :
         [
             "###############################",
             "#....#...................#....#",
@@ -109,31 +112,45 @@ public static class ArcRelayH0Definition
             "###############################",
         ];
         rows = ApplyGeometry(rows, loopProfile.Geometry);
+        bool larger = loopProfile.Geometry == ArcRelayMapGeometry.DepthLarger;
+        int maximumX = rows[0].Length - 1;
+        int centreX = 15;
+        int centreY = larger ? 14 : 11;
+        int northY = 4;
+        int southY = larger ? 24 : 18;
         var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
-        Position[] west =
-        [
-            new(1, 8), new(2, 8), new(3, 9), new(1, 10),
-            new(1, 12), new(3, 13), new(1, 14), new(2, 14),
-        ];
+        Position[] west = larger
+            ?
+            [
+                new(1, 11), new(2, 11), new(3, 12), new(1, 13),
+                new(1, 15), new(3, 16), new(1, 17), new(2, 17),
+            ]
+            :
+            [
+                new(1, 8), new(2, 8), new(3, 9), new(1, 10),
+                new(1, 12), new(3, 13), new(1, 14), new(2, 14),
+            ];
         for (int unitId = 0; unitId < west.Length; unitId++)
         {
             anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
             anchors.Add(Anchor(
                 1,
                 unitId,
-                new Position(30 - west[unitId].X, west[unitId].Y),
+                new Position(maximumX - west[unitId].X, west[unitId].Y),
                 Direction.West));
         }
 
-        ImmutableArray<Position> westHome = Rectangle(1, 3, 8, 14);
+        ImmutableArray<Position> westHome = Rectangle(
+            1, 3, larger ? 11 : 8, larger ? 17 : 14);
         ImmutableArray<Position> eastHome = westHome
-            .Select(value => new Position(30 - value.X, value.Y))
+            .Select(value => new Position(maximumX - value.X, value.Y))
             .OrderBy(value => value.Y).ThenBy(value => value.X)
             .ToImmutableArray();
         Position[] forbidden =
         [
-            new(15, 4), new(15, 11), new(15, 18),
-            new(2, 11), new(28, 11),
+            new(centreX, northY), new(centreX, centreY),
+            new(centreX, southY), new(larger ? 1 : 2, centreY),
+            new(maximumX - (larger ? 1 : 2), centreY),
         ];
         return new ActorMapDefinition(
             loopProfile.MapId,
@@ -141,11 +158,12 @@ public static class ArcRelayH0Definition
             rows,
             anchors.ToImmutable(),
             [
-                Region("well-north", new Position(15, 4)),
-                Region("well-centre", new Position(15, 11)),
-                Region("well-south", new Position(15, 18)),
-                Region("reactor-west", new Position(2, 11)),
-                Region("reactor-east", new Position(28, 11)),
+                Region("well-north", new Position(centreX, northY)),
+                Region("well-centre", new Position(centreX, centreY)),
+                Region("well-south", new Position(centreX, southY)),
+                Region("reactor-west", new Position(larger ? 1 : 2, centreY)),
+                Region("reactor-east", new Position(
+                    maximumX - (larger ? 1 : 2), centreY)),
                 new ActorMapRegionDefinition(
                     "home-west",
                     ActorMapRegionDefinition.RegionKind.Objective,
@@ -571,7 +589,8 @@ public static class ArcRelayH0Definition
         ImmutableArray<string> rows,
         ArcRelayMapGeometry geometry)
     {
-        if (geometry == ArcRelayMapGeometry.H0)
+        if (geometry is ArcRelayMapGeometry.H0
+            or ArcRelayMapGeometry.DepthLarger)
             return rows;
 
         string[] changed = rows.ToArray();
@@ -604,6 +623,32 @@ public static class ArcRelayH0Definition
                 changed[y] = Open(changed[y], 10, 20);
             }
         }
+        else if (geometry == ArcRelayMapGeometry.DepthCounterflow)
+        {
+            foreach (int y in new[] { 1, 5, 8, 14, 17, 21 })
+                changed[y] = Open(changed[y], 5, 25);
+
+            // Swap equal cover mass into a chiral counterflow. The second half
+            // of each pair is the exact 180-degree partner of the first: west
+            // gets the faster north entry, east the faster south entry, while
+            // neither participant owns a globally better side.
+            foreach ((int x, int y) in new[]
+            {
+                (10, 5), (11, 5), (12, 5),
+                (20, 17), (19, 17), (18, 17),
+            })
+            {
+                changed[y] = Set(changed[y], x, '.');
+            }
+            foreach ((int x, int y) in new[]
+            {
+                (6, 3), (7, 3), (8, 3),
+                (24, 19), (23, 19), (22, 19),
+            })
+            {
+                changed[y] = Set(changed[y], x, '#');
+            }
+        }
         else
         {
             throw new ArgumentOutOfRangeException(nameof(geometry));
@@ -617,6 +662,38 @@ public static class ArcRelayH0Definition
         foreach (int x in columns)
             changed[x] = '.';
         return new string(changed);
+    }
+
+    private static string Set(string row, int column, char value)
+    {
+        char[] changed = row.ToCharArray();
+        changed[column] = value;
+        return new string(changed);
+    }
+
+    private static ImmutableArray<string> CreateLargerRows()
+    {
+        const int width = 31;
+        const int height = 29;
+        char[][] rows = Enumerable.Range(0, height)
+            .Select(y => Enumerable.Range(0, width)
+                .Select(x => x == 0 || x == width - 1
+                    || y == 0 || y == height - 1 ? '#' : '.')
+                .ToArray())
+            .ToArray();
+        foreach (int y in new[]
+            { 3, 4, 5, 8, 12, 13, 14, 15, 20, 23, 24, 25 })
+        {
+            rows[y][5] = '#';
+            rows[y][25] = '#';
+        }
+        foreach (int y in new[]
+            { 3, 4, 5, 6, 12, 13, 14, 15, 22, 23, 24, 25 })
+        {
+            foreach (int x in new[] { 10, 11, 12, 18, 19, 20 })
+                rows[y][x] = '#';
+        }
+        return [.. rows.Select(row => new string(row))];
     }
 
     private static ActorMapSpawnAnchorDefinition Anchor(

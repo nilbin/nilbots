@@ -16,6 +16,44 @@ SPEC.loader.exec_module(SCORE)
 
 
 class FeltDegeneracyTests(unittest.TestCase):
+    @staticmethod
+    def map_contract(height: int, north: int, centre: int, south: int) -> dict:
+        return {
+            "map": {
+                "tileRows": ["." * 31 for _ in range(height)],
+                "regions": [
+                    {"regionId": "well-north", "tiles": [[15, north]]},
+                    {"regionId": "well-centre", "tiles": [[15, centre]]},
+                    {"regionId": "well-south", "tiles": [[15, south]]},
+                    {
+                        "regionId": "home-west",
+                        "tiles": [[x, centre] for x in range(1, 4)],
+                    },
+                    {
+                        "regionId": "home-east",
+                        "tiles": [[x, centre] for x in range(27, 30)],
+                    },
+                ],
+            },
+        }
+
+    def test_analysis_layout_reproduces_threefold_bands(self) -> None:
+        layout = SCORE.map_analysis_layout(
+            self.map_contract(23, north=4, centre=11, south=18))
+        self.assertEqual(7, layout["theaterNorthMaximumY"])
+        self.assertEqual(15, layout["theaterSouthMinimumY"])
+        self.assertEqual(9, layout["westHomeCampMaximumX"])
+        self.assertEqual(21, layout["eastHomeCampMinimumX"])
+
+    def test_analysis_layout_scales_taller_threefold_theaters(self) -> None:
+        layout = SCORE.map_analysis_layout(
+            self.map_contract(29, north=4, centre=14, south=24))
+        self.assertEqual(9, layout["theaterNorthMaximumY"])
+        self.assertEqual(19, layout["theaterSouthMinimumY"])
+        self.assertEqual("north", SCORE.theater((15, 9), layout))
+        self.assertEqual("centre", SCORE.theater((15, 10), layout))
+        self.assertEqual("south", SCORE.theater((15, 19), layout))
+
     def test_three_rapid_same_pair_reversals_trip_ping_pong_bar(self) -> None:
         a = (0, 0, 1)
         b = (0, 1, 1)
