@@ -1716,14 +1716,8 @@ export function drawArena(
 
   function drawLocomotionMotion(pose: BotPose): void {
     const look = unitLook(replay, pose.unitKey, pose.formId);
-    const before = currentTick?.before.actors.find(
-      (actor) => actor.actorKey === pose.actorKey,
-    );
-    const after = currentTick?.after.actors.find(
-      (actor) => actor.actorKey === pose.actorKey,
-    );
-    const dx = (after?.position.x ?? pose.x) - (before?.position.x ?? pose.x);
-    const dy = (after?.position.y ?? pose.y) - (before?.position.y ?? pose.y);
+    const dx = pose.motionX;
+    const dy = pose.motionY;
     const distance = Math.hypot(dx, dy);
     const cx = px(pose.x) + tile / 2;
     const cy = py(pose.y) + tile / 2;
@@ -1737,21 +1731,41 @@ export function drawArena(
       ctx.ellipse(cx, cy + tile * 0.18, tile * 0.3, tile * 0.1, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
-      return;
     }
     if (distance === 0) return;
     const nx = dx / distance;
     const ny = dy / distance;
     const sideX = -ny;
     const sideY = nx;
-    const life = Math.sin(fraction * Math.PI);
+    // A moving body keeps a wake through the whole authoritative A-to-B
+    // segment. Fading it to zero at every integer tick made consecutive
+    // movement look like a sequence of chess-piece starts and stops.
+    const life = 0.58 + Math.sin(fraction * Math.PI) * 0.42;
     const backX = cx - nx * tile * 0.36;
     const backY = cy - ny * tile * 0.36;
     ctx.save();
-    ctx.strokeStyle = `rgba(197, 177, 137, ${0.34 * life})`;
+    const accent = accentFor(pose.unitKey);
+    ctx.strokeStyle = hexWithAlpha(accent, 0.38 * life);
     ctx.fillStyle = `rgba(197, 177, 137, ${0.2 * life})`;
     ctx.lineCap = 'round';
-    if (look.locomotionCue === 'skids') {
+    if (look.locomotionCue === 'low-hover') {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(3, tile * 0.1);
+      ctx.lineWidth = Math.max(1.5, tile * 0.042);
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(
+          backX + sideX * side * tile * 0.13,
+          backY + sideY * side * tile * 0.13,
+        );
+        ctx.lineTo(
+          backX - nx * tile * (0.22 + life * 0.14) + sideX * side * tile * 0.09,
+          backY - ny * tile * (0.22 + life * 0.14) + sideY * side * tile * 0.09,
+        );
+        ctx.stroke();
+      }
+    } else if (look.locomotionCue === 'skids') {
       ctx.lineWidth = Math.max(1.5, tile * 0.035);
       for (const side of [-1, 1]) {
         ctx.beginPath();
@@ -1811,7 +1825,13 @@ export function drawArena(
           tile *
           0.022
         : 0;
-    const cy = py(pose.y) + tile / 2 + hover;
+    const moving = Math.hypot(pose.motionX, pose.motionY) > 0;
+    const travelLift = moving
+      ? tile *
+        (look.locomotionCue === 'low-hover' ? 0.026 : 0.009) *
+        (0.72 + Math.sin(fraction * Math.PI) * 0.28)
+      : 0;
+    const cy = py(pose.y) + tile / 2 + hover - travelLift;
     const radius = tile * 0.38;
     const destroyedNow = (currentTick?.events ?? []).some(
       (event) =>
@@ -1959,6 +1979,46 @@ export function drawArena(
       ctx.filter = 'none';
     } else {
       drawFallbackChassis(participant?.name ?? '', radius, accent, destroyed);
+    }
+
+    // Directional drive light is fixed to the chassis, while its exhaust
+    // points opposite the replay's actual displacement. Together with the
+    // authoritative nose marker this makes forward drive, reverse and strafe
+    // visually different without rotating or moving the body away from replay
+    // truth.
+    if (!destroyed && !ghosted && moving && form?.canMove !== false) {
+      const distance = Math.hypot(pose.motionX, pose.motionY);
+      const worldX = pose.motionX / distance;
+      const worldY = pose.motionY / distance;
+      const localX = Math.cos(pose.angle) * worldX + Math.sin(pose.angle) * worldY;
+      const localY = -Math.sin(pose.angle) * worldX + Math.cos(pose.angle) * worldY;
+      const exhaustX = -localX;
+      const exhaustY = -localY;
+      const sideX = -exhaustY;
+      const sideY = exhaustX;
+      const sourceX = exhaustX * radius * 0.54;
+      const sourceY = exhaustY * radius * 0.54;
+      const drive = 0.68 + Math.sin(fraction * Math.PI) * 0.32;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = hexWithAlpha(accent, 0.74 * drive);
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(4, tile * 0.13);
+      ctx.lineWidth = Math.max(1.4, tile * 0.038);
+      ctx.lineCap = 'round';
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(
+          sourceX + sideX * side * radius * 0.19,
+          sourceY + sideY * side * radius * 0.19,
+        );
+        ctx.lineTo(
+          sourceX + exhaustX * radius * 0.32 + sideX * side * radius * 0.1,
+          sourceY + exhaustY * radius * 0.32 + sideY * side * radius * 0.1,
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // Which way this machine is pointing, stated outright.

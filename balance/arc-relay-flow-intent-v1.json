@@ -1,0 +1,35 @@
+{
+  "schema": "arc-relay-flow-intent-study-v1",
+  "status": "registered-before-repaired-outcomes-or-renderer-review",
+  "authority": "owner flow-and-intent goal, 2026-08-02",
+  "classification": "participant path-execution repair plus presentation-only locomotion pass; no game-rule or map change",
+  "hypotheses": {
+    "coreFlow": "near-reactor stalls are traffic or route-execution failures that the same-tile/same-life bar does not completely describe",
+    "motion": "authoritative movement reads like sliding tokens because translation and facing are truthful but locomotion does not communicate forward, reverse, and lateral intent"
+  },
+  "diagnosticSources": {
+    "ownerWatchedGallery": "sandbox/arc-relay-presentation-art-review-v1-2026-08-02-engine-1-0-5",
+    "playerSheetPopulation": "sandbox/arc-relay-sheet-population-cross-screen-v9/run/attempt-01",
+    "registeredRepair": "sandbox/arc-relay-sheet-population-sustain-repair-v10/run/attempt-01"
+  },
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "repairOrder": [
+    "gallery provenance and eligibility enforcement",
+    "stock player-sheet algorithm if the v3 re-read trips",
+    "obsolete hand-authored doctrine only if it remains in the replacement gallery"
+  ],
+  "acceptance": {
+    "forensics": "every tripping current-gallery episode has a tick range, Core, side, position history, and classified cause",
+    "detector": "the owner-observed stationary cases trip and synthetic same-team handoff and two-tile oscillation cases cannot evade the bar",
+    "population": "every retained player-sheet cell passes v3 under canonical WASM evidence; any repaired sheet or algorithm is re-run rather than re-scored in place",
+    "presentation": "planar positions, authoritative facing, hit timing, vision, and canonical replay bytes remain unchanged while forward, reverse, lateral, and turn motion receive visibly distinct renderer-owned cues",
+    "review": "a fresh twelve-match gallery contains only v3-eligible current player-sheet cells and deliberately covers movement relations plus carrier approaches and banks"
+  },
+  "prohibitions": [
+    "no comeback mechanic",
+    "no score-to-power or economy",
+    "no class-stat, rules, cadence, or map change",
+    "no threshold movement after repaired outcomes are read",
+    "no fun claim without owner review"
+  ]
+}

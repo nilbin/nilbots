@@ -288,6 +288,40 @@ test('actor-life interpolation adds fabricated lives without morphing primes', (
   );
 });
 
+test('interpolated poses expose replay-owned motion independently of facing', () => {
+  const tickIndex = replay.ticks.findIndex((tick) =>
+    tick.before.actors.some((before) => {
+      const after = tick.after.actors.find(
+        (candidate) => candidate.actorKey === before.actorKey,
+      );
+      return after !== undefined &&
+        (after.position.x !== before.position.x ||
+          after.position.y !== before.position.y);
+    }),
+  );
+  assert.ok(tickIndex >= 0, 'fixture contains an authoritative move');
+  const tick = replay.ticks[tickIndex]!;
+  const before = tick.before.actors.find((candidate) => {
+    const after = tick.after.actors.find(
+      (other) => other.actorKey === candidate.actorKey,
+    );
+    return after !== undefined &&
+      (after.position.x !== candidate.position.x ||
+        after.position.y !== candidate.position.y);
+  })!;
+  const after = tick.after.actors.find(
+    (candidate) => candidate.actorKey === before.actorKey,
+  )!;
+  const pose = posesAt(replay, tickIndex + 0.5).find(
+    (candidate) => candidate.actorKey === before.actorKey,
+  )!;
+
+  assert.equal(pose.motionX, after.position.x - before.position.x);
+  assert.equal(pose.motionY, after.position.y - before.position.y);
+  assert.equal(pose.x, (before.position.x + after.position.x) / 2);
+  assert.equal(pose.y, (before.position.y + after.position.y) / 2);
+});
+
 test('Frontline presentation follows stable units through fabrication and anchoring', () => {
   const presenter = createPresenter(replay);
   const opening = presenter.at(0);

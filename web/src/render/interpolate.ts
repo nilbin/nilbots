@@ -22,6 +22,10 @@ export interface BotPose {
   formId: string;
   x: number;
   y: number;
+  /** Authoritative A-to-B displacement for this tick; never inferred from facing. */
+  motionX: number;
+  /** Authoritative A-to-B displacement for this tick; never inferred from facing. */
+  motionY: number;
   angle: number;
   health: number;
   cooldown: number;
@@ -157,6 +161,8 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
       y:
         start.position.y +
         (end.position.y - start.position.y) * fraction,
+      motionX: end.position.x - start.position.x,
+      motionY: end.position.y - start.position.y,
       angle: fromAngle + rotation * actionFraction,
       health: actionFraction < 0.6 ? start.health : end.health,
       cooldown: end.cooldown,
@@ -178,6 +184,8 @@ function poseFromState(
     formId: state.formId,
     x: state.position.x,
     y: state.position.y,
+    motionX: 0,
+    motionY: 0,
     angle: directionAngle(state.facing),
     health: state.health,
     cooldown: state.cooldown,

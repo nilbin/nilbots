@@ -16,7 +16,7 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_CLI = REPO / "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
-BARS = REPO / "balance/arc-relay-felt-degeneracy-bars-v2.json"
+DEFAULT_BARS = REPO / "balance/arc-relay-felt-degeneracy-bars-v3.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -150,10 +150,28 @@ def main() -> int:
     )
     parser.add_argument("--engine-version", default="1.0.5")
     parser.add_argument("--cli", type=Path, default=DEFAULT_CLI)
+    parser.add_argument(
+        "--eligibility-bars",
+        type=Path,
+        help=(
+            "override the cohort's declared felt-degeneracy registration; "
+            "new cohorts without one use the current v3 registration"
+        ),
+    )
     args = parser.parse_args()
 
     cohort_path = args.cohort.resolve()
     cohort = read_json(cohort_path)
+    declared_bars = cohort.get("eligibilityBars")
+    bars = (
+        args.eligibility_bars.resolve()
+        if args.eligibility_bars is not None
+        else resolve(cohort_path.parent, declared_bars)
+        if isinstance(declared_bars, str)
+        else DEFAULT_BARS
+    )
+    if not bars.is_file():
+        raise FileNotFoundError(f"eligibility bars do not exist: {bars}")
     raw_entrants = cohort.get("entrants")
     if not isinstance(raw_entrants, list) or len(raw_entrants) < 2:
         raise ValueError("cohort needs at least two entrants")
@@ -247,8 +265,8 @@ def main() -> int:
         "loopProfile": args.profile,
         "engineVersion": args.engine_version,
         **common,
-        "eligibilityBars": os.path.relpath(BARS, REPO),
-        "eligibilityBarsSha256": sha256(BARS),
+        "eligibilityBars": os.path.relpath(bars, REPO),
+        "eligibilityBarsSha256": sha256(bars),
         "entrants": entrants,
         "cells": cells,
     }

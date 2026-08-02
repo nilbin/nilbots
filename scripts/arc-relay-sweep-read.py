@@ -51,6 +51,11 @@ def main() -> int:
                 "stationaryCarrierTicks": eligibility.get(
                     "stuckCarrier", {}
                 ).get("maxConsecutiveTicksByTeam", {}).get(team, 0),
+                "homeCarrierNonProgressTicks": eligibility.get(
+                    "homeCarrierNonProgress", {}
+                ).get(
+                    "maxUncontestedTicksWithoutProgressByTeam", {}
+                ).get(team, 0),
             })
         rows.append({"cell": cell, "scorecard": card, "result": result})
 

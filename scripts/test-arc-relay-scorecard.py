@@ -113,6 +113,88 @@ class FeltDegeneracyTests(unittest.TestCase):
         self.assertFalse(output["barTrippedByTeam"]["0"])
         self.assertEqual(29, output["maxConsecutiveTicksByTeam"]["0"])
 
+    @staticmethod
+    def progress_world(
+        core_x: int,
+        carrier_unit: int = 3,
+        enemy_x: int | None = None,
+    ) -> list:
+        value = [None] * 8
+        actors = [[
+            0, carrier_unit, 1, 0, 0, "arc-body-relay",
+            core_x, 1, "west", 4,
+        ]]
+        if enemy_x is not None:
+            actors.append([
+                1, 0, 1, 1, 0, "arc-body-relay",
+                enemy_x, 1, "east", 4,
+            ])
+        value[4] = actors
+        value[7] = {
+            "kind": "arc-relay",
+            "visibleCores": [{
+                "coreId": {
+                    "sourceWellId": "centre",
+                    "sourceOrdinal": 1,
+                },
+                "disposition": "carried",
+                "carrierActorId": [0, carrier_unit, 1],
+                "position": [core_x, 1],
+            }],
+        }
+        return value
+
+    def test_home_progress_bar_survives_tile_oscillation_and_handoff(self) -> None:
+        worlds = []
+        for tick in range(30):
+            worlds.append(self.progress_world(
+                3 if tick % 2 == 0 else 4,
+                carrier_unit=3 if tick < 15 else 4,
+            ))
+        output = SCORE.home_carrier_non_progress_metrics(
+            {"worlds": worlds},
+            [0, 1],
+            [".......", ".......", "......."],
+            {0: (1, 1), 1: (5, 1)},
+        )
+        self.assertTrue(output["barTrippedByTeam"]["0"])
+        self.assertEqual(
+            30,
+            output["maxUncontestedTicksWithoutProgressByTeam"]["0"],
+        )
+        self.assertEqual(1, output["trippingRuns"][0]["carrierChanges"])
+        self.assertEqual(2, output["trippingRuns"][0]["distinctPositions"])
+
+    def test_home_progress_and_visible_contest_prevent_false_trip(self) -> None:
+        progressing = [
+            self.progress_world(5),
+            *[self.progress_world(4) for _ in range(12)],
+            *[self.progress_world(3) for _ in range(12)],
+            *[self.progress_world(2) for _ in range(12)],
+        ]
+        progress_output = SCORE.home_carrier_non_progress_metrics(
+            {"worlds": progressing},
+            [0, 1],
+            [".......", ".......", "......."],
+            {0: (1, 1), 1: (5, 1)},
+        )
+        self.assertFalse(progress_output["barTrippedByTeam"]["0"])
+
+        contested = [self.progress_world(3, enemy_x=4) for _ in range(45)]
+        contest_output = SCORE.home_carrier_non_progress_metrics(
+            {"worlds": contested},
+            [0, 1],
+            [".......", ".......", "......."],
+            {0: (1, 1), 1: (5, 1)},
+        )
+        self.assertFalse(contest_output["barTrippedByTeam"]["0"])
+        self.assertEqual(
+            0,
+            contest_output[
+                "maxUncontestedTicksWithoutProgressByTeam"
+            ]["0"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

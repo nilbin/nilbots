@@ -3,6 +3,14 @@ approve, revise, or reject the presentation pass and sixteen-class contact
 sheet. The requested presentation and art work is complete. Art remains an
 owner taste call, and no fun claim is made here.
 
+> **Eligibility erratum — 2026-08-02:** the gallery described below froze the
+> obsolete v1 felt-degeneracy registration and was incorrectly called the
+> latest eligible set. Re-scoring its broadcasts under v2/v3 identifies two of
+> twelve matches with an indefinitely stalled home carrier (130 and 496
+> stationary ticks). The presentation and art evidence remains valid, but that
+> gallery is superseded for gameplay review by the eligibility-clean gallery in
+> `ARC-RELAY-FLOW-AND-INTENT-PASS-2026-08-02.md`.
+
 # Arc Relay presentation + class art pass
 
 ## Result

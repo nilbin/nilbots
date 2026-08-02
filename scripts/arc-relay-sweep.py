@@ -105,6 +105,15 @@ def validate_manifest(path: Path) -> dict[str, Any]:
         raise ValueError("sweep needs at least one cell")
     if "goldenId" in manifest and len(cells) < 6:
         raise ValueError("a golden sweep must freeze at least six cells")
+    bars_value = manifest.get("eligibilityBars")
+    bars_hash = manifest.get("eligibilityBarsSha256")
+    if not isinstance(bars_value, str) or not isinstance(bars_hash, str):
+        raise ValueError("sweep must freeze eligibilityBars and its SHA-256")
+    bars = resolve_repo_path(bars_value)
+    if not bars.is_file():
+        raise FileNotFoundError(f"missing eligibility bars: {bars}")
+    if sha256(bars) != bars_hash:
+        raise ValueError("eligibility bars moved after the sweep was frozen")
     for entrant_id, entrant in entrants.items():
         artifact = resolve_repo_path(entrant["artifact"])
         sheet = resolve_repo_path(entrant["sheet"])
@@ -446,6 +455,8 @@ def execute_cell(
             str(record_path),
             "--output",
             str(scorecard_path),
+            "--bars",
+            str(resolve_repo_path(manifest["eligibilityBars"])),
         ],
         attempt / "scorecard.log",
         cancelled,

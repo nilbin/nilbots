@@ -1,0 +1,502 @@
+{
+  "auditDimensions": {
+    "adaptationStyle": "bounded rising-edge gambits",
+    "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "feint-switch",
+    "failureMode": "role elasticity can become travel churn if pulses alternate faster than the cooldown windows",
+    "policyStyle": "paired reserves repeatedly change jobs while a stable towline-and-smoke centre protects two carriers",
+    "sheetRevision": 2,
+    "visibleCounter": "force both reserve triggers together so one bounded response necessarily arrives late"
+  },
+  "auditStatus": {
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "purpose": "32-sheet structural diversity and balance population"
+  },
+  "composition": [
+    "switchback",
+    "switchback",
+    "relay",
+    "relay",
+    "towline",
+    "towline",
+    "veil",
+    "patchbay"
+  ],
+  "gambits": [
+    {
+      "cooldownTicks": 60,
+      "durationTicks": 20,
+      "id": "elastic-backstop",
+      "priority": 10,
+      "rallyLine": "home",
+      "roleOverride": "intercept",
+      "scopeRoles": [
+        "reserve"
+      ],
+      "trigger": "after-enemy-pulse"
+    },
+    {
+      "cooldownTicks": 34,
+      "durationTicks": 14,
+      "id": "elastic-collapse",
+      "priority": 20,
+      "rallyLine": "middle",
+      "roleOverride": "intercept",
+      "scopeRoles": [
+        "screen"
+      ],
+      "trigger": "double-enemy-possession"
+    },
+    {
+      "cooldownTicks": 46,
+      "durationTicks": 16,
+      "id": "elastic-release",
+      "priority": 30,
+      "rallyLine": "forward",
+      "roleOverride": "carrier",
+      "scopeRoles": [
+        "reserve"
+      ],
+      "trigger": "after-own-pulse"
+    }
+  ],
+  "mapId": "arc-relay-threefold-home-gates-wide-01",
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 2,
+      "preferAssignedTheater": false,
+      "routeFailureTicks": 8
+    },
+    "escort": {
+      "focusEnemyCarrier": true,
+      "followDistance": 1
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "rallyLines": {
+    "forward": [
+      [
+        13,
+        6
+      ],
+      [
+        13,
+        9
+      ],
+      [
+        13,
+        13
+      ],
+      [
+        13,
+        16
+      ]
+    ],
+    "home": [
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        11
+      ],
+      [
+        4,
+        13
+      ]
+    ],
+    "middle": [
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        16
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "population-elastic-reserve-style-feint-switch-v2",
+  "slots": [
+    {
+      "outboundPath": [
+        [
+          4,
+          8
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          12,
+          6
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "reserve",
+      "theater": "north",
+      "unitId": 0
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          13
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          12,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "reserve",
+      "theater": "south",
+      "unitId": 1
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          13,
+          6
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "north",
+      "unitId": 2
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          13,
+          16
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          5,
+          16
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "south",
+      "unitId": 3
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          10
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          12,
+          13
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "centre",
+      "unitId": 4
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          13
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          10,
+          12
+        ],
+        [
+          6,
+          12
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "centre",
+      "unitId": 5
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          11,
+          11
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          2,
+          10
+        ]
+      ],
+      "role": "screen",
+      "theater": "centre",
+      "unitId": 6
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          13
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          13,
+          13
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "screen",
+      "theater": "centre",
+      "unitId": 7
+    }
+  ],
+  "zones": {
+    "centre": [
+      10,
+      7,
+      20,
+      15
+    ],
+    "intercept": [
+      9,
+      2,
+      21,
+      20
+    ],
+    "north": [
+      11,
+      1,
+      19,
+      8
+    ],
+    "south": [
+      11,
+      14,
+      19,
+      21
+    ]
+  }
+}

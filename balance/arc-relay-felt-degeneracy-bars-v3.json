@@ -1,0 +1,36 @@
+{
+  "schema": "arc-relay-felt-degeneracy-bars-v3",
+  "status": "frozen-after-owner-flow-and-intent-steer-2026-08-02",
+  "authority": "owner observed indefinite near-reactor Core stalls in the presentation gallery",
+  "purpose": "Cohort and gallery eligibility, not an outcome or fun score",
+  "supersedes": "balance/arc-relay-felt-degeneracy-bars-v2.json",
+  "handoffPingPong": {
+    "maximumGapCoreRelocationIntervals": 2,
+    "tripAtReversalsInOneSamePairEpisode": 3
+  },
+  "sustainedPassivity": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtQuietTicksInWindow": 60,
+    "quietTickMinimumWaitShare": 0.75,
+    "liveCoreTheaterChebyshevDistance": 4
+  },
+  "formationFreeze": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtHighWaitTicksInWindow": 60,
+    "highWaitMinimumShare": 0.75
+  },
+  "stuckCarrier": {
+    "tripAtConsecutiveSameCarrierPositionTicks": 30
+  },
+  "homeCarrierNonProgress": {
+    "homeRadiusShortestPathTiles": 6,
+    "enemyContestChebyshevDistance": 2,
+    "tripAtUncontestedTicksWithoutNewBestDistance": 30,
+    "ownershipScope": "same-team continuous carried possession; an allied handoff does not reset the run",
+    "progressDefinition": "strictly lower static eight-way walkable distance to the owning team's reactor",
+    "contestDisposition": "ticks with an enemy within the configured distance pause but do not reset the run"
+  },
+  "eligibility": "A doctrine or sheet side that trips ping-pong, off-theater passivity, formation freeze, stuck-carrier, or uncontested home-carrier non-progress bars is excluded from cohort reads and galleries until fixed; exclusions are disclosed."
+}

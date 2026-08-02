@@ -18,30 +18,66 @@ from pathlib import Path
 from statistics import mean, median
 
 
-SCHEMA = "arc-relay-scorecard-v1"
+SCHEMA = "arc-relay-scorecard-v2"
 TICKS_PER_SECOND = 5
-BARS_PATH = (
+DEFAULT_BARS_PATH = (
     Path(__file__).resolve().parent.parent
-    / "balance/arc-relay-felt-degeneracy-bars-v2.json"
+    / "balance/arc-relay-felt-degeneracy-bars-v3.json"
 )
-BARS = json.loads(BARS_PATH.read_text(encoding="utf-8"))
-PING_PONG_REVERSAL_BAR = BARS["handoffPingPong"][
-    "tripAtReversalsInOneSamePairEpisode"]
-PING_PONG_GAP_INTERVALS = BARS["handoffPingPong"][
-    "maximumGapCoreRelocationIntervals"]
-PASSIVITY_WINDOW_TICKS = BARS["sustainedPassivity"]["windowTicks"]
-PASSIVITY_MIN_QUIET_TICKS = BARS["sustainedPassivity"][
-    "tripAtQuietTicksInWindow"]
-PASSIVITY_WAIT_SHARE = BARS["sustainedPassivity"][
-    "quietTickMinimumWaitShare"]
-CONTEST_DISTANCE = BARS["sustainedPassivity"][
-    "liveCoreTheaterChebyshevDistance"]
-FREEZE_WINDOW_TICKS = BARS["formationFreeze"]["windowTicks"]
-FREEZE_MIN_HIGH_WAIT_TICKS = BARS["formationFreeze"][
-    "tripAtHighWaitTicksInWindow"]
-FREEZE_WAIT_SHARE = BARS["formationFreeze"]["highWaitMinimumShare"]
-STUCK_CARRIER_TICKS = BARS["stuckCarrier"][
-    "tripAtConsecutiveSameCarrierPositionTicks"]
+
+
+def configure_bars(path: Path) -> None:
+    global BARS_PATH, BARS
+    global PING_PONG_REVERSAL_BAR, PING_PONG_GAP_INTERVALS
+    global PASSIVITY_WINDOW_TICKS, PASSIVITY_MIN_QUIET_TICKS
+    global PASSIVITY_WAIT_SHARE, CONTEST_DISTANCE
+    global FREEZE_WINDOW_TICKS, FREEZE_MIN_HIGH_WAIT_TICKS
+    global FREEZE_WAIT_SHARE, STUCK_CARRIER_TICKS
+    global HOME_PROGRESS_RADIUS, HOME_PROGRESS_CONTEST_DISTANCE
+    global HOME_PROGRESS_TICKS
+
+    BARS_PATH = path.resolve()
+    BARS = json.loads(BARS_PATH.read_text(encoding="utf-8"))
+    PING_PONG_REVERSAL_BAR = BARS["handoffPingPong"][
+        "tripAtReversalsInOneSamePairEpisode"]
+    PING_PONG_GAP_INTERVALS = BARS["handoffPingPong"][
+        "maximumGapCoreRelocationIntervals"]
+    PASSIVITY_WINDOW_TICKS = BARS["sustainedPassivity"]["windowTicks"]
+    PASSIVITY_MIN_QUIET_TICKS = BARS["sustainedPassivity"][
+        "tripAtQuietTicksInWindow"]
+    PASSIVITY_WAIT_SHARE = BARS["sustainedPassivity"][
+        "quietTickMinimumWaitShare"]
+    CONTEST_DISTANCE = BARS["sustainedPassivity"][
+        "liveCoreTheaterChebyshevDistance"]
+    formation_freeze = BARS.get("formationFreeze")
+    FREEZE_WINDOW_TICKS = (
+        formation_freeze["windowTicks"] if formation_freeze else 1)
+    FREEZE_MIN_HIGH_WAIT_TICKS = (
+        formation_freeze["tripAtHighWaitTicksInWindow"]
+        if formation_freeze else 2)
+    FREEZE_WAIT_SHARE = (
+        formation_freeze["highWaitMinimumShare"]
+        if formation_freeze else 1.0)
+    stuck_carrier = BARS.get("stuckCarrier")
+    STUCK_CARRIER_TICKS = (
+        stuck_carrier["tripAtConsecutiveSameCarrierPositionTicks"]
+        if stuck_carrier else 2**31 - 1)
+    home_progress = BARS.get("homeCarrierNonProgress")
+    HOME_PROGRESS_RADIUS = (
+        home_progress["homeRadiusShortestPathTiles"]
+        if home_progress is not None else None
+    )
+    HOME_PROGRESS_CONTEST_DISTANCE = (
+        home_progress["enemyContestChebyshevDistance"]
+        if home_progress is not None else None
+    )
+    HOME_PROGRESS_TICKS = (
+        home_progress["tripAtUncontestedTicksWithoutNewBestDistance"]
+        if home_progress is not None else None
+    )
+
+
+configure_bars(DEFAULT_BARS_PATH)
 
 
 def read_json(path: Path) -> dict:
@@ -475,6 +511,202 @@ def stuck_carrier_metrics(broadcast: dict, team_ids: list[int]) -> dict:
         "trippingRuns": completed,
         "barTrippedByTeam": {
             str(team): maximum[team] >= STUCK_CARRIER_TICKS
+            for team in team_ids
+        },
+    }
+
+
+def shortest_distance_field(
+    rows: list[str], goal: tuple[int, int]
+) -> dict[tuple[int, int], int]:
+    """Static eight-way distance without walking diagonally through corners."""
+    height = len(rows)
+    width = len(rows[0])
+    if rows[goal[1]][goal[0]] == "#":
+        return {}
+    distances = {goal: 0}
+    queue = collections.deque([goal])
+    headings = (
+        (-1, -1), (0, -1), (1, -1),
+        (-1, 0), (1, 0),
+        (-1, 1), (0, 1), (1, 1),
+    )
+    while queue:
+        current = queue.popleft()
+        for dx, dy in headings:
+            target = (current[0] + dx, current[1] + dy)
+            x, y = target
+            if not (0 <= x < width and 0 <= y < height):
+                continue
+            if rows[y][x] == "#" or target in distances:
+                continue
+            if dx != 0 and dy != 0:
+                side_x = (current[0] + dx, current[1])
+                side_y = (current[0], current[1] + dy)
+                if (rows[side_x[1]][side_x[0]] == "#"
+                        or rows[side_y[1]][side_y[0]] == "#"):
+                    continue
+            distances[target] = distances[current] + 1
+            queue.append(target)
+    return distances
+
+
+def home_carrier_non_progress_metrics(
+    broadcast: dict,
+    team_ids: list[int],
+    rows: list[str],
+    reactors: dict[int, tuple[int, int]],
+) -> dict:
+    """Find owned Cores that loiter near a legal bank without getting closer.
+
+    Unlike the original same-life/same-tile sentinel, the episode belongs to
+    the Core and team. Allied handoffs and equal-distance tile oscillations do
+    not clear it. Nearby enemies pause the felt clock because a visible fight
+    is a reason for delayed progress; they do not erase progress debt.
+    """
+    if (HOME_PROGRESS_RADIUS is None
+            or HOME_PROGRESS_CONTEST_DISTANCE is None
+            or HOME_PROGRESS_TICKS is None):
+        return {
+            "enabled": False,
+            "definition": "not registered by this eligibility-bar version",
+            "barTrippedByTeam": {str(team): False for team in team_ids},
+            "maxUncontestedTicksWithoutProgressByTeam": {
+                str(team): 0 for team in team_ids
+            },
+            "trippingRuns": [],
+        }
+
+    fields = {
+        team: shortest_distance_field(rows, reactors[team])
+        for team in team_ids
+    }
+    active: dict[str, dict] = {}
+    tripping_runs: list[dict] = []
+    maximum = collections.Counter()
+
+    def record(state: dict, through_tick: int) -> None:
+        team = state["teamId"]
+        ticks = state["uncontestedTicks"]
+        maximum[team] = max(maximum[team], ticks)
+        if ticks < HOME_PROGRESS_TICKS:
+            return
+        tripping_runs.append({
+            "coreId": state["coreId"],
+            "teamId": team,
+            "fromTick": state["fromTick"],
+            "throughTick": through_tick,
+            "uncontestedTicksWithoutProgress": ticks,
+            "contestedTicksPaused": state["contestedTicks"],
+            "bestDistanceToReactor": state["bestDistance"],
+            "lastDistanceToReactor": state["lastDistance"],
+            "carrierChanges": state["carrierChanges"],
+            "distinctPositions": len(state["positions"]),
+            "lastPosition": list(state["lastPosition"]),
+        })
+
+    def begin(
+        key: str,
+        team: int,
+        carrier: tuple[int, int, int],
+        core_position: tuple[int, int],
+        distance: int,
+        tick: int,
+    ) -> dict:
+        state = {
+            "coreId": key,
+            "teamId": team,
+            "carrier": carrier,
+            "carrierChanges": 0,
+            "fromTick": tick,
+            "bestDistance": distance,
+            "lastDistance": distance,
+            "lastPosition": core_position,
+            "positions": {core_position},
+            "uncontestedTicks": 0,
+            "contestedTicks": 0,
+        }
+        active[key] = state
+        return state
+
+    for tick, world in enumerate(broadcast["worlds"]):
+        lives = active_lives(world)
+        present: set[str] = set()
+        for core in mode(world)["visibleCores"]:
+            carrier = actor_key(core.get("carrierActorId"))
+            if core["disposition"] != "carried" or carrier is None:
+                continue
+            key = core_key(core["coreId"])
+            present.add(key)
+            team = carrier[0]
+            core_position = position(core["position"])
+            distance = fields.get(team, {}).get(core_position)
+            if distance is None:
+                continue
+            state = active.get(key)
+            if state is None or state["teamId"] != team:
+                if state is not None:
+                    record(state, tick - 1)
+                state = begin(
+                    key, team, carrier, core_position, distance, tick)
+            elif carrier != state["carrier"]:
+                state["carrierChanges"] += 1
+                state["carrier"] = carrier
+
+            if distance < state["bestDistance"]:
+                record(state, tick - 1)
+                state.update({
+                    "fromTick": tick,
+                    "bestDistance": distance,
+                    "uncontestedTicks": 0,
+                    "contestedTicks": 0,
+                    "positions": set(),
+                })
+            state["lastDistance"] = distance
+            state["lastPosition"] = core_position
+            state["positions"].add(core_position)
+            if distance > HOME_PROGRESS_RADIUS:
+                continue
+            contested = any(
+                life["team"] != team
+                and chebyshev(life["position"], core_position)
+                    <= HOME_PROGRESS_CONTEST_DISTANCE
+                for life in lives
+            )
+            if contested:
+                state["contestedTicks"] += 1
+            else:
+                state["uncontestedTicks"] += 1
+
+        for key in list(active):
+            if key not in present:
+                record(active.pop(key), tick - 1)
+
+    final_tick = len(broadcast["worlds"]) - 1
+    for key in list(active):
+        record(active.pop(key), final_tick)
+
+    return {
+        "enabled": True,
+        "definition": (
+            "during same-team carried possession, count uncontested worlds "
+            f"within {HOME_PROGRESS_RADIUS} static walkable tiles of that "
+            "team's reactor since the Core last reached a strictly lower "
+            "distance; allied handoffs and equal-distance movement do not "
+            "reset the run"
+        ),
+        "bar": {
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": HOME_PROGRESS_TICKS,
+            "homeRadiusShortestPathTiles": HOME_PROGRESS_RADIUS,
+            "enemyContestChebyshevDistance":
+                HOME_PROGRESS_CONTEST_DISTANCE,
+        },
+        "maxUncontestedTicksWithoutProgressByTeam": team_counter(
+            maximum, team_ids),
+        "trippingRuns": tripping_runs,
+        "barTrippedByTeam": {
+            str(team): maximum[team] >= HOME_PROGRESS_TICKS
             for team in team_ids
         },
     }
@@ -1005,12 +1237,19 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     passivity, formation_freeze = passivity_metrics(
         broadcast, team_ids, first_birth_tick)
     stuck_carrier = stuck_carrier_metrics(broadcast, team_ids)
+    home_non_progress = home_carrier_non_progress_metrics(
+        broadcast,
+        team_ids,
+        header["contract"]["map"]["tileRows"],
+        reactors,
+    )
     eligibility_by_team = {
         str(team): not (
             ping_pong["barTrippedByTeam"][str(team)]
             or passivity["barTrippedByTeam"][str(team)]
             or formation_freeze["barTrippedByTeam"][str(team)]
             or stuck_carrier["barTrippedByTeam"][str(team)]
+            or home_non_progress["barTrippedByTeam"][str(team)]
         )
         for team in team_ids
     }
@@ -1085,6 +1324,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "sustainedPassivity": passivity,
             "formationFreeze": formation_freeze,
             "stuckCarrier": stuck_carrier,
+            "homeCarrierNonProgress": home_non_progress,
             "cohortEligibilityByTeam": eligibility_by_team,
             "matchEligibleForCohortRead": all(eligibility_by_team.values()),
         },
@@ -1145,11 +1385,17 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "signatureUsefulEffects": "counted effect facts/transitions; not a causal value judgment",
             "feltDegeneracyEligibility": (
                 "the frozen registration in balance/arc-relay-felt-"
-                "degeneracy-bars-v2.json excludes a team for three rapid "
+                f"degeneracy-bars-{BARS['schema'].rsplit('-', 1)[-1]}.json "
+                "excludes a team for three rapid "
                 "same-pair handoff reversals, 60-of-75 off-theater quiet "
                 "ticks, 60-of-75 high-wait formation ticks, or a carried "
-                "Core held by one life on one tile for 30 ticks"
+                "Core held by one life on one tile for 30 ticks; v3 also "
+                "excludes same-team carried Core possession that spends 30 "
+                "uncontested home-radius ticks without reaching a closer "
+                "static path distance"
             ),
+            "feltDegeneracyBars": str(BARS_PATH),
+            "feltDegeneracyBarsSchema": BARS["schema"],
         },
     }
 
@@ -1159,7 +1405,14 @@ def main() -> int:
     parser.add_argument("broadcast", type=Path)
     parser.add_argument("--record", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--bars",
+        type=Path,
+        default=DEFAULT_BARS_PATH,
+        help="frozen felt-degeneracy registration used for eligibility",
+    )
     args = parser.parse_args()
+    configure_bars(args.bars)
     broadcast = read_json(args.broadcast)
     record = read_json(args.record) if args.record else None
     output = measure(broadcast, record, args.broadcast)
