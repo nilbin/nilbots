@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Arc Relay 3D fleet review</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background:#070b10; color:#dbe7ef; }
+    body { margin:0 auto; max-width:1600px; padding:28px; }
+    h1 { font:700 clamp(28px,4vw,54px)/1.05 system-ui,sans-serif; margin:.2em 0; }
+    .meta { color:#8fa5b4; max-width:90ch; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
+    .arena-pair { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:24px 0; }
+    figure { margin:0; } figcaption { color:#8fa5b4; margin-top:6px; }
+    a { color:#7de5f5; } .button { padding:10px 14px; border:1px solid #295365; background:#0e202a; text-decoration:none; }
+    table { border-collapse:collapse; width:100%; table-layout:fixed; background:#0a1118; }
+    th,td { border:1px solid #1d2a35; padding:10px; vertical-align:top; }
+    th { width:9rem; text-align:left; color:#f0b876; }
+    img { width:100%; height:auto; min-height:120px; object-fit:contain; background:#080d12; }
+    code { color:#b7cbd7; }
+    @media(max-width:760px){ body{padding:14px} .arena-pair{grid-template-columns:1fr} th{width:5.7rem} th,td{padding:5px;font-size:11px} }
+  </style>
+</head>
+<body>
+  <p class="meta">RENDERER REVIEW · PRESENTATION ONLY</p>
+  <h1>Arc Relay authored 3D fleet</h1>
+  <p class="meta">Pinned A/B frames use replay <code>507ed83e13f4ec9a99271a532167471e542eaa11b8507afef219a2291b45fb1c</code>, seed 42, viewport 1440×900, and the fixed 58° gameplay camera. Each table image pairs amber and cyan assignments for that class at real arena scale. The index intentionally contains no match outcome.</p>
+  <p class="meta">The WebGL bodies use orthographic named-layer relief. They deliberately do not remap the canonical Canvas2D sprites' baked 20° projection through a second camera; this A/B keeps that treatment difference visible for the owner's taste gate.</p>
+  <div class="actions">
+    <a class="button" href="../../../web/dist-review/?standalone&amp;audio=off">Open full interactive 3D replay</a>
+    <a class="button" href="replay-metadata.json">Replay and capture metadata</a>
+  </div>
+  <section class="arena-pair" aria-label="Pinned arena comparison">
+    <figure><img src="stills/arena-tick000-2d.png" alt="Pinned Canvas2D Arc Relay opening frame"><figcaption>Canvas2D · tick 000 · fixed overview</figcaption></figure>
+    <figure><img src="stills/arena-tick000-3d.png" alt="Pinned authored 3D Arc Relay opening frame"><figcaption>WebGL · tick 000 · fixed 58° overview</figcaption></figure>
+  </section>
+  <table>
+    <thead><tr><th>Class</th><th>Canonical Canvas2D</th><th>Authored WebGL</th></tr></thead>
+    <tbody><tr>
+        <th>Kestrel</th>
+        <td><img loading="lazy" src="stills/kestrel-2d.png" alt="Kestrel Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/kestrel-3d.png" alt="Kestrel authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Palisade</th>
+        <td><img loading="lazy" src="stills/palisade-2d.png" alt="Palisade Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/palisade-3d.png" alt="Palisade authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Towline</th>
+        <td><img loading="lazy" src="stills/towline-2d.png" alt="Towline Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/towline-3d.png" alt="Towline authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Patchbay</th>
+        <td><img loading="lazy" src="stills/patchbay-2d.png" alt="Patchbay Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/patchbay-3d.png" alt="Patchbay authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Lantern</th>
+        <td><img loading="lazy" src="stills/lantern-2d.png" alt="Lantern Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/lantern-3d.png" alt="Lantern authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Mortar</th>
+        <td><img loading="lazy" src="stills/mortar-2d.png" alt="Mortar Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/mortar-3d.png" alt="Mortar authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Minesmith</th>
+        <td><img loading="lazy" src="stills/minesmith-2d.png" alt="Minesmith Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/minesmith-3d.png" alt="Minesmith authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Hush</th>
+        <td><img loading="lazy" src="stills/hush-2d.png" alt="Hush Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/hush-3d.png" alt="Hush authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Relay</th>
+        <td><img loading="lazy" src="stills/relay-2d.png" alt="Relay Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/relay-3d.png" alt="Relay authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Switchback</th>
+        <td><img loading="lazy" src="stills/switchback-2d.png" alt="Switchback Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/switchback-3d.png" alt="Switchback authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Longshot</th>
+        <td><img loading="lazy" src="stills/longshot-2d.png" alt="Longshot Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/longshot-3d.png" alt="Longshot authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Mason</th>
+        <td><img loading="lazy" src="stills/mason-2d.png" alt="Mason Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/mason-3d.png" alt="Mason authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Sunder</th>
+        <td><img loading="lazy" src="stills/sunder-2d.png" alt="Sunder Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/sunder-3d.png" alt="Sunder authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Repulsor</th>
+        <td><img loading="lazy" src="stills/repulsor-2d.png" alt="Repulsor Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/repulsor-3d.png" alt="Repulsor authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Veil</th>
+        <td><img loading="lazy" src="stills/veil-2d.png" alt="Veil Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/veil-3d.png" alt="Veil authored 3D model"></td>
+      </tr>
+<tr>
+        <th>Nest</th>
+        <td><img loading="lazy" src="stills/nest-2d.png" alt="Nest Canvas2D reference"></td>
+        <td><img loading="lazy" src="stills/nest-3d.png" alt="Nest authored 3D model"></td>
+      </tr></tbody>
+  </table>
+</body>
+</html>

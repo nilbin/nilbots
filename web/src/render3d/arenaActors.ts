@@ -10,6 +10,7 @@ import type {
   ReplayActorLifeKey,
   ReplayModel,
   ReplayStableUnitKey,
+  ReplayWorldSnapshot,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { teamAccentedBotImage } from '../render/arenaThemes';
@@ -42,6 +43,10 @@ import {
   lookModel,
   modelSpec,
 } from './lookModel';
+import {
+  createArcModelMotionRig,
+  type ArcSignatureBodyState,
+} from './arcModelMotion';
 import { CAMERA_PITCH } from './arenaScene';
 
 /**
@@ -317,6 +322,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
     const stancePresentation = stanceLook ?? look;
     const stanceHardware = modelSpec(stancePresentation.id)?.skillHardware;
+    const lookSpec = modelSpec(look.id);
     const mobileLowHover = look.locomotionCue === 'low-hover';
     const stanceLowHover =
       stancePresentation.locomotionCue === 'low-hover';
@@ -335,6 +341,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const body = new THREE.Group();
     body.userData.renderForm = 'mobile';
     chassis.add(body);
+    const modelMotion = createArcModelMotionRig(
+      lookSpec,
+      size,
+      accent,
+      disposables,
+    );
+    if (modelMotion) {
+      modelMotion.wake.visible = false;
+      modelMotion.vents.visible = false;
+      chassis.add(modelMotion.wake);
+      body.add(modelMotion.vents);
+    }
 
     // A hull that points somewhere. A cylinder was the first attempt and it made every
     // chassis read as the same glowing puck — which throws away the one thing the twelve
@@ -761,6 +779,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         lid,
         facingMarker: nose,
       });
+      modelMotion?.bind(model);
     });
 
     // Following a bot lights *the bot*, not a ring drawn near it.
@@ -1126,6 +1145,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       unitKey: unit.unitKey,
       size,
       motionPhase: phaseForIdentity(unit.unitKey),
+      modelMotion,
       mobileLowHover,
       stanceLowHover,
       chassis,
@@ -1167,6 +1187,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       fade,
     };
   });
+  const signedTravel = signedTravelByActor(replay);
+  const signatureCooldowns = signatureCooldownsByActor(replay);
   /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
   const solid = (x: number, y: number) => {
     const row = replay.map.tileRows[y];
@@ -1480,6 +1502,17 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
     const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
+    const handoffReceivers = new Set<ReplayStableUnitKey>();
+    for (const turn of currentTick?.actorTurns ?? []) {
+      if (turn.actionResolution.validatedActionId !== 'handoff-core') continue;
+      const target = turn.actionResolution.validatedPayload?.unitKey;
+      if (target) handoffReceivers.add(target);
+    }
+    const arcState =
+      currentTick?.after.mode?.kind === 'arc-relay' &&
+      'visibleSignatures' in currentTick.after.mode
+        ? currentTick.after.mode
+        : null;
     // Lives materializing on this tick, so a body that has just arrived can come up out of
     // the floor under the ring the overlays are closing on it.
     const arriving = new Map(
@@ -1570,6 +1603,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.roleLabel.visible = false;
       bot.highlight(false);
       bot.flash(0);
+      if (bot.modelMotion) {
+        bot.modelMotion.wake.visible = false;
+        bot.modelMotion.vents.visible = false;
+      }
       // A life destroyed mid-windup would otherwise leave its charge burning on an empty
       // pad, exactly the way the deploy state used to be left behind.
       bot.charge(0);
@@ -1735,6 +1772,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         bot.chassis.visible && mechanics?.channelRole === 'channeling';
       const screening =
         bot.chassis.visible && mechanics?.channelRole === 'screening';
+      const braced = channelling || handoffReceivers.has(pose.unitKey);
       bot.channelRing.visible = channelling;
       bot.screenRing.visible = screening;
       if (channelling) {
@@ -1882,7 +1920,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const idle =
         (stationary ? 0 : 1) *
         (1 - Math.abs(drift)) *
-        (1 - collapse);
+        (1 - collapse) *
+        (braced ? 0.18 : 1);
       const sway =
         Math.sin(time * 1.9 + bot.motionPhase) +
         Math.sin(time * 3.1 + bot.motionPhase * 2.3) * 0.55;
@@ -1896,6 +1935,54 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         (LOW_HOVER_HEIGHT + rise * LOW_HOVER_BOB) *
         (1 - collapse) *
         emerge;
+
+      const openingActor = opening?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const closingActor = closing?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const turnDelta =
+        openingActor && closingActor
+          ? shortestTurn(
+              directionAngle(openingActor.facing),
+              directionAngle(closingActor.facing),
+            )
+          : 0;
+      const previousSpeed = actorStepSpeed(previous, opening, pose.actorKey);
+      const nextSpeed = actorStepSpeed(closing, next, pose.actorKey);
+      const signatureActive =
+        arcState?.visibleSignatures.some(
+          (signature) => signature.ownerActor.actorKey === pose.actorKey,
+        ) ?? false;
+      const signatureCooling =
+        signatureCooldowns.get(pose.actorKey)?.some(
+          (window) => time >= window.startedTick && time < window.readyTick,
+        ) ?? false;
+      const signatureState: ArcSignatureBodyState = signatureActive
+        ? 'active'
+        : signatureCooling
+          ? 'cooldown'
+          : 'ready';
+      const travel = signedTravel.get(pose.actorKey);
+      const motionFrame = bot.modelMotion?.update(
+        {
+          time,
+          fraction,
+          facingAngle: pose.angle,
+          motionX: pose.motionX,
+          motionY: pose.motionY,
+          previousSpeed,
+          nextSpeed,
+          turnDelta,
+          signedTravel:
+            (travel?.[tick] ?? 0) +
+            signedActorStep(opening, closing, pose.actorKey) * fraction,
+          braced,
+          signatureState,
+        },
+        visibility * (1 - collapse),
+      );
 
       bot.chassis.rotation.z = collapse * 0.5;
       bot.chassis.rotation.x = collapse * 0.22;
@@ -1917,9 +2004,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE);
       bot.stance.position.y = bot.stanceLowHover ? hover : 0;
       bot.body.rotation.y =
-        -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
+        -drift * DRIFT_YAW +
+        idle * sway * IDLE_YAW +
+        (motionFrame?.counterSteer ?? 0);
       bot.body.rotation.x =
-        drift * DRIFT_LEAN + idle * rise * IDLE_ROLL;
+        drift * DRIFT_LEAN +
+        idle * rise * IDLE_ROLL +
+        (motionFrame?.bank ?? 0);
+      bot.body.rotation.z =
+        (Math.PI / 2) * tipping + (motionFrame?.pitch ?? 0);
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
@@ -2073,6 +2166,109 @@ function phaseForIdentity(identity: string): number {
     hash = Math.imul(hash, 16_777_619);
   }
   return ((hash >>> 0) / 0xffff_ffff) * Math.PI * 2;
+}
+
+function actorStepSpeed(
+  fromState: ReplayWorldSnapshot | null | undefined,
+  toState: ReplayWorldSnapshot | null | undefined,
+  actorKey: ReplayActorLifeKey,
+): number {
+  const from = fromState?.actors.find((actor) => actor.actorKey === actorKey);
+  const to = toState?.actors.find((actor) => actor.actorKey === actorKey);
+  return from && to
+    ? Math.hypot(
+        to.position.x - from.position.x,
+        to.position.y - from.position.y,
+      )
+    : 0;
+}
+
+/**
+ * Distance rolled, signed by whether displacement leads or trails the body axes.
+ * Magnitude is always the actual tile displacement; facing chooses direction only, so a
+ * reverse or lateral move cannot accidentally inherit the visual speed of a forward move.
+ */
+function signedActorStep(
+  fromState: ReplayWorldSnapshot | null | undefined,
+  toState: ReplayWorldSnapshot | null | undefined,
+  actorKey: ReplayActorLifeKey,
+): number {
+  const from = fromState?.actors.find((actor) => actor.actorKey === actorKey);
+  const to = toState?.actors.find((actor) => actor.actorKey === actorKey);
+  if (!from || !to) return 0;
+  const dx = to.position.x - from.position.x;
+  const dy = to.position.y - from.position.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance === 0) return 0;
+  const angle = directionAngle(from.facing);
+  const forward = dx * Math.cos(angle) + dy * Math.sin(angle);
+  const lateral = -dx * Math.sin(angle) + dy * Math.cos(angle);
+  const signedAxis = Math.abs(forward) >= Math.abs(lateral) ? forward : lateral;
+  return distance * (signedAxis < 0 ? -1 : 1);
+}
+
+function signedTravelByActor(
+  replay: ReplayModel,
+): Map<ReplayActorLifeKey, number[]> {
+  const result = new Map<ReplayActorLifeKey, number[]>();
+  const running = new Map<ReplayActorLifeKey, number>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    for (const actor of tick.before.actors) {
+      const distance = running.get(actor.actorKey) ?? 0;
+      let samples = result.get(actor.actorKey);
+      if (!samples) {
+        samples = Array.from({ length: replay.ticks.length + 1 }, () => 0);
+        result.set(actor.actorKey, samples);
+      }
+      samples[tickIndex] = distance;
+      const next = distance + signedActorStep(tick.before, tick.after, actor.actorKey);
+      samples[tickIndex + 1] = next;
+      running.set(actor.actorKey, next);
+    }
+  }
+  return result;
+}
+
+/** Exact renderer-only recharge windows derived from visible authoritative activations. */
+function signatureCooldownsByActor(
+  replay: ReplayModel,
+): Map<ReplayActorLifeKey, { startedTick: number; readyTick: number }[]> {
+  const result = new Map<
+    ReplayActorLifeKey,
+    { startedTick: number; readyTick: number }[]
+  >();
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.rawContract.rules.gameMode.kind !== 'arc-relay'
+  )
+    return result;
+  const cooldowns = new Map(
+    replay.contract.rawContract.rules.gameMode.signatures.map((signature) => [
+      signature.signatureId,
+      signature.cooldownTicks,
+    ]),
+  );
+  const seen = new Set<string>();
+  for (const tick of replay.ticks) {
+    if (
+      tick.after.mode?.kind !== 'arc-relay' ||
+      !('visibleSignatures' in tick.after.mode)
+    )
+      continue;
+    for (const signature of tick.after.mode.visibleSignatures) {
+      if (seen.has(signature.operationId)) continue;
+      seen.add(signature.operationId);
+      const cooldown = cooldowns.get(signature.signatureId);
+      if (cooldown === undefined) continue;
+      const windows = result.get(signature.ownerActor.actorKey) ?? [];
+      windows.push({
+        startedTick: signature.startedTick,
+        readyTick: signature.startedTick + cooldown,
+      });
+      result.set(signature.ownerActor.actorKey, windows);
+    }
+  }
+  return result;
 }
 
 /**

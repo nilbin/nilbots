@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-mortar",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-mortar/layers.json",
+    "sourceSha256": "834bb8f6eeab82935edd6ca6a818476d420842b41d9d70afadd8c2f63d5246d8"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "treads",
+    "handling": "deliberate",
+    "hardwareLagTicks": 0.48,
+    "hardwareOvershoot": 0
+  },
+  "signature": "falling-star",
+  "ledger": {
+    "bytes": 363936,
+    "sha256": "07302d146e74fcc8aadf9197b69549363e7067188a3f3b03bf148c92907391f3",
+    "triangles": 6304,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

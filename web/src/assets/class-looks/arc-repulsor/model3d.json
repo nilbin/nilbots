@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-repulsor",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-repulsor/layers.json",
+    "sourceSha256": "bf8bd0f22f623ce16f8e4394fb979f9f8e48f45fb557384202d1fb2c5054af7c"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "treads",
+    "handling": "standard",
+    "hardwareLagTicks": 0.31,
+    "hardwareOvershoot": 0
+  },
+  "signature": "kinetic-burst",
+  "ledger": {
+    "bytes": 447804,
+    "sha256": "f4de14c2a6c7acca7ba281d9c5a8fe6fbe4c6272d9feea8fc7197ae41ecc7bee",
+    "triangles": 8022,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

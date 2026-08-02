@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-switchback",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-switchback/layers.json",
+    "sourceSha256": "d13227f6905027efc31c3305ad0af954a877d1e09a4f3d580efbc7225cd5017d"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "standard",
+    "hardwareLagTicks": 0.31,
+    "hardwareOvershoot": 0
+  },
+  "signature": "exchange",
+  "ledger": {
+    "bytes": 328664,
+    "sha256": "0b054745280b624b1fb8109432e8b4bbf9d322c9360a00bab2883f04d6e686ab",
+    "triangles": 5394,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

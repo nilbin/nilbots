@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "arc-hush",
+  "canonicalLayeredVector": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback/arc-hush.svg",
+  "generatedAlbedo": "art/class-models/arc-relay/sources/arc-hush/albedo.png",
+  "archivedAlbedo": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/hush-base.png",
+  "archivedTeamMask": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/hush-team-mask.png",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "generatedNormal": "art/class-models/arc-relay/sources/arc-hush/normal.png",
+  "generatedEmissive": "art/class-models/arc-relay/sources/arc-hush/emissive.png",
+  "sourceSha256": "77fb9a7bd37d693214163839acf385bbfcfb2566f8cbebb45a3a340702ffcada",
+  "groups": {
+    "underbody-locomotion": {
+      "construction": "low-hover",
+      "floorY": 0,
+      "extrusionHeight": 0.055,
+      "bevel": 0.018
+    },
+    "chassis": {
+      "construction": "orthographic-vector-distance-relief",
+      "sourceProjectionDegrees": 0,
+      "extrusionHeight": 0.14,
+      "domeHeight": 0.1,
+      "bevel": 0.014,
+      "albedo": "art/class-models/arc-relay/sources/arc-hush/albedo.png",
+      "normal": "art/class-models/arc-relay/sources/arc-hush/normal.png"
+    },
+    "weapon-hardware": {
+      "construction": "named-vector-group-distance-relief",
+      "sourceGroup": "weapon-hardware",
+      "hardwareIdentity": "dampener-array",
+      "extrusionHeight": 0.225,
+      "domeHeight": 0.065,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "team-accents": {
+      "construction": "named-vector-semantic-surface",
+      "sourceGroup": "team-accents",
+      "materialRole": "team-accent",
+      "bakedTeamColor": false
+    },
+    "emissives": {
+      "construction": "derived-authored-light-surface",
+      "map": "art/class-models/arc-relay/sources/arc-hush/emissive.png"
+    }
+  }
+}

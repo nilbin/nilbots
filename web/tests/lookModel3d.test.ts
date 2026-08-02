@@ -6,7 +6,26 @@ import {
   presentationBotLook,
 } from './.harness/harness.entry.js';
 
-test('only the approved Striker mobile body resolves to an authored class GLB', () => {
+const arcLooks = [
+  'kestrel',
+  'palisade',
+  'towline',
+  'patchbay',
+  'lantern',
+  'mortar',
+  'minesmith',
+  'hush',
+  'relay',
+  'switchback',
+  'longshot',
+  'mason',
+  'sunder',
+  'repulsor',
+  'veil',
+  'nest',
+] as const;
+
+test('the approved Striker and complete Arc Relay fleet resolve to authored GLBs', () => {
   assert.deepEqual(modelSpec('trident-wasp'), {
     version: 1,
     id: 'trident-wasp',
@@ -28,6 +47,27 @@ test('only the approved Striker mobile body resolves to an authored class GLB', 
     'lattice-rivet',
   ])
     assert.equal(modelSpec(id), null, id);
+
+  for (const classId of arcLooks) {
+    const id = `arc-${classId}`;
+    const spec = modelSpec(id);
+    assert.equal(spec?.id, id);
+    assert.equal(spec?.kind, 'bot');
+    assert.equal(spec?.part, 'whole');
+    assert.equal(spec?.facing, '+x');
+    assert.equal(spec?.up, '+y');
+    assert.equal(spec?.nodes?.locomotion, 'underbody-locomotion');
+    assert.equal(spec?.nodes?.chassis, 'chassis');
+    assert.equal(spec?.nodes?.hardware, 'weapon-hardware');
+    assert.equal(spec?.nodes?.teamAccents, 'team-accents');
+    assert.equal(spec?.nodes?.emissives, 'emissives');
+    assert.ok(spec?.motion);
+    assert.ok(spec?.signature);
+    assert.equal(spec?.source?.generator, 'scripts/build-arc-relay-models.mjs');
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 512 * 1024);
+    assert.equal(lookModelSource(id), 'gltf');
+    assert.equal(lookModelSource(id, 'front'), 'fallback');
+  }
 });
 
 test('the canonical Striker looks keep low-hover independent of a GLB', () => {

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-kestrel",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-kestrel/layers.json",
+    "sourceSha256": "059d1b568f7a3678fc1d6ab5c82be66ed20815e8de0176d309ba4a764169fa00"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "vector-dash",
+  "ledger": {
+    "bytes": 292612,
+    "sha256": "d9578996824073b03633e541bfd78ee04874f76290d0c3a1e883287d92f082d0",
+    "triangles": 4404,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

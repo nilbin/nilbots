@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-relay",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-relay/layers.json",
+    "sourceSha256": "e5a7cd1bca5b5076311c7dfe9d2048c5f484750ead56e989dd7955855e422ca8"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "skids",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "arc-toss",
+  "ledger": {
+    "bytes": 312652,
+    "sha256": "6cb4ee1d96dda1b992f2b0e4f16cc04b59b754ad7b8d46ccb4e5bf51952b2b29",
+    "triangles": 4744,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

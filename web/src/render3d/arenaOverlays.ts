@@ -14,6 +14,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
+import { buildArcRelayEffects } from './arcRelayEffects';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -29,7 +30,7 @@ import {
 const FOG_STRENGTH = 0.82;
 
 /** How far the camera is thrown by a direct kill, in tiles. */
-const SHAKE_REACH = 0.14;
+const SHAKE_REACH = 0.045;
 
 
 export interface ArenaOverlays {
@@ -62,6 +63,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
 
   const arcRelay = buildArcRelayStory(disposables);
   group.add(arcRelay.group);
+
+  const arcRelayEffects = buildArcRelayEffects(replay, disposables);
+  group.add(arcRelayEffects.group);
 
   const scrap = buildScrapPiles(disposables);
   group.add(scrap.group);
@@ -117,6 +121,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     spawnPads.update(presentation, time);
     objective.update(presentation, time);
     arcRelay.update(presentation, time);
+    arcRelayEffects.update(time);
     scrap.update(presentation, time);
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
@@ -1515,6 +1520,12 @@ function buildArcRelayStory(
   const carrierRingGeometry = new THREE.RingGeometry(0.5, 0.69, 40);
   carrierRingGeometry.rotateX(-Math.PI / 2);
   const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 0.85, 12);
+  const sourceTriangleGeometry = new THREE.ConeGeometry(0.17, 0.045, 3);
+  const sourceDiamondGeometry = new THREE.BoxGeometry(0.23, 0.045, 0.23);
+  sourceDiamondGeometry.rotateY(Math.PI / 4);
+  const sourceCircleGeometry = new THREE.TorusGeometry(0.13, 0.028, 7, 24);
+  sourceCircleGeometry.rotateX(Math.PI / 2);
+  const reactorPylonGeometry = new THREE.BoxGeometry(0.09, 0.38, 0.09);
   disposables.push(
     wellGeometry,
     wellRingGeometry,
@@ -1524,6 +1535,10 @@ function buildArcRelayStory(
     coreGeometry,
     carrierRingGeometry,
     beamGeometry,
+    sourceTriangleGeometry,
+    sourceDiamondGeometry,
+    sourceCircleGeometry,
+    reactorPylonGeometry,
   );
 
   type WellRig = {
@@ -1532,6 +1547,7 @@ function buildArcRelayStory(
     ring: THREE.Mesh;
     bodyMaterial: THREE.MeshStandardMaterial;
     ringMaterial: THREE.MeshBasicMaterial;
+    sourceGlyphs: THREE.Mesh[];
   };
   const wells: WellRig[] = [];
   const well = (index: number): WellRig => {
@@ -1556,10 +1572,27 @@ function buildArcRelayStory(
       body.position.y = 0.045;
       const ring = new THREE.Mesh(wellRingGeometry, ringMaterial);
       ring.position.y = 0.025;
+      const sourceGlyphs = [
+        sourceTriangleGeometry,
+        sourceDiamondGeometry,
+        sourceCircleGeometry,
+      ].map((geometry) => {
+        const mesh = new THREE.Mesh(geometry, ringMaterial);
+        mesh.position.y = 0.13;
+        rig.add(mesh);
+        return mesh;
+      });
       rig.add(body, ring);
       rig.visible = false;
       group.add(rig);
-      wells.push({ group: rig, body, ring, bodyMaterial, ringMaterial });
+      wells.push({
+        group: rig,
+        body,
+        ring,
+        bodyMaterial,
+        ringMaterial,
+        sourceGlyphs,
+      });
       disposables.push(bodyMaterial, ringMaterial);
     }
     return wells[index]!;
@@ -1596,6 +1629,17 @@ function buildArcRelayStory(
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.12;
       rig.add(body, ring);
+      for (const [index, [x, z]] of [
+        [-0.37, -0.37],
+        [0.37, -0.37],
+        [0.37, 0.37],
+        [-0.37, 0.37],
+      ].entries()) {
+        const pylon = new THREE.Mesh(reactorPylonGeometry, material);
+        pylon.position.set(x, 0.19, z);
+        pylon.rotation.y = index * Math.PI / 2;
+        rig.add(pylon);
+      }
       const integrity: THREE.Mesh[] = [];
       const integrityMaterials: THREE.MeshBasicMaterial[] = [];
       const charge: THREE.Mesh[] = [];
@@ -1640,6 +1684,7 @@ function buildArcRelayStory(
     gemMaterial: THREE.MeshStandardMaterial;
     ringMaterial: THREE.MeshBasicMaterial;
     beamMaterial: THREE.MeshBasicMaterial;
+    sourceGlyphs: THREE.Mesh[];
   };
   const cores: CoreRig[] = [];
   const core = (index: number): CoreRig => {
@@ -1670,6 +1715,17 @@ function buildArcRelayStory(
       ring.position.y = 0.035;
       const beam = new THREE.Mesh(beamGeometry, beamMaterial);
       beam.position.y = 0.44;
+      const sourceGlyphs = [
+        sourceTriangleGeometry,
+        sourceDiamondGeometry,
+        sourceCircleGeometry,
+      ].map((geometry) => {
+        const mesh = new THREE.Mesh(geometry, gemMaterial);
+        mesh.scale.setScalar(0.62);
+        mesh.position.y = 0.26;
+        rig.add(mesh);
+        return mesh;
+      });
       rig.add(gem, ring, beam);
       rig.visible = false;
       group.add(rig);
@@ -1681,6 +1737,7 @@ function buildArcRelayStory(
         gemMaterial,
         ringMaterial,
         beamMaterial,
+        sourceGlyphs,
       });
       disposables.push(gemMaterial, ringMaterial, beamMaterial);
     }
@@ -1701,6 +1758,15 @@ function buildArcRelayStory(
       rig.ring.scale.setScalar(1 + pulse * 0.08);
       rig.ringMaterial.opacity = state.outstanding ? 0.28 : 0.55 + pulse * 0.28;
       rig.bodyMaterial.emissiveIntensity = state.outstanding ? 0.15 : 0.38;
+      const glyphIndex = state.wellId.includes('north')
+        ? 0
+        : state.wellId.includes('south')
+          ? 1
+          : 2;
+      for (const [index, glyph] of rig.sourceGlyphs.entries()) {
+        glyph.visible = index === glyphIndex;
+        glyph.rotation.y = time * 0.18 * (glyphIndex === 1 ? -1 : 1);
+      }
     }
     for (let index = story.wells.length; index < wells.length; index++)
       wells[index]!.group.visible = false;
@@ -1752,6 +1818,17 @@ function buildArcRelayStory(
       rig.beamMaterial.opacity = state.pulseCore ? 0.26 + pulse * 0.22 : 0.1 + pulse * 0.1;
       rig.ring.scale.setScalar(1 + pulse * (state.pulseCore ? 0.16 : 0.08));
       rig.ring.rotation.y = time * 0.9;
+      const glyphIndex = state.sourceLabel.toLowerCase().includes('north')
+        ? 0
+        : state.sourceLabel.toLowerCase().includes('south')
+          ? 1
+          : 2;
+      for (const [glyph, sourceGlyph] of rig.sourceGlyphs.entries()) {
+        sourceGlyph.visible = glyph === glyphIndex;
+        sourceGlyph.position.copy(rig.gem.position);
+        sourceGlyph.position.y += 0.02;
+        sourceGlyph.rotation.y = -time * 1.1;
+      }
     }
     for (let index = story.cores.length; index < cores.length; index++)
       cores[index]!.group.visible = false;

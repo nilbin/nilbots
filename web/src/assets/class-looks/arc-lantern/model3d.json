@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "arc-lantern",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-lantern/layers.json",
+    "sourceSha256": "c9ace01b060567bdccb867887f268474ca0ccceec78a03d0e7c29734d8df4de0"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": [
+      "idle-lantern-dish"
+    ]
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "survey-flare",
+  "ledger": {
+    "bytes": 342664,
+    "sha256": "8f88faf65cbfac6c9dff806ee30fb837c35794d69967525ae75ce5d4efe77753",
+    "triangles": 5428,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

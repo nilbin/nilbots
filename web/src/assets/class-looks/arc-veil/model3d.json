@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-veil",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-veil/layers.json",
+    "sourceSha256": "2879c5d71f4006b17404da8b51fb604c4dce5fa630dcf127ed62ca93ef85754e"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "smoke-canister",
+  "ledger": {
+    "bytes": 313492,
+    "sha256": "8a2a064de24d51c6e8cdef8f6ebf236b6c6cdfd94a4d5935ffe74d747b8d39ff",
+    "triangles": 4972,
+    "materials": 5,
+    "textureCount": 3
+  }
+}
