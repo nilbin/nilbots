@@ -1,4 +1,4 @@
-# Arc Relay SMART gambit framework
+# Arc Relay intelligent gambit framework
 
 Status: owner-review design proposal, 2026-08-02. This document defines the
 player model and deterministic execution semantics that a future sheet pass
@@ -91,17 +91,20 @@ A gambit is not:
 - an omniscient reaction to hidden enemy state; or
 - a patch for weak pathfinding or fire control.
 
-## 2. A gambit is SMART
+## 2. What makes a gambit intelligent
 
-The player authors five understandable parts. The editor and preview must
-prove each one rather than accepting a plausible name.
+Intelligence here means adapting a goal-directed plan to causal evidence,
+uncertainty, changing opportunity, and counterplay. It does not mean adding
+more conditions or following a longer script. The player authors five
+understandable parts, and the editor and preview must prove that they work
+together rather than accepting a plausible name.
 
-### S — Situation
+### Evidence and uncertainty
 
 What honest evidence makes this play worth preparing, and what evidence makes
 the team commit?
 
-Situation has two distinct conditions when preparation is required:
+The evidence block has two distinct conditions when preparation is required:
 
 - **prepare when** starts positioning before the opportunity is certain; and
 - **commit when** spends the play once the target or timing is confirmed.
@@ -111,7 +114,7 @@ their information quality explicitly: `visible now`, `last seen within N`,
 `unobserved for N`, or a public objective fact. Unknown is never silently
 treated as zero.
 
-### M — Mission
+### Goal and success
 
 One sentence describes what the operation is trying to achieve, followed by a
 machine-checkable success condition. For example: “Force the north carrier to
@@ -121,7 +124,7 @@ ours before the carrier leaves north-return`.
 “Play defensively” is not a mission. “Prevent this carrier crossing this line
 for 12 ticks” is.
 
-### A — Actors and area
+### Participants and feasibility
 
 Which slots or role-qualified bodies are required, how many must be available,
 which drawn path/zone/line they use, and whether substitutions are allowed?
@@ -136,7 +139,7 @@ The editor checks **achievability** here: required actors exist, have the
 needed capabilities, can plausibly reach the area before the deadline, and do
 not depend on mutually impossible assignments.
 
-### R — Reactions, release, and recovery
+### Reactions, release, and recovery
 
 Each phase states its rules of engagement, the facts that mean success, the
 facts that force an abort, and how borrowed bodies rejoin baseline.
@@ -159,7 +162,7 @@ finishes an in-progress authoritative action, takes the authored extraction or
 nearest safe fallback route, and then resumes its baseline job. A player can
 choose an immediate baseline release for plays where location does not matter.
 
-### T — Timing
+### Timing and adaptation
 
 A gambit declares:
 
@@ -446,7 +449,7 @@ The target is not a hard-coded rock-paper-scissors table. It is a web of
 costly predictions where each plan has several field-observable answers and
 where expecting an answer creates a further exploitable commitment.
 
-## 7. Validation: SMART must be proved
+## 7. Validation: intelligence must be proved in behavior
 
 ### 7.1 Static editor checks
 
@@ -464,8 +467,8 @@ The editor must reject or strongly warn on:
 
 It should present the completed card back as one sentence:
 
-> “When **S**, borrow **A** to achieve **M**; react/release by **R**; stop by
-> **T**, then resume baseline.”
+> “When this evidence appears, borrow these bodies for this goal; react to
+> these changes, stop by this deadline, and then resume baseline.”
 
 If that sentence is misleading, the card is not ready.
 
@@ -526,7 +529,8 @@ and mechanical activation alone cannot establish intelligence.
 This proposal deliberately does not bless either existing grammar:
 
 - the current product sheet v1 has three event triggers plus duration,
-  cooldown, role override, and rally line; it cannot express the SMART card;
+  cooldown, role override, and rally line; it cannot express the complete
+  gambit model;
 - evaluation sheet v1 has richer clauses and spatial overlays, but one global
   active gambit, uninterruptible minimum tenure, and cooldown-sensitive
   defaults produced the failure above.
