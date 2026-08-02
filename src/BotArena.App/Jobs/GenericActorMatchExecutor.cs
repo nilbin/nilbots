@@ -72,12 +72,28 @@ public sealed class GenericActorMatchExecutor(
             .Select((participant, index) =>
             {
                 IReadOnlyList<string> classes = [];
-                if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind)
+                if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind ||
+                    expected.RuntimeModel == HostedGenericRuntimeModel.ArcRelayEntrants)
                 {
-                    ArcRelaySheetCompilation compilation =
-                        ValidateTrustedSheetSnapshot(participant);
-                    sheetCompilations[index] = compilation;
-                    classes = compilation.Classes;
+                    if (string.Equals(participant.EntrantKindSnapshot, "mind", StringComparison.Ordinal))
+                    {
+                        if (participant.CompositionSnapshot is not { } compositionJson ||
+                            participant.CompositionHashSnapshot is not { } compositionHash)
+                            throw new InvalidOperationException("Custom mind has no composition snapshot.");
+                        ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
+                            ArcRelayComposition.Read(compositionJson),
+                            sheetCodec,
+                            classCatalog.All.Select(value => value.Id).ToHashSet(StringComparer.Ordinal));
+                        if (!string.Equals(composition.ContentHash, compositionHash, StringComparison.Ordinal))
+                            throw new InvalidOperationException("Custom mind composition snapshot failed verification.");
+                        classes = composition.ClassIds;
+                    }
+                    else
+                    {
+                        ArcRelaySheetCompilation compilation = ValidateTrustedSheetSnapshot(participant);
+                        sheetCompilations[index] = compilation;
+                        classes = compilation.Classes;
+                    }
                 }
                 return new HostedGenericParticipantInput(
                     participant.Slot,
@@ -93,7 +109,7 @@ public sealed class GenericActorMatchExecutor(
         ValidateParticipants(resolvedDefinition, participants);
 
         var versions = new List<BotVersion>(participants.Count);
-        var modulePaths = new List<string>(participants.Count);
+        var modulePaths = new string?[participants.Count];
         foreach (MatchParticipant participant in participants)
         {
             BotVersion version = await db.BotVersions.SingleAsync(
@@ -127,13 +143,14 @@ public sealed class GenericActorMatchExecutor(
             }
 
             versions.Add(version);
-            if (expected.RuntimeModel == HostedGenericRuntimeModel.SubmittedActorWasm)
+            if (expected.RuntimeModel == HostedGenericRuntimeModel.SubmittedActorWasm ||
+                (expected.RuntimeModel == HostedGenericRuntimeModel.ArcRelayEntrants &&
+                 string.Equals(participant.EntrantKindSnapshot, "mind", StringComparison.Ordinal)))
             {
-                modulePaths.Add(
-                    await objectStore.MaterializeAsync(
-                        version.ArtifactKey,
-                        version.ArtifactHash,
-                        cancellationToken));
+                modulePaths[versions.Count - 1] = await objectStore.MaterializeAsync(
+                    version.ArtifactKey,
+                    version.ArtifactHash,
+                    cancellationToken);
             }
         }
 
@@ -144,6 +161,7 @@ public sealed class GenericActorMatchExecutor(
         int replayFormatVersion;
         TimeSpan simulationElapsed;
         TimeSpan replayElapsed;
+        ArcRelayDegeneracyRead? degeneracy = null;
         try
         {
             GenericActorParticipantConfiguration[] configurations;
@@ -155,7 +173,7 @@ public sealed class GenericActorMatchExecutor(
                     var factory = new WasmGenericActorRuntimeFactory(
                         new WasmRuntimeOptions
                         {
-                            ModulePath = modulePaths[index],
+                            ModulePath = modulePaths[index]!,
                             BotName = versions[index].GuestBotName ?? "",
                         });
                     if (!string.Equals(
@@ -186,7 +204,7 @@ public sealed class GenericActorMatchExecutor(
                         ProjectileLookId = participant.ProjectileLookIdSnapshot,
                     }).ToArray();
             }
-            else
+            else if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind)
             {
                 var mindFactories = new InProcessGenericMindRuntimeFactory[participants.Count];
                 for (int index = 0; index < participants.Count; index++)
@@ -217,14 +235,75 @@ public sealed class GenericActorMatchExecutor(
                     };
                 }).ToArray();
             }
+            else
+            {
+                configurations = new GenericActorParticipantConfiguration[participants.Count];
+                for (int index = 0; index < participants.Count; index++)
+                {
+                    MatchParticipant participant = participants[index];
+                    if (string.Equals(participant.EntrantKindSnapshot, "mind", StringComparison.Ordinal))
+                    {
+                        var factory = new WasmGenericMindRuntimeFactory(new WasmMindRuntimeOptions
+                        {
+                            ModulePath = modulePaths[index]!,
+                            BotName = versions[index].GuestBotName ?? "",
+                        });
+                        if (!string.Equals(factory.ArtifactHash, participant.ArtifactHashSnapshot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            factory.Dispose();
+                            throw new InvalidOperationException($"Materialized custom mind {participant.Slot} failed its artifact hash.");
+                        }
+                        factories.Add(factory);
+                        configurations[index] = new GenericActorParticipantConfiguration
+                        {
+                            ParticipantId = participant.Slot,
+                            TeamId = participant.TeamId!.Value,
+                            Name = participant.NameSnapshot,
+                            MindRuntimeFactory = factory,
+                            RuntimeKind = "sandboxed-wasm-mind-v1",
+                            ArtifactHash = participant.ArtifactHashSnapshot,
+                            MindDataHash = participant.CompositionHashSnapshot,
+                            Accent = participant.AccentSnapshot,
+                            LookId = participant.LookIdSnapshot,
+                            ProjectileLookId = participant.ProjectileLookIdSnapshot,
+                        };
+                    }
+                    else
+                    {
+                        var factory = new InProcessGenericMindRuntimeFactory(
+                            static () => new global::ArcRelayStockMind(),
+                            trustedArcRelayStockProjection: true);
+                        factories.Add(factory);
+                        ArcRelaySheetCompilation compilation = sheetCompilations[index]
+                            ?? throw new InvalidOperationException("Stock entrant has no sheet snapshot.");
+                        configurations[index] = new GenericActorParticipantConfiguration
+                        {
+                            ParticipantId = participant.Slot,
+                            TeamId = participant.TeamId!.Value,
+                            Name = participant.NameSnapshot,
+                            MindRuntimeFactory = factory,
+                            RuntimeKind = "trusted-stock-in-process-v1",
+                            ArtifactHash = participant.ArtifactHashSnapshot,
+                            MindDataHash = compilation.ContentHash,
+                            MindEvaluationData = [.. compilation.LinkedData],
+                            Accent = participant.AccentSnapshot,
+                            LookId = participant.LookIdSnapshot,
+                            ProjectileLookId = participant.ProjectileLookIdSnapshot,
+                        };
+                    }
+                }
+            }
             using var session = new GenericActorMatchSession(
                 resolvedDefinition,
                 configurations,
                 unchecked((ulong)match.Seed),
+                // Arc Relay's compact broadcast is projected directly while the session
+                // runs. Keeping the full evaluator chronology as well duplicates the
+                // dominant allocation/tick cost and is neither part of the canonical
+                // document nor needed for custom-mind fault accounting.
                 recordChronology:
-                    expected.RuntimeModel
-                    == HostedGenericRuntimeModel.SubmittedActorWasm);
-            if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind)
+                    expected.RuntimeModel == HostedGenericRuntimeModel.SubmittedActorWasm);
+            if (expected.RuntimeModel is HostedGenericRuntimeModel.TrustedStockMind or HostedGenericRuntimeModel.ArcRelayEntrants)
             {
                 ArcRelayBroadcastDocument broadcast =
                     ArcRelayBroadcastDocument.CreateAndRun(
@@ -236,6 +315,8 @@ public sealed class GenericActorMatchExecutor(
                 replayFormatVersion = ArcRelayBroadcastDocument.FormatVersion;
                 simulationElapsed = broadcast.SimulationElapsed;
                 replayElapsed = broadcast.ProjectionElapsed;
+                if (string.Equals(match.ArcRelayLane, ArcRelayMatchLane.Ranked, StringComparison.Ordinal))
+                    degeneracy = ArcRelayFeltDegeneracyDetector.Analyze(replayBytes);
             }
             else
             {
@@ -295,6 +376,40 @@ public sealed class GenericActorMatchExecutor(
         match.PresentationTicksPerSecond =
             expected.PresentationTicksPerSecond
             ?? settings.BroadcastTicksPerSecond;
+
+        if (string.Equals(match.ArcRelayLane, ArcRelayMatchLane.Preflight, StringComparison.Ordinal))
+        {
+            MatchParticipant candidate = participants[0];
+            if (candidate.EntrantIdSnapshot is not Guid entrantId)
+                throw new InvalidOperationException("Preflight candidate has no entrant identity snapshot.");
+            ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(
+                value => value.Id == entrantId,
+                cancellationToken);
+            ArcRelayPreflightSettlement.ApplyIfCurrent(
+                entrant,
+                match.Id,
+                candidate.EntrantRevisionSnapshot
+                    ?? throw new InvalidOperationException("Preflight candidate has no revision snapshot."),
+                candidate.Faults.GetValueOrDefault(),
+                completedAt);
+        }
+        if (string.Equals(match.ArcRelayLane, ArcRelayMatchLane.Ranked, StringComparison.Ordinal))
+        {
+            foreach (MatchParticipant participant in participants)
+            {
+                int teamId = participant.TeamId!.Value;
+                if (degeneracy?.Tripped(teamId) != true || participant.EntrantIdSnapshot is not Guid entrantId)
+                    continue;
+                ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(value => value.Id == entrantId, cancellationToken);
+                ArcRelayEntrantSuspension.Apply(
+                    entrant, match.Id, degeneracy.ReasonsByTeam[teamId], completedAt);
+            }
+            double seconds = settings.BroadcastDelaySeconds +
+                ((match.EndTick.GetValueOrDefault() + 1) / match.PresentationTicksPerSecond);
+            db.BackgroundJobs.Add(BackgroundJob.SettleArcRelayRating(
+                match.Id,
+                completedAt.AddSeconds(seconds)));
+        }
 
         long persistStarted = Stopwatch.GetTimestamp();
         await db.SaveChangesAsync(cancellationToken);

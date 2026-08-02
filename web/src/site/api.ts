@@ -161,6 +161,11 @@ export type ArcRelaySheetDocument = Schemas['ArcRelaySheetDocument'];
 export type ArcRelaySheetSlot = Schemas['ArcRelaySheetSlot'];
 export type ArcRelaySheetPoint = Schemas['ArcRelaySheetPoint'];
 export type ArcRelaySheetGambit = Schemas['ArcRelaySheetGambit'];
+export type ArcRelayEntrant = Schemas['ArcRelayEntrantCardResponse'];
+export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
+export type ArcRelayMind = Schemas['ArcRelayMindResponse'];
+export type ArcRelayCrest = Schemas['ArcRelayCrestDescriptor'];
+export type ArcRelayCrestOptions = Schemas['ArcRelayCrestOptionsResponse'];
 
 export type CreateBotRequest = Schemas['CreateBotRequest'];
 export type CreatedBot = Schemas['CreatedBot'];
@@ -168,7 +173,11 @@ export type AssignBotClassRequest = Schemas['AssignBotClassRequest'];
 export type AssignedBotClass = Schemas['AssignedBotClass'];
 export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
 export type SaveArcRelaySheetRequest = Schemas['SaveArcRelaySheetRequest'];
-export type CreateArcRelayMatchRequest = Schemas['CreateArcRelayMatchRequest'];
+export type CreateArcRelayScrimmageRequest = Schemas['CreateArcRelayScrimmageRequest'];
+export type CreateArcRelayMindRequest = Schemas['CreateArcRelayMindRequest'];
+export type ReviseArcRelayMindRequest = Schemas['ReviseArcRelayMindRequest'];
+export type SetArcRelayLadderOptInRequest = Schemas['SetArcRelayLadderOptInRequest'];
+export type SetArcRelayCrestRequest = Schemas['SetArcRelayCrestRequest'];
 export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
 export type ChallengeRequest = Schemas['ChallengeRequest'];
 export type RankedChallengeRequest = Schemas['RankedChallengeRequest'];
@@ -213,6 +222,10 @@ export const endpoints = {
   labs: () => api.get<LabsCatalog>('/api/labs'),
   arcRelayCatalog: () => api.get<ArcRelayCatalog>('/api/arc-relay/catalog'),
   arcRelaySheets: () => api.get<ArcRelaySheet[]>('/api/arc-relay/sheets'),
+  arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
+  arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
+  arcRelayMind: (entrantId: string) =>
+    api.get<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`),
   leaderboard: (rules?: string | null) =>
     api.get<Leaderboard>(
       `/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`,
@@ -248,8 +261,20 @@ export const endpoints = {
     api.post<ArcRelaySheet>('/api/arc-relay/sheets', body),
   updateArcRelaySheet: (sheetId: string, body: SaveArcRelaySheetRequest) =>
     api.put<ArcRelaySheet>(`/api/arc-relay/sheets/${sheetId}`, body),
-  createArcRelayMatch: (body: CreateArcRelayMatchRequest) =>
-    api.post<CreatedMatch>('/api/arc-relay/matches', body),
+  createArcRelayScrimmage: (body: CreateArcRelayScrimmageRequest) =>
+    api.post<CreatedMatch>('/api/arc-relay/scrimmages', body),
+  createArcRelayMind: (body: CreateArcRelayMindRequest) =>
+    api.post<ArcRelayMind>('/api/arc-relay/minds', body),
+  reviseArcRelayMind: (entrantId: string, body: ReviseArcRelayMindRequest) =>
+    api.put<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`, body),
+  arcRelayCrestOptions: (entrantId: string) =>
+    api.get<ArcRelayCrestOptions>(`/api/arc-relay/entrants/${entrantId}/crest-options`),
+  setArcRelayCrest: (entrantId: string, body: SetArcRelayCrestRequest) =>
+    api.put<ArcRelayCrest>(`/api/arc-relay/entrants/${entrantId}/crest`, body),
+  preflightArcRelayMind: (entrantId: string) =>
+    api.post<Schemas['ArcRelayPreflightResponse']>(`/api/arc-relay/entrants/${entrantId}/preflight`, {}),
+  setArcRelayLadder: (entrantId: string, body: SetArcRelayLadderOptInRequest) =>
+    api.put<ArcRelayEntrant>(`/api/arc-relay/entrants/${entrantId}/ladder`, body),
   updateAppearance: (botId: string, body: UpdateBotAppearanceRequest) =>
     api.put<unknown>(`/api/bots/${botId}/appearance`, body),
   register: (body: RegisterRequest) => api.post<unknown>('/api/accounts/register', body),

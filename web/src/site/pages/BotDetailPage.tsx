@@ -2,20 +2,14 @@ import { Fragment, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
-import AppearanceCard from '../components/AppearanceCard';
-import ArenaAction, { type ArenaMode } from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
-import BotClassCard from '../components/BotClassCard';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
-import LabsPanel from '../components/LabsPanel';
 import MatchHistory from '../components/MatchHistory';
 import { ErrorState, LoadingState } from '../components/StateView';
 import StatusBadge from '../components/StatusBadge';
 import Th from '../components/TableHeader';
-import SubmitPanel from '../components/SubmitPanel';
 import { ApiError } from '../api';
-import { detailBotSupportsLegacyDuel } from '../botContractProfiles';
 import { useBot } from '../queries';
 import { internalReturnTarget } from '../returnTarget';
 
@@ -33,7 +27,7 @@ export default function BotDetailPage() {
         <p className="t-body font-semibold">No bot called “{botKey}”.</p>
         <p className="t-meta mt-1">
           It may have been renamed or never existed.{' '}
-          <Link to="/bots" className="text-link">
+          <Link to="/archive/bots" className="text-link">
             Browse every bot
           </Link>
           .
@@ -46,27 +40,15 @@ export default function BotDetailPage() {
   if (!bot) return <LoadingState label="Loading the bot…" />;
   const look = botLook(bot.lookId);
   const projectile = projectileLook(bot.projectileLookId);
-  const liveVersion = bot.versions.find((version) => version.isActive) ?? null;
-  const duelCompatible = detailBotSupportsLegacyDuel(bot);
   // A built generic-only bot gets its prominent, catalog-aware Play action in the Labs
   // panel immediately below. Keeping a second Labs-only hero trigger would duplicate the
   // same action without adding context. Before a build exists, the Duel action remains
   // useful because its unavailable state points to submission.
-  const arenaModes: readonly ArenaMode[] =
-    liveVersion?.status !== 'Built'
-      ? bot.isOwner
-        ? ['ranked', 'challenge']
-        : []
-      : duelCompatible
-        ? bot.isOwner
-          ? ['ranked', 'challenge']
-          : ['challenge']
-        : [];
   const returnTarget = internalReturnTarget(
     location.state,
     bot.isOwner
       ? { to: '/garage', label: 'Garage' }
-      : { to: '/bots', label: 'All bots' },
+      : { to: '/archive/bots', label: 'Legacy archive' },
   );
 
   return (
@@ -76,6 +58,10 @@ export default function BotDetailPage() {
           ← {returnTarget.label}
         </Link>
       </nav>
+      <section className="rounded-sm border border-amber-700/50 bg-amber-950/20 px-3 py-2">
+        <p className="lab text-amber-200">Legacy archive · read only</p>
+        <p className="t-micro mt-1">Duel admission and submissions are retired. This record remains for historical matches and replay verification.</p>
+      </section>
       {/* The hero states who this bot is and what you can do to it. Everything below
           used to sit at one weight in a single column, so a page that is mostly read
           for one thing — is the new generation better — gave that no more prominence
@@ -106,34 +92,7 @@ export default function BotDetailPage() {
           </span>
         </div>
         <span className="flex flex-wrap items-center gap-2">
-          {arenaModes.length > 0 && (
-            <ArenaAction
-              bot={{
-                id: bot.id,
-                slug: bot.slug,
-                name: bot.name,
-                accent: bot.accent,
-                lookId: bot.lookId,
-                isOwner: bot.isOwner,
-              }}
-              modes={arenaModes}
-              initialMode={arenaModes[0]}
-              variant={bot.isOwner ? 'multi' : 'compact'}
-              challengeContextRole="opponent"
-            />
-          )}
-          {bot.isOwner && (
-            <>
-              {returnTarget.to !== '/garage' && (
-                <Link to="/garage" className="btn">
-                  Garage
-                </Link>
-              )}
-              <Link to={`/bots/${bot.slug}/appearance`} className="btn">
-                Appearance
-              </Link>
-            </>
-          )}
+          <span className="pill">archived</span>
         </span>
       </header>
 
@@ -262,16 +221,12 @@ export default function BotDetailPage() {
             where building happens, so the page's job is to hand you the right command
             for the bot you are looking at rather than to reproduce the CLI in HTML. */}
         <aside className="order-first flex flex-col gap-3.5 min-[900px]:order-none">
-          <BotClassCard bot={bot} botKey={botKey!} />
-          {bot.isOwner && <LabsPanel bot={bot} />}
           <WorkOnThisBot isOwner={bot.isOwner} />
         </aside>
       </div>
 
       {bot.isOwner && (
         <div className="grid gap-3 min-[900px]:grid-cols-2 min-[900px]:items-start">
-          <AppearanceCard bot={bot} />
-          <SubmitPanel bot={bot} botKey={botKey!} />
         </div>
       )}
     </div>

@@ -17,6 +17,7 @@ import {
   logicalArenaHeight,
   unprojectCanvasY,
 } from '../render/arenaProjection';
+import type { ViewerEntrantPresentation } from './Viewer';
 
 interface ArenaCanvasProps {
   replay: ReplayModel;
@@ -38,6 +39,7 @@ interface ArenaCanvasProps {
    * no gesture also carries no way to undo one.
    */
   cameraGestures?: boolean;
+  entrants?: readonly ViewerEntrantPresentation[];
 }
 
 export default function ArenaCanvas({
@@ -49,6 +51,7 @@ export default function ArenaCanvas({
   autoFit = true,
   onManualCamera,
   cameraGestures = true,
+  entrants,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({ time, selectedUnitKey, showVisibility, autoFit });
@@ -158,6 +161,7 @@ export default function ArenaCanvas({
           selectedUnitKey: followed,
           showVisibility: fov,
           frame: cameraRef.current?.frame ?? null,
+          entrants,
         },
         width,
         height,
@@ -170,7 +174,7 @@ export default function ArenaCanvas({
       gestures?.detach();
       gesturesRef.current = null;
     };
-  }, [replay, cameraGestures]);
+  }, [replay, cameraGestures, entrants]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     // A drag that moved the camera is not a tap on a bot.

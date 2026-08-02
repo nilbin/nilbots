@@ -11,7 +11,6 @@ import { useAuth } from './auth';
 import Logo from '../components/Logo';
 import {
   ArenaActionProvider,
-  GlobalArenaAction,
 } from './components/ArenaAction';
 import NotificationCenter from './components/NotificationCenter';
 
@@ -38,22 +37,19 @@ export default function Shell() {
             className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
             aria-label="Primary navigation"
           >
-            <TopLink to="/">Rankings</TopLink>
-            <TopLink to="/bots">Bots</TopLink>
             <TopLink to="/relay">Relay</TopLink>
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
           </nav>
           <div className="ml-auto flex min-w-0 items-center gap-2 max-[359px]:gap-1">
-            <GlobalArenaAction />
             {user ? (
               <>
                 <Link
-                  to="/garage"
-                  aria-label={`${user.displayName}'s Garage`}
+                  to="/relay"
+                  aria-label={`${user.displayName}'s entrants`}
                   className="t-meta inline-flex min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text max-[359px]:shrink-0"
                 >
-                  <span className="sm:hidden">Garage</span>
+                  <span className="sm:hidden">Entrants</span>
                   <span className="hidden sm:inline">{user.displayName}</span>
                 </Link>
                 <button
@@ -78,7 +74,7 @@ export default function Shell() {
           <Outlet />
         </main>
         <footer className="t-micro flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-arena-edge py-3">
-          <span>deterministic robot combat · every match is reproducible</span>
+          <span>deterministic Arc Relay · every match is reproducible</span>
           <nav
             className="ml-auto flex items-center gap-3"
             aria-label="Secondary navigation"
@@ -86,19 +82,15 @@ export default function Shell() {
             <Link to="/store" className="text-link">
               Shop
             </Link>
-            {user && (
-              <Link to="/garage" className="text-link">
-                Garage
-              </Link>
-            )}
+            <Link to="/archive/bots" className="text-link">Legacy archive</Link>
           </nav>
         </footer>
         <nav
           className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-arena-edge bg-arena-panel pb-[env(safe-area-inset-bottom)] min-[640px]:hidden"
           aria-label="Primary navigation"
         >
-          <MobileLink to="/">Rankings</MobileLink>
-          <MobileLink to="/bots">Bots</MobileLink>
+          <MobileLink to="/relay">Relay</MobileLink>
+          <MobileLink to="/store">Shop</MobileLink>
           <MobileLink to="/watch">Watch</MobileLink>
           <MobileLink to="/docs">Docs</MobileLink>
         </nav>

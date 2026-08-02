@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import EntrantCrest from '../../components/EntrantCrest';
 import { useAuth } from '../auth';
 import {
   type ArcRelayCatalog,
+  type ArcRelayClass,
+  type ArcRelayEntrant,
   type ArcRelaySheet,
   type ArcRelaySheetDocument,
   type ArcRelaySheetPoint,
@@ -11,6 +14,15 @@ import {
 import { ErrorState, LoadingState } from '../components/StateView';
 import {
   useArcRelayCatalog,
+  useArcRelayCrestOptions,
+  useArcRelayEntrants,
+  useArcRelayLadder,
+  useArcRelayLadderOptIn,
+  useArcRelayPreflight,
+  useSetArcRelayCrest,
+  useCreateArcRelayMind,
+  useLoadArcRelayMind,
+  useReviseArcRelayMind,
   useArcRelaySheets,
   useCreateArcRelayMatch,
   useSaveArcRelaySheet,
@@ -23,6 +35,8 @@ export default function ArcRelayPage() {
   const navigate = useNavigate();
   const catalogQuery = useArcRelayCatalog();
   const sheetsQuery = useArcRelaySheets(user !== null);
+  const entrantsQuery = useArcRelayEntrants(user !== null);
+  const ladderQuery = useArcRelayLadder();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [name, setName] = useState('Untitled sheet');
   const [document, setDocument] = useState<ArcRelaySheetDocument | null>(null);
@@ -30,6 +44,7 @@ export default function ArcRelayPage() {
   const [sheetB, setSheetB] = useState('');
 
   const sheets = sheetsQuery.data ?? [];
+  const entrants = entrantsQuery.data ?? [];
   const active = sheets.find((sheet) => sheet.id === activeId) ?? null;
 
   useEffect(() => {
@@ -45,12 +60,12 @@ export default function ArcRelayPage() {
   }, [activeId, sheets.length]);
 
   useEffect(() => {
-    if (sheets.length < 2) return;
-    if (!sheets.some((sheet) => sheet.id === sheetA)) setSheetA(sheets[0].id);
-    if (!sheets.some((sheet) => sheet.id === sheetB) || sheetA === sheetB) {
-      setSheetB(sheets.find((sheet) => sheet.id !== (sheetA || sheets[0].id))?.id ?? '');
+    if (entrants.length < 2) return;
+    if (!entrants.some((entry) => entry.id === sheetA)) setSheetA(entrants[0].id);
+    if (!entrants.some((entry) => entry.id === sheetB) || sheetA === sheetB) {
+      setSheetB(entrants.find((entry) => entry.id !== (sheetA || entrants[0].id))?.id ?? '');
     }
-  }, [sheetA, sheetB, sheets]);
+  }, [sheetA, sheetB, entrants]);
 
   const save = useSaveArcRelaySheet();
   const launch = useCreateArcRelayMatch();
@@ -74,7 +89,7 @@ export default function ArcRelayPage() {
   };
 
   const launchMatch = () => {
-    launch.mutate({ sheetId: sheetA, opponentSheetId: sheetB, seed: null }, {
+    launch.mutate({ entrantId: sheetA, opponentEntrantId: sheetB, seed: null }, {
       onSuccess: ({ id }) => navigate(`/matches/${id}`),
     });
   };
@@ -132,6 +147,10 @@ export default function ArcRelayPage() {
         </div>
         <span className="pill">{catalog.mapId}</span>
       </header>
+
+      <EntrantRoster entrants={entrants} ladder={ladderQuery.data?.entrants ?? []}
+        templateClasses={catalogQuery.data?.newSheetTemplate.slots.map((slot) => slot.classId) ?? []}
+        classes={catalog.classes} />
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="panel h-fit">
@@ -203,17 +222,17 @@ export default function ArcRelayPage() {
               same frozen algorithm. Later edits cannot rewrite this match.
             </p>
             <div className="flex flex-wrap items-end gap-2">
-              <SheetSelect label="cyan sheet" value={sheetA} sheets={sheets} onChange={setSheetA} />
+              <EntrantSelect label="cyan entrant" value={sheetA} entrants={entrants} onChange={setSheetA} />
               <span className="t-meta pb-2">vs</span>
-              <SheetSelect label="red sheet" value={sheetB} sheets={sheets} onChange={setSheetB} />
+              <EntrantSelect label="red entrant" value={sheetB} entrants={entrants} onChange={setSheetB} />
               <button type="button" className="btn btn-on"
-                disabled={sheets.length < 2 || !sheetA || !sheetB || sheetA === sheetB || launch.isPending}
+                disabled={entrants.length < 2 || !sheetA || !sheetB || sheetA === sheetB || launch.isPending}
                 onClick={launchMatch}>
                 {launch.isPending ? 'Queueing…' : 'Run match'}
               </button>
             </div>
-            {sheets.length < 2 && (
-              <p className="t-micro mt-2">Save a second distinct sheet to run a comparison.</p>
+            {entrants.length < 2 && (
+              <p className="t-micro mt-2">Create a second distinct entrant to run a comparison.</p>
             )}
             {launch.isError && <p className="t-micro mt-2 text-red-300">{launch.error.message}</p>}
           </section>
@@ -523,16 +542,205 @@ function ClassCatalog({ catalog }: { catalog: ArcRelayCatalog }) {
   </section>;
 }
 
-function SheetSelect({ label, value, sheets, onChange }: {
-  label: string; value: string; sheets: ArcRelaySheet[]; onChange: (value: string) => void;
+function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
+  entrants: ArcRelayEntrant[];
+  ladder: ArcRelayEntrant[];
+  templateClasses: string[];
+  classes: ArcRelayClass[];
+}) {
+  const [name, setName] = useState('My relay mind');
+  const [entryType, setEntryType] = useState('MyRelayMind');
+  const [source, setSource] = useState(DEFAULT_MIND_SOURCE);
+  const [composition, setComposition] = useState(templateClasses);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [expectedRevision, setExpectedRevision] = useState(0);
+  const create = useCreateArcRelayMind();
+  const revise = useReviseArcRelayMind();
+  const loadMind = useLoadArcRelayMind();
+  const preflight = useArcRelayPreflight();
+  const ladderOptIn = useArcRelayLadderOptIn();
+  const crestOptions = useArcRelayCrestOptions();
+  const setCrest = useSetArcRelayCrest();
+  const submit = () => {
+    const common = {
+      name, entryType,
+      files: [{ name: 'MyRelayMind.cs', content: source }],
+      composition: { classIds: composition, adaptivePolicyId: null, adaptiveClassIds: [] },
+    };
+    if (editId) revise.mutate({ entrantId: editId, body: { ...common, expectedRevision } });
+    else create.mutate({ ...common, crestVariant: 0 });
+  };
+  const beginRevision = (entrantId: string) => loadMind.mutate(entrantId, {
+    onSuccess: (mind) => {
+      setEditId(entrantId);
+      setExpectedRevision(mind.entrant.revision);
+      setName(mind.entrant.name);
+      setEntryType(mind.entryType);
+      setSource(mind.files[0]?.content ?? DEFAULT_MIND_SOURCE);
+      setComposition([...mind.composition.classIds]);
+      const editor = document.getElementById('mind-editor') as HTMLDetailsElement | null;
+      if (editor) { editor.open = true; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    },
+  });
+  return <>
+    <section className="panel overflow-hidden">
+      <div className="pad flex flex-wrap items-end gap-3 border-b border-arena-edge">
+        <div className="mr-auto">
+          <p className="lab">Your entrants</p>
+          <p className="t-micro mt-1">Sheets and submitted minds share one identity, crest and rating surface.</p>
+        </div>
+        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 fielded</span>
+      </div>
+      <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
+        {entrants.map((entrant) => <article key={entrant.id}
+          className="rounded-sm border border-arena-edge bg-arena-deep/40 p-3">
+          <div className="flex items-center gap-3">
+            <EntrantCrest crest={entrant.crest} size={52} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="type-display truncate text-[18px]">{entrant.name}</h3>
+                <span className="pill ml-auto">{entrant.kind}</span>
+              </div>
+              <p className="t-micro">{entrant.rating} rating · {entrant.rankedMatches} ranked · r{entrant.revision}</p>
+              <p className={clsx('t-micro mt-1', entrant.status === 'suspended' ? 'text-red-300' : 'text-arena-material')}>
+                {entrant.status}{entrant.suspensionReason ? ` · ${entrant.suspensionReason}` : ''}
+              </p>
+            </div>
+          </div>
+          <CompositionStrip entrant={entrant} />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn" disabled={crestOptions.isPending}
+              onClick={() => crestOptions.mutate(entrant.id)}>Choose crest</button>
+            {entrant.kind === 'mind' && <button type="button" className="btn"
+              disabled={loadMind.isPending} onClick={() => beginRevision(entrant.id)}>Revise</button>}
+            {entrant.kind === 'mind' && (entrant.status === 'required' || entrant.status === 'built') &&
+              <button type="button" className="btn" disabled={preflight.isPending}
+                onClick={() => preflight.mutate(entrant.id)}>Run preflight</button>}
+            {(entrant.kind === 'sheet' || entrant.status === 'passed') && entrant.status !== 'suspended' &&
+              <button type="button" className={clsx('btn', entrant.ladderOptedIn && 'btn-on')}
+                disabled={ladderOptIn.isPending}
+                onClick={() => ladderOptIn.mutate({ entrantId: entrant.id, optedIn: !entrant.ladderOptedIn })}>
+                {entrant.ladderOptedIn ? 'Leave ladder' : 'Enter ladder'}
+              </button>}
+          </div>
+          {crestOptions.data?.entrantId === entrant.id && (
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-arena-edge pt-3" aria-label="Crest choices">
+              {crestOptions.data.options.map((crest) => <button key={crest.key} type="button"
+                className="rounded-sm border border-arena-edge p-1 hover:border-arena-material"
+                aria-label={`Choose crest ${crest.variant}`} disabled={setCrest.isPending}
+                onClick={() => setCrest.mutate({ entrantId: entrant.id, variant: crest.variant })}>
+                <EntrantCrest crest={crest} size={38} />
+              </button>)}
+            </div>
+          )}
+        </article>)}
+        {entrants.length === 0 && <p className="t-meta p-2">Save a sheet or submit a mind to establish an entrant.</p>}
+      </div>
+    </section>
+
+    <section className="panel pad">
+      <details id="mind-editor">
+        <summary className="lab cursor-pointer">{editId ? 'Revise custom mind' : 'Submit a custom mind'}</summary>
+        <p className="t-meta mt-2 max-w-3xl">
+          Sources follow the controlled server build path. The resulting artifact runs only in the WASM sandbox;
+          its eight-class declaration is validated and snapshotted beside every match.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <label><span className="t-micro block">Entrant name</span><input className="field" value={name}
+            maxLength={60} onChange={(event) => setName(event.target.value)} /></label>
+          <label><span className="t-micro block">Entry type</span><input className="field" value={entryType}
+            onChange={(event) => setEntryType(event.target.value)} /></label>
+        </div>
+        <fieldset className="mt-3">
+          <legend className="t-micro">Declared eight-body composition · two copies maximum</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            {composition.map((classId, slot) => <label key={slot}>
+              <span className="t-micro block">slot {slot + 1}</span>
+              <select className="field py-1.5" value={classId} onChange={(event) => {
+                const next = [...composition]; next[slot] = event.target.value; setComposition(next);
+              }}>
+                {classes.filter((entry) => entry.unlocked).map((entry) => {
+                  const copies = composition.filter((value) => value === entry.id).length;
+                  return <option key={entry.id} value={entry.id}
+                    disabled={entry.id !== classId && copies >= 2}>{entry.name}</option>;
+                })}
+              </select>
+            </label>)}
+          </div>
+        </fieldset>
+        <label className="mt-3 block"><span className="t-micro block">C# source</span>
+          <textarea className="field min-h-[260px] font-mono text-xs" spellCheck={false} value={source}
+            onChange={(event) => setSource(event.target.value)} /></label>
+        <div className="mt-3 flex items-center gap-3">
+          <button type="button" className="btn btn-on" disabled={create.isPending || revise.isPending || composition.length !== 8}
+            onClick={submit}>{create.isPending || revise.isPending ? 'Submitting…' : editId ? 'Build revised mind' : 'Build mind entrant'}</button>
+          {editId && <button type="button" className="btn" onClick={() => {
+            setEditId(null); setExpectedRevision(0); setName('My relay mind'); setEntryType('MyRelayMind');
+            setSource(DEFAULT_MIND_SOURCE); setComposition(templateClasses);
+          }}>New submission</button>}
+          {(create.isError || revise.isError) && <span className="t-micro text-red-300">
+            {(create.error ?? revise.error)?.message}</span>}
+          {(create.isSuccess || revise.isSuccess) && <span className="t-micro text-emerald-300">
+            Revision queued through the controlled toolchain; rating identity preserved.</span>}
+        </div>
+      </details>
+    </section>
+
+    <section className="panel overflow-hidden">
+      <div className="pad border-b border-arena-edge">
+        <p className="lab">Ranked Arc Relay</p>
+        <p className="t-micro mt-1">Passive cross-account pairing · ratings reveal only when the broadcast does.</p>
+      </div>
+      <div className="divide-y divide-arena-edge">
+        {ladder.map((entrant, index) => <div key={entrant.id} className="flex min-w-0 items-center gap-3 px-3 py-2.5">
+          <span className="lab w-7 text-right">{index + 1}</span><EntrantCrest crest={entrant.crest} size={34} />
+          <div className="min-w-0 flex-1"><p className="t-body truncate">{entrant.name}</p>
+            <p className="t-micro">{entrant.kind} · {entrant.ownerDisplayName}</p></div>
+          <CompositionStrip entrant={entrant} compact />
+          <strong className="type-display text-[18px]">{entrant.rating}</strong>
+        </div>)}
+        {ladder.length === 0 && <p className="t-meta pad">The launch ladder is waiting for its first entrants.</p>}
+      </div>
+    </section>
+  </>;
+}
+
+function CompositionStrip({ entrant, compact = false }: { entrant: ArcRelayEntrant; compact?: boolean }) {
+  return <div className={clsx('flex min-w-0 gap-1', compact ? 'hidden max-w-[240px] lg:flex' : 'mt-3')}>
+    {entrant.composition.map((slot) => <span key={slot.slot} title={`${slot.slot + 1}. ${slot.className}`}
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-arena-edge bg-arena-panel font-mono text-[9px] uppercase text-arena-material">
+      {slot.className.slice(0, 2)}
+    </span>)}
+  </div>;
+}
+
+function EntrantSelect({ label, value, entrants, onChange }: {
+  label: string; value: string; entrants: ArcRelayEntrant[]; onChange: (value: string) => void;
 }) {
   return <label className="min-w-[180px] flex-1"><span className="t-micro block">{label}</span>
     <select className="field" value={value} onChange={(event) => onChange(event.target.value)}>
-      <option value="">choose sheet</option>
-      {sheets.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name} · r{sheet.revision}</option>)}
+      <option value="">choose entrant</option>
+      {entrants.map((entrant) => <option key={entrant.id} value={entrant.id}>
+        {entrant.name} · {entrant.kind} r{entrant.revision}
+      </option>)}
     </select>
   </label>;
 }
+
+const DEFAULT_MIND_SOURCE = `using BotArena.Sdk;
+
+public sealed class MyRelayMind : IGenericMindBot
+{
+    public void StartMatch(MindStart start) { }
+
+    public void Think(MindContext mind)
+    {
+        foreach (MindBody body in mind.Bodies)
+            body.Hold("author your Arc Relay plan here");
+    }
+
+    public void EndMatch(MindEnd end) { }
+}`;
 
 function NumberField({ label, value, min, max, onChange }: {
   label: string; value: number; min: number; max: number; onChange: (value: number) => void;

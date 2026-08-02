@@ -143,13 +143,14 @@ export interface DrawOptions {
    * what a caller that does not want a moving camera gets by saying nothing.
    */
   frame?: ArenaFrame | null;
+  entrants?: readonly { teamId: number; crest: import('../components/EntrantCrest').CrestPresentation }[];
 }
 
 /** Pure canvas renderer: consumes replay data, never computes game rules (plan §32). */
 export function drawArena(
   ctx: CanvasRenderingContext2D,
   replay: ReplayModel,
-  { time, selectedUnitKey, showVisibility, frame = null }: DrawOptions,
+  { time, selectedUnitKey, showVisibility, frame = null, entrants = [] }: DrawOptions,
   width: number,
   height: number,
 ): void {
@@ -345,6 +346,7 @@ export function drawArena(
     py,
     poses,
     accentFor,
+    entrants,
   };
   drawArcRelayGround(arcRelayVisual);
   drawSpill();

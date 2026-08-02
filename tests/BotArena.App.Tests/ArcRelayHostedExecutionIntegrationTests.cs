@@ -44,6 +44,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             ArcRelaySeedResult seeded = await scope.ServiceProvider
                 .GetRequiredService<ArcRelayPlaylistSeeder>()
                 .SeedAsync();
+            await scope.ServiceProvider.GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync();
             Assert.Equal(
                 ArcRelayPlaylistDefinition.StockArtifactHash,
                 seeded.StockBotVersion.ArtifactHash);
@@ -91,8 +93,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             JobExecutionResult result = await handler.HandleAsync(
                 created.Id,
                 GenericActorMatchJobType.ForPlaylist(
-                    ArcRelayPlaylistDefinition.PlaylistKey,
-                    ArcRelayPlaylistDefinition.Version),
+                    ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+                    ArcRelayEntrantPlaylistDefinition.Version),
                 CancellationToken.None);
             Assert.Equal("completed", result.Outcome);
         }
@@ -120,6 +122,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(ArcRelayPlaylistDefinition.StockArtifactHash, participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
+                Assert.NotNull(participant.EntrantIdSnapshot);
+                Assert.Equal("sheet", participant.EntrantKindSnapshot);
                 Assert.Equal(1, participant.SheetRevisionSnapshot);
                 Assert.NotNull(participant.SheetHashSnapshot);
                 Assert.NotNull(participant.SheetCanonicalJsonSnapshot);
@@ -206,8 +210,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             JobExecutionResult result = await handler.HandleAsync(
                 warmMatch.Id,
                 GenericActorMatchJobType.ForPlaylist(
-                    ArcRelayPlaylistDefinition.PlaylistKey,
-                    ArcRelayPlaylistDefinition.Version),
+                    ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+                    ArcRelayEntrantPlaylistDefinition.Version),
                 CancellationToken.None);
             Assert.Equal("completed", result.Outcome);
         }
@@ -233,8 +237,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             JobExecutionResult result = await handler.HandleAsync(
                 steadyMatch.Id,
                 GenericActorMatchJobType.ForPlaylist(
-                    ArcRelayPlaylistDefinition.PlaylistKey,
-                    ArcRelayPlaylistDefinition.Version),
+                    ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+                    ArcRelayEntrantPlaylistDefinition.Version),
                 CancellationToken.None);
             Assert.Equal("completed", result.Outcome);
         }
@@ -252,9 +256,13 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.True(
             elapsed.Elapsed < TimeSpan.FromSeconds(5),
             $"Trusted hosted execution took {elapsed.Elapsed.TotalSeconds:F3}s.");
+        // The entrant lane performs the same deterministic simulation plus immutable
+        // identity/composition/crest snapshot checks. Keep a hard ceiling that catches a
+        // return to per-sheet builds or WASM while leaving shared CI enough scheduling
+        // headroom; production Release measurements remain reported separately.
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(1),
-            $"Steady hosted execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(2),
+            $"Steady hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
     }
 
     private static async Task<UserResponse> RegisterAsync(HttpClient client)

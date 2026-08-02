@@ -23,6 +23,7 @@ public static class RankedEndpoints
     {
         routes.MapPost("/api/matches/ranked",
             async (RankedChallengeRequest request, ClaimsPrincipal principal, AppDbContext db,
+                   LegacyDuelSettings legacyDuel,
                    ApplicationMode mode, IConfiguration configuration,
                    MatchAdmissionService admission,
                    MatchParticipantSnapshotFactory snapshots,
@@ -33,6 +34,8 @@ public static class RankedEndpoints
                    HttpContext http,
                    CancellationToken cancellationToken) =>
         {
+            if (!legacyDuel.AdmissionEnabled)
+                return Results.Problem("Legacy Duel ranked admission is retired. Use the Arc Relay ladder at /relay.", statusCode: StatusCodes.Status410Gone, title: "Legacy mode retired.");
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
 

@@ -82,6 +82,7 @@ public sealed class JobWorker(
             // with a retry budget, which belongs with the other scheduled tails rather
             // than in the request that triggered it.
             lanes.Add(RunLane(BackgroundJob.DeliverPushType, stoppingToken));
+            lanes.Add(RunLane(BackgroundJob.SettleArcRelayRatingType, stoppingToken));
         }
         if (lanes.Count == 0)
             throw new InvalidOperationException($"Role '{mode.Name}' has no background job lanes.");

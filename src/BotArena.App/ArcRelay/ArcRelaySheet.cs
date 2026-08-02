@@ -78,12 +78,19 @@ public sealed record ArcRelaySheetResponse(
     string ContentHash,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    ArcRelaySheetDocument Document);
+    ArcRelaySheetDocument Document,
+    ArcRelayEntrantCardResponse Entrant);
 
 public sealed record SaveArcRelaySheetRequest(
     string Name,
     int? ExpectedRevision,
     ArcRelaySheetDocument Document);
+
+/// <summary>Compatibility wire shape for the shipped sheet-only editor.</summary>
+public sealed record CreateArcRelayMatchRequest(
+    Guid SheetId,
+    Guid OpponentSheetId,
+    long? Seed);
 
 public sealed record ArcRelayClassResponse(
     string Id,
@@ -105,8 +112,3 @@ public sealed record ArcRelayCatalogResponse(
     IReadOnlyList<string> GambitTriggers,
     IReadOnlyList<ArcRelayClassResponse> Classes,
     ArcRelaySheetDocument NewSheetTemplate);
-
-public sealed record CreateArcRelayMatchRequest(
-    Guid SheetId,
-    Guid OpponentSheetId,
-    long? Seed);

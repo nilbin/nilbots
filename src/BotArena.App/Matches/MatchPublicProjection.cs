@@ -1,4 +1,5 @@
 using BotArena.App.Bots;
+using BotArena.App.ArcRelay;
 
 namespace BotArena.App.Matches;
 
@@ -54,7 +55,17 @@ public sealed record MatchDetailParticipantResponse(
     string? Outcome,
     int? FinalHealth,
     int? DamageDealt,
-    int? Faults);
+    int? Faults)
+{
+    public ArcRelayMatchEntrantResponse? Entrant { get; init; }
+}
+
+public sealed record ArcRelayMatchEntrantResponse(
+    Guid? EntrantId,
+    string? EntrantKind,
+    int? EntrantRevision,
+    ArcRelayCrestDescriptor? Crest,
+    IReadOnlyList<string> Composition);
 
 public sealed record MatchDetailResponse(
     Guid Id,
@@ -74,7 +85,10 @@ public sealed record MatchDetailResponse(
     DateTime CreatedAt,
     DateTime? CompletedAt,
     IReadOnlyList<MatchDetailParticipantResponse> Participants,
-    IReadOnlyList<MatchTeamResultResponse> TeamResults);
+    IReadOnlyList<MatchTeamResultResponse> TeamResults)
+{
+    public string? ArcRelayLane { get; init; }
+}
 
 public sealed record MatchLiveResponse(
     string Status,
@@ -272,7 +286,21 @@ public static class MatchPublicProjection
                         result.Outcome,
                         result.FinalHealth,
                         result.DamageDealt,
-                        result.Faults);
+                        result.Faults)
+                    {
+                        Entrant = participant.EntrantIdSnapshot is null
+                            ? null
+                            : new ArcRelayMatchEntrantResponse(
+                                participant.EntrantIdSnapshot,
+                                participant.EntrantKindSnapshot,
+                                participant.EntrantRevisionSnapshot,
+                                participant.CrestSnapshot is { } crest
+                                    ? ArcRelayCrestGenerator.ReadSnapshot(crest)
+                                    : null,
+                                participant.CompositionSnapshot is { } composition
+                                    ? ArcRelayComposition.Read(composition).ClassIds
+                                    : []),
+                    };
                 })
                 .ToArray(),
             broadcast.Revealed
@@ -293,7 +321,10 @@ public static class MatchPublicProjection
                                             .InvariantCulture)))
                             .ToArray()))
                     .ToArray()
-                : []);
+                : [])
+        {
+            ArcRelayLane = match.ArcRelayLane,
+        };
     }
 
     public static MatchLiveResponse ToLive(

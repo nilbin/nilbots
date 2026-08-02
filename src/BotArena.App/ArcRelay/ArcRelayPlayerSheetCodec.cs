@@ -89,21 +89,10 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
         {
             throw Invalid("slots", "unitId values must be exactly 0 through 7");
         }
-        foreach (IGrouping<string, ArcRelaySheetSlot> group in slots.GroupBy(
-                     slot => slot.ClassId,
-                     StringComparer.Ordinal))
-        {
-            if (!catalog.Contains(group.Key))
-                throw Invalid("slots.classId", $"unknown class '{group.Key}'");
-            if (!unlockedClassIds.Contains(group.Key))
-                throw Invalid("slots.classId", $"class '{group.Key}' is locked");
-            if (group.Count() > MaximumCopiesPerClass)
-            {
-                throw Invalid(
-                    "slots.classId",
-                    $"class '{group.Key}' exceeds the two-copy limit");
-            }
-        }
+        _ = ValidateComposition(
+            slots.Select(slot => slot.ClassId).ToArray(),
+            unlockedClassIds,
+            "slots.classId");
 
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.HomeGatesWide);
@@ -186,6 +175,37 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
             if (!rallyIds.Contains(gambit.RallyLineId))
                 throw Invalid($"gambits.{gambit.Id}.rallyLineId", "does not name a rally line");
         }
+    }
+
+    /// <summary>
+    /// The one composition admission boundary shared by sheet slots and
+    /// custom-mind declarations.
+    /// </summary>
+    public string[] ValidateComposition(
+        IReadOnlyList<string>? classIds,
+        IReadOnlySet<string> unlockedClassIds,
+        string field = "composition.classIds")
+    {
+        ArgumentNullException.ThrowIfNull(unlockedClassIds);
+        if (classIds is null || classIds.Count != SlotCount)
+            throw Invalid(field, $"must contain exactly {SlotCount} entries");
+        string[] classes = [.. classIds];
+        foreach (IGrouping<string, string> group in classes.GroupBy(
+                     classId => classId,
+                     StringComparer.Ordinal))
+        {
+            if (!catalog.Contains(group.Key))
+                throw Invalid(field, $"unknown class '{group.Key}'");
+            if (!unlockedClassIds.Contains(group.Key))
+                throw Invalid(field, $"class '{group.Key}' is locked");
+            if (group.Count() > MaximumCopiesPerClass)
+            {
+                throw Invalid(
+                    field,
+                    $"class '{group.Key}' exceeds the two-copy limit");
+            }
+        }
+        return classes;
     }
 
     public static ArcRelaySheetDocument NewSheetTemplate() => new(

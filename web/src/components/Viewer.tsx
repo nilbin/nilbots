@@ -31,6 +31,16 @@ import IdentityChip from './IdentityChip';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import LiveStatus, { LiveDot } from './LiveStatus';
+import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
+import { createPresenter } from '../replayPresentation';
+
+export interface ViewerEntrantPresentation {
+  teamId: number;
+  name: string;
+  kind: string | null;
+  crest: CrestPresentation;
+  composition?: readonly string[];
+}
 
 /**
  * The hosted viewer's 3D renderer — what the web viewer is.
@@ -54,11 +64,13 @@ export default function Viewer({
   replay,
   live,
   soundtrackPresentationId,
+  entrants,
 }: {
   replay: ReplayModel;
   live?: LiveFollow;
   /** Stable match identity across partial-live and complete replay documents. */
   soundtrackPresentationId?: string;
+  entrants?: readonly ViewerEntrantPresentation[];
 }) {
   const assets = useAssetReadiness();
   const immersive = useImmersive();
@@ -117,6 +129,8 @@ export default function Viewer({
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+  const presenter = useMemo(() => createPresenter(replay), [replay]);
+  const arcStanding = presenter.at(tick).arcRelay;
   const soundEffects = useReplaySoundEffects({
     replay,
     time,
@@ -471,6 +485,7 @@ export default function Viewer({
                 onReady={() => setSceneReady(true)}
                 autoFit={autoFit}
                 onManualCamera={() => setAutoFit(false)}
+                entrants={entrants}
               />
             </Suspense>
           ) : (
@@ -482,6 +497,7 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
               autoFit={autoFit}
               onManualCamera={() => setAutoFit(false)}
+              entrants={entrants}
             />
           )}
           {/* Where we are, over the game rather than under it: the eye is on the arena,
@@ -500,6 +516,10 @@ export default function Viewer({
             </span>{' '}
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
+          {isArcRelay && arcStanding && (
+            <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
+              reactors={arcStanding.reactors} />
+          )}
           {/* A live broadcast has no play button — the clock belongs to the server and
               every viewer is on the same tick — so it keeps a plain indicator. */}
           {isLive && gate.overlay === 'loading' && (
@@ -689,6 +709,58 @@ export default function Viewer({
       )}
     </div>
   );
+}
+
+function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
+  replay: ReplayModel;
+  tick: number;
+  entrants?: readonly ViewerEntrantPresentation[];
+  reactors: readonly { teamId: number; chargePips: number; integritySegments: number; accent: string }[];
+}) {
+  const seconds = Math.floor(tick / 5);
+  const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  return <div aria-label="Arc Relay score" className="absolute top-2 right-2 z-[8] flex max-w-[calc(100%-74px)] items-stretch overflow-hidden rounded-sm border border-white/15 bg-[#10161c]/92 text-white shadow-[0_4px_18px_rgba(0,0,0,.42)] backdrop-blur-[5px]">
+    {[0, 1].map((teamId) => {
+      const reactor = reactors.find((value) => value.teamId === teamId);
+      const supplied = entrants?.find((value) => value.teamId === teamId);
+      const name = supplied?.name ?? teamName(replay, teamId);
+      const crest = supplied?.crest ?? fallbackCrest(name, reactor?.accent ?? (teamId === 0 ? '#22d3ee' : '#fb5360'));
+      const composition = supplied?.composition ?? replay.units
+        .filter((unit) => unit.teamId === teamId && unit.classId)
+        .map((unit) => unit.classId!);
+      return <div key={teamId} className="flex min-w-0 items-center gap-2 px-2 py-1.5" style={{ order: teamId === 0 ? 0 : 2 }}>
+        <EntrantCrest crest={crest} size={30} />
+        <div className="min-w-0">
+          <p className="max-w-[120px] truncate text-[11px] font-bold tracking-[.04em]">{name}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="flex gap-[2px]" aria-label={`${reactor?.integritySegments ?? 0} reactor integrity`}>
+              {[0, 1, 2].map((value) => <i key={value} className="h-[5px] w-4 rounded-[1px] border border-white/15"
+                style={{ background: value < (reactor?.integritySegments ?? 0) ? crest.primary : '#27313a' }} />)}
+            </span>
+            <span className="flex gap-[3px]" aria-label={`${reactor?.chargePips ?? 0} charge`}>
+              {[0, 1, 2].map((value) => <i key={value} className="h-[6px] w-[6px] rounded-full"
+                style={{ background: value < (reactor?.chargePips ?? 0) ? crest.detail : '#33404a', boxShadow: value < (reactor?.chargePips ?? 0) ? `0 0 5px ${crest.detail}` : undefined }} />)}
+            </span>
+          </div>
+          {composition.length > 0 && <span className="mt-1 flex gap-[2px]" aria-label={`${name} composition`}>
+            {composition.slice(0, 8).map((classId, index) => <i key={`${classId}:${index}`}
+              title={classId} className="h-[3px] w-2 rounded-[1px] bg-white/45" />)}
+          </span>}
+        </div>
+      </div>;
+    })}
+    <div className="order-1 flex min-w-[58px] flex-col items-center justify-center border-x border-white/10 bg-black/25 px-2">
+      <span className="font-mono text-[13px] font-bold tabular-nums">{clock}</span>
+      <span className="text-[7px] uppercase tracking-[.2em] text-white/55">Arc Relay</span>
+    </div>
+  </div>;
+}
+
+function fallbackCrest(name: string, accent: string): CrestPresentation {
+  return {
+    shape: 'shield', pattern: 'split', mark: name.slice(0, 1) || 'A',
+    primary: accent, secondary: '#202a32', detail: '#f2e9d8',
+  };
 }
 
 const NON_ACTIVATING_AUDIO_KEYS = new Set([

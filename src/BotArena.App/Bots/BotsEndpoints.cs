@@ -41,6 +41,7 @@ public static class BotsEndpoints
             // not a record constructor's, so ordering on the projection no longer
             // translates to SQL.
             var bots = await db.Bots
+                .Where(b => !db.ArcRelayEntrants.Any(e => e.MindBotId == b.Id))
                 .OrderBy(b => b.CreatedAt)
                 .Select(b => new BotSummaryResponse(
                     b.Id,
@@ -116,8 +117,8 @@ public static class BotsEndpoints
             MatchExecutionSettings matchSettings) =>
         {
             var bot = Guid.TryParse(key, out var botId)
-                ? await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId)
-                : await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Slug == key);
+                ? await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId && !db.ArcRelayEntrants.Any(e => e.MindBotId == b.Id))
+                : await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Slug == key && !db.ArcRelayEntrants.Any(e => e.MindBotId == b.Id));
             if (bot is null)
                 return Results.NotFound();
             bool isOwner = principal.UserId() == bot.OwnerUserId;
@@ -356,7 +357,7 @@ public static class BotsEndpoints
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
             var bots = await db.Bots
-                .Where(b => b.OwnerUserId == userId)
+                .Where(b => b.OwnerUserId == userId && !db.ArcRelayEntrants.Any(e => e.MindBotId == b.Id))
                 .OrderBy(b => b.Name)
                 .Select(b => new MyBotResponse(
                     b.Id,

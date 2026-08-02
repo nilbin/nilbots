@@ -45,6 +45,8 @@ public class Match
     /// with this value are unranked challenge product events; worker-internal matches
     /// and historical rows may leave it null.</summary>
     public Guid? InitiatedByUserId { get; set; }
+    /// <summary>Arc Relay product lane; null for legacy and other modes.</summary>
+    public string? ArcRelayLane { get; set; }
     /// <summary>1-based game number inside a ranked set.</summary>
     public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];
@@ -99,6 +101,13 @@ public class MatchParticipant
     public string? SheetHashSnapshot { get; set; }
     public string? SheetCanonicalJsonSnapshot { get; set; }
     public byte[]? MindDataSnapshot { get; set; }
+    /// <summary>Immutable entrant identity and presentation at admission.</summary>
+    public Guid? EntrantIdSnapshot { get; set; }
+    public string? EntrantKindSnapshot { get; set; }
+    public int? EntrantRevisionSnapshot { get; set; }
+    public string? CrestSnapshot { get; set; }
+    public string? CompositionSnapshot { get; set; }
+    public string? CompositionHashSnapshot { get; set; }
     public string? Outcome { get; set; }
     public int? FinalHealth { get; set; }
     public int? DamageDealt { get; set; }

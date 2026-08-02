@@ -39,6 +39,7 @@ public enum HostedGenericRuntimeModel
 {
     SubmittedActorWasm,
     TrustedStockMind,
+    ArcRelayEntrants,
 }
 
 public sealed record HostedGenericParticipantInput(

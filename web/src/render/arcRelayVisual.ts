@@ -10,6 +10,7 @@ import type {
 import type { BotPose } from './interpolate';
 import { unitLook } from './unitPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
+import type { CrestPresentation } from '../components/EntrantCrest';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -24,6 +25,7 @@ export interface ArcRelayVisualContext {
   py: (y: number) => number;
   poses: readonly BotPose[];
   accentFor: (unitKey: ReplayStableUnitKey | null) => string;
+  entrants?: readonly { teamId: number; crest: CrestPresentation }[];
 }
 
 type ArcState = ReplayArcRelayModeState;
@@ -210,8 +212,36 @@ function drawReactors(input: ArcRelayVisualContext, state: ArcState): void {
       );
       ctx.fill();
     }
+    const crest = input.entrants?.find((value) => value.teamId === reactor.teamId)?.crest;
+    if (crest) drawReactorCrest(ctx, point.x, point.y, tile, crest);
     ctx.restore();
   }
+}
+
+function drawReactorCrest(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  tile: number,
+  crest: CrestPresentation,
+): void {
+  const radius = tile * 0.19;
+  ctx.save();
+  ctx.fillStyle = crest.secondary;
+  ctx.strokeStyle = crest.detail;
+  ctx.lineWidth = Math.max(1, tile * 0.025);
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = crest.primary;
+  if (crest.pattern === 'split') ctx.fillRect(x, y - radius, radius, radius * 2);
+  else if (crest.pattern === 'band') ctx.fillRect(x - radius, y - radius * .35, radius * 2, radius * .7);
+  else { ctx.beginPath(); ctx.arc(x, y, radius * .58, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = crest.detail;
+  ctx.font = `900 ${Math.max(7, tile * .18)}px ui-monospace, monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(crest.mark.slice(0, 1).toUpperCase(), x, y + tile * .01);
+  ctx.restore();
 }
 
 function drawPulse(input: ArcRelayVisualContext, state: ArcState): void {

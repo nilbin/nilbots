@@ -33,6 +33,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<ArcRelaySheet> ArcRelaySheets => Set<ArcRelaySheet>();
+    public DbSet<ArcRelayEntrant> ArcRelayEntrants => Set<ArcRelayEntrant>();
+    public DbSet<ArcRelayEntrantRating> ArcRelayEntrantRatings => Set<ArcRelayEntrantRating>();
+    public DbSet<ArcRelayRankedMatch> ArcRelayRankedMatches => Set<ArcRelayRankedMatch>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<MatchTeamResult> MatchTeamResults => Set<MatchTeamResult>();
@@ -240,6 +243,46 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ArcRelayEntrant>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_ArcRelayEntrants_CrestVariant", "\"CrestVariant\" BETWEEN 0 AND 4095");
+                table.HasCheckConstraint("CK_ArcRelayEntrants_CustomMindData", "(\"Kind\" = 'Sheet' AND \"MindBotId\" IS NULL AND \"CompositionJson\" IS NULL AND \"CompositionHash\" IS NULL) OR (\"Kind\" = 'CustomMind' AND \"MindBotId\" IS NOT NULL AND \"CompositionJson\" IS NOT NULL AND \"CompositionHash\" IS NOT NULL)");
+            });
+            entity.Property(value => value.Kind).HasConversion<string>().HasMaxLength(20);
+            entity.Property(value => value.Name).HasMaxLength(60);
+            entity.Property(value => value.CompositionJson).HasColumnType("jsonb");
+            entity.Property(value => value.CompositionHash).HasMaxLength(64).IsFixedLength();
+            entity.Property(value => value.PreflightStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(value => value.PreflightFailure).HasMaxLength(500);
+            entity.Property(value => value.SuspensionReason).HasMaxLength(500);
+            entity.HasIndex(value => new { value.OwnerUserId, value.UpdatedAt });
+            entity.HasIndex(value => new { value.OwnerUserId, value.LadderOptedIn });
+            entity.HasIndex(value => value.MindBotId).IsUnique().HasFilter("\"MindBotId\" IS NOT NULL");
+            entity.HasOne<User>().WithMany().HasForeignKey(value => value.OwnerUserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Bot>().WithMany().HasForeignKey(value => value.MindBotId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ArcRelayEntrantRating>(entity =>
+        {
+            entity.HasIndex(value => new { value.EntrantId, value.LadderId }).IsUnique();
+            entity.HasIndex(value => new { value.LadderId, value.Rating, value.EntrantId }).IsDescending(false, true, false);
+            entity.Property(value => value.Rating).HasDefaultValue(BotRating.DefaultRating);
+            entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Ladder>().WithMany().HasForeignKey(value => value.LadderId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ArcRelayRankedMatch>(entity =>
+        {
+            entity.HasKey(value => value.MatchId);
+            entity.HasIndex(value => new { value.EntrantAId, value.EntrantBId, value.SettledAt });
+            entity.HasOne<Match>().WithMany().HasForeignKey(value => value.MatchId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Ladder>().WithMany().HasForeignKey(value => value.LadderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantAId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantBId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<UserNotification>(entity =>
         {
             entity.HasIndex(notification => new
@@ -347,6 +390,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(m => m.PresentationTicksPerSecond)
                 .HasPrecision(6, 3);
+            entity.Property(m => m.ArcRelayLane).HasMaxLength(20);
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasMany(m => m.TeamResults)
                 .WithOne()
@@ -409,6 +453,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasColumnType("jsonb");
             entity.Property(p => p.MindDataSnapshot)
                 .HasColumnType("bytea");
+            entity.Property(p => p.EntrantKindSnapshot).HasMaxLength(20);
+            entity.Property(p => p.CrestSnapshot).HasColumnType("jsonb");
+            entity.Property(p => p.CompositionSnapshot).HasColumnType("jsonb");
+            entity.Property(p => p.CompositionHashSnapshot).HasMaxLength(64).IsFixedLength();
         });
 
         modelBuilder.Entity<MatchTeamResult>(entity =>

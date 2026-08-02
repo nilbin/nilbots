@@ -1,4 +1,5 @@
 using BotArena.App.Bots;
+using BotArena.App.ArcRelay;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
@@ -53,6 +54,10 @@ public sealed class CompileSubmissionJobHandler(
                 _ = WasmArtifactValidator.Validate(built.WasmPath);
                 SubmissionContractProfileProbe.Result profileProbe =
                     contractProfileProbe.Probe(built.WasmPath);
+                bool customMind = await db.ArcRelayEntrants.AnyAsync(
+                    entrant => entrant.MindBotId == version.BotId &&
+                        entrant.Kind == ArcRelayEntrantKind.CustomMind,
+                    cancellationToken);
                 version.SupportedContractProfiles =
                     profileProbe.SupportedContractProfiles;
                 if (profileProbe.SupportedContractProfiles.Length == 0)
@@ -61,9 +66,16 @@ public sealed class CompileSubmissionJobHandler(
                         "the artifact does not support any hosted contract " +
                         $"profile. {profileProbe.FailureSummary}");
                 }
+                if (customMind && !BotContractProfiles.Supports(
+                        profileProbe.SupportedContractProfiles,
+                        BotArena.Engine.BotArenaVersions.GenericMindContractProfileId))
+                {
+                    throw new InvalidOperationException(
+                        "a custom Arc Relay mind must implement the generic-mind contract profile.");
+                }
                 if (!BotContractProfiles.CanActivateCompiledArtifact(
                         profileProbe.SupportedContractProfiles,
-                        labsSettings.Enabled))
+                        labsSettings.Enabled) && !customMind)
                 {
                     throw new InvalidOperationException(
                         "generic-only artifacts cannot be activated while " +

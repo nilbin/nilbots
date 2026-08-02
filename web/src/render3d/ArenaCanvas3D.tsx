@@ -12,6 +12,7 @@ import {
   type ArenaFraming,
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
+import type { ViewerEntrantPresentation } from '../components/Viewer';
 
 /**
  * The 3D arena.
@@ -35,6 +36,7 @@ export default function ArenaCanvas3D({
   onReady,
   autoFit = true,
   onManualCamera,
+  entrants,
 }: {
   replay: ReplayModel;
   time: number;
@@ -54,6 +56,7 @@ export default function ArenaCanvas3D({
   autoFit?: boolean;
   /** Fired when a gesture takes the camera, so the chrome can show auto-fit as off. */
   onManualCamera?: () => void;
+  entrants?: readonly ViewerEntrantPresentation[];
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All of these go through refs for the same reason `time` does: they change while a
@@ -112,7 +115,7 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay);
     const actors = buildActors(replay);
-    const overlays = buildOverlays(replay);
+    const overlays = buildOverlays(replay, entrants);
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
 
@@ -311,7 +314,7 @@ export default function ArenaCanvas3D({
       renderer.forceContextLoss();
       container.removeChild(renderer.domElement);
     };
-  }, [replay]);
+  }, [replay, entrants]);
 
   return (
     <div

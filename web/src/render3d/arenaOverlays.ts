@@ -14,6 +14,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
+import type { ViewerEntrantPresentation } from '../components/Viewer';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -44,7 +45,10 @@ export interface ArenaOverlays {
   dispose: () => void;
 }
 
-export function buildOverlays(replay: ReplayModel): ArenaOverlays {
+export function buildOverlays(
+  replay: ReplayModel,
+  entrants?: readonly ViewerEntrantPresentation[],
+): ArenaOverlays {
   const mapWidth = replay.map.width;
   const mapHeight = replay.map.height;
   const group = new THREE.Group();
@@ -60,7 +64,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
-  const arcRelay = buildArcRelayStory(disposables);
+  const arcRelay = buildArcRelayStory(disposables, entrants);
   group.add(arcRelay.group);
 
   const scrap = buildScrapPiles(disposables);
@@ -1497,6 +1501,7 @@ function buildAbsorptions(
 /** Arc Relay's objective objects and the unmistakable carrier beacon. */
 function buildArcRelayStory(
   disposables: { dispose: () => void }[],
+  entrants?: readonly ViewerEntrantPresentation[],
 ): {
   group: THREE.Group;
   update: (presentation: TickPresentation, time: number) => void;
@@ -1510,6 +1515,8 @@ function buildArcRelayStory(
   const reactorGeometry = new THREE.CylinderGeometry(0.38, 0.46, 0.18, 28);
   const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
   reactorRingGeometry.rotateX(Math.PI / 2);
+  const crestGeometry = new THREE.CircleGeometry(0.2, 32);
+  crestGeometry.rotateX(-Math.PI / 2);
   const pipGeometry = new THREE.SphereGeometry(0.055, 10, 8);
   const coreGeometry = new THREE.OctahedronGeometry(0.15, 0);
   const carrierRingGeometry = new THREE.RingGeometry(0.5, 0.69, 40);
@@ -1520,6 +1527,7 @@ function buildArcRelayStory(
     wellRingGeometry,
     reactorGeometry,
     reactorRingGeometry,
+    crestGeometry,
     pipGeometry,
     coreGeometry,
     carrierRingGeometry,
@@ -1573,6 +1581,7 @@ function buildArcRelayStory(
     integrityMaterials: THREE.MeshBasicMaterial[];
     charge: THREE.Mesh[];
     chargeMaterials: THREE.MeshBasicMaterial[];
+    crest: THREE.Mesh;
   };
   const reactors: ReactorRig[] = [];
   const reactor = (index: number): ReactorRig => {
@@ -1595,7 +1604,10 @@ function buildArcRelayStory(
       body.position.y = 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.12;
-      rig.add(body, ring);
+      const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
+      const crest = new THREE.Mesh(crestGeometry, crestMaterial);
+      crest.position.y = 0.19;
+      rig.add(body, ring, crest);
       const integrity: THREE.Mesh[] = [];
       const integrityMaterials: THREE.MeshBasicMaterial[] = [];
       const charge: THREE.Mesh[] = [];
@@ -1626,8 +1638,9 @@ function buildArcRelayStory(
         integrityMaterials,
         charge,
         chargeMaterials,
+        crest,
       });
-      disposables.push(material, ringMaterial);
+      disposables.push(material, ringMaterial, crestMaterial);
     }
     return reactors[index]!;
   };
@@ -1711,6 +1724,18 @@ function buildArcRelayStory(
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
+      const entrant = entrants?.find((value) => value.teamId === state.teamId);
+      if (entrant) {
+        const material = rig.crest.material as THREE.MeshBasicMaterial;
+        if (!material.map) {
+          material.map = crestTexture(entrant.crest);
+          material.needsUpdate = true;
+          disposables.push(material.map);
+        }
+        rig.crest.visible = true;
+      } else {
+        rig.crest.visible = false;
+      }
       for (let pip = 0; pip < 3; pip++) {
         rig.integrityMaterials[pip]!.color.set(
           pip < state.integritySegments ? state.accent : '#334155',
@@ -1758,6 +1783,35 @@ function buildArcRelayStory(
   };
 
   return { group, update };
+}
+
+function crestTexture(crest: ViewerEntrantPresentation['crest']): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d')!;
+  ctx.translate(64, 64);
+  ctx.beginPath();
+  if (crest.shape === 'diamond') {
+    ctx.moveTo(0, -56); ctx.lineTo(56, 0); ctx.lineTo(0, 56); ctx.lineTo(-56, 0);
+  } else if (crest.shape === 'hex') {
+    ctx.moveTo(-32, -52); ctx.lineTo(32, -52); ctx.lineTo(58, 0); ctx.lineTo(32, 52); ctx.lineTo(-32, 52); ctx.lineTo(-58, 0);
+  } else {
+    ctx.arc(0, 0, 55, 0, Math.PI * 2);
+  }
+  ctx.closePath(); ctx.clip();
+  ctx.fillStyle = crest.secondary; ctx.fillRect(-64, -64, 128, 128);
+  ctx.fillStyle = crest.primary;
+  if (crest.pattern === 'split') ctx.fillRect(0, -64, 64, 128);
+  else if (crest.pattern === 'band') ctx.fillRect(-64, -18, 128, 36);
+  else { ctx.beginPath(); ctx.arc(0, 0, 34, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = crest.detail;
+  ctx.font = '900 48px ui-monospace, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(crest.mark.slice(0, 1).toUpperCase(), 0, 4);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
 }
 
 function buildFlashes(

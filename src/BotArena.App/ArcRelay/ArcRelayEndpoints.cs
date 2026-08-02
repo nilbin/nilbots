@@ -1,11 +1,12 @@
+using System.Net;
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
-using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using BotArena.Engine;
+using BotArena.Toolchain;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.ArcRelay;
@@ -29,51 +30,73 @@ public static class ArcRelayEndpoints
                 : catalog.StarterIds;
             Guid playlistVersionId = await (
                     from version in db.PlaylistVersions.AsNoTracking()
-                    join playlist in db.Playlists.AsNoTracking()
-                        on version.PlaylistId equals playlist.Id
-                    where playlist.Key == ArcRelayPlaylistDefinition.PlaylistKey
-                        && version.Version == ArcRelayPlaylistDefinition.Version
-                    select version.Id)
-                .SingleOrDefaultAsync(cancellationToken);
+                    join playlist in db.Playlists.AsNoTracking() on version.PlaylistId equals playlist.Id
+                    where playlist.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey &&
+                        version.Version == ArcRelayEntrantPlaylistDefinition.Version
+                    select version.Id).SingleOrDefaultAsync(cancellationToken);
             if (playlistVersionId == Guid.Empty)
                 return Results.Problem("Arc Relay is not seeded on this deployment.", statusCode: 503);
             return Results.Ok(new ArcRelayCatalogResponse(
-                ArcRelayPlaylistDefinition.PlaylistKey,
+                ArcRelayEntrantPlaylistDefinition.PlaylistKey,
                 playlistVersionId,
                 ArcRelayLoopProfile.HomeGatesWide.MapId,
-                ArcRelayH0Definition.CreateMap(ArcRelayLoopProfile.HomeGatesWide)
-                    .TileRows,
+                ArcRelayH0Definition.CreateMap(ArcRelayLoopProfile.HomeGatesWide).TileRows,
                 ArcRelayPlayerSheetCodec.SlotCount,
                 ArcRelayPlayerSheetCodec.MaximumCopiesPerClass,
                 ArcRelayPlayerSheetCodec.SupportedTheaters,
                 ArcRelayPlayerSheetCodec.SupportedRoles,
                 ArcRelayPlayerSheetCodec.SupportedTriggers,
                 catalog.All.Select(value => new ArcRelayClassResponse(
-                    value.Id,
-                    value.Name,
-                    value.SignatureName,
-                    value.Fantasy,
-                    value.Starter,
-                    unlocked.Contains(value.Id))).ToArray(),
+                    value.Id, value.Name, value.SignatureName, value.Fantasy,
+                    value.Starter, unlocked.Contains(value.Id))).ToArray(),
                 ArcRelayPlayerSheetCodec.NewSheetTemplate()));
         }).Produces<ArcRelayCatalogResponse>();
+
+        group.MapGet("/entrants", async (
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            ArcRelayEntrantProjector projector,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId)
+                return Results.Unauthorized();
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            ArcRelayEntrant[] entrants = await db.ArcRelayEntrants.AsNoTracking()
+                .Where(value => value.OwnerUserId == userId)
+                .OrderByDescending(value => value.UpdatedAt).ThenBy(value => value.Id)
+                .ToArrayAsync(cancellationToken);
+            var response = new List<ArcRelayEntrantCardResponse>(entrants.Length);
+            foreach (ArcRelayEntrant entrant in entrants)
+                response.Add(await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken));
+            return Results.Ok(response);
+        }).Produces<IReadOnlyList<ArcRelayEntrantCardResponse>>().RequireAuthorization();
 
         group.MapGet("/sheets", async (
             ClaimsPrincipal principal,
             AppDbContext db,
             ArcRelayPlayerSheetCodec codec,
+            ArcRelayEntrantProjector projector,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
             ArcRelaySheet[] sheets = await db.ArcRelaySheets.AsNoTracking()
-                .Where(sheet => sheet.OwnerUserId == userId)
-                .OrderByDescending(sheet => sheet.UpdatedAt)
-                .ThenBy(sheet => sheet.Id)
+                .Where(value => value.OwnerUserId == userId)
+                .OrderByDescending(value => value.UpdatedAt).ThenBy(value => value.Id)
                 .ToArrayAsync(cancellationToken);
-            return Results.Ok(sheets.Select(sheet => Response(sheet, codec)).ToArray());
-        }).Produces<IReadOnlyList<ArcRelaySheetResponse>>()
-            .RequireAuthorization();
+            var result = new List<ArcRelaySheetResponse>(sheets.Length);
+            foreach (ArcRelaySheet sheet in sheets)
+            {
+                ArcRelayEntrant entrant = await db.ArcRelayEntrants.AsNoTracking()
+                    .SingleAsync(value => value.Id == sheet.Id, cancellationToken);
+                result.Add(new ArcRelaySheetResponse(
+                    sheet.Id, sheet.Name, sheet.Revision, sheet.ContentHash,
+                    sheet.CreatedAt, sheet.UpdatedAt, codec.Read(sheet.CanonicalJson),
+                    await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken)));
+            }
+            return Results.Ok(result);
+        }).Produces<IReadOnlyList<ArcRelaySheetResponse>>().RequireAuthorization();
 
         group.MapPost("/sheets", async (
             SaveArcRelaySheetRequest request,
@@ -81,41 +104,45 @@ public static class ArcRelayEndpoints
             AppDbContext db,
             ArcRelayPlayerSheetCodec codec,
             ArcRelayClassEntitlementService entitlements,
+            ArcRelayEntrantProjector projector,
             TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
             string? name = NormalizeName(request.Name);
-            if (name is null)
-                return Invalid("Sheet names need 1 to 60 visible characters.");
-            if (request.ExpectedRevision is not null)
-                return Invalid("expectedRevision is only used when updating a sheet.");
-            IReadOnlySet<string> unlocked = await entitlements.UnlockedAsync(userId, cancellationToken);
+            if (name is null || request.ExpectedRevision is not null)
+                return Invalid("A new sheet needs a 1-60 character name and no expectedRevision.");
             ArcRelaySheetCompilation compiled;
             try
             {
-                compiled = codec.Compile(request.Document, unlocked, "new-sheet");
+                compiled = codec.Compile(request.Document,
+                    await entitlements.UnlockedAsync(userId, cancellationToken), "new-sheet");
             }
-            catch (InvalidDataException exception)
-            {
-                return Invalid(exception.Message);
-            }
+            catch (InvalidDataException exception) { return Invalid(exception.Message); }
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            Guid id = Guid.NewGuid();
+            var entrant = new ArcRelayEntrant
+            {
+                Id = id, OwnerUserId = userId, Kind = ArcRelayEntrantKind.Sheet,
+                Name = name, CrestVariant = 0, PreflightStatus = ArcRelayPreflightStatus.NotRequired,
+                CreatedAt = now, UpdatedAt = now,
+            };
             var sheet = new ArcRelaySheet
             {
-                OwnerUserId = userId,
-                Name = name,
-                CanonicalJson = compiled.CanonicalJson,
-                ContentHash = compiled.ContentHash,
-                CreatedAt = now,
-                UpdatedAt = now,
+                Id = id, OwnerUserId = userId, Name = name,
+                CanonicalJson = compiled.CanonicalJson, ContentHash = compiled.ContentHash,
+                CreatedAt = now, UpdatedAt = now,
             };
+            db.ArcRelayEntrants.Add(entrant);
             db.ArcRelaySheets.Add(sheet);
             await db.SaveChangesAsync(cancellationToken);
-            return Results.Ok(Response(sheet, codec));
-        }).Produces<ArcRelaySheetResponse>()
-            .RequireAuthorization();
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            return Results.Ok(new ArcRelaySheetResponse(
+                sheet.Id, sheet.Name, sheet.Revision, sheet.ContentHash,
+                sheet.CreatedAt, sheet.UpdatedAt, request.Document,
+                await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken)));
+        }).Produces<ArcRelaySheetResponse>().RequireAuthorization();
 
         group.MapPut("/sheets/{sheetId:guid}", async (
             Guid sheetId,
@@ -124,213 +151,366 @@ public static class ArcRelayEndpoints
             AppDbContext db,
             ArcRelayPlayerSheetCodec codec,
             ArcRelayClassEntitlementService entitlements,
+            ArcRelayEntrantProjector projector,
             TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
             ArcRelaySheet? sheet = await db.ArcRelaySheets.SingleOrDefaultAsync(
-                value => value.Id == sheetId && value.OwnerUserId == userId,
-                cancellationToken);
-            if (sheet is null)
-                return Results.NotFound();
-            if (request.ExpectedRevision is not int revision || revision != sheet.Revision)
-            {
-                return Results.Problem(
-                    "The sheet changed since it was opened. Reload before saving.",
-                    statusCode: StatusCodes.Status409Conflict);
-            }
+                value => value.Id == sheetId && value.OwnerUserId == userId, cancellationToken);
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.SingleOrDefaultAsync(
+                value => value.Id == sheetId && value.OwnerUserId == userId, cancellationToken);
+            if (sheet is null || entrant is null) return Results.NotFound();
+            if (request.ExpectedRevision != sheet.Revision)
+                return Results.Problem("The sheet changed since it was opened. Reload before saving.", statusCode: 409);
             string? name = NormalizeName(request.Name);
-            if (name is null)
-                return Invalid("Sheet names need 1 to 60 visible characters.");
-            IReadOnlySet<string> unlocked = await entitlements.UnlockedAsync(userId, cancellationToken);
+            if (name is null) return Invalid("Sheet names need 1 to 60 visible characters.");
             ArcRelaySheetCompilation compiled;
             try
             {
-                compiled = codec.Compile(
-                    request.Document,
-                    unlocked,
-                    $"{sheet.Id}:r{sheet.Revision + 1}");
+                compiled = codec.Compile(request.Document,
+                    await entitlements.UnlockedAsync(userId, cancellationToken), $"{sheet.Id}:r{sheet.Revision + 1}");
             }
-            catch (InvalidDataException exception)
-            {
-                return Invalid(exception.Message);
-            }
-            sheet.Name = name;
+            catch (InvalidDataException exception) { return Invalid(exception.Message); }
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            sheet.Name = entrant.Name = name;
             sheet.Revision++;
             sheet.CanonicalJson = compiled.CanonicalJson;
             sheet.ContentHash = compiled.ContentHash;
-            sheet.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            sheet.UpdatedAt = entrant.UpdatedAt = now;
+            try { await db.SaveChangesAsync(cancellationToken); }
+            catch (DbUpdateConcurrencyException)
+            { return Results.Problem("The sheet changed since it was opened. Reload before saving.", statusCode: 409); }
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            return Results.Ok(new ArcRelaySheetResponse(
+                sheet.Id, sheet.Name, sheet.Revision, sheet.ContentHash,
+                sheet.CreatedAt, sheet.UpdatedAt, request.Document,
+                await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken)));
+        }).Produces<ArcRelaySheetResponse>().RequireAuthorization();
+
+        group.MapPost("/minds", async (
+            CreateArcRelayMindRequest request,
+            ClaimsPrincipal principal,
+            HttpContext context,
+            AppDbContext db,
+            ArcRelayPlayerSheetCodec codec,
+            ArcRelayClassEntitlementService entitlements,
+            CompilerSubmissionService submissions,
+            ArcRelayEntrantProjector projector,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            string? name = NormalizeName(request.Name);
+            if (name is null || request.CrestVariant is < 0 or > 4095)
+                return Invalid("A mind needs a 1-60 character name and a valid crest variant.");
+            ArcRelayCompositionCompilation composition;
+            List<SourceFile> sources;
             try
             {
-                await db.SaveChangesAsync(cancellationToken);
+                composition = ArcRelayComposition.Compile(request.Composition, codec,
+                    await entitlements.UnlockedAsync(userId, cancellationToken));
+                sources = ValidateSources(request.EntryType, request.Files);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception exception) when (exception is InvalidDataException or ArgumentException)
+            { return Invalid(exception.Message); }
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            Guid entrantId = Guid.NewGuid();
+            var bot = new Bot
             {
-                return Results.Problem(
-                    "The sheet changed since it was opened. Reload before saving.",
-                    statusCode: StatusCodes.Status409Conflict);
+                OwnerUserId = userId, Name = $"Arc Relay mind {entrantId:N}",
+                Slug = $"relay-mind-{entrantId:N}", LookId = "internal-arc-relay-mind",
+                ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+            };
+            var entrant = new ArcRelayEntrant
+            {
+                Id = entrantId, OwnerUserId = userId, Kind = ArcRelayEntrantKind.CustomMind,
+                Name = name, CrestVariant = request.CrestVariant, MindBotId = bot.Id,
+                CompositionJson = composition.CanonicalJson, CompositionHash = composition.ContentHash,
+                PreflightStatus = ArcRelayPreflightStatus.Required,
+                CreatedAt = now, UpdatedAt = now,
+            };
+            db.Bots.Add(bot);
+            db.ArcRelayEntrants.Add(entrant);
+            await db.SaveChangesAsync(cancellationToken);
+            CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
+                bot.Id, userId, request.EntryType.Trim(), sources,
+                context.Connection.RemoteIpAddress, cancellationToken);
+            if (!decision.Accepted)
+            {
+                db.ArcRelayEntrants.Remove(entrant);
+                db.Bots.Remove(bot);
+                await db.SaveChangesAsync(cancellationToken);
+                return Results.Problem(decision.Denial!.Message, statusCode: 429);
             }
-            return Results.Ok(Response(sheet, codec));
-        }).Produces<ArcRelaySheetResponse>()
-            .RequireAuthorization();
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            return Results.Accepted($"/api/arc-relay/minds/{entrant.Id}", new ArcRelayMindResponse(
+                await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken),
+                request.EntryType.Trim(), request.Files, request.Composition,
+                entrant.CreatedAt, entrant.UpdatedAt, null));
+        }).Produces<ArcRelayMindResponse>(202).RequireAuthorization()
+            .RequireRateLimiting(RateLimitPolicies.Submission);
 
+        group.MapPut("/minds/{entrantId:guid}", async (
+            Guid entrantId,
+            ReviseArcRelayMindRequest request,
+            ClaimsPrincipal principal,
+            HttpContext context,
+            AppDbContext db,
+            ArcRelayPlayerSheetCodec codec,
+            ArcRelayClassEntitlementService entitlements,
+            CompilerSubmissionService submissions,
+            ArcRelayEntrantProjector projector,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.SingleOrDefaultAsync(value =>
+                value.Id == entrantId && value.OwnerUserId == userId && value.Kind == ArcRelayEntrantKind.CustomMind,
+                cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            int revision = await db.BotVersions.Where(value => value.BotId == entrant.MindBotId)
+                .Select(value => (int?)value.VersionNumber).MaxAsync(cancellationToken) ?? 0;
+            if (revision != request.ExpectedRevision)
+                return Results.Problem("The mind changed since it was opened. Reload before resubmitting.", statusCode: 409);
+            string? name = NormalizeName(request.Name);
+            if (name is null) return Invalid("Mind names need 1 to 60 visible characters.");
+            ArcRelayCompositionCompilation composition;
+            List<SourceFile> sources;
+            try
+            {
+                composition = ArcRelayComposition.Compile(request.Composition, codec,
+                    await entitlements.UnlockedAsync(userId, cancellationToken));
+                sources = ValidateSources(request.EntryType, request.Files);
+            }
+            catch (Exception exception) when (exception is InvalidDataException or ArgumentException)
+            { return Invalid(exception.Message); }
+            entrant.Name = name;
+            entrant.CompositionJson = composition.CanonicalJson;
+            entrant.CompositionHash = composition.ContentHash;
+            entrant.PreflightStatus = ArcRelayPreflightStatus.Required;
+            entrant.PreflightMatchId = null;
+            entrant.PreflightFailure = null;
+            entrant.LadderOptedIn = false;
+            entrant.LadderOptedInAt = null;
+            entrant.SuspensionReason = null;
+            entrant.SuspensionMatchId = null;
+            entrant.SuspendedAt = null;
+            entrant.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
+                entrant.MindBotId!.Value, userId, request.EntryType.Trim(), sources,
+                context.Connection.RemoteIpAddress, cancellationToken);
+            if (!decision.Accepted)
+                return Results.Problem(decision.Denial!.Message, statusCode: 429);
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            return Results.Accepted($"/api/arc-relay/minds/{entrant.Id}", new ArcRelayMindResponse(
+                await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken),
+                request.EntryType.Trim(), request.Files, request.Composition,
+                entrant.CreatedAt, entrant.UpdatedAt, null));
+        }).Produces<ArcRelayMindResponse>(202).RequireAuthorization()
+            .RequireRateLimiting(RateLimitPolicies.Submission);
+
+        group.MapGet("/minds/{entrantId:guid}", async (
+            Guid entrantId, ClaimsPrincipal principal, AppDbContext db,
+            ArcRelayEntrantProjector projector, CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.AsNoTracking().SingleOrDefaultAsync(value =>
+                value.Id == entrantId && value.OwnerUserId == userId && value.Kind == ArcRelayEntrantKind.CustomMind,
+                cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            BotVersion? version = await db.BotVersions.AsNoTracking().Where(value => value.BotId == entrant.MindBotId)
+                .OrderByDescending(value => value.VersionNumber).FirstOrDefaultAsync(cancellationToken);
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            SourceFile[] sourceFiles = version is null
+                ? []
+                : System.Text.Json.JsonSerializer.Deserialize<SourceFile[]>(version.SourcesJson) ?? [];
+            return Results.Ok(new ArcRelayMindResponse(
+                await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken),
+                version?.EntryType ?? "",
+                sourceFiles.Select(value => new SourceFileDto(value.RelativePath, value.Content)).ToArray(),
+                ArcRelayComposition.Read(entrant.CompositionJson!),
+                entrant.CreatedAt, entrant.UpdatedAt, version?.BuildLog));
+        }).Produces<ArcRelayMindResponse>().RequireAuthorization();
+
+        group.MapGet("/entrants/{entrantId:guid}/crest-options", async (
+            Guid entrantId, ClaimsPrincipal principal, AppDbContext db, CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.AsNoTracking().SingleOrDefaultAsync(
+                value => value.Id == entrantId && value.OwnerUserId == userId, cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            int start = (entrant.CrestVariant + 1) % (ArcRelayCrestGenerator.MaximumVariant + 1);
+            return Results.Ok(new ArcRelayCrestOptionsResponse(entrant.Id,
+                Enumerable.Range(0, 8).Select(offset => ArcRelayCrestGenerator.Create(
+                    entrant.Id, (start + offset) % (ArcRelayCrestGenerator.MaximumVariant + 1))).ToArray()));
+        }).Produces<ArcRelayCrestOptionsResponse>().RequireAuthorization();
+
+        group.MapPut("/entrants/{entrantId:guid}/crest", async (
+            Guid entrantId, SetArcRelayCrestRequest request, ClaimsPrincipal principal,
+            AppDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            if (request.Variant is < 0 or > 4095) return Invalid("Unknown crest variant.");
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.SingleOrDefaultAsync(
+                value => value.Id == entrantId && value.OwnerUserId == userId, cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            entrant.CrestVariant = request.Variant;
+            entrant.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Ok(ArcRelayCrestGenerator.Create(entrant.Id, entrant.CrestVariant));
+        }).Produces<ArcRelayCrestDescriptor>().RequireAuthorization();
+
+        group.MapPost("/entrants/{entrantId:guid}/preflight", async (
+            Guid entrantId, ClaimsPrincipal principal, AppDbContext db,
+            ArcRelayMatchAdmissionService admission, TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.SingleOrDefaultAsync(value =>
+                value.Id == entrantId && value.OwnerUserId == userId && value.Kind == ArcRelayEntrantKind.CustomMind,
+                cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            BotVersion? active = await db.BotVersions.SingleOrDefaultAsync(value =>
+                value.BotId == entrant.MindBotId && value.IsActive && value.Status == BuildStatus.Built,
+                cancellationToken);
+            if (active is null) return Results.Problem("The custom mind must finish building before preflight.", statusCode: 409);
+            Match match = await admission.CreatePreflightAsync(entrant, userId, null, cancellationToken);
+            entrant.PreflightStatus = ArcRelayPreflightStatus.Pending;
+            entrant.PreflightMatchId = match.Id;
+            entrant.PreflightRevision = active.VersionNumber;
+            entrant.PreflightFailure = null;
+            entrant.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Accepted($"/api/matches/{match.Id}", new ArcRelayPreflightResponse(match.Id, "pending"));
+        }).Produces<ArcRelayPreflightResponse>(202).RequireAuthorization()
+            .RequireRateLimiting(RateLimitPolicies.Challenge);
+
+        group.MapPut("/entrants/{entrantId:guid}/ladder", async (
+            Guid entrantId, SetArcRelayLadderOptInRequest request, ClaimsPrincipal principal,
+            AppDbContext db, ArcRelayEntrantProjector projector, TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.TakeAdmissionLockAsync(AdmissionLocks.ArcRelayLadder(userId), cancellationToken);
+            ArcRelayEntrant? entrant = await db.ArcRelayEntrants.SingleOrDefaultAsync(
+                value => value.Id == entrantId && value.OwnerUserId == userId, cancellationToken);
+            if (entrant is null) return Results.NotFound();
+            if (request.OptedIn)
+            {
+                if (entrant.SuspensionReason is not null)
+                    return Results.Problem("This entrant is suspended until it is revised and passes admission again.", statusCode: 409);
+                if (entrant.Kind == ArcRelayEntrantKind.CustomMind && entrant.PreflightStatus != ArcRelayPreflightStatus.Passed)
+                    return Results.Problem("A custom mind must pass hosted preflight before entering the ladder.", statusCode: 409);
+                int optedIn = await db.ArcRelayEntrants.CountAsync(value =>
+                    value.OwnerUserId == userId && value.LadderOptedIn && value.Id != entrant.Id, cancellationToken);
+                if (optedIn >= ArcRelayLadderPolicy.MaximumOptedInPerAccount)
+                    return Results.Problem("An account may field at most three Arc Relay entrants at once.", statusCode: 409);
+            }
+            entrant.LadderOptedIn = request.OptedIn;
+            entrant.LadderOptedInAt = request.OptedIn ? timeProvider.GetUtcNow().UtcDateTime : null;
+            entrant.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            if (request.OptedIn && !await db.ArcRelayEntrantRatings.AnyAsync(
+                    value => value.EntrantId == entrant.Id && value.LadderId == ladderId, cancellationToken))
+                db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating { EntrantId = entrant.Id, LadderId = ladderId });
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Results.Ok(await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken));
+        }).Produces<ArcRelayEntrantCardResponse>().RequireAuthorization();
+
+        group.MapGet("/ladder", async (
+            ClaimsPrincipal principal, AppDbContext db, ArcRelayEntrantProjector projector,
+            CancellationToken cancellationToken) =>
+        {
+            Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+            Guid? viewerId = principal.UserId();
+            ArcRelayEntrant[] entrants = await (
+                from entrant in db.ArcRelayEntrants.AsNoTracking()
+                join rating in db.ArcRelayEntrantRatings.AsNoTracking() on entrant.Id equals rating.EntrantId
+                where rating.LadderId == ladderId
+                orderby rating.Rating descending, entrant.Id
+                select entrant).ToArrayAsync(cancellationToken);
+            var cards = new List<ArcRelayEntrantCardResponse>(entrants.Length);
+            foreach (ArcRelayEntrant entrant in entrants)
+                cards.Add(await projector.ProjectAsync(entrant, viewerId, ladderId, cancellationToken));
+            return Results.Ok(new ArcRelayLadderResponse(
+                ladderId, ArcRelayLadderPolicy.LadderName,
+                ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
+                ArcRelayLadderPolicy.MaximumOptedInPerAccount,
+                ArcRelayLadderPolicy.MaximumMatchesPerEntrantPerDay,
+                cards));
+        }).Produces<ArcRelayLadderResponse>();
+
+        async Task<IResult> Scrimmage(
+            CreateArcRelayScrimmageRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            ArcRelayMatchAdmissionService admission,
+            UnrankedMatchLimits limits,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken)
+        {
+            if (principal.UserId() is not Guid userId) return Results.Unauthorized();
+            if (request.EntrantId == request.OpponentEntrantId) return Invalid("Choose two distinct entrants.");
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.TakeAdmissionLockAsync(AdmissionLocks.Unranked(userId), cancellationToken);
+            DateTime dayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
+            int started = await db.Matches.CountAsync(value => value.InitiatedByUserId == userId &&
+                value.ArcRelayLane == ArcRelayMatchLane.Scrimmage && value.CreatedAt >= dayAgo, cancellationToken);
+            if (started >= limits.AccountDailyLimit)
+                return Results.Problem("The daily scrimmage limit has been reached.", statusCode: 429);
+            ArcRelayEntrant[] entrants = await db.ArcRelayEntrants.Where(value =>
+                value.OwnerUserId == userId && (value.Id == request.EntrantId || value.Id == request.OpponentEntrantId))
+                .ToArrayAsync(cancellationToken);
+            if (entrants.Length != 2) return Results.NotFound();
+            Match match = await admission.CreateAsync(
+                entrants.Single(value => value.Id == request.EntrantId),
+                entrants.Single(value => value.Id == request.OpponentEntrantId),
+                ArcRelayMatchLane.Scrimmage, userId, request.Seed, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Results.Ok(new CreatedMatchResponse(match.Id));
+        }
+        group.MapPost("/scrimmages", Scrimmage).Produces<CreatedMatchResponse>()
+            .RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Challenge);
+        // Compatibility alias for the shipped sheet editor; product navigation uses /scrimmages.
         group.MapPost("/matches", async (
             CreateArcRelayMatchRequest request,
             ClaimsPrincipal principal,
             AppDbContext db,
-            ArcRelayPlayerSheetCodec codec,
-            ArcRelayClassEntitlementService entitlements,
+            ArcRelayMatchAdmissionService admission,
             UnrankedMatchLimits limits,
             TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
-        {
-            if (principal.UserId() is not Guid userId)
-                return Results.Unauthorized();
-            if (request.SheetId == request.OpponentSheetId)
-                return Invalid("Choose two distinct saved sheets for a scrimmage.");
-
-            await using var admissionScope = await db.Database.BeginTransactionAsync(cancellationToken);
-            await db.Database.TakeAdmissionLockAsync(AdmissionLocks.Unranked(userId), cancellationToken);
-            DateTime dayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
-            int startedToday = await db.Matches.CountAsync(
-                match => match.InitiatedByUserId == userId
-                    && match.MatchSetId == null
-                    && match.CreatedAt >= dayAgo,
-                cancellationToken);
-            if (startedToday >= limits.AccountDailyLimit)
-                return Results.Problem("The daily unranked match limit has been reached.", statusCode: 429);
-
-            ArcRelaySheet[] sheets = await db.ArcRelaySheets.AsNoTracking()
-                .Where(sheet => sheet.OwnerUserId == userId
-                    && (sheet.Id == request.SheetId || sheet.Id == request.OpponentSheetId))
-                .ToArrayAsync(cancellationToken);
-            if (sheets.Length != 2)
-                return Results.NotFound();
-            ArcRelaySheet[] ordered =
-            [
-                sheets.Single(sheet => sheet.Id == request.SheetId),
-                sheets.Single(sheet => sheet.Id == request.OpponentSheetId),
-            ];
-            IReadOnlySet<string> unlocked = await entitlements.UnlockedAsync(userId, cancellationToken);
-            var compiled = new ArcRelaySheetCompilation[2];
-            try
-            {
-                for (int index = 0; index < ordered.Length; index++)
-                {
-                    ArcRelaySheet sheet = ordered[index];
-                    compiled[index] = codec.Compile(
-                        codec.Read(sheet.CanonicalJson),
-                        unlocked,
-                        $"{sheet.Id}:r{sheet.Revision}");
-                    if (!string.Equals(
-                            compiled[index].ContentHash,
-                            sheet.ContentHash,
-                            StringComparison.Ordinal))
-                    {
-                        throw new InvalidDataException("A saved sheet failed its content hash.");
-                    }
-                }
-            }
-            catch (InvalidDataException exception)
-            {
-                return Invalid(exception.Message);
-            }
-
-            ArcRelayPlaylistDefinition definition = ArcRelayPlaylistDefinition.Create();
-            PlaylistVersion playlistVersion = await db.PlaylistVersions.SingleAsync(
-                version => version.Version == ArcRelayPlaylistDefinition.Version
-                    && db.Playlists.Any(playlist =>
-                        playlist.Id == version.PlaylistId
-                        && playlist.Key == ArcRelayPlaylistDefinition.PlaylistKey),
-                cancellationToken);
-            Bot stockBot = await db.Bots.AsNoTracking().SingleAsync(
-                bot => bot.Slug == ArcRelayPlaylistSeeder.StockBotSlug,
-                cancellationToken);
-            BotVersion stockVersion = await db.BotVersions.AsNoTracking().SingleAsync(
-                version => version.BotId == stockBot.Id
-                    && version.IsActive
-                    && version.ArtifactHash == ArcRelayPlaylistDefinition.StockArtifactHash,
-                cancellationToken);
-            string ownerName = await db.Users.Where(user => user.Id == userId)
-                .Select(user => user.DisplayName)
-                .SingleAsync(cancellationToken);
-            ActorResolvedMatchDefinition matchDefinition = definition.ResolveMatch(
-            [
-                new HostedGenericParticipantInput(0, 0, compiled[0].Classes),
-                new HostedGenericParticipantInput(1, 1, compiled[1].Classes),
-            ]);
-            var match = new Match
-            {
-                MapId = matchDefinition.Map.Id,
-                MapVersion = matchDefinition.Map.Version,
-                Seed = request.Seed ?? Random.Shared.NextInt64(),
-                InitiatedByUserId = userId,
-                GameRulesVersion = matchDefinition.Rules.RulesetId,
-                RuntimeConfigurationVersion = matchDefinition.CapabilityVersions.RuntimeConfigurationVersion,
-                PlaylistVersionId = playlistVersion.Id,
-            };
-            for (int index = 0; index < ordered.Length; index++)
-            {
-                ArcRelaySheet sheet = ordered[index];
-                match.Participants.Add(new MatchParticipant
-                {
-                    MatchId = match.Id,
-                    Slot = index,
-                    TeamId = index,
-                    BotId = stockBot.Id,
-                    BotVersionId = stockVersion.Id,
-                    NameSnapshot = sheet.Name,
-                    OwnerDisplayNameSnapshot = ownerName,
-                    AccentSnapshot = index == 0 ? "#22d3ee" : "#fb5360",
-                    LookIdSnapshot = "arc-relay-sheet",
-                    ProjectileLookIdSnapshot = ArcRelayH0ReplayPresentation.ProjectileLookId,
-                    ArtifactHashSnapshot = ArcRelayPlaylistDefinition.StockArtifactHash,
-                    SheetIdSnapshot = sheet.Id,
-                    SheetRevisionSnapshot = sheet.Revision,
-                    SheetNameSnapshot = sheet.Name,
-                    SheetHashSnapshot = sheet.ContentHash,
-                    SheetCanonicalJsonSnapshot = sheet.CanonicalJson,
-                    MindDataSnapshot = compiled[index].LinkedData,
-                });
-            }
-            db.Matches.Add(match);
-            db.BackgroundJobs.Add(BackgroundJob.ExecuteGenericActorMatch(
-                match.Id,
-                ArcRelayPlaylistDefinition.PlaylistKey,
-                ArcRelayPlaylistDefinition.Version));
-            await db.SaveChangesAsync(cancellationToken);
-            await admissionScope.CommitAsync(cancellationToken);
-            return Results.Ok(new CreatedMatchResponse(match.Id));
-        }).Produces<CreatedMatchResponse>()
-            .RequireAuthorization()
-            .RequireRateLimiting(RateLimitPolicies.Challenge);
+                await Scrimmage(
+                    new CreateArcRelayScrimmageRequest(request.SheetId, request.OpponentSheetId, request.Seed),
+                    principal, db, admission, limits, timeProvider, cancellationToken))
+            .Produces<CreatedMatchResponse>()
+            .RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Challenge);
     }
 
-    private static ArcRelaySheetResponse Response(
-        ArcRelaySheet sheet,
-        ArcRelayPlayerSheetCodec codec) =>
-        new(
-            sheet.Id,
-            sheet.Name,
-            sheet.Revision,
-            sheet.ContentHash,
-            sheet.CreatedAt,
-            sheet.UpdatedAt,
-            codec.Read(sheet.CanonicalJson));
+    private static List<SourceFile> ValidateSources(string? entryType, IReadOnlyList<SourceFileDto>? files)
+    {
+        string value = entryType?.Trim() ?? "";
+        List<SourceFile> sources = files?.Select(file => new SourceFile(file.Name, file.Content)).ToList() ?? [];
+        BotBuilder.ValidateSubmission(sources, value);
+        if (sources.Count == 0) throw new ArgumentException("At least one source file is required.");
+        if (sources.Any(source => !source.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Only .cs files are accepted.");
+        return sources;
+    }
 
     private static string? NormalizeName(string? value)
     {
-        if (value is null)
-            return null;
-        string normalized = string.Join(' ', value.Split(
-            (char[]?)null,
+        if (value is null) return null;
+        string normalized = string.Join(' ', value.Split((char[]?)null,
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         return normalized.Length is > 0 and <= 60 ? normalized : null;
     }
 
     private static IResult Invalid(string detail) => Results.Problem(
-        detail,
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Invalid Arc Relay sheet.");
+        detail, statusCode: 400, title: "Invalid Arc Relay entrant.");
 }

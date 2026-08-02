@@ -20,8 +20,8 @@ export default function ShopPage() {
   const location = useLocation();
   const store = useStore();
   const returnTarget = internalReturnTarget(location.state, {
-    to: '/garage',
-    label: 'Garage',
+    to: '/relay',
+    label: 'Entrants',
   });
   const appearanceReturn = returnTarget.to.endsWith('/appearance')
     ? returnTarget
@@ -58,8 +58,7 @@ export default function ShopPage() {
       {!store.data.open && (
         <p className="panel-quiet pad t-body">
           The shelves are ready to browse, but purchases are not open yet. You can
-          still inspect every owned and locked skin from an owned bot's appearance
-          picker.{' '}
+          still inspect every owned and locked legacy chassis skin here.{' '}
           <Link
             to={
               user
@@ -71,10 +70,10 @@ export default function ShopPage() {
             {user
               ? appearanceReturn
                 ? `Return to ${appearanceReturn.label}'s appearance`
-                : 'Choose a bot in your Garage'
+                : 'Return to your entrants'
               : appearanceReturn
                 ? `Sign in to return to ${appearanceReturn.label}'s appearance`
-                : 'Sign in to open your Garage'}
+                : 'Sign in to view your entrants'}
           </Link>
           .
         </p>
@@ -184,12 +183,12 @@ function Pack({
       <span className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
         {canEquip ? (
           <Link
-            to={appearanceReturn?.to ?? '/garage'}
+            to={appearanceReturn?.to ?? '/relay'}
             className="btn w-full sm:w-auto"
           >
             {appearanceReturn
               ? `Equip on ${appearanceReturn.label}`
-              : 'Choose a bot'}
+              : 'View entrants'}
           </Link>
         ) : checkout ? (
           <a href={checkout.href} className="btn btn-strong w-full sm:w-auto">

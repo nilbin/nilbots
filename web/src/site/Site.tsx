@@ -15,12 +15,9 @@ import ArenaPage from './pages/ArenaPage';
 import AuthPage from './pages/AuthPage';
 import ShopPage from './pages/ShopPage';
 import BotsPage from './pages/BotsPage';
-import BotAppearancePage from './pages/BotAppearancePage';
 import BotDetailPage from './pages/BotDetailPage';
-import GaragePage from './pages/GaragePage';
 import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
-import RankingsPage from './pages/RankingsPage';
 import DocsPage from './pages/DocsPage';
 import ArcRelayPage from './pages/ArcRelayPage';
 
@@ -56,8 +53,8 @@ export default function Site() {
               <Route
                 index
                 element={
-                  <TitledPage title="Rankings">
-                    <RankingsPage />
+                  <TitledPage title="Arc Relay">
+                    <ArcRelayPage />
                   </TitledPage>
                 }
               />
@@ -78,38 +75,26 @@ export default function Site() {
                 }
               />
               <Route
-                path="/bots"
+                path="/archive/bots"
                 element={
-                  <TitledPage title="Bots">
+                  <TitledPage title="Legacy archive">
                     <BotsPage />
                   </TitledPage>
                 }
               />
               <Route
-                path="/bots/:botKey/appearance"
-                element={
-                  <TitledPage title="Bot appearance">
-                    <BotAppearancePage />
-                  </TitledPage>
-                }
-              />
-              <Route
-                path="/bots/:botKey/play"
+                path="/archive/bots/:botKey/appearance"
                 element={<LegacyBotPlayRedirect />}
               />
               <Route
-                path="/bots/:botKey"
+                path="/archive/bots/:botKey/play"
+                element={<LegacyBotPlayRedirect />}
+              />
+              <Route
+                path="/archive/bots/:botKey"
                 element={
                   <TitledPage title="Bot">
                     <BotDetailPage />
-                  </TitledPage>
-                }
-              />
-              <Route
-                path="/garage"
-                element={
-                  <TitledPage title="Garage">
-                    <GaragePage />
                   </TitledPage>
                 }
               />
@@ -130,7 +115,7 @@ export default function Site() {
                 }
               />
               <Route
-                path="/sets/:setId"
+                path="/archive/sets/:setId"
                 element={
                   <TitledPage title="Ranked set">
                     <MatchSetPage />
@@ -139,8 +124,11 @@ export default function Site() {
               />
               {/* The ladder used to live here and be called the leaderboard. Old links
                   and bookmarks still resolve rather than 404. */}
-              <Route path="/rankings" element={<Navigate to="/" replace />} />
-              <Route path="/leaderboard" element={<Navigate to="/" replace />} />
+              <Route path="/archive/rankings" element={<Navigate to="/archive/bots" replace />} />
+              <Route path="/rankings" element={<Navigate to="/relay" replace />} />
+              <Route path="/leaderboard" element={<Navigate to="/relay" replace />} />
+              <Route path="/bots/*" element={<Navigate to="/archive/bots" replace />} />
+              <Route path="/garage" element={<Navigate to="/relay" replace />} />
               <Route path="/looks" element={<Navigate to="/store" replace />} />
               <Route
                 path="/store"
@@ -177,7 +165,7 @@ export default function Site() {
 /** The short-lived review route now returns to the bot instead of becoming a dead link. */
 function LegacyBotPlayRedirect() {
   const { botKey } = useParams<{ botKey: string }>();
-  return <Navigate to={`/bots/${botKey ?? ''}`} replace />;
+  return <Navigate to={`/archive/bots/${botKey ?? ''}`} replace />;
 }
 
 function TitledPage({
@@ -205,8 +193,8 @@ function NotFoundPage() {
       <p className="t-meta mt-2">
         The page may have moved, or the address may be incomplete.
       </p>
-      <Link to="/" className="btn btn-on mt-4 inline-flex">
-        Return to Rankings
+      <Link to="/relay" className="btn btn-on mt-4 inline-flex">
+        Return to Arc Relay
       </Link>
     </section>
   );

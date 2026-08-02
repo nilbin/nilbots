@@ -1467,6 +1467,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/arc-relay/entrants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayEntrantCardResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/arc-relay/sheets": {
         parameters: {
             query?: never;
@@ -1560,6 +1595,337 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/minds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateArcRelayMindRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/minds/{entrantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReviseArcRelayMindRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/crest-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayCrestOptionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/crest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetArcRelayCrestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayCrestDescriptor"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayPreflightResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/ladder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetArcRelayLadderOptInRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayEntrantCardResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/ladder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayLadderResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/scrimmages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateArcRelayScrimmageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedMatchResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1851,6 +2217,57 @@ export interface components {
             starter: boolean;
             unlocked: boolean;
         };
+        ArcRelayCompositionDeclaration: {
+            classIds: string[];
+            adaptivePolicyId?: null | string;
+            adaptiveClassIds?: null | string[];
+        };
+        ArcRelayCompositionSlotResponse: {
+            /** Format: int32 */
+            slot: number;
+            classId: string;
+            className: string;
+            lookId: string;
+        };
+        ArcRelayCrestDescriptor: {
+            key: string;
+            /** Format: int32 */
+            variant: number;
+            shape: string;
+            pattern: string;
+            mark: string;
+            primary: string;
+            secondary: string;
+            detail: string;
+        };
+        ArcRelayCrestOptionsResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            options: components["schemas"]["ArcRelayCrestDescriptor"][];
+        };
+        ArcRelayEntrantCardResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            name: string;
+            ownerDisplayName: string;
+            /** Format: int32 */
+            revision: number;
+            crest: components["schemas"]["ArcRelayCrestDescriptor"];
+            composition: components["schemas"]["ArcRelayCompositionSlotResponse"][];
+            /** Format: double */
+            rating: number;
+            /** Format: int32 */
+            rankedMatches: number;
+            ladderOptedIn: boolean;
+            status: string;
+            suspensionReason: null | string;
+            /** Format: uuid */
+            suspensionMatchId: null | string;
+            artifactHash: null | string;
+            contentHash: string;
+            isOwner: boolean;
+        };
         ArcRelayEscortPolicy: {
             /** Format: int32 */
             followDistance: number;
@@ -1859,6 +2276,42 @@ export interface components {
         ArcRelayInterceptionPolicy: {
             focusEnemyCarrier: boolean;
             looseCoreFallback: boolean;
+        };
+        ArcRelayLadderResponse: {
+            /** Format: uuid */
+            ladderId: string;
+            name: string;
+            pairingPolicy: string;
+            /** Format: int32 */
+            maximumOptedInPerAccount: number;
+            /** Format: int32 */
+            maximumMatchesPerEntrantPerDay: number;
+            entrants: components["schemas"]["ArcRelayEntrantCardResponse"][];
+        };
+        ArcRelayMatchEntrantResponse: {
+            /** Format: uuid */
+            entrantId: null | string;
+            entrantKind: null | string;
+            /** Format: int32 */
+            entrantRevision: null | number;
+            crest: null | components["schemas"]["ArcRelayCrestDescriptor"];
+            composition: string[];
+        };
+        ArcRelayMindResponse: {
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            buildLog: null | string;
+        };
+        ArcRelayPreflightResponse: {
+            /** Format: uuid */
+            matchId: string;
+            status: string;
         };
         ArcRelaySheetDocument: {
             /** Format: int32 */
@@ -1908,6 +2361,7 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             document: components["schemas"]["ArcRelaySheetDocument"];
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
         };
         ArcRelaySheetSlot: {
             /** Format: int32 */
@@ -2177,6 +2631,25 @@ export interface components {
             /** Format: int64 */
             seed: null | number;
         };
+        CreateArcRelayMindRequest: {
+            name: string;
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            crestVariant: number;
+        };
+        CreateArcRelayScrimmageRequest: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            opponentEntrantId: string;
+            /** Format: int64 */
+            seed: null | number;
+        };
         CreateBotRequest: {
             name: string;
             accent: null | string;
@@ -2299,6 +2772,7 @@ export interface components {
             damageDealt: null | number;
             /** Format: int32 */
             faults: null | number;
+            entrant?: null | components["schemas"]["ArcRelayMatchEntrantResponse"];
         };
         MatchDetailResponse: {
             /** Format: uuid */
@@ -2328,6 +2802,7 @@ export interface components {
             completedAt: null | string;
             participants: components["schemas"]["MatchDetailParticipantResponse"][];
             teamResults: components["schemas"]["MatchTeamResultResponse"][];
+            arcRelayLane?: null | string;
         };
         MatchLiveResponse: {
             status: string;
@@ -2530,11 +3005,26 @@ export interface components {
             email: string;
             password: string;
         };
+        ReviseArcRelayMindRequest: {
+            name: string;
+            /** Format: int32 */
+            expectedRevision: number;
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+        };
         SaveArcRelaySheetRequest: {
             name: string;
             /** Format: int32 */
             expectedRevision: null | number;
             document: components["schemas"]["ArcRelaySheetDocument"];
+        };
+        SetArcRelayCrestRequest: {
+            /** Format: int32 */
+            variant: number;
+        };
+        SetArcRelayLadderOptInRequest: {
+            optedIn: boolean;
         };
         SourceFile: {
             relativePath: string;

@@ -49,6 +49,12 @@ public static class DatabaseBootstrapper
             "Verified immutable Arc Relay playlist {PlaylistVersionId} and stock artifact {ArtifactHash}",
             arcRelay.PlaylistVersion.Id,
             arcRelay.StockBotVersion.ArtifactHash);
+        var entrantSeeder = scope.ServiceProvider.GetRequiredService<ArcRelayEntrantPlaylistSeeder>();
+        ArcRelayEntrantSeedResult entrantLane = await entrantSeeder.SeedAsync(cancellationToken);
+        logger.LogInformation(
+            "Verified Arc Relay entrant playlist {PlaylistVersionId} and ladder {LadderId}",
+            entrantLane.PlaylistVersion.Id,
+            entrantLane.Ladder.Id);
         if (configuration["BOTARENA_OBJECT_MIGRATION_SOURCE"] is { Length: > 0 } source)
         {
             int count = await ObjectStoreMigrator.MigrateAsync(

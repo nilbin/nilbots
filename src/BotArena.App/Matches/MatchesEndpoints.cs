@@ -26,6 +26,7 @@ public static class MatchesEndpoints
         group.MapPost("/challenge", async (
             ChallengeRequest request,
             ClaimsPrincipal principal,
+            LegacyDuelSettings legacyDuel,
             AppDbContext db,
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
@@ -37,6 +38,8 @@ public static class MatchesEndpoints
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
+            if (!legacyDuel.AdmissionEnabled)
+                return Results.Problem("Legacy Duel admission is retired. Create an Arc Relay entrant at /relay.", statusCode: StatusCodes.Status410Gone, title: "Legacy mode retired.");
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
             if (request.BotId == request.OpponentBotId)

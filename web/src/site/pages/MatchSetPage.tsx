@@ -101,7 +101,7 @@ export default function MatchSetPage() {
                 />
               ) : (
                 <Link
-                  to={`/bots/${side.id}`}
+                  to={`/archive/bots/${side.id}`}
                   state={{
                     returnTo: `/sets/${set.id}`,
                     returnLabel: 'Ranked set',

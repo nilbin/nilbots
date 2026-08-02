@@ -11,7 +11,9 @@ import {
   type MatchSetDetail,
   type MatchSummary,
   type AssignBotClassRequest,
-  type CreateArcRelayMatchRequest,
+  type CreateArcRelayScrimmageRequest,
+  type CreateArcRelayMindRequest,
+  type ReviseArcRelayMindRequest,
   type SaveArcRelaySheetRequest,
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
@@ -52,6 +54,8 @@ const keys = {
   notifications: ['notifications'] as const,
   arcRelayCatalog: ['arc-relay', 'catalog'] as const,
   arcRelaySheets: ['arc-relay', 'sheets'] as const,
+  arcRelayEntrants: ['arc-relay', 'entrants'] as const,
+  arcRelayLadder: ['arc-relay', 'ladder'] as const,
 };
 
 /**
@@ -176,6 +180,20 @@ export function useArcRelaySheets(enabled: boolean) {
     queryFn: endpoints.arcRelaySheets,
     enabled,
   });
+}
+
+export function useArcRelayEntrants(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.arcRelayEntrants,
+    queryFn: endpoints.arcRelayEntrants,
+    enabled,
+    refetchInterval: (query) => query.state.data?.some((entry) =>
+      entry.status === 'pending' || entry.status === 'building') ? 2_500 : false,
+  });
+}
+
+export function useArcRelayLadder() {
+  return useQuery({ queryKey: keys.arcRelayLadder, queryFn: endpoints.arcRelayLadder, refetchInterval: 10_000 });
 }
 
 /**
@@ -500,10 +518,72 @@ export function useSaveArcRelaySheet() {
 export function useCreateArcRelayMatch() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateArcRelayMatchRequest) => endpoints.createArcRelayMatch(body),
+    mutationFn: (body: CreateArcRelayScrimmageRequest) => endpoints.createArcRelayScrimmage(body),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['matches'] });
       void client.invalidateQueries({ queryKey: keys.arcRelaySheets });
+    },
+  });
+}
+
+export function useCreateArcRelayMind() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateArcRelayMindRequest) => endpoints.createArcRelayMind(body),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+  });
+}
+
+export function useLoadArcRelayMind() {
+  return useMutation({ mutationFn: (entrantId: string) => endpoints.arcRelayMind(entrantId) });
+}
+
+export function useReviseArcRelayMind() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, body }: { entrantId: string; body: ReviseArcRelayMindRequest }) =>
+      endpoints.reviseArcRelayMind(entrantId, body),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useArcRelayPreflight() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (entrantId: string) => endpoints.preflightArcRelayMind(entrantId),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+  });
+}
+
+export function useArcRelayCrestOptions() {
+  return useMutation({
+    mutationFn: (entrantId: string) => endpoints.arcRelayCrestOptions(entrantId),
+  });
+}
+
+export function useSetArcRelayCrest() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, variant }: { entrantId: string; variant: number }) =>
+      endpoints.setArcRelayCrest(entrantId, { variant }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useArcRelayLadderOptIn() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, optedIn }: { entrantId: string; optedIn: boolean }) =>
+      endpoints.setArcRelayLadder(entrantId, { optedIn }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
     },
   });
 }

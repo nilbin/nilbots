@@ -1066,6 +1066,28 @@
         }
       }
     },
+    "/api/arc-relay/entrants": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/arc-relay/sheets": {
       "get": {
         "tags": [
@@ -1148,6 +1170,291 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ArcRelaySheetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/minds": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArcRelayMindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayMindResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/minds/{entrantId}": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviseArcRelayMindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayMindResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayMindResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/entrants/{entrantId}/crest-options": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayCrestOptionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/entrants/{entrantId}/crest": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetArcRelayCrestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayCrestDescriptor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/entrants/{entrantId}/preflight": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayPreflightResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/entrants/{entrantId}/ladder": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "entrantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetArcRelayLadderOptInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/ladder": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayLadderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/scrimmages": {
+      "post": {
+        "tags": [
+          "ArcRelayEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArcRelayScrimmageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMatchResponse"
                 }
               }
             }
@@ -1489,6 +1796,206 @@
           }
         }
       },
+      "ArcRelayCompositionDeclaration": {
+        "required": [
+          "classIds"
+        ],
+        "type": "object",
+        "properties": {
+          "classIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "adaptivePolicyId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "adaptiveClassIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ArcRelayCompositionSlotResponse": {
+        "required": [
+          "slot",
+          "classId",
+          "className",
+          "lookId"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          }
+        }
+      },
+      "ArcRelayCrestDescriptor": {
+        "required": [
+          "key",
+          "variant",
+          "shape",
+          "pattern",
+          "mark",
+          "primary",
+          "secondary",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shape": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "mark": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "string"
+          },
+          "secondary": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ArcRelayCrestOptionsResponse": {
+        "required": [
+          "entrantId",
+          "options"
+        ],
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelayCrestDescriptor"
+            }
+          }
+        }
+      },
+      "ArcRelayEntrantCardResponse": {
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "ownerDisplayName",
+          "revision",
+          "crest",
+          "composition",
+          "rating",
+          "rankedMatches",
+          "ladderOptedIn",
+          "status",
+          "suspensionReason",
+          "suspensionMatchId",
+          "artifactHash",
+          "contentHash",
+          "isOwner"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerDisplayName": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "crest": {
+            "$ref": "#/components/schemas/ArcRelayCrestDescriptor"
+          },
+          "composition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelayCompositionSlotResponse"
+            }
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          },
+          "rankedMatches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ladderOptedIn": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "suspensionReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suspensionMatchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "artifactHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "isOwner": {
+            "type": "boolean"
+          }
+        }
+      },
       "ArcRelayEscortPolicy": {
         "required": [
           "followDistance",
@@ -1517,6 +2024,150 @@
           },
           "looseCoreFallback": {
             "type": "boolean"
+          }
+        }
+      },
+      "ArcRelayLadderResponse": {
+        "required": [
+          "ladderId",
+          "name",
+          "pairingPolicy",
+          "maximumOptedInPerAccount",
+          "maximumMatchesPerEntrantPerDay",
+          "entrants"
+        ],
+        "type": "object",
+        "properties": {
+          "ladderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pairingPolicy": {
+            "type": "string"
+          },
+          "maximumOptedInPerAccount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumMatchesPerEntrantPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entrants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+            }
+          }
+        }
+      },
+      "ArcRelayMatchEntrantResponse": {
+        "required": [
+          "entrantId",
+          "entrantKind",
+          "entrantRevision",
+          "crest",
+          "composition"
+        ],
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "entrantKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entrantRevision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "crest": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ArcRelayCrestDescriptor"
+              }
+            ]
+          },
+          "composition": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ArcRelayMindResponse": {
+        "required": [
+          "entrant",
+          "entryType",
+          "files",
+          "composition",
+          "createdAt",
+          "updatedAt",
+          "buildLog"
+        ],
+        "type": "object",
+        "properties": {
+          "entrant": {
+            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+          },
+          "entryType": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceFileDto"
+            }
+          },
+          "composition": {
+            "$ref": "#/components/schemas/ArcRelayCompositionDeclaration"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "buildLog": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ArcRelayPreflightResponse": {
+        "required": [
+          "matchId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -1670,7 +2321,8 @@
           "contentHash",
           "createdAt",
           "updatedAt",
-          "document"
+          "document",
+          "entrant"
         ],
         "type": "object",
         "properties": {
@@ -1698,6 +2350,9 @@
           },
           "document": {
             "$ref": "#/components/schemas/ArcRelaySheetDocument"
+          },
+          "entrant": {
+            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
           }
         }
       },
@@ -2709,6 +3364,62 @@
           }
         }
       },
+      "CreateArcRelayMindRequest": {
+        "required": [
+          "name",
+          "entryType",
+          "files",
+          "composition"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "entryType": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceFileDto"
+            }
+          },
+          "composition": {
+            "$ref": "#/components/schemas/ArcRelayCompositionDeclaration"
+          },
+          "crestVariant": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        }
+      },
+      "CreateArcRelayScrimmageRequest": {
+        "required": [
+          "entrantId",
+          "opponentEntrantId",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "opponentEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "CreateBotRequest": {
         "required": [
           "name",
@@ -3155,6 +3866,16 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "entrant": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ArcRelayMatchEntrantResponse"
+              }
+            ]
           }
         }
       },
@@ -3276,6 +3997,12 @@
             "items": {
               "$ref": "#/components/schemas/MatchTeamResultResponse"
             }
+          },
+          "arcRelayLane": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4040,6 +4767,37 @@
           }
         }
       },
+      "ReviseArcRelayMindRequest": {
+        "required": [
+          "name",
+          "expectedRevision",
+          "entryType",
+          "files",
+          "composition"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entryType": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceFileDto"
+            }
+          },
+          "composition": {
+            "$ref": "#/components/schemas/ArcRelayCompositionDeclaration"
+          }
+        }
+      },
       "SaveArcRelaySheetRequest": {
         "required": [
           "name",
@@ -4060,6 +4818,29 @@
           },
           "document": {
             "$ref": "#/components/schemas/ArcRelaySheetDocument"
+          }
+        }
+      },
+      "SetArcRelayCrestRequest": {
+        "required": [
+          "variant"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SetArcRelayLadderOptInRequest": {
+        "required": [
+          "optedIn"
+        ],
+        "type": "object",
+        "properties": {
+          "optedIn": {
+            "type": "boolean"
           }
         }
       },
@@ -4569,6 +5350,9 @@
   "tags": [
     {
       "name": "BotArena.App"
+    },
+    {
+      "name": "ArcRelayEndpoints"
     }
   ]
 }

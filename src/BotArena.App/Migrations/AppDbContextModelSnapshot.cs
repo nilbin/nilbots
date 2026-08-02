@@ -125,6 +125,165 @@ namespace BotArena.App.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayEntrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompositionHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("CompositionJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CrestVariant")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("LadderOptedIn")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LadderOptedInAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("MindBotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PreflightFailure")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PreflightMatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("PreflightRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreflightStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SuspensionMatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SuspensionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MindBotId")
+                        .IsUnique()
+                        .HasFilter("\"MindBotId\" IS NOT NULL");
+
+                    b.HasIndex("OwnerUserId", "LadderOptedIn");
+
+                    b.HasIndex("OwnerUserId", "UpdatedAt");
+
+                    b.ToTable("ArcRelayEntrants", t =>
+                        {
+                            t.HasCheckConstraint("CK_ArcRelayEntrants_CrestVariant", "\"CrestVariant\" BETWEEN 0 AND 4095");
+
+                            t.HasCheckConstraint("CK_ArcRelayEntrants_CustomMindData", "(\"Kind\" = 'Sheet' AND \"MindBotId\" IS NULL AND \"CompositionJson\" IS NULL AND \"CompositionHash\" IS NULL) OR (\"Kind\" = 'CustomMind' AND \"MindBotId\" IS NOT NULL AND \"CompositionJson\" IS NOT NULL AND \"CompositionHash\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayEntrantRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntrantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LadderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RankedMatches")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Rating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(1200.0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntrantId", "LadderId")
+                        .IsUnique();
+
+                    b.HasIndex("LadderId", "Rating", "EntrantId")
+                        .IsDescending(false, true, false);
+
+                    b.ToTable("ArcRelayEntrantRatings");
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayRankedMatch", b =>
+                {
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntrantAId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntrantBId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LadderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("RatingABefore")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("RatingBBefore")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("RatingChangeA")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("RatingChangeB")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MatchId");
+
+                    b.HasIndex("EntrantBId");
+
+                    b.HasIndex("LadderId");
+
+                    b.HasIndex("EntrantAId", "EntrantBId", "SettledAt");
+
+                    b.ToTable("ArcRelayRankedMatches");
+                });
+
             modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelaySheet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -668,6 +827,10 @@ namespace BotArena.App.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ArcRelayLane")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime?>("BroadcastStartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -776,7 +939,28 @@ namespace BotArena.App.Migrations
                     b.Property<Guid>("BotVersionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CompositionHashSnapshot")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("CompositionSnapshot")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CrestSnapshot")
+                        .HasColumnType("jsonb");
+
                     b.Property<int?>("DamageDealt")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("EntrantIdSnapshot")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntrantKindSnapshot")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("EntrantRevisionSnapshot")
                         .HasColumnType("integer");
 
                     b.Property<int?>("Faults")
@@ -1407,6 +1591,62 @@ namespace BotArena.App.Migrations
                     b.HasOne("BotArena.App.Accounts.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayEntrant", b =>
+                {
+                    b.HasOne("BotArena.App.Bots.Bot", null)
+                        .WithMany()
+                        .HasForeignKey("MindBotId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BotArena.App.Accounts.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayEntrantRating", b =>
+                {
+                    b.HasOne("BotArena.App.ArcRelay.ArcRelayEntrant", null)
+                        .WithMany()
+                        .HasForeignKey("EntrantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.Competition.Ladder", null)
+                        .WithMany()
+                        .HasForeignKey("LadderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelayRankedMatch", b =>
+                {
+                    b.HasOne("BotArena.App.ArcRelay.ArcRelayEntrant", null)
+                        .WithMany()
+                        .HasForeignKey("EntrantAId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.ArcRelay.ArcRelayEntrant", null)
+                        .WithMany()
+                        .HasForeignKey("EntrantBId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.Competition.Ladder", null)
+                        .WithMany()
+                        .HasForeignKey("LadderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.Matches.Match", null)
+                        .WithMany()
+                        .HasForeignKey("MatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

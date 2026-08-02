@@ -2,7 +2,6 @@ import { Fragment, useMemo } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
-import ArenaAction from '../components/ArenaAction';
 import type { BotSummary } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
 import Th from '../components/TableHeader';
@@ -187,7 +186,8 @@ export default function BotsPage() {
           not — a count of nothing is noise and a pressed filter over no data is a dead
           control. */}
       <p className="lab mb-2">Bot directory</p>
-      <h1 className="type-display mb-2 text-[30px]">Every bot</h1>
+      <p className="lab mb-2 text-amber-200">Legacy archive · read only</p>
+      <h1 className="type-display mb-2 text-[30px]">Historical Duel records</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
         Compare the roster, inspect a bot, or challenge one directly. Rank, rating and
         sets reflect the current ladder; Play appears only where the Arena can accept
@@ -347,23 +347,6 @@ export default function BotsPage() {
                     mine && bot.accent
                       ? playerAccent(bot.accent, 'panel')
                       : null;
-                  const fightable =
-                    arena !== null
-                      ? serverPlayableIds.has(bot.id)
-                      : rosterBotSupportsLegacyDuel(bot);
-                  const arenaBot = fightable || mine
-                    ? {
-                        id: bot.id,
-                        slug: bot.slug,
-                        name: bot.name,
-                        accent: bot.accent,
-                        lookId: bot.lookId,
-                        isOwner: mine,
-                      }
-                    : null;
-                  const arenaModes = mine
-                    ? (['ranked', 'challenge', 'labs'] as const)
-                    : (['challenge'] as const);
                   return (
                     <Fragment key={bot.id}>
                       {index === bandAt && (
@@ -405,7 +388,7 @@ export default function BotsPage() {
                         </td>
                         <td className="p-2 align-middle">
                           <Link
-                            to={`/bots/${bot.slug}`}
+                            to={`/archive/bots/${bot.slug}`}
                             state={{
                               returnTo,
                               returnLabel: 'All bots',
@@ -432,18 +415,6 @@ export default function BotsPage() {
                               {standing ? standing.rankedSets : 'no sets'}
                             </span>
                           </Link>
-                          {arenaBot && (
-                            <ArenaAction
-                              bot={arenaBot}
-                              modes={arenaModes}
-                              initialMode={mine ? 'ranked' : 'challenge'}
-                              triggerLabel={mine ? 'Play' : 'Challenge'}
-                              challengeContextRole={
-                                mine ? 'entrant' : 'opponent'
-                              }
-                              className="mt-2 sm:hidden"
-                            />
-                          )}
                         </td>
                         <td className="hidden p-2 align-middle sm:table-cell">
                           {/* The cheapest possible "show me this player's stable", and
@@ -488,17 +459,7 @@ export default function BotsPage() {
                         <td className="hidden p-2 text-right align-middle sm:table-cell">
                           {/* The directory opens the shared Arena overlay; the composer
                               exists once rather than being copied into every row. */}
-                          {arenaBot && (
-                            <ArenaAction
-                              bot={arenaBot}
-                              modes={arenaModes}
-                              initialMode={mine ? 'ranked' : 'challenge'}
-                              triggerLabel={mine ? 'Play' : 'Challenge'}
-                              challengeContextRole={
-                                mine ? 'entrant' : 'opponent'
-                              }
-                            />
-                          )}
+                          <span className="pill">archived</span>
                         </td>
                       </tr>
                     </Fragment>
@@ -509,7 +470,7 @@ export default function BotsPage() {
 
             {ladderEmpty && (
               <p className="t-micro mt-2.5">
-                Nobody has entered ranked play yet. Use Play to start the first set.
+                No historical ranked records are available.
               </p>
             )}
           </div>
