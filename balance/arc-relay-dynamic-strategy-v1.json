@@ -1,0 +1,89 @@
+{
+  "acceptance": {
+    "dynamicExecution": {
+      "activation": "each retained dynamic family activates a named gambit in both participant assignments across the registered WASM block",
+      "adherence": "at least 75% of scoped live body-ticks during path/zone overlays are in the declared region or reduce shortest-path distance toward it, reported per plan",
+      "commitment": "zero episodes violate declared minimum or maximum tenure and no match exceeds eight plan transitions for one team",
+      "distinctness": "all four dynamic families clear 0.12 on the existing outcome-blind execution distance and no dynamic family is execution-identical to its static control",
+      "opportunityCost": "each dynamic family reports the objective-theater presence surrendered while its plan is active; absence of measurable surrender invalidates the claimed commitment",
+      "rearAmbush": "the retained rear-ambush block satisfies all five mechanical facts in docs/EXPERIMENTAL-ARC-RELAY-DYNAMIC-STRATEGY.md in both participant assignments",
+      "strategyCounterplay": "the registered directed counter-web contains at least one matchup reversal relative to the same-composition static controls or one strict directed three-cycle; aggregate win rate alone cannot pass this gate"
+    },
+    "hardGates": {
+      "cohortEligibility": "every retained match passes felt-degeneracy v3 for both teams",
+      "determinism": "all retained canonical replays verify byte-identically and the six Gate 3 historical golden hashes remain exact",
+      "faults": "zero runtime faults, eligibility disqualifications, malformed strategy transitions, or private-state reads",
+      "history": "stock-mind-v0 source, tracked WASM, FROZEN.json, and evaluation-sheet-v0 hashes are unchanged"
+    },
+    "productLimits": [
+      "this is evaluation-grade evidence, not approval of a player-facing editor schema",
+      "in-process screening may reject or repair candidates but supplies no retained outcome claim",
+      "a numeric pass is not a fun claim; the owner rules from the outcome-blind gallery",
+      "if strategies collapse to local behavior, report the failure before proposing rule changes"
+    ]
+  },
+  "classification": "substantial player-strategy interpreter experiment over unchanged Arc Relay rules and current Counterflow map",
+  "contract": {
+    "mapId": "arc-relay-threefold-depth-counterflow-01",
+    "mapProfile": "depth-counterflow",
+    "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+    "rulesetId": "arc-relay-h0-01",
+    "seedProfile": "arc-relay-h0-seed-01"
+  },
+  "diagnostics": [
+    "plan activations and exit reasons",
+    "episode tenure and transition thrash",
+    "scoped body-ticks and authored-position adherence",
+    "rear-region staging, quiet wait, contact side, and exit proof",
+    "objective-theater presence surrendered during active plans",
+    "opponent deliveries, drops, damage, and Pulse movement during active plans",
+    "static-versus-dynamic outcome edges and directed counter-cycles",
+    "existing v3 ping-pong, passivity, formation-freeze, stuck-carrier, and home-progress bars"
+  ],
+  "families": [
+    {
+      "familyId": "rear-ambush",
+      "question": "can a deliberately under-manned objective opening buy a causal rear-side carrier ambush rather than permanent passivity?",
+      "requiredPlan": "rear-collapse"
+    },
+    {
+      "familyId": "well-rotation",
+      "question": "can a cross-map reserve rotate toward the next public birth without erasing the opening allocation?"
+    },
+    {
+      "familyId": "feint-pincer",
+      "question": "can a visible central feint conditionally release two flank paths with punishable surrendered space?"
+    },
+    {
+      "familyId": "escort-counterpunch",
+      "question": "can a home reserve switch between carrier escort and deep interception based on public possession and position?"
+    }
+  ],
+  "hypotheses": {
+    "alternative": "coordinated, committed, spatial gambits create distinct opponent-dependent plans and at least one non-transitive or reversed payoff edge that narrow role overrides did not",
+    "null": "the stock interpreter still reduces all authored overlays to equivalent local pursuit, producing no meaningful counter-web change despite visible plan labels"
+  },
+  "knownBeforeRegistration": {
+    "currentGambitWithinFamily": "1-1-6 from the gambit side after the v3 anti-thrash repair",
+    "currentGambitScope": "three triggers, one role override, one rally line, 6.31% overridden body-ticks",
+    "currentMapCounterWeb": "14 of 16 mirrored matchup sweeps, zero directed cycles, zero behind-to-ahead Pulse reversals",
+    "warning": "these opened results motivate the experiment; no dynamic-strategy v1 outcome existed at registration"
+  },
+  "prohibitions": [
+    "no new objective, score, economy, comeback, map, class, combat, or visibility rule",
+    "no opponent-private sheet or mind inspection",
+    "no mutation of stock-mind-v0 or historical evaluation sheets",
+    "no threshold movement after a retained WASM outcome is opened",
+    "no aggregate win-rate-only depth claim"
+  ],
+  "runtimeStages": [
+    "deterministic unit/mechanical probes with no balance claim",
+    "registered in-process batch on development seeds 26080211 and 26080229 for gross repair/rejection",
+    "same-cell in-process/WASM result-parity sample for every retained screen",
+    "canonical sandboxed WASM counter-web on disclosed seeds 104729 and 130363",
+    "fresh twelve-cell outcome-blind gallery ordered with seed 20260802"
+  ],
+  "schema": "arc-relay-dynamic-strategy-study-v1",
+  "status": "registered-before-dynamic-strategy-outcomes",
+  "studyId": "arc-relay-dynamic-strategy-v1"
+}
