@@ -1,6 +1,6 @@
 {
   "id": "arc-longshot",
-  "label": "Arc Relay Longshot",
+  "label": "Longshot",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

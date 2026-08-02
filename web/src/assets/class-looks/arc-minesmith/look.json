@@ -1,6 +1,6 @@
 {
   "id": "arc-minesmith",
-  "label": "Arc Relay Minesmith",
+  "label": "Minesmith",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

@@ -1,6 +1,6 @@
 {
   "id": "arc-mason",
-  "label": "Arc Relay Mason",
+  "label": "Mason",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

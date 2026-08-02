@@ -361,6 +361,23 @@ export function presentationBotLook(
   );
 }
 
+/**
+ * The primary authored silhouette for a class when UI needs an identity mark rather
+ * than a rotatable world sprite. This deliberately stays out of cosmetic options.
+ */
+export function classIconLook(classId: string): BotLook | null {
+  const preferredId =
+    classLooks.has(`arc-${classId}`)
+      ? `arc-${classId}`
+      : ({
+          striker: 'trident-wasp',
+          bulwark: 'aegis-tortoise',
+          fabricator: 'lattice-loom',
+        } as Record<string, string>)[classId];
+  if (preferredId) return classLooks.get(preferredId) ?? null;
+  return null;
+}
+
 export function botLookOptions(): readonly BotLook[] {
   return [...looks.values()].sort((a, b) => a.label.localeCompare(b.label));
 }

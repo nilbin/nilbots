@@ -1,6 +1,6 @@
 {
   "id": "arc-repulsor",
-  "label": "Arc Relay Repulsor",
+  "label": "Repulsor",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

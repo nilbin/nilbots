@@ -1,6 +1,6 @@
 {
   "id": "arc-nest",
-  "label": "Arc Relay Nest",
+  "label": "Nest",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

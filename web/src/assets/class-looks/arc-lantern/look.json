@@ -1,6 +1,6 @@
 {
   "id": "arc-lantern",
-  "label": "Arc Relay Lantern",
+  "label": "Lantern",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import EntrantCrest from '../../components/EntrantCrest';
+import ClassIcon from '../../components/ClassIcon';
 import { useAuth } from '../auth';
 import {
   type ArcRelayCatalog,
@@ -707,10 +708,8 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
 
 function CompositionStrip({ entrant, compact = false }: { entrant: ArcRelayEntrant; compact?: boolean }) {
   return <div className={clsx('flex min-w-0 gap-1', compact ? 'hidden max-w-[240px] lg:flex' : 'mt-3')}>
-    {entrant.composition.map((slot) => <span key={slot.slot} title={`${slot.slot + 1}. ${slot.className}`}
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-arena-edge bg-arena-panel font-mono text-[9px] uppercase text-arena-material">
-      {slot.className.slice(0, 2)}
-    </span>)}
+    {entrant.composition.map((slot) => <ClassIcon key={slot.slot}
+      classId={slot.classId} label={`${slot.slot + 1}. ${slot.className}`} size={24} />)}
   </div>;
 }
 

@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import IdentityChip from './IdentityChip';
+import ClassIcon from './ClassIcon';
 import { visualIndexForUnit } from '../replayParticipants';
 import { useMemo } from 'react';
 import type {
@@ -178,14 +179,18 @@ export default function BotPanel({
   // author's plan, not from nine bodies agreeing.
   const mindProfile =
     replay.versions.actorRuntime?.family === 'generic-mind-match-1';
+  // Arc Relay has sixteen bodies. Pair equal slots across teams so the roster
+  // reads like a lineup, rather than a long diagnostic log for one team and
+  // then another. Full detail remains one click away.
+  const presentedUnits = mindProfile
+    ? [...units].sort(
+        (left, right) =>
+          left.unitId - right.unitId || left.teamId - right.teamId,
+      )
+    : units;
 
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
-      {mindProfile && (
-        <p className="lab px-0.5">
-          One mind per participant · roles are its own words
-        </p>
-      )}
       {objective?.kind === 'legacy-control' && (
         <div className="panel-quiet pad">
           <div className="flex items-baseline justify-between gap-3">
@@ -379,7 +384,8 @@ export default function BotPanel({
         </div>
       )}
 
-      {units.map((unit) => {
+      <div className={clsx(mindProfile && 'grid grid-cols-2 gap-1.5')}>
+      {presentedUnits.map((unit) => {
         const selected = selectedUnitKey === unit.unitKey;
         // Out of the game, as the design's dead card reads it: the whole card recedes
         // rather than one word turning a colour.
@@ -417,11 +423,19 @@ export default function BotPanel({
         // entering a stance show up in the panel at the same tick they show up in the
         // arena.
         const look = unitLook(replay, unit.unitKey, unit.formId);
+        const controllerName = replay.participants.find(
+          (participant) => participant.participantId === unit.participantId,
+        )?.name;
         return (
           <article
             key={unit.unitKey}
             className={clsx(
-              'panel pad min-w-0 transition-colors',
+              'panel min-w-0 transition-colors',
+              mindProfile
+                ? selected
+                  ? 'pad col-span-2'
+                  : 'px-2 py-1.5'
+                : 'pad',
               out && 'opacity-[0.62]',
               // Selection is a state, and state is never the accent here — the accent is
               // the shop's own colour. Raised ground and a brighter edge say it instead.
@@ -430,25 +444,41 @@ export default function BotPanel({
                 : 'hover:border-arena-edge2',
             )}
           >
-            <div className="flex min-w-0 items-center gap-2.5">
-              <IdentityChip
-                lookId={look.id}
-                visualIndex={visualIndexForUnit(replay, unit.unitKey)}
-                accent={unit.accent}
-                name={unit.name}
-                nameClassName="text-[14px]"
-                sub={`${unit.lookLabel} · ${
-                  unit.legacySlot === null
-                    ? `team ${unit.teamId} · unit ${unit.unitId}${unit.lifeId === null ? '' : ` · life ${unit.lifeId}`}`
-                    : `slot ${unit.legacySlot}`
-                }`}
-              />
+            <div className="flex min-w-0 items-center gap-2">
+              {look.classId ? <span className="flex min-w-0 items-center gap-2">
+                <ClassIcon classId={look.classId} label={`${classLabel(look.classId)} class`}
+                  accent={unit.accent} size={mindProfile && !selected ? 26 : 30} />
+                <span className="min-w-0">
+                  <span className={clsx(
+                    'block truncate font-semibold text-arena-text',
+                    mindProfile && !selected ? 'text-[12px]' : 'text-[14px]',
+                  )}>
+                    {classLabel(look.classId)}
+                  </span>
+                  {(!mindProfile || (selected && controllerName)) && (
+                    <span className="block truncate text-[9px] uppercase tracking-[.1em] text-arena-dim">
+                      {selected && controllerName
+                        ? controllerName
+                        : `team ${unit.teamId}`}
+                    </span>
+                  )}
+                </span>
+              </span> : <IdentityChip
+                  lookId={look.id}
+                  visualIndex={visualIndexForUnit(replay, unit.unitKey)}
+                  accent={unit.accent}
+                  name={unit.name}
+                  nameClassName="text-[14px]"
+                  sub={unit.legacySlot === null
+                    ? `team ${unit.teamId} · body ${unit.unitId + 1}`
+                    : `slot ${unit.legacySlot}`}
+                />}
               {/* Eight statuses had eight hues, which is eight things competing with the
                   one colour that means something — the player's accent. Out of the game
                   a unit is out; everything else is a state it is passing through, and
                   the word already says which. */}
               <span className="ml-auto flex shrink-0 items-center gap-1.5">
-                <span
+                {(!mindProfile || unit.status !== 'active') && <span
                   className={clsx(
                     'pill',
                     out
@@ -460,24 +490,62 @@ export default function BotPanel({
                 >
                   {unit.status}
                   {transition ? ` · ${transition}` : ''}
-                </span>
+                </span>}
                 <button
                   type="button"
                   onClick={() =>
                     onSelectUnit(selected ? null : unit.unitKey)
                   }
                   aria-pressed={selected}
-                  className={clsx('btn', selected && 'btn-on')}
+                  aria-label={`${selected ? 'Close' : 'Inspect'} ${look.classId ? classLabel(look.classId) : unit.name}${controllerName ? ` for ${controllerName}` : ''}`}
+                  title={selected ? 'Close details' : 'Inspect body'}
+                  className={clsx(
+                    'btn',
+                    mindProfile && !selected && 'px-1.5 py-0.5',
+                    selected && 'btn-on',
+                  )}
                 >
-                  {selected ? 'Close' : 'Inspect'}
+                  {selected ? 'Close' : mindProfile ? '···' : 'Inspect'}
                 </button>
               </span>
             </div>
 
+            {mindProfile && !selected && (
+              <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
+                <span
+                  className="flex shrink-0 gap-[2px]"
+                  aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
+                >
+                  {Array.from({ length: unit.maxHealth }, (_, index) => (
+                    <i
+                      key={index}
+                      className={clsx(
+                        'h-[4px] w-[9px] rounded-[1px] border',
+                        index < unit.health
+                          ? 'player-accent-border player-accent-fill'
+                          : 'border-arena-edge',
+                      )}
+                      style={
+                        index < unit.health
+                          ? styleVariables({ '--player-accent': visibleAccent })
+                          : undefined
+                      }
+                    />
+                  ))}
+                </span>
+                <span className="min-w-0 truncate text-[9px] text-arena-dim">
+                  {unit.roleTag ??
+                    (unit.actionId
+                      ? describeAction(unit.actionId, unit.actionLaunchHeading)
+                      : unit.status)}
+                </span>
+              </div>
+            )}
+
             {/* Health, cooldown and what it is doing — three rows, one idea each.
                 This was `♥♥♥ · CD 0 · ⬢ idle · → turn-left`: four encodings of state
                 on one line, three of them abbreviations only the author knew. */}
-            <dl className="mt-[9px] grid grid-cols-[64px_1fr_auto] items-center gap-x-[10px] gap-y-[9px]">
+            {(!mindProfile || selected) && <dl className="mt-[9px] grid grid-cols-[64px_1fr_auto] items-center gap-x-[10px] gap-y-[9px]">
               <dt className="lab">Health</dt>
               <dd
                 className="flex gap-[3px]"
@@ -677,9 +745,9 @@ export default function BotPanel({
                   </dd>
                 </>
               )}
-            </dl>
+            </dl>}
 
-            {formTransition && (
+            {formTransition && (!mindProfile || selected) && (
               <p className="lab mt-2">
                 Transforming · {formTransition.fromFormId} →{' '}
                 {formTransition.toFormId} · completes T
@@ -687,7 +755,7 @@ export default function BotPanel({
               </p>
             )}
 
-            {!unit.canMove && (
+            {!unit.canMove && (!mindProfile || selected) && (
               <p className="lab mt-2">
                 STATIONARY ·{' '}
                 {unit.omnidirectionalVision ? '360° VISION' : 'DIRECTED VISION'}
@@ -714,6 +782,7 @@ export default function BotPanel({
           </article>
         );
       })}
+      </div>
 
       <label className="t-meta flex cursor-pointer items-center gap-2 px-1 select-none">
         <input
@@ -728,4 +797,10 @@ export default function BotPanel({
       </label>
     </div>
   );
+}
+
+function classLabel(classId: string): string {
+  return classId.split('-').map((word) =>
+    word.length === 0 ? word : word[0].toUpperCase() + word.slice(1),
+  ).join(' ');
 }

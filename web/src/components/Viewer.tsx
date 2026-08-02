@@ -6,10 +6,8 @@ import type {
 } from '../replayModel';
 import {
   teamName,
-  unitName,
-  visualIndexForUnit,
 } from '../replayParticipants';
-import { unitAccent, unitLook } from '../render/unitPresentation';
+import { unitAccent } from '../render/unitPresentation';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
@@ -27,11 +25,11 @@ import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
-import IdentityChip from './IdentityChip';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import LiveStatus, { LiveDot } from './LiveStatus';
 import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
+import ClassIcon from './ClassIcon';
 import { createPresenter } from '../replayPresentation';
 
 export interface ViewerEntrantPresentation {
@@ -344,36 +342,15 @@ export default function Viewer({
             version and the hash are provenance — they matter enormously, which is why
             they get a disclosure of their own rather than a byline nobody reads. */}
         <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          {replay.teams.map((team, index) => {
-            // A team's units, not a fixed pair: a duel shows one chip a side and a
-            // Frontline team shows however many it fields.
-            const unitKeys = replay.units
-              .filter((unit) => unit.teamId === team.teamId)
-              .map((unit) => unit.unitKey);
-            return (
-              <span key={team.teamKey} className="flex items-center gap-3">
+          {isArcRelay
+            ? <ArcRelayMatchupHeader replay={replay} entrants={entrants} />
+            : replay.teams.map((team, index) => <span key={team.teamKey}
+                className="flex min-w-0 items-center gap-2">
                 {index > 0 && <span className="lab">vs</span>}
-                {unitKeys.slice(0, 3).map((unitKey) => (
-                  <IdentityChip
-                    key={unitKey}
-                    // Resolved the way the arena resolves it: under a class arm
-                    // every participant carries the same default look and accent,
-                    // and the form catalog is the only thing that tells the two
-                    // machines apart.
-                    lookId={unitLook(replay, unitKey).id}
-                    visualIndex={visualIndexForUnit(replay, unitKey)}
-                    accent={unitAccent(replay, unitKey)}
-                    name={unitName(replay, unitKey)}
-                    nameClassName="text-[14px]"
-                    size={22}
-                  />
-                ))}
-                {unitKeys.length > 3 && (
-                  <span className="val">+{unitKeys.length - 3}</span>
-                )}
-              </span>
-            );
-          })}
+                <span className="truncate text-[14px] font-semibold text-arena-text">
+                  {teamName(replay, team.teamId)}
+                </span>
+              </span>)}
         </span>
         {isLive ? (
           <LiveStatus className="ml-auto" />
@@ -711,6 +688,33 @@ export default function Viewer({
   );
 }
 
+function ArcRelayMatchupHeader({ replay, entrants }: {
+  replay: ReplayModel;
+  entrants?: readonly ViewerEntrantPresentation[];
+}) {
+  return replay.teams.map((team, index) => {
+    const supplied = entrants?.find((value) => value.teamId === team.teamId);
+    const firstUnit = replay.units.find((unit) => unit.teamId === team.teamId);
+    const name = supplied?.name ?? teamName(replay, team.teamId);
+    const accent = firstUnit
+      ? unitAccent(replay, firstUnit.unitKey)
+      : team.teamId === 0 ? '#22d3ee' : '#fb5360';
+    const crest = supplied?.crest ?? fallbackCrest(name, accent);
+    return <span key={team.teamKey} className="flex min-w-0 items-center gap-2">
+      {index > 0 && <span className="lab mx-1">vs</span>}
+      <EntrantCrest crest={crest} size={28} />
+      <span className="min-w-0">
+        <span className="block max-w-[180px] truncate text-[14px] font-semibold text-arena-text">
+          {name}
+        </span>
+        <span className="block text-[8px] uppercase tracking-[.16em] text-arena-dim">
+          {supplied?.kind ?? 'entrant'}
+        </span>
+      </span>
+    </span>;
+  });
+}
+
 function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
   replay: ReplayModel;
   tick: number;
@@ -742,9 +746,9 @@ function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
                 style={{ background: value < (reactor?.chargePips ?? 0) ? crest.detail : '#33404a', boxShadow: value < (reactor?.chargePips ?? 0) ? `0 0 5px ${crest.detail}` : undefined }} />)}
             </span>
           </div>
-          {composition.length > 0 && <span className="mt-1 flex gap-[2px]" aria-label={`${name} composition`}>
-            {composition.slice(0, 8).map((classId, index) => <i key={`${classId}:${index}`}
-              title={classId} className="h-[3px] w-2 rounded-[1px] bg-white/45" />)}
+          {composition.length > 0 && <span className="mt-0.5 flex gap-[1px]" aria-label={`${name} composition`}>
+            {composition.slice(0, 8).map((classId, index) => <ClassIcon key={`${classId}:${index}`}
+              classId={classId} size={10} framed={false} decorative />)}
           </span>}
         </div>
       </div>;

@@ -1,6 +1,6 @@
 {
   "id": "arc-mortar",
-  "label": "Arc Relay Mortar",
+  "label": "Mortar",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   applyTeamAccentToSvg,
+  classIconLook,
   presentationBotLook,
 } from './.harness/harness.entry.js';
 
@@ -62,6 +63,7 @@ test('internal class looks are tagged SVG packages with explicit raster exceptio
       readFileSync(join(root, 'look.json'), 'utf8'),
     ) as {
       id: string;
+      label: string;
       sprite: string;
       classId: string;
       defaultProjectile: string;
@@ -114,6 +116,14 @@ test('internal class looks are tagged SVG packages with explicit raster exceptio
       assert.doesNotMatch(element, /\bfill="none"/i);
     }
     if (manifest.id.startsWith('arc-')) {
+      assert.equal(
+        manifest.label,
+        manifest.classId
+          .split('-')
+          .map((word) => word[0].toUpperCase() + word.slice(1))
+          .join(' '),
+        `${manifest.id} presents the class name without a mode prefix`,
+      );
       assert.match(source, /<g id="chassis">/);
       assert.match(source, /<g id="weapon-hardware">/);
       assert.match(source, /<g id="underbody-locomotion">/);
@@ -190,6 +200,18 @@ test('internal class looks expose typed class metadata without entering cosmetic
   assert.equal(presentationBotLook('lattice-loom').classId, 'fabricator');
   assert.equal(presentationBotLook('arc-kestrel').classId, 'kestrel');
   assert.equal(presentationBotLook('arc-nest').classId, 'nest');
+});
+
+test('class identity icons resolve to primary authored silhouettes', () => {
+  assert.equal(classIconLook('striker')?.id, 'trident-wasp');
+  assert.equal(classIconLook('bulwark')?.id, 'aegis-tortoise');
+  assert.equal(classIconLook('fabricator')?.id, 'lattice-loom');
+  for (const classId of [
+    'kestrel', 'palisade', 'towline', 'patchbay', 'lantern', 'mortar',
+    'minesmith', 'hush', 'relay', 'switchback', 'longshot', 'mason',
+    'sunder', 'repulsor', 'veil', 'nest',
+  ]) assert.equal(classIconLook(classId)?.id, `arc-${classId}`);
+  assert.equal(classIconLook('future-class'), null);
 });
 
 test('the concept registry preserves three exact pairs per class', () => {

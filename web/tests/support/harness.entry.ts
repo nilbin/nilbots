@@ -38,6 +38,7 @@ export {
 } from '../../src/render/unitPresentation';
 export {
   applyTeamAccentToSvg,
+  classIconLook,
   presentationBotLook,
 } from '../../src/render/arenaThemes';
 export {

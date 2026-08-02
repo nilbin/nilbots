@@ -1,6 +1,6 @@
 {
   "id": "arc-relay",
-  "label": "Arc Relay Relay",
+  "label": "Relay",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",

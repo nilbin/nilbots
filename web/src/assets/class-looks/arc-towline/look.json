@@ -1,6 +1,6 @@
 {
   "id": "arc-towline",
-  "label": "Arc Relay Towline",
+  "label": "Towline",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
   "defaultProjectile": "arc-pulse",
