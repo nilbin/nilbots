@@ -1,4 +1,5 @@
 using BotArena.App.ArcRelay;
+using BotArena.Engine;
 
 namespace BotArena.App.Tests;
 
@@ -28,6 +29,49 @@ public sealed class ArcRelayPlayerSheetCodecTests
         Assert.Equal(first.CanonicalJson, second.CanonicalJson);
         Assert.Equal(first.LinkedData, second.LinkedData);
         Assert.True(first.LinkedData.Length < 64 * 1024);
+        Assert.Equal(ArcRelayLoopProfile.Current.MapId, document.MapId);
+    }
+
+    [Fact]
+    public void Home_gates_sheet_migrates_to_counterflow_deterministically()
+    {
+        ArcRelaySheetDocument current = ArcRelayPlayerSheetCodec.NewSheetTemplate();
+        ArcRelaySheetDocument legacy = current with
+        {
+            MapId = ArcRelayLoopProfile.HomeGatesWide.MapId,
+            RallyLines = current.RallyLines.Select(line => line.Id == "home"
+                ? line with
+                {
+                    // Open in Home Gates Wide and cover in Counterflow.
+                    Points = [new ArcRelaySheetPoint(6, 3), .. line.Points.Skip(1)],
+                }
+                : line).ToArray(),
+        };
+
+        ArcRelaySheetDocument first = Codec.UpgradeToCurrentMap(
+            legacy,
+            Catalog.StarterIds);
+        ArcRelaySheetDocument repeated = Codec.UpgradeToCurrentMap(
+            legacy,
+            Catalog.StarterIds);
+        ArcRelaySheetCompilation compiled = Codec.Compile(
+            first,
+            Catalog.StarterIds,
+            "migrated:r2");
+        ArcRelaySheetCompilation compiledAgain = Codec.Compile(
+            repeated,
+            Catalog.StarterIds,
+            "migrated:r2");
+
+        Assert.Equal(ArcRelayLoopProfile.Current.MapId, first.MapId);
+        Assert.Equal(compiled.CanonicalJson, compiledAgain.CanonicalJson);
+        Assert.Equal(compiled.ContentHash, compiledAgain.ContentHash);
+        ArcRelaySheetPoint relocated = first.RallyLines
+            .Single(line => line.Id == "home").Points[0];
+        Assert.NotEqual(new ArcRelaySheetPoint(6, 3), relocated);
+        Assert.False(ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current).IsWall(relocated.X, relocated.Y));
+        Assert.Equal(64, compiled.ContentHash.Length);
     }
 
     [Fact]

@@ -1,9 +1,10 @@
-# Arc Relay H0 — experimental player rules
+# Arc Relay — experimental player rules
 
-Arc Relay H0 is the current experimental game used for Gate 3. It is not the
-shipped Duel ruleset. Its identities are `arc-relay-h0-01` and
-`arc-relay-threefold-01`; changed mechanics or map content require changed
-fingerprints.
+Arc Relay is the current experimental game. It is not the shipped Duel
+ruleset. The rules identity remains `arc-relay-h0-01`; hosted entrant playlist
+v3 uses map `arc-relay-threefold-depth-counterflow-01`. The historical H0 and
+playlist-v2 maps remain immutable and executable under their original
+identities; changed mechanics or map content require changed fingerprints.
 
 ## Match shape
 
@@ -18,6 +19,15 @@ fingerprints.
   production, cooldowns, vision, or respawns.
 - The horizon is 600 ticks. Timeout ranks Pulses, then stored reactor charge;
   the remaining tie is a draw.
+
+## Competitive visibility
+
+Entrant name, kind, crest, rating, revision, opaque content/artifact hash, and
+ordered eight-class composition are public. A sheet's exact routes, roles,
+policies, rally lines, and gambits are private to its owner and the hosted
+executor. Match pages and replays expose what happened on the field, not the
+sheet document or linked stock-mind data. Custom minds receive the same public
+facts and causal observations; they cannot fetch an opponent's sheet.
 
 ## Objective
 
@@ -41,34 +51,36 @@ carry no Core, and submit `Wait`; the source spends its action. `drop-core`
 leaves the Core neutral on the carrier's tile. Pickup, delivery, handoff, drop,
 flight, and recovery are all authoritative replay facts.
 
-## Threefold
+## Threefold Counterflow
 
-Coordinates are zero-based. `#` is a wall and `.` is floor. The map mirrors by
-`x -> 30 - x` and north/south by `y -> 22 - y`.
+Coordinates are zero-based. `#` is a wall and `.` is floor. The map is fair
+under exact 180-degree rotation `(x,y) -> (30-x,22-y)`. It deliberately does not
+mirror north/south or east/west: both sides receive the same competitive
+geometry after rotation, while the two outer routes have distinct character.
 
 ```text
 ###############################
+#.............................#
+#.............................#
+#....####.###.....###....#....#
+#....#....###.....###....#....#
+#.................###.........#
+#.............................#
 #....#...................#....#
+#.............................#
 #.............................#
 #....#....###.....###....#....#
 #....#....###.....###....#....#
 #....#....###.....###....#....#
 #.............................#
-#....#...................#....#
-#....#...................#....#
-#.............................#
-#....#....###.....###....#....#
-#....#....###.....###....#....#
-#....#....###.....###....#....#
 #.............................#
 #....#...................#....#
-#....#...................#....#
 #.............................#
+#.........###.................#
 #....#....###.....###....#....#
-#....#....###.....###....#....#
-#....#....###.....###....#....#
+#....#....###.....###.####....#
 #.............................#
-#....#...................#....#
+#.............................#
 ###############################
 ```
 
@@ -118,7 +130,8 @@ tick instead of reconstructing targets or cooldowns. Exact static values are
 available from the public CLI:
 
 ```bash
-nilbots experiment arc-relay --print-contract
+nilbots experiment arc-relay \
+  --loop-profile depth-counterflow --print-contract
 ```
 
 Run a native mind locally with:
@@ -126,7 +139,8 @@ Run a native mind locally with:
 ```bash
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
-  --sheet0 <sheet.json> --sheet1 <sheet.json> --seed 42
+  --sheet0 <sheet.json> --sheet1 <sheet.json> \
+  --loop-profile depth-counterflow --seed 42
 ```
 
 Evaluation sheets in Gate 3 use the provisional

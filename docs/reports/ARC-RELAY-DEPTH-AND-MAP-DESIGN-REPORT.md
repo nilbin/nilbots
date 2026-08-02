@@ -1,10 +1,10 @@
-DECISION NEEDED: Watch the fresh baseline-versus-counterflow gallery and choose whether counterflow's fair asymmetry is worth another design loop (default: hold the compact symmetric map and do not enlarge it).
+DECISION NEEDED: RESOLVED by owner gallery ruling on 2026-08-02: promote Counterflow as the hosted product map and continue the depth loop.
 
-RESULT: HOLD. The larger map is rejected by this study. Counterflow is the strongest watch candidate: it is exactly side-balanced, increases contested pickups, and preserves pacing, but it does not meet the preregistered depth gates. This evidence cannot establish that Arc Relay is fun for humans or deep enough for a season.
+RESULT: OWNER OVERRIDE of the study's HOLD recommendation. Counterflow becomes hosted playlist v3 because its fair asymmetry felt better in the gallery and its measured contest improved. The larger map remains rejected. The override does not convert any failed depth gate into a pass or establish that Arc Relay is fun for humans or deep enough for a season.
 
 EVIDENCE: All 96 main cells and all 24 counter-web cells verified exactly under WASM. Counterflow finished 16–16 and raised contested-pickup share from 13.21% to 16.01%, but first-Pulse conversion remained 75%, behind-to-ahead Pulse reversals remained 0, 14/16 mirrored matchups were entrant sweeps, and four complete three-entrant counter-webs produced zero directed cycles. The larger arm made four entrants trip felt-degeneracy bars.
 
-NEXT: No rules or official-map change runs without owner input. After the watch, the recommended next loop is fresh v3-clean doctrine/grammar work; only if momentum still locks should a new preregistered study isolate symmetric objective-flow changes. No leader-specific comeback mechanic, economy, or score-to-power is proposed.
+NEXT: Hosted v3 advances the map only; historical v1/v2 definitions and golden replays stay executable. The next preregistered depth loop should isolate symmetric Pulse-drive resets and authored between-drive play selection before combining them. No leader-specific comeback mechanic, economy, or score-to-power is proposed.
 
 # Arc Relay depth and map-design study
 
@@ -52,8 +52,9 @@ Only map geometry and the map-native coordinate data differ.
 
 Counterflow is asymmetric in lane character, not in competitive opportunity:
 rotating the board 180° swaps the two sides exactly. Larger deliberately
-stays inside the existing 32×32 engine ceiling. Both profiles are additive
-experimental profiles; neither replaces the official map.
+stays inside the existing 32×32 engine ceiling. At study freeze both profiles
+were additive experimental arms; the owner addendum above later promotes
+Counterflow without rewriting this causal evidence.
 
 The 32 sheets are distinct compositions/plans selected for style coverage,
 not twenty cosmetic aliases. Their labels include convoy, interception,

@@ -8,6 +8,28 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
+    public void Entrant_v3_advances_to_counterflow_while_v2_remains_executable()
+    {
+        ArcRelayEntrantPlaylistDefinition current =
+            ArcRelayEntrantPlaylistDefinition.Create();
+        ArcRelayEntrantPlaylistDefinition historical =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2();
+
+        Assert.Equal(3, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Current.MapId, current.Match.Map.Id);
+        Assert.Equal(2, historical.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.HomeGatesWide.MapId, historical.Match.Map.Id);
+        var registry = new HostedGenericMatchDefinitionRegistry(
+            [ArcRelayPlaylistDefinition.Create(), historical, current]);
+        Assert.Same(historical, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
+        Assert.Same(current, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Version));
+    }
+
+    [Fact]
     public void Hosted_product_uses_dynamic_sheets_and_trusted_stock_runtime()
     {
         ArcRelayPlaylistDefinition definition =

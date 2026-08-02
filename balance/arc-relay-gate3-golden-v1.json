@@ -10,6 +10,8 @@
   "mapId": "arc-relay-threefold-01",
   "mapFingerprint": "f4649d6d17e80c02cd4b09fec849de5729435855cf411592a5e2c73cd889bbbe",
   "cohortId": "arc-relay-native-cohort-v1-2026-08-01",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v1.json",
+  "eligibilityBarsSha256": "1d024636805e42c8ee05ebdee8144db8cd65439e9e4f271664289718b5e7ffc5",
   "entrants": {
     "convoy": {
       "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/convoy/bot.wasm",

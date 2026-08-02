@@ -4477,6 +4477,34 @@ its provisional numbers into measured balance, establish that the game
 is fun, or itself begin Phase C. Rules-native evidence and the owner's
 felt-experience gallery remain the authorities for those later gates.
 
+## 201. Counterflow is the hosted map; the failed depth gates stay failed
+
+Owner gallery ruling (2026-08-02). Counterflow's exact rotational fairness,
+stronger contested-pickup read, preserved pacing, and better felt lane
+character are sufficient to promote it from study arm to the working hosted
+Arc Relay map. This is a qualitative product choice over the study's default
+HOLD, not a statistical depth pass. The adverse evidence remains on the
+record unchanged: 75% first-Pulse conversion, zero behind-to-ahead Pulse
+reversals, 14 of 16 mirrored matchup sweeps, and zero directed cycles in four
+complete counter-webs. The larger map remains rejected after four entrant
+eligibility failures.
+
+The cutover is immutable playlist version 3. Version 2 remains registered so
+queued historical matches execute against Home Gates Wide. Saved sheets move
+to Counterflow through a deterministic nearest-walkable waypoint migration;
+sheet and entrant identity persist. The open v2 rating population is copied
+to the v3 ladder before v2 closes. Custom minds retain identity and rating but
+must preflight again because a mind may validate the map identity itself. No
+EF schema change is needed. This map ruling changes no historical canonical
+replay, ruleset, economy, score-to-power stance, or first-party stock artifact.
+
+Depth remains an open product risk. The next structural hypothesis is a sport
+of symmetric **Pulse drives**: after either team Pulses, the same neutral
+kickoff reset begins a new drive, and a sheet may select a fresh authored play
+from public match history at that boundary. Reset and play selection must be
+preregistered and tested independently before combination; neither gives the
+trailing side power or changes combat stats.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.ArcRelay;
 
-/// <summary>Creates one v2 match from immutable entrant revision snapshots.</summary>
+/// <summary>Creates one current-version match from immutable entrant revision snapshots.</summary>
 public sealed class ArcRelayMatchAdmissionService(
     AppDbContext db,
     ArcRelayPlayerSheetCodec sheetCodec,

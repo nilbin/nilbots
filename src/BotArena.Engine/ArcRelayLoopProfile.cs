@@ -1,8 +1,9 @@
 namespace BotArena.Engine;
 
 /// <summary>
-/// Pre-registered one-factor Arc Relay loop arms. H0 remains the default;
-/// callers select a named immutable profile rather than injecting numbers.
+/// Registered Arc Relay loop profiles. H0 remains the historical engine
+/// default; hosted product callers use <see cref="Current"/> and experiments
+/// select a named immutable profile rather than injecting numbers.
 /// </summary>
 public sealed record ArcRelayLoopProfile
 {
@@ -114,6 +115,12 @@ public sealed record ArcRelayLoopProfile
         75,
         25,
         7);
+
+    /// <summary>
+    /// Owner-selected hosted product map. Kept separate from H0 so historical
+    /// contracts and golden replays never change when the product advances.
+    /// </summary>
+    public static ArcRelayLoopProfile Current => DepthCounterflow;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",

@@ -39,8 +39,8 @@ public static class ArcRelayEndpoints
             return Results.Ok(new ArcRelayCatalogResponse(
                 ArcRelayEntrantPlaylistDefinition.PlaylistKey,
                 playlistVersionId,
-                ArcRelayLoopProfile.HomeGatesWide.MapId,
-                ArcRelayH0Definition.CreateMap(ArcRelayLoopProfile.HomeGatesWide).TileRows,
+                ArcRelayLoopProfile.Current.MapId,
+                ArcRelayH0Definition.CreateMap(ArcRelayLoopProfile.Current).TileRows,
                 ArcRelayPlayerSheetCodec.SlotCount,
                 ArcRelayPlayerSheetCodec.MaximumCopiesPerClass,
                 ArcRelayPlayerSheetCodec.SupportedTheaters,

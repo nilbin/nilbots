@@ -66,11 +66,27 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
     public void Validate(
         ArcRelaySheetDocument document,
         IReadOnlySet<string> unlockedClassIds)
+        => ValidateForProfile(document, unlockedClassIds, ArcRelayLoopProfile.Current);
+
+    /// <summary>
+    /// Deterministically advances a saved Home Gates sheet to the current map.
+    /// Waypoints that became cover move to the nearest walkable tile with a
+    /// stable Manhattan-distance, Y, X tie-break; all other authored data stays
+    /// unchanged.
+    /// </summary>
+    public ArcRelaySheetDocument UpgradeToCurrentMap(
+        ArcRelaySheetDocument document,
+        IReadOnlySet<string> unlockedClassIds)
     {
         ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(unlockedClassIds);
-        if (document.SchemaVersion != SchemaVersion)
-            throw Invalid("schemaVersion", $"must be {SchemaVersion}");
+        if (string.Equals(
+                document.MapId,
+                ArcRelayLoopProfile.Current.MapId,
+                StringComparison.Ordinal))
+        {
+            Validate(document, unlockedClassIds);
+            return document;
+        }
         if (!string.Equals(
                 document.MapId,
                 ArcRelayLoopProfile.HomeGatesWide.MapId,
@@ -78,7 +94,49 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
         {
             throw Invalid(
                 "mapId",
-                $"must be '{ArcRelayLoopProfile.HomeGatesWide.MapId}'");
+                $"cannot migrate unsupported map '{document.MapId}'");
+        }
+
+        ValidateForProfile(
+            document,
+            unlockedClassIds,
+            ArcRelayLoopProfile.HomeGatesWide);
+        ActorMapDefinition currentMap = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        ArcRelaySheetDocument migrated = document with
+        {
+            MapId = ArcRelayLoopProfile.Current.MapId,
+            Slots = document.Slots.Select(slot => slot with
+            {
+                OutboundPath = RelocatePath(slot.OutboundPath, currentMap),
+                ReturnPath = RelocatePath(slot.ReturnPath, currentMap),
+            }).ToArray(),
+            RallyLines = document.RallyLines.Select(line => line with
+            {
+                Points = RelocatePath(line.Points, currentMap),
+            }).ToArray(),
+        };
+        Validate(migrated, unlockedClassIds);
+        return migrated;
+    }
+
+    private void ValidateForProfile(
+        ArcRelaySheetDocument document,
+        IReadOnlySet<string> unlockedClassIds,
+        ArcRelayLoopProfile loopProfile)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(unlockedClassIds);
+        if (document.SchemaVersion != SchemaVersion)
+            throw Invalid("schemaVersion", $"must be {SchemaVersion}");
+        if (!string.Equals(
+                document.MapId,
+                loopProfile.MapId,
+                StringComparison.Ordinal))
+        {
+            throw Invalid(
+                "mapId",
+                $"must be '{loopProfile.MapId}'");
         }
         if (document.Slots is null || document.Slots.Count != SlotCount)
             throw Invalid("slots", $"must contain exactly {SlotCount} entries");
@@ -95,7 +153,7 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
             "slots.classId");
 
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.HomeGatesWide);
+            loopProfile);
         foreach (ArcRelaySheetSlot slot in slots)
         {
             if (!Theaters.Contains(slot.Theater))
@@ -210,7 +268,7 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
 
     public static ArcRelaySheetDocument NewSheetTemplate() => new(
         SchemaVersion,
-        ArcRelayLoopProfile.HomeGatesWide.MapId,
+        ArcRelayLoopProfile.Current.MapId,
         [
             Slot(0, "kestrel", "north", "carrier", 1,
                 [(4, 9), (8, 8), (12, 6), (15, 4)],
@@ -253,6 +311,25 @@ public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
             new ArcRelayEscortPolicy(1, true),
             new ArcRelayInterceptionPolicy(true, true)),
         []);
+
+    private static IReadOnlyList<ArcRelaySheetPoint> RelocatePath(
+        IReadOnlyList<ArcRelaySheetPoint> points,
+        ActorMapDefinition map) =>
+        points.Select(point => RelocatePoint(point, map)).ToArray();
+
+    private static ArcRelaySheetPoint RelocatePoint(
+        ArcRelaySheetPoint point,
+        ActorMapDefinition map)
+    {
+        if (!map.IsWall(point.X, point.Y))
+            return point;
+        return (from y in Enumerable.Range(0, map.Height)
+                from x in Enumerable.Range(0, map.Width)
+                where !map.IsWall(x, y)
+                orderby Math.Abs(x - point.X) + Math.Abs(y - point.Y), y, x
+                select new ArcRelaySheetPoint(x, y))
+            .First();
+    }
 
     private static ArcRelaySheetSlot Slot(
         int unitId,

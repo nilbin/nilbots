@@ -143,7 +143,7 @@ public sealed class SubmissionContractProfileProbe(
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             classes,
             classes,
-            loopProfile: ArcRelayLoopProfile.HomeGatesWide);
+            loopProfile: ArcRelayLoopProfile.Current);
         var candidate = new WasmGenericMindRuntimeFactory(
             new WasmMindRuntimeOptions { ModulePath = wasmPath, BotName = "candidate" });
         var stock = new InProcessGenericMindRuntimeFactory(

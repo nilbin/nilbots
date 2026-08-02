@@ -7,25 +7,29 @@ using BotArena.Engine;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Immutable Arc Relay entrant lane. It carries the same rules and map as v1,
-/// while admission selects a trusted stock mind for sheets and sandboxed WASM
-/// for custom minds on a per-participant basis.
+/// Immutable Arc Relay entrant lane. Each instance pins one historical product
+/// version so queued matches remain executable after the hosted map advances.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefinition
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 2;
+    public const int Version = 3;
+    public const int HistoricalVersion = 2;
     public const string SeriesPolicyId = "single-match-v1";
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
 
     private ArcRelayEntrantPlaylistDefinition(
+        int version,
+        ArcRelayLoopProfile loopProfile,
         ActorResolvedMatchDefinition representative,
         string canonicalDefinition,
         string definitionFingerprint,
         string provenance)
     {
+        PlaylistVersion = version;
+        LoopProfile = loopProfile;
         Match = representative;
         ReplayPresentation = ArcRelayH0ReplayPresentation.Create(representative);
         CanonicalDefinition = canonicalDefinition;
@@ -34,6 +38,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     }
 
     public ActorResolvedMatchDefinition Match { get; }
+    public int PlaylistVersion { get; }
+    public ArcRelayLoopProfile LoopProfile { get; }
     public GenericActorReplayPresentation ReplayPresentation { get; }
     public string CanonicalDefinition { get; }
     public string DefinitionFingerprint { get; }
@@ -45,9 +51,25 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         HostedGenericRuntimeModel.ArcRelayEntrants;
     public double? PresentationTicksPerSecond => 1.25;
     string IHostedGenericMatchDefinition.PlaylistKey => PlaylistKey;
-    int IHostedGenericMatchDefinition.Version => Version;
+    int IHostedGenericMatchDefinition.Version => PlaylistVersion;
 
-    public static ArcRelayEntrantPlaylistDefinition Create()
+    public static ArcRelayEntrantPlaylistDefinition Create() => Create(
+        Version,
+        ArcRelayLoopProfile.Current,
+        source: "arc-relay-counterflow-owner-ruling",
+        canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV2() => Create(
+        HistoricalVersion,
+        ArcRelayLoopProfile.HomeGatesWide,
+        source: "arc-relay-entrant-ladder-pass",
+        canonicalGameplayUnchangedFromVersion1: true);
+
+    private static ArcRelayEntrantPlaylistDefinition Create(
+        int version,
+        ArcRelayLoopProfile loopProfile,
+        string source,
+        bool canonicalGameplayUnchangedFromVersion1)
     {
         string[] classes = ArcRelayPlayerSheetCodec.NewSheetTemplate().Slots
             .OrderBy(slot => slot.UnitId)
@@ -56,7 +78,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         ActorResolvedMatchDefinition representative = ArcRelayH0Definition.Create(
             classes,
             classes,
-            loopProfile: ArcRelayLoopProfile.HomeGatesWide);
+            loopProfile: loopProfile);
         string canonicalDefinition = WriteJson(writer =>
         {
             writer.WriteStartObject();
@@ -65,7 +87,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             writer.WriteString("rulesetId", representative.Rules.RulesetId);
             writer.WriteString("matchFormatId", representative.Format.FormatId);
             writer.WriteString("mapPoolId", representative.Map.Id);
-            writer.WriteString("loopProfileId", ArcRelayLoopProfile.HomeGatesWide.Id);
+            writer.WriteString("loopProfileId", loopProfile.Id);
             writer.WriteString("seriesPolicyId", SeriesPolicyId);
             writer.WriteString("matchmakingPolicyId", MatchmakingPolicyId);
             writer.WriteString("admissionPolicyId", BotArenaVersions.GenericMindContractProfileId);
@@ -88,14 +110,23 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         {
             writer.WriteStartObject();
             writer.WriteNumber("schemaVersion", 1);
-            writer.WriteString("source", "arc-relay-entrant-ladder-pass");
+            writer.WriteString("source", source);
             writer.WriteBoolean("ranked", true);
             writer.WriteBoolean("sheetTrustedStockOnly", true);
             writer.WriteBoolean("customMindSandboxOnly", true);
-            writer.WriteBoolean("canonicalGameplayUnchangedFromVersion1", true);
+            writer.WriteBoolean(
+                "canonicalGameplayUnchangedFromVersion1",
+                canonicalGameplayUnchangedFromVersion1);
+            if (version == Version)
+            {
+                writer.WriteBoolean("ownerAcceptedFailedDepthGates", true);
+                writer.WriteNumber("ratingContinuityFromVersion", HistoricalVersion);
+            }
             writer.WriteEndObject();
         });
         return new ArcRelayEntrantPlaylistDefinition(
+            version,
+            loopProfile,
             representative,
             canonicalDefinition,
             Sha256(canonicalDefinition),
@@ -114,14 +145,14 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         return ArcRelayH0Definition.Create(
             first.ClassIds,
             second.ClassIds,
-            loopProfile: ArcRelayLoopProfile.HomeGatesWide);
+            loopProfile: LoopProfile);
     }
 
     public void Validate(Playlist playlist, PlaylistVersion version)
     {
         Equal(nameof(playlist.Key), PlaylistKey, playlist.Key);
         Equal(nameof(version.PlaylistId), playlist.Id, version.PlaylistId);
-        Equal(nameof(version.Version), Version, version.Version);
+        Equal(nameof(version.Version), PlaylistVersion, version.Version);
         Equal(nameof(version.GameModeId), Match.Rules.GameMode.ModeId, version.GameModeId);
         Equal(nameof(version.RulesetId), Match.Rules.RulesetId, version.RulesetId);
         Equal(nameof(version.MatchFormatId), Match.Format.FormatId, version.MatchFormatId);
