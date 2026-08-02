@@ -1,0 +1,240 @@
+{
+  "cohortId": "arc-relay-sheet-population-v3",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v2.json",
+  "entrants": [
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "balanced",
+      "sheet": "sheets/balanced.json",
+      "sheetSha256": "fa50655613271c92c6ad4f62fdfb2bca04d93ecb6e2d9b1ba8fb2a5b3bbe60cd"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "beacon-hunt",
+      "sheet": "sheets/beacon-hunt.json",
+      "sheetSha256": "b90f185e7c91be3cb047c0919ee8f68e8e0f2f667d107ed73ecdd326bcc238c1"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "breach-column",
+      "sheet": "sheets/breach-column.json",
+      "sheetSha256": "e0ab7c88fc77ef808a0dcc98306c6b2ad748b076a84146d0fd22c2c3cd7a1f88"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "centre-phalanx",
+      "sheet": "sheets/centre-phalanx.json",
+      "sheetSha256": "d44f47599c7409bdad3bc7d498c1c909688f8f9e0c0a5d8c646bc3d139efb79d"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "control-grid",
+      "sheet": "sheets/control-grid.json",
+      "sheetSha256": "71ee5d2b4f1cc7200324c0e8c4aedd8d874ebeba749a65b11816d855e3f60bdd"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "convoy",
+      "sheet": "sheets/convoy.json",
+      "sheetSha256": "96a10d1f417f40fc230d4645f84e611bd0e90e49334a6dc01e9fa38d5408f7f6"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "counter-courier",
+      "sheet": "sheets/counter-courier.json",
+      "sheetSha256": "6ed9a46f33cda001d23b7c279fc0a0ee6d8c46312279a12db8db3e42ae901564"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "courier-sprint",
+      "sheet": "sheets/courier-sprint.json",
+      "sheetSha256": "41fc9bc46529d016a2406c8f69e2e34c56b71705ecf30e642825d080092ad36e"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "displacement-control",
+      "sheet": "sheets/displacement-control.json",
+      "sheetSha256": "4d6d6b6c750fd7055273343878db1775ac56ba264efa1d71775dc7edec7c2372"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "elastic-reserve",
+      "sheet": "sheets/elastic-reserve.json",
+      "sheetSha256": "1043312fe22fd41cbd9500d0530c0ba51acbe93ed46df3c3b28aa1617066945a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "feint-switch",
+      "sheet": "sheets/feint-switch.json",
+      "sheetSha256": "2a4655e062cc5bdbd68e5d2e096a08ad4311c7ed3a5b0fb105ffdfbee7499253"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "fireline-picks",
+      "sheet": "sheets/fireline-picks.json",
+      "sheetSha256": "eb32a4ce2aaf103b0b4c09f4ceb9ad43578f0e07c89fd7ae4a80732c83f9789f"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "fortress-counterattack",
+      "sheet": "sheets/fortress-counterattack.json",
+      "sheetSha256": "b62d9c9d318e055a8895820cc134ede8ab5605170c26c112a2f008addaebfc46"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "home-counterpunch",
+      "sheet": "sheets/home-counterpunch.json",
+      "sheetSha256": "56c897b76dd2ccf9ae66ea10518b758a6fade7bdbb7b71b9d57855c15638449e"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "hook-burst",
+      "sheet": "sheets/hook-burst.json",
+      "sheetSha256": "1ab4e45084f0d37fb63518ec3e8abd20d16364f350e10a7de146f0dce370808f"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "interception",
+      "sheet": "sheets/interception.json",
+      "sheetSha256": "d73505178753b82b15d0a3c98f758ac11ee3edb683f8ddc14a2b03f10a69a6cc"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "mine-crescent",
+      "sheet": "sheets/mine-crescent.json",
+      "sheetSha256": "8ce2cd2f63322c985e42e11d7af3c4f0bc5f31bd0a4d14add995fd5d625e9d12"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "mortar-wheel",
+      "sheet": "sheets/mortar-wheel.json",
+      "sheetSha256": "0f771edc22b9812796da71278dbb0b4478b70c3eb9276e2e77c4ba927f9631ba"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "null-veil",
+      "sheet": "sheets/null-veil.json",
+      "sheetSha256": "318771497b5eceeebc12ab8cd6fb3e2ab2b14d4a71d3cb7b414125c3c67800da"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "outer-pincers",
+      "sheet": "sheets/outer-pincers.json",
+      "sheetSha256": "6fc4992e7a7795c9a1e7aa80d587d5f5244463959ded4b52b21500fd7ebc385a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "pod-lattice",
+      "sheet": "sheets/pod-lattice.json",
+      "sheetSha256": "ed9fe49cd0e38ac6f43769ea43d062697228cff02b7cfd8ce00bdbdefa21e9b5"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "rail-screen",
+      "sheet": "sheets/rail-screen.json",
+      "sheetSha256": "71f7c3a032defba9ef6aee71fa2813196eb922a744cc92c58642540486ca819a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "relay-chain",
+      "sheet": "sheets/relay-chain.json",
+      "sheetSha256": "a32db848cd159e4a6f430fdbdaa83ca71e748ca7c22f8bfde68761b29129087b"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "repair-web",
+      "sheet": "sheets/repair-web.json",
+      "sheetSha256": "a4a9c7c92e10dfed8e6d0cf04613be2d01957f9019f624998e3bfda3d26bc55a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "rotating-bastions",
+      "sheet": "sheets/rotating-bastions.json",
+      "sheetSha256": "b5bfe0c8c9316d75f9dfda4f984cc3a0d4557c791a11a199fbee53e2acd75f8b"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "sensor-grid",
+      "sheet": "sheets/sensor-grid.json",
+      "sheetSha256": "9ae357593e4664e057228bb423f54b1d2763ee8a81d4c71d344e24bf52e2487f"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "smoke-and-mines",
+      "sheet": "sheets/smoke-and-mines.json",
+      "sheetSha256": "54701874a31acfe946e48c8e1dbf855bf4db6b7e97f4e07c19f158e5265343b9"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "smoke-convoy",
+      "sheet": "sheets/smoke-convoy.json",
+      "sheetSha256": "9e5a585d11bf47f71124e91548d249b4f66dc21b0bb902a095ae94d048cd53b4"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "split",
+      "sheet": "sheets/split.json",
+      "sheetSha256": "266e0a30ecd1f92861520b7c664618dec1827038e9e86efd7485201482e6d02a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "sustain-attrition",
+      "sheet": "sheets/sustain-attrition.json",
+      "sheetSha256": "9b2a0540a14efa4d8aa20b5fcd66f01830beaa2c8f2afd62b4bf0e3a7154cd3a"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "three-well-race",
+      "sheet": "sheets/three-well-race.json",
+      "sheetSha256": "a23bda526084d13f6f9e7f6d4727e1ed57eec3ea240a0cb78292edda38856811"
+    },
+    {
+      "artifact": "../stock-mind-v0/bot.wasm",
+      "artifactSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+      "entrantId": "trap-punish",
+      "sheet": "sheets/trap-punish.json",
+      "sheetSha256": "8f977b2dc765990763330d6627ef401e3d6e99b7b0df62a83ae7a349e054dc77"
+    }
+  ],
+  "excludedBeforeOutcomeReads": [],
+  "provenance": {
+    "authoringBoundary": "evaluation-grade ARS1 sheets, not player-facing product schema",
+    "claimScope": "shared-stock-mind sheet-space diversity and balance screen; not independent-lineage or human-fun authority",
+    "rulesChange": "none",
+    "sharedExecutionEngine": "../stock-mind-v0/bot.wasm",
+    "sharedExecutionEngineSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+    "staticDistinctness": "static-distinctness.json"
+  },
+  "schema": "arc-relay-native-eligible-population-v1"
+}

@@ -1,0 +1,106 @@
+{
+  "schema": "arc-relay-sheet-population-study-v2",
+  "status": "pre-registered-before-outcomes",
+  "classification": "evaluation-sheet population expansion and balance screen; no rule, class, map, objective, economy, or presentation change",
+  "authority": "owner requested twenty additional distinct sheets followed by balance work, 2026-08-02",
+  "hypothesis": "Twenty additional evaluation sheets can remain structurally and behaviorally distinct from one another and the twelve retained controls while producing an eligibility-clean 32-sheet counter-web without one shared-mind sheet dominating the field.",
+  "productBoundary": {
+    "evaluationGradeOnly": true,
+    "playerFacingSheetSchema": false,
+    "independentAuthorLineages": false,
+    "humanFunAuthority": false,
+    "stableOfFive": false,
+    "fieldedBodies": 8,
+    "twoCopyCap": true
+  },
+  "candidate": {
+    "rulesetId": "arc-relay-h0-01",
+    "mapProfile": "home-gates-wide",
+    "runtime": "wasm",
+    "sharedAlgorithm": "arena-bots/arc-relay/stock-mind-v0/bot.wasm",
+    "sharedAlgorithmSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+    "cohort": "arena-bots/arc-relay/sheet-population-v3-2026-08-02/cohort.json",
+    "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v2.json"
+  },
+  "newEntrants": [
+    "courier-sprint",
+    "smoke-convoy",
+    "beacon-hunt",
+    "centre-phalanx",
+    "outer-pincers",
+    "mine-crescent",
+    "pod-lattice",
+    "rail-screen",
+    "hook-burst",
+    "null-veil",
+    "repair-web",
+    "mortar-wheel",
+    "counter-courier",
+    "sensor-grid",
+    "breach-column",
+    "elastic-reserve",
+    "three-well-race",
+    "home-counterpunch",
+    "smoke-and-mines",
+    "rotating-bastions"
+  ],
+  "distinctnessGates": {
+    "exactGameplayDuplicates": 0,
+    "staticMetric": "composition 0.28 + class/role/theater 0.36 + routes 0.12 + policies 0.10 + gambit grammar 0.14",
+    "minimumNewStaticDistance": 0.18,
+    "frozenObservedMinimumNewStaticDistance": 0.294762,
+    "minimumExecutionShapeNormalizedRms": 0.12,
+    "executionShapeOmitsOutcomes": true,
+    "failureDisposition": "repair the sheet without outcome access or replace it; do not count a near-duplicate among the twenty"
+  },
+  "stages": [
+    {
+      "id": "anchor-distinctness-and-eligibility",
+      "seed": "15485863",
+      "population": "each new sheet against Balanced, Interception, and Sustain Attrition in both participant assignments",
+      "cells": 120,
+      "purpose": "WASM faults, exact replay verification, felt degeneracy, assignment sensitivity, and outcome-blind empirical execution distance",
+      "outcomeAccess": "open only after all twenty pass eligibility and distinctness or have been repaired/replaced"
+    },
+    {
+      "id": "full-32-round-robin",
+      "seed": "32452843",
+      "population": "all 32 sheets, every unordered pair, both assignments",
+      "cells": 992,
+      "purpose": "gross balance, non-transitive counter-web, class and signature coverage, first-Pulse conversion, and full-population execution redundancy"
+    },
+    {
+      "id": "targeted-sheet-balance-loop",
+      "seed": "49979687",
+      "population": "only pre-registered extreme or redundant rows against their strongest, weakest, and nearest-shape matchups, mirrored",
+      "purpose": "repair sheet competence without class-stat changes; freeze identities and disclose every revision"
+    }
+  ],
+  "hardGates": {
+    "runtimeFaults": 0,
+    "exactReplayVerification": "every retained cell",
+    "feltDegeneracyEligibility": "every retained side passes v2",
+    "distinctNewSheets": 20,
+    "goldenReplayHashes": "6/6 byte-identical after any harness or engine work"
+  },
+  "balanceRead": {
+    "provisionalSharedMindGuardrails": {
+      "drawRateAtMost": 0.1,
+      "minimumWinningSheets": 12,
+      "leaderShareOfDecidedWinsAtMost": 0.15,
+      "noZeroWinSheet": true,
+      "firstPulseConversionAlertAbove": 0.7
+    },
+    "interpretation": "This diagnoses sheet-space and shared-stock-mind balance only. It cannot establish independent-lineage product balance or human enjoyment.",
+    "classStats": "No class-stat change follows directly from sheet records; class exposure and matchup-conditioned mechanic evidence must agree before any isolated same-cohort tuning arm is registered."
+  },
+  "forbiddenResponses": [
+    "counting renamed or lightly retuned sheets as distinct",
+    "opening outcomes before anchor distinctness repairs are frozen",
+    "comeback mechanic",
+    "score-to-power",
+    "post-outcome eligibility threshold changes",
+    "presenting ARS1 as the player-facing sheet UX",
+    "class-stat tuning from raw sheet win rates"
+  ]
+}

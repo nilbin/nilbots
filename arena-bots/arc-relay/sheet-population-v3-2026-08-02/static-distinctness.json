@@ -1,0 +1,138 @@
+{
+  "exactGameplayDuplicates": 0,
+  "historicalControls": 12,
+  "metric": {
+    "authority": "pre-outcome structural gate; empirical execution-shape distance is evaluated separately after the anchor sweep",
+    "classRoleTheaterWeight": 0.36,
+    "compositionWeight": 0.28,
+    "gambitGrammarWeight": 0.14,
+    "policyWeight": 0.1,
+    "routeShapeWeight": 0.12
+  },
+  "minimumNewSheetDistance": 0.18,
+  "newSheetClosestPairs": [
+    {
+      "closestEntrantId": "interception",
+      "distance": 0.506111,
+      "entrantId": "beacon-hunt",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "centre-phalanx",
+      "distance": 0.650556,
+      "entrantId": "breach-column",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "pod-lattice",
+      "distance": 0.521587,
+      "entrantId": "centre-phalanx",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "elastic-reserve",
+      "distance": 0.56246,
+      "entrantId": "counter-courier",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "mortar-wheel",
+      "distance": 0.421667,
+      "entrantId": "courier-sprint",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "courier-sprint",
+      "distance": 0.450556,
+      "entrantId": "elastic-reserve",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "interception",
+      "distance": 0.361429,
+      "entrantId": "home-counterpunch",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "displacement-control",
+      "distance": 0.294762,
+      "entrantId": "hook-burst",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "trap-punish",
+      "distance": 0.345556,
+      "entrantId": "mine-crescent",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "courier-sprint",
+      "distance": 0.421667,
+      "entrantId": "mortar-wheel",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "smoke-convoy",
+      "distance": 0.58381,
+      "entrantId": "null-veil",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "displacement-control",
+      "distance": 0.491111,
+      "entrantId": "outer-pincers",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "repair-web",
+      "distance": 0.375556,
+      "entrantId": "pod-lattice",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "fireline-picks",
+      "distance": 0.370794,
+      "entrantId": "rail-screen",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "pod-lattice",
+      "distance": 0.375556,
+      "entrantId": "repair-web",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "mortar-wheel",
+      "distance": 0.50119,
+      "entrantId": "rotating-bastions",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "mine-crescent",
+      "distance": 0.416349,
+      "entrantId": "sensor-grid",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "mine-crescent",
+      "distance": 0.370794,
+      "entrantId": "smoke-and-mines",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "elastic-reserve",
+      "distance": 0.477365,
+      "entrantId": "smoke-convoy",
+      "passes": true
+    },
+    {
+      "closestEntrantId": "feint-switch",
+      "distance": 0.369841,
+      "entrantId": "three-well-race",
+      "passes": true
+    }
+  ],
+  "newSheets": 20,
+  "populationSize": 32,
+  "schema": "arc-relay-sheet-static-distinctness-v1"
+}
