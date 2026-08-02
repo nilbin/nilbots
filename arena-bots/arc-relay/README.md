@@ -5,6 +5,11 @@ manifest hashes are opened to evaluation.
 
 - `stock-mind-v0/` — fixed stock execution engine plus one provisional
   evaluation sheet.
+- `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
+  the complete v2 baseline executor and reads provisional v2 operation data;
+  it is evidence for an owner decision, not a launch artifact.
+- `intelligent-gambit-v1-2026-08-02/` — baseline/on sheets and compact
+  same-seed WASM records/broadcasts for Rear Hook and Lantern Sweep.
 - `native-cohort-v1-2026-08-01/` — four independently authored native minds,
   their source/WASM revisions, sheets, DX notes, manifest, and durable match
   records/broadcast slices.

@@ -1,10 +1,14 @@
 # Arc Relay intelligent gambit framework
 
-Status: owner-review design proposal, adversarially tightened 2026-08-02. The
-bounded design-round evidence is in
+Status: owner-approved semantics, adversarially tightened and implemented as a
+narrow evaluation-grade vertical slice on 2026-08-02. The bounded design-round
+evidence is in
 [`docs/reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md`](reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md).
+The implementation read is in
+[`docs/reports/ARC-RELAY-INTELLIGENT-GAMBIT-VERTICAL-SLICE-2026-08-02.md`](reports/ARC-RELAY-INTELLIGENT-GAMBIT-VERTICAL-SLICE-2026-08-02.md).
 This document defines the player model and deterministic execution semantics
-that a future sheet pass should implement. It does **not** change Arc Relay
+that the prototype implements. It does **not** freeze a player-facing sheet
+schema or editor, and it does **not** change Arc Relay
 rules, fog, rendering, canonical replays, the current player-sheet schema, or
 either frozen stock mind.
 

@@ -378,7 +378,8 @@ public static class ArcRelayExperimentCommand
         writer.Write(sourceSha256);
         string schema = RequiredSheetString(root, "schema");
         if (schema is not "arc-relay-evaluation-sheet-v0"
-            and not "arc-relay-evaluation-sheet-v1")
+            and not "arc-relay-evaluation-sheet-v1"
+            and not "arc-relay-evaluation-sheet-v2")
         {
             throw new InvalidDataException(
                 $"Unsupported evaluation sheet schema '{schema}'.");
@@ -442,8 +443,13 @@ public static class ArcRelayExperimentCommand
         writer.Write(interception.GetProperty("focusEnemyCarrier").GetBoolean());
         writer.Write(interception.GetProperty("looseCoreFallback").GetBoolean());
 
-        if (schema == "arc-relay-evaluation-sheet-v1")
+        if (schema is "arc-relay-evaluation-sheet-v1"
+            or "arc-relay-evaluation-sheet-v2")
+        {
             WriteStrategySheetV1(writer, root, slots);
+            if (schema == "arc-relay-evaluation-sheet-v2")
+                WriteIntelligentOperationsV2(writer, root);
+        }
         else
             WriteEvaluationGambitsV0(writer, root);
         writer.Flush();
@@ -571,6 +577,120 @@ public static class ArcRelayExperimentCommand
             writer.Write(overlay.TryGetProperty(
                     "appliesWhileCarrying", out JsonElement carrying)
                 && carrying.GetBoolean());
+        }
+    }
+
+    private static void WriteIntelligentOperationsV2(
+        BinaryWriter writer,
+        JsonElement root)
+    {
+        JsonElement[] operations = root.GetProperty("operations")
+            .EnumerateArray()
+            .OrderBy(value => value.GetProperty("priority").GetInt32())
+            .ThenBy(value => RequiredSheetString(value, "id"),
+                StringComparer.Ordinal)
+            .ToArray();
+        writer.Write(operations.Length);
+        foreach (JsonElement operation in operations)
+        {
+            writer.Write(operation.GetProperty("priority").GetInt32());
+            writer.Write(RequiredSheetString(operation, "id"));
+            writer.Write(operation.GetProperty(
+                "prepareDeadlineTicks").GetInt32());
+            writer.Write(operation.GetProperty("cooldownTicks").GetInt32());
+            JsonElement prepare = operation.GetProperty("prepare");
+            WriteOperationConditionGroup(writer, prepare.GetProperty("when"));
+            WriteOperationConditions(writer, prepare, "abortAny");
+            WriteOperationTasks(writer, prepare.GetProperty("tasks"));
+
+            JsonElement[] branches = operation.GetProperty("branches")
+                .EnumerateArray().ToArray();
+            writer.Write(branches.Length);
+            foreach (JsonElement branch in branches)
+            {
+                writer.Write(RequiredSheetString(branch, "id"));
+                WriteOperationConditionGroup(
+                    writer, branch.GetProperty("commitWhen"));
+                WriteOperationTasks(writer, branch.GetProperty("tasks"));
+                WriteOperationConditions(writer, branch, "successAny");
+                WriteOperationConditions(writer, branch, "abortAny");
+                writer.Write(branch.GetProperty("deadlineTicks").GetInt32());
+            }
+
+            JsonElement recovery = operation.GetProperty("recovery");
+            writer.Write(recovery.GetProperty("deadlineTicks").GetInt32());
+            WriteOperationConditions(writer, recovery, "completeAll");
+            WriteOperationTasks(writer, recovery.GetProperty("onSuccess"));
+            WriteOperationTasks(writer, recovery.GetProperty("onAbort"));
+        }
+    }
+
+    private static void WriteOperationConditionGroup(
+        BinaryWriter writer,
+        JsonElement group)
+    {
+        WriteOperationConditions(writer, group, "all");
+        WriteOperationConditions(writer, group, "any");
+    }
+
+    private static void WriteOperationConditions(
+        BinaryWriter writer,
+        JsonElement parent,
+        string property)
+    {
+        JsonElement[] conditions = parent.TryGetProperty(
+                property, out JsonElement array)
+            ? array.EnumerateArray().ToArray()
+            : [];
+        writer.Write(conditions.Length);
+        foreach (JsonElement condition in conditions)
+        {
+            writer.Write(RequiredSheetString(condition, "fact"));
+            writer.Write(OptionalString(condition, "operator", "at-least"));
+            writer.Write(condition.TryGetProperty(
+                    "value", out JsonElement value)
+                ? value.GetInt32()
+                : 1);
+            writer.Write(OptionalString(condition, "zone", ""));
+            writer.Write(OptionalString(condition, "subject", ""));
+            writer.Write(condition.TryGetProperty(
+                    "freshnessTicks", out JsonElement freshness)
+                ? freshness.GetInt32()
+                : 0);
+            if (condition.TryGetProperty(
+                    "classIds", out JsonElement classIds))
+                WriteStrings(writer, classIds);
+            else
+                writer.Write(0);
+        }
+    }
+
+    private static void WriteOperationTasks(
+        BinaryWriter writer,
+        JsonElement tasks)
+    {
+        JsonElement[] values = tasks.EnumerateArray().ToArray();
+        writer.Write(values.Length);
+        foreach (JsonElement task in values)
+        {
+            writer.Write(RequiredSheetString(task, "id"));
+            writer.Write(RequiredSheetString(task, "resilience"));
+            writer.Write(task.GetProperty("minimum").GetInt32());
+            WriteIntegers(writer, task, "candidateUnitIds");
+            WriteStrings(writer, task, "candidateRoles");
+            WriteStrings(writer, task, "candidateClassIds");
+            writer.Write(task.TryGetProperty(
+                    "permitsCarrying", out JsonElement permits)
+                && permits.GetBoolean());
+            writer.Write(task.TryGetProperty(
+                    "requiresCarrying", out JsonElement requires)
+                && requires.GetBoolean());
+            WritePositionIntent(writer, task.GetProperty("position"));
+            writer.Write(OptionalString(task, "roleOverride", ""));
+            writer.Write(OptionalString(
+                task, "engagementIntent", "opportunistic"));
+            writer.Write(OptionalString(
+                task, "signatureIntent", "normal"));
         }
     }
 

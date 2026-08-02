@@ -23,5 +23,17 @@
     <Compile
       Include="../../templates/botarena-generic-actor/ArenaBasics.cs"
       Link="Template/ArenaBasics.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/StrategySheet.cs"
+      Link="IntelligentGambit/StrategySheet.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/IntelligentOperationModels.cs"
+      Link="IntelligentGambit/IntelligentOperationModels.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/IntelligentOperationMachine.cs"
+      Link="IntelligentGambit/IntelligentOperationMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/CausalCarrierTarget.cs"
+      Link="IntelligentGambit/CausalCarrierTarget.cs" />
   </ItemGroup>
 </Project>
