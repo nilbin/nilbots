@@ -142,6 +142,14 @@
       "trigger": "Null Veil alone remained 0-0-6 after the first objective repair",
       "change": "Promote the two outer Veils from screen to carrier roles so their smoke accompanies actual north/south courier routes; retain Relay and Switchback as the concealed central carrier pair, both Hush interceptors, composition, policies, and sustain execution style.",
       "retest": "Repeat the same mirrored Interception, Sustain Attrition, and Repair Web target pairs under the v4 hash; retain only if eligible, distinct, and non-zero-win."
+    },
+    {
+      "id": "sustain-attrition-v2-objective-conversion",
+      "timing": "after the eligibility-clean five-regular cross-population outcome read",
+      "trigger": "the pre-registered no-zero-win guardrail: Sustain Attrition finished 0-8-2 while usually remaining within one Pulse; its duplicate healer produced little useful repair and one Patchbay was assigned as an outer carrier",
+      "change": "Replace one of two Patchbays with a Kestrel and assign it to the north courier route; return the retained Patchbay to screen duty, retain paired Palisades, Hush, Nest, Relay, Towline, the three-theater allocation, policies, and sustain execution style.",
+      "forbidden": "no class-stat, rule, map, cadence, eligibility, shared-engine, or historical source-pack change",
+      "retest": "Repeat Sustain Attrition's five frozen cross-screen opponent pairs in both participant assignments; retain v2 only if both sides remain eligible, execution shape remains distinct, and the zero-win defect clears."
     }
   ],
   "stageAmendments": [

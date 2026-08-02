@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Generate the 32-sheet Arc Relay evaluation population.
 
-The historical twelve-sheet pack remains untouched. This population copies
-those controls and adds twenty evaluation-grade sheets for the frozen,
-data-driven stock mind. A structural-distance gate rejects exact or near
-duplicates before any outcomes are run. This is not the player-facing sheet
-format.
+The source historical twelve-sheet pack remains untouched. This population
+copies those controls, applies explicitly registered population-only repairs,
+and adds twenty evaluation-grade sheets for the frozen, data-driven stock
+mind. A structural-distance gate rejects exact or near duplicates before any
+outcomes are run. This is not the player-facing sheet format.
 """
 
 from __future__ import annotations
@@ -561,6 +561,27 @@ TARGETED_REPAIR_REVISIONS = {
     "rotating-bastions": 3,
 }
 
+CONTROL_REVISIONS = {
+    "sustain-attrition": d(
+        "sustain-attrition",
+        "sustain-attrition",
+        ["patchbay", "kestrel", "palisade", "palisade", "hush", "nest",
+         "relay", "towline"],
+        [s("north", "screen", 1, "north-safe"),
+         s("north", "carrier", 0, "north-fast"),
+         s("north", "screen", 1, "north-screen"),
+         s("south", "screen", 7, "south-screen"),
+         s("centre", "intercept", 6, "centre-high"),
+         s("centre", "reserve", 6, "centre-low"),
+         s("centre", "carrier", 4, "centre-fast"),
+         s("south", "carrier", 3, "south-low")],
+        (3, True, 14, 1, True, True, True),
+        "one mobile outer courier converts births while repair, paired projection, suppression, and a sentry preserve the attrition web",
+        "split the two outer carriers and focus the lone healer before the projector pair can establish both return lanes",
+        "one healer must choose between theaters, while the central web can still concede a fast opposite-side birth",
+    ),
+}
+
 
 def load_validator():
     spec = importlib.util.spec_from_file_location("arc_sheet", VALIDATOR)
@@ -840,6 +861,8 @@ def main() -> int:
             (BASE_PACK / f"{entrant_id}.json").read_text(encoding="utf-8")
         )
         value["mapId"] = POPULATION_MAP_ID
+        if entrant_id in CONTROL_REVISIONS:
+            value = make_sheet(value, CONTROL_REVISIONS[entrant_id])
         validator.validate(value)
         sheets[entrant_id] = value
         expected[PACK / f"{entrant_id}.json"] = encoded(value)

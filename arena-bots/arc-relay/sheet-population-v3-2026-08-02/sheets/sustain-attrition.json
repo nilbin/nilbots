@@ -1,19 +1,21 @@
 {
   "auditDimensions": {
-    "adaptationStyle": "static doctrine with deterministic reactive verbs",
+    "adaptationStyle": "static",
     "allocation": "3 north / 3 centre / 2 south",
-    "failureMode": "tight protection can surrender map width and burst focus can outrun channelled repair",
-    "policyStyle": "keep three theater carriers alive through layered repair, projectile cover, and local counter-tech",
-    "visibleCounter": "break repair sight, split theaters, focus Patchbay, or force simultaneous threats"
+    "executionStyle": "sustain-attrition",
+    "failureMode": "one healer must choose between theaters, while the central web can still concede a fast opposite-side birth",
+    "policyStyle": "one mobile outer courier converts births while repair, paired projection, suppression, and a sentry preserve the attrition web",
+    "sheetRevision": 2,
+    "visibleCounter": "split the two outer carriers and focus the lone healer before the projector pair can establish both return lanes"
   },
   "auditStatus": {
     "playerFacingProductSchema": false,
     "provisionalEvaluationOnly": true,
-    "purpose": "twelve-doctrine depth and counterplay screen"
+    "purpose": "32-sheet structural diversity and balance population"
   },
   "composition": [
     "patchbay",
-    "patchbay",
+    "kestrel",
     "palisade",
     "palisade",
     "hush",
@@ -91,7 +93,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "depth-sustain-attrition-static-v1",
+  "sheetId": "population-sustain-attrition-style-sustain-attrition-v2",
   "slots": [
     {
       "outboundPath": [
@@ -112,7 +114,7 @@
           4
         ]
       ],
-      "partnerUnitId": 2,
+      "partnerUnitId": 1,
       "returnPath": [
         [
           13,
@@ -135,7 +137,7 @@
           11
         ]
       ],
-      "role": "carrier",
+      "role": "screen",
       "theater": "north",
       "unitId": 0
     },
@@ -143,46 +145,42 @@
       "outboundPath": [
         [
           4,
-          13
+          6
         ],
         [
           8,
-          13
+          6
         ],
         [
           13,
-          14
+          6
         ],
         [
           15,
-          18
+          4
         ]
       ],
-      "partnerUnitId": 7,
+      "partnerUnitId": 0,
       "returnPath": [
         [
           13,
-          16
+          6
         ],
         [
           9,
-          13
+          6
         ],
         [
           5,
-          13
-        ],
-        [
-          3,
-          12
+          6
         ],
         [
           2,
           11
         ]
       ],
-      "role": "screen",
-      "theater": "south",
+      "role": "carrier",
+      "theater": "north",
       "unitId": 1
     },
     {
@@ -193,38 +191,34 @@
         ],
         [
           8,
-          9
-        ],
-        [
-          13,
           8
         ],
         [
-          15,
-          4
+          12,
+          7
+        ],
+        [
+          14,
+          5
         ]
       ],
-      "partnerUnitId": 6,
+      "partnerUnitId": 1,
       "returnPath": [
         [
-          13,
-          6
+          11,
+          7
         ],
         [
-          9,
+          7,
           9
         ],
         [
-          5,
-          9
-        ],
-        [
-          3,
+          4,
           10
         ],
         [
           2,
-          11
+          12
         ]
       ],
       "role": "screen",
@@ -234,16 +228,16 @@
     {
       "outboundPath": [
         [
-          4,
-          13
+          5,
+          14
         ],
         [
-          8,
-          13
+          9,
+          15
         ],
         [
           13,
-          14
+          16
         ],
         [
           15,
@@ -253,24 +247,20 @@
       "partnerUnitId": 7,
       "returnPath": [
         [
-          13,
-          16
+          12,
+          15
         ],
         [
-          9,
+          8,
           13
         ],
         [
-          5,
-          13
-        ],
-        [
-          3,
+          4,
           12
         ],
         [
           2,
-          11
+          12
         ]
       ],
       "role": "screen",
@@ -280,15 +270,15 @@
     {
       "outboundPath": [
         [
-          4,
-          9
+          5,
+          10
         ],
         [
           8,
           9
         ],
         [
-          13,
+          12,
           9
         ],
         [
@@ -299,16 +289,16 @@
       "partnerUnitId": 6,
       "returnPath": [
         [
-          13,
-          9
+          12,
+          13
         ],
         [
-          9,
-          9
+          8,
+          13
         ],
         [
           5,
-          9
+          12
         ],
         [
           2,
@@ -322,35 +312,31 @@
     {
       "outboundPath": [
         [
-          4,
+          5,
           13
         ],
         [
           8,
-          13
+          12
         ],
         [
-          13,
-          13
+          11,
+          12
         ],
         [
-          15,
-          11
+          14,
+          12
         ]
       ],
       "partnerUnitId": 6,
       "returnPath": [
         [
-          13,
-          13
+          10,
+          12
         ],
         [
-          9,
-          13
-        ],
-        [
-          5,
-          13
+          6,
+          12
         ],
         [
           3,
@@ -369,15 +355,15 @@
       "outboundPath": [
         [
           4,
-          13
+          9
         ],
         [
           8,
-          13
+          9
         ],
         [
           13,
-          13
+          9
         ],
         [
           15,
@@ -388,19 +374,15 @@
       "returnPath": [
         [
           13,
-          13
+          9
         ],
         [
           9,
-          13
+          9
         ],
         [
           5,
-          13
-        ],
-        [
-          3,
-          12
+          9
         ],
         [
           2,
@@ -419,11 +401,11 @@
         ],
         [
           8,
-          13
+          15
         ],
         [
-          13,
-          14
+          12,
+          16
         ],
         [
           15,
@@ -433,19 +415,15 @@
       "partnerUnitId": 3,
       "returnPath": [
         [
-          13,
+          12,
           16
         ],
         [
-          9,
-          13
+          8,
+          14
         ],
         [
           5,
-          13
-        ],
-        [
-          3,
           12
         ],
         [

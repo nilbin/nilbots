@@ -57,6 +57,16 @@ class SheetPopulationTests(unittest.TestCase):
             set(POPULATION.TARGETED_REPAIR_REVISIONS),
         )
 
+    def test_control_repairs_are_population_only_and_explicit(self) -> None:
+        self.assertEqual({"sustain-attrition"}, set(POPULATION.CONTROL_REVISIONS))
+        repair = POPULATION.CONTROL_REVISIONS["sustain-attrition"]
+        self.assertEqual("sustain-attrition", repair["executionStyle"])
+        self.assertEqual(1, Counter(repair["composition"])["patchbay"])
+        self.assertEqual(1, Counter(repair["composition"])["kestrel"])
+        self.assertEqual(3, sum(
+            slot[1] == "carrier" for slot in repair["slots"]
+        ))
+
     def test_every_new_sheet_obeys_slot_and_copy_limits(self) -> None:
         for doctrine in POPULATION.NEW_DOCTRINES:
             with self.subTest(doctrine=doctrine["entrantId"]):

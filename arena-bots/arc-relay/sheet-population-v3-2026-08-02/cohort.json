@@ -210,7 +210,7 @@
       "artifactSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
       "entrantId": "sustain-attrition",
       "sheet": "sheets/sustain-attrition.json",
-      "sheetSha256": "435047475e5737f373e60146721a0e827b9b1e9248786b8e0bfebe83ec07f2d6"
+      "sheetSha256": "0174196b6aad686493f3cca68f5d6c3c9becd8319f428c7ade0bbfbdb79875d1"
     },
     {
       "artifact": "../balance-audit-v2-2026-08-01/out/bot.wasm",
