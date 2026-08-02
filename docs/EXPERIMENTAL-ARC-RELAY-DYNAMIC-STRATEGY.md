@@ -65,7 +65,9 @@ breaks all simultaneous ties. Cooldown prevents immediate re-entry.
 Supported clauses compare causal integer facts with `at-least`, `at-most`, or
 `equals`: tick, visible own/enemy carried Cores, visible loose Cores, live own
 bodies, visible enemies, bodies or carriers in a named region, ticks until the
-next Well birth, own/enemy Pulses, and Pulse deficit. Own/enemy Pulse event
+next Well birth, own/enemy Pulses, and Pulse deficit. Named regions also expose
+the minimum causal tenure among friendly bodies currently inside, so a plan can
+require a real staged wait rather than a one-tick touch. Own/enemy Pulse event
 clauses are single-tick public edges.
 
 `hold-fire`, `carrier-only`, and `normal` engagement intents separate staging
@@ -98,4 +100,3 @@ ambusher:
 - no claim that the evaluation JSON is a friendly sheet editor;
 - no fun claim from simulation metrics; and
 - no replacement or mutation of the historical v0 interpreter.
-

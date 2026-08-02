@@ -376,7 +376,14 @@ public static class ArcRelayExperimentCommand
             leaveOpen: true);
         writer.Write(0x31535241); // ARS1, little-endian.
         writer.Write(sourceSha256);
-        writer.Write(RequiredSheetString(root, "schema"));
+        string schema = RequiredSheetString(root, "schema");
+        if (schema is not "arc-relay-evaluation-sheet-v0"
+            and not "arc-relay-evaluation-sheet-v1")
+        {
+            throw new InvalidDataException(
+                $"Unsupported evaluation sheet schema '{schema}'.");
+        }
+        writer.Write(schema);
         writer.Write(RequiredSheetString(root, "sheetId"));
         writer.Write(RequiredSheetString(root, "mapId"));
 
@@ -435,6 +442,20 @@ public static class ArcRelayExperimentCommand
         writer.Write(interception.GetProperty("focusEnemyCarrier").GetBoolean());
         writer.Write(interception.GetProperty("looseCoreFallback").GetBoolean());
 
+        if (schema == "arc-relay-evaluation-sheet-v1")
+            WriteStrategySheetV1(writer, root, slots);
+        else
+            WriteEvaluationGambitsV0(writer, root);
+        writer.Flush();
+        if (stream.Length > 64 * 1024)
+            throw new InvalidDataException("Evaluation sheet data exceeds 64 KiB.");
+        return stream.ToArray();
+    }
+
+    private static void WriteEvaluationGambitsV0(
+        BinaryWriter writer,
+        JsonElement root)
+    {
         JsonElement[] gambits = root.GetProperty("gambits").EnumerateArray()
             .OrderBy(value => value.GetProperty("priority").GetInt32())
             .ToArray();
@@ -446,23 +467,216 @@ public static class ArcRelayExperimentCommand
             writer.Write(RequiredSheetString(gambit, "trigger"));
             writer.Write(gambit.GetProperty("durationTicks").GetInt32());
             writer.Write(gambit.GetProperty("cooldownTicks").GetInt32());
-            string[] scopeRoles = gambit.GetProperty("scopeRoles")
-                .EnumerateArray()
-                .Select(value => value.GetString()
-                    ?? throw new InvalidDataException(
-                        "Gambit scopeRoles values must be strings."))
-                .ToArray();
-            writer.Write(scopeRoles.Length);
-            foreach (string role in scopeRoles)
-                writer.Write(role);
+            WriteStrings(writer, gambit.GetProperty("scopeRoles"));
             writer.Write(RequiredSheetString(gambit, "roleOverride"));
             writer.Write(RequiredSheetString(gambit, "rallyLine"));
         }
-        writer.Flush();
-        if (stream.Length > 64 * 1024)
-            throw new InvalidDataException("Evaluation sheet data exceeds 64 KiB.");
-        return stream.ToArray();
     }
+
+    private static void WriteStrategySheetV1(
+        BinaryWriter writer,
+        JsonElement root,
+        IReadOnlyList<JsonElement> slots)
+    {
+        JsonProperty[] paths = root.GetProperty("paths").EnumerateObject()
+            .OrderBy(value => value.Name, StringComparer.Ordinal).ToArray();
+        writer.Write(paths.Length);
+        foreach (JsonProperty path in paths)
+        {
+            writer.Write(path.Name);
+            WritePositions(writer, path.Value);
+        }
+
+        writer.Write(slots.Count);
+        foreach (JsonElement slot in slots)
+        {
+            writer.Write(slot.GetProperty("unitId").GetInt32());
+            if (slot.TryGetProperty("defaultIntent", out JsonElement intent))
+            {
+                WritePositionIntent(writer, intent.GetProperty("position"));
+                writer.Write(OptionalString(
+                    intent, "engagementIntent", "normal"));
+                writer.Write(OptionalString(
+                    intent, "signatureIntent", "normal"));
+            }
+            else
+            {
+                WriteBasePositionIntent(writer);
+                writer.Write("normal");
+                writer.Write("normal");
+            }
+        }
+
+        JsonElement[] gambits = root.GetProperty("gambits").EnumerateArray()
+            .OrderBy(value => value.GetProperty("priority").GetInt32())
+            .ThenBy(value => RequiredSheetString(value, "id"),
+                StringComparer.Ordinal)
+            .ToArray();
+        writer.Write(gambits.Length);
+        foreach (JsonElement gambit in gambits)
+        {
+            writer.Write(gambit.GetProperty("priority").GetInt32());
+            writer.Write(RequiredSheetString(gambit, "id"));
+            writer.Write(OptionalString(
+                gambit, "activation", "rising-edge"));
+            writer.Write(gambit.GetProperty("minimumTicks").GetInt32());
+            writer.Write(gambit.GetProperty("maximumTicks").GetInt32());
+            writer.Write(gambit.GetProperty("cooldownTicks").GetInt32());
+
+            JsonElement scope = gambit.GetProperty("scope");
+            WriteIntegers(writer, scope, "unitIds");
+            WriteStrings(writer, scope, "roles");
+            WriteClauses(writer, gambit.GetProperty("enterAll"));
+            if (gambit.TryGetProperty("exitAny", out JsonElement exitAny))
+                WriteClauses(writer, exitAny);
+            else
+                writer.Write(0);
+
+            JsonElement overlay = gambit.GetProperty("overlay");
+            writer.Write(OptionalString(overlay, "roleOverride", ""));
+            bool hasPosition = overlay.TryGetProperty(
+                "position", out JsonElement position);
+            writer.Write(hasPosition);
+            if (hasPosition)
+                WritePositionIntent(writer, position);
+            if (overlay.TryGetProperty(
+                    "formationOffsets", out JsonElement formation))
+            {
+                WritePositions(writer, formation);
+            }
+            else
+            {
+                writer.Write(0);
+            }
+
+            JsonElement policies = overlay.TryGetProperty(
+                    "policies", out JsonElement policyValue)
+                ? policyValue
+                : default;
+            JsonElement carrier = ChildOrDefault(policies, "carrier");
+            writer.Write(OptionalInt(carrier, "handoffHealthAtOrBelow"));
+            writer.Write(OptionalBool(carrier, "preferAssignedTheater"));
+            writer.Write(OptionalInt(carrier, "routeFailureTicks"));
+            JsonElement escort = ChildOrDefault(policies, "escort");
+            writer.Write(OptionalInt(escort, "followDistance"));
+            writer.Write(OptionalBool(escort, "focusEnemyCarrier"));
+            JsonElement interception = ChildOrDefault(
+                policies, "interception");
+            writer.Write(OptionalBool(interception, "focusEnemyCarrier"));
+            writer.Write(OptionalBool(interception, "looseCoreFallback"));
+            writer.Write(OptionalString(
+                overlay, "engagementIntent", "normal"));
+            writer.Write(OptionalString(
+                overlay, "signatureIntent", "normal"));
+            writer.Write(overlay.TryGetProperty(
+                    "appliesWhileCarrying", out JsonElement carrying)
+                && carrying.GetBoolean());
+        }
+    }
+
+    private static void WritePositionIntent(
+        BinaryWriter writer,
+        JsonElement intent)
+    {
+        writer.Write(RequiredSheetString(intent, "kind"));
+        writer.Write(OptionalString(intent, "target", ""));
+        int[] offset = intent.TryGetProperty("offset", out JsonElement value)
+            ? value.EnumerateArray().Select(item => item.GetInt32()).ToArray()
+            : [0, 0];
+        if (offset.Length != 2)
+            throw SheetError("position.offset");
+        writer.Write(offset[0]);
+        writer.Write(offset[1]);
+        writer.Write(OptionalString(intent, "arrival", "hold"));
+        writer.Write(OptionalString(intent, "fallbackZone", ""));
+    }
+
+    private static void WriteBasePositionIntent(BinaryWriter writer)
+    {
+        writer.Write("base-assignment");
+        writer.Write("");
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write("base-assignment");
+        writer.Write("");
+    }
+
+    private static void WriteClauses(BinaryWriter writer, JsonElement values)
+    {
+        JsonElement[] clauses = values.EnumerateArray().ToArray();
+        writer.Write(clauses.Length);
+        foreach (JsonElement clause in clauses)
+        {
+            writer.Write(RequiredSheetString(clause, "fact"));
+            writer.Write(OptionalString(clause, "operator", "at-least"));
+            writer.Write(clause.TryGetProperty("value", out JsonElement value)
+                ? value.GetInt32()
+                : 1);
+            writer.Write(OptionalString(clause, "zone", ""));
+        }
+    }
+
+    private static void WriteIntegers(
+        BinaryWriter writer,
+        JsonElement parent,
+        string property)
+    {
+        int[] values = parent.TryGetProperty(property, out JsonElement array)
+            ? array.EnumerateArray().Select(value => value.GetInt32()).ToArray()
+            : [];
+        writer.Write(values.Length);
+        foreach (int value in values)
+            writer.Write(value);
+    }
+
+    private static void WriteStrings(BinaryWriter writer, JsonElement values)
+    {
+        string[] strings = values.EnumerateArray()
+            .Select(value => value.GetString()
+                ?? throw SheetError("string-array"))
+            .ToArray();
+        writer.Write(strings.Length);
+        foreach (string value in strings)
+            writer.Write(value);
+    }
+
+    private static void WriteStrings(
+        BinaryWriter writer,
+        JsonElement parent,
+        string property)
+    {
+        if (parent.TryGetProperty(property, out JsonElement values))
+            WriteStrings(writer, values);
+        else
+            writer.Write(0);
+    }
+
+    private static JsonElement ChildOrDefault(
+        JsonElement parent,
+        string property) => parent.ValueKind == JsonValueKind.Object
+        && parent.TryGetProperty(property, out JsonElement value)
+            ? value
+            : default;
+
+    private static string OptionalString(
+        JsonElement parent,
+        string property,
+        string fallback) => parent.ValueKind == JsonValueKind.Object
+        && parent.TryGetProperty(property, out JsonElement value)
+            ? value.GetString() ?? throw SheetError(property)
+            : fallback;
+
+    private static int OptionalInt(JsonElement parent, string property) =>
+        parent.ValueKind == JsonValueKind.Object
+        && parent.TryGetProperty(property, out JsonElement value)
+            ? value.GetInt32()
+            : -1;
+
+    private static int OptionalBool(JsonElement parent, string property) =>
+        parent.ValueKind == JsonValueKind.Object
+        && parent.TryGetProperty(property, out JsonElement value)
+            ? value.GetBoolean() ? 1 : 0
+            : -1;
 
     private static void WritePositions(
         BinaryWriter writer,

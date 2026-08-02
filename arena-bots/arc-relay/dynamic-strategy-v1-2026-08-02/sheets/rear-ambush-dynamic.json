@@ -1,0 +1,727 @@
+{
+  "auditDimensions": {
+    "adaptationStyle": "bounded rising-edge gambits",
+    "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "displacement-control",
+    "failureMode": "almost no protective screen leaves a wing brittle after its first failed pickup",
+    "policyStyle": "paired outer wings race their own Core and displace the opposing return at once",
+    "sheetRevision": 2,
+    "visibleCounter": "hold centre and refuse isolated outer fights until the two wings overextend"
+  },
+  "auditStatus": {
+    "mapStudyAdaptation": {
+      "coordinateTransform": "identity coordinates v1",
+      "sourceMapId": "arc-relay-threefold-home-gates-wide-01",
+      "variant": "counterflow"
+    },
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "purpose": "32-sheet structural diversity and balance population"
+  },
+  "composition": [
+    "kestrel",
+    "kestrel",
+    "switchback",
+    "switchback",
+    "towline",
+    "towline",
+    "relay",
+    "repulsor"
+  ],
+  "dynamicStrategyAudit": {
+    "family": "rear-ambush",
+    "pairedControl": false,
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "sourceSheet": "outer-pincers"
+  },
+  "gambits": [
+    {
+      "activation": "while-true",
+      "cooldownTicks": 36,
+      "enterAll": [
+        {
+          "fact": "enemy-carriers-in-zone",
+          "operator": "at-least",
+          "value": 1,
+          "zone": "enemy-return-corridor"
+        },
+        {
+          "fact": "own-bodies-in-zone",
+          "operator": "at-least",
+          "value": 2,
+          "zone": "enemy-rear-staging"
+        },
+        {
+          "fact": "own-min-zone-tenure",
+          "operator": "at-least",
+          "value": 6,
+          "zone": "enemy-rear-staging"
+        }
+      ],
+      "exitAny": [
+        {
+          "fact": "enemy-carried-cores",
+          "operator": "equals",
+          "value": 0,
+          "zone": ""
+        }
+      ],
+      "id": "rear-collapse",
+      "maximumTicks": 48,
+      "minimumTicks": 16,
+      "overlay": {
+        "appliesWhileCarrying": false,
+        "engagementIntent": "carrier-only",
+        "formationOffsets": [
+          [
+            0,
+            -1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "policies": {
+          "interception": {
+            "focusEnemyCarrier": true,
+            "looseCoreFallback": false
+          }
+        },
+        "position": {
+          "arrival": "hold",
+          "fallbackZone": "enemy-rear-staging",
+          "kind": "anchor-offset",
+          "offset": [
+            2,
+            0
+          ],
+          "target": "nearest-enemy-carrier"
+        },
+        "roleOverride": "intercept",
+        "signatureIntent": "aggressive"
+      },
+      "priority": 10,
+      "scope": {
+        "roles": [],
+        "unitIds": [
+          4,
+          5
+        ]
+      }
+    }
+  ],
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "paths": {
+    "rear-infiltration-north": [
+      [
+        5,
+        8
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        17,
+        6
+      ],
+      [
+        21,
+        7
+      ],
+      [
+        24,
+        8
+      ]
+    ],
+    "rear-infiltration-south": [
+      [
+        5,
+        14
+      ],
+      [
+        8,
+        16
+      ],
+      [
+        13,
+        16
+      ],
+      [
+        17,
+        16
+      ],
+      [
+        21,
+        15
+      ],
+      [
+        24,
+        14
+      ]
+    ]
+  },
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 1,
+      "preferAssignedTheater": false,
+      "routeFailureTicks": 6
+    },
+    "escort": {
+      "focusEnemyCarrier": true,
+      "followDistance": 1
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "rallyLines": {
+    "forward": [
+      [
+        13,
+        6
+      ],
+      [
+        13,
+        9
+      ],
+      [
+        13,
+        13
+      ],
+      [
+        13,
+        16
+      ]
+    ],
+    "home": [
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        11
+      ],
+      [
+        4,
+        13
+      ]
+    ],
+    "middle": [
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        16
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v1",
+  "sheetId": "dynamic-strategy-rear-ambush-dynamic-v1",
+  "slots": [
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          13,
+          6
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "north",
+      "unitId": 0
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          13,
+          16
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          5,
+          16
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "south",
+      "unitId": 1
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          8
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          12,
+          6
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "north",
+      "unitId": 2
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          13
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          12,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "south",
+      "unitId": 3
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "hold-fire",
+        "position": {
+          "arrival": "zone",
+          "fallbackZone": "enemy-rear-staging",
+          "kind": "path",
+          "offset": [
+            0,
+            0
+          ],
+          "target": "rear-infiltration-north"
+        },
+        "signatureIntent": "conserve"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          12,
+          6
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "north",
+      "unitId": 4
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "hold-fire",
+        "position": {
+          "arrival": "zone",
+          "fallbackZone": "enemy-rear-staging",
+          "kind": "path",
+          "offset": [
+            0,
+            0
+          ],
+          "target": "rear-infiltration-south"
+        },
+        "signatureIntent": "conserve"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "south",
+      "unitId": 5
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      "partnerUnitId": 7,
+      "returnPath": [
+        [
+          11,
+          11
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          2,
+          10
+        ]
+      ],
+      "role": "reserve",
+      "theater": "centre",
+      "unitId": 6
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          13,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "centre",
+      "unitId": 7
+    }
+  ],
+  "zones": {
+    "centre": [
+      10,
+      7,
+      20,
+      15
+    ],
+    "enemy-rear-staging": [
+      23,
+      6,
+      24,
+      16
+    ],
+    "enemy-return-corridor": [
+      17,
+      3,
+      25,
+      19
+    ],
+    "intercept": [
+      9,
+      2,
+      21,
+      20
+    ],
+    "north": [
+      11,
+      1,
+      19,
+      8
+    ],
+    "south": [
+      11,
+      14,
+      19,
+      21
+    ]
+  }
+}
