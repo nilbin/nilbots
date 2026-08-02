@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "displacement-control",
     "failureMode": "almost no protective screen leaves a wing brittle after its first failed pickup",
     "policyStyle": "paired outer wings race their own Core and displace the opposing return at once",
     "visibleCounter": "hold centre and refuse isolated outer fights until the two wings overextend"
@@ -104,7 +105,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-outer-pincers-v1",
+  "sheetId": "population-outer-pincers-style-displacement-control-v2",
   "slots": [
     {
       "outboundPath": [

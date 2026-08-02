@@ -76,6 +76,37 @@
       "purpose": "repair sheet competence without class-stat changes; freeze identities and disclose every revision"
     }
   ],
+  "registeredRevisions": [
+    {
+      "id": "population-sheet-v2-execution-style-binding",
+      "timing": "after the first corrected-engine anchor outcome read and before any full-population screen",
+      "reason": "Nineteen new sheet ids omitted the frozen audit mind's strategy keyword and therefore fell through to Balanced signature behavior. The anchor is retained as implementation-diagnosis evidence, not used for tuning or a balance verdict.",
+      "change": "Bind each already-authored thesis to the closest existing audit execution style in sheetId; do not change rules, class numbers, map, cadence, composition, assignments, routes, policies, or the shared WASM artifact.",
+      "mapping": {
+        "courier-sprint": "split",
+        "smoke-convoy": "convoy",
+        "beacon-hunt": "interception",
+        "centre-phalanx": "fortress-counterattack",
+        "outer-pincers": "displacement-control",
+        "mine-crescent": "trap-punish",
+        "pod-lattice": "control-grid",
+        "rail-screen": "fireline-picks",
+        "hook-burst": "displacement-control",
+        "null-veil": "sustain-attrition",
+        "repair-web": "sustain-attrition",
+        "mortar-wheel": "trap-punish",
+        "counter-courier": "balanced",
+        "sensor-grid": "control-grid",
+        "breach-column": "displacement-control",
+        "elastic-reserve": "feint-switch",
+        "three-well-race": "split",
+        "home-counterpunch": "interception",
+        "smoke-and-mines": "trap-punish",
+        "rotating-bastions": "fortress-counterattack"
+      },
+      "retest": "Repeat the 120-cell outcome-blind anchor gate under the new sheet hashes before reading revised outcomes."
+    }
+  ],
   "hardGates": {
     "runtimeFaults": 0,
     "exactReplayVerification": "every retained cell",

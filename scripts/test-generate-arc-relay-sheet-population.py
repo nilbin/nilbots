@@ -25,6 +25,25 @@ class SheetPopulationTests(unittest.TestCase):
         self.assertEqual(20, len(set(ids)))
         self.assertEqual(20, len(set(theses)))
 
+    def test_every_sheet_names_an_existing_audit_execution_style(self) -> None:
+        allowed = {
+            "balanced",
+            "control-grid",
+            "convoy",
+            "displacement-control",
+            "feint-switch",
+            "fireline-picks",
+            "fortress-counterattack",
+            "interception",
+            "split",
+            "sustain-attrition",
+            "trap-punish",
+        }
+        self.assertTrue(all(
+            doctrine["executionStyle"] in allowed
+            for doctrine in POPULATION.NEW_DOCTRINES
+        ))
+
     def test_every_new_sheet_obeys_slot_and_copy_limits(self) -> None:
         for doctrine in POPULATION.NEW_DOCTRINES:
             with self.subTest(doctrine=doctrine["entrantId"]):

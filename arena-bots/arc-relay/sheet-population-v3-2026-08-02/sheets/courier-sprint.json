@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "split",
     "failureMode": "minimal escort density can turn early contact into repeated loose Cores",
     "policyStyle": "four fast couriers race the outer births while a central catch pair keeps width",
     "visibleCounter": "contest the outer pickup tiles and force fragile couriers to fight before they turn"
@@ -104,7 +105,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-courier-sprint-v1",
+  "sheetId": "population-courier-sprint-style-split-v2",
   "slots": [
     {
       "outboundPath": [

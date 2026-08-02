@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "displacement-control",
     "failureMode": "a mistimed pull or burst can improve the enemy route and strand the two central carriers",
     "policyStyle": "hooks expose a carrier, designators mark it, and radial bursts break its escort geometry",
     "visibleCounter": "travel in separated pairs and punish displacement bodies when they cross the screen"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-hook-burst-v1",
+  "sheetId": "population-hook-burst-style-displacement-control-v2",
   "slots": [
     {
       "outboundPath": [

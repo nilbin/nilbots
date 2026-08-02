@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "sustain-attrition",
     "failureMode": "the web trades chase speed for survival and can lose births without ever losing a fight",
     "policyStyle": "three carriers sit inside overlapping repair, projectile cover, sentry, and suppression webs",
     "visibleCounter": "split damage across distant theaters, then focus the healer that rotates late"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-repair-web-v1",
+  "sheetId": "population-repair-web-style-sustain-attrition-v2",
   "slots": [
     {
       "outboundPath": [

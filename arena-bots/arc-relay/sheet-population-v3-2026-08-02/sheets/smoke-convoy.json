@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "0 north / 4 centre / 4 south",
+    "executionStyle": "convoy",
     "failureMode": "dense escorts surrender the unused theater and may arrive late to a new birth",
     "policyStyle": "two protected Core columns use smoke and repair to advance through centre and south",
     "visibleCounter": "split north and punish the slow screen before both columns establish spacing"
@@ -116,7 +117,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-smoke-convoy-v1",
+  "sheetId": "population-smoke-convoy-style-convoy-v2",
   "slots": [
     {
       "outboundPath": [

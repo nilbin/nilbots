@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "interception",
     "failureMode": "information hardware loses value when fights remain split beyond shared vision",
     "policyStyle": "reveal, paint, and collapse on enemy carriers while two darts handle births",
     "visibleCounter": "use smoke and cover to deny sight, then pressure the lightly screened Kestrels"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-beacon-hunt-v1",
+  "sheetId": "population-beacon-hunt-style-interception-v2",
   "slots": [
     {
       "outboundPath": [

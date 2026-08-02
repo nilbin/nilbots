@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "1 north / 6 centre / 1 south",
+    "executionStyle": "displacement-control",
     "failureMode": "the narrow column advertises its axis and has only one native pickup runner",
     "policyStyle": "a six-body centre breach column uses blast, burst, projection, and paint before releasing south",
     "visibleCounter": "take north and avoid the centre collision until the lone carrier has to leave its column"
@@ -104,7 +105,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-breach-column-v1",
+  "sheetId": "population-breach-column-style-displacement-control-v2",
   "slots": [
     {
       "outboundPath": [

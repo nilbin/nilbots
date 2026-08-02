@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "3 north / 3 centre / 2 south",
+    "executionStyle": "split",
     "failureMode": "too many pickup candidates can leave live carriers without enough protection",
     "policyStyle": "four assigned runners compete for all three births rather than waiting to identify one best lane",
     "visibleCounter": "win local fights against the thin screens and turn one failed race into an exposed return"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-three-well-race-v1",
+  "sheetId": "population-three-well-race-style-split-v2",
   "slots": [
     {
       "outboundPath": [

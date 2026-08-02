@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "fortress-counterattack",
     "failureMode": "the construct pair can be stranded after the mobile half commits to a distant birth",
     "policyStyle": "two planted outer bastions feed a four-body centre that rotates into the next scoring lane",
     "visibleCounter": "break a bastion before its centre reserve arrives or pull the rotation away with a loose Core"
@@ -116,7 +117,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-rotating-bastions-v1",
+  "sheetId": "population-rotating-bastions-style-fortress-counterattack-v2",
   "slots": [
     {
       "outboundPath": [

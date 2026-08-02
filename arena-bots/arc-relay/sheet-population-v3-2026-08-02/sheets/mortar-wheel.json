@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "trap-punish",
     "failureMode": "the fire base and courier wing can separate into two individually fragile groups",
     "policyStyle": "mobile carriers wheel between births while twin mortars punish the route they just vacated",
     "visibleCounter": "close on the artillery and hold the centre so rotations cross a contested seam"
@@ -116,7 +117,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-mortar-wheel-v1",
+  "sheetId": "population-mortar-wheel-style-trap-punish-v2",
   "slots": [
     {
       "outboundPath": [

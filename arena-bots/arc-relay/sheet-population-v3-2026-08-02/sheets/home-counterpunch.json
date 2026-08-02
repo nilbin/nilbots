@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "interception",
     "failureMode": "waiting for an enemy route can concede neutral births and create off-theater passivity",
     "policyStyle": "six interceptors form a deep rail, paint, and hook net around one counter-courier",
     "visibleCounter": "decline the offered carrier fight and bank from multiple Wells before the net can turn"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-home-counterpunch-v1",
+  "sheetId": "population-home-counterpunch-style-interception-v2",
   "slots": [
     {
       "outboundPath": [

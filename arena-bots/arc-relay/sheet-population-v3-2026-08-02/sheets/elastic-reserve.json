@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "feint-switch",
     "failureMode": "role elasticity can become travel churn if pulses alternate faster than the cooldown windows",
     "policyStyle": "paired reserves repeatedly change jobs while a stable towline-and-smoke centre protects two carriers",
     "visibleCounter": "force both reserve triggers together so one bounded response necessarily arrives late"
@@ -128,7 +129,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-elastic-reserve-v1",
+  "sheetId": "population-elastic-reserve-style-feint-switch-v2",
   "slots": [
     {
       "outboundPath": [

@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "balanced",
     "failureMode": "conservative routes give aggressive wide sheets uncontested initiative",
     "policyStyle": "safe outer couriers advance only behind hooks and repair, then counter a stolen tempo centrally",
     "visibleCounter": "race the centre birth before the paired outer screens establish their protected returns"
@@ -105,7 +106,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-counter-courier-v1",
+  "sheetId": "population-counter-courier-style-balanced-v2",
   "slots": [
     {
       "outboundPath": [

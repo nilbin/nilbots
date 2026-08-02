@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "control-grid",
     "failureMode": "six static controllers can accumulate information without converting it into deliveries",
     "policyStyle": "sensors reveal routes into a three-Well mine-and-sentry grid for one protected runner",
     "visibleCounter": "overload the single courier or clear one theater faster than the grid can be rebuilt"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-sensor-grid-v1",
+  "sheetId": "population-sensor-grid-style-control-grid-v2",
   "slots": [
     {
       "outboundPath": [

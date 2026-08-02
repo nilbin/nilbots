@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "trap-punish",
     "failureMode": "only one dedicated carrier makes the formation sensitive to a central denial chain",
     "policyStyle": "a mine-and-smoke crescent controls both outer Well approaches around one central courier",
     "visibleCounter": "attack centre before the outer denial field matures or reveal and clear one crescent"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-mine-crescent-v1",
+  "sheetId": "population-mine-crescent-style-trap-punish-v2",
   "slots": [
     {
       "outboundPath": [

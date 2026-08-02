@@ -133,6 +133,7 @@ def gambit(
 
 def d(
     entrant_id: str,
+    execution_style: str,
     composition: list[str],
     slots: list[tuple],
     policy: tuple[int, bool, int, int, bool, bool, bool],
@@ -143,6 +144,7 @@ def d(
 ) -> dict[str, Any]:
     return {
         "entrantId": entrant_id,
+        "executionStyle": execution_style,
         "composition": composition,
         "slots": slots,
         "policy": policy,
@@ -156,6 +158,7 @@ def d(
 NEW_DOCTRINES = [
     d(
         "courier-sprint",
+        "split",
         ["kestrel", "kestrel", "relay", "relay", "towline",
          "switchback", "lantern", "patchbay"],
         [s("north", "carrier", 2, "north-high"),
@@ -175,6 +178,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "smoke-convoy",
+        "convoy",
         ["relay", "relay", "veil", "veil", "patchbay", "patchbay",
          "palisade", "towline"],
         [s("centre", "carrier", 2, "centre-high"),
@@ -196,6 +200,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "beacon-hunt",
+        "interception",
         ["lantern", "lantern", "kestrel", "kestrel", "sunder",
          "sunder", "longshot", "towline"],
         [s("north", "intercept", 2, "north-screen"),
@@ -213,6 +218,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "centre-phalanx",
+        "fortress-counterattack",
         ["palisade", "palisade", "mason", "mason", "patchbay",
          "patchbay", "relay", "nest"],
         [s("centre", "screen", 6, "centre-flat"),
@@ -234,6 +240,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "outer-pincers",
+        "displacement-control",
         ["kestrel", "kestrel", "switchback", "switchback", "towline",
          "towline", "relay", "repulsor"],
         [s("north", "carrier", 2, "north-fast"),
@@ -253,6 +260,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "mine-crescent",
+        "trap-punish",
         ["minesmith", "minesmith", "mortar", "mortar", "veil", "veil",
          "lantern", "relay"],
         [s("north", "screen", 2, "north-safe"),
@@ -270,6 +278,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "pod-lattice",
+        "control-grid",
         ["nest", "nest", "mason", "mason", "palisade", "palisade",
          "patchbay", "relay"],
         [s("north", "screen", 4, "north-screen"),
@@ -287,6 +296,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "rail-screen",
+        "fireline-picks",
         ["longshot", "longshot", "palisade", "palisade", "lantern",
          "lantern", "sunder", "relay"],
         [s("north", "intercept", 2, "north-safe"),
@@ -304,6 +314,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "hook-burst",
+        "displacement-control",
         ["towline", "towline", "repulsor", "repulsor", "sunder",
          "sunder", "kestrel", "relay"],
         [s("north", "intercept", 6, "north-fast"),
@@ -321,6 +332,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "null-veil",
+        "sustain-attrition",
         ["hush", "hush", "veil", "veil", "patchbay", "relay",
          "switchback", "palisade"],
         [s("north", "intercept", 2, "north-high"),
@@ -340,6 +352,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "repair-web",
+        "sustain-attrition",
         ["patchbay", "patchbay", "palisade", "palisade", "nest", "nest",
          "hush", "relay"],
         [s("north", "screen", 2, "north-safe"),
@@ -357,6 +370,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "mortar-wheel",
+        "trap-punish",
         ["mortar", "mortar", "kestrel", "kestrel", "switchback",
          "switchback", "lantern", "relay"],
         [s("north", "intercept", 2, "north-hook"),
@@ -378,6 +392,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "counter-courier",
+        "balanced",
         ["relay", "relay", "towline", "towline", "kestrel", "kestrel",
          "patchbay", "hush"],
         [s("north", "carrier", 2, "north-safe"),
@@ -397,6 +412,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "sensor-grid",
+        "control-grid",
         ["lantern", "lantern", "minesmith", "minesmith", "nest", "nest",
          "longshot", "relay"],
         [s("north", "screen", 2, "north-safe"),
@@ -414,6 +430,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "breach-column",
+        "displacement-control",
         ["mortar", "mortar", "repulsor", "repulsor", "palisade",
          "palisade", "sunder", "relay"],
         [s("centre", "intercept", 7, "centre-high"),
@@ -433,6 +450,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "elastic-reserve",
+        "feint-switch",
         ["switchback", "switchback", "relay", "relay", "towline",
          "towline", "veil", "patchbay"],
         [s("north", "reserve", 2, "north-high"),
@@ -456,6 +474,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "three-well-race",
+        "split",
         ["kestrel", "kestrel", "relay", "relay", "lantern", "switchback",
          "towline", "veil"],
         [s("north", "carrier", 6, "north-fast"),
@@ -473,6 +492,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "home-counterpunch",
+        "interception",
         ["longshot", "longshot", "sunder", "sunder", "towline", "towline",
          "palisade", "relay"],
         [s("north", "intercept", 7, "north-safe"),
@@ -490,6 +510,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "smoke-and-mines",
+        "trap-punish",
         ["veil", "veil", "minesmith", "minesmith", "mortar", "mortar",
          "hush", "relay"],
         [s("north", "screen", 2, "north-screen"),
@@ -509,6 +530,7 @@ NEW_DOCTRINES = [
     ),
     d(
         "rotating-bastions",
+        "fortress-counterattack",
         ["mason", "mason", "palisade", "palisade", "switchback",
          "switchback", "relay", "relay"],
         [s("north", "screen", 2, "north-safe"),
@@ -558,7 +580,10 @@ def make_sheet(base: dict[str, Any], doctrine: dict[str, Any]) -> dict[str, Any]
         doctrine["policy"]
     )
     value = json.loads(json.dumps(base))
-    value["sheetId"] = f"population-{doctrine['entrantId']}-v1"
+    value["sheetId"] = (
+        f"population-{doctrine['entrantId']}-"
+        f"style-{doctrine['executionStyle']}-v2"
+    )
     value["mapId"] = POPULATION_MAP_ID
     value["composition"] = doctrine["composition"]
     value["slots"] = [
@@ -591,6 +616,7 @@ def make_sheet(base: dict[str, Any], doctrine: dict[str, Any]) -> dict[str, Any]
             for theater in ("north", "centre", "south")
         ),
         "policyStyle": doctrine["thesis"],
+        "executionStyle": doctrine["executionStyle"],
         "visibleCounter": doctrine["counter"],
         "failureMode": doctrine["failure"],
     }

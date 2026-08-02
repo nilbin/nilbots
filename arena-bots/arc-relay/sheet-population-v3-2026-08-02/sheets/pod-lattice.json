@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "control-grid",
     "failureMode": "spreading construction across all Wells can leave every local cluster incomplete",
     "policyStyle": "three carrier lanes grow a distributed lattice of pods, blocks, repair, and walls",
     "visibleCounter": "break one branch quickly, then rotate before the other lattice arms can reinforce"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-pod-lattice-v1",
+  "sheetId": "population-pod-lattice-style-control-grid-v2",
   "slots": [
     {
       "outboundPath": [

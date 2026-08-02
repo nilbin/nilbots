@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "static",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "fireline-picks",
     "failureMode": "fixed firing geometry can be bypassed after the opponent reads the chosen corridors",
     "policyStyle": "projector faces and sensor masts establish two public rails around a central courier",
     "visibleCounter": "smoke or flank the firing bases and make their slow carrier solve multiple births"
@@ -91,7 +92,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-rail-screen-v1",
+  "sheetId": "population-rail-screen-style-fireline-picks-v2",
   "slots": [
     {
       "outboundPath": [

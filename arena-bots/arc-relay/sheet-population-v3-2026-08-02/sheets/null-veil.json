@@ -2,6 +2,7 @@
   "auditDimensions": {
     "adaptationStyle": "bounded rising-edge gambits",
     "allocation": "2 north / 4 centre / 2 south",
+    "executionStyle": "sustain-attrition",
     "failureMode": "low direct reach lets revealed opponents dictate engagement distance",
     "policyStyle": "smoke hides a two-carrier centre while null fields erase the signatures used to collapse it",
     "visibleCounter": "use basic fire and wide pickups so suppression cannot deny every relevant action"
@@ -105,7 +106,7 @@
     ]
   },
   "schema": "arc-relay-evaluation-sheet-v0",
-  "sheetId": "population-null-veil-v1",
+  "sheetId": "population-null-veil-style-sustain-attrition-v2",
   "slots": [
     {
       "outboundPath": [

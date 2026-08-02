@@ -13,6 +13,14 @@ gate. The gate weights composition, class/role/theater assignment, authored
 routes, policy values, and gambit grammar; exact gameplay duplicates are
 rejected independently.
 
+The v2 sheet identities also bind each thesis to one of the audit mind's
+existing execution styles. This is necessary because that frozen evaluator
+selects class-signature tactics from a keyword in `sheetId`; leaving the
+keyword absent silently falls back to Balanced behavior. The style is a shared
+execution vocabulary, not the sheet's identity: composition, assignments,
+routes, policy values, and observed execution shape still have to distinguish
+every addition.
+
 The shared execution engine is the already-frozen, eligibility-repaired
 `../balance-audit-v2-2026-08-01/out/bot.wasm`. It builds zero times for this
 expansion: every sheet is validated, hashed, and delivered through the
