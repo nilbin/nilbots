@@ -16,7 +16,8 @@ namespace BotArena.Runtime;
 /// than a difference in harness.</para>
 /// </summary>
 public sealed class InProcessGenericMindRuntime(
-    Func<Sdk.IGenericMindBot> botFactory) : IGenericMindRuntime
+    Func<Sdk.IGenericMindBot> botFactory,
+    bool trustedArcRelayStockProjection = false) : IGenericMindRuntime
 {
     private const int MaxDiagnosticBytes = 4096;
 
@@ -60,7 +61,11 @@ public sealed class InProcessGenericMindRuntime(
         _teamRandom.BeginTick(observation.Tick);
         var debug = new DebugCollector();
         Sdk.MindContext context =
-            GenericMindSdkModelMapper.ToSdk(observation, _waitAction) with
+            (trustedArcRelayStockProjection
+                ? GenericMindSdkModelMapper.ToTrustedArcRelayStockSdk(
+                    observation,
+                    _waitAction)
+                : GenericMindSdkModelMapper.ToSdk(observation, _waitAction)) with
             {
                 Random = new SdkRandom(_random),
                 TeamRandom = new SdkTeamRandom(_teamRandom),

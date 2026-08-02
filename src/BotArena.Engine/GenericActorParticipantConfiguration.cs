@@ -33,9 +33,15 @@ public sealed record GenericActorParticipantConfiguration
     /// </summary>
     public string? ArtifactHash { get; init; }
     /// <summary>
-    /// Provisional evaluation-grade program data delivered once to a mind.
-    /// The harness owns its content hash; ordinary matches leave it empty.
-    /// This is not a player-facing sheet contract.
+    /// Content digest of immutable participant-local mind data. Product modes
+    /// use this to bind a separately authored sheet to the replay without
+    /// rebuilding or pretending that it is part of the executable artifact.
+    /// </summary>
+    public string? MindDataHash { get; init; }
+    /// <summary>
+    /// Participant-local program data delivered once to a mind. Evaluation
+    /// harnesses and product modes own the schema at their boundary; Engine
+    /// treats it as opaque bytes and records <see cref="MindDataHash"/>.
     /// </summary>
     public System.Collections.Immutable.ImmutableArray<byte> MindEvaluationData
     { get; init; } = [];

@@ -26,7 +26,7 @@ export function loadReplayJson(rawJson: string): LoadedReplay {
   // Broadcast documents put their discriminator first. Avoid parsing ordinary
   // canonical replays here because decodeReplayJson must parse them once
   // already, and evaluation replays can be hundreds of megabytes.
-  if (/^\s*\{\s*"broadcastVersion"\s*:\s*1\b/.test(rawJson)) {
+  if (/^\s*\{\s*"broadcastVersion"\s*:\s*[12]\b/.test(rawJson)) {
     const parsed = JSON.parse(rawJson) as unknown;
     if (isArcRelayBroadcastV1(parsed)) {
       return loadArcRelayBroadcast(parsed);
@@ -60,9 +60,9 @@ function loadArcRelayBroadcast(
     replay: normalizeReplayV3(wire),
     wire,
     replayVersion: 3,
-    // A broadcast carries the canonical replay hash as an address, but it is
-    // not the canonical replay bytes. Never hand its transport text to the
-    // canonical hash verifier.
+    // A gallery v1 carries the canonical audit replay's address; hosted v2
+    // carries its own compact replay hash. Neither transport is canonical v3
+    // bytes, so never hand its raw text to the v3 hash verifier.
     rawJson: null,
   };
 }

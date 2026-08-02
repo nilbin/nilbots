@@ -347,7 +347,7 @@ internal static class ReplayV3Serializer
             WriteResult(writer, replay.Result);
     }
 
-    private static void WriteHeader(
+    internal static void WriteHeader(
         Utf8JsonWriter writer,
         ReplayV3.ReplayHeader header)
     {
@@ -524,6 +524,14 @@ internal static class ReplayV3Serializer
                     json,
                     "artifactHash",
                     participant.ArtifactHash);
+                // Added after replay-v3 shipped. Absence, rather than null,
+                // preserves every historical canonical byte and golden hash.
+                if (participant.MindDataHash is not null)
+                {
+                    json.WriteString(
+                        "mindDataHash",
+                        participant.MindDataHash);
+                }
                 json.WriteString("accent", participant.Accent);
                 WriteNullableString(
                     json,
@@ -1246,7 +1254,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteUnitSlotState(
+    internal static void WriteUnitSlotState(
         Utf8JsonWriter writer,
         ReplayV3.UnitSlotState value)
     {
@@ -1538,7 +1546,7 @@ internal static class ReplayV3Serializer
             WriteActionResolution(writer, value);
     }
 
-    private static void WriteActionResolution(
+    internal static void WriteActionResolution(
         Utf8JsonWriter writer,
         ReplayV3.ActionResolution value)
     {
@@ -1561,7 +1569,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteResolvedAction(
+    internal static void WriteResolvedAction(
         Utf8JsonWriter writer,
         ReplayV3.ResolvedAction value)
     {
@@ -1576,7 +1584,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteActionArgument(
+    internal static void WriteActionArgument(
         Utf8JsonWriter writer,
         ReplayV3.ActionArgument value)
     {
@@ -1720,7 +1728,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteEvent(
+    internal static void WriteEvent(
         Utf8JsonWriter writer,
         ReplayV3.AuthoritativeEvent value)
     {
@@ -2168,7 +2176,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteTraversal(
+    internal static void WriteTraversal(
         Utf8JsonWriter writer,
         ReplayV3.ProjectileTraversal value)
     {
@@ -2252,7 +2260,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteWorldState(
+    internal static void WriteWorldState(
         Utf8JsonWriter writer,
         ReplayV3.WorldState state)
     {
@@ -2435,7 +2443,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteScoreboard(
+    internal static void WriteScoreboard(
         Utf8JsonWriter writer,
         ReplayV3.Scoreboard value)
     {
@@ -2473,7 +2481,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteModeState(
+    internal static void WriteModeState(
         Utf8JsonWriter writer,
         ReplayV3.ModeState value)
     {
@@ -2649,7 +2657,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteResult(
+    internal static void WriteResult(
         Utf8JsonWriter writer,
         ReplayV3.MatchResult result)
     {
@@ -2783,7 +2791,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteActorId(
+    internal static void WriteActorId(
         Utf8JsonWriter writer,
         ReplayV3.ActorId value)
     {
@@ -2804,7 +2812,7 @@ internal static class ReplayV3Serializer
             WriteActorId(writer, value);
     }
 
-    private static void WritePosition(
+    internal static void WritePosition(
         Utf8JsonWriter writer,
         ReplayV3.PositionValue value)
     {
@@ -2835,7 +2843,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteNullableShotProgram(
+    internal static void WriteNullableShotProgram(
         Utf8JsonWriter writer,
         ReplayV3.ShotProgramValue? value)
     {
@@ -5154,6 +5162,12 @@ internal static class ReplayV3Serializer
             ArgumentException.ThrowIfNullOrWhiteSpace(
                 participant.RuntimeKind);
             ArgumentException.ThrowIfNullOrWhiteSpace(participant.Accent);
+            if (participant.MindDataHash is { } mindDataHash
+                && !IsLowercaseSha256(mindDataHash))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 mind-data hashes must be lowercase SHA-256 values.");
+            }
         }
     }
 

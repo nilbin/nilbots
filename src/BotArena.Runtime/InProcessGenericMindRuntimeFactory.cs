@@ -9,8 +9,11 @@ namespace BotArena.Runtime;
 /// per participant per match — the topology change is the profile.
 /// </summary>
 public sealed class InProcessGenericMindRuntimeFactory(
-    Func<Sdk.IGenericMindBot> botFactory) : IGenericMindRuntimeFactory
+    Func<Sdk.IGenericMindBot> botFactory,
+    bool trustedArcRelayStockProjection = false) : IGenericMindRuntimeFactory
 {
     public IGenericMindRuntime CreateRuntime() =>
-        new InProcessGenericMindRuntime(botFactory);
+        new InProcessGenericMindRuntime(
+            botFactory,
+            trustedArcRelayStockProjection);
 }

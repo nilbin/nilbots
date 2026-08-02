@@ -34,7 +34,7 @@ public class Match
     /// <summary>Presentation timeline start (plan §28.1): the simulation completes first,
     /// then events are presented from this instant at PresentationTicksPerSecond.</summary>
     public DateTime? BroadcastStartedAt { get; set; }
-    public int PresentationTicksPerSecond { get; set; } = 5;
+    public double PresentationTicksPerSecond { get; set; } = 5;
     public Guid? MatchSetId { get; set; }
     /// <summary>
     /// Exact immutable playlist revision pinned for this match. Null only for
@@ -89,6 +89,16 @@ public class MatchParticipant
     public string LookIdSnapshot { get; set; } = "vanguard";
     public string ProjectileLookIdSnapshot { get; set; } = "pulse-bolt";
     public string ArtifactHashSnapshot { get; set; } = "";
+    /// <summary>
+    /// Immutable player-sheet identity and data. These are snapshots, not a
+    /// foreign key: editing or deleting a saved sheet cannot rewrite history.
+    /// </summary>
+    public Guid? SheetIdSnapshot { get; set; }
+    public int? SheetRevisionSnapshot { get; set; }
+    public string? SheetNameSnapshot { get; set; }
+    public string? SheetHashSnapshot { get; set; }
+    public string? SheetCanonicalJsonSnapshot { get; set; }
+    public byte[]? MindDataSnapshot { get; set; }
     public string? Outcome { get; set; }
     public int? FinalHealth { get; set; }
     public int? DamageDealt { get; set; }

@@ -22,4 +22,18 @@ public sealed record GenericActorMatchStepResult(
     /// </summary>
     public ImmutableArray<GenericMindRuntimeTurn> MindTurns { get; init; } =
         [];
+
+    /// <summary>
+    /// Unredacted tick-start playback facts. Compact trusted playback consumes
+    /// these immediately without retaining private observations.
+    /// </summary>
+    public GenericActorMatchTickStart? AuthoritativeTickStart { get; init; }
+
+    /// <summary>Unredacted resolved events for compact playback.</summary>
+    public ImmutableArray<GenericActorAuthoritativeEvent> AuthoritativeEvents
+    { get; init; } = [];
+
+    /// <summary>Authoritative projectile paths for compact playback.</summary>
+    public ImmutableArray<GenericActorProjectileTraversal> ProjectileTraversals
+    { get; init; } = [];
 }

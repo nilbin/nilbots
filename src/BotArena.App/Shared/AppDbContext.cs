@@ -1,4 +1,5 @@
 using BotArena.App.Accounts;
+using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
@@ -31,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<ArcRelaySheet> ArcRelaySheets => Set<ArcRelaySheet>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<MatchTeamResult> MatchTeamResults => Set<MatchTeamResult>();
@@ -219,6 +221,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne<User>().WithMany().HasForeignKey(grant => grant.UserId);
         });
 
+        modelBuilder.Entity<ArcRelaySheet>(entity =>
+        {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_ArcRelaySheets_Revision_Positive",
+                "\"Revision\" > 0"));
+            entity.HasIndex(sheet => new { sheet.OwnerUserId, sheet.Name });
+            entity.HasIndex(sheet => new { sheet.OwnerUserId, sheet.UpdatedAt });
+            entity.Property(sheet => sheet.Name).HasMaxLength(60);
+            entity.Property(sheet => sheet.CanonicalJson).HasColumnType("jsonb");
+            entity.Property(sheet => sheet.ContentHash)
+                .HasMaxLength(64)
+                .IsFixedLength();
+            entity.Property(sheet => sheet.Revision).IsConcurrencyToken();
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(sheet => sheet.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<UserNotification>(entity =>
         {
             entity.HasIndex(notification => new
@@ -324,6 +345,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 "CK_Matches_ReplayFormatVersion_Positive",
                 "\"ReplayFormatVersion\" IS NULL OR \"ReplayFormatVersion\" > 0"));
             entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(m => m.PresentationTicksPerSecond)
+                .HasPrecision(6, 3);
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasMany(m => m.TeamResults)
                 .WithOne()
@@ -378,6 +401,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(p => p.OwnerDisplayNameSnapshot).HasMaxLength(60);
             entity.Property(p => p.LookIdSnapshot).HasMaxLength(64);
             entity.Property(p => p.ProjectileLookIdSnapshot).HasMaxLength(64);
+            entity.Property(p => p.SheetNameSnapshot).HasMaxLength(60);
+            entity.Property(p => p.SheetHashSnapshot)
+                .HasMaxLength(64)
+                .IsFixedLength();
+            entity.Property(p => p.SheetCanonicalJsonSnapshot)
+                .HasColumnType("jsonb");
+            entity.Property(p => p.MindDataSnapshot)
+                .HasColumnType("bytea");
         });
 
         modelBuilder.Entity<MatchTeamResult>(entity =>

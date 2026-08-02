@@ -59,6 +59,11 @@ public static class BotArenaVersions
     public const int GenericActorMatchContractSchemaVersion = 2;
     public const int GenericActorReplayFormatVersion = 3;
     /// <summary>
+    /// Compact spectator-only Arc Relay broadcast stored by the trusted hosted
+    /// product lane. Canonical audit evidence remains replay format 3.
+    /// </summary>
+    public const int ArcRelayBroadcastFormatVersion = 4;
+    /// <summary>
     /// Canonical static-contract budget after reserving one KiB for the
     /// enclosing one-MiB MatchStart frame.
     /// </summary>

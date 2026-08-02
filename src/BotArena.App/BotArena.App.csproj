@@ -36,6 +36,15 @@
          configuration than the CLI staged (DECISIONS #84). -->
     <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- One frozen first-party stock algorithm is compiled once into the
+         trusted hosted worker. The exact same sources build its WASM audit
+         twin; player sheets remain separately hashed data. -->
+    <Compile Include="../../arena-bots/arc-relay/stock-mind-v0/ArcRelayStockMind.cs"
+             Link="ArcRelay/StockMind/ArcRelayStockMind.cs" />
+    <Compile Include="../../arena-bots/arc-relay/stock-mind-v0/StockSheet.cs"
+             Link="ArcRelay/StockMind/StockSheet.cs" />
+  </ItemGroup>
 
   <!-- The OpenAPI document is a build artifact, not a running-server artifact: it is
        emitted here so client generation and the CI drift check never need a live app

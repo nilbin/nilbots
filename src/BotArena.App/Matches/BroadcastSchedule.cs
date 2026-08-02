@@ -28,7 +28,7 @@ public static class BroadcastSchedule
     {
         if (match.BroadcastStartedAt is not DateTime start)
             return null;
-        int ticksPerSecond = Math.Max(1, match.PresentationTicksPerSecond);
+        double ticksPerSecond = Math.Max(0.001, match.PresentationTicksPerSecond);
         // BroadcastComplete wants PresentationTick strictly past EndTick, so the whole of
         // the last tick has to elapse before the result is public. A null EndTick is a
         // valid zero-tick generic result and becomes public at the broadcast start, not

@@ -83,6 +83,40 @@ internal static class GenericMindSdkModelMapper
             observation.AlliedIntents.Select(ToSdk));
     }
 
+    /// <summary>
+    /// Exact-use projection for the frozen first-party Arc Relay stock mind.
+    /// That algorithm never reads slot state, public event history, sounds,
+    /// participant status or unreserved visible tiles. Omitting those unused
+    /// SDK allocations changes no decision and is admitted only on the
+    /// trusted product lane; audit/WASM and general in-process runtimes retain
+    /// the complete contract projection above.
+    /// </summary>
+    public static Sdk.MindContext ToTrustedArcRelayStockSdk(
+        GenericMindRuntimeObservation observation,
+        Sdk.MindWaitAction waitAction)
+    {
+        ArgumentNullException.ThrowIfNull(observation);
+        return new Sdk.MindContext(
+            observation.SchemaVersion,
+            observation.Tick,
+            observation.MatchContractFingerprint,
+            observation.Bodies.Select(body => ToSdk(body, waitAction)),
+            [],
+            observation.Allies.Select(GenericActorSdkModelMapper.ToSdk),
+            observation.Enemies.Select(GenericActorSdkModelMapper.ToSdk),
+            observation.Team.VisibleTiles
+                .Where(value => value.SpawnReservation is not null)
+                .Select(GenericActorSdkModelMapper.ToSdk),
+            observation.Team.VisibleProjectiles?.Select(
+                GenericActorSdkModelMapper.ToSdk),
+            [],
+            null,
+            GenericActorSdkModelMapper.ToSdk(observation.Team.Scoreboard),
+            GenericActorSdkModelMapper.ToSdk(observation.Team.Mode),
+            [],
+            []);
+    }
+
     public static GenericMindRuntimeDecisions ToEngine(
         Sdk.MindDecisions decisions)
     {

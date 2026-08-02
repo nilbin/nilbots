@@ -147,7 +147,8 @@ public sealed class GenericActorMatchSession : IDisposable
     public GenericActorMatchSession(
         ActorResolvedMatchDefinition definition,
         IEnumerable<GenericActorParticipantConfiguration> participants,
-        ulong matchSeed)
+        ulong matchSeed,
+        bool recordChronology = true)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
@@ -195,7 +196,8 @@ public sealed class GenericActorMatchSession : IDisposable
         _host = new GenericActorMatchHost(
             definition,
             participants,
-            matchSeed);
+            matchSeed,
+            recordChronology);
 
         var initialEvents =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -322,6 +324,19 @@ public sealed class GenericActorMatchSession : IDisposable
                 .Select(SnapshotSlot)
                 .ToImmutableArray();
         }
+    }
+
+    /// <summary>
+    /// Captures the current authoritative world for a presentation recorder.
+    /// It exposes no mutation seam and is unavailable during a runtime
+    /// callback, matching every other session inspection boundary.
+    /// </summary>
+    public GenericActorWorldSnapshot CaptureWorldSnapshot()
+    {
+        using SessionOperation operation =
+            EnterOperation(nameof(CaptureWorldSnapshot));
+        ThrowIfDisposed();
+        return SnapshotWorld();
     }
 
     /// <summary>
@@ -775,38 +790,40 @@ public sealed class GenericActorMatchSession : IDisposable
             _preparedChronologyTick
             ?? throw new InvalidOperationException(
                 "The prepared tick has no authoritative chronology.");
-        Dictionary<ActorIdentity, GenericActorRuntimeObservation>
-            observationsByActor = tickStart.Observations.ToDictionary(
-                observation => observation.Self.ActorId);
-        ImmutableArray<GenericActorMatchActorTurn> actorTurns =
-            runtimeTick.Turns
-                .OrderBy(turn => turn.ActorId)
-                .Select(turn =>
-                    new GenericActorMatchActorTurn(
-                        executedTick,
-                        turn.ParticipantId,
-                        turn.ActorId,
-                        observationsByActor[turn.ActorId],
-                        turn.SubmittedDecision,
-                        resolutions[turn.ActorId].ToPublic()))
-                .ToImmutableArray();
-        ImmutableArray<GenericActorMatchMindTurn> mindTurns =
-            ProjectMindTurns(executedTick, tickStart, mindTick);
         GenericActorWorldSnapshot postState = SnapshotWorld();
-        _host.RecordResolvedTick(
-            new GenericActorMatchTickFrame(
-                chronologyTick,
-                actorTurns,
-                authoritativeEvents,
-                projectileTransitions.ToImmutable(),
-                postState,
-                mindTurns));
+        if (_host.RecordsChronology)
+        {
+            Dictionary<ActorIdentity, GenericActorRuntimeObservation>
+                observationsByActor = tickStart.Observations.ToDictionary(
+                    observation => observation.Self.ActorId);
+            ImmutableArray<GenericActorMatchActorTurn> actorTurns =
+                runtimeTick.Turns
+                    .OrderBy(turn => turn.ActorId)
+                    .Select(turn =>
+                        new GenericActorMatchActorTurn(
+                            executedTick,
+                            turn.ParticipantId,
+                            turn.ActorId,
+                            observationsByActor[turn.ActorId],
+                            turn.SubmittedDecision,
+                            resolutions[turn.ActorId].ToPublic()))
+                    .ToImmutableArray();
+            ImmutableArray<GenericActorMatchMindTurn> mindTurns =
+                ProjectMindTurns(executedTick, tickStart, mindTick);
+            _host.RecordResolvedTick(
+                new GenericActorMatchTickFrame(
+                    chronologyTick,
+                    actorTurns,
+                    authoritativeEvents,
+                    projectileTransitions.ToImmutable(),
+                    postState,
+                    mindTurns));
+        }
         // The tags this tick's accepted commands set become NEXT tick's
         // published labels; the observation the mind just answered was frozen
         // before any of them were written, which is the same one-tick
         // telegraph grammar a claim, a windup and a purchase already use.
-        foreach (GenericActorMatchMindTurn turn in mindTurns)
-            turn.ApplyRoleTags(_roleTags);
+        ApplyRoleTags(mindTick);
         foreach (ActorIdentity dead in _roleTags.Keys
                      .Where(actor => !_lives.ContainsKey(actor))
                      .ToArray())
@@ -839,7 +856,37 @@ public sealed class GenericActorMatchSession : IDisposable
             terminalResult)
         {
             MindTurns = mindTick?.MindTurns ?? [],
+            AuthoritativeTickStart = chronologyTick,
+            AuthoritativeEvents = authoritativeEvents,
+            ProjectileTraversals = projectileTransitions.ToImmutable(),
         };
+    }
+
+    private void ApplyRoleTags(GenericMindRuntimeTickResult? mindTick)
+    {
+        foreach (GenericMindRuntimeTurn turn in mindTick?.MindTurns ?? [])
+        {
+            if (turn.RuntimeFault is not null)
+                continue;
+            foreach (GenericMindCommandResolution resolution in turn.Commands)
+            {
+                if (resolution.Outcome != GenericMindCommandOutcome.Accepted)
+                    continue;
+                var actorId = new ActorIdentity(
+                    turn.TeamId,
+                    resolution.Command.UnitId,
+                    resolution.Command.LifeId);
+                string? applied = GenericMindRoleTag.Apply(
+                    _roleTags.TryGetValue(actorId, out string? remembered)
+                        ? remembered
+                        : null,
+                    resolution.Command.RoleTag);
+                if (applied is null)
+                    _roleTags.Remove(actorId);
+                else
+                    _roleTags[actorId] = applied;
+            }
+        }
     }
 
     /// <summary>

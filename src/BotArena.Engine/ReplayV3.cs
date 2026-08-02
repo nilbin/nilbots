@@ -80,7 +80,8 @@ internal sealed record ReplayV3(
         string? ArtifactHash,
         string Accent,
         string? LookId,
-        string? ProjectileLookId);
+        string? ProjectileLookId,
+        string? MindDataHash = null);
 
     internal sealed record ReplayInitialFrame(
         WorldState State,

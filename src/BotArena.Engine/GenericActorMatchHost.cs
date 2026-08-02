@@ -11,8 +11,7 @@ namespace BotArena.Engine;
 internal sealed class GenericActorMatchHost : IDisposable
 {
     private readonly GenericActorMatchDescriptor _descriptor;
-    private readonly InMemoryGenericActorMatchChronologyRecorder _chronology =
-        new();
+    private readonly InMemoryGenericActorMatchChronologyRecorder? _chronology;
     private readonly GenericActorRuntimeCoordinator? _runtimes;
     private readonly GenericMindRuntimeCoordinator? _minds;
     private int _operationGate;
@@ -21,7 +20,8 @@ internal sealed class GenericActorMatchHost : IDisposable
     public GenericActorMatchHost(
         ActorResolvedMatchDefinition definition,
         IEnumerable<GenericActorParticipantConfiguration> participants,
-        ulong matchSeed)
+        ulong matchSeed,
+        bool recordChronology = true)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
@@ -32,6 +32,9 @@ internal sealed class GenericActorMatchHost : IDisposable
             definition,
             matchSeed,
             participantSnapshot);
+        _chronology = recordChronology
+            ? new InMemoryGenericActorMatchChronologyRecorder()
+            : null;
         // ONE profile ID decides the execution shape: one runtime per life, or
         // one runtime per participant. Everything downstream of decision
         // collection is identical, which is the whole design (DECISIONS #191).
@@ -52,6 +55,13 @@ internal sealed class GenericActorMatchHost : IDisposable
 
     /// <summary>True when this match runs the participant-scoped mind profile.</summary>
     public bool IsMindProfile => _minds is not null;
+
+    /// <summary>
+    /// Whether this host retains the audit-grade observation chronology.
+    /// Trusted product playback may instead consume each authoritative tick
+    /// immediately through the session result and persist a compact broadcast.
+    /// </summary>
+    public bool RecordsChronology => _chronology is not null;
 
     /// <inheritdoc cref="GenericMindRuntimeCoordinator.TickingParticipantIds"/>
     public ImmutableArray<int> TickingParticipantIds =>
@@ -81,7 +91,9 @@ internal sealed class GenericActorMatchHost : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _chronology.Snapshot;
+            return _chronology?.Snapshot
+                ?? throw new InvalidOperationException(
+                    "This match was configured for compact playback and has no audit chronology.");
         }
     }
 
@@ -175,13 +187,13 @@ internal sealed class GenericActorMatchHost : IDisposable
             : Runtimes.TryProjectSubmittedAction(decision, out submittedAction);
 
     public void RecordInitial(GenericActorMatchInitialFrame initialFrame) =>
-        _chronology.RecordInitial(_descriptor, initialFrame);
+        _chronology?.RecordInitial(_descriptor, initialFrame);
 
     public void RecordResolvedTick(GenericActorMatchTickFrame frame) =>
-        _chronology.RecordResolvedTick(frame);
+        _chronology?.RecordResolvedTick(frame);
 
     public void RecordCompleted(GenericActorMatchResult result) =>
-        _chronology.RecordCompleted(result);
+        _chronology?.RecordCompleted(result);
 
     public void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(_disposed, this);

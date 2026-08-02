@@ -45,6 +45,18 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
     private string? _failureReason;
     private Sdk.MindWaitAction _waitAction;
     private ulong _currentTickFuel;
+    private readonly bool _perfDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+        "1",
+        StringComparison.Ordinal);
+    private long _formatWallTicks;
+    private long _exchangeWallTicks;
+    private long _parseWallTicks;
+    private long _formatAllocatedBytes;
+    private long _parseAllocatedBytes;
+    private long _hostFrameBytes;
+    private long _guestFrameBytes;
+    private int _executedTicks;
 
     internal WasmGenericMindRuntime(
         WasmtimeEngine engine,
@@ -177,13 +189,26 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
         _currentTickFuel = _options.TickFuel(observation.Bodies.Length);
         LastTickFuelBudget = _currentTickFuel;
 
+        long phaseStart = _perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+        long allocationStart = _perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        byte[] frame = GenericMindWasmProtocol.FormatObservation(
+            observation,
+            _waitAction);
+        if (_perfDiagnostics)
+        {
+            _formatWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+            _formatAllocatedBytes += GC.GetTotalAllocatedBytes(precise: false)
+                - allocationStart;
+            _hostFrameBytes += frame.Length;
+            phaseStart = Stopwatch.GetTimestamp();
+        }
+
         MindRuntimeReply reply;
         try
         {
-            reply = Exchange(
-                GenericMindWasmProtocol.FormatObservation(
-                    observation,
-                    _waitAction));
+            reply = Exchange(frame);
         }
         catch (Exception exception)
         {
@@ -191,6 +216,13 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
                 ? $"{exception.GetType().Name}: {exception.Message}"
                 : _deathReason;
             throw;
+        }
+        if (_perfDiagnostics)
+        {
+            _exchangeWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+            _guestFrameBytes += reply.Bytes.Length;
+            phaseStart = Stopwatch.GetTimestamp();
+            allocationStart = GC.GetTotalAllocatedBytes(precise: false);
         }
         LastFuelRemaining = reply.FuelRemaining;
         ulong used = _currentTickFuel > LastFuelRemaining
@@ -201,9 +233,18 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
 
         try
         {
-            return GenericMindWasmProtocol.ParseDecisions(
+            GenericMindRuntimeDecisions decisions =
+                GenericMindWasmProtocol.ParseDecisions(
                 reply.Bytes,
                 observation.Tick);
+            if (_perfDiagnostics)
+            {
+                _parseWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+                _parseAllocatedBytes += GC.GetTotalAllocatedBytes(
+                    precise: false) - allocationStart;
+                _executedTicks++;
+            }
+            return decisions;
         }
         catch
         {
@@ -461,6 +502,19 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
             MarkDead("Runtime disposed.");
             if (stopped)
             {
+                if (_perfDiagnostics && _executedTicks > 0)
+                {
+                    Console.Error.WriteLine(
+                        $"PERF mind-runtime p{_participantId}: "
+                        + $"ticks={_executedTicks} "
+                        + $"format={Stopwatch.GetElapsedTime(0, _formatWallTicks).TotalMilliseconds:F1}ms/"
+                        + $"{_formatAllocatedBytes / 1_048_576.0:F1}MiB "
+                        + $"exchange={Stopwatch.GetElapsedTime(0, _exchangeWallTicks).TotalMilliseconds:F1}ms "
+                        + $"parse={Stopwatch.GetElapsedTime(0, _parseWallTicks).TotalMilliseconds:F1}ms/"
+                        + $"{_parseAllocatedBytes / 1_048_576.0:F1}MiB "
+                        + $"host={_hostFrameBytes / 1_048_576.0:F1}MiB "
+                        + $"guest={_guestFrameBytes / 1_048_576.0:F1}MiB");
+                }
                 _guestThread = null;
                 _store?.Dispose();
                 _toGuest?.Dispose();

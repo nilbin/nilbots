@@ -1047,6 +1047,143 @@
         }
       }
     },
+    "/api/arc-relay/catalog": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelayCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/sheets": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArcRelaySheetResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveArcRelaySheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelaySheetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/sheets/{sheetId}": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveArcRelaySheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelaySheetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arc-relay/matches": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArcRelayMatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMatchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -1227,6 +1364,413 @@
               "null",
               "integer"
             ],
+            "format": "int32"
+          }
+        }
+      },
+      "ArcRelayCarrierPolicy": {
+        "required": [
+          "handoffHealthAtOrBelow",
+          "preferAssignedTheater",
+          "routeFailureTicks"
+        ],
+        "type": "object",
+        "properties": {
+          "handoffHealthAtOrBelow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "preferAssignedTheater": {
+            "type": "boolean"
+          },
+          "routeFailureTicks": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ArcRelayCatalogResponse": {
+        "required": [
+          "playlistKey",
+          "playlistVersionId",
+          "mapId",
+          "mapRows",
+          "slotCount",
+          "maximumCopiesPerClass",
+          "theaters",
+          "roles",
+          "gambitTriggers",
+          "classes",
+          "newSheetTemplate"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistKey": {
+            "type": "string"
+          },
+          "playlistVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "mapRows": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "slotCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumCopiesPerClass": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "theaters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gambitTriggers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelayClassResponse"
+            }
+          },
+          "newSheetTemplate": {
+            "$ref": "#/components/schemas/ArcRelaySheetDocument"
+          }
+        }
+      },
+      "ArcRelayClassResponse": {
+        "required": [
+          "id",
+          "name",
+          "signatureName",
+          "fantasy",
+          "starter",
+          "unlocked"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "signatureName": {
+            "type": "string"
+          },
+          "fantasy": {
+            "type": "string"
+          },
+          "starter": {
+            "type": "boolean"
+          },
+          "unlocked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArcRelayEscortPolicy": {
+        "required": [
+          "followDistance",
+          "focusEnemyCarrier"
+        ],
+        "type": "object",
+        "properties": {
+          "followDistance": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "focusEnemyCarrier": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArcRelayInterceptionPolicy": {
+        "required": [
+          "focusEnemyCarrier",
+          "looseCoreFallback"
+        ],
+        "type": "object",
+        "properties": {
+          "focusEnemyCarrier": {
+            "type": "boolean"
+          },
+          "looseCoreFallback": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArcRelaySheetDocument": {
+        "required": [
+          "schemaVersion",
+          "mapId",
+          "slots",
+          "zones",
+          "rallyLines",
+          "policies",
+          "gambits"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetSlot"
+            }
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetZone"
+            }
+          },
+          "rallyLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetRallyLine"
+            }
+          },
+          "policies": {
+            "$ref": "#/components/schemas/ArcRelaySheetPolicies"
+          },
+          "gambits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetGambit"
+            }
+          }
+        }
+      },
+      "ArcRelaySheetGambit": {
+        "required": [
+          "id",
+          "trigger",
+          "durationTicks",
+          "cooldownTicks",
+          "scopeRoles",
+          "roleOverride",
+          "rallyLineId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "durationTicks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cooldownTicks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scopeRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roleOverride": {
+            "type": "string"
+          },
+          "rallyLineId": {
+            "type": "string"
+          }
+        }
+      },
+      "ArcRelaySheetPoint": {
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "y": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ArcRelaySheetPolicies": {
+        "required": [
+          "carrier",
+          "escort",
+          "interception"
+        ],
+        "type": "object",
+        "properties": {
+          "carrier": {
+            "$ref": "#/components/schemas/ArcRelayCarrierPolicy"
+          },
+          "escort": {
+            "$ref": "#/components/schemas/ArcRelayEscortPolicy"
+          },
+          "interception": {
+            "$ref": "#/components/schemas/ArcRelayInterceptionPolicy"
+          }
+        }
+      },
+      "ArcRelaySheetRallyLine": {
+        "required": [
+          "id",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetPoint"
+            }
+          }
+        }
+      },
+      "ArcRelaySheetResponse": {
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "contentHash",
+          "createdAt",
+          "updatedAt",
+          "document"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document": {
+            "$ref": "#/components/schemas/ArcRelaySheetDocument"
+          }
+        }
+      },
+      "ArcRelaySheetSlot": {
+        "required": [
+          "unitId",
+          "classId",
+          "theater",
+          "role",
+          "partnerUnitId",
+          "outboundPath",
+          "returnPath"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "theater": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "partnerUnitId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outboundPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetPoint"
+            }
+          },
+          "returnPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySheetPoint"
+            }
+          }
+        }
+      },
+      "ArcRelaySheetZone": {
+        "required": [
+          "id",
+          "minX",
+          "minY",
+          "maxX",
+          "maxY"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "minX": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxX": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxY": {
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -2140,6 +2684,31 @@
           }
         }
       },
+      "CreateArcRelayMatchRequest": {
+        "required": [
+          "sheetId",
+          "opponentSheetId",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "sheetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "opponentSheetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "CreateBotRequest": {
         "required": [
           "name",
@@ -2741,8 +3310,8 @@
             "format": "int32"
           },
           "presentationTicksPerSecond": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "presentationTick": {
             "type": "integer",
@@ -3468,6 +4037,29 @@
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "SaveArcRelaySheetRequest": {
+        "required": [
+          "name",
+          "expectedRevision",
+          "document"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "document": {
+            "$ref": "#/components/schemas/ArcRelaySheetDocument"
           }
         }
       },

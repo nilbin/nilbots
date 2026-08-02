@@ -1,9 +1,12 @@
+using System.Diagnostics;
+using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
 using BotArena.Engine;
+using BotArena.Runtime;
 using BotArena.Runtime.Wasm;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,8 +22,11 @@ public sealed class GenericActorMatchExecutor(
     IObjectStore objectStore,
     MatchReplayWriter replayWriter,
     HostedGenericMatchDefinitionRegistry definitions,
+    ArcRelayPlayerSheetCodec sheetCodec,
+    ArcRelayClassCatalog classCatalog,
     MatchExecutionSettings settings,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    ILogger<GenericActorMatchExecutor> logger)
 {
     public async Task<JobExecutionResult> HandleAsync(
         Match match,
@@ -56,13 +62,35 @@ public sealed class GenericActorMatchExecutor(
                 $"'{expected.ExecutionEngineVersion}', but this worker " +
                 $"provides '{BotArenaVersions.GenericActorEngineVersion}'.");
         }
-        ValidatePinnedMatch(match, playlistVersion, expected.Match);
-
         List<MatchParticipant> participants =
             match.Participants
                 .OrderBy(participant => participant.Slot)
                 .ToList();
-        ValidateParticipants(expected.Match, participants);
+
+        var sheetCompilations = new ArcRelaySheetCompilation?[participants.Count];
+        HostedGenericParticipantInput[] participantInputs = participants
+            .Select((participant, index) =>
+            {
+                IReadOnlyList<string> classes = [];
+                if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind)
+                {
+                    ArcRelaySheetCompilation compilation =
+                        ValidateTrustedSheetSnapshot(participant);
+                    sheetCompilations[index] = compilation;
+                    classes = compilation.Classes;
+                }
+                return new HostedGenericParticipantInput(
+                    participant.Slot,
+                    participant.TeamId
+                        ?? throw new InvalidOperationException(
+                            $"Participant {participant.Slot} has no team snapshot."),
+                    classes);
+            })
+            .ToArray();
+        ActorResolvedMatchDefinition resolvedDefinition =
+            expected.ResolveMatch(participantInputs);
+        ValidatePinnedMatch(match, playlistVersion, resolvedDefinition);
+        ValidateParticipants(resolvedDefinition, participants);
 
         var versions = new List<BotVersion>(participants.Count);
         var modulePaths = new List<string>(participants.Count);
@@ -99,91 +127,164 @@ public sealed class GenericActorMatchExecutor(
             }
 
             versions.Add(version);
-            modulePaths.Add(
-                await objectStore.MaterializeAsync(
-                    version.ArtifactKey,
-                    version.ArtifactHash,
-                    cancellationToken));
+            if (expected.RuntimeModel == HostedGenericRuntimeModel.SubmittedActorWasm)
+            {
+                modulePaths.Add(
+                    await objectStore.MaterializeAsync(
+                        version.ArtifactKey,
+                        version.ArtifactHash,
+                        cancellationToken));
+            }
         }
 
-        var factories =
-            new List<WasmGenericActorRuntimeFactory>(
-                participants.Count);
+        var factories = new List<IDisposable>(participants.Count);
         GenericActorMatchResult result;
-        GenericActorReplayDocument replay;
+        ReadOnlyMemory<byte> replayBytes;
+        string replayHash;
+        int replayFormatVersion;
+        TimeSpan simulationElapsed;
+        TimeSpan replayElapsed;
         try
         {
-            for (int index = 0;
-                 index < participants.Count;
-                 index++)
+            GenericActorParticipantConfiguration[] configurations;
+            if (expected.RuntimeModel == HostedGenericRuntimeModel.SubmittedActorWasm)
             {
-                var factory =
-                    new WasmGenericActorRuntimeFactory(
+                var actorFactories = new WasmGenericActorRuntimeFactory[participants.Count];
+                for (int index = 0; index < participants.Count; index++)
+                {
+                    var factory = new WasmGenericActorRuntimeFactory(
                         new WasmRuntimeOptions
                         {
                             ModulePath = modulePaths[index],
-                            BotName =
-                                versions[index].GuestBotName ?? "",
+                            BotName = versions[index].GuestBotName ?? "",
                         });
-                if (!string.Equals(
+                    if (!string.Equals(
                         factory.ArtifactHash,
-                        participants[index]
-                            .ArtifactHashSnapshot,
+                        participants[index].ArtifactHashSnapshot,
                         StringComparison.OrdinalIgnoreCase))
-                {
-                    factory.Dispose();
-                    throw new InvalidOperationException(
-                        $"Materialized artifact for participant " +
-                        $"{participants[index].Slot} does not match its " +
-                        "pinned snapshot.");
+                    {
+                        factory.Dispose();
+                        throw new InvalidOperationException(
+                            $"Materialized artifact for participant " +
+                            $"{participants[index].Slot} does not match its " +
+                            "pinned snapshot.");
+                    }
+                    actorFactories[index] = factory;
+                    factories.Add(factory);
                 }
-                factories.Add(factory);
+                configurations = participants.Select((participant, index) =>
+                    new GenericActorParticipantConfiguration
+                    {
+                        ParticipantId = participant.Slot,
+                        TeamId = participant.TeamId!.Value,
+                        Name = participant.NameSnapshot,
+                        RuntimeFactory = actorFactories[index],
+                        RuntimeKind = "wasm",
+                        ArtifactHash = participant.ArtifactHashSnapshot,
+                        Accent = participant.AccentSnapshot,
+                        LookId = participant.LookIdSnapshot,
+                        ProjectileLookId = participant.ProjectileLookIdSnapshot,
+                    }).ToArray();
             }
-
-            GenericActorParticipantConfiguration[] configurations =
-                participants
-                    .Select((participant, index) =>
-                        new GenericActorParticipantConfiguration
-                        {
-                            ParticipantId = participant.Slot,
-                            TeamId = participant.TeamId!.Value,
-                            Name = participant.NameSnapshot,
-                            RuntimeFactory = factories[index],
-                            RuntimeKind = "wasm",
-                            ArtifactHash =
-                                participant.ArtifactHashSnapshot,
-                            Accent = participant.AccentSnapshot,
-                            LookId = participant.LookIdSnapshot,
-                            ProjectileLookId =
-                                participant
-                                    .ProjectileLookIdSnapshot,
-                        })
-                    .ToArray();
+            else
+            {
+                var mindFactories = new InProcessGenericMindRuntimeFactory[participants.Count];
+                for (int index = 0; index < participants.Count; index++)
+                {
+                    var factory = new InProcessGenericMindRuntimeFactory(
+                        static () => new global::ArcRelayStockMind(),
+                        trustedArcRelayStockProjection: true);
+                    mindFactories[index] = factory;
+                    factories.Add(factory);
+                }
+                configurations = participants.Select((participant, index) =>
+                {
+                    ArcRelaySheetCompilation compilation = sheetCompilations[index]
+                        ?? throw new InvalidOperationException("Trusted stock mind has no sheet snapshot.");
+                    return new GenericActorParticipantConfiguration
+                    {
+                        ParticipantId = participant.Slot,
+                        TeamId = participant.TeamId!.Value,
+                        Name = participant.NameSnapshot,
+                        MindRuntimeFactory = mindFactories[index],
+                        RuntimeKind = "trusted-stock-in-process-v1",
+                        ArtifactHash = participant.ArtifactHashSnapshot,
+                        MindDataHash = compilation.ContentHash,
+                        MindEvaluationData = [.. compilation.LinkedData],
+                        Accent = participant.AccentSnapshot,
+                        LookId = participant.LookIdSnapshot,
+                        ProjectileLookId = participant.ProjectileLookIdSnapshot,
+                    };
+                }).ToArray();
+            }
             using var session = new GenericActorMatchSession(
-                expected.Match,
+                resolvedDefinition,
                 configurations,
-                unchecked((ulong)match.Seed));
-            result = session.Run();
-            replay = GenericActorReplayDocument.Create(
-                session,
-                expected.ReplayPresentation);
+                unchecked((ulong)match.Seed),
+                recordChronology:
+                    expected.RuntimeModel
+                    == HostedGenericRuntimeModel.SubmittedActorWasm);
+            if (expected.RuntimeModel == HostedGenericRuntimeModel.TrustedStockMind)
+            {
+                ArcRelayBroadcastDocument broadcast =
+                    ArcRelayBroadcastDocument.CreateAndRun(
+                        session,
+                        expected.ReplayPresentation);
+                result = broadcast.Result;
+                replayBytes = broadcast.CanonicalUtf8;
+                replayHash = broadcast.ReplayHash;
+                replayFormatVersion = ArcRelayBroadcastDocument.FormatVersion;
+                simulationElapsed = broadcast.SimulationElapsed;
+                replayElapsed = broadcast.ProjectionElapsed;
+            }
+            else
+            {
+                long simulationStarted = Stopwatch.GetTimestamp();
+                result = session.Run();
+                simulationElapsed = Stopwatch.GetElapsedTime(simulationStarted);
+                long replayStarted = Stopwatch.GetTimestamp();
+                GenericActorReplayDocument replay =
+                    GenericActorReplayDocument.Create(
+                        session,
+                        expected.ReplayPresentation);
+                replayElapsed = Stopwatch.GetElapsedTime(replayStarted);
+                replayBytes = replay.CanonicalUtf8;
+                replayHash = replay.ReplayHash;
+                replayFormatVersion =
+                    BotArenaVersions.GenericActorReplayFormatVersion;
+            }
             // The session now owns and disposes every factory.
             factories.Clear();
         }
         finally
         {
-            foreach (WasmGenericActorRuntimeFactory factory in factories)
+            foreach (IDisposable factory in factories)
                 factory.Dispose();
         }
 
-        match.ReplayKey =
-            await replayWriter.WriteCanonicalJsonAsync(
+        long writeStarted = Stopwatch.GetTimestamp();
+        int storedReplayBytes;
+        if (replayFormatVersion == ArcRelayBroadcastDocument.FormatVersion)
+        {
+            CompressedReplayWrite compressed =
+                await replayWriter.WriteGzipJsonAsync(
+                    match.Id,
+                    replayBytes,
+                    cancellationToken);
+            match.ReplayKey = compressed.Key;
+            storedReplayBytes = compressed.StoredBytes;
+        }
+        else
+        {
+            match.ReplayKey = await replayWriter.WriteCanonicalJsonAsync(
                 match.Id,
-                replay.CanonicalJson,
+                replayBytes,
                 cancellationToken);
-        match.ReplayHash = replay.ReplayHash;
-        match.ReplayFormatVersion =
-            BotArenaVersions.GenericActorReplayFormatVersion;
+            storedReplayBytes = replayBytes.Length;
+        }
+        TimeSpan writeElapsed = Stopwatch.GetElapsedTime(writeStarted);
+        match.ReplayHash = replayHash;
+        match.ReplayFormatVersion = replayFormatVersion;
         GenericMatchResultPersistence.Apply(match, result);
         match.Status = MatchStatus.Completed;
         DateTime completedAt =
@@ -192,10 +293,51 @@ public sealed class GenericActorMatchExecutor(
         match.BroadcastStartedAt = completedAt.AddSeconds(
             settings.BroadcastDelaySeconds);
         match.PresentationTicksPerSecond =
-            settings.BroadcastTicksPerSecond;
+            expected.PresentationTicksPerSecond
+            ?? settings.BroadcastTicksPerSecond;
 
+        long persistStarted = Stopwatch.GetTimestamp();
         await db.SaveChangesAsync(cancellationToken);
+        TimeSpan persistElapsed = Stopwatch.GetElapsedTime(persistStarted);
+        logger.LogInformation(
+            "Executed hosted generic match {MatchId} via {RuntimeModel}: simulation {SimulationMs:F1} ms, replay projection {ReplayMs:F1} ms ({ReplayBytes} bytes, {StoredReplayBytes} stored), object write {WriteMs:F1} ms, result persistence {PersistMs:F1} ms",
+            match.Id,
+            expected.RuntimeModel,
+            simulationElapsed.TotalMilliseconds,
+            replayElapsed.TotalMilliseconds,
+            replayBytes.Length,
+            storedReplayBytes,
+            writeElapsed.TotalMilliseconds,
+            persistElapsed.TotalMilliseconds);
         return new JobExecutionResult("completed");
+
+        ArcRelaySheetCompilation ValidateTrustedSheetSnapshot(
+            MatchParticipant participant)
+        {
+            if (participant.SheetIdSnapshot is not Guid sheetId
+                || participant.SheetRevisionSnapshot is not int revision
+                || participant.SheetHashSnapshot is not { } sheetHash
+                || participant.SheetCanonicalJsonSnapshot is not { } canonicalJson
+                || participant.MindDataSnapshot is not { } linkedData)
+            {
+                throw new InvalidOperationException(
+                    $"Trusted-stock participant {participant.Slot} has no complete immutable sheet snapshot.");
+            }
+            IReadOnlySet<string> everyClass = classCatalog.All
+                .Select(value => value.Id)
+                .ToHashSet(StringComparer.Ordinal);
+            ArcRelaySheetCompilation compilation = sheetCodec.Compile(
+                sheetCodec.Read(canonicalJson),
+                everyClass,
+                $"{sheetId}:r{revision}");
+            if (!string.Equals(compilation.ContentHash, sheetHash, StringComparison.Ordinal)
+                || !compilation.LinkedData.AsSpan().SequenceEqual(linkedData))
+            {
+                throw new InvalidOperationException(
+                    $"Trusted-stock participant {participant.Slot} sheet snapshot failed verification.");
+            }
+            return compilation;
+        }
     }
 
     private static void ValidatePinnedMatch(

@@ -154,12 +154,21 @@ export type Leaderboard = Schemas['LeaderboardResponse'];
 export type LabsCatalog = Schemas['LabsCatalogResponse'];
 export type LabsPlaylist = Schemas['LabsPlaylistResponse'];
 export type CreatedMatch = Schemas['CreatedMatchResponse'];
+export type ArcRelayCatalog = Schemas['ArcRelayCatalogResponse'];
+export type ArcRelayClass = Schemas['ArcRelayClassResponse'];
+export type ArcRelaySheet = Schemas['ArcRelaySheetResponse'];
+export type ArcRelaySheetDocument = Schemas['ArcRelaySheetDocument'];
+export type ArcRelaySheetSlot = Schemas['ArcRelaySheetSlot'];
+export type ArcRelaySheetPoint = Schemas['ArcRelaySheetPoint'];
+export type ArcRelaySheetGambit = Schemas['ArcRelaySheetGambit'];
 
 export type CreateBotRequest = Schemas['CreateBotRequest'];
 export type CreatedBot = Schemas['CreatedBot'];
 export type AssignBotClassRequest = Schemas['AssignBotClassRequest'];
 export type AssignedBotClass = Schemas['AssignedBotClass'];
 export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
+export type SaveArcRelaySheetRequest = Schemas['SaveArcRelaySheetRequest'];
+export type CreateArcRelayMatchRequest = Schemas['CreateArcRelayMatchRequest'];
 export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
 export type ChallengeRequest = Schemas['ChallengeRequest'];
 export type RankedChallengeRequest = Schemas['RankedChallengeRequest'];
@@ -202,6 +211,8 @@ export const endpoints = {
   botStats: (botId: string) => api.get<BotStatistics>(`/api/bots/${botId}/stats`),
   arena: () => api.get<ArenaCapabilities>('/api/arena'),
   labs: () => api.get<LabsCatalog>('/api/labs'),
+  arcRelayCatalog: () => api.get<ArcRelayCatalog>('/api/arc-relay/catalog'),
+  arcRelaySheets: () => api.get<ArcRelaySheet[]>('/api/arc-relay/sheets'),
   leaderboard: (rules?: string | null) =>
     api.get<Leaderboard>(
       `/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`,
@@ -233,6 +244,12 @@ export const endpoints = {
     api.post<{ id: string }>('/api/matches/ranked', body),
   createLabsMatch: (body: CreateLabsMatchRequest) =>
     api.post<CreatedMatch>('/api/labs/matches', body),
+  createArcRelaySheet: (body: SaveArcRelaySheetRequest) =>
+    api.post<ArcRelaySheet>('/api/arc-relay/sheets', body),
+  updateArcRelaySheet: (sheetId: string, body: SaveArcRelaySheetRequest) =>
+    api.put<ArcRelaySheet>(`/api/arc-relay/sheets/${sheetId}`, body),
+  createArcRelayMatch: (body: CreateArcRelayMatchRequest) =>
+    api.post<CreatedMatch>('/api/arc-relay/matches', body),
   updateAppearance: (botId: string, body: UpdateBotAppearanceRequest) =>
     api.put<unknown>(`/api/bots/${botId}/appearance`, body),
   register: (body: RegisterRequest) => api.post<unknown>('/api/accounts/register', body),

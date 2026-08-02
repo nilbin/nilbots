@@ -82,19 +82,42 @@ export interface ArcRelayBroadcastV1 {
   result: V3.ReplayV3Result;
 }
 
+/**
+ * Product playback transport. Unlike the audit-addressed v1 gallery slice,
+ * v2 owns a deterministic hash of its compact payload and may be truncated by
+ * the hosted presentation clock without exposing terminal facts.
+ */
+export interface ArcRelayBroadcastV2 {
+  broadcastVersion: 2;
+  replayHash: string | null;
+  partial: boolean;
+  header: V3.ReplayV3Header;
+  initial: WorldTuple;
+  worlds: WorldTuple[];
+  turns: TurnTuple[][];
+  startEvents: V3.ReplayV3AuthoritativeEvent[][];
+  events: V3.ReplayV3AuthoritativeEvent[][];
+  traversals: V3.ReplayV3ProjectileTraversal[][];
+  births: LifeTuple[][];
+  result: V3.ReplayV3Result | null;
+}
+
+export type ArcRelayBroadcast = ArcRelayBroadcastV1 | ArcRelayBroadcastV2;
+
 export function isArcRelayBroadcastV1(
   input: unknown,
-): input is ArcRelayBroadcastV1 {
+): input is ArcRelayBroadcast {
   return (
     typeof input === 'object' &&
     input !== null &&
-    (input as { broadcastVersion?: unknown }).broadcastVersion === 1
+    ((input as { broadcastVersion?: unknown }).broadcastVersion === 1 ||
+      (input as { broadcastVersion?: unknown }).broadcastVersion === 2)
   );
 }
 
 /** Expand the transport into the existing replay-v3 normalization boundary. */
 export function expandArcRelayBroadcastV1(
-  broadcast: ArcRelayBroadcastV1,
+  broadcast: ArcRelayBroadcast,
 ): V3.ReplayV3Document {
   if (broadcast.header.replayVersion !== 3) {
     throw new Error('Arc Relay broadcast header must address replay v3.');
@@ -109,8 +132,16 @@ export function expandArcRelayBroadcastV1(
   ) {
     throw new Error('Arc Relay broadcast columns must have equal tick counts.');
   }
-  if (!/^[0-9a-f]{64}$/.test(broadcast.canonicalReplayHash)) {
-    throw new Error('Arc Relay broadcast needs a canonical replay hash.');
+  const replayHash = broadcast.broadcastVersion === 1
+    ? broadcast.canonicalReplayHash
+    : broadcast.replayHash;
+  const partial = broadcast.broadcastVersion === 2 && broadcast.partial;
+  if ((!partial && (replayHash === null || !/^[0-9a-f]{64}$/.test(replayHash))) ||
+      (partial && replayHash !== null)) {
+    throw new Error('Arc Relay broadcast has an invalid replay hash state.');
+  }
+  if ((partial && broadcast.result !== null) || (!partial && broadcast.result === null)) {
+    throw new Error('Arc Relay broadcast result and partial marker disagree.');
   }
 
   const fingerprint = broadcast.header.contract.matchContractFingerprint;
@@ -157,8 +188,8 @@ export function expandArcRelayBroadcastV1(
     },
     ticks,
     result: broadcast.result,
-    replayHash: broadcast.canonicalReplayHash,
-    partial: false,
+    replayHash,
+    partial,
   };
 }
 

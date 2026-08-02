@@ -40,6 +40,7 @@ export default function Shell() {
           >
             <TopLink to="/">Rankings</TopLink>
             <TopLink to="/bots">Bots</TopLink>
+            <TopLink to="/relay">Relay</TopLink>
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
           </nav>

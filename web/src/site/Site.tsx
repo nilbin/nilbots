@@ -22,6 +22,7 @@ import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
 import RankingsPage from './pages/RankingsPage';
 import DocsPage from './pages/DocsPage';
+import ArcRelayPage from './pages/ArcRelayPage';
 
 export default function Site() {
   // Per-mount rather than module level: a module-level client survives hot reloads and
@@ -109,6 +110,14 @@ export default function Site() {
                 element={
                   <TitledPage title="Garage">
                     <GaragePage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/relay"
+                element={
+                  <TitledPage title="Arc Relay">
+                    <ArcRelayPage />
                   </TitledPage>
                 }
               />

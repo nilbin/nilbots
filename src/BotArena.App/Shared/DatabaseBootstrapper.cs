@@ -41,6 +41,14 @@ public static class DatabaseBootstrapper
         logger.LogInformation(
             "Verified immutable Frontline Labs playlist version {PlaylistVersionId}",
             labsVersion.Id);
+        var arcRelaySeeder =
+            scope.ServiceProvider.GetRequiredService<ArcRelayPlaylistSeeder>();
+        ArcRelaySeedResult arcRelay =
+            await arcRelaySeeder.SeedAsync(cancellationToken);
+        logger.LogInformation(
+            "Verified immutable Arc Relay playlist {PlaylistVersionId} and stock artifact {ArtifactHash}",
+            arcRelay.PlaylistVersion.Id,
+            arcRelay.StockBotVersion.ArtifactHash);
         if (configuration["BOTARENA_OBJECT_MIGRATION_SOURCE"] is { Length: > 0 } source)
         {
             int count = await ObjectStoreMigrator.MigrateAsync(

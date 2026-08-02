@@ -98,7 +98,7 @@ public sealed record GenericActorReplayDocument
             replayHash);
     }
 
-    private static ReplayV3.PresentationMetadata? Presentation(
+    internal static ReplayV3.PresentationMetadata? Presentation(
         GenericActorReplayPresentation? presentation)
     {
         if (presentation is null)

@@ -17,7 +17,8 @@ public sealed record GenericActorParticipantProvenance
         string? artifactHash,
         string accent,
         string? lookId,
-        string? projectileLookId)
+        string? projectileLookId,
+        string? mindDataHash = null)
     {
         if (participantId < 0)
         {
@@ -31,6 +32,7 @@ public sealed record GenericActorParticipantProvenance
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeKind);
         ArgumentException.ThrowIfNullOrWhiteSpace(accent);
         ValidateOptionalMetadata(artifactHash, nameof(artifactHash));
+        ValidateOptionalMetadata(mindDataHash, nameof(mindDataHash));
         ValidateOptionalMetadata(lookId, nameof(lookId));
         ValidateOptionalMetadata(
             projectileLookId,
@@ -41,6 +43,7 @@ public sealed record GenericActorParticipantProvenance
         Name = name;
         RuntimeKind = runtimeKind;
         ArtifactHash = artifactHash;
+        MindDataHash = mindDataHash;
         Accent = accent;
         LookId = lookId;
         ProjectileLookId = projectileLookId;
@@ -51,6 +54,7 @@ public sealed record GenericActorParticipantProvenance
     public string Name { get; }
     public string RuntimeKind { get; }
     public string? ArtifactHash { get; }
+    public string? MindDataHash { get; }
     public string Accent { get; }
     public string? LookId { get; }
     public string? ProjectileLookId { get; }
@@ -107,7 +111,8 @@ public sealed record GenericActorParticipantProvenance
                     configuration.ArtifactHash,
                     configuration.Accent,
                     configuration.LookId,
-                    configuration.ProjectileLookId));
+                    configuration.ProjectileLookId,
+                    configuration.MindDataHash));
         }
 
         return CanonicalizeExact(

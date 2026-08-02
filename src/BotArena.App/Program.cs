@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
+using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
@@ -71,6 +72,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
+builder.Services.AddSingleton(ArcRelayClassCatalog.Default);
+builder.Services.AddSingleton<ArcRelayPlayerSheetCodec>();
+builder.Services.AddScoped<ArcRelayClassEntitlementService>();
 builder.Services.AddSingleton<BotClassPolicy>();
 builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
@@ -111,8 +115,11 @@ builder.Services.AddScoped<RankedMatchSetFinalizer>();
 builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
 builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
 builder.Services.AddScoped<FrontlineLabsPlaylistSeeder>();
+builder.Services.AddScoped<ArcRelayPlaylistSeeder>();
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => FrontlineLabsPlaylistDefinition.Create());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 
 if (mode.RunsWeb)
@@ -280,6 +287,7 @@ if (mode.RunsWeb)
     app.MapMatches();
     app.MapArenaCapabilities();
     app.MapFrontlineLabs();
+    app.MapArcRelay();
     app.MapRanked();
     app.MapUserNotifications();
     app.MapExternalAuth();

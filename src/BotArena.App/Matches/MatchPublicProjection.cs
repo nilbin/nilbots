@@ -80,7 +80,7 @@ public sealed record MatchLiveResponse(
     string Status,
     Guid? MatchSetId,
     int? SetGame,
-    int PresentationTicksPerSecond,
+    double PresentationTicksPerSecond,
     int PresentationTick,
     int? TotalTicks,
     bool BroadcastComplete,

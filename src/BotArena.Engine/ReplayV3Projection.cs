@@ -31,7 +31,7 @@ internal static class ReplayV3Projection
             Partial: chronology.Partial);
     }
 
-    private static ReplayV3.ReplayHeader Header(
+    internal static ReplayV3.ReplayHeader Header(
         GenericActorMatchDescriptor descriptor,
         ReplayV3.PresentationMetadata? presentation)
     {
@@ -201,7 +201,8 @@ internal static class ReplayV3Projection
             participant.ArtifactHash,
             participant.Accent,
             participant.LookId,
-            participant.ProjectileLookId);
+            participant.ProjectileLookId,
+            participant.MindDataHash);
 
     private static ReplayV3.ReplayInitialFrame InitialFrame(
         GenericActorMatchInitialFrame frame) =>
@@ -742,7 +743,7 @@ internal static class ReplayV3Projection
                 "Unknown raw action argument."),
         };
 
-    private static ReplayV3.ActionResolution ActionResolution(
+    internal static ReplayV3.ActionResolution ActionResolution(
         GenericActorRuntimeActionResolution value) =>
         new(
             value.SubmittedAction is null
@@ -1028,7 +1029,7 @@ internal static class ReplayV3Projection
                 "Unknown event payload."),
         };
 
-    private static ReplayV3.AuthoritativeEvent Event(
+    internal static ReplayV3.AuthoritativeEvent Event(
         GenericActorAuthoritativeEvent value) =>
         new(
             value.EventHandle,
@@ -1179,7 +1180,7 @@ internal static class ReplayV3Projection
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
-    private static ReplayV3.ProjectileTraversal Traversal(
+    internal static ReplayV3.ProjectileTraversal Traversal(
         GenericActorProjectileTraversal value) =>
         new(
             value.Tick,
@@ -1237,7 +1238,7 @@ internal static class ReplayV3Projection
                 "Unknown projectile terminal disposition."),
         };
 
-    private static ReplayV3.WorldState WorldState(
+    internal static ReplayV3.WorldState WorldState(
         GenericActorWorldSnapshot value) =>
         new(
             value.MatchContractFingerprint,
@@ -1463,7 +1464,7 @@ internal static class ReplayV3Projection
             value.LatestPulseTeamId,
             value.LatestPulseTick);
 
-    private static ReplayV3.MatchResult MatchResult(
+    internal static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>
         new(
             value.CompletionReason,

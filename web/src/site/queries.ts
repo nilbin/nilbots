@@ -11,6 +11,8 @@ import {
   type MatchSetDetail,
   type MatchSummary,
   type AssignBotClassRequest,
+  type CreateArcRelayMatchRequest,
+  type SaveArcRelaySheetRequest,
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
 } from './api';
@@ -48,6 +50,8 @@ const keys = {
   me: ['me'] as const,
   myBots: ['my-bots'] as const,
   notifications: ['notifications'] as const,
+  arcRelayCatalog: ['arc-relay', 'catalog'] as const,
+  arcRelaySheets: ['arc-relay', 'sheets'] as const,
 };
 
 /**
@@ -152,6 +156,25 @@ export function useLabsCatalog(enabled = true) {
     queryFn: endpoints.labs,
     enabled,
     staleTime: 5 * 60_000,
+  });
+}
+
+/** Arc Relay class/unlock vocabulary and the server-authored eight-slot starter sheet. */
+export function useArcRelayCatalog(enabled = true) {
+  return useQuery({
+    queryKey: keys.arcRelayCatalog,
+    queryFn: endpoints.arcRelayCatalog,
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Saved commander sheets are private, revisioned account data. */
+export function useArcRelaySheets(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.arcRelaySheets,
+    queryFn: endpoints.arcRelaySheets,
+    enabled,
   });
 }
 
@@ -458,6 +481,30 @@ export function useCreateLabsMatch() {
     },
     onError: () =>
       client.invalidateQueries({ queryKey: keys.arena }),
+  });
+}
+
+export function useSaveArcRelaySheet() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sheetId, body }: {
+      sheetId?: string;
+      body: SaveArcRelaySheetRequest;
+    }) => sheetId
+      ? endpoints.updateArcRelaySheet(sheetId, body)
+      : endpoints.createArcRelaySheet(body),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.arcRelaySheets }),
+  });
+}
+
+export function useCreateArcRelayMatch() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateArcRelayMatchRequest) => endpoints.createArcRelayMatch(body),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySheets });
+    },
   });
 }
 
