@@ -1,0 +1,509 @@
+{
+  "cells": [
+    {
+      "cellId": "centre-phalanx--outer-pincers--s130363--a0",
+      "matchContractFingerprint": "16769fc0eb7591988dccbe5de0270ef5b8e8cff2bf0898e876707edc67608800",
+      "seed": "130363",
+      "team0": "centre-phalanx",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "8a0737b30d94752b5a331bf26a4a09f04ce85ceb9f12259834b2e13fab5c75ec"
+    },
+    {
+      "cellId": "centre-phalanx--outer-pincers--s130363--a1",
+      "matchContractFingerprint": "9eb09dc041623b9928d6478dc324710f5fba0204988f1d11923f3bf03da5cf1a",
+      "seed": "130363",
+      "team0": "outer-pincers",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "26392f477b725c0e3da50050198ea3bda1987dada0280fd8efc186bcc5028166"
+    },
+    {
+      "cellId": "centre-phalanx--three-well-race--s130363--a0",
+      "matchContractFingerprint": "cac6cd9a0734885374d10f44505211242b76754c150f9870973162ff67a4e362",
+      "seed": "130363",
+      "team0": "centre-phalanx",
+      "team1": "three-well-race",
+      "topologyFingerprint": "20e1bc603fd45aa3319e99529cf1b8ac0fbe9550d66f24a104a5cbbb1e99603d"
+    },
+    {
+      "cellId": "centre-phalanx--three-well-race--s130363--a1",
+      "matchContractFingerprint": "e995b00984a370f35f7fb7d40304d04c3b671675e13a9479579baf8f893f5a2a",
+      "seed": "130363",
+      "team0": "three-well-race",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "dc032718c5a9c0a032433eda615a5a7b5f90b0e034dce05b1071b1720287dfa8"
+    },
+    {
+      "cellId": "control-grid--hook-burst--s130363--a0",
+      "matchContractFingerprint": "a9cd99d72b838aa8cf12ede2ee8544fdc06074fbc044c6b80b6f6ffec1e4e271",
+      "seed": "130363",
+      "team0": "control-grid",
+      "team1": "hook-burst",
+      "topologyFingerprint": "2023c5ffe1f4842a93b78848a45efef0ef2c47b3fcb743e60289685110c09a39"
+    },
+    {
+      "cellId": "control-grid--hook-burst--s130363--a1",
+      "matchContractFingerprint": "1a355538519c0992935442c8b287656dfbe1dbf77c40807f05b5e8571565ecd0",
+      "seed": "130363",
+      "team0": "hook-burst",
+      "team1": "control-grid",
+      "topologyFingerprint": "baf26d950b4ff99e76b9a540bb791a76a453e8e0e8a71feb2aa32179044c3bc7"
+    },
+    {
+      "cellId": "control-grid--mortar-wheel--s130363--a0",
+      "matchContractFingerprint": "93c1d6a4b6056b8b433e5ef9a71bc56829e847489f24118b57e9c3135aaf074e",
+      "seed": "130363",
+      "team0": "control-grid",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "1042daa71247a0d246e01ef571600ccd247e481d0fd7f15f53f4151b610c812c"
+    },
+    {
+      "cellId": "control-grid--mortar-wheel--s130363--a1",
+      "matchContractFingerprint": "bf22270c3f995a969c2a85de8141fe15aeb113c15e0eb7d0904bf6f5d4379b54",
+      "seed": "130363",
+      "team0": "mortar-wheel",
+      "team1": "control-grid",
+      "topologyFingerprint": "e9ea4a90e728f054ce38e34417210011d2bf64dd19db7321359a2e9722c7daab"
+    },
+    {
+      "cellId": "courier-sprint--fortress-counterattack--s130363--a0",
+      "matchContractFingerprint": "cc5bdb315da803c119d52a7c20f3a2f189350138963a494d51cc3819b6724ada",
+      "seed": "130363",
+      "team0": "courier-sprint",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "60519a5e5bfc57b6494a7e3452c2f84c24ab38287af09a29164f4d60e760c237"
+    },
+    {
+      "cellId": "courier-sprint--fortress-counterattack--s130363--a1",
+      "matchContractFingerprint": "c2d79519ac459d78097cd36e825e914c493bcc89e9474b37c47cc7f7e83b339b",
+      "seed": "130363",
+      "team0": "fortress-counterattack",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "be4688617faa8c9c7c018aadd10ea8f82b3f7f2c0eb7ab6de864ecce17f30198"
+    },
+    {
+      "cellId": "courier-sprint--interception--s130363--a0",
+      "matchContractFingerprint": "2e69d45fb8c49f47000c454e47c4c52939b2bbfe116812fda456eada692858a7",
+      "seed": "130363",
+      "team0": "courier-sprint",
+      "team1": "interception",
+      "topologyFingerprint": "5fdb4fb321a8be5456c8c5eb9f4d052634a8b3035b8bf389e7db7c94750e3440"
+    },
+    {
+      "cellId": "courier-sprint--interception--s130363--a1",
+      "matchContractFingerprint": "c222a8e62740e4e99e8726195370561d979e1775577f06e70db07b19f90acb3e",
+      "seed": "130363",
+      "team0": "interception",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "f9c8173b381bd27d5634844a7b2a16f6abe2732c9f89c11d689cc0e00e3340b0"
+    },
+    {
+      "cellId": "fortress-counterattack--interception--s130363--a0",
+      "matchContractFingerprint": "7343451bfaaf4c3a7e7e0110989ab854af7f3c9949bd4d5134e8db2552d14eb1",
+      "seed": "130363",
+      "team0": "fortress-counterattack",
+      "team1": "interception",
+      "topologyFingerprint": "662e6b76543c6e6e77d58b97469c49ba25275633408db00efafd362e083cb478"
+    },
+    {
+      "cellId": "fortress-counterattack--interception--s130363--a1",
+      "matchContractFingerprint": "c42fa940d01a8d2d392ea05cc0223c5d405249f6de38addb9ff5ffacd2902a5d",
+      "seed": "130363",
+      "team0": "interception",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "80944303b6cd29d0ac77e72c9c42c25f4a18517bda5e60f9cdbebeb136c98242"
+    },
+    {
+      "cellId": "hook-burst--mortar-wheel--s130363--a0",
+      "matchContractFingerprint": "fdedd1c51a4be20a2523952b37dac6d9d2ff55a6a621b74d6f2a7d79095949d0",
+      "seed": "130363",
+      "team0": "hook-burst",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "7d7b9f4b85fa7d2ba5e446f333527bbb918297e1a8a8b69f8185e387bbba6889"
+    },
+    {
+      "cellId": "hook-burst--mortar-wheel--s130363--a1",
+      "matchContractFingerprint": "18a8cb69a83991a09a3d29527a3ee91444f090d0407711b02c1218b2f0cba428",
+      "seed": "130363",
+      "team0": "mortar-wheel",
+      "team1": "hook-burst",
+      "topologyFingerprint": "56c6c8e10699b0d8a7bc277f2606cc5775296d432e006073dfa0cde96f4a5e25"
+    },
+    {
+      "cellId": "mine-crescent--sensor-grid--s130363--a0",
+      "matchContractFingerprint": "3581bae026e19bb5750f7e6a324981a218775d0b43a58db2047abd32a9345f03",
+      "seed": "130363",
+      "team0": "mine-crescent",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "c955950a195b1be125fedfaa5a161513d80d85ff7df9ad7a9cd375c393575eb5"
+    },
+    {
+      "cellId": "mine-crescent--sensor-grid--s130363--a1",
+      "matchContractFingerprint": "114a6f2cadd566dbd6a4d66f24bd78b2f2cd5a85109c5e2c6f9efa364896839b",
+      "seed": "130363",
+      "team0": "sensor-grid",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "3dc2ae0c8720f7a7b0d4d92a8f68da8688de640d50b9769d6827e19d9a163716"
+    },
+    {
+      "cellId": "mine-crescent--smoke-convoy--s130363--a0",
+      "matchContractFingerprint": "f273b6a4e2bc4fcae8af660bc490f406680e2afdd35e60e445099d59e13019aa",
+      "seed": "130363",
+      "team0": "mine-crescent",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "df2692b2f948dea0fd6be99df7df5b8640fa85cc2b3e41ace9862a5db3c327b7"
+    },
+    {
+      "cellId": "mine-crescent--smoke-convoy--s130363--a1",
+      "matchContractFingerprint": "efb6a2fddfa19091de4c565ba65c2a8148a111e328d9fecd6f1bdb5076de1024",
+      "seed": "130363",
+      "team0": "smoke-convoy",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "214e06e148c752a69c786ba5cdb93954e94125c97ff03b90c89de66d35684a9e"
+    },
+    {
+      "cellId": "outer-pincers--three-well-race--s130363--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "130363",
+      "team0": "outer-pincers",
+      "team1": "three-well-race",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "outer-pincers--three-well-race--s130363--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "130363",
+      "team0": "three-well-race",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "sensor-grid--smoke-convoy--s130363--a0",
+      "matchContractFingerprint": "ef0a4308b826ac0557f51bb3dba7140393fd3414e9055a0fdf81828ba3579515",
+      "seed": "130363",
+      "team0": "sensor-grid",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "2120878218a98d4e630708e299d6c0a405d46e5590ef8c6d31e648c8ceac0d8c"
+    },
+    {
+      "cellId": "sensor-grid--smoke-convoy--s130363--a1",
+      "matchContractFingerprint": "194718a38a8a88fc6f7a7072d8946404f1dd438f8a2b4874927d274d0089b36d",
+      "seed": "130363",
+      "team0": "smoke-convoy",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "f0c3d304264037e67af5d7603d24e131fd26e2748a8ee9e348c347b0ca984686"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/cohort.json",
+  "cohortId": "arc-relay-depth-map-counterflow-v1",
+  "cohortSha256": "116bbea0eabe13a33314e52c941c3b60e1015f9bcabc901ca97f70fd311fa085",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "eligibilityBarsSha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "balanced": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/balanced.json",
+      "sheetSha256": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137"
+    },
+    "beacon-hunt": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/beacon-hunt.json",
+      "sheetSha256": "6d7b7f62b9c5f4ee7431d7bf1928417a6d1beb5fd2fce370a5d5c5551952eaed"
+    },
+    "breach-column": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/breach-column.json",
+      "sheetSha256": "fc390cd089ed1f64c756c953c6fd170104a2dcc3010516bf7071d5d62bae64ed"
+    },
+    "centre-phalanx": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/centre-phalanx.json",
+      "sheetSha256": "ea954359e1469dfcd7f3e98730497ec7cacd28bf6e6879294504f0ab70dca60e"
+    },
+    "control-grid": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/control-grid.json",
+      "sheetSha256": "091f12cf8beb37ee15a5042a89fbe82ed6727359b4d8a8ead0da6ad457b5f545"
+    },
+    "convoy": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/convoy.json",
+      "sheetSha256": "bd468b2b528299a443c12be005bf2765938e47fb4289ff8889ae773168a7f9f7"
+    },
+    "counter-courier": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/counter-courier.json",
+      "sheetSha256": "5a4cde2e61d6f9bab16c6281218516308da7aa83e6dab9641a67806ad5e23a77"
+    },
+    "courier-sprint": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/courier-sprint.json",
+      "sheetSha256": "2dbfa9cca3e46f0ea50c8e4a390841237f83b8d5bb71974d2d54f81bc1d4893b"
+    },
+    "displacement-control": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/displacement-control.json",
+      "sheetSha256": "33ad7959779fe6f64223befbdc7b9460506e8c0ff75517aff736af5d7c5aa94f"
+    },
+    "elastic-reserve": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/elastic-reserve.json",
+      "sheetSha256": "7b6e11b230c8e4965a6c53b709056044eb0359f42a78d0a37c862508d060cb85"
+    },
+    "feint-switch": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/feint-switch.json",
+      "sheetSha256": "04d48ddb90827271ed029086874fe8bf16e1c3e3c694b17e90b80803409e0e8d"
+    },
+    "fireline-picks": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fireline-picks.json",
+      "sheetSha256": "43b2ee077846c119b448a42e953a298744d59368a501b0ca51f85cf23895000a"
+    },
+    "fortress-counterattack": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fortress-counterattack.json",
+      "sheetSha256": "92eda68aeee837dde2093b8ef7bf515dac23f7db64d746175c4b9d79ce813c1d"
+    },
+    "home-counterpunch": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/home-counterpunch.json",
+      "sheetSha256": "bfb15f294b383673406ebde1c959957c3a6999a62e7a2b1858e364e64c5cf686"
+    },
+    "hook-burst": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/hook-burst.json",
+      "sheetSha256": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97"
+    },
+    "interception": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/interception.json",
+      "sheetSha256": "bae86dbc1dd219c0b7a01bdaf6c1036dd6d38fcf9798a696c165555a49f7cfd1"
+    },
+    "mine-crescent": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/mine-crescent.json",
+      "sheetSha256": "686130b6bcc2545d1583ed4fc9a5241b1fed03b19cb0f88cf7be3728103c3428"
+    },
+    "mortar-wheel": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/mortar-wheel.json",
+      "sheetSha256": "df04d488f6279f27d0308992940823f1cfc2d7673a994ca4f6bce168f04a897a"
+    },
+    "null-veil": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/null-veil.json",
+      "sheetSha256": "e4b662b2300688cfa5481a199387dd8203e1e690c5dedbc942dfd6cbb286c6eb"
+    },
+    "outer-pincers": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/outer-pincers.json",
+      "sheetSha256": "269f5b91ee4e5fb6874c6116e9ea179eb2f5472cb4aa6cc79e23ba2daedd9d64"
+    },
+    "pod-lattice": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/pod-lattice.json",
+      "sheetSha256": "4da5dad38a8a0feaed544f89e1bb70ef6241503d3ae1df6524ad64ce07ae18a3"
+    },
+    "rail-screen": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/rail-screen.json",
+      "sheetSha256": "f210aff1618a02300338fc86a7223af57f0b2b2091c5ec8de7c8b9b40fc68223"
+    },
+    "relay-chain": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/relay-chain.json",
+      "sheetSha256": "e12013a2e038e9ae0e5dc6234329b20bc3280588cf5a44b5f04afbad18b3a1cb"
+    },
+    "repair-web": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/repair-web.json",
+      "sheetSha256": "95941d5c90aa4fc45979a28f4468fb546c63b32381cf41da8594b2873c92bcb6"
+    },
+    "rotating-bastions": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/rotating-bastions.json",
+      "sheetSha256": "10d6c6b53ac4608c25330e988f5701526199eab4baa645ef8fbe1e888a0b2ea3"
+    },
+    "sensor-grid": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/sensor-grid.json",
+      "sheetSha256": "d84288626d58cbdcfded113be44b13b079ad4e3554d2695e067f727e1d6e621c"
+    },
+    "smoke-and-mines": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/smoke-and-mines.json",
+      "sheetSha256": "4cbc482cf676a3fe2d9c618840c2b8112be86cd2d0f9137b3067a26387f7dfee"
+    },
+    "smoke-convoy": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/smoke-convoy.json",
+      "sheetSha256": "de0a3ea3635203a41c7293df65a2fbd7bddcb3ee9272d1f1be45f97da7a3b690"
+    },
+    "split": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/split.json",
+      "sheetSha256": "33bad51bbcbed960e2d4168750a4d8df2a18647b690fe4c3317182af8c23cedd"
+    },
+    "sustain-attrition": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/sustain-attrition.json",
+      "sheetSha256": "ceaec3e68e5edf6e9493998e2357965889702105355c3e023768cc1ce8a9dea5"
+    },
+    "three-well-race": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/three-well-race.json",
+      "sheetSha256": "6ce9e259018ea3d6a40b7c6585f1187dcf0b5568defc9a6b1f2d888435449ab8"
+    },
+    "trap-punish": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/trap-punish.json",
+      "sheetSha256": "bf27d3f1c247a1ac02683c188cb33b96e1d1a98e614ff6f4b4f12ad101e121c2"
+    }
+  },
+  "loopProfile": "depth-counterflow",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "outcomeBlindReview": {
+    "cells": [
+      {
+        "cellId": "mine-crescent--sensor-grid--s130363--a1",
+        "reviewId": "blind-01"
+      },
+      {
+        "cellId": "centre-phalanx--outer-pincers--s130363--a0",
+        "reviewId": "blind-02"
+      },
+      {
+        "cellId": "sensor-grid--smoke-convoy--s130363--a0",
+        "reviewId": "blind-03"
+      },
+      {
+        "cellId": "courier-sprint--fortress-counterattack--s130363--a0",
+        "reviewId": "blind-04"
+      },
+      {
+        "cellId": "control-grid--hook-burst--s130363--a1",
+        "reviewId": "blind-05"
+      },
+      {
+        "cellId": "hook-burst--mortar-wheel--s130363--a0",
+        "reviewId": "blind-06"
+      },
+      {
+        "cellId": "control-grid--mortar-wheel--s130363--a0",
+        "reviewId": "blind-07"
+      },
+      {
+        "cellId": "centre-phalanx--three-well-race--s130363--a1",
+        "reviewId": "blind-08"
+      },
+      {
+        "cellId": "hook-burst--mortar-wheel--s130363--a1",
+        "reviewId": "blind-09"
+      },
+      {
+        "cellId": "centre-phalanx--outer-pincers--s130363--a1",
+        "reviewId": "blind-10"
+      },
+      {
+        "cellId": "mine-crescent--smoke-convoy--s130363--a0",
+        "reviewId": "blind-11"
+      },
+      {
+        "cellId": "sensor-grid--smoke-convoy--s130363--a1",
+        "reviewId": "blind-12"
+      },
+      {
+        "cellId": "fortress-counterattack--interception--s130363--a0",
+        "reviewId": "blind-13"
+      },
+      {
+        "cellId": "fortress-counterattack--interception--s130363--a1",
+        "reviewId": "blind-14"
+      },
+      {
+        "cellId": "outer-pincers--three-well-race--s130363--a1",
+        "reviewId": "blind-15"
+      },
+      {
+        "cellId": "courier-sprint--interception--s130363--a0",
+        "reviewId": "blind-16"
+      },
+      {
+        "cellId": "mine-crescent--smoke-convoy--s130363--a1",
+        "reviewId": "blind-17"
+      },
+      {
+        "cellId": "courier-sprint--fortress-counterattack--s130363--a1",
+        "reviewId": "blind-18"
+      },
+      {
+        "cellId": "centre-phalanx--three-well-race--s130363--a0",
+        "reviewId": "blind-19"
+      },
+      {
+        "cellId": "courier-sprint--interception--s130363--a1",
+        "reviewId": "blind-20"
+      },
+      {
+        "cellId": "outer-pincers--three-well-race--s130363--a0",
+        "reviewId": "blind-21"
+      },
+      {
+        "cellId": "mine-crescent--sensor-grid--s130363--a0",
+        "reviewId": "blind-22"
+      },
+      {
+        "cellId": "control-grid--mortar-wheel--s130363--a1",
+        "reviewId": "blind-23"
+      },
+      {
+        "cellId": "control-grid--hook-burst--s130363--a0",
+        "reviewId": "blind-24"
+      }
+    ],
+    "containsOutcomesScoresOrDurations": false,
+    "orderSeed": "20260803",
+    "preparedBeforeOutcomes": true,
+    "schema": "arc-relay-sweep-blind-review-v1"
+  },
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+  "rulesetId": "arc-relay-h0-01",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-depth-map-counterflow-counterweb-v1"
+}
