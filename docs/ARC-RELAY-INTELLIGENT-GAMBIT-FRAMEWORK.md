@@ -1,10 +1,12 @@
 # Arc Relay intelligent gambit framework
 
-Status: owner-review design proposal, 2026-08-02. This document defines the
-player model and deterministic execution semantics that a future sheet pass
-should implement. It does **not** change Arc Relay rules, fog, rendering,
-canonical replays, the current player-sheet schema, or either frozen stock
-mind.
+Status: owner-review design proposal, adversarially tightened 2026-08-02. The
+bounded design-round evidence is in
+[`docs/reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md`](reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md).
+This document defines the player model and deterministic execution semantics
+that a future sheet pass should implement. It does **not** change Arc Relay
+rules, fog, rendering, canonical replays, the current player-sheet schema, or
+either frozen stock mind.
 
 ## The new-player explanation
 
@@ -139,6 +141,24 @@ The editor checks **achievability** here: required actors exist, have the
 needed capabilities, can plausibly reach the area before the deadline, and do
 not depend on mutually impossible assignments.
 
+Participant tasks have one of three resilience classes, and may name different
+classes in preparation and commitment:
+
+| Class | Meaning |
+| --- | --- |
+| `essential` | This named body or capability is required in the phase and has no substitute. If it is lost, the phase cannot continue. |
+| `replaceable` | Fill a declared minimum from a declared candidate pool. The mind may reselect during preparation only. |
+| `optional` | Claim it if available when the phase starts; its absence or loss never blocks the play. |
+
+There is no generic `expendable` class. A sacrificial screen is an optional or
+essential task whose mission success condition says what its sacrifice buys.
+Death by itself is not success unless the authored goal was achieved.
+
+Substitution stops at commitment. Once a play has made contact, it either
+remains viable with its surviving phase minimum or aborts. It does not pull a
+cascade of defenders, escorts, and newly respawned bodies into a deteriorating
+operation.
+
 ### Reactions, release, and recovery
 
 Each phase states its rules of engagement, the facts that mean success, the
@@ -167,17 +187,21 @@ choose an immediate baseline release for plays where location does not matter.
 A gambit declares:
 
 - preparation deadline;
-- optional commit lock that prevents routine plan thrashing;
 - mission deadline;
+- recovery deadline;
+- evidence-freshness windows for remembered targets;
 - cooldown after release; and
 - re-arm rule.
 
-Success, explicit abort, loss of required actors, or an invalid causal target
-always overrides a commit lock. A minimum tenure may suppress indecisive plan
-switching; it may never force bodies to continue an already impossible play.
+A committed branch is already the anti-thrashing boundary: it never changes
+branch and ends only on success, abort, impossibility, or deadline. There is no
+separate minimum tenure capable of keeping an achieved or impossible mission
+alive.
 
 The safe default is **edge re-arm**: after a gambit ends, its situation must
 become false and later become true again, in addition to cooldown expiring.
+`unknown` does not reset the edge. Losing vision therefore cannot manufacture
+a fresh opportunity.
 “Repeat while this remains true” is an advanced explicit choice, not the
 default. This prevents a persistent condition from firing the same play every
 cooldown forever.
@@ -206,15 +230,21 @@ A gambit has this deterministic state machine:
 
 ```text
 DORMANT --prepare condition + actors available--> PREPARE
-PREPARE --commit condition----------------------> COMMIT
+PREPARE --one commit branch becomes true--------> COMMIT(branch)
 PREPARE --abort/deadline------------------------> RECOVER
-COMMIT  --success/abort/deadline----------------> RECOVER
+COMMIT(branch) --success/abort/deadline---------> RECOVER
 RECOVER --actors released or deadline----------> DORMANT + COOLDOWN
 ```
 
 For a no-preparation play, the first transition enters `COMMIT` directly.
 Every transition records its causal reason. At most one transition per gambit
 occurs in a tick.
+
+A prepared play may offer at most two ordered commit branches, chosen once;
+the first true branch wins. For example, Lantern Sweep orders
+`alternate-return` after a revealed threat before `primary-return` after a
+clear scan. Once selected, the branch cannot flip every tick. New evidence can
+satisfy success or abort, but not silently rewrite the committed mission.
 
 If the situation flickers during preparation, the gambit's authored validity
 window decides whether preparation continues. There is no implicit one-tick
@@ -231,8 +261,10 @@ For an overlapping scope:
 
 - priority is explicit and deterministic;
 - a gambit activates only if it can claim its complete minimum actor set;
-- after a commit lock, a higher-priority play may preempt a lower play once the
-  lower play's current authoritative action finishes;
+- a higher-priority play may preempt preparation or recovery after the lower
+  play's current authoritative action finishes;
+- a committed play is released only by its own success, abort, impossibility,
+  or deadline;
 - success, abort, or impossibility can always release the lower play; and
 - a lower-priority play that cannot claim its actors stays armed or expires;
   it never receives a surprising partial group.
@@ -241,6 +273,19 @@ A home emergency is not a magic exception with hidden precedence. If it must
 break a locked operation, the lower operation names that public emergency as
 an abort condition. The editor warns when an overlapping high-priority play
 cannot ever obtain its actors because a lower play lacks a compatible release.
+
+Preparation and recovery are preemptible. Commitment is not routinely
+preemptible: an overlapping higher-priority play stays armed until the
+committed play releases, unless a fact that triggered the higher play is also
+a declared abort of the committed one. This gives commitment real strategic
+weight without making emergencies invisible.
+
+When preparation loses an overlapping body to higher priority, its phase
+rules apply normally: losing an optional task changes nothing, a replaceable
+pool may select another feasible unclaimed candidate without resetting the
+deadline, and losing an essential task aborts. A body taken from recovery is
+released directly to the higher-priority play from its current position; the
+old operation cannot demand that it extract first.
 
 This is more precise than one global active gambit, and more understandable
 than independently overriding every body on every tick.
@@ -255,12 +300,90 @@ than independently overriding every body on every tick.
 | Anchor is unknown | Use an explicitly authored remembered/fallback anchor, or abort; never treat unknown as an empty field. |
 | Preferred signature unavailable | Continue the mission with legal ordinary actions; do not wait merely for the signature. |
 | Drawn path is temporarily blocked | Repath inside its corridor; after the route-failure limit, take the authored fallback or abort. |
-| A required actor dies | Continue only if the declared minimum and substitution policy still hold; otherwise recover and release. |
-| A borrowed actor respawns | It starts on baseline; it rejoins an active play only if the play explicitly permits replacement and can still meet its deadline. |
-| Success occurs early | Recover/release immediately; minimum tenure does not keep a completed operation alive. |
+| A required actor dies | In `PREPARE`, reselect only from a declared replaceable pool. In `COMMIT`, continue only if the committed minimum still holds; otherwise recover and release. |
+| A borrowed actor respawns | It starts on baseline and never rejoins the current activation. A later activation may select it normally. |
+| Success occurs early | Recover/release immediately; commitment does not keep a completed operation alive. |
 | Abort occurs during commit | Finish only an already-authoritative action, then recover; no uninterruptible strategic dead time. |
-| Higher-priority overlapping play fires | Preempt under the declared lock rule, or leave the new play armed; never merge overlays implicitly. |
+| Higher-priority overlapping play fires | Release/reselect overlapping preparation or recovery tasks. During commitment, leave the new play armed unless the committed card's own abort releases it. Never merge overlays. |
 | Recovery cannot reach its route | Resume the nearest legal baseline intent after the recovery deadline. |
+
+### 3.5 Participant loss and same-tick resolution
+
+After the authoritative tick has resolved, the next planning call processes a
+gambit's facts in this order:
+
+1. mission success;
+2. explicit abort or invalid causal target;
+3. participant feasibility and phase minimum;
+4. phase deadline;
+5. routine preemption, branch commitment, or new activation.
+
+Success wins a same-tick tie with loss. If a Towline dies on the hit that
+forces the target Core loose, Rear Hook succeeded; the survivor recovers. If
+the Towline dies without achieving the mission and the committed minimum no
+longer holds, the operation aborts.
+
+Participant behavior is exact:
+
+- loss of an `essential` preparation task aborts the operation;
+- a `replaceable` preparation pool is reselected only when the replacement can
+  reach its phase goal before the existing deadline;
+- loss of an `optional` participant never changes operation state;
+- after commitment, no new participant joins; the phase continues only while
+  its declared minimum still holds;
+- a respawn starts on baseline and never rejoins the current activation; and
+- a body carrying a Core is ineligible to be borrowed unless that task
+  explicitly permits carrying. An unexpected pickup invokes the task's
+  authored Core-safe abort or release.
+
+Recovery assigns survivor tasks such as screen, extract, or conservative
+return. It may not continue the failed mission under another name.
+
+### 3.6 Causal knowledge uses three-valued conditions
+
+Every condition evaluates to `true`, `false`, or `unknown`. Activation and
+branch selection require `true`; `unknown` never behaves like zero or false.
+
+The stock mind may use four evidence sources:
+
+| Source | Example | Required trace |
+| --- | --- | --- |
+| public current fact | Well clock, reactor state, public composition | exact contract/state field |
+| observed now | visible body, Core, signature, projectile, or fully observed zone | observer provenance and tick |
+| remembered observation | body last seen at a position within N ticks | source observation and age |
+| deterministic inference | two known interceptor bodies unobserved for N ticks while our planned return enters a risky route | every public/observed input and threshold |
+
+`zone clear now` is true only when the relevant passable tiles are currently
+observed and no target is present. A partially unseen zone is `unknown`.
+`body unobserved for N ticks` is a different, explicitly authored fact based on
+the public roster and the mind's observation ledger; it does not claim to know
+where the body is.
+
+All inferences are named, deterministic predicates with inspectable inputs.
+There is no opaque “AI confidence,” opponent-sheet access, or hidden-state
+query. Persistent memory lives inside the stock mind and requires no fog or
+renderer change.
+
+### 3.7 Bounded player grammar
+
+The first implementation should retain three gambit slots per sheet and freeze
+these limits:
+
+- one optional `PREPARE` phase, one `COMMIT` phase, and one `RECOVER` phase;
+- at most two one-time commit branches;
+- each transition has an `all-of` prerequisite list plus an optional `any-of`
+  evidence list, with no nested Boolean expression;
+- at most four `all-of` clauses and three `any-of` alternatives per
+  transition;
+- one mission, at least one success, at least one abort, and one deadline;
+- phase-scoped essential/replaceable/optional participant tasks;
+- no direct gambit-to-gambit call, loop, or scripted action sequence; and
+- edge re-arm by default. Persistent automatic repeat is not in the first
+  implementation.
+
+Three disjoint cards may therefore run concurrently, but each remains a small,
+explainable operation. More expressiveness waits on evidence that this grammar
+is too narrow, not on hypothetical cleverness.
 
 ## 4. Concrete play cards
 
@@ -280,8 +403,8 @@ inside `north-return`, and both interceptors have reached `rear-pocket`.
 the homeward fork.
 
 **Actors and area:** Two Towlines follow separate drawn infiltration paths.
-Both are required; no substitutes. Staging is part of this gambit, not their
-baseline assignment.
+Both are `essential` in preparation and commitment; there are no substitutes.
+Staging is part of this gambit, not their baseline assignment.
 
 **Reactions/release:** During preparation they use `conceal`: a harmless screen
 may be allowed to pass. Taking damage, a visible enemy entering the staging
@@ -290,7 +413,9 @@ ambush and starts `break-contact`. On commit they use `carrier-focus`
 inside the return corridor. A loose/owned Core is success. A bank, a carrier
 leaving the corridor, or a home emergency is abort. They extract to the
 nearest intercept line, then resume their ordinary opportunistic-interceptor
-baseline.
+baseline. On a loose-Core success, a surviving Towline first screens the Core
+for a bounded four-tick recovery window; an unclaimed baseline recovery body,
+not a newly commandeered gambit participant, may collect it.
 
 **Timing:** Reach staging before the Well birth; give up if no carrier appears
 within 18 ticks after birth; commit for at most 14 ticks; re-arm only after the
@@ -319,15 +444,20 @@ the carrier reaches the safe pre-fork rally.
 carrier through the fork.
 
 **Actors and area:** The carrier pauses at the rally; a Lantern sweeps three to
-four tiles ahead; a Palisade or other declared screen holds the carrier-facing
-side. The exact actors and the alternate return line are saved on the sheet.
+four tiles ahead; a Palisade or other member of a declared screen pool holds
+the carrier-facing side. The carrier and Lantern are `essential` during
+preparation; the screen is `replaceable` before commitment. After a route is
+selected, the Lantern is released and the carrier plus screen form the
+committed minimum. The exact candidates and alternate return line are saved on
+the sheet.
 
-**Reactions/release:** If the sweep finds an ambusher, mark it and switch to
-the alternate route under `defend-in-place`; do not chase the ambusher. If the
-line remains clear for five ticks, release the carrier onto the primary route.
-If the scout dies or a visible pursuer closes within three tiles, abort the
-pause and take the conservative fallback route. End when the carrier clears
-the risk zone, loses the Core, or banks.
+**Reactions/release:** A visible threat selects the one-time
+`alternate-return` commit branch under `defend-in-place`; do not chase the
+ambusher. Five ticks of fully observed clear route select `primary-return`.
+If the scout dies before either branch is justified, abort the pause and take
+the conservative recovery route. A visible pursuer closing within three tiles
+does the same. End when the carrier clears the risk zone, loses the Core, or
+banks.
 
 **Timing:** At most five ticks of probing and twelve ticks through the risk
 zone. Cooldown applies to re-running this inspection at the same fork, not to
@@ -385,8 +515,9 @@ reach the next Well in time.
 abandoning the current carrier's minimum screen.
 
 **Actors and area:** Any two of three declared reserve/outer bodies take the
-drawn cross-theater line; the current carrier and its last screen cannot be
-borrowed.
+drawn cross-theater line. They are a `replaceable` two-of-three pool during
+preparation and become the two-body `essential` committed minimum at the route
+release line. The current carrier and its last screen cannot be borrowed.
 
 **Reactions/release:** `opportunistic` on the route, no chase outside a
 two-tile leash. Success is both bodies entering the Well zone. Abort if the
@@ -460,7 +591,11 @@ The editor must reject or strongly warn on:
 - no success condition, abort, deadline, or fallback;
 - impossible actor/class requirements;
 - estimated travel longer than the preparation window;
+- a committed phase whose essential/minimum group can never be satisfied;
+- a substitute that cannot arrive before the unchanged preparation deadline;
 - a scope conflict with no deterministic priority;
+- two commit branches whose ordered conditions make the later branch
+  unreachable;
 - a permanently true default trigger with automatic repeat;
 - a recovery route that cannot reach any baseline area; and
 - a phase whose only likely output is unexplained `Wait`.
@@ -479,7 +614,9 @@ The planned sheet preview playground should expose, at every playhead:
 - each gambit's state: dormant, armed/preparing, committed, recovering, or
   cooling down;
 - the exact causal facts that passed or failed;
-- which bodies are claimed and what baseline job each will return to;
+- which bodies are claimed, their resilience class and phase, every rejected
+  substitute, and what baseline job each will return to;
+- the selected commit branch and why the other branch did not apply;
 - why a body waited, ignored a target, changed route, or released; and
 - a same-seed run with the gambit disabled.
 
@@ -493,7 +630,11 @@ For every retained activation:
 - activation conditions and information qualifiers are true in the canonical
   observation history;
 - required actors are claimed atomically;
+- preparation substitutions come only from declared pools and meet the
+  existing deadline;
+- no body joins after commitment or respawn;
 - phase transitions occur on declared reasons;
+- simultaneous success/loss resolves in the frozen order;
 - success/abort/deadline always reaches recovery and release;
 - every released body resumes a valid baseline intent by the next tick after
   recovery;
