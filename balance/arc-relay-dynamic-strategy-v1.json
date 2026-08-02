@@ -69,6 +69,33 @@
     "currentMapCounterWeb": "14 of 16 mirrored matchup sweeps, zero directed cycles, zero behind-to-ahead Pulse reversals",
     "warning": "these opened results motivate the experiment; no dynamic-strategy v1 outcome existed at registration"
   },
+  "pairBlocks": {
+    "counterWeb": {
+      "dynamicPairs": [
+        ["rear-ambush-dynamic", "well-rotation-dynamic"],
+        ["rear-ambush-dynamic", "feint-pincer-dynamic"],
+        ["rear-ambush-dynamic", "escort-counterpunch-dynamic"],
+        ["well-rotation-dynamic", "feint-pincer-dynamic"],
+        ["well-rotation-dynamic", "escort-counterpunch-dynamic"],
+        ["feint-pincer-dynamic", "escort-counterpunch-dynamic"]
+      ],
+      "staticPairs": [
+        ["rear-ambush-static", "well-rotation-static"],
+        ["rear-ambush-static", "feint-pincer-static"],
+        ["rear-ambush-static", "escort-counterpunch-static"],
+        ["well-rotation-static", "feint-pincer-static"],
+        ["well-rotation-static", "escort-counterpunch-static"],
+        ["feint-pincer-static", "escort-counterpunch-static"]
+      ]
+    },
+    "sameFamily": [
+      ["rear-ambush-static", "rear-ambush-dynamic"],
+      ["well-rotation-static", "well-rotation-dynamic"],
+      ["feint-pincer-static", "feint-pincer-dynamic"],
+      ["escort-counterpunch-static", "escort-counterpunch-dynamic"]
+    ],
+    "schedule": "both participant assignments on each disclosed seed; 64 cells per two-seed runtime block"
+  },
   "prohibitions": [
     "no new objective, score, economy, comeback, map, class, combat, or visibility rule",
     "no opponent-private sheet or mind inspection",
@@ -76,6 +103,11 @@
     "no threshold movement after a retained WASM outcome is opened",
     "no aggregate win-rate-only depth claim"
   ],
+  "registrationHistory": {
+    "originalCommit": "2e3942db",
+    "pairBlockAmendment": "the exact 64-cell pair block was added after one required rear-ambush dynamic-versus-static in-process mechanical smoke (seed 26080211, assignment 0) completed MaxTicks without a fault; the pair was required by the original registration and was not selected from that result",
+    "status": "all aggregate screens, cross-family cells, second assignment, second development seed, and retained WASM outcomes remained unopened at pair-block freeze"
+  },
   "runtimeStages": [
     "deterministic unit/mechanical probes with no balance claim",
     "registered in-process batch on development seeds 26080211 and 26080229 for gross repair/rejection",
