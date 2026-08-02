@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -87,6 +88,69 @@ internal static class ReplayV3Serializer
             SHA256.HashData(ToCanonicalUtf8(replay)));
     }
 
+    /// <summary>
+    /// Creates the completed canonical envelope and its payload hash from one
+    /// payload serialization. The payload is the first four envelope fields;
+    /// the hash and partial marker are an exact ASCII suffix, so writing the
+    /// entire 50–100 MiB graph a second time is unnecessary.
+    /// </summary>
+    internal static (byte[] CanonicalUtf8, string ReplayHash)
+        CreateCanonicalDocument(ReplayV3 replay)
+    {
+        ArgumentNullException.ThrowIfNull(replay);
+        bool perfDiagnostics = string.Equals(
+            Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+            "1",
+            StringComparison.Ordinal);
+        long validationStart = perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+        long validationAllocationStart = perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        ValidateEnvelope(replay);
+        if (perfDiagnostics)
+        {
+            Console.Error.WriteLine(
+                $"PERF replay.validate: wall={Stopwatch.GetElapsedTime(validationStart).TotalMilliseconds:F1}ms "
+                + $"allocated={(GC.GetTotalAllocatedBytes(precise: false) - validationAllocationStart) / 1_048_576.0:F1}MiB");
+        }
+        if (replay.Partial)
+        {
+            throw new ArgumentException(
+                "Partial replay-v3 documents are intentionally unhashed.",
+                nameof(replay));
+        }
+
+        int estimatedBytes = Math.Max(
+            1024,
+            checked(replay.Ticks.Length * 192_000));
+        using var stream = new MemoryStream(estimatedBytes);
+        using (var writer = new Utf8JsonWriter(
+                   stream,
+                   new JsonWriterOptions
+                   {
+                       Indented = false,
+                       SkipValidation = false,
+                   }))
+        {
+            writer.WriteStartObject();
+            WritePayloadProperties(writer, replay);
+            writer.WriteEndObject();
+        }
+
+        int payloadLength = checked((int)stream.Length);
+        ReadOnlySpan<byte> payload = stream.GetBuffer()
+            .AsSpan(0, payloadLength);
+        string replayHash = Convert.ToHexStringLower(
+            SHA256.HashData(payload));
+        byte[] suffix = Encoding.UTF8.GetBytes(
+            $",\"replayHash\":\"{replayHash}\",\"partial\":false}}");
+        byte[] envelope = GC.AllocateUninitializedArray<byte>(
+            checked(payloadLength - 1 + suffix.Length));
+        payload[..^1].CopyTo(envelope);
+        suffix.CopyTo(envelope, payloadLength - 1);
+        return (envelope, replayHash);
+    }
+
     public static string ToJson(ReplayV3 replay)
     {
         ArgumentNullException.ThrowIfNull(replay);
@@ -104,7 +168,11 @@ internal static class ReplayV3Serializer
                 nameof(replay));
         }
 
-        return Encoding.UTF8.GetString(Write(writer =>
+        return WriteEnvelope(replay, hash);
+    }
+
+    private static string WriteEnvelope(ReplayV3 replay, string? hash) =>
+        Encoding.UTF8.GetString(Write(writer =>
         {
             writer.WriteStartObject();
             WritePayloadProperties(writer, replay);
@@ -112,7 +180,6 @@ internal static class ReplayV3Serializer
             writer.WriteBoolean("partial", replay.Partial);
             writer.WriteEndObject();
         }));
-    }
 
     public static bool VerifyHash(string json) =>
         VerifyHash(json, out _);

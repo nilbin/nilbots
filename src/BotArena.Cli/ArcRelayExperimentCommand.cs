@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using BotArena.Engine;
@@ -27,9 +28,11 @@ public static class ArcRelayExperimentCommand
             "classes0",
             "classes1",
             "loop-profile",
+            "screen",
             "print-contract");
 
         bool printContract = OptionalFlag(options, "print-contract");
+        bool screen = OptionalFlag(options, "screen");
         ArcRelayLoopProfile loopProfile = ArcRelayLoopProfile.Resolve(
             options.GetValueOrDefault("loop-profile", "h0"));
         SheetSelection teamZero = Sheet(
@@ -91,7 +94,14 @@ public static class ArcRelayExperimentCommand
                 mindEvaluationData: teamOne.Data),
         ];
 
-        (GenericActorMatchResult result, GenericActorReplayDocument replay) =
+        bool perfDiagnostics = string.Equals(
+            Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+            "1",
+            StringComparison.Ordinal);
+        PerfSnapshot perfStart = PerfSnapshot.Capture();
+        GenericActorMatchResult result;
+        GenericActorReplayDocument? replay;
+        (result, replay) =
             MatchRun.Guard(
                 MatchRun.Cell(first.Name, second.Name, seed),
                 () =>
@@ -100,17 +110,86 @@ public static class ArcRelayExperimentCommand
                         definition,
                         participants,
                         seed);
-                    GenericActorMatchResult ran = session.Run();
-                    return (
-                        ran,
-                        GenericActorReplayDocument.Create(
+                    result = session.Run();
+                    PerfSnapshot afterMatch = PerfSnapshot.Capture();
+                    ReportPerf(
+                        perfDiagnostics,
+                        "match",
+                        perfStart,
+                        afterMatch);
+                    replay = screen
+                        ? null
+                        : GenericActorReplayDocument.Create(
                             session,
-                            ArcRelayH0ReplayPresentation.Create(definition)));
+                            ArcRelayH0ReplayPresentation.Create(definition));
+                    if (!screen)
+                    {
+                        ReportPerf(
+                            perfDiagnostics,
+                            "replay",
+                            afterMatch,
+                            PerfSnapshot.Capture());
+                    }
+                    return (result, replay);
                 });
 
+        if (screen)
+        {
+            Directory.CreateDirectory(output);
+            var screenReceipt = new ArcRelayScreenReceipt(
+                SchemaVersion: 1,
+                ScreenOnly: true,
+                RulesetId: definition.Rules.RulesetId,
+                RulesFingerprint: ActorContractFingerprint.ComputeRules(
+                    definition.Rules),
+                MapId: definition.Map.Id,
+                MapFingerprint: ActorContractFingerprint.ComputeMap(
+                    definition.Map),
+                TopologyFingerprint: ActorContractFingerprint.ComputeTopology(
+                    definition.Topology),
+                MatchContractFingerprint: ActorContractFingerprint.ComputeMatch(
+                    definition),
+                Seed: seed.ToString(CultureInfo.InvariantCulture),
+                Runtime: runtimeKind,
+                Participants:
+                [
+                    ParticipantReceipt(0, 0, first, teamZero),
+                    ParticipantReceipt(1, 1, second, teamOne),
+                ],
+                Result: new ArcRelayRunResultReceipt(
+                    result.WinnerTeamId,
+                    Reason(result),
+                    result.EndTick,
+                    result.EligibleTeamIds.ToArray()),
+                CanonicalReplayProduced: false);
+            string screenPath = Path.Combine(output, "screen.json");
+            File.WriteAllText(
+                screenPath,
+                JsonSerializer.Serialize(
+                    screenReceipt,
+                    new JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine(
+                $"Arc Relay screen {loopProfile.Id}: {first.Name} vs "
+                + $"{second.Name}, seed {seed}");
+            Console.WriteLine(
+                $"Result: {Verdict(result, first.Name, second.Name)} — "
+                + $"{Reason(result)} at tick {result.EndTick ?? -1}");
+            Console.WriteLine($"Screen: {Path.GetFullPath(screenPath)}");
+            return result.EligibleTeamIds.Length == 2 ? 0 : 2;
+        }
+
+        GenericActorReplayDocument completedReplay = replay
+            ?? throw new InvalidOperationException(
+                "Completed evaluation did not produce its canonical replay.");
+        PerfSnapshot beforeWrite = PerfSnapshot.Capture();
         WrittenReplay written = ReplayOutput.WriteGzipJson(
-            replay.CanonicalJson,
+            completedReplay.CanonicalUtf8,
             output);
+        ReportPerf(
+            perfDiagnostics,
+            "gzip+verify",
+            beforeWrite,
+            PerfSnapshot.Capture());
         ArcRelayRunReceipt receipt = Receipt(
             definition,
             seed,
@@ -119,7 +198,7 @@ public static class ArcRelayExperimentCommand
             teamZero,
             teamOne,
             result,
-            replay,
+            completedReplay,
             written);
         string receiptPath = Path.Combine(output, "run.json");
         File.WriteAllText(
@@ -134,7 +213,7 @@ public static class ArcRelayExperimentCommand
         Console.WriteLine(
             $"Result: {Verdict(result, first.Name, second.Name)} — "
             + $"{Reason(result)} at tick {result.EndTick ?? -1}");
-        Console.WriteLine($"Hash:   {replay.ReplayHash}");
+        Console.WriteLine($"Hash:   {completedReplay.ReplayHash}");
         Console.WriteLine($"Replay: {written.ReplayPath}");
         Console.WriteLine($"Run:    {Path.GetFullPath(receiptPath)}");
 
@@ -187,6 +266,20 @@ public static class ArcRelayExperimentCommand
                 replay.ReplayHash,
                 Path.GetFileName(written.ReplayPath),
                 new FileInfo(written.ReplayPath).Length));
+
+    private static void ReportPerf(
+        bool enabled,
+        string phase,
+        PerfSnapshot start,
+        PerfSnapshot end)
+    {
+        if (!enabled)
+            return;
+        Console.Error.WriteLine(
+            $"PERF {phase}: wall={(end.Wall - start.Wall).TotalMilliseconds:F1}ms "
+            + $"cpu={(end.Cpu - start.Cpu).TotalMilliseconds:F1}ms "
+            + $"allocated={(end.AllocatedBytes - start.AllocatedBytes) / 1_048_576.0:F1}MiB");
+    }
 
     private static ArcRelayParticipantReceipt ParticipantReceipt(
         int participantId,
@@ -512,6 +605,23 @@ public static class ArcRelayExperimentCommand
         string Hash,
         string? Path,
         byte[]? Data);
+
+    private readonly record struct PerfSnapshot(
+        TimeSpan Wall,
+        TimeSpan Cpu,
+        long AllocatedBytes)
+    {
+        private static readonly Stopwatch Clock = Stopwatch.StartNew();
+
+        public static PerfSnapshot Capture()
+        {
+            using Process process = Process.GetCurrentProcess();
+            return new PerfSnapshot(
+                Clock.Elapsed,
+                process.TotalProcessorTime,
+                GC.GetTotalAllocatedBytes(precise: false));
+        }
+    }
 }
 
 public sealed record ArcRelayRunReceipt(
@@ -526,6 +636,21 @@ public sealed record ArcRelayRunReceipt(
     ArcRelayParticipantReceipt[] Participants,
     ArcRelayRunResultReceipt Result,
     ArcRelayReplayReceipt Replay);
+
+public sealed record ArcRelayScreenReceipt(
+    int SchemaVersion,
+    bool ScreenOnly,
+    string RulesetId,
+    string RulesFingerprint,
+    string MapId,
+    string MapFingerprint,
+    string TopologyFingerprint,
+    string MatchContractFingerprint,
+    string Seed,
+    string Runtime,
+    ArcRelayParticipantReceipt[] Participants,
+    ArcRelayRunResultReceipt Result,
+    bool CanonicalReplayProduced);
 
 public sealed record ArcRelayParticipantReceipt(
     int ParticipantId,

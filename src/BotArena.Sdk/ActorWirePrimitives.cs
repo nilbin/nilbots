@@ -7,8 +7,9 @@ namespace BotArena.Sdk;
 /// <summary>Canonical tagged-object writer used only by actor protocol vNext.</summary>
 internal sealed class ActorWireObjectWriter
 {
-    private readonly MemoryStream _stream = new();
+    private readonly List<FieldValue> _fields = [];
     private ushort _lastFieldId;
+    private int _length;
 
     public void Field(ushort fieldId, byte[] value)
     {
@@ -18,15 +19,10 @@ internal sealed class ActorWireObjectWriter
                 "Actor wire fields must be written once in increasing ID order.");
         }
         if (value.Length > ActorWireProtocol.MaxHostFrameBytes
-            || _stream.Length
-                > ActorWireProtocol.MaxHostFrameBytes - 6L - value.Length)
+            || _length > ActorWireProtocol.MaxHostFrameBytes - 6 - value.Length)
             throw new InvalidOperationException("Actor wire field is too large.");
-
-        Span<byte> header = stackalloc byte[6];
-        BinaryPrimitives.WriteUInt16LittleEndian(header, fieldId);
-        BinaryPrimitives.WriteInt32LittleEndian(header[2..], value.Length);
-        _stream.Write(header);
-        _stream.Write(value);
+        _fields.Add(new FieldValue(fieldId, value));
+        _length += 6 + value.Length;
         _lastFieldId = fieldId;
     }
 
@@ -36,7 +32,39 @@ internal sealed class ActorWireObjectWriter
             Field(fieldId, value);
     }
 
-    public byte[] ToArray() => _stream.ToArray();
+    public int Length => _length;
+
+    public byte[] ToArray()
+    {
+        byte[] result = new byte[_length];
+        WriteTo(result, 0);
+        return result;
+    }
+
+    public void WriteTo(byte[] destination, int destinationOffset)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (destinationOffset < 0
+            || destinationOffset > destination.Length - _length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destinationOffset));
+        }
+        int offset = destinationOffset;
+        foreach (FieldValue field in _fields)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(
+                destination.AsSpan(offset, 2),
+                field.FieldId);
+            BinaryPrimitives.WriteInt32LittleEndian(
+                destination.AsSpan(offset + 2, 4),
+                field.Value.Length);
+            offset += 6;
+            field.Value.CopyTo(destination, offset);
+            offset += field.Value.Length;
+        }
+    }
+
+    private readonly record struct FieldValue(ushort FieldId, byte[] Value);
 }
 
 /// <summary>
@@ -199,27 +227,49 @@ internal static class ActorWireValue
             throw new InvalidOperationException(
                 "Actor wire collection exceeds its item limit.");
 
-        using var stream = new MemoryStream();
-        Span<byte> integer = stackalloc byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(integer, count);
-        stream.Write(integer);
+        byte[][] encodedItems = count == 0
+            ? []
+            : new byte[count][];
+        int totalLength = 4;
+        int index = 0;
         foreach (T item in items)
         {
             byte[] encoded = encode(item);
             if (encoded.Length > ActorWireProtocol.MaxHostFrameBytes
-                || stream.Length
-                    > ActorWireProtocol.MaxHostFrameBytes
-                        - 4L
-                        - encoded.Length)
+                || totalLength > ActorWireProtocol.MaxHostFrameBytes
+                    - 4
+                    - encoded.Length)
             {
                 throw new InvalidOperationException(
                     "Actor wire collection exceeds the frame limit.");
             }
-            BinaryPrimitives.WriteInt32LittleEndian(integer, encoded.Length);
-            stream.Write(integer);
-            stream.Write(encoded);
+            if (index >= encodedItems.Length)
+            {
+                throw new InvalidOperationException(
+                    "Actor wire collection count changed while encoding.");
+            }
+            encodedItems[index++] = encoded;
+            totalLength += 4 + encoded.Length;
         }
-        return stream.ToArray();
+        if (index != encodedItems.Length)
+        {
+            throw new InvalidOperationException(
+                "Actor wire collection count changed while encoding.");
+        }
+
+        byte[] result = new byte[totalLength];
+        BinaryPrimitives.WriteInt32LittleEndian(result, count);
+        int offset = 4;
+        foreach (byte[] encoded in encodedItems)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(
+                result.AsSpan(offset, 4),
+                encoded.Length);
+            offset += 4;
+            encoded.CopyTo(result, offset);
+            offset += encoded.Length;
+        }
+        return result;
     }
 
     public static ImmutableArray<T> Array<T>(

@@ -303,7 +303,7 @@ internal static class ActorWireProtocol
     public static byte[] EncodeMindObservation(MindContext observation) =>
         Frame(
             ActorWireMessageType.Observation,
-            GenericMindWireObservationCodec.Encode(observation));
+            GenericMindWireObservationCodec.EncodeFields(observation));
 
     public static MindContext DecodeMindObservation(
         byte[] frame,
@@ -479,6 +479,35 @@ internal static class ActorWireProtocol
             frame.AsSpan(8, 4),
             payload.Length);
         payload.CopyTo(frame, HeaderSize);
+        return frame;
+    }
+
+    private static byte[] Frame(
+        ActorWireMessageType messageType,
+        ActorWireObjectWriter payload)
+    {
+        int totalLength = checked(HeaderSize + payload.Length);
+        int limit = messageType is ActorWireMessageType.HelloAck
+            or ActorWireMessageType.Ready
+            or ActorWireMessageType.Decision
+            or ActorWireMessageType.Fault
+            or ActorWireMessageType.Unsupported
+            ? MaxGuestFrameBytes
+            : MaxHostFrameBytes;
+        if (totalLength > limit)
+        {
+            throw new InvalidOperationException(
+                $"Actor frame exceeds its {limit}-byte limit.");
+        }
+
+        byte[] frame = new byte[totalLength];
+        Magic.CopyTo(frame);
+        frame[4] = MajorVersion;
+        frame[5] = (byte)messageType;
+        BinaryPrimitives.WriteInt32LittleEndian(
+            frame.AsSpan(8, 4),
+            payload.Length);
+        payload.WriteTo(frame, HeaderSize);
         return frame;
     }
 

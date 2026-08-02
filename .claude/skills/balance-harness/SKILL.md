@@ -81,6 +81,16 @@ The generational reference is:
 Freeze final WASM hashes before the holdout. Source iteration may use
 in-process execution; final evidence is all-WASM with zero faults.
 
+For Arc Relay population work, bulk candidate screening may use the persistent
+`nilbots experiment arc-relay-screen-batch` command. This path runs the frozen
+algorithm in-process and deliberately emits `screen.json` receipts instead of
+canonical replays. It may reject obviously unpromising candidates and choose
+which cells deserve the expensive audit path, but it is never cohort evidence:
+every retained cell still needs WASM execution, byte-identical canonical replay
+verification, and the registered felt-degeneracy scorecard before it enters a
+balance read or gallery. Keep both runtime labels in the report and prove a
+same-cell result-parity sample for every screening sweep.
+
 ## 4. Run outcomes, dynamics, and replay review
 
 ```bash

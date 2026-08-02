@@ -471,6 +471,39 @@ internal sealed class ArcRelaySignatureRuntime
             && value.EndsAtTick > tick
             && value.Positions.Contains(position));
 
+    /// <summary>
+    /// Materializes the smoke tiles that actually occlude one team's vision at
+    /// this tick. Projection asks this once per team instead of scanning every
+    /// live signature for every tile of every sensor ray.
+    /// </summary>
+    public HashSet<Position> OccludingSmokeForTeam(int teamId, int tick)
+    {
+        var smoke = new HashSet<Position>();
+        var revealed = new HashSet<Position>();
+        foreach (Operation operation in _operations.Values)
+        {
+            if (operation.Phase
+                    != ArcRelaySignatureState.SignaturePhase.Active
+                || operation.EndsAtTick <= tick)
+            {
+                continue;
+            }
+            if (operation.Definition
+                    is ArcRelaySignatureDefinition.SmokeCanister)
+            {
+                smoke.UnionWith(operation.Positions);
+            }
+            else if (operation.Definition
+                        is ArcRelaySignatureDefinition.SurveyFlare
+                     && operation.OwnerActorId.TeamId == teamId)
+            {
+                revealed.UnionWith(operation.Positions);
+            }
+        }
+        smoke.ExceptWith(revealed);
+        return smoke;
+    }
+
     public bool IsRevealedForTeam(Position position, int teamId, int tick) =>
         _operations.Values.Any(value =>
             value.Definition is ArcRelaySignatureDefinition.SurveyFlare

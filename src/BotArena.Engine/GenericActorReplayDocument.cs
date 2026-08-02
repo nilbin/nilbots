@@ -11,20 +11,41 @@ namespace BotArena.Engine;
 public sealed record GenericActorReplayDocument
 {
     private GenericActorReplayDocument(
-        string canonicalJson,
+        byte[] canonicalUtf8,
         string replayHash)
     {
-        CanonicalJson = canonicalJson;
+        _canonicalUtf8 = canonicalUtf8;
         ReplayHash = replayHash;
     }
+
+    private readonly byte[] _canonicalUtf8;
+    private string? _canonicalJson;
 
     /// <summary>
     /// Exact canonical replay-v3 envelope, including <see cref="ReplayHash"/>.
     /// </summary>
-    public string CanonicalJson { get; }
+    public string CanonicalJson =>
+        _canonicalJson ??= System.Text.Encoding.UTF8.GetString(
+            _canonicalUtf8);
+
+    /// <summary>
+    /// Exact canonical replay-v3 UTF-8 bytes. Byte-oriented archival paths use
+    /// this boundary so a large replay need not be transcoded to UTF-16 and
+    /// immediately back to UTF-8.
+    /// </summary>
+    public ReadOnlyMemory<byte> CanonicalUtf8 => _canonicalUtf8;
 
     /// <summary>Lowercase SHA-256 of the canonical replay payload.</summary>
     public string ReplayHash { get; }
+
+    public bool Equals(GenericActorReplayDocument? other) =>
+        ReferenceEquals(this, other)
+        || other is not null
+        && string.Equals(ReplayHash, other.ReplayHash, StringComparison.Ordinal)
+        && _canonicalUtf8.AsSpan().SequenceEqual(other._canonicalUtf8);
+
+    public override int GetHashCode() =>
+        StringComparer.Ordinal.GetHashCode(ReplayHash);
 
     public static GenericActorReplayDocument Create(
         GenericActorMatchSession session)
@@ -70,11 +91,10 @@ public sealed record GenericActorReplayDocument
         ReplayV3 replay = ReplayV3Projection.Project(
             chronology,
             Presentation(presentation));
-        string replayHash = ReplayV3Serializer.ComputeHash(replay);
-        string canonicalJson = ReplayV3Serializer.ToJson(
-            replay with { ReplayHash = replayHash });
+        (byte[] canonicalUtf8, string replayHash) =
+            ReplayV3Serializer.CreateCanonicalDocument(replay);
         return new GenericActorReplayDocument(
-            canonicalJson,
+            canonicalUtf8,
             replayHash);
     }
 

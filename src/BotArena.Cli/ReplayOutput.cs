@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 using System.IO.Compression;
 using BotArena.Engine;
@@ -75,8 +76,7 @@ public static class ReplayOutput
                 writer.Write(json);
             }
 
-            string roundTrip = ReplayInput.ReadAllText(temp);
-            if (!string.Equals(json, roundTrip, StringComparison.Ordinal))
+            if (!GzipContentEquals(temp, json))
             {
                 throw new IOException(
                     "Compressed replay write verification failed: the "
@@ -96,6 +96,121 @@ public static class ReplayOutput
                 // Preserve the original failure.
             }
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Byte-oriented twin of <see cref="WriteGzipJson(string,string)"/> for
+    /// replay-v3 documents that already exist as canonical UTF-8.
+    /// </summary>
+    public static WrittenReplay WriteGzipJson(
+        ReadOnlyMemory<byte> utf8Json,
+        string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        string replayPath = Path.GetFullPath(
+            Path.Combine(outDir, "replay.json.gz"));
+        string temp = replayPath + ".tmp";
+        try
+        {
+            using (FileStream output = File.Create(temp))
+            using (var compressed = new GZipStream(
+                       output,
+                       CompressionLevel.Optimal))
+            {
+                compressed.Write(utf8Json.Span);
+            }
+
+            if (!GzipContentEquals(temp, utf8Json))
+            {
+                throw new IOException(
+                    "Compressed replay write verification failed: the "
+                    + "decompressed bytes differ from the canonical input.");
+            }
+            File.Move(temp, replayPath, overwrite: true);
+            return new WrittenReplay(replayPath, ViewerPath: null);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // Preserve the original failure.
+            }
+            throw;
+        }
+    }
+
+    private static bool GzipContentEquals(string path, string expected)
+    {
+        char[] buffer = ArrayPool<char>.Shared.Rent(64 * 1024);
+        try
+        {
+            using FileStream input = File.OpenRead(path);
+            using var compressed = new GZipStream(
+                input,
+                CompressionMode.Decompress);
+            using var reader = new StreamReader(
+                compressed,
+                new UTF8Encoding(
+                    encoderShouldEmitUTF8Identifier: false,
+                    throwOnInvalidBytes: true),
+                detectEncodingFromByteOrderMarks: false,
+                bufferSize: 64 * 1024,
+                leaveOpen: false);
+            int offset = 0;
+            while (true)
+            {
+                int read = reader.Read(buffer, 0, buffer.Length);
+                if (read == 0)
+                    return offset == expected.Length;
+                if (read > expected.Length - offset
+                    || !buffer.AsSpan(0, read).SequenceEqual(
+                        expected.AsSpan(offset, read)))
+                {
+                    return false;
+                }
+                offset += read;
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+    }
+
+    private static bool GzipContentEquals(
+        string path,
+        ReadOnlyMemory<byte> expected)
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        try
+        {
+            using FileStream input = File.OpenRead(path);
+            using var compressed = new GZipStream(
+                input,
+                CompressionMode.Decompress);
+            int offset = 0;
+            while (true)
+            {
+                int read = compressed.Read(buffer, 0, buffer.Length);
+                if (read == 0)
+                    return offset == expected.Length;
+                if (read > expected.Length - offset
+                    || !buffer.AsSpan(0, read).SequenceEqual(
+                        expected.Span.Slice(offset, read)))
+                {
+                    return false;
+                }
+                offset += read;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 

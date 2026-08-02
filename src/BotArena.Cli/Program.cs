@@ -47,6 +47,8 @@ try
             ArcRelayH0SmokeCommand.Run(rest),
         ["experiment", "arc-relay", .. var rest] =>
             ArcRelayExperimentCommand.Run(rest),
+        ["experiment", "arc-relay-screen-batch", .. var rest] =>
+            ArcRelayScreenBatchCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -135,9 +137,21 @@ static int Help(int exitCode = 1)
                         [--sheet0 <json> --sheet1 <json>]
                         [--classes0 a,b,... --classes1 a,b,...]
                         [--seed <n>] [--runtime wasm|in-process] [--out <dir>]
+                        [--screen]
                                                   LOCAL H0 EVALUATION: native
                                                   mind match, gzip canonical
-                                                  replay, and run receipt
+                                                  replay, and run receipt;
+                                                  --screen omits canonical
+                                                  evidence and is not audit-
+                                                  admissible
+          nilbots experiment arc-relay-screen-batch
+                        (--plan <screen-plan.json> |
+                         --sweep-plan <sweep-plan.json> --bot <project>)
+                        [--opponent <project>] [--limit <n>] --out <dir>
+                                                  persistent in-process bulk
+                                                  screening; finalists still
+                                                  require WASM + canonical
+                                                  replay verification
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]

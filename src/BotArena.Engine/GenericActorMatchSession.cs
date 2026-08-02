@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace BotArena.Engine;
 
@@ -66,6 +67,26 @@ public sealed class GenericActorMatchSession : IDisposable
     /// </summary>
     private readonly Dictionary<int, GenericMindTeamProjection>
         _teamProjectionCache = [];
+    private readonly Dictionary<ActorIdentity, HashSet<Position>>
+        _visibleTilesCache = [];
+    private readonly Dictionary<int, HashSet<Position>>
+        _occludingSmokeCache = [];
+    private readonly Dictionary<Position,
+        GenericActorRuntimeObservation.SpawnReservation?>
+        _spawnReservationCache = [];
+    private readonly Dictionary<StaticVisibilityKey,
+        ImmutableArray<StaticVisibilityRay>> _staticVisibilityCache = [];
+    private readonly Dictionary<ActorIdentity,
+        ImmutableArray<GenericActorRuntimeActionLegality>>
+        _actionLegalitiesCache = [];
+    private readonly Dictionary<(ActorIdentity ActorId, string ActionId),
+        ImmutableArray<Position>> _signaturePositionTargetsCache = [];
+    private readonly Dictionary<(ActorIdentity ActorId, string ActionId),
+        ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>>
+        _signatureUnitTargetsCache = [];
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>?
+        _projectionSignatureLivesCache;
+    private GenericActorModeProjection? _projectionModeCache;
 
     /// <summary>
     /// Where every body stood in the PREVIOUS mind observation — literally
@@ -106,6 +127,16 @@ public sealed class GenericActorMatchSession : IDisposable
             ImmutableDictionary<ActorIdentity, Position>.Empty;
     private GenericActorMatchPreparedTick? _preparedTick;
     private GenericActorMatchTickStart? _preparedChronologyTick;
+    private readonly bool _perfDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+        "1",
+        StringComparison.Ordinal);
+    private long _runtimeWallTicks;
+    private long _runtimeAllocatedBytes;
+    private long _mindProjectionWallTicks;
+    private long _mindProjectionAllocatedBytes;
+    private long _lifeProjectionWallTicks;
+    private long _lifeProjectionAllocatedBytes;
     private long _nextAuthoritativeFactOrdinal;
     private long _nextProjectileId;
 
@@ -421,16 +452,39 @@ public sealed class GenericActorMatchSession : IDisposable
         // N byte-identical times, which is the O(N^2 x mapArea) -> O(N x
         // mapArea) collapse the memo measured (§4.6). Under the mind profile
         // the same object is handed straight to the participant.
-        _teamProjectionCache.Clear();
+        ResetProjectionCaches();
+        long projectionStart = _perfDiagnostics
+            ? Stopwatch.GetTimestamp()
+            : 0;
+        long projectionAllocationStart = _perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        ImmutableArray<GenericMindRuntimeObservation> mindObservations =
+            _host.IsMindProfile
+                ? ProjectMindObservations(sourceEvents)
+                : [];
+        if (_perfDiagnostics)
+        {
+            _mindProjectionWallTicks +=
+                Stopwatch.GetTimestamp() - projectionStart;
+            _mindProjectionAllocatedBytes += GC.GetTotalAllocatedBytes(
+                precise: false) - projectionAllocationStart;
+            projectionStart = Stopwatch.GetTimestamp();
+            projectionAllocationStart = GC.GetTotalAllocatedBytes(
+                precise: false);
+        }
         ImmutableArray<GenericActorRuntimeObservation> observations =
             _lives.Values
                 .OrderBy(life => life.ActorId)
                 .Select(life => ProjectObservation(life, sourceEvents))
                 .ToImmutableArray();
-        ImmutableArray<GenericMindRuntimeObservation> mindObservations =
-            _host.IsMindProfile
-                ? ProjectMindObservations(sourceEvents)
-                : [];
+        if (_perfDiagnostics)
+        {
+            _lifeProjectionWallTicks +=
+                Stopwatch.GetTimestamp() - projectionStart;
+            _lifeProjectionAllocatedBytes += GC.GetTotalAllocatedBytes(
+                precise: false) - projectionAllocationStart;
+        }
         _preparedTick = new GenericActorMatchPreparedTick(
             Tick,
             observations,
@@ -491,6 +545,10 @@ public sealed class GenericActorMatchSession : IDisposable
         // runtime per participant instead of one per life. The fan-out hands
         // everything below this line exactly the shape it always received, so
         // the 16 canonical phases run unchanged.
+        long runtimeStart = _perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+        long runtimeAllocationStart = _perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
         GenericMindRuntimeTickResult? mindTick = _host.IsMindProfile
             ? _host.CollectMindTickDecisions(
                 Tick,
@@ -499,6 +557,12 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorRuntimeTickResult runtimeTick =
             mindTick?.ToActorTickResult()
             ?? _host.CollectTickDecisions(Tick, supplied);
+        if (_perfDiagnostics)
+        {
+            _runtimeWallTicks += Stopwatch.GetTimestamp() - runtimeStart;
+            _runtimeAllocatedBytes += GC.GetTotalAllocatedBytes(precise: false)
+                - runtimeAllocationStart;
+        }
         var resolutions = CreateActionResolutions(runtimeTick);
         var events =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -819,10 +883,50 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         using SessionOperation operation = EnterOperation(nameof(Run));
         ThrowIfDisposed();
+        long prepareWallTicks = 0;
+        long stepWallTicks = 0;
+        long prepareAllocatedBytes = 0;
+        long stepAllocatedBytes = 0;
         while (!IsCompleted)
         {
+            long phaseStart = _perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+            long allocationStart = _perfDiagnostics
+                ? GC.GetTotalAllocatedBytes(precise: false)
+                : 0;
             PrepareTickCore();
+            if (_perfDiagnostics)
+            {
+                prepareWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+                prepareAllocatedBytes += GC.GetTotalAllocatedBytes(
+                    precise: false) - allocationStart;
+                phaseStart = Stopwatch.GetTimestamp();
+                allocationStart = GC.GetTotalAllocatedBytes(precise: false);
+            }
             StepCore(_preparedTick!.Observations);
+            if (_perfDiagnostics)
+            {
+                stepWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+                stepAllocatedBytes += GC.GetTotalAllocatedBytes(
+                    precise: false) - allocationStart;
+            }
+        }
+        if (_perfDiagnostics)
+        {
+            Console.Error.WriteLine(
+                $"PERF match.prepare: wall={Stopwatch.GetElapsedTime(0, prepareWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={prepareAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.step: wall={Stopwatch.GetElapsedTime(0, stepWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={stepAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.runtime: wall={Stopwatch.GetElapsedTime(0, _runtimeWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_runtimeAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.project-mind: wall={Stopwatch.GetElapsedTime(0, _mindProjectionWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_mindProjectionAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.project-life: wall={Stopwatch.GetElapsedTime(0, _lifeProjectionWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_lifeProjectionAllocatedBytes / 1_048_576.0:F1}MiB");
         }
         return Result!;
     }
@@ -3364,8 +3468,7 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         // Resolved up front because the mode's body-scoped facts are stamped
         // onto self, ally, and enemy states as they are built.
-        GenericActorModeProjection modeProjection =
-            _mode.Project(ModeWorldView());
+        GenericActorModeProjection modeProjection = ProjectionMode();
         GenericMindTeamProjection shared = SharedProjectionFor(
             observer,
             sourceEvents,
@@ -3567,8 +3670,13 @@ public sealed class GenericActorMatchSession : IDisposable
                 sensor => sensor.ActorId,
                 VisibleTilesFor);
 
+        var visiblePositions = new HashSet<Position>();
+        foreach (HashSet<Position> sensorTiles in visibleBySensor.Values)
+            visiblePositions.UnionWith(sensorTiles);
         ImmutableArray<GenericActorRuntimeObservation.ObservedTile>
-            visibleTiles = AllMapPositions()
+            visibleTiles = visiblePositions
+                .OrderBy(position => position.Y)
+                .ThenBy(position => position.X)
                 .Select(position =>
                 {
                     ImmutableArray<ActorIdentity> observedBy =
@@ -3816,8 +3924,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ProjectMindObservations(
             ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
     {
-        GenericActorModeProjection modeProjection =
-            _mode.Project(ModeWorldView());
+        GenericActorModeProjection modeProjection = ProjectionMode();
         var result =
             ImmutableArray.CreateBuilder<GenericMindRuntimeObservation>();
         foreach (int participantId in _host.TickingParticipantIds)
@@ -3952,17 +4059,26 @@ public sealed class GenericActorMatchSession : IDisposable
     private GenericActorRuntimeObservation.SpawnReservation?
         SpawnReservationAt(Position position)
     {
+        if (_spawnReservationCache.TryGetValue(
+                position,
+                out GenericActorRuntimeObservation.SpawnReservation? cached))
+        {
+            return cached;
+        }
         BoundedChildFabricationProvisionalReservation? fabrication =
             _fabricationReservations.SingleOrDefault(reservation =>
                 reservation.ReservedPosition == position);
         if (fabrication is not null)
         {
-            return new GenericActorRuntimeObservation.SpawnReservation(
+            var fabricationResult =
+                new GenericActorRuntimeObservation.SpawnReservation(
                 fabrication.TargetTeamId,
                 fabrication.TargetUnitId,
                 GenericActorRuntimeObservation.SpawnReservationKind
                     .Fabrication,
                 fabrication.DueTick);
+            _spawnReservationCache.Add(position, fabricationResult);
+            return fabricationResult;
         }
 
         SplitReplicationReservedDescendant? descendant =
@@ -3977,12 +4093,15 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             SplitReplicationReservation reservation = _splitReservations
                 .Single(value => value.Descendants.Contains(descendant));
-            return new GenericActorRuntimeObservation.SpawnReservation(
+            var replicationResult =
+                new GenericActorRuntimeObservation.SpawnReservation(
                 descendant.TeamId,
                 descendant.UnitId,
                 GenericActorRuntimeObservation.SpawnReservationKind
                     .Replication,
                 reservation.DueTick);
+            _spawnReservationCache.Add(position, replicationResult);
+            return replicationResult;
         }
 
         SlotState? returnSlot = _slots.Values
@@ -3994,7 +4113,8 @@ public sealed class GenericActorMatchSession : IDisposable
             .SingleOrDefault(slot =>
                 _spawns[slot.Assignment.AssignedRespawnSpawnId!].Position
                     == position);
-        return returnSlot is null
+        GenericActorRuntimeObservation.SpawnReservation? result =
+            returnSlot is null
             ? null
             : new GenericActorRuntimeObservation.SpawnReservation(
                 returnSlot.TeamId,
@@ -4002,6 +4122,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 GenericActorRuntimeObservation.SpawnReservationKind
                     .AutomaticReturn,
                 DueTick: null);
+        _spawnReservationCache.Add(position, result);
+        return result;
     }
 
     private bool ProjectSpatialEvent(
@@ -4171,8 +4293,15 @@ public sealed class GenericActorMatchSession : IDisposable
     private ImmutableArray<GenericActorRuntimeActionLegality>
         ActionLegalities(LifeState life)
     {
+        if (_actionLegalitiesCache.TryGetValue(
+                life.ActorId,
+                out ImmutableArray<GenericActorRuntimeActionLegality> cached))
+        {
+            return cached;
+        }
         ActorFormDefinition form = _forms[life.FormId];
-        return _definition.Rules.Actions
+        ImmutableArray<GenericActorRuntimeActionLegality> legalities =
+            _definition.Rules.Actions
             .OrderBy(action => action.Code)
             .Select(action =>
             {
@@ -4187,6 +4316,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     ActionConstraints(life, action));
             })
             .ToImmutableArray();
+        _actionLegalitiesCache.Add(life.ActorId, legalities);
+        return legalities;
     }
 
     private bool IsAvailable(
@@ -4298,32 +4429,75 @@ public sealed class GenericActorMatchSession : IDisposable
         return action.ParameterKinds.All(kind => kind switch
         {
             ActorActionParameterKind.PositionTarget =>
-                ArcRelaySignaturePositionTargets(mode, life).Length > 0,
+                ArcRelaySignaturePositionTargets(
+                    mode,
+                    life,
+                    action.Id).Length > 0,
             ActorActionParameterKind.UnitTarget =>
-                ArcRelaySignatureUnitTargets(mode, life).Length > 0,
+                ArcRelaySignatureUnitTargets(
+                    mode,
+                    life,
+                    action.Id).Length > 0,
             _ => true,
         });
     }
 
     private ImmutableArray<Position> ArcRelaySignaturePositionTargets(
         ArcRelayActorMatchModeDriver mode,
-        LifeState life) =>
-        mode.Signatures.PositionTargets(
+        LifeState life,
+        string actionId)
+    {
+        var key = (life.ActorId, actionId);
+        if (_signaturePositionTargetsCache.TryGetValue(
+                key,
+                out ImmutableArray<Position> cached))
+        {
+            return cached;
+        }
+        ImmutableArray<Position> targets = mode.Signatures.PositionTargets(
             life.ActorId,
             life.Position,
             VisibleTilesFor(life),
-            ArcRelaySignatureLives(),
+            ProjectionSignatureLives(),
             mode.CarriesCore(life.ActorId));
+        _signaturePositionTargetsCache.Add(key, targets);
+        return targets;
+    }
 
     private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
         ArcRelaySignatureUnitTargets(
             ArcRelayActorMatchModeDriver mode,
-            LifeState life) =>
-        mode.Signatures.UnitTargets(
+            LifeState life,
+            string actionId)
+    {
+        var key = (life.ActorId, actionId);
+        if (_signatureUnitTargetsCache.TryGetValue(
+                key,
+                out ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+                    cached))
+        {
+            return cached;
+        }
+        ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget> targets =
+            mode.Signatures.UnitTargets(
             life.ActorId,
             life.Position,
             VisibleTilesFor(life),
-            ArcRelaySignatureLives());
+            ProjectionSignatureLives());
+        _signatureUnitTargetsCache.Add(key, targets);
+        return targets;
+    }
+
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>
+        ProjectionSignatureLives()
+    {
+        if (_projectionSignatureLivesCache is { } cached)
+            return cached;
+        ImmutableArray<ArcRelaySignatureRuntime.Life> lives =
+            ArcRelaySignatureLives();
+        _projectionSignatureLivesCache = lives;
+        return lives;
+    }
 
     private ImmutableArray<ArcRelaySignatureRuntime.Life>
         ArcRelaySignatureLives() =>
@@ -4445,7 +4619,8 @@ public sealed class GenericActorMatchSession : IDisposable
                                           signatureMode
                                     ? ArcRelaySignatureUnitTargets(
                                         signatureMode,
-                                        life)
+                                        life,
+                                        action.Id)
                                 : action.Kind == ActorActionKind.Objective
                                     ? ArcRelayHandoffTargets(life)
                                 : _definition.Topology.UnitSlots
@@ -4499,7 +4674,8 @@ public sealed class GenericActorMatchSession : IDisposable
                                 signatureMode
                                 ? ArcRelaySignaturePositionTargets(
                                     signatureMode,
-                                    life)
+                                    life,
+                                    action.Id)
                                 : []),
                 _ => throw new InvalidOperationException(
                     "Unknown actor action parameter kind."),
@@ -4526,6 +4702,12 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
+        if (_visibleTilesCache.TryGetValue(
+                sensor.ActorId,
+                out HashSet<Position>? cached))
+        {
+            return cached;
+        }
         ActorVisionProfileDefinition vision = VisionFor(sensor);
         // Effective sight is the form's declared range plus whatever the mode
         // currently adds. The omnidirectional proximity radius is deliberately
@@ -4534,49 +4716,46 @@ public sealed class GenericActorMatchSession : IDisposable
         int range = checked(
             vision.Range
             + _mode.StatModifiersFor(sensor.ActorId).VisionRangeDelta);
-        var visible = new HashSet<Position>();
-        foreach (Position target in AllMapPositions())
+        Direction? facing = vision.Shape == ActorVisionShape.FacingQuadrant
+            ? sensor.Facing
+            : null;
+        var key = new StaticVisibilityKey(
+            sensor.Position,
+            range,
+            vision.Shape,
+            vision.OmnidirectionalProximityRange,
+            facing);
+        if (!_staticVisibilityCache.TryGetValue(
+                key,
+                out ImmutableArray<StaticVisibilityRay> candidates))
         {
-            int distance = sensor.Position.ChebyshevDistance(target);
-            if (distance > range)
-                continue;
-            if (vision.Shape == ActorVisionShape.FacingQuadrant
-                && distance > vision.OmnidirectionalProximityRange
-                && !Visibility.InCone(
-                    sensor.Position,
-                    target,
-                    sensor.Facing))
-            {
-                continue;
-            }
+            candidates = StaticVisibilityCandidates(
+                sensor.Position,
+                range,
+                vision.Shape,
+                vision.OmnidirectionalProximityRange,
+                facing);
+            _staticVisibilityCache.Add(key, candidates);
+        }
+
+        HashSet<Position>? occludingSmoke =
+            _mode is ArcRelayActorMatchModeDriver smokeMode
+                ? OccludingSmokeForTeam(
+                    smokeMode,
+                    sensor.ActorId.TeamId)
+                : null;
+        var visible = new HashSet<Position>(candidates.Length);
+        foreach (StaticVisibilityRay candidate in candidates)
+        {
             bool hasLineOfSight = true;
-            foreach (Position position in Visibility.SupercoverLine(
-                         sensor.Position,
-                         target))
+            if (sensor.Position.ChebyshevDistance(candidate.Target) > 1
+                && occludingSmoke is { Count: > 0 })
             {
-                if (position == sensor.Position || position == target)
-                    continue;
-                if (_definition.Map.IsWall(position))
-                {
-                    hasLineOfSight = false;
-                    break;
-                }
-            }
-            if (hasLineOfSight
-                && distance > 1
-                && _mode is ArcRelayActorMatchModeDriver arcRelay)
-            {
-                foreach (Position position in Visibility.SupercoverLine(
-                             sensor.Position,
-                             target))
+                foreach (Position position in candidate.Ray)
                 {
                     if (position == sensor.Position)
                         continue;
-                    if (arcRelay.Signatures.IsSmokeAt(position, Tick)
-                        && !arcRelay.Signatures.IsRevealedForTeam(
-                            position,
-                            sensor.ActorId.TeamId,
-                            Tick))
+                    if (occludingSmoke.Contains(position))
                     {
                         hasLineOfSight = false;
                         break;
@@ -4584,9 +4763,85 @@ public sealed class GenericActorMatchSession : IDisposable
                 }
             }
             if (hasLineOfSight)
-                visible.Add(target);
+                visible.Add(candidate.Target);
         }
+        _visibleTilesCache.Add(sensor.ActorId, visible);
         return visible;
+    }
+
+    private HashSet<Position> OccludingSmokeForTeam(
+        ArcRelayActorMatchModeDriver mode,
+        int teamId)
+    {
+        if (!_occludingSmokeCache.TryGetValue(
+                teamId,
+                out HashSet<Position>? smoke))
+        {
+            smoke = mode.Signatures.OccludingSmokeForTeam(teamId, Tick);
+            _occludingSmokeCache.Add(teamId, smoke);
+        }
+        return smoke;
+    }
+
+    private ImmutableArray<StaticVisibilityRay> StaticVisibilityCandidates(
+        Position origin,
+        int range,
+        ActorVisionShape shape,
+        int omnidirectionalProximityRange,
+        Direction? facing)
+    {
+        var result = ImmutableArray.CreateBuilder<StaticVisibilityRay>();
+        int minimumY = Math.Max(0, origin.Y - range);
+        int maximumY = Math.Min(_definition.Map.Height - 1, origin.Y + range);
+        int minimumX = Math.Max(0, origin.X - range);
+        int maximumX = Math.Min(_definition.Map.Width - 1, origin.X + range);
+        for (int y = minimumY; y <= maximumY; y++)
+        {
+            for (int x = minimumX; x <= maximumX; x++)
+            {
+                var target = new Position(x, y);
+                int distance = origin.ChebyshevDistance(target);
+                if (shape == ActorVisionShape.FacingQuadrant
+                    && distance > omnidirectionalProximityRange
+                    && !Visibility.InCone(origin, target, facing!.Value))
+                {
+                    continue;
+                }
+                ImmutableArray<Position> ray =
+                    Visibility.SupercoverLine(origin, target)
+                        .ToImmutableArray();
+                bool blocked = false;
+                foreach (Position position in ray)
+                {
+                    if (position == origin || position == target)
+                        continue;
+                    if (_definition.Map.IsWall(position))
+                    {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (!blocked)
+                    result.Add(new StaticVisibilityRay(target, ray));
+            }
+        }
+        return result.ToImmutable();
+    }
+
+    private GenericActorModeProjection ProjectionMode() =>
+        _projectionModeCache ??= _mode.Project(ModeWorldView());
+
+    private void ResetProjectionCaches()
+    {
+        _teamProjectionCache.Clear();
+        _visibleTilesCache.Clear();
+        _occludingSmokeCache.Clear();
+        _spawnReservationCache.Clear();
+        _actionLegalitiesCache.Clear();
+        _signaturePositionTargetsCache.Clear();
+        _signatureUnitTargetsCache.Clear();
+        _projectionSignatureLivesCache = null;
+        _projectionModeCache = null;
     }
 
     private IEnumerable<Position> AllMapPositions()
@@ -4601,12 +4856,30 @@ public sealed class GenericActorMatchSession : IDisposable
     private static ImmutableArray<ActorIdentity> ObserversAt(
         Position position,
         IReadOnlyDictionary<ActorIdentity, HashSet<Position>>
-            visibleBySensor) =>
-        visibleBySensor
-            .Where(pair => pair.Value.Contains(position))
-            .Select(pair => pair.Key)
-            .Order()
-            .ToImmutableArray();
+            visibleBySensor)
+    {
+        var result = ImmutableArray.CreateBuilder<ActorIdentity>(
+            visibleBySensor.Count);
+        foreach ((ActorIdentity actorId, HashSet<Position> visible) in
+                 visibleBySensor)
+        {
+            if (visible.Contains(position))
+                result.Add(actorId);
+        }
+        result.Sort();
+        return result.ToImmutable();
+    }
+
+    private readonly record struct StaticVisibilityKey(
+        Position Origin,
+        int Range,
+        ActorVisionShape Shape,
+        int OmnidirectionalProximityRange,
+        Direction? Facing);
+
+    private readonly record struct StaticVisibilityRay(
+        Position Target,
+        ImmutableArray<Position> Ray);
 
     private static ActorAudibleEventKind? AudibleKind(
         GenericActorRuntimeObservation.EventKind kind) =>

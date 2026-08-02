@@ -17,7 +17,13 @@ namespace BotArena.Sdk;
 /// </summary>
 internal static class GenericMindWireObservationCodec
 {
-    public static byte[] Encode(MindContext value)
+    public static byte[] Encode(MindContext value) =>
+        GenericActorWireCodecValues.RequirePayloadLimit(
+            EncodeFields(value).ToArray(),
+            GenericActorWireCodecValues.MaximumHostPayloadBytes,
+            "Mind observation");
+
+    internal static ActorWireObjectWriter EncodeFields(MindContext value)
     {
         ArgumentNullException.ThrowIfNull(value);
         var writer = new ActorWireObjectWriter();
@@ -102,10 +108,14 @@ internal static class GenericMindWireObservationCodec
                 ImmutableArray<MindContext.AlliedIntent>.Empty,
                 EncodeAlliedIntent));
 
-        return GenericActorWireCodecValues.RequirePayloadLimit(
-            writer.ToArray(),
-            GenericActorWireCodecValues.MaximumHostPayloadBytes,
-            "Mind observation");
+        if (writer.Length
+            > GenericActorWireCodecValues.MaximumHostPayloadBytes)
+        {
+            throw new InvalidOperationException(
+                $"Mind observation exceeds its "
+                + $"{GenericActorWireCodecValues.MaximumHostPayloadBytes}-byte payload limit.");
+        }
+        return writer;
     }
 
     /// <summary>
