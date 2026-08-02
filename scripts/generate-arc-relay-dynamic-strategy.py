@@ -22,8 +22,9 @@ SOURCE = (
     / "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets"
 )
 DEFAULT_OUTPUT = (
-    REPO / "arena-bots/arc-relay/dynamic-strategy-v4-2026-08-02"
+    REPO / "arena-bots/arc-relay/dynamic-strategy-v5-2026-08-02"
 )
+ARTIFACT = REPO / "arena-bots/arc-relay/stock-mind-v2/out/bot.wasm"
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -409,14 +410,14 @@ FAMILIES = {
 def generate(output: Path) -> None:
     sheets = output / "sheets"
     entrants: list[dict[str, Any]] = []
-    artifact = output.parent / "stock-mind-v1/out/bot.wasm"
+    artifact = ARTIFACT
     for family, build in FAMILIES.items():
         for kind, dynamic in (("static", False), ("dynamic", True)):
             entrant_id = f"{family}-{kind}"
             path = sheets / f"{entrant_id}.json"
             write_json(path, build(dynamic))
             item: dict[str, Any] = {
-                "artifact": "../stock-mind-v1/out/bot.wasm",
+                "artifact": "../stock-mind-v2/out/bot.wasm",
                 "entrantId": entrant_id,
                 "family": family,
                 "sheet": f"sheets/{entrant_id}.json",
@@ -427,7 +428,7 @@ def generate(output: Path) -> None:
             item["sheetSha256"] = sha256(path)
             entrants.append(item)
     write_json(output / "cohort.json", {
-        "cohortId": "arc-relay-dynamic-strategy-v4",
+        "cohortId": "arc-relay-dynamic-strategy-v5",
         "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
         "entrants": entrants,
         "mapProfile": "depth-counterflow",
