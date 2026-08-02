@@ -155,6 +155,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                 && receiver is not null
                 && TryArcToss(body, mind.Body(receiver.UnitId)!))
             {
+                director.RecordOperationAction(
+                    body.UnitId, "arc-toss", mind.Tick);
                 continue;
             }
             if (exchanges.TryGetValue(body.UnitId, out ActorIdentity? target)
@@ -166,6 +168,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     target,
                     "extract a pressured carrier with Exchange"))
             {
+                director.RecordOperationAction(
+                    body.UnitId, "exchange", mind.Tick);
                 continue;
             }
 

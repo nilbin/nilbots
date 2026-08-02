@@ -1,11 +1,13 @@
 # Arc Relay intelligent gambit framework
 
-Status: owner-approved semantics, adversarially tightened and implemented as a
-narrow evaluation-grade vertical slice on 2026-08-02. The bounded design-round
+Status: owner-approved semantics, adversarially tightened, and implemented as
+an evaluation-grade ten-operation corpus on 2026-08-02. The bounded design-round
 evidence is in
 [`docs/reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md`](reports/ARC-RELAY-GAMBIT-DESIGN-ROUND-2026-08-02.md).
 The implementation read is in
 [`docs/reports/ARC-RELAY-INTELLIGENT-GAMBIT-VERTICAL-SLICE-2026-08-02.md`](reports/ARC-RELAY-INTELLIGENT-GAMBIT-VERTICAL-SLICE-2026-08-02.md).
+The ten-operation authoritative WASM proof is in
+[`docs/reports/ARC-RELAY-TEN-OPERATION-LIVE-PROOF-2026-08-02.md`](reports/ARC-RELAY-TEN-OPERATION-LIVE-PROOF-2026-08-02.md).
 This document defines the player model and deterministic execution semantics
 that the prototype implements. It does **not** freeze a player-facing sheet
 schema or editor, and it does **not** change Arc Relay

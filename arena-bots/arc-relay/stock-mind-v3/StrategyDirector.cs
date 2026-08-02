@@ -24,6 +24,8 @@ internal sealed class StrategyDirector
     private readonly IntelligentOperationMachine _operations;
     private readonly Dictionary<int, EnemyMemory> _enemyMemory = [];
     private readonly Dictionary<string, CausalCarrierTarget> _operationTargets = [];
+    private readonly Dictionary<(string OperationId, string ActionId), int>
+        _operationActionTicks = [];
 
     private string? _activeId;
     private int _activeStartedTick;
@@ -69,6 +71,17 @@ internal sealed class StrategyDirector
                         + value.Value.LastSeenTick));
             return _operations.TraceSummary + targets;
         }
+    }
+
+    internal void RecordOperationAction(
+        int unitId,
+        string actionId,
+        int tick)
+    {
+        OperationDirective? directive = _operations.DirectiveFor(unitId);
+        if (directive is null)
+            return;
+        _operationActionTicks[(directive.OperationId, actionId)] = tick;
     }
 
     internal void Update(
@@ -302,12 +315,17 @@ internal sealed class StrategyDirector
             : scoped ? active!.Id : "base";
         Position[]? goals = Goals(
             mind, arc, body, basePlan, intent, intentId,
-            operation is null ? active : null);
+            operation is null ? active : null,
+            operation?.OperationId);
         if (goals is null)
             return false;
 
-        GenericActorContext.ObservedEnemyState? carrier =
-            ArenaBasics.VisibleEnemyCarrier(mind, _teamId);
+        GenericActorContext.ObservedEnemyState? carrier = operation is not null
+            && _operationTargets.TryGetValue(
+                operation.OperationId, out CausalCarrierTarget? exactTarget)
+                ? mind.Enemies.SingleOrDefault(value =>
+                    value.ActorId == exactTarget.Carrier)
+                : ArenaBasics.VisibleEnemyCarrier(mind, _teamId);
         GenericActorContext.ObservedEnemyState? threat = carrier
             ?? mind.Enemies
                 .OrderBy(enemy => body.Position.ChebyshevDistance(enemy.Position))
@@ -444,7 +462,8 @@ internal sealed class StrategyDirector
         UnitPlan plan,
         PositionIntent intent,
         string intentId,
-        GambitPlan? gambit)
+        GambitPlan? gambit,
+        string? operationId)
     {
         Position[]? goals = intent.Kind switch
         {
@@ -452,7 +471,7 @@ internal sealed class StrategyDirector
             "zone" => ZoneTiles(intent.Target),
             "path" => PathGoals(body, intent, intentId),
             "anchor-offset" => Anchor(
-                    mind, arc, body, plan, intent.Target)
+                    mind, arc, body, plan, intent.Target, operationId)
                 is Position anchor
                     ? [anchor]
                     : string.IsNullOrEmpty(intent.FallbackZone)
@@ -520,7 +539,8 @@ internal sealed class StrategyDirector
         GenericActorContext.ModeObservationState.ArcRelay arc,
         MindBody body,
         UnitPlan plan,
-        string target)
+        string target,
+        string? operationId)
     {
         HashSet<ActorIdentity> ownCarriers = arc.VisibleCores
             .Where(core => core.CarrierActorId?.TeamId == _teamId)
@@ -551,6 +571,10 @@ internal sealed class StrategyDirector
                 .OrderBy(value => body.Position.ChebyshevDistance(value.Position))
                 .ThenBy(value => value.UnitId)
                 .Select(value => (Position?)value.Position).FirstOrDefault(),
+            "nearest-enemy-carrier" when operationId is not null
+                && _operationTargets.TryGetValue(
+                    operationId, out CausalCarrierTarget? exactTarget) =>
+                exactTarget.LastSeenPosition,
             "nearest-enemy-carrier" => mind.Enemies
                 .Where(value => enemyCarriers.Contains(value.ActorId))
                 .OrderBy(value => body.Position.ChebyshevDistance(value.Position))
@@ -561,6 +585,16 @@ internal sealed class StrategyDirector
                 .ThenBy(value => value.ActorId)
                 .Select(value => (Position?)value.Position).FirstOrDefault(),
             "partner" => mind.Body(plan.PartnerUnitId)?.Position,
+            _ when operationId is not null
+                && target.StartsWith("task:", StringComparison.Ordinal) =>
+                _operations.State(operationId).Assignments
+                    .Where(value => string.Equals(
+                        value.TaskId, target[5..], StringComparison.Ordinal))
+                    .Select(value => mind.Body(value.UnitId))
+                    .Where(value => value is not null)
+                    .OrderBy(value => value!.UnitId)
+                    .Select(value => (Position?)value!.Position)
+                    .FirstOrDefault(),
             _ when target.StartsWith("well-", StringComparison.Ordinal) =>
                 arc.Wells.Single(value => string.Equals(
                     value.WellId, target[5..], StringComparison.Ordinal)).Position,
@@ -624,13 +658,35 @@ internal sealed class StrategyDirector
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc)
     {
-        if (!string.Equals(operationId, "rear-hook", StringComparison.Ordinal))
+        IntelligentOperationPlan operation = _sheet.Operations.Single(value =>
+            string.Equals(value.Id, operationId, StringComparison.Ordinal));
+        OperationStateView state = _operations.State(operationId);
+        OperationBranch? branch = operation.Branches.SingleOrDefault(value =>
+            string.Equals(value.Id, state.BranchId, StringComparison.Ordinal));
+        if (branch is null
+            || !branch.SuccessAny.Any(value => string.Equals(
+                value.Fact,
+                "target-core-loose-or-ours",
+                StringComparison.Ordinal)))
+        {
             return;
-        Zone corridor = _sheet.Zones["north-return"];
+        }
+        string[] bindingZones = branch.CommitWhen.All
+            .Concat(branch.CommitWhen.Any)
+            .Where(value => string.Equals(
+                value.Fact,
+                "visible-enemy-carriers-in-zone",
+                StringComparison.Ordinal))
+            .Select(value => value.Zone)
+            .Where(value => !string.IsNullOrEmpty(value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
         GenericActorContext.ArcRelayCoreState? core = arc.VisibleCores
             .Where(value => value.CarrierActorId is { } actor
                 && actor.TeamId != _teamId)
-            .Where(value => corridor.Contains(Unmirror(value.Position)))
+            .Where(value => bindingZones.Length == 0
+                || bindingZones.Any(zone => _sheet.Zones[zone].Contains(
+                    Unmirror(value.Position))))
             .OrderBy(value => value.CoreId.SourceWellId, StringComparer.Ordinal)
             .ThenBy(value => value.CoreId.SourceOrdinal)
             .FirstOrDefault();
@@ -677,6 +733,21 @@ internal sealed class StrategyDirector
     {
         if (condition.Fact == "target-core-loose-or-ours")
             return TargetCoreLooseOrOurs(condition, state, arc);
+        if (condition.Fact == "target-carrier-outside-zone")
+            return TargetCarrierOutsideZone(condition, state, mind);
+        if (condition.Fact
+            == "operation-action-used-and-own-carrier-in-zone")
+        {
+            bool actionUsed = _operationActionTicks.TryGetValue(
+                    (state.OperationId, condition.Subject), out int actionTick)
+                && actionTick >= state.PhaseStartedTick;
+            bool carrierHome = OwnCarriers(mind, arc).Any(body =>
+                OperationZone(condition).Contains(
+                    Unmirror(body.Position)));
+            return actionUsed && carrierHome
+                ? OperationTruth.True
+                : OperationTruth.False;
+        }
         if (condition.Fact == "target-invalid")
             return TargetInvalid(condition, state, mind, arc);
         if (condition.Fact == "zone-clear")
@@ -711,6 +782,12 @@ internal sealed class StrategyDirector
                     Unmirror(body.Position))),
             "own-carried-cores" => arc.VisibleCores.Count(core =>
                 core.CarrierActorId?.TeamId == _teamId),
+            "own-carrier-min-health" => mind.Bodies
+                .Where(body => arc.VisibleCores.Any(core =>
+                    core.CarrierActorId == body.ActorId))
+                .Select(body => body.Health)
+                .DefaultIfEmpty(int.MaxValue)
+                .Min(),
             "visible-loose-or-own-cores-in-zone" => arc.VisibleCores.Count(
                 core => (core.Disposition
                         == GenericActorContext.ArcRelayCoreDisposition.Loose
@@ -724,6 +801,13 @@ internal sealed class StrategyDirector
                 .Count(body => body is not null
                     && OperationZone(condition).Contains(
                         Unmirror(body.Position))),
+            "task-participants-carrying" => state.Assignments
+                .Where(value => string.IsNullOrEmpty(condition.Subject)
+                    || value.TaskId == condition.Subject)
+                .Select(value => mind.Body(value.UnitId))
+                .Count(body => body is not null
+                    && arc.VisibleCores.Any(core =>
+                        core.CarrierActorId == body.ActorId)),
             "recently-seen-enemies-in-zone" => _enemyMemory.Values.Count(
                 memory => mind.Tick - memory.Tick
                         <= condition.FreshnessTicks
@@ -784,6 +868,26 @@ internal sealed class StrategyDirector
             mind.Tick,
             condition.FreshnessTicks,
             position => zone.Contains(Unmirror(position)));
+    }
+
+    private OperationTruth TargetCarrierOutsideZone(
+        OperationCondition condition,
+        OperationStateView state,
+        MindContext mind)
+    {
+        if (!_operationTargets.TryGetValue(
+                state.OperationId, out CausalCarrierTarget? target))
+        {
+            return OperationTruth.Unknown;
+        }
+        GenericActorContext.ObservedEnemyState? carrier = mind.Enemies
+            .SingleOrDefault(value => value.ActorId == target.Carrier);
+        if (carrier is null)
+            return OperationTruth.Unknown;
+        return OperationZone(condition).Contains(
+                Unmirror(carrier.Position))
+            ? OperationTruth.False
+            : OperationTruth.True;
     }
 
     private int UnobservedEnemyClassCount(

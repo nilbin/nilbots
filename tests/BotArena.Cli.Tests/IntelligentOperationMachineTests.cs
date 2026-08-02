@@ -206,6 +206,53 @@ public sealed class IntelligentOperationMachineTests
         Assert.Empty(committed.State("emergency").Assignments);
     }
 
+    [Fact]
+    public void Case9_OptionalStrikeGroupContinuesAfterOnePartnerDies()
+    {
+        OperationTask strike = Task(
+            "strike", ParticipantResilience.Optional, 0, 0, 1);
+        IntelligentOperationMachine machine = Machine(Plan(
+            branches: [Branch("go", "commit", strike)]));
+        Facts facts = new("trigger", "commit");
+        Step(machine, 0, Actors(0, 1), facts);
+        Step(machine, 1, Actors(0, 1), facts);
+
+        Step(machine, 2, Actors(1), facts);
+        Assert.Equal(OperationPhase.Commit, machine.State("play").Phase);
+
+        facts.True("success");
+        Step(machine, 3, Actors(1), facts);
+        Assert.Equal(RecoveryKind.Success, machine.State("play").RecoveryKind);
+    }
+
+    [Fact]
+    public void Case10_RecoveryDeadlineAlwaysReleasesSurvivorsToBaseline()
+    {
+        IntelligentOperationPlan plan = Plan() with
+        {
+            Recovery = new OperationRecovery(
+                3,
+                [Condition("safe")],
+                [Task("extract", ParticipantResilience.Optional, 0, 0, 1)],
+                [Task("extract", ParticipantResilience.Optional, 0, 0, 1)])
+        };
+        IntelligentOperationMachine machine = Machine(plan);
+        Facts facts = new("trigger", "commit");
+        Step(machine, 0, Actors(0, 1), facts);
+        Step(machine, 1, Actors(0, 1), facts);
+        facts.True("target-invalid");
+        Step(machine, 2, Actors(0, 1), facts);
+        Step(machine, 3, Actors(0, 1), facts);
+        Step(machine, 4, Actors(0, 1), facts);
+        Step(machine, 5, Actors(0, 1), facts);
+
+        Assert.Equal(OperationPhase.Dormant, machine.State("play").Phase);
+        Assert.Empty(machine.State("play").Assignments);
+        Assert.Equal(
+            "recovery-deadline-baseline-release",
+            machine.Transitions[^1].Reason);
+    }
+
     private static IntelligentOperationMachine Machine(
         params IntelligentOperationPlan[] plans) => new(plans);
 

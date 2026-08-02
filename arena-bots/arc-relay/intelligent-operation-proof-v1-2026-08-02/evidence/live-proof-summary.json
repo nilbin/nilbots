@@ -1,0 +1,26 @@
+{
+  "schema": "arc-relay-intelligent-operation-live-proof-summary-v1",
+  "artifactHash": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+  "proofSeed": "86080201",
+  "runtime": "wasm",
+  "mapProfile": "depth-counterflow",
+  "passed": true,
+  "passedCount": 10,
+  "requiredCount": 10,
+  "allCanonicalReplaysVerified": true,
+  "canonicalReplaysRetained": 0,
+  "maxMatchRecordBytes": 2659,
+  "maxBroadcastGzipBytes": 158012,
+  "operations": [
+    {"id":"rear-hook","sheetHash":"dffe24943f2dcade1cffa1a6c8c1cba800b0cd32b51aa2aedb7af40a1ca1ee5e","replayHash":"3a342168d014b857ba337e9d3f982a2c1466d31c32dfb62b59b58df5a7c79612","prepareTick":71,"commitTick":72,"successTick":86,"releaseTick":98,"requiredActions":{"tractor-hook":[80]}},
+    {"id":"lantern-sweep","sheetHash":"0e14fdfb9578f125e7e3232c4dca516488b91aea21b3bae669bcab9e96ee8be3","replayHash":"faaca66086ed805d30893c3c4c3aa9d1a0f65610f726d584973f199f1c549321","prepareTick":134,"commitTick":135,"successTick":136,"releaseTick":137,"requiredActions":{}},
+    {"id":"fork-shadow","sheetHash":"33b5e0d400bed3cd0ded13777f956200ecef2260cc69e3c8cc46e7977a8394ac","replayHash":"7b60b97e3694c4dd58f0a7df72a6395c005f7170550c5bb5eee2869fdb790bd9","prepareTick":251,"commitTick":253,"successTick":276,"releaseTick":288,"requiredActions":{"tractor-hook":[254,255,266,268]}},
+    {"id":"birth-rotation","sheetHash":"848f17f00a075bfc18ffdd49d038756f3317a92114cfb491e82efdee7429684e","replayHash":"5f5bcd43f23f51ecdf175a3f746de4a93e6bb19e1216cd9273efdd1c67bce6d2","prepareTick":205,"commitTick":209,"successTick":216,"releaseTick":218,"requiredActions":{}},
+    {"id":"escort-counterpunch","sheetHash":"4ef8e5ed02e69abd5f748e7885f9d8a882ab7f04682f50a839ed740a89a4b7f6","replayHash":"35a54684272358119d2a12df6a13b37e5d261e6fae47bad958db68658cf33879","prepareTick":26,"commitTick":28,"successTick":29,"releaseTick":35,"requiredActions":{}},
+    {"id":"smoke-breach","sheetHash":"4794f770f9f72b89164a402d3d1b410dd78b40fa330807c5c60b35691363780d","replayHash":"94bc4285a1ea0d055c0a7387be5ed81e08f087beb7135de7bf1764387dac67fe","prepareTick":55,"commitTick":62,"successTick":79,"releaseTick":83,"requiredActions":{"smoke-canister":[55,73]}},
+    {"id":"hardlight-gate","sheetHash":"a8e1322fa1597c904646ee366f4716746c6a7dfd758a154f10a2816861095997","replayHash":"cbcd76f2dc057f1fa1ed0618bd8feb91160e8a04f2d79da16832110f8df50dd4","prepareTick":163,"commitTick":169,"successTick":170,"releaseTick":171,"requiredActions":{"hardlight-block":[167]}},
+    {"id":"relay-catch","sheetHash":"87617a904d935e05261ca8238d772fa89ae321a7bd5a37be871e082d990d832d","replayHash":"21c1c0238bf63a4330a42ecb5555deb73c664c23323335bfe0c34ee9c891875b","prepareTick":432,"commitTick":433,"successTick":436,"releaseTick":441,"requiredActions":{"arc-toss":[434]}},
+    {"id":"decoy-switch","sheetHash":"a8c459c512449287f140cca104ecf25d569827ef5eb3de5c9050a588ccceda59","replayHash":"4b650dab14327561c9f450cc3c569359259b8380059ece37514f95e6a676488b","prepareTick":56,"commitTick":62,"successTick":67,"releaseTick":70,"requiredActions":{}},
+    {"id":"emergency-exchange","sheetHash":"ad3c61126877492fb8b7251bfc319194220656a492be9b1266bb080409a1590e","replayHash":"77d1ca98bacc914e643120391b79cb0bfd6dd3df6579a460bd27ab204ff3c119","prepareTick":79,"commitTick":80,"successTick":89,"releaseTick":93,"requiredActions":{"exchange":[88]}}
+  ]
+}
