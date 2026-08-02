@@ -365,6 +365,12 @@ def build(args: argparse.Namespace) -> None:
     replays = output / "replays"
     if hosted:
         replays.mkdir(exist_ok=True)
+        # App treats this index as optional, but still probes for it in the
+        # standalone viewer.  Gallery navigation lives in our outcome-blind
+        # index page, so an empty index is the truthful response and avoids a
+        # noisy 404 during browser review without introducing a second path to
+        # the sample identities.
+        (output / "replays.json").write_text("[]\n", encoding="utf-8")
     for entry in entries:
         sid = entry["id"]
         if hosted:

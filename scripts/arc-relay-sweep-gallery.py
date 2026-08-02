@@ -20,7 +20,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("attempt", type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--count",
+        type=int,
+        help=(
+            "take the first N entries from the outcome-blind order frozen "
+            "before outcomes (default: all)"
+        ),
+    )
     args = parser.parse_args()
+    if args.count is not None and args.count <= 0:
+        parser.error("--count must be positive")
 
     attempt = args.attempt.resolve()
     run = read_json(attempt / "RUN.json")
@@ -38,7 +48,10 @@ def main() -> int:
     cells = {cell["cellId"]: cell for cell in manifest["cells"]}
     completed = {cell["cellId"]: cell for cell in results["cells"]}
     replays: list[dict[str, Any]] = []
-    for frozen in review["cells"]:
+    frozen_cells = review["cells"]
+    if args.count is not None:
+        frozen_cells = frozen_cells[:args.count]
+    for frozen in frozen_cells:
         cell_id = frozen["cellId"]
         cell = cells[cell_id]
         result = completed.get(cell_id)
