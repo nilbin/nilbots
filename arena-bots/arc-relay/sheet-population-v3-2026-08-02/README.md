@@ -2,7 +2,7 @@
 
 This archive retains the twelve 2026-08-01 evaluation controls, binds those
 copies to the current `home-gates-wide` map identity, and adds twenty new
-sheets for the frozen Arc Relay stock mind. It is a sheet-space and gross
+sheets for the frozen Arc Relay audit mind. It is a sheet-space and gross
 balance instrument, not a population of independent bot authors and not the
 player-facing sheet format.
 
@@ -13,11 +13,13 @@ gate. The gate weights composition, class/role/theater assignment, authored
 routes, policy values, and gambit grammar; exact gameplay duplicates are
 rejected independently.
 
-The shared execution engine is the already-frozen
-`../stock-mind-v0/bot.wasm`. It builds zero times for this expansion: every
-sheet is validated, hashed, and delivered through the deterministic `ARS1`
-evaluation envelope. Match records bind the frozen algorithm hash and each
-sheet hash separately.
+The shared execution engine is the already-frozen, eligibility-repaired
+`../balance-audit-v2-2026-08-01/out/bot.wasm`. It builds zero times for this
+expansion: every sheet is validated, hashed, and delivered through the
+deterministic `ARS1` evaluation envelope. Match records bind the frozen
+algorithm hash and each sheet hash separately. The earlier `stock-mind-v0`
+artifact is not valid for this population because it predates the audit
+engine's stalled-carrier recovery and patrol staggering.
 
 Regenerate and verify the pack with:
 

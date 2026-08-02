@@ -23,7 +23,11 @@ REPO = Path(__file__).resolve().parent.parent
 BASE_PACK = REPO / "arena-bots/arc-relay/balance-audit-v2-2026-08-01/sheets"
 ARCHIVE = REPO / "arena-bots/arc-relay/sheet-population-v3-2026-08-02"
 PACK = ARCHIVE / "sheets"
-ARTIFACT = REPO / "arena-bots/arc-relay/stock-mind-v0/bot.wasm"
+ARTIFACT = (
+    REPO
+    / "arena-bots/arc-relay/balance-audit-v2-2026-08-01/out/bot.wasm"
+)
+ARTIFACT_FROM_ARCHIVE = "../balance-audit-v2-2026-08-01/out/bot.wasm"
 COHORT = ARCHIVE / "cohort.json"
 DISTINCTNESS = ARCHIVE / "static-distinctness.json"
 VALIDATOR = REPO / "scripts/generate-arc-relay-sheet.py"
@@ -759,7 +763,7 @@ def cohort(sheets: dict[str, dict[str, Any]]) -> dict[str, Any]:
                 "shared-stock-mind sheet-space diversity and balance screen; "
                 "not independent-lineage or human-fun authority"
             ),
-            "sharedExecutionEngine": "../stock-mind-v0/bot.wasm",
+            "sharedExecutionEngine": ARTIFACT_FROM_ARCHIVE,
             "sharedExecutionEngineSha256": artifact_hash,
             "authoringBoundary": (
                 "evaluation-grade ARS1 sheets, not player-facing product schema"
@@ -770,7 +774,7 @@ def cohort(sheets: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "entrants": [
             {
                 "entrantId": entrant_id,
-                "artifact": "../stock-mind-v0/bot.wasm",
+                "artifact": ARTIFACT_FROM_ARCHIVE,
                 "artifactSha256": artifact_hash,
                 "sheet": f"sheets/{entrant_id}.json",
                 "sheetSha256": sha256(PACK / f"{entrant_id}.json"),

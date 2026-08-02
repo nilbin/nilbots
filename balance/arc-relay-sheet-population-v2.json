@@ -17,8 +17,8 @@
     "rulesetId": "arc-relay-h0-01",
     "mapProfile": "home-gates-wide",
     "runtime": "wasm",
-    "sharedAlgorithm": "arena-bots/arc-relay/stock-mind-v0/bot.wasm",
-    "sharedAlgorithmSha256": "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9",
+    "sharedAlgorithm": "arena-bots/arc-relay/balance-audit-v2-2026-08-01/out/bot.wasm",
+    "sharedAlgorithmSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
     "cohort": "arena-bots/arc-relay/sheet-population-v3-2026-08-02/cohort.json",
     "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v2.json"
   },
