@@ -117,8 +117,10 @@
     "registered in-process batch on development seeds 26080211 and 26080229 for gross repair/rejection",
     "same-cell in-process/WASM result-parity sample for every retained screen",
     "canonical sandboxed WASM counter-web on disclosed seeds 104729 and 130363",
-    "fresh twelve-cell outcome-blind gallery ordered with seed 20260802"
+    "fresh twelve-cell outcome-blind gallery ordered with seed 20260802",
+    "after the stock-v1 eligibility rejection, a fresh stock-v2 retained block on seeds 196613 and 262147, registered before either repaired outcome"
   ],
+  "eligibilityRepairRetainedSeeds": ["196613", "262147"],
   "schema": "arc-relay-dynamic-strategy-study-v1",
   "status": "registered-before-dynamic-strategy-outcomes",
   "studyId": "arc-relay-dynamic-strategy-v1"
