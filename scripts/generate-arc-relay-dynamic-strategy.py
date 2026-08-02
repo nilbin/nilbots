@@ -22,7 +22,7 @@ SOURCE = (
     / "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets"
 )
 DEFAULT_OUTPUT = (
-    REPO / "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02"
+    REPO / "arena-bots/arc-relay/dynamic-strategy-v2-2026-08-02"
 )
 
 
@@ -181,8 +181,8 @@ def rear_ambush(dynamic: bool) -> dict[str, Any]:
             activation="while-true",
             minimum=16,
             maximum=48,
-            cooldown=36,
-            unit_ids=[4, 5],
+            cooldown=54,
+            unit_ids=[4, 5, 7],
             roles=[],
             enter=[clause(
                 "enemy-carriers-in-zone",
@@ -205,7 +205,7 @@ def rear_ambush(dynamic: bool) -> dict[str, Any]:
                     offset=(2, 0),
                     fallback_zone="enemy-rear-staging",
                 ),
-                formation=[[0, -1], [0, 1]],
+                formation=[[0, -1], [0, 1], [-2, 0]],
                 engagement="carrier-only",
                 signature="aggressive",
                 policies={
@@ -229,7 +229,7 @@ def well_rotation(dynamic: bool) -> dict[str, Any]:
             activation="while-true",
             minimum=12,
             maximum=24,
-            cooldown=18,
+            cooldown=60,
             unit_ids=[4, 5],
             roles=[],
             enter=[clause("ticks-until-next-well", "at-most", 12)],
@@ -308,7 +308,7 @@ def escort_counterpunch(dynamic: bool) -> dict[str, Any]:
                 activation="while-true",
                 minimum=16,
                 maximum=44,
-                cooldown=30,
+                    cooldown=60,
                 unit_ids=[0, 1, 4, 5],
                 roles=[],
                 enter=[clause(
@@ -340,8 +340,8 @@ def escort_counterpunch(dynamic: bool) -> dict[str, Any]:
                 activation="while-true",
                 minimum=18,
                 maximum=50,
-                cooldown=24,
-                unit_ids=[0, 1, 6],
+                cooldown=64,
+                unit_ids=[0, 1],
                 roles=[],
                 enter=[clause("own-carried-cores", "at-least", 1)],
                 exit_any=[clause("own-carried-cores", "equals", 0)],
@@ -353,7 +353,7 @@ def escort_counterpunch(dynamic: bool) -> dict[str, Any]:
                         offset=(-1, 0),
                         fallback_zone="home-backstop",
                     ),
-                    formation=[[0, -1], [0, 1], [-1, 0]],
+                    formation=[[0, -1], [0, 1]],
                     engagement="normal",
                     signature="defensive",
                     policies={
@@ -397,7 +397,7 @@ def generate(output: Path) -> None:
             item["sheetSha256"] = sha256(path)
             entrants.append(item)
     write_json(output / "cohort.json", {
-        "cohortId": "arc-relay-dynamic-strategy-v1",
+        "cohortId": "arc-relay-dynamic-strategy-v2",
         "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
         "entrants": entrants,
         "mapProfile": "depth-counterflow",
