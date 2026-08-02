@@ -356,6 +356,13 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   final commit SHA. An uncommitted delivery is an incomplete delivery,
   whatever the report says. (Owner rule — this has been forgotten more than
   once; it is a completion criterion, not a courtesy.)
+- **Owner reviews are delivered as public tunnel URLs.** The owner reviews
+  galleries and report evidence from his phone. Serving on localhost is not
+  delivery: serve the review directory (scripts/serve-gallery.py), expose the
+  port through a cloudflared quick tunnel (`cloudflared tunnel --url
+  http://127.0.0.1:<port>`, reuse a running one when its port matches), and
+  put the https://*.trycloudflare.com URL in the report. A review without a
+  working public URL is not ready for the gate.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files
