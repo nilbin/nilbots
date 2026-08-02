@@ -2,6 +2,7 @@
 
 Date: 2026-08-02
 Branch: `codex/game-redesign`
+Framework and design-round commit: `cb920d03`
 Canonical proposal:
 [`docs/ARC-RELAY-INTELLIGENT-GAMBIT-FRAMEWORK.md`](../ARC-RELAY-INTELLIGENT-GAMBIT-FRAMEWORK.md)
 
