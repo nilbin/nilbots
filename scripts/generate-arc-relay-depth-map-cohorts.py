@@ -89,33 +89,42 @@ def transform_sheet(
 ) -> dict[str, Any]:
     result = copy.deepcopy(source)
     result["mapId"] = map_id
-    for slot in result["slots"]:
+    for slot in result.get("slots", []):
         for key in ("outboundPath", "returnPath"):
             slot[key] = [
                 transform_position(value, variant) for value in slot[key]
             ]
-    result["rallyLines"] = {
-        name: [transform_position(value, variant) for value in values]
-        for name, values in result["rallyLines"].items()
-    }
-    result["zones"] = {
-        name: [
-            rectangle[0],
-            stretch_y(rectangle[1]) if variant == "larger" else rectangle[1],
-            rectangle[2],
-            stretch_y(rectangle[3]) if variant == "larger" else rectangle[3],
-        ]
-        for name, rectangle in result["zones"].items()
-    }
-    result["auditStatus"]["mapStudyAdaptation"] = {
-        "sourceMapId": source["mapId"],
-        "variant": variant,
-        "coordinateTransform": (
-            "three-Well anchored vertical stretch v1"
-            if variant == "larger"
-            else "identity coordinates v1"
-        ),
-    }
+    if "rallyLines" in result:
+        result["rallyLines"] = {
+            name: [transform_position(value, variant) for value in values]
+            for name, values in result["rallyLines"].items()
+        }
+    if "zones" in result:
+        result["zones"] = {
+            name: [
+                rectangle[0],
+                (
+                    stretch_y(rectangle[1])
+                    if variant == "larger" else rectangle[1]
+                ),
+                rectangle[2],
+                (
+                    stretch_y(rectangle[3])
+                    if variant == "larger" else rectangle[3]
+                ),
+            ]
+            for name, rectangle in result["zones"].items()
+        }
+    if "auditStatus" in result:
+        result["auditStatus"]["mapStudyAdaptation"] = {
+            "sourceMapId": source["mapId"],
+            "variant": variant,
+            "coordinateTransform": (
+                "three-Well anchored vertical stretch v1"
+                if variant == "larger"
+                else "identity coordinates v1"
+            ),
+        }
     return result
 
 
@@ -155,12 +164,12 @@ def contract(
 
 def authored_positions(sheet: dict[str, Any]) -> list[tuple[str, list[int]]]:
     result: list[tuple[str, list[int]]] = []
-    for slot in sheet["slots"]:
+    for slot in sheet.get("slots", []):
         for key in ("outboundPath", "returnPath"):
             for index, value in enumerate(slot[key]):
                 result.append(
                     (f"slot-{slot['unitId']}.{key}[{index}]", value))
-    for name, values in sheet["rallyLines"].items():
+    for name, values in sheet.get("rallyLines", {}).items():
         for index, value in enumerate(values):
             result.append((f"rallyLines.{name}[{index}]", value))
     return result
@@ -183,7 +192,7 @@ def validate_sheet(sheet: dict[str, Any], contract_value: dict[str, Any]) -> Non
         # stock executor paths toward the nearest reachable approach tile.
         # That behavior exists in the frozen source cohort, so bounds—not
         # walkability—are the compatibility contract here.
-    for name, rectangle in sheet["zones"].items():
+    for name, rectangle in sheet.get("zones", {}).items():
         min_x, min_y, max_x, max_y = rectangle
         if not (0 <= min_x <= max_x < width and 0 <= min_y <= max_y < height):
             raise ValueError(
@@ -196,6 +205,12 @@ def main() -> int:
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--cli", type=Path, default=DEFAULT_CLI)
+    parser.add_argument(
+        "--variant",
+        choices=tuple(PROFILES),
+        action="append",
+        help="generate only this variant; repeat as needed (default: both)",
+    )
     args = parser.parse_args()
 
     source_path = args.source.resolve()
@@ -207,11 +222,17 @@ def main() -> int:
     source_sheets = [
         resolve(source_path.parent, item["sheet"]) for item in entrants
     ]
-    source_artifact = resolve(source_path.parent, entrants[0]["artifact"])
-    if not all(path.is_file() for path in [*source_sheets, source_artifact]):
+    source_artifacts = [
+        resolve(source_path.parent, item["artifact"]) for item in entrants
+    ]
+    if not all(
+        path.is_file() for path in [*source_sheets, *source_artifacts]
+    ):
         raise FileNotFoundError("source cohort is incomplete")
 
-    for variant, profile in PROFILES.items():
+    selected_variants = args.variant or list(PROFILES)
+    for variant in selected_variants:
+        profile = PROFILES[variant]
         resolved_contract = contract(
             args.cli.resolve(), profile, source_sheets[0], source_sheets[1])
         map_contract = resolved_contract["map"]
@@ -226,8 +247,10 @@ def main() -> int:
 
         sheet_dir.mkdir(parents=True, exist_ok=True)
         cohort_entrants = []
-        for (item, payload), sheet_path in zip(transformed, source_sheets):
-            filename = sheet_path.name
+        for (item, payload), sheet_path, source_artifact in zip(
+            transformed, source_sheets, source_artifacts
+        ):
+            filename = f"{item['entrantId']}.json"
             destination = sheet_dir / filename
             destination.write_bytes(payload)
             cohort_entrants.append({

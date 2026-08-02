@@ -128,6 +128,151 @@ def opening_fingerprint(
     return hashlib.sha256(encoded).hexdigest()
 
 
+def opening_bands(broadcast: dict[str, Any]) -> dict[str, int]:
+    contract = broadcast["header"]["contract"]["map"]
+    regions = {
+        item["regionId"]: [tuple(tile) for tile in item["tiles"]]
+        for item in contract["regions"]
+    }
+    north = regions["well-north"][0][1]
+    centre = regions["well-centre"][0][1]
+    south = regions["well-south"][0][1]
+    width = int(contract["width"])
+    return {
+        "northMaximumY": (north + centre) // 2,
+        "southMinimumY": (centre + south + 1) // 2,
+        "rearMaximumX": width // 3 - 1,
+        "forwardMinimumX": width - width // 3,
+        "width": width,
+    }
+
+
+def coarse_opening_archetype(
+    broadcast: dict[str, Any],
+    team: int,
+    through_ticks: int,
+) -> str:
+    """Bucket an opening by visible allocation and action-family emphasis.
+
+    Exact trajectories are intentionally retained separately. This coarser
+    view drops unit identity, exact tiles, and exact action counts so two
+    executions of the same strategic shape can land in one archetype.
+    """
+    limit = min(through_ticks, len(broadcast["worlds"]))
+    if limit <= 0:
+        raise ValueError("opening prefix needs at least one world")
+    bands = opening_bands(broadcast)
+    final_world = broadcast["worlds"][limit - 1]
+    theater_counts: Counter[str] = Counter()
+    progress_counts: Counter[str] = Counter()
+    grid_counts: Counter[tuple[str, str]] = Counter()
+    live_units: set[int] = set()
+
+    def theater_name(y: int) -> str:
+        if y <= bands["northMaximumY"]:
+            return "north"
+        if y >= bands["southMinimumY"]:
+            return "south"
+        return "centre"
+
+    def progress_name(x: int) -> str:
+        normalized_x = bands["width"] - 1 - x if team == 1 else x
+        if normalized_x <= bands["rearMaximumX"]:
+            return "rear"
+        if normalized_x >= bands["forwardMinimumX"]:
+            return "forward"
+        return "middle"
+
+    for actor in final_world[4]:
+        if int(actor[0]) != team:
+            continue
+        live_units.add(int(actor[1]))
+        theater = theater_name(int(actor[7]))
+        progress = progress_name(int(actor[6]))
+        theater_counts[theater] += 1
+        progress_counts[progress] += 1
+        grid_counts[(theater, progress)] += 1
+
+    action_counts: Counter[str] = Counter()
+    for tick in range(limit):
+        for turn in broadcast["turns"][tick]:
+            if int(turn[0][0]) != team:
+                continue
+            action_id = turn[5][0]
+            if action_id == "wait":
+                family = "wait"
+            elif action_id == "move-eight-way":
+                family = "move"
+            elif action_id == "rotate":
+                family = "rotate"
+            elif action_id == "shoot-direction":
+                family = "shoot"
+            elif action_id in ("drop-core", "handoff-core"):
+                family = "objective"
+            else:
+                family = "signature"
+            action_counts[family] += 1
+    action_total = sum(action_counts.values())
+    action_quarters = {
+        family: (
+            min(4, (action_counts[family] * 4 + action_total // 2)
+                // action_total)
+            if action_total else 0
+        )
+        for family in (
+            "wait", "move", "rotate", "shoot", "objective", "signature"
+        )
+    }
+
+    carrier_theaters: Counter[str] = Counter()
+    arc = final_world[7]
+    if arc.get("kind") == "arc-relay":
+        actor_positions = {
+            (int(actor[0]), int(actor[1]), int(actor[2])):
+                (int(actor[6]), int(actor[7]))
+            for actor in final_world[4]
+        }
+        for core in arc["visibleCores"]:
+            carrier_value = core.get("carrierActorId")
+            if carrier_value is None:
+                continue
+            carrier = (
+                tuple(int(value) for value in carrier_value)
+                if isinstance(carrier_value, list)
+                else (
+                    int(carrier_value["teamId"]),
+                    int(carrier_value["unitId"]),
+                    int(carrier_value["lifeId"]),
+                )
+            )
+            if carrier[0] != team:
+                continue
+            position = actor_positions.get(carrier)
+            if position is not None:
+                carrier_theaters[theater_name(position[1])] += 1
+
+    payload = {
+        "liveBodies": len(live_units),
+        "theaters": [
+            theater_counts[name] for name in ("north", "centre", "south")
+        ],
+        "progress": [
+            progress_counts[name] for name in ("rear", "middle", "forward")
+        ],
+        "grid": [
+            grid_counts[(theater, progress)]
+            for theater in ("north", "centre", "south")
+            for progress in ("rear", "middle", "forward")
+        ],
+        "actionShareQuarters": action_quarters,
+        "carrierTheaters": [
+            carrier_theaters[name] for name in ("north", "centre", "south")
+        ],
+    }
+    return json.dumps(
+        payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+
+
 def map_metrics(broadcast: dict[str, Any]) -> dict[str, Any]:
     contract = broadcast["header"]["contract"]["map"]
     rows = contract["tileRows"]
@@ -234,6 +379,9 @@ def main() -> int:
         signature: Counter() for signature in CLASS_SIGNATURE.values()
     }
     opening_hashes: dict[int, dict[str, list[str]]] = {
+        tick: defaultdict(list) for tick in OPENING_PREFIX_TICKS
+    }
+    opening_archetypes: dict[int, dict[str, list[str]]] = {
         tick: defaultdict(list) for tick in OPENING_PREFIX_TICKS
     }
     pair_results: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -352,6 +500,8 @@ def main() -> int:
             for prefix in OPENING_PREFIX_TICKS:
                 opening_hashes[prefix][entrant].append(
                     opening_fingerprint(broadcast, team, prefix))
+                opening_archetypes[prefix][entrant].append(
+                    coarse_opening_archetype(broadcast, team, prefix))
 
     if first_broadcast is None:
         raise ValueError("sweep has no eligible broadcasts")
@@ -390,18 +540,50 @@ def main() -> int:
     opening_output: dict[str, Any] = {}
     for prefix, by_entrant in opening_hashes.items():
         unique_counts = [len(set(values)) for values in by_entrant.values()]
+        coarse_by_entrant = opening_archetypes[prefix]
+        coarse_unique_counts = [
+            len(set(values)) for values in coarse_by_entrant.values()
+        ]
+        coarse_histogram = Counter(
+            value
+            for values in coarse_by_entrant.values()
+            for value in values
+        )
         opening_output[str(prefix)] = {
-            "entrantSides": sum(len(values) for values in by_entrant.values()),
-            "distinctFingerprints": len({
-                value for values in by_entrant.values() for value in values
-            }),
-            "uniqueFingerprintsPerEntrant": series(unique_counts),
-            "entrantsWithOnlyOneFingerprint": sum(
-                len(set(values)) == 1 for values in by_entrant.values()),
-            "method": (
-                "team-normalized authoritative body position, form, health, "
-                "resolved action id, and result through the tick prefix"
-            ),
+            "exactTrajectories": {
+                "entrantSides": sum(
+                    len(values) for values in by_entrant.values()),
+                "distinctFingerprints": len({
+                    value for values in by_entrant.values() for value in values
+                }),
+                "uniqueFingerprintsPerEntrant": series(unique_counts),
+                "entrantsWithOnlyOneFingerprint": sum(
+                    len(set(values)) == 1 for values in by_entrant.values()),
+                "method": (
+                    "team-normalized authoritative body position, form, "
+                    "health, resolved action id, and result through the tick "
+                    "prefix"
+                ),
+            },
+            "coarseArchetypes": {
+                "entrantSides": sum(
+                    len(values) for values in coarse_by_entrant.values()),
+                "distinctArchetypes": len(coarse_histogram),
+                "uniqueArchetypesPerEntrant": series(coarse_unique_counts),
+                "entrantsWithOnlyOneArchetype": sum(
+                    len(set(values)) == 1
+                    for values in coarse_by_entrant.values()),
+                "largestArchetypeShare": ratio(
+                    max(coarse_histogram.values(), default=0),
+                    sum(coarse_histogram.values()),
+                ),
+                "method": (
+                    "team-normalized final body allocation in 3 theaters x "
+                    "3 progress bands, quarter-bucketed action-family shares, "
+                    "and carrier theaters; exact tiles and unit identity "
+                    "discarded"
+                ),
+            },
         }
 
     source_total = sum(deliveries_by_source.values())
@@ -431,7 +613,7 @@ def main() -> int:
         }
 
     output = {
-        "schema": "arc-relay-depth-map-read-v1",
+        "schema": "arc-relay-depth-map-read-v2",
         "authority": (
             "exact-verified spectator broadcasts from a shared stock-mind "
             "evaluation corpus; diagnostic, not a human-fun claim"
