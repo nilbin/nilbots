@@ -350,6 +350,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 
 ## Conventions
 
+- **A task is not done with a dirty tree.** Commit as you go on your
+  assigned branch. Before reporting any goal, task, or pass as complete:
+  `git status` must be clean, all work committed, and the report cites the
+  final commit SHA. An uncommitted delivery is an incomplete delivery,
+  whatever the report says. (Owner rule — this has been forgotten more than
+  once; it is a completion criterion, not a courtesy.)
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files
