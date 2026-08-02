@@ -22,7 +22,7 @@ SOURCE = (
     / "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets"
 )
 DEFAULT_OUTPUT = (
-    REPO / "arena-bots/arc-relay/dynamic-strategy-v2-2026-08-02"
+    REPO / "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02"
 )
 
 
@@ -175,47 +175,77 @@ def rear_ambush(dynamic: bool) -> dict[str, Any]:
             "signatureIntent": "conserve",
         }
     if dynamic:
-        sheet["gambits"] = [gambit(
-            priority=10,
-            plan_id="rear-collapse",
-            activation="while-true",
-            minimum=16,
-            maximum=48,
-            cooldown=54,
-            unit_ids=[4, 5, 7],
-            roles=[],
-            enter=[clause(
-                "enemy-carriers-in-zone",
-                zone="enemy-return-corridor",
-            ), clause(
-                "own-bodies-in-zone",
-                value=2,
-                zone="enemy-rear-staging",
-            ), clause(
-                "own-min-zone-tenure",
-                value=6,
-                zone="enemy-rear-staging",
-            )],
-            exit_any=[clause("enemy-carried-cores", "equals", 0)],
-            plan_overlay=overlay(
-                role="intercept",
-                position_intent=position(
-                    "anchor-offset",
-                    "nearest-enemy-carrier",
-                    offset=(2, 0),
-                    fallback_zone="enemy-rear-staging",
+        sheet["gambits"] = [
+            gambit(
+                priority=10,
+                plan_id="rear-collapse",
+                activation="while-true",
+                minimum=16,
+                maximum=48,
+                cooldown=54,
+                unit_ids=[4, 5, 7],
+                roles=[],
+                enter=[clause(
+                    "enemy-carriers-in-zone",
+                    zone="enemy-return-corridor",
+                ), clause(
+                    "own-bodies-in-zone",
+                    value=2,
+                    zone="enemy-rear-staging",
+                ), clause(
+                    "own-min-zone-tenure",
+                    value=6,
+                    zone="enemy-rear-staging",
+                )],
+                exit_any=[clause("enemy-carried-cores", "equals", 0)],
+                plan_overlay=overlay(
+                    role="intercept",
+                    position_intent=position(
+                        "anchor-offset",
+                        "nearest-enemy-carrier",
+                        offset=(2, 0),
+                        fallback_zone="enemy-rear-staging",
+                    ),
+                    formation=[[0, -1], [0, 1], [-2, 0]],
+                    engagement="carrier-only",
+                    signature="aggressive",
+                    policies={
+                        "interception": {
+                            "focusEnemyCarrier": True,
+                            "looseCoreFallback": False,
+                        }
+                    },
                 ),
-                formation=[[0, -1], [0, 1], [-2, 0]],
-                engagement="carrier-only",
-                signature="aggressive",
-                policies={
-                    "interception": {
-                        "focusEnemyCarrier": True,
-                        "looseCoreFallback": False,
-                    }
-                },
             ),
-        )]
+            gambit(
+                priority=20,
+                plan_id="rear-recovery",
+                activation="while-true",
+                minimum=8,
+                maximum=24,
+                cooldown=36,
+                unit_ids=[4, 5],
+                roles=[],
+                enter=[clause(
+                    "loose-cores-in-zone",
+                    "at-least",
+                    1,
+                    "enemy-return-corridor",
+                )],
+                exit_any=[clause("visible-loose-cores", "equals", 0)],
+                plan_overlay=overlay(
+                    role="carrier",
+                    position_intent=position(
+                        "anchor-offset",
+                        "nearest-loose-core",
+                        fallback_zone="enemy-rear-staging",
+                    ),
+                    formation=[[0, 0], [-1, 0]],
+                    engagement="aggressive",
+                    signature="aggressive",
+                ),
+            ),
+        ]
     return sheet
 
 
@@ -397,7 +427,7 @@ def generate(output: Path) -> None:
             item["sheetSha256"] = sha256(path)
             entrants.append(item)
     write_json(output / "cohort.json", {
-        "cohortId": "arc-relay-dynamic-strategy-v2",
+        "cohortId": "arc-relay-dynamic-strategy-v3",
         "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
         "entrants": entrants,
         "mapProfile": "depth-counterflow",

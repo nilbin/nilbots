@@ -1,0 +1,133 @@
+{
+  "cells": [
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080211--a0",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080211--a1",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080211",
+      "team0": "rear-ambush-static",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080211--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080211--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080211",
+      "team0": "well-rotation-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080229--a0",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080229--a1",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080229",
+      "team0": "rear-ambush-static",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080229--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080229--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080229",
+      "team0": "well-rotation-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/cohort.json",
+  "cohortId": "arc-relay-dynamic-strategy-v3",
+  "cohortSha256": "16c6094db52a65e692eeefaedbeeb1825d8cdcb82d07f32c2db8a59c1160debb",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "eligibilityBarsSha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "escort-counterpunch-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/escort-counterpunch-dynamic.json",
+      "sheetSha256": "b7db8ead41addd572eefe49b4fa36e692975e7a3e3e7bf924e07aa2b3182fa59"
+    },
+    "escort-counterpunch-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/escort-counterpunch-static.json",
+      "sheetSha256": "6391493c5d483d2cf2e92fec1dec2133a8ec9f2b5fcc7c30ca1b4a8f11467261"
+    },
+    "feint-pincer-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/feint-pincer-dynamic.json",
+      "sheetSha256": "8e80ae381d9644b3e43fc9af1d4c72ce67aead12edcbff609915c577e44292e6"
+    },
+    "feint-pincer-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/feint-pincer-static.json",
+      "sheetSha256": "7f338e5c66e6eec67a4ffe9c30a980ccf7ca18346d7ac314179ced3aca6cdba5"
+    },
+    "rear-ambush-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/rear-ambush-dynamic.json",
+      "sheetSha256": "b9efdb2be2c76b9fffc669c630695fce21a4e7377f431a9aae65a80c1097cc70"
+    },
+    "rear-ambush-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/rear-ambush-static.json",
+      "sheetSha256": "eee4e4ed01d6672410c1fc73a1841dad77dc49a55efcdab7df3caa6e2c764c6d"
+    },
+    "well-rotation-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/well-rotation-dynamic.json",
+      "sheetSha256": "0130511955c32053dd195c5d06326e8f278d9b6e27fc6575f03c2eded30a85a5"
+    },
+    "well-rotation-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02/sheets/well-rotation-static.json",
+      "sheetSha256": "7bd1aa353d82713a490066ab60c30ae239516296bedff1d5b10d234a3f82b5d9"
+    }
+  },
+  "loopProfile": "depth-counterflow",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+  "rulesetId": "arc-relay-h0-01",
+  "runtime": "in-process",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-dynamic-strategy-screen-v3-probe"
+}
