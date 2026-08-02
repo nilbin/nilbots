@@ -282,8 +282,8 @@ is not used for any population or outcome claim.
 | gallery sources | 12 / 12 eligible and verified |
 | public delivery smoke | HTTP 200; transparent result cards visible |
 
-Implementation/evidence commits are `2e3942db` through `a44edc29`. Report
-content commit: `REPORT_CONTENT_COMMIT`.
+Implementation/evidence commits are `2e3942db` through `36faf096`. Report
+content commit: `56a0c050`.
 
 ## NEXT
 
