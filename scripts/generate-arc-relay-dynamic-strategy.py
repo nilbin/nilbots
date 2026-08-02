@@ -22,7 +22,7 @@ SOURCE = (
     / "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets"
 )
 DEFAULT_OUTPUT = (
-    REPO / "arena-bots/arc-relay/dynamic-strategy-v3-2026-08-02"
+    REPO / "arena-bots/arc-relay/dynamic-strategy-v4-2026-08-02"
 )
 
 
@@ -224,7 +224,7 @@ def rear_ambush(dynamic: bool) -> dict[str, Any]:
                 minimum=8,
                 maximum=24,
                 cooldown=36,
-                unit_ids=[4, 5],
+                unit_ids=[4],
                 roles=[],
                 enter=[clause(
                     "loose-cores-in-zone",
@@ -240,9 +240,9 @@ def rear_ambush(dynamic: bool) -> dict[str, Any]:
                         "nearest-loose-core",
                         fallback_zone="enemy-rear-staging",
                     ),
-                    formation=[[0, 0], [-1, 0]],
-                    engagement="aggressive",
-                    signature="aggressive",
+                    formation=[[0, 0]],
+                    engagement="hold-fire",
+                    signature="conserve",
                 ),
             ),
         ]
@@ -427,7 +427,7 @@ def generate(output: Path) -> None:
             item["sheetSha256"] = sha256(path)
             entrants.append(item)
     write_json(output / "cohort.json", {
-        "cohortId": "arc-relay-dynamic-strategy-v3",
+        "cohortId": "arc-relay-dynamic-strategy-v4",
         "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
         "entrants": entrants,
         "mapProfile": "depth-counterflow",
