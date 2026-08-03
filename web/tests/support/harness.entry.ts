@@ -35,12 +35,13 @@ export {
 } from '../../src/presentation/playAwareness';
 export { defaultPlaybackSpeed } from '../../src/playback';
 export {
+  DESKTOP_ARENA_RENDER_PROFILE,
   FULL_ARENA_RENDER_PROFILE,
   MOBILE_ARENA_RENDER_PROFILE,
-  arenaFrameDue,
-  arenaPresentedFrameStamp,
   arenaWeightedPixelsPerSecond,
+  createArenaFramePacer,
   selectArenaRenderProfile,
+  takeArenaFrame,
 } from '../../src/render/arenaRenderProfile';
 export {
   classFamilyForForm,

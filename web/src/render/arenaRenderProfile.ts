@@ -1,7 +1,8 @@
-export type ArenaRenderProfileId = 'full' | 'mobile';
+export type ArenaRenderProfileId = 'full' | 'desktop' | 'mobile';
 
 export interface ArenaRenderProfile {
   id: ArenaRenderProfileId;
+  presentationRateLimited: boolean;
   activeFramesPerSecond: number;
   idleFramesPerSecond: number;
   webglMaxPixelRatio: number;
@@ -18,15 +19,34 @@ export interface ArenaRenderEnvironment {
   override?: string | null;
 }
 
-/** The desktop/reference path, also used by `?render-profile=full` A/B evidence. */
+/** The unrestricted historical path, retained only for `?render-profile=full` evidence. */
 export const FULL_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
   id: 'full',
+  presentationRateLimited: false,
   activeFramesPerSecond: 60,
   idleFramesPerSecond: 60,
   webglMaxPixelRatio: 2,
   canvasMaxPixelRatio: Number.POSITIVE_INFINITY,
   shadowMapSize: 2048,
   powerPreference: 'high-performance',
+});
+
+/**
+ * Sustained desktop-watch budget.
+ *
+ * Desktop keeps the reference resolution and shadow fidelity. It only stops submitting
+ * duplicate work above 60 Hz, lets paused micro-life breathe at 12 Hz, and avoids forcing
+ * a discrete GPU when the browser's default adapter can render the match comfortably.
+ */
+export const DESKTOP_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
+  id: 'desktop',
+  presentationRateLimited: true,
+  activeFramesPerSecond: 60,
+  idleFramesPerSecond: 12,
+  webglMaxPixelRatio: 2,
+  canvasMaxPixelRatio: 2,
+  shadowMapSize: 2048,
+  powerPreference: 'default',
 });
 
 /**
@@ -40,6 +60,7 @@ export const FULL_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
  */
 export const MOBILE_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
   id: 'mobile',
+  presentationRateLimited: true,
   activeFramesPerSecond: 30,
   idleFramesPerSecond: 12,
   webglMaxPixelRatio: 1.5,
@@ -53,13 +74,14 @@ export function selectArenaRenderProfile(
   environment: ArenaRenderEnvironment,
 ): ArenaRenderProfile {
   if (environment.override === 'full') return FULL_ARENA_RENDER_PROFILE;
+  if (environment.override === 'desktop') return DESKTOP_ARENA_RENDER_PROFILE;
   if (environment.override === 'mobile') return MOBILE_ARENA_RENDER_PROFILE;
 
   const shortEdge = Math.min(environment.viewportWidth, environment.viewportHeight);
   const phoneLikeTouchViewport = environment.maxTouchPoints > 0 && shortEdge <= 1024;
   return environment.coarsePointer || phoneLikeTouchViewport
     ? MOBILE_ARENA_RENDER_PROFILE
-    : FULL_ARENA_RENDER_PROFILE;
+    : DESKTOP_ARENA_RENDER_PROFILE;
 }
 
 /** Resolve the current browser once when a viewer mounts. */
@@ -73,38 +95,54 @@ export function currentArenaRenderProfile(owner: Window = window): ArenaRenderPr
   });
 }
 
-/**
- * Whether a timestamp is due under a capped animation loop.
- *
- * The one-millisecond tolerance prevents a nominal 60 Hz clock (`16.666…`) from missing
- * every second 30 Hz frame because of timer rounding and falling to 20 fps.
- */
-export function arenaFrameDue(
-  stamp: number,
-  previousStamp: number | null,
-  framesPerSecond: number,
-): boolean {
-  return arenaPresentedFrameStamp(stamp, previousStamp, framesPerSecond) !== null;
+export interface ArenaFramePacer {
+  lastRefreshStamp: number | null;
+  elapsed: number;
+  framesPerSecond: number | null;
 }
 
 /**
- * Return the cadence anchor for a due frame, or null when this display refresh is early.
- *
- * Anchoring to the ideal cadence instead of the latest (slightly late) callback prevents
- * timer jitter from accumulating. Without that correction a requested 30 fps settled at
- * roughly 26 fps in mobile WebKit because every late frame moved the next deadline too.
+ * Create the mutable clock owned by one animation loop.
  */
-export function arenaPresentedFrameStamp(
+export function createArenaFramePacer(): ArenaFramePacer {
+  return {
+    lastRefreshStamp: null,
+    elapsed: 0,
+    framesPerSecond: null,
+  };
+}
+
+/**
+ * Consume a display timestamp and report whether this loop should present a frame.
+ *
+ * This is an elapsed-time accumulator rather than a comparison with the last presented
+ * stamp. A one-millisecond early allowance absorbs browser timestamp jitter, but resets
+ * its negative debt immediately; otherwise a nominal 60 Hz cap can alternately accept an
+ * early callback and reject the next one, settling around 43 fps. Excess time is reduced
+ * modulo one interval so a backgrounded tab never tries to replay missed visual frames.
+ */
+export function takeArenaFrame(
+  pacer: ArenaFramePacer,
   stamp: number,
-  previousStamp: number | null,
   framesPerSecond: number,
-): number | null {
-  if (previousStamp === null) return stamp;
+): boolean {
+  if (
+    pacer.lastRefreshStamp === null ||
+    pacer.framesPerSecond !== framesPerSecond
+  ) {
+    pacer.lastRefreshStamp = stamp;
+    pacer.elapsed = 0;
+    pacer.framesPerSecond = framesPerSecond;
+    return true;
+  }
+
   const interval = 1000 / framesPerSecond;
-  const elapsed = stamp - previousStamp;
-  if (elapsed < interval - 1) return null;
-  const elapsedIntervals = Math.max(1, Math.floor((elapsed + 1) / interval));
-  return previousStamp + elapsedIntervals * interval;
+  const sinceRefresh = Math.max(0, stamp - pacer.lastRefreshStamp);
+  pacer.lastRefreshStamp = stamp;
+  pacer.elapsed += sinceRefresh;
+  if (pacer.elapsed < interval - 1) return false;
+  pacer.elapsed = pacer.elapsed < interval ? 0 : pacer.elapsed % interval;
+  return true;
 }
 
 /** Conservative fill-work proxy: screen color pass plus one full shadow-map pass. */
@@ -113,9 +151,13 @@ export function arenaWeightedPixelsPerSecond(
   cssHeight: number,
   profile: ArenaRenderProfile,
   devicePixelRatio: number,
+  displayFramesPerSecond = 60,
 ): number {
   const ratio = Math.min(devicePixelRatio, profile.webglMaxPixelRatio);
-  return profile.activeFramesPerSecond * (
+  const presentedFramesPerSecond = profile.presentationRateLimited
+    ? Math.min(displayFramesPerSecond, profile.activeFramesPerSecond)
+    : displayFramesPerSecond;
+  return presentedFramesPerSecond * (
     cssWidth * cssHeight * ratio * ratio + profile.shadowMapSize * profile.shadowMapSize
   );
 }

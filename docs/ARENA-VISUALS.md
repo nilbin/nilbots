@@ -546,18 +546,25 @@ unproven vertical slice, not a validated replacement for authored modeling:
   proven production method. The rejected generated binaries and sources are
   intentionally not retained.
 
-### Sustained mobile-watch budget
+### Sustained replay power budgets
 
-A replay is a minutes-long workload, so phone acceptance is based on sustained
-renderer work rather than first-frame speed. Browser code cannot make a
-portable temperature claim; it can own and bound the work most directly tied
-to heat: presentation frequency, drawing-buffer pixels, live shadow-map pixels,
-draw submissions, and Canvas2D operations.
+A replay is a minutes-long workload, so power acceptance is based on sustained
+renderer work rather than first-frame speed. Browser code cannot make a portable
+temperature claim; it can own and bound the work most directly tied to heat:
+presentation frequency, drawing-buffer pixels, live shadow-map pixels, draw
+submissions, and Canvas2D operations.
 
-- Select the mobile profile from input and viewport capabilities, never from a
-  user-agent string. A coarse pointer or a touch phone-sized viewport receives
-  the profile. `?render-profile=full` and `?render-profile=mobile` are evidence
-  overrides for same-build A/B only, not a player-facing graphics menu.
+- Select the profile from input and viewport capabilities, never from a user-agent
+  string. A coarse pointer or a touch phone-sized viewport receives mobile;
+  other viewers receive desktop. `?render-profile=full`, `desktop`, and `mobile`
+  are evidence overrides for same-build A/B only, not a player-facing graphics
+  menu. Full is the unrestricted historical reference, not the automatic desktop
+  setting.
+- Desktop retains DPR 2, 2048² shadows, antialiasing, and every scene feature.
+  It caps active presentation and React clock updates at 60 fps, drops paused
+  micro-life to 12 fps, and uses the browser's default GPU selection instead of
+  forcing the high-performance adapter. This removes duplicate work on 120/144 Hz
+  displays and avoids needlessly waking a discrete GPU on dual-adapter laptops.
 - While a replay or live broadcast advances, mobile WebGL and Canvas2D present
   at 30 fps. Paused WebGL/Canvas2D presentation runs at 12 fps so selection,
   camera settling, emissive breathing, and other micro-life remain alive.
@@ -565,18 +572,19 @@ draw submissions, and Canvas2D operations.
   discrete facts do not move earlier or later.
 - Mobile drawing buffers cap at DPR 1.5. WebGL retains antialiasing, all actors,
   effects, fog, and shadows, but uses a 1024² rather than 2048² shadow map and
-  requests the browser's low-power GPU. The full profile remains the unthrottled
-  DPR-2, 2048² visual reference.
+  requests the browser's low-power GPU.
 - At the fixed 844×390 CSS / DPR-3 phone viewport, active WebGL must remain at
   or below 54 million weighted pixels per second, charging one full color pass
   plus one complete shadow-map pass per presented frame. The exact arithmetic is
   regression-tested. Canvas2D is charged by its actual backing-buffer area.
 - Validate both the hosted WebGL path and the Canvas2D host/fallback. Use
   `scripts/profile-mobile-replay.mjs` on a real replay, confirm its renderer
-  profile data, inspect a fixed-camera full/mobile image pair at actual game
-  scale, smoke representative replays in WebKit and Chromium, and finish with
-  a real phone watch. Software WebGL is useful as a stress path, not as a proxy
-  for an iPhone GPU's achievable frame rate.
+  profile data in both phone and desktop emulations, inspect fixed-camera
+  profile pairs at actual game scale, smoke
+  representative replays in WebKit and Chromium, and finish mobile changes with
+  a real phone watch. Test desktop cadence against 60, 120, and 144 Hz timelines.
+  Software WebGL is useful as a stress path, not as a proxy for an iPhone GPU's
+  achievable frame rate.
 
 ## Projectile-look contract
 

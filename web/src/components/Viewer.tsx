@@ -85,7 +85,7 @@ export default function Viewer({
   const shell = useRef<HTMLDivElement>(null);
   const isLive = live !== undefined;
   const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
-  const playbackFrameCap = renderProfile.id === 'mobile'
+  const playbackFrameCap = renderProfile.presentationRateLimited
     ? renderProfile.activeFramesPerSecond
     : undefined;
   const audioSession = useMemo(() => new ArenaAudioSession(), []);

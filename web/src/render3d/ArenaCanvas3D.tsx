@@ -18,7 +18,8 @@ import {
 import { attachCameraGestures } from '../render/cameraGestures';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import {
-  arenaPresentedFrameStamp,
+  createArenaFramePacer,
+  takeArenaFrame,
   type ArenaRenderProfile,
 } from '../render/arenaRenderProfile';
 
@@ -133,6 +134,9 @@ export default function ArenaCanvas3D({
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     renderer.domElement.dataset.renderProfile = renderProfile.id;
+    renderer.domElement.dataset.rateLimited = String(
+      renderProfile.presentationRateLimited,
+    );
     renderer.domElement.dataset.activeFps = String(renderProfile.activeFramesPerSecond);
     renderer.domElement.dataset.idleFps = String(renderProfile.idleFramesPerSecond);
     renderer.domElement.dataset.pixelRatio = String(renderer.getPixelRatio());
@@ -277,21 +281,19 @@ export default function ArenaCanvas3D({
 
     let animation = 0;
     let last: number | null = null;
-    let lastDrawStamp: number | null = null;
+    const framePacer = createArenaFramePacer();
     let announced = false;
     let lastFit = frameState.current.autoFit;
     const draw = (stamp: number) => {
       const framesPerSecond = frameState.current.active
         ? renderProfile.activeFramesPerSecond
         : renderProfile.idleFramesPerSecond;
-      const presentedStamp = renderProfile.id === 'full'
-        ? stamp
-        : arenaPresentedFrameStamp(stamp, lastDrawStamp, framesPerSecond);
-      if (document.hidden || presentedStamp === null) {
+      const frameDue = !renderProfile.presentationRateLimited ||
+        takeArenaFrame(framePacer, stamp, framesPerSecond);
+      if (document.hidden || !frameDue) {
         animation = requestAnimationFrame(draw);
         return;
       }
-      lastDrawStamp = presentedStamp;
       const {
         time: now,
         selectedUnitKey: followed,

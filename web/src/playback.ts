@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ReplayModel } from './replayModel';
-import { arenaPresentedFrameStamp } from './render/arenaRenderProfile';
+import {
+  createArenaFramePacer,
+  takeArenaFrame,
+} from './render/arenaRenderProfile';
 
 export interface PlaybackState {
   /** Continuous playhead: floor(t) is the tick being animated, frac(t) its progress. */
@@ -69,7 +72,7 @@ export function usePlayback(
   const timeRef = useRef(0);
   const frame = useRef<number>(0);
   const lastStamp = useRef<number | null>(null);
-  const pacingStamp = useRef<number | null>(null);
+  const framePacer = useRef(createArenaFramePacer());
   const wasActive = useRef(active);
 
   useEffect(() => {
@@ -98,18 +101,17 @@ export function usePlayback(
   useEffect(() => {
     if (!active || !playing || !ready) {
       lastStamp.current = null;
-      pacingStamp.current = null;
+      framePacer.current = createArenaFramePacer();
       return;
     }
     const advance = (stamp: number) => {
-      const presentedStamp = framesPerSecond === undefined
-        ? stamp
-        : arenaPresentedFrameStamp(stamp, pacingStamp.current, framesPerSecond);
-      if (presentedStamp === null) {
+      if (
+        framesPerSecond !== undefined &&
+        !takeArenaFrame(framePacer.current, stamp, framesPerSecond)
+      ) {
         frame.current = requestAnimationFrame(advance);
         return;
       }
-      pacingStamp.current = presentedStamp;
       const dt = lastStamp.current === null ? 0 : (stamp - lastStamp.current) / 1000;
       lastStamp.current = stamp;
       setTime((current) => {
@@ -209,22 +211,20 @@ export function useLiveFollower(
 ): number {
   const [time, setTime] = useState(0);
   const anchor = useRef<{ tick: number; at: number } | null>(null);
-  const lastFrameStamp = useRef<number | null>(null);
 
   useEffect(() => {
     if (!live) return;
     anchor.current = { tick: Math.max(0, live.tick), at: performance.now() };
-    lastFrameStamp.current = null;
+    const framePacer = createArenaFramePacer();
     let frame = 0;
     const advance = (stamp: number) => {
-      const presentedStamp = framesPerSecond === undefined
-        ? stamp
-        : arenaPresentedFrameStamp(stamp, lastFrameStamp.current, framesPerSecond);
-      if (presentedStamp === null) {
+      if (
+        framesPerSecond !== undefined &&
+        !takeArenaFrame(framePacer, stamp, framesPerSecond)
+      ) {
         frame = requestAnimationFrame(advance);
         return;
       }
-      lastFrameStamp.current = presentedStamp;
       const a = anchor.current!;
       const elapsed = (stamp - a.at) / 1000;
       setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
