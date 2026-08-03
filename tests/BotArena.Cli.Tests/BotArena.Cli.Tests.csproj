@@ -56,5 +56,8 @@
     <Compile
       Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalFormationPrimitives.cs"
       Link="TacticalPlaybook/TacticalFormationPrimitives.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalCustodyPrimitives.cs"
+      Link="TacticalPlaybook/TacticalCustodyPrimitives.cs" />
   </ItemGroup>
 </Project>

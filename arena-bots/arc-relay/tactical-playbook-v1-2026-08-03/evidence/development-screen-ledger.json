@@ -129,6 +129,31 @@
       ],
       "resultSummary": "The retained Home Siege playbook uses compress/rebalance-role and has no initially blocked authored slots, so the four isolation outcomes remain byte-for-byte at the result level. Dedicated fixtures exercise preserve, compress, legal reflow, and hold.",
       "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "implicit-custody-escort-override",
+      "change": "Treat every group named by escortGroups as automatically following any carrier using the same custody policy, overriding the group's authored movement order.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 510 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 398 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 513 }
+      ],
+      "resultSummary": "Rejected as both strategically harmful and the wrong authoring granularity: escort eligibility silently replaced explicit orders and turned two parity wins into two losses.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "explicit-custody-transfer-recovery-escort-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Execute bounded transfer seeking, stagnant delivery timeout, causal friendly-drop recovery, and explicitly ordered carrier escort. A carrier movement order must name a custody policy that authorizes its group; escortGroups alone never overrides another order.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "Retained generic semantics. The existing playbook does not issue a carrier escort order, so all four isolation outcomes remain unchanged while fixtures cover the new policy decisions.",
+      "verdict": "retained-framework-change"
     }
   ]
 }

@@ -219,6 +219,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             ValidateOrder(order, groupIds, formationIds, engagementIds,
                 supportIds, custodyIds, path);
         }
+        ValidateEscortOrders(orders, custody, path);
 
         ValidateCoordination(
             root.GetProperty("coordination"),
@@ -226,6 +227,43 @@ public static class ArcRelayTacticalPlaybookCompiler
             roleIds,
             orderIds,
             path);
+    }
+
+    private static void ValidateEscortOrders(
+        IReadOnlyCollection<JsonElement> orders,
+        IReadOnlyCollection<JsonElement> custodyPolicies,
+        string path)
+    {
+        Dictionary<string, HashSet<string>> escortGroups = custodyPolicies
+            .ToDictionary(
+                policy => policy.GetProperty("custodyId").GetString()!,
+                policy => policy.GetProperty("escortGroups")
+                    .EnumerateArray()
+                    .Select(value => value.GetString()!)
+                    .ToHashSet(StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        foreach (JsonElement order in orders.Where(value => string.Equals(
+                     value.GetProperty("movement").GetProperty("kind")
+                         .GetString(),
+                     "carrier",
+                     StringComparison.Ordinal)))
+        {
+            string orderId = order.GetProperty("orderId").GetString()!;
+            if (!order.TryGetProperty("custodyId", out JsonElement custody)
+                || string.IsNullOrEmpty(custody.GetString()))
+            {
+                throw Error(path,
+                    $"carrier escort order '{orderId}' needs custodyId.");
+            }
+            string custodyId = custody.GetString()!;
+            string groupId = order.GetProperty("groupId").GetString()!;
+            if (!escortGroups[custodyId].Contains(groupId))
+            {
+                throw Error(path,
+                    $"carrier escort order '{orderId}' group '{groupId}' "
+                    + $"is not authorized by custody '{custodyId}'.");
+            }
+        }
     }
 
     private static void ValidateAuditStatus(JsonElement value, string path)

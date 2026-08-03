@@ -209,6 +209,30 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void CarrierEscortOrdersRequireCustodyGroupAuthorization()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject runnerOrder = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "runner-rush");
+        runnerOrder["movement"]!["kind"] = "carrier";
+        runnerOrder["movement"]!["target"] = "";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("is not authorized by custody", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =
