@@ -13,7 +13,10 @@
       "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
       "ownReactorSide": "east",
       "transform": "rotate-180",
-      "routeAliases": {}
+      "routeAliases": {
+        "outer-rush": "outer-rush-opposite",
+        "short-breach": "short-breach-opposite"
+      }
     }
   ],
   "zones": [
@@ -31,6 +34,16 @@
     {
       "routeId": "short-breach",
       "waypoints": [[21, 6], [22, 7], [23, 8], [24, 10]],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "outer-rush-opposite",
+      "waypoints": [[4, 14], [7, 16], [10, 16], [13, 17], [16, 17], [19, 16], [22, 16], [24, 14], [24, 12]],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "short-breach-opposite",
+      "waypoints": [[21, 16], [22, 15], [23, 14], [24, 12]],
       "corridorWidth": 2
     },
     {

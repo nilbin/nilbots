@@ -11,7 +11,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, string> _stableRoles = [];
     private readonly Dictionary<int, int> _enemyUnavailableUntil = [];
     private readonly Dictionary<int, LastSeenEnemy> _lastSeenEnemies = [];
-    private readonly Dictionary<int, int> _firstSeenEnemyLife = [];
+    private readonly Dictionary<ActorIdentity, int> _firstSeenEnemyLife = [];
     private readonly Dictionary<string, SecuredCore> _securedCores =
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _processedEvents =
@@ -118,9 +118,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, MindBody> repairs = AllocateRepairs(
             contract, mind, package.Source, roles, orders,
             carried.Keys.ToHashSet(), new HashSet<int>());
+        HashSet<int> unavailableAttackers = repairs.Keys.ToHashSet();
+        unavailableAttackers.UnionWith(mind.Bodies
+            .Where(body => carried.ContainsKey(body.ActorId))
+            .Select(body => body.UnitId));
         Dictionary<int, FocusAssignment> focus =
             AllocateFocus(contract, mind, arc, package.Source, roles, orders,
-                targets, repairs.Keys.ToHashSet());
+                targets, unavailableAttackers);
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
@@ -252,7 +256,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _enemyUnavailableUntil.Remove(enemy.ActorId.UnitId);
             _lastSeenEnemies[enemy.ActorId.UnitId] = new LastSeenEnemy(
                 enemy.ActorId, enemy.Position, mind.Tick);
-            _firstSeenEnemyLife.TryAdd(enemy.ActorId.GetHashCode(), mind.Tick);
+            _firstSeenEnemyLife.TryAdd(enemy.ActorId, mind.Tick);
         }
         foreach (GenericActorContext.ObservedEvent observed in mind.VisibleEvents)
         {
@@ -1062,7 +1066,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 "highest-threat" => enemy.Position.ChebyshevDistance(
                     _ownReactor) <= 6,
                 "fresh-respawn" => tick - _firstSeenEnemyLife
-                    .GetValueOrDefault(enemy.ActorId.GetHashCode(), tick) <= 5,
+                    .GetValueOrDefault(enemy.ActorId, tick) <= 5,
                 _ => false,
             };
             if (matches)

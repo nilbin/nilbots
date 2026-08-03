@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-home-siege.json",
-    "sha256": "62685fb41d320d15cd36922f85b0add94d17c4e9de2cb7fb5cb2ffd9b9eb3139"
+    "sha256": "92aef0ea17f8bd53c4e4112e808603dbea17ec7368c64f2efc70ac026405717c"
   },
   "perspective": "team-relative",
   "memory": {
@@ -161,6 +161,7 @@
                 "priority": 10,
                 "to": "recovering",
                 "cause": "failure",
+                "minimumPolicy": "respect",
                 "stableTicks": 3,
                 "when": [
                   {
@@ -185,6 +186,7 @@
                 "priority": 10,
                 "to": "coherent",
                 "cause": "recovery",
+                "minimumPolicy": "respect",
                 "stableTicks": 3,
                 "when": [
                   {
@@ -552,8 +554,8 @@
         "runner"
       ],
       "targetPriorities": [
-        "fresh-respawn",
         "enemy-carrier",
+        "fresh-respawn",
         "closest-to-reactor",
         "lowest-health"
       ],
@@ -1219,6 +1221,7 @@
             "priority": 5,
             "to": "harvest",
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1229,14 +1232,9 @@
                     "value": 5
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "operator": "equals",
-                    "value": 0
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "operator": "at-least",
-                    "value": 1
+                    "value": 2
                   },
                   {
                     "fact": "friendlies-in-zone-count",
@@ -1286,6 +1284,7 @@
             "priority": 10,
             "to": "occupy",
             "cause": "success",
+            "minimumPolicy": "respect",
             "stableTicks": 3,
             "when": [
               {
@@ -1304,6 +1303,7 @@
             "priority": 20,
             "to": "regroup",
             "cause": "failure",
+            "minimumPolicy": "respect",
             "stableTicks": 3,
             "when": [
               {
@@ -1333,6 +1333,7 @@
             "priority": 5,
             "to": "harvest",
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1343,14 +1344,9 @@
                     "value": 5
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "operator": "equals",
-                    "value": 0
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "operator": "at-least",
-                    "value": 1
+                    "value": 2
                   },
                   {
                     "fact": "friendlies-in-zone-count",
@@ -1400,6 +1396,7 @@
             "priority": 10,
             "to": "regroup",
             "cause": "failure",
+            "minimumPolicy": "respect",
             "stableTicks": 3,
             "when": [
               {
@@ -1427,9 +1424,43 @@
         ],
         "transitions": [
           {
+            "priority": 4,
+            "to": "harvest",
+            "cause": "reaction",
+            "minimumPolicy": "interrupt",
+            "stableTicks": 2,
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "reactor-integrity",
+                    "operator": "at-most",
+                    "value": 1
+                  },
+                  {
+                    "fact": "known-enemies-unavailable",
+                    "operator": "at-least",
+                    "value": 3
+                  },
+                  {
+                    "fact": "outstanding-well-count",
+                    "operator": "at-least",
+                    "value": 2
+                  },
+                  {
+                    "fact": "live-friendlies",
+                    "operator": "at-least",
+                    "value": 5
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "priority": 5,
             "to": "harvest",
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1472,6 +1503,7 @@
             "priority": 10,
             "to": "breach",
             "cause": "recovery",
+            "minimumPolicy": "respect",
             "stableTicks": 4,
             "when": [
               {
@@ -1508,6 +1540,7 @@
             "priority": 5,
             "to": "harvest",
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1518,14 +1551,9 @@
                     "value": 5
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "operator": "equals",
-                    "value": 0
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "operator": "at-least",
-                    "value": 1
+                    "value": 2
                   },
                   {
                     "fact": "friendlies-in-zone-count",
@@ -1575,6 +1603,7 @@
             "priority": 10,
             "to": "occupy",
             "cause": "success",
+            "minimumPolicy": "respect",
             "stableTicks": 3,
             "when": [
               {
@@ -1593,6 +1622,7 @@
             "priority": 20,
             "to": "regroup",
             "cause": "failure",
+            "minimumPolicy": "respect",
             "stableTicks": 3,
             "when": [
               {
@@ -1621,6 +1651,7 @@
             "priority": 10,
             "to": "delivery",
             "cause": "success",
+            "minimumPolicy": "respect",
             "stableTicks": 1,
             "when": [
               {
@@ -1652,6 +1683,7 @@
             "priority": 20,
             "to": "regroup",
             "cause": "failure",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1685,6 +1717,7 @@
             "priority": 10,
             "to": "harvest",
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {
@@ -1707,6 +1740,7 @@
             "priority": 20,
             "to": "breach",
             "cause": "success",
+            "minimumPolicy": "respect",
             "stableTicks": 2,
             "when": [
               {

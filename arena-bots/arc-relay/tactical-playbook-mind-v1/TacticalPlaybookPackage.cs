@@ -385,6 +385,7 @@ internal sealed class TacticalPlaybookPackage
         int Priority,
         string To,
         string Cause,
+        string MinimumPolicy,
         int StableTicks,
         ConditionGroup[] When);
 

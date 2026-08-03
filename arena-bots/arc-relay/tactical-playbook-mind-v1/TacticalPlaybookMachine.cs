@@ -39,12 +39,18 @@ internal sealed class TacticalPlaybookMachine
         Func<TacticalPlaybookPackage.Condition, bool> evaluate)
     {
         TacticalPlaybookPackage.Phase phase = Phase;
-        if (tick - _phaseEnteredTick < phase.MinimumTicks)
-            return false;
+        bool beforeMinimum = tick - _phaseEnteredTick < phase.MinimumTicks;
         foreach (TacticalPlaybookPackage.Transition transition in
                  phase.Transitions.OrderBy(value => value.Priority)
                      .ThenBy(value => value.To, StringComparer.Ordinal))
         {
+            if (beforeMinimum && !string.Equals(
+                    transition.MinimumPolicy,
+                    "interrupt",
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
             string key = $"{phase.PhaseId}->{transition.To}";
             bool applies = transition.When.Any(group =>
                 Matches(group, evaluate));
@@ -72,12 +78,18 @@ internal sealed class TacticalPlaybookMachine
             group.LocalStateMachine.States.Single(value =>
                 string.Equals(value.StateId, runtime.StateId,
                     StringComparison.Ordinal));
-        if (tick - runtime.EnteredTick < state.MinimumTicks)
-            return false;
+        bool beforeMinimum = tick - runtime.EnteredTick < state.MinimumTicks;
         foreach (TacticalPlaybookPackage.Transition transition in
                  state.Transitions.OrderBy(value => value.Priority)
                      .ThenBy(value => value.To, StringComparer.Ordinal))
         {
+            if (beforeMinimum && !string.Equals(
+                    transition.MinimumPolicy,
+                    "interrupt",
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
             string key = $"{state.StateId}->{transition.To}";
             bool applies = transition.When.Any(groupValue =>
                 Matches(groupValue, evaluate));

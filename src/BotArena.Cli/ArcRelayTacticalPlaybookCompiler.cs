@@ -644,11 +644,13 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement transition in transitions)
         {
             Object(transition, path,
-                ["priority", "to", "cause", "stableTicks", "when"]);
+                ["priority", "to", "cause", "minimumPolicy", "stableTicks", "when"]);
             Range(transition, "priority", path, 0, 1000);
             Reference(transition, "to", stateIds, path);
             OneOf(transition, "cause", path,
                 "success", "failure", "recovery", "reaction");
+            OneOf(transition, "minimumPolicy", path,
+                "respect", "interrupt");
             Range(transition, "stableTicks", path, 1, 120);
             ValidateConditionGroups(
                 transition.GetProperty("when"), groupIds, roleIds, path,
