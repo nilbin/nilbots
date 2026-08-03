@@ -7,20 +7,16 @@
   "facing": "+x",
   "up": "+y",
   "source": {
-    "generator": "scripts/build-arc-relay-models.mjs",
-    "recipe": "art/class-models/arc-relay/fleet.json",
-    "layeredSource": "art/class-models/arc-relay/sources/arc-lantern/layers.json",
-    "sourceSha256": "c9ace01b060567bdccb867887f268474ca0ccceec78a03d0e7c29734d8df4de0"
-  },
-  "nodes": {
-    "locomotion": "underbody-locomotion",
-    "chassis": "chassis",
-    "hardware": "weapon-hardware",
-    "teamAccents": "team-accents",
-    "emissives": "emissives",
-    "idle": [
-      "idle-lantern-dish"
-    ]
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
+    "artifact": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
+    "sourceSha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc37e-1510-7c24-8d4b-079bcbdd48c1",
+    "orientation": "identity"
   },
   "motion": {
     "locomotion": "low-hover",
@@ -30,10 +26,10 @@
   },
   "signature": "survey-flare",
   "ledger": {
-    "bytes": 342664,
-    "sha256": "8f88faf65cbfac6c9dff806ee30fb837c35794d69967525ae75ce5d4efe77753",
-    "triangles": 5428,
-    "materials": 5,
-    "textureCount": 3
+    "bytes": 623192,
+    "sha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+    "triangles": 15301,
+    "materials": 1,
+    "textureCount": 4
   }
 }

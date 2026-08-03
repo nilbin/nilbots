@@ -1,685 +1,228 @@
 {
-  "version": 1,
-  "generator": "scripts/build-arc-relay-models.mjs",
-  "budgetBytesPerLook": 524288,
+  "version": 2,
+  "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+  "sourceAudit": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "meshContract": "monolithic",
+  "modelOwnedTeamGlow": false,
+  "budgetBytesPerLook": 1048576,
   "totals": {
-    "bytes": 5464772,
-    "triangles": 90266,
-    "materials": 80,
-    "textures": 48
+    "bytes": 10638692,
+    "triangles": 215130,
+    "materials": 16,
+    "textures": 64
   },
   "looks": [
     {
+      "id": "arc-hush",
+      "taskId": "019fc377-da97-748f-8455-0f31d5e85c0b",
+      "artifact": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 741832,
+      "sha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+      "triangles": 13595,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
       "id": "arc-kestrel",
-      "bytes": 292612,
-      "sha256": "d9578996824073b03633e541bfd78ee04874f76290d0c3a1e883287d92f082d0",
-      "triangles": 4404,
-      "vertices": 3918,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 26734
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 51806
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 728
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.413514,
-          0,
-          -0.340541
-        ],
-        "max": [
-          0.486486,
-          0.283193,
-          0.340541
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-palisade",
-      "bytes": 408908,
-      "sha256": "3f3faaf04a2e82a971682e29461df0c90002d11f838dc7766dabca1d89eb1684",
-      "triangles": 7324,
-      "vertices": 6208,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 28607
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 47513
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 1700
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.45,
-          0,
-          -0.392
-        ],
-        "max": [
-          0.45,
-          0.29,
-          0.392
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-towline",
-      "bytes": 332480,
-      "sha256": "357514db4878f9cfded572687d6e9fd2a782602aa5811b85db871e563832e28c",
-      "triangles": 5560,
-      "vertices": 4692,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 27546
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 45619
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 629
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.413514,
-          0,
-          -0.3375
-        ],
-        "max": [
-          0.486486,
-          0.297,
-          0.3375
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-patchbay",
-      "bytes": 285228,
-      "sha256": "8c6743c32430927ffa6df0b0b3194fb45e30c847ddd3fb3eb6f0f2b878088ec2",
-      "triangles": 4544,
-      "vertices": 4268,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 21236
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 40010
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 766
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.4,
-          0,
-          -0.375
-        ],
-        "max": [
-          0.425,
-          0.297,
-          0.375
-        ],
-        "planformSpan": 0.825,
-        "floorY": 0
-      }
+      "taskId": "019fc37b-3531-713a-b811-b9180a9dc880",
+      "artifact": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 688944,
+      "sha256": "40cd78ceb4cbffc21a08b408405ed57bee10772ccba02b4820a1435bd310bfe6",
+      "triangles": 13362,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
       "id": "arc-lantern",
-      "bytes": 342664,
-      "sha256": "8f88faf65cbfac6c9dff806ee30fb837c35794d69967525ae75ce5d4efe77753",
-      "triangles": 5428,
-      "vertices": 4504,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 32854
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 61385
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 1193
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.415385,
-          0,
-          -0.392308
-        ],
-        "max": [
-          0.484615,
-          0.297,
-          0.392308
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-mortar",
-      "bytes": 363936,
-      "sha256": "07302d146e74fcc8aadf9197b69549363e7067188a3f3b03bf148c92907391f3",
-      "triangles": 6304,
-      "vertices": 5490,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 25568
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 44283
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 556
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.45,
-          0,
-          -0.392
-        ],
-        "max": [
-          0.45,
-          0.29,
-          0.392
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-minesmith",
-      "bytes": 333300,
-      "sha256": "40b8669c305a735ccedd4e717ea849453250ced327a6b7a260f498a9e5e45a3d",
-      "triangles": 5496,
-      "vertices": 4598,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 26575
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 51231
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 819
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.425,
-          0,
-          -0.3375
-        ],
-        "max": [
-          0.425,
-          0.297,
-          0.3375
-        ],
-        "planformSpan": 0.85,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-hush",
-      "bytes": 339688,
-      "sha256": "cc3f60bf8582e85e925ea85c0737dbc100e1208f0fabfe108051b1e0263364c1",
-      "triangles": 5486,
-      "vertices": 4598,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 26590
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 60914
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 798
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.415385,
-          0,
-          -0.369231
-        ],
-        "max": [
-          0.484615,
-          0.297,
-          0.369231
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-relay",
-      "bytes": 312652,
-      "sha256": "6cb4ee1d96dda1b992f2b0e4f16cc04b59b754ad7b8d46ccb4e5bf51952b2b29",
-      "triangles": 4744,
-      "vertices": 4482,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 26269
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 46561
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 1017
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.425,
-          0,
-          -0.3175
-        ],
-        "max": [
-          0.45,
-          0.297,
-          0.3175
-        ],
-        "planformSpan": 0.875,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-switchback",
-      "bytes": 328664,
-      "sha256": "0b054745280b624b1fb8109432e8b4bbf9d322c9360a00bab2883f04d6e686ab",
-      "triangles": 5394,
-      "vertices": 4546,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 25374
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 54786
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 778
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.413514,
-          0,
-          -0.316216
-        ],
-        "max": [
-          0.486486,
-          0.286569,
-          0.316216
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "taskId": "019fc37e-1510-7c24-8d4b-079bcbdd48c1",
+      "artifact": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
+      "orientation": "identity",
+      "bytes": 623192,
+      "sha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+      "triangles": 15301,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
       "id": "arc-longshot",
-      "bytes": 252672,
-      "sha256": "e2ce116e52d778b6c91a6f429979897fe263782c87de9a0979e4c20515c35c66",
-      "triangles": 3790,
-      "vertices": 3696,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 20607
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 35537
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 594
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.415385,
-          0,
-          -0.3175
-        ],
-        "max": [
-          0.484615,
-          0.29,
-          0.3175
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "taskId": "019fc381-a1d0-729b-be0f-149a70a90b1a",
+      "artifact": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 648924,
+      "sha256": "aa376fd65ac4c80968fdf55a6ac2a89d2f5966e58c45e8c22d70fc6b5c5f0640",
+      "triangles": 11525,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
       "id": "arc-mason",
-      "bytes": 418924,
-      "sha256": "21c65993078e31ecc7c6aaade60d9dc30a23efeb28706a2ecc1b6f853d23ee86",
-      "triangles": 7754,
-      "vertices": 6482,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 27030
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 44876
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 795
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.45,
-          0,
-          -0.392
-        ],
-        "max": [
-          0.45,
-          0.297,
-          0.392
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "taskId": "019fc335-af21-735b-ac08-6215f3031b69",
+      "artifact": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 678556,
+      "sha256": "2653efe1f297c2e5115fbd046bbb4fd6da658d294b454ad6c308fc705c13721c",
+      "triangles": 14278,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
-      "id": "arc-sunder",
-      "bytes": 338184,
-      "sha256": "ef5a38804c0d59f79956b1b4fd5022603855172298204829480b3aee504d9b0f",
-      "triangles": 5190,
-      "vertices": 4540,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 31791
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 59190
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 1275
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.438462,
-          0,
-          -0.392308
-        ],
-        "max": [
-          0.461538,
-          0.289084,
-          0.392308
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "id": "arc-minesmith",
+      "taskId": "019fc384-be6a-7480-a333-5cb8f37c1c46",
+      "artifact": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 700916,
+      "sha256": "c566ab7363aac9090c463c683db6dd70941d09059d04b82ad6c87e29c1159a2c",
+      "triangles": 12945,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
-      "id": "arc-repulsor",
-      "bytes": 447804,
-      "sha256": "f4de14c2a6c7acca7ba281d9c5a8fe6fbe4c6272d9feea8fc7197ae41ecc7bee",
-      "triangles": 8022,
-      "vertices": 6438,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 34773
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 61607
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 708
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.45,
-          0,
-          -0.392
-        ],
-        "max": [
-          0.45,
-          0.297,
-          0.392
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
-    },
-    {
-      "id": "arc-veil",
-      "bytes": 313492,
-      "sha256": "8a2a064de24d51c6e8cdef8f6ebf236b6c6cdfd94a4d5935ffe74d747b8d39ff",
-      "triangles": 4972,
-      "vertices": 4232,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 26909
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 55213
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 695
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.405,
-          0,
-          -0.3375
-        ],
-        "max": [
-          0.495,
-          0.288273,
-          0.3375
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "id": "arc-mortar",
+      "taskId": "019fc388-c331-7537-b3de-9f75125c5981",
+      "artifact": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-review.glb",
+      "orientation": "identity",
+      "bytes": 677408,
+      "sha256": "1cb048579706f228370925084c7f3ab3fa800c4957e91b4d7eb0d964109351f5",
+      "triangles": 9636,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     },
     {
       "id": "arc-nest",
-      "bytes": 353564,
-      "sha256": "a8992c81217049155c254bb3c9d8740134e679d9da85a400fd4be514c76bc854",
-      "triangles": 5854,
-      "vertices": 4928,
-      "materials": 5,
-      "textures": [
-        {
-          "role": "albedo",
-          "width": 256,
-          "height": 256,
-          "bytes": 31095
-        },
-        {
-          "role": "normal",
-          "width": 256,
-          "height": 256,
-          "bytes": 46883
-        },
-        {
-          "role": "emissive",
-          "width": 256,
-          "height": 256,
-          "bytes": 592
-        }
-      ],
-      "bounds": {
-        "min": [
-          -0.45,
-          0,
-          -0.3375
-        ],
-        "max": [
-          0.45,
-          0.289542,
-          0.3375
-        ],
-        "planformSpan": 0.9,
-        "floorY": 0
-      }
+      "taskId": "019fc38c-5dfd-7f2c-bafc-29c7adee94fe",
+      "artifact": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 612864,
+      "sha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1",
+      "triangles": 13893,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-palisade",
+      "taskId": "019fc38f-b5a7-7fce-8910-e708b93ecaac",
+      "artifact": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 641408,
+      "sha256": "38bb47b8b2abf0b59e8336bf090f3a241a33d30c7b875ab269df62469ad92dfe",
+      "triangles": 13542,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-patchbay",
+      "taskId": "019fc393-6297-70c0-8cd7-0811d40a1fbd",
+      "artifact": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 672520,
+      "sha256": "c8d5661948c55701d7dedccab38f070d0f60b8a84c5ad004d96a6d0d1eda7061",
+      "triangles": 13808,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-relay",
+      "taskId": "019fc396-a4ea-7171-a329-7aeb2e9c42b8",
+      "artifact": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 626756,
+      "sha256": "8ef9bbd92aef26f23e765498532ccfcd1b8407db00893bdbfd0234dbb1511782",
+      "triangles": 12043,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-repulsor",
+      "taskId": "019fc399-7a64-78a8-b9df-bc7f765eeddf",
+      "artifact": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 600348,
+      "sha256": "c1424f1424bc4b6620742d03cc90370394ac46ea459fce89c5588a937cacd07d",
+      "triangles": 15079,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-sunder",
+      "taskId": "019fc39c-aa25-792a-bd75-3791ddd95373",
+      "artifact": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 673812,
+      "sha256": "b1b8ec42d1533bf4ab20d79c34b94a34caceb71d1388e6de99c62a36e2621e48",
+      "triangles": 12267,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-switchback",
+      "taskId": "019fc39f-6f51-73b5-8d52-4fcb3461262f",
+      "artifact": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 591668,
+      "sha256": "54c2b495013b698e0775a09638afb0550dedf12c105bf5921c8b49c34483e97d",
+      "triangles": 15939,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-towline",
+      "taskId": "019fc3a2-7382-78a9-8950-3d67759a5e5d",
+      "artifact": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 644856,
+      "sha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+      "triangles": 15375,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-veil",
+      "taskId": "019fc3a5-b087-7b50-9f62-a1f27d372881",
+      "artifact": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "bytes": 814688,
+      "sha256": "70acf4779fe1ffcde3bd6ed3235c6952f3554215bf9df7a71335010b2f70254a",
+      "triangles": 12542,
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
     }
   ]
 }

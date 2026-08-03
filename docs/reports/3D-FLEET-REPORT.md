@@ -1,5 +1,44 @@
 # Arc Relay authored 3D fleet report
 
+## Production promotion correction (2026-08-03)
+
+The owner-approved Meshy T2 fleet is now the permanent runtime fleet. Commit
+`1cdce66a` correctly preserved the provider runs and built review evidence, but
+its review builder staged the Meshy candidates only temporarily and restored the
+older vector/procedural GLBs afterward. A later normal review build therefore
+served those older files. This follow-up promotes the approved candidate bytes
+without regenerating, modifying, splitting, or repainting them.
+
+The source of truth is
+`art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json`: Mason
+comes from its audited pilot, Lantern and Mortar use the audited identity
+normalization, and the other thirteen use the audited lay-flat-X normalization.
+`scripts/class-models/promote-meshy-arc-fleet.mjs --check` proves each runtime
+GLB equals its approved candidate byte-for-byte and that every manifest and the
+fleet ledger match. The production fleet totals 10,638,692 bytes, 215,130
+triangles, 16 materials, and 64 embedded textures; the largest look is Veil at
+814,688 bytes, within the explicit 1 MiB on-demand per-look budget.
+
+The provider meshes are intentionally monolithic and unsplit: one material and
+four WebP textures per class, no named mounted nodes, and no model-owned team
+glow. Root-level renderer motion remains live—lean/bank/pitch, hull
+follow-through, wake/exhaust, cooldown venting, camera/position interpolation,
+and idle restraint. Only unavailable per-node hardware, wheel, idle-part, and
+model-emissive animation is skipped. Team identity remains renderer-owned; no
+texture or topology was altered to manufacture an accent material.
+
+The provider-free vector fleet, recipe, generated sources, and the remainder of
+this original report are retained below as reproducible fallback and historical
+evidence. Their runtime, named-group, semantic-paint, 512 KiB, totals, and
+`build-arc-relay-models.mjs --check` claims are superseded by this production
+promotion; they no longer describe the shipping Arc GLBs.
+
+Follow-up validation: web tests pass 381/381; the production and review builds
+pass; both emitted asset directories contain all sixteen approved candidate
+hashes with none missing; the existing three-replay gallery was reinstalled;
+and real playback passed desktop WebGL, 844×390 phone-sized WebGL, and forced
+Canvas2D fallback with advancing ticks and no page or console errors.
+
 ## Result
 
 Arc Relay's sixteen launch classes now resolve to deterministic GLB companions in

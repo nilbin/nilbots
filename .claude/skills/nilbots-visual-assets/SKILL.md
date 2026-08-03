@@ -393,7 +393,7 @@ class into the same hull.
    derivatives. A provider's attractive contact sheet is not proof: the
    exception earns its place only when the real-replay comparison is better.
 
-Arc Relay is the reference pass: `scripts/build-arc-relay-class-art.mjs`
+Arc Relay is the reference 2D pass: `scripts/build-arc-relay-class-art.mjs`
 builds sixteen `arc-*` class defaults from the approved premium roster source;
 the exact prompts, chroma atlas, deterministic keyed masters and rejected
 genuine-vector fallback are under
@@ -401,7 +401,21 @@ genuine-vector fallback are under
 the measured raster exception: one rotatable mild-oblique sprite, varied
 renderer-owned locomotion cues, class-specific palettes and hardware, and a
 separate semantic team-light mask. `arc-pulse` remains a shared genuine SVG
-mask. Paid 3D companions remain dormant until separately commissioned.
+mask.
+
+Arc Relay's commissioned WebGL companions are the approved exception that pins
+the complete provider-to-runtime handoff. Treat
+`art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json` as the
+artifact and orientation authority, then run
+`scripts/class-models/promote-meshy-arc-fleet.mjs` (or `--check`) to verify and
+copy the exact reviewed candidates. The command must not call the provider,
+renormalize, or stage-and-restore assets. Runtime hashes must equal the audit
+byte-for-byte after every normal build. These Meshy T2 models are intentionally
+monolithic, with one material/four textures and no model-owned team paint: keep
+root lean, bank, pitch, follow-through, wake and cooldown cues, omit invented
+mounted-node bindings, and do not split or repaint the approved texture merely
+to manufacture semantic accents. Record the exception in the fleet ledger and
+preserve the provider run, inputs, task IDs, and candidates under `art/`.
 
 ## Projectile-look workflow
 

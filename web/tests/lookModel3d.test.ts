@@ -56,15 +56,16 @@ test('the approved Striker and complete Arc Relay fleet resolve to authored GLBs
     assert.equal(spec?.part, 'whole');
     assert.equal(spec?.facing, '+x');
     assert.equal(spec?.up, '+y');
-    assert.equal(spec?.nodes?.locomotion, 'underbody-locomotion');
-    assert.equal(spec?.nodes?.chassis, 'chassis');
-    assert.equal(spec?.nodes?.hardware, 'weapon-hardware');
-    assert.equal(spec?.nodes?.teamAccents, 'team-accents');
-    assert.equal(spec?.nodes?.emissives, 'emissives');
+    assert.equal(spec?.nodes, undefined, `${id} is an approved monolithic mesh`);
     assert.ok(spec?.motion);
     assert.ok(spec?.signature);
-    assert.equal(spec?.source?.generator, 'scripts/build-arc-relay-models.mjs');
-    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 512 * 1024);
+    assert.equal(
+      spec?.source?.generator,
+      'scripts/class-models/promote-meshy-arc-fleet.mjs',
+    );
+    assert.equal(spec?.source?.provider, 'Meshy');
+    assert.equal(spec?.source?.model, 'meshy-t2');
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 1024 * 1024);
     assert.equal(lookModelSource(id), 'gltf');
     assert.equal(lookModelSource(id, 'front'), 'fallback');
   }

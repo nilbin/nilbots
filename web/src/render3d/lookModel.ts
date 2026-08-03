@@ -40,8 +40,16 @@ export interface LookModelSpec {
   source?: {
     generator: string;
     recipe: string;
-    layeredSource: string;
     sourceSha256: string;
+    /** Deterministic/vector sources use a layered source; provider assets name the approved artifact. */
+    layeredSource?: string;
+    artifact?: string;
+    provider?: string;
+    model?: string;
+    endpoint?: string;
+    modelType?: string;
+    taskId?: string;
+    orientation?: 'identity' | 'lay-flat-x';
   };
   ledger?: {
     bytes: number;
@@ -407,10 +415,13 @@ function validateSpec(
     throw new Error(`3D look '${id}' has an invalid signature.`);
   const optionalSource = validateSource(source, id);
   const optionalLedger = validateLedger(ledger, id);
-  if ((optionalNodes === undefined) !== (optionalMotion === undefined))
-    throw new Error(`3D look '${id}' must declare nodes and motion together.`);
-  if (signature !== undefined && optionalNodes === undefined)
-    throw new Error(`3D look '${id}' signature needs an authored node contract.`);
+  // Motion is also valid for a monolithic provider mesh. Root lean, pitch,
+  // follow-through, wake and cooldown vents do not need mounted part names;
+  // only per-hardware animation does.
+  if (optionalNodes !== undefined && optionalMotion === undefined)
+    throw new Error(`3D look '${id}' authored nodes need motion tuning.`);
+  if (signature !== undefined && optionalMotion === undefined)
+    throw new Error(`3D look '${id}' signature needs motion tuning.`);
 
   return {
     version,
@@ -498,11 +509,25 @@ function validateSource(
   if (input === undefined) return undefined;
   if (!isRecord(input))
     throw new Error(`3D look '${id}' source must be an object.`);
-  for (const key of ['generator', 'recipe', 'layeredSource', 'sourceSha256'])
+  for (const key of ['generator', 'recipe', 'sourceSha256'])
     if (typeof input[key] !== 'string' || input[key].length === 0)
       throw new Error(`3D look '${id}' has invalid source ${key}.`);
   if (!/^[0-9a-f]{64}$/.test(input.sourceSha256 as string))
     throw new Error(`3D look '${id}' has invalid source hash.`);
+  const hasLayeredSource =
+    typeof input.layeredSource === 'string' && input.layeredSource.length > 0;
+  const hasArtifact = typeof input.artifact === 'string' && input.artifact.length > 0;
+  if (hasLayeredSource === hasArtifact)
+    throw new Error(
+      `3D look '${id}' source must name exactly one layered source or provider artifact.`,
+    );
+  if (hasArtifact) {
+    for (const key of ['provider', 'model', 'endpoint', 'modelType', 'taskId'])
+      if (typeof input[key] !== 'string' || input[key].length === 0)
+        throw new Error(`3D look '${id}' has invalid provider source ${key}.`);
+    if (input.orientation !== 'identity' && input.orientation !== 'lay-flat-x')
+      throw new Error(`3D look '${id}' has invalid provider orientation.`);
+  }
   return input as NonNullable<LookModelSpec['source']>;
 }
 

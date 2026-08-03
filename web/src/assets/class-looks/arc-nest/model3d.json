@@ -7,21 +7,16 @@
   "facing": "+x",
   "up": "+y",
   "source": {
-    "generator": "scripts/build-arc-relay-models.mjs",
-    "recipe": "art/class-models/arc-relay/fleet.json",
-    "layeredSource": "art/class-models/arc-relay/sources/arc-nest/layers.json",
-    "sourceSha256": "78c696f99d0ac1eba1f2817e156062d84b39060d71a2915eddeca2fc4d76d7f6"
-  },
-  "nodes": {
-    "locomotion": "underbody-locomotion",
-    "chassis": "chassis",
-    "hardware": "weapon-hardware",
-    "teamAccents": "team-accents",
-    "emissives": "emissives",
-    "idle": [
-      "idle-nest-pod-left",
-      "idle-nest-pod-right"
-    ]
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
+    "artifact": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
+    "sourceSha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc38c-5dfd-7f2c-bafc-29c7adee94fe",
+    "orientation": "lay-flat-x"
   },
   "motion": {
     "locomotion": "wheels",
@@ -31,10 +26,10 @@
   },
   "signature": "sentinel-seed",
   "ledger": {
-    "bytes": 353564,
-    "sha256": "a8992c81217049155c254bb3c9d8740134e679d9da85a400fd4be514c76bc854",
-    "triangles": 5854,
-    "materials": 5,
-    "textureCount": 3
+    "bytes": 612864,
+    "sha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1",
+    "triangles": 13893,
+    "materials": 1,
+    "textureCount": 4
   }
 }

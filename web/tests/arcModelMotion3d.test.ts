@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as THREE from 'three';
 import {
   arcMotionFrame,
+  createArcModelMotionRig,
   modelSpec,
 } from './.harness/harness.entry.js';
 
@@ -38,6 +40,34 @@ test('Arc bodies express lateral and reverse displacement without changing facin
   const reverse = frame('arc-lantern', { motionX: -1 });
   assert.ok(reverse.pitch > 0);
   assert.ok(Math.abs(Math.abs(reverse.wakeYaw) - Math.PI) < 1e-9);
+});
+
+test('an approved monolithic Meshy body keeps renderer-owned root motion effects', () => {
+  const spec = modelSpec('arc-hush');
+  assert.ok(spec?.motion);
+  assert.equal(spec.nodes, undefined);
+  const disposables: { dispose: () => void }[] = [];
+  const rig = createArcModelMotionRig(spec, 1, new THREE.Color('#57d9ff'), disposables);
+  assert.ok(rig);
+  assert.doesNotThrow(() => rig.bind(new THREE.Group()));
+  const pose = rig.update({
+    time: 8,
+    fraction: 0.5,
+    facingAngle: 0,
+    motionX: 0,
+    motionY: 1,
+    previousMotionX: 0,
+    previousMotionY: 1,
+    previousSpeed: 1,
+    turnDelta: 0,
+    signedTravel: 1,
+    braced: false,
+    signatureState: 'cooldown',
+  }, 1);
+  assert.ok(pose.bank > 0);
+  assert.ok(rig.wake.visible);
+  assert.ok(rig.vents.visible);
+  for (const disposable of disposables) disposable.dispose();
 });
 
 test('lean and exhaust stay continuous through an active movement segment', () => {

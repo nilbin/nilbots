@@ -7,219 +7,242 @@ import { fileURLToPath } from 'node:url';
 
 const repository = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const looksRoot = join(repository, 'web', 'src', 'assets', 'class-looks');
+const auditPath = join(
+  repository,
+  'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json',
+);
+const audit = JSON.parse(readFileSync(auditPath, 'utf8')) as FleetAudit;
 const ledger = JSON.parse(
-  readFileSync(
-    join(repository, 'art', 'class-models', 'arc-relay', 'ledger.json'),
-    'utf8',
-  ),
+  readFileSync(join(repository, 'art/class-models/arc-relay/ledger.json'), 'utf8'),
 ) as FleetLedger;
+const approved = [audit.pilot, ...audit.generated].sort((left, right) =>
+  left.lookId.localeCompare(right.lookId),
+);
 
-const expectedGroups = [
-  'underbody-locomotion',
-  'chassis',
-  'weapon-hardware',
-  'team-accents',
-  'emissives',
-];
-
-interface FleetLedger {
-  budgetBytesPerLook: number;
-  totals: { bytes: number; triangles: number; materials: number; textures: number };
-  looks: {
-    id: string;
+interface AuditEntry {
+  lookId: string;
+  taskId: string;
+  orientation: 'identity' | 'lay-flat-x';
+  candidate: {
+    file: string;
     bytes: number;
     sha256: string;
     triangles: number;
     materials: number;
-    textures: { role: string; width: number; height: number; bytes: number }[];
-    bounds: { min: number[]; max: number[]; planformSpan: number; floorY: number };
+    textures: number;
+  };
+}
+
+interface FleetAudit {
+  provider: string;
+  endpoint: string;
+  model: string;
+  modelType: string;
+  pilot: AuditEntry;
+  generated: AuditEntry[];
+  reviewContract: {
+    targetPlanformSpan: number;
+    modelOwnedTeamGlow: boolean;
+    meshContract: string;
+  };
+}
+
+interface FleetLedger {
+  sourceAudit: string;
+  provider: string;
+  endpoint: string;
+  model: string;
+  modelType: string;
+  meshContract: string;
+  modelOwnedTeamGlow: boolean;
+  budgetBytesPerLook: number;
+  totals: { bytes: number; triangles: number; materials: number; textures: number };
+  looks: {
+    id: string;
+    taskId: string;
+    artifact: string;
+    orientation: string;
+    bytes: number;
+    sha256: string;
+    triangles: number;
+    materials: number;
+    textures: number;
+    targetPlanformSpan: number;
+    floorY: number;
   }[];
 }
 
 interface GlbDocument {
-  asset?: {
-    generator?: string;
-    extras?: {
-      provider?: string;
-      source?: string;
-      sourceProjectionDegrees?: number;
-      archivedMasterProjectionDegrees?: number;
-      requiredGroups?: string[];
-    };
-  };
-  accessors?: { count?: number; min?: number[]; max?: number[] }[];
+  accessors?: { count?: number }[];
   animations?: unknown[];
   cameras?: unknown[];
-  images?: { mimeType?: string; bufferView?: number }[];
-  materials?: {
-    extras?: { nilbotsRole?: string };
-    normalTexture?: unknown;
-    pbrMetallicRoughness?: { baseColorTexture?: unknown };
+  images?: { mimeType?: string }[];
+  materials?: { extras?: { nilbotsRole?: string } }[];
+  meshes?: { primitives?: { indices?: number; mode?: number }[] }[];
+  nodes?: {
+    name?: string;
+    camera?: number;
+    skin?: number;
+    extras?: {
+      nilbotsProviderNormalization?: {
+        facing?: string;
+        up?: string;
+        floorY?: number;
+        orientation?: string;
+        targetPlanformSpan?: number;
+        sourceBounds?: unknown;
+      };
+    };
   }[];
-  meshes?: { primitives?: { attributes?: Record<string, number>; indices?: number; material?: number; mode?: number }[] }[];
-  nodes?: { name?: string; children?: number[]; mesh?: number; camera?: number; skin?: number }[];
   scenes?: { nodes?: number[] }[];
   skins?: unknown[];
-  bufferViews?: { byteOffset?: number; byteLength?: number }[];
+  textures?: unknown[];
 }
 
-function readGlb(path: string): { bytes: Buffer; document: GlbDocument; binaryOffset: number } {
+function sha256(bytes: Buffer): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function readGlb(path: string): { bytes: Buffer; document: GlbDocument } {
   const bytes = readFileSync(path);
   assert.equal(bytes.toString('ascii', 0, 4), 'glTF', path);
   assert.equal(bytes.readUInt32LE(4), 2, path);
   assert.equal(bytes.readUInt32LE(8), bytes.length, path);
   assert.equal(bytes.readUInt32LE(16), 0x4e4f534a, path);
   const jsonLength = bytes.readUInt32LE(12);
-  const binaryHeader = 20 + jsonLength;
-  assert.equal(bytes.readUInt32LE(binaryHeader + 4), 0x004e4942, path);
   return {
     bytes,
-    document: JSON.parse(
-      bytes.subarray(20, binaryHeader).toString('utf8').replace(/[\u0000\u0020]+$/u, ''),
-    ) as GlbDocument,
-    binaryOffset: binaryHeader + 8,
+    document: JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8').trim()) as GlbDocument,
   };
 }
 
-function pngDimensions(bytes: Buffer): [number, number] {
-  assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-  return [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
+function triangles(document: GlbDocument): number {
+  return (document.meshes ?? []).flatMap((mesh) => mesh.primitives ?? []).reduce(
+    (sum, primitive) => {
+      assert.equal(primitive.mode ?? 4, 4);
+      assert.notEqual(primitive.indices, undefined);
+      const count = document.accessors?.[primitive.indices!]?.count ?? 0;
+      assert.equal(count % 3, 0);
+      return sum + count / 3;
+    },
+    0,
+  );
 }
 
-function assertVectorNear(actual: number[], expected: number[], label: string): void {
-  assert.equal(actual.length, expected.length, label);
-  for (let axis = 0; axis < actual.length; axis += 1)
-    assert.ok(Math.abs(actual[axis]! - expected[axis]!) < 1e-5, `${label} axis ${axis}`);
-}
-
-test('all sixteen Arc Relay GLBs satisfy the authored model, budget, and semantic-paint contract', () => {
+test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () => {
+  assert.equal(approved.length, 16);
+  assert.equal(new Set(approved.map((entry) => entry.lookId)).size, 16);
   assert.equal(ledger.looks.length, 16);
-  let totalBytes = 0;
-  let totalTriangles = 0;
-  let totalMaterials = 0;
-  let totalTextures = 0;
+  assert.equal(ledger.sourceAudit, 'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json');
+  assert.equal(ledger.provider, audit.provider);
+  assert.equal(ledger.endpoint, audit.endpoint);
+  assert.equal(ledger.model, audit.model);
+  assert.equal(ledger.modelType, audit.modelType);
+  assert.equal(ledger.meshContract, audit.reviewContract.meshContract);
+  assert.equal(ledger.modelOwnedTeamGlow, false);
 
-  for (const entry of ledger.looks) {
-    const directory = join(looksRoot, entry.id);
+  const totals = { bytes: 0, triangles: 0, materials: 0, textures: 0 };
+  for (const entry of approved) {
+    const directory = join(looksRoot, entry.lookId);
+    const runtime = readGlb(join(directory, 'model.glb'));
+    const candidate = readFileSync(join(repository, entry.candidate.file));
     const manifest = JSON.parse(readFileSync(join(directory, 'model3d.json'), 'utf8')) as {
       id: string;
       facing: string;
       up: string;
-      nodes: Record<string, string | string[]>;
-      ledger: Omit<(typeof entry), 'id' | 'vertices' | 'textures' | 'bounds'> & { textureCount: number };
+      nodes?: unknown;
+      motion?: unknown;
+      signature?: string;
+      source: {
+        artifact: string;
+        sourceSha256: string;
+        provider: string;
+        model: string;
+        endpoint: string;
+        modelType: string;
+        taskId: string;
+        orientation: string;
+      };
+      ledger: {
+        bytes: number;
+        sha256: string;
+        triangles: number;
+        materials: number;
+        textureCount: number;
+      };
     };
-    const { bytes, document, binaryOffset } = readGlb(join(directory, 'model.glb'));
-    const primitives = document.meshes?.flatMap((mesh) => mesh.primitives ?? []) ?? [];
+    const fleetEntry = ledger.looks.find((look) => look.id === entry.lookId);
+    assert.ok(fleetEntry, entry.lookId);
 
-    assert.equal(manifest.id, entry.id);
+    assert.ok(runtime.bytes.equals(candidate), `${entry.lookId} differs from approved candidate`);
+    assert.equal(runtime.bytes.length, entry.candidate.bytes, entry.lookId);
+    assert.ok(runtime.bytes.length <= ledger.budgetBytesPerLook, entry.lookId);
+    assert.equal(sha256(runtime.bytes), entry.candidate.sha256, entry.lookId);
+    assert.equal(fleetEntry.sha256, entry.candidate.sha256, entry.lookId);
+    assert.equal(manifest.ledger.sha256, entry.candidate.sha256, entry.lookId);
+    assert.equal(manifest.source.sourceSha256, entry.candidate.sha256, entry.lookId);
+
+    assert.equal(manifest.id, entry.lookId);
     assert.equal(manifest.facing, '+x');
     assert.equal(manifest.up, '+y');
-    assert.deepEqual(expectedGroups.map((key) => manifest.nodes[
-      key === 'underbody-locomotion'
-        ? 'locomotion'
-        : key === 'team-accents'
-          ? 'teamAccents'
-          : key === 'weapon-hardware'
-            ? 'hardware'
-            : key
-    ]), expectedGroups);
-    assert.equal(bytes.length, entry.bytes);
-    assert.ok(bytes.length <= ledger.budgetBytesPerLook, entry.id);
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256);
-    assert.equal(manifest.ledger.sha256, entry.sha256);
-    assert.equal(manifest.ledger.bytes, entry.bytes);
+    assert.equal(manifest.nodes, undefined, `${entry.lookId} is intentionally monolithic`);
+    assert.ok(manifest.motion, `${entry.lookId} keeps root-level motion tuning`);
+    assert.ok(manifest.signature, `${entry.lookId} keeps signature identity`);
+    assert.equal(manifest.source.artifact, entry.candidate.file);
+    assert.equal(manifest.source.provider, audit.provider);
+    assert.equal(manifest.source.model, audit.model);
+    assert.equal(manifest.source.endpoint, audit.endpoint);
+    assert.equal(manifest.source.modelType, audit.modelType);
+    assert.equal(manifest.source.taskId, entry.taskId);
+    assert.equal(manifest.source.orientation, entry.orientation);
 
-    assert.equal(document.cameras, undefined, entry.id);
-    assert.equal(document.skins, undefined, entry.id);
-    assert.equal(document.animations, undefined, entry.id);
-    assert.equal(document.asset?.extras?.provider, 'none', entry.id);
-    assert.equal(
-      document.asset?.extras?.source,
-      'named-group-orthographic-vector',
-      entry.id,
-    );
-    assert.equal(document.asset?.extras?.sourceProjectionDegrees, 0, entry.id);
-    assert.equal(document.asset?.extras?.archivedMasterProjectionDegrees, 20, entry.id);
-    assert.deepEqual(document.asset?.extras?.requiredGroups, expectedGroups, entry.id);
+    const document = runtime.document;
+    assert.equal(document.cameras, undefined, entry.lookId);
+    assert.equal(document.skins, undefined, entry.lookId);
+    assert.equal(document.animations, undefined, entry.lookId);
     assert.ok(document.nodes?.every((node) => node.camera === undefined && node.skin === undefined));
-    const rootIndex = document.scenes?.[0]?.nodes?.[0] ?? -1;
-    const root = document.nodes?.[rootIndex];
-    assert.ok(root);
-    assert.deepEqual(root.children?.map((index) => document.nodes?.[index]?.name), expectedGroups);
-    const groupTop = Object.fromEntries(
-      (root.children ?? []).map((groupIndex) => {
-        const group = document.nodes?.[groupIndex];
-        const meshNodes = (group?.children ?? [])
-          .map((nodeIndex) => document.nodes?.[nodeIndex])
-          .filter((node) => node?.mesh !== undefined);
-        const maximumY = Math.max(
-          ...meshNodes.flatMap((node) =>
-            (document.meshes?.[node!.mesh!]?.primitives ?? []).map((primitive) =>
-              document.accessors?.[primitive.attributes?.POSITION ?? -1]?.max?.[1] ?? 0,
-            ),
-          ),
-        );
-        return [group?.name, maximumY];
-      }),
+    assert.equal(document.materials?.length, 1, entry.lookId);
+    assert.equal(document.textures?.length, 4, entry.lookId);
+    assert.equal(document.images?.length, 4, entry.lookId);
+    assert.ok(document.images?.every((image) => image.mimeType === 'image/webp'), entry.lookId);
+    assert.ok(
+      document.materials?.every((material) => material.extras?.nilbotsRole !== 'team-accent'),
+      `${entry.lookId} must not manufacture model-owned team paint`,
     );
-    assert.ok(groupTop['underbody-locomotion'] < groupTop.chassis, entry.id);
-    assert.ok(groupTop.chassis < groupTop['weapon-hardware'], entry.id);
+    assert.equal(triangles(document), entry.candidate.triangles, entry.lookId);
+    const root = document.nodes?.[document.scenes?.[0]?.nodes?.[0] ?? -1];
+    assert.equal(root?.name, 'chassis', entry.lookId);
+    assert.deepEqual(root?.extras?.nilbotsProviderNormalization, {
+      facing: '+x',
+      up: '+y',
+      floorY: 0,
+      orientation: entry.orientation,
+      targetPlanformSpan: audit.reviewContract.targetPlanformSpan,
+      sourceBounds: root?.extras?.nilbotsProviderNormalization?.sourceBounds,
+    });
 
-    const semanticMaterials = (document.materials ?? []).filter(
-      (material) => material.extras?.nilbotsRole === 'team-accent',
-    );
-    assert.equal(semanticMaterials.length, 1, entry.id);
-    assert.equal(
-      semanticMaterials[0]?.pbrMetallicRoughness?.baseColorTexture,
-      undefined,
-      entry.id,
-    );
-    const semanticIndex = document.materials?.indexOf(semanticMaterials[0]!) ?? -1;
-    assert.ok(primitives.some((primitive) => primitive.material === semanticIndex), entry.id);
+    assert.equal(manifest.ledger.bytes, entry.candidate.bytes);
+    assert.equal(manifest.ledger.triangles, entry.candidate.triangles);
+    assert.equal(manifest.ledger.materials, entry.candidate.materials);
+    assert.equal(manifest.ledger.textureCount, entry.candidate.textures);
+    assert.deepEqual(fleetEntry, {
+      id: entry.lookId,
+      taskId: entry.taskId,
+      artifact: entry.candidate.file,
+      orientation: entry.orientation,
+      bytes: entry.candidate.bytes,
+      sha256: entry.candidate.sha256,
+      triangles: entry.candidate.triangles,
+      materials: entry.candidate.materials,
+      textures: entry.candidate.textures,
+      targetPlanformSpan: audit.reviewContract.targetPlanformSpan,
+      floorY: 0,
+    });
 
-    let triangles = 0;
-    const mins = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
-    const maxs = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
-    for (const primitive of primitives) {
-      assert.equal(primitive.mode ?? 4, 4, entry.id);
-      const material = document.materials?.[primitive.material ?? -1];
-      if (material?.normalTexture !== undefined)
-        assert.equal(typeof primitive.attributes?.TANGENT, 'number', entry.id);
-      const position = document.accessors?.[primitive.attributes?.POSITION ?? -1];
-      assert.ok(position?.min && position.max, entry.id);
-      for (let axis = 0; axis < 3; axis += 1) {
-        mins[axis] = Math.min(mins[axis], position.min![axis]!);
-        maxs[axis] = Math.max(maxs[axis], position.max![axis]!);
-      }
-      const indices = document.accessors?.[primitive.indices ?? -1];
-      assert.equal((indices?.count ?? 0) % 3, 0, entry.id);
-      triangles += (indices?.count ?? 0) / 3;
-    }
-    assert.equal(triangles, entry.triangles, entry.id);
-    assertVectorNear(mins, entry.bounds.min, `${entry.id} minimum bounds`);
-    assertVectorNear(maxs, entry.bounds.max, `${entry.id} maximum bounds`);
-    assert.ok(Math.abs(mins[1]) < 1e-5, entry.id);
-    assert.ok(Math.max(maxs[0] - mins[0], maxs[2] - mins[2]) <= 1, entry.id);
-
-    assert.equal(document.images?.length, 3, entry.id);
-    for (const [index, image] of (document.images ?? []).entries()) {
-      assert.equal(image.mimeType, 'image/png');
-      const view = document.bufferViews?.[image.bufferView ?? -1];
-      assert.ok(view);
-      const start = binaryOffset + (view.byteOffset ?? 0);
-      const png = bytes.subarray(start, start + (view.byteLength ?? 0));
-      assert.deepEqual(pngDimensions(png), [256, 256], `${entry.id} texture ${index}`);
-    }
-
-    assert.equal(document.materials?.length, entry.materials, entry.id);
-    totalBytes += entry.bytes;
-    totalTriangles += entry.triangles;
-    totalMaterials += entry.materials;
-    totalTextures += entry.textures.length;
+    totals.bytes += entry.candidate.bytes;
+    totals.triangles += entry.candidate.triangles;
+    totals.materials += entry.candidate.materials;
+    totals.textures += entry.candidate.textures;
   }
-
-  assert.deepEqual(
-    { bytes: totalBytes, triangles: totalTriangles, materials: totalMaterials, textures: totalTextures },
-    ledger.totals,
-  );
+  assert.deepEqual(totals, ledger.totals);
 });

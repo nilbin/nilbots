@@ -71,7 +71,10 @@ export {
   lookModelSource,
   modelSpec,
 } from '../../src/render3d/lookModel';
-export { arcMotionFrame } from '../../src/render3d/arcModelMotion';
+export {
+  arcMotionFrame,
+  createArcModelMotionRig,
+} from '../../src/render3d/arcModelMotion';
 export {
   ARC_SIGNATURE_STYLES,
   arcSignatureVisualPhase,
