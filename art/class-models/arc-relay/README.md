@@ -1,42 +1,36 @@
-# Arc Relay deterministic 3D fleet source
+# Arc Relay 3D fleet sources
 
-`fleet.json` is the deterministic fleet recipe for the sixteen launch-class
-companions. Each entry binds an orthographic vector with five actual named part
-groups: `underbody-locomotion`, `chassis`, `weapon-hardware`, `team-accents`,
-and `emissives`. The vectors live under the premium roster's `vector-fallback/`
-directory; the more detailed 20-degree raster masters and semantic masks remain
-archived beside them as the Canvas2D/taste reference.
+The production WebGL companions are the sixteen owner-approved Meshy T2
+`smart-topology` candidates recorded in
+`art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json`.
+That audit—not the older temporary review build—is the orientation and artifact
+authority. Mason uses its audited pilot file, Lantern and Mortar use their
+identity-normalized files, and the other thirteen use their lay-flat-X normalized
+files.
 
-Run from the repository root:
+Promote or verify the exact approved bytes from the repository root:
 
 ```sh
-node scripts/build-arc-relay-models.mjs
-node scripts/build-arc-relay-models.mjs --check
+node scripts/class-models/promote-meshy-arc-fleet.mjs
+node scripts/class-models/promote-meshy-arc-fleet.mjs --check
 ```
 
-The provider-free build rasterizes those vector groups at 256×256, samples them
-onto a 48-cell planform, and gives each group its own beveled extrusion. Chassis
-and signature hardware use separate distance-transform domes and separate
-renderer pivots. The source drawing becomes the albedo, its physical relief
-becomes the normal map, and the authored light group becomes the emissive map.
-Semantic team paint is geometry/material-isolated and never baked to either
-team colour.
+The command never calls Meshy and never regenerates an asset. It verifies each
+candidate's audited SHA-256, byte count, topology/material counts, orientation,
+scale, axes, and floor normalization before copying it beside the runtime look.
+It also regenerates each `model3d.json` and this directory's `ledger.json` without
+timestamps. The check mode proves all runtime GLBs are byte-identical to those
+approved candidates and that the manifests and fleet ledger are current.
 
-The orthographic source choice is intentional. An earlier pass mapped the
-premium 20-degree raster onto a horizontal 3D lid, then viewed it through the
-58-degree gameplay camera. That projected and shaded an already projected image
-a second time; increasing texture or mesh resolution could not correct the
-result. The archived raster remains untouched and authoritative for Canvas2D,
-while the GLB uses the coherent planform that the older renderer extrusion used
-successfully.
+The approved provider models are monolithic: one mesh material, four embedded
+WebP textures, no named mechanical nodes, and no model-owned team paint. This is
+intentional. Renderer-owned root lean, bank, pitch, follow-through, wake, exhaust,
+and cooldown vents remain active; only per-node hardware, wheel, idle-part, and
+model-emissive animation is unavailable. Team ownership remains renderer UI/effect
+language and must not be manufactured by repainting or splitting these assets.
 
-The 3D bake also omits the vectors' `chassis-depth` and `hardware-depth` paint:
-the meshes already supply those side faces. Wide silhouette strokes are reduced
-more aggressively than fine panel seams, and sidewall UVs sample their actual
-planform boundary instead of wrapping the full albedo around every edge. These
-steps prevent baked ink, real extrusion, and contact shadow from becoming a
-triple black outline.
-
-Runtime output is `model.glb` and `model3d.json` beside each `arc-*` look. The
-fleet ledger is `ledger.json` here. Do not hand-edit generated GLBs, manifests,
-albedo/normal/emissive maps, or the ledger.
+`fleet.json`, `sources/`, and `scripts/build-arc-relay-models.mjs` retain the older
+provider-free named-group vector fleet as reproducible fallback and historical
+evidence. They are no longer the production runtime source. Do not run that legacy
+generator as a promotion step, and do not hand-edit production GLBs, manifests, or
+the promoted fleet ledger.

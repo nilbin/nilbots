@@ -180,7 +180,7 @@ export function createArcModelMotionRig(
   accent: THREE.Color,
   disposables: { dispose: () => void }[],
 ): ArcModelMotionRig | null {
-  if (!spec?.nodes || !spec.motion) return null;
+  if (!spec?.motion) return null;
 
   const wake = new THREE.Group();
   wake.name = `${spec.id}-displacement-wake`;
@@ -230,16 +230,20 @@ export function createArcModelMotionRig(
   const emissives: { material: THREE.MeshStandardMaterial; base: number }[] = [];
 
   const bind = (model: THREE.Object3D) => {
-    hardware = model.getObjectByName(spec.nodes!.hardware) ?? null;
-    const locomotion = model.getObjectByName(spec.nodes!.locomotion);
-    const wheelNodes: THREE.Object3D[] = [];
-    locomotion?.traverse((node) => {
-      if (node.name.startsWith('wheel-')) wheelNodes.push(node);
-    });
-    for (const node of wheelNodes) wheels.push(pivotAtGeometryCentre(node));
-    for (const name of spec.nodes!.idle) {
-      const node = model.getObjectByName(name);
-      if (node) idle.push(name.includes('lantern-dish') ? pivotAtGeometryCentre(node) : node);
+    const nodes = spec.nodes;
+    if (nodes) {
+      hardware = model.getObjectByName(nodes.hardware) ?? null;
+      const locomotion = model.getObjectByName(nodes.locomotion);
+      const wheelNodes: THREE.Object3D[] = [];
+      locomotion?.traverse((node) => {
+        if (node.name.startsWith('wheel-')) wheelNodes.push(node);
+      });
+      for (const node of wheelNodes) wheels.push(pivotAtGeometryCentre(node));
+      for (const name of nodes.idle) {
+        const node = model.getObjectByName(name);
+        if (node)
+          idle.push(name.includes('lantern-dish') ? pivotAtGeometryCentre(node) : node);
+      }
     }
     model.traverse((node) => {
       const mesh = node as THREE.Mesh;
