@@ -1,56 +1,106 @@
 {
   "title": "Arc Relay forward combat — labelled operation review",
-  "intro": "Outcome-visible review of the final forward-facing combat rules and stock mind. Every card names the operation, winner, terminal reason, and verified prepare-to-release window.",
+  "intro": "Outcome-visible review of the final forward-facing combat rules and stock mind. Each card explains the causal trigger, intended tactic, legal counterplay, fallback, match result, and verified prepare-to-release window. Operation success and match victory are separate facts.",
   "cards": [
     {
       "id": "sample-01",
       "title": "Escort Counterpunch — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed",
+      "trigger": "Blue has a Core carrier under visible pressure at the return fork and can claim one declared guard.",
+      "tactic": "Pause the carrier and guard together, read the visible threat count, then lock either the counter route or the direct home route instead of oscillating between them.",
+      "counterplay": "Separate the guard from the carrier, cover both fork exits, or force the Core loose before the route decision completes.",
+      "fallback": "Core loss aborts immediately. A guard lost after commitment is not silently replaced; surviving bodies release to their baseline jobs.",
+      "watch": "Preparation begins at t53, the route locks at t59, the carrier reaches its home half at t60, and both participants release at t61. Blue later wins the match."
     },
     {
       "id": "sample-02",
       "title": "Emergency Exchange — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed",
+      "trigger": "A wounded Blue carrier is visible in the risk fork while the declared Switchback is alive and able to reach it.",
+      "tactic": "Pull the Switchback out of interception duty, bring it to the carrier, then use Exchange to swap the endangered carrier onto the safer homeward position.",
+      "counterplay": "Finish or displace the carrier before the Switchback arrives, deny a legal swap position, or isolate and destroy the Switchback en route.",
+      "fallback": "Core loss or either required participant's loss aborts. A late Switchback arrival cannot manufacture success after the rescue window.",
+      "watch": "Blue commits at t102, Exchange fires at t112, an own carrier is safely on the home half at t113, and the operation releases at t114. Blue later wins."
     },
     {
       "id": "sample-03",
       "title": "Birth Rotation — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed",
+      "trigger": "The next Well birth is publicly approaching and at least two of Blue's three declared reserves can rotate.",
+      "tactic": "Move any feasible pair across theaters before the birth so two bodies arrive in the forward objective band instead of reacting after the Core appears.",
+      "counterplay": "Threaten Blue's home hard enough to force an abort, occupy the rotation lanes, or exploit the theaters the two reserves vacate.",
+      "fallback": "A visible home overload cancels the rotation. Losses are absorbed by the declared reserve pool and surviving rotators return to baseline.",
+      "watch": "Blue prepares at t373, commits two rotators at t379, reaches the target band at t386, and releases at t388. The operation succeeds, but Orange still wins the match at t412."
     },
     {
       "id": "sample-04",
       "title": "Smoke Breach — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed",
+      "trigger": "Blue sees meaningful resistance in the centre and can stage a Veil with one declared breacher.",
+      "tactic": "Concentrate the pair in one lane, deploy Smoke Canister, then cross the contested centre while the smoke disrupts clean targeting.",
+      "counterplay": "Use Hush to suppress the cover, wait outside the smoke and hold its exit, flank the lane, or create a three-enemy home emergency that forces Blue to disengage.",
+      "fallback": "A severe home threat aborts the breach; otherwise the exposed pair gets a bounded extraction before ordinary theater roles resume.",
+      "watch": "Smoke is deployed during preparation at t255, the pair commits at t264, both cross centre-forward by t273, and release at t277. The tactic works even though Orange wins at t355."
     },
     {
       "id": "sample-05",
       "title": "Lantern Sweep — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed",
+      "trigger": "A Blue carrier reaches a safe return fork while the route is uncertain and a Lantern plus screen are available to probe it.",
+      "tactic": "Pause the carrier, use the Lantern-screen pair to reveal risk, then choose the alternate route when danger is visible or the ordered primary route when it is clear.",
+      "counterplay": "Remove the Lantern before it resolves the fork, conceal pressure until after commitment, collapse the chosen lane, or force the carrier to drop the Core.",
+      "fallback": "Core loss aborts. The chosen branch never thrashes to the other route, and surviving participants extract back to baseline.",
+      "watch": "The probe prepares at t53, locks one return branch at t59, gets the carrier onto its home half at t60, and releases at t61. Orange later wins the wider match."
     },
     {
       "id": "sample-06",
       "title": "Decoy Switch — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed",
+      "trigger": "Public Well timing and visible north-side pressure make a north decoy and a declared south strike pair simultaneously feasible.",
+      "tactic": "Show one body north to hold attention, then lock the opposite pair into the south lane and concede centre coverage long enough to create the switch.",
+      "counterplay": "Do not overreact to the lone decoy; retain vision and a reserve south, cut the pair's lane, or overload Blue's home to trigger the abort.",
+      "fallback": "A home overload cancels the switch. Otherwise the decoy and hitters pay their positional cost, then all survivors return to baseline.",
+      "watch": "Blue begins the feint at t9, commits the south pincer at t15, gets both hitters into south-forward by t25, and releases at t29. Orange ultimately wins at t402."
     },
     {
       "id": "sample-07",
       "title": "Rear Hook — Blue operation",
-      "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed"
+      "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed",
+      "trigger": "Public Well timing and visible forward pressure let two Towlines infiltrate; commitment waits for an observed enemy carrier inside its return corridor.",
+      "tactic": "Give up ordinary Well pressure to place the Towlines behind the line, lock onto the exact carrier, then use Tractor Hook to make that Core loose or Blue-owned.",
+      "counterplay": "Screen the carrier, vary its return route before commitment, reveal and kill a staging Towline, or punish the objectives Blue vacated to set the trap.",
+      "fallback": "Loss of a required stager before commitment aborts. After commitment an optional survivor may continue, but the deadline always releases it.",
+      "watch": "The ambush prepares at t9, commits at t25, uses Tractor Hook at t25–26, succeeds at t31, and releases at t37. Blue later destroys the reactor at t407."
     },
     {
       "id": "sample-08",
       "title": "Hardlight Gate — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed",
+      "trigger": "A pressured Blue return can claim both its declared Lantern and Mason to form a protected homeward gate.",
+      "tactic": "Pull the utility pair off objective work, place Hardlight Block across the dangerous approach, and hold the gate long enough for the carrier to cross home.",
+      "counterplay": "Suppress or bypass the construct, attack the Mason before placement, displace a gate participant, fire over or around the block, or force the Core loose.",
+      "fallback": "Core loss aborts. After success the gate pair physically extracts before resuming ordinary objective assignments.",
+      "watch": "Blue prepares the gate at t57, commits once it is formed at t69, gets the carrier home at t70, and releases at t71. Orange still wins the match at t376."
     },
     {
       "id": "sample-09",
       "title": "Relay Catch — Blue operation",
-      "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed"
+      "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed",
+      "trigger": "The assigned south Relay carries a Core and its paired Relay receiver is alive on the safer homeward side.",
+      "tactic": "Hold the receiver behind the carrier, use Arc Toss to move possession across the dangerous gap, then let the specifically assigned receiver complete the return.",
+      "counterplay": "Block or attack the catch lane, displace or destroy the receiver, pressure the carrier before the toss, or force a drop that breaks the assigned handoff.",
+      "fallback": "The expected one-tick in-flight possession gap is tolerated; a genuinely missed catch times out and releases both Relays to baseline.",
+      "watch": "Blue prepares at t76, commits at t77, throws with Arc Toss at t78, the receiver owns the Core at t80, and both release at t85. Blue wins at t505."
     },
     {
       "id": "sample-10",
       "title": "Fork Shadow — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed"
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed",
+      "trigger": "Blue gains causal sight of an enemy carrier returning through a north or south fork while two Towlines can reach a cutoff.",
+      "tactic": "React late to the revealed route, choose exactly one north-or-south cutoff, and keep that branch locked while the Towlines force the carrier off it with Tractor Hook.",
+      "counterplay": "Break vision before the target is fresh enough to commit, change route early, screen the selected cutoff, or exploit that the locked branch will not chase the opposite lane.",
+      "fallback": "The branch never flips. An optional strike partner may die without freezing the survivor, and the recovery deadline returns it to baseline.",
+      "watch": "Blue prepares at t93, commits the observed cutoff at t103, uses Tractor Hook during the pursuit, succeeds at t124, and releases at t136. Blue wins at t465."
     }
   ]
 }

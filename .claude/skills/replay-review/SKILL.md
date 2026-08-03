@@ -1,6 +1,6 @@
 ---
 name: replay-review
-description: Serve the arena viewer to a real device for judging visuals and audio, and pick replays worth judging them on. Use when a user asks to review, preview, look at, or listen to the arena, fog, lighting, sound cues, or a candidate audio pack — especially on a phone.
+description: Serve the arena viewer to a real device and select replays worth judging for visuals, audio, spectator clarity, or Arc Relay tactics. Use when a user asks to review, preview, watch, look at, or listen to the arena, a replay gallery, fog, lighting, sound cues, tactical plays, or a candidate audio pack — especially on a phone.
 ---
 
 # Replay review
@@ -63,6 +63,37 @@ score stands in for judgement, it does not replace a person asking for a matchup
 If nothing suitable exists, generate some: `dotnet run --project src/BotArena.Cli -- spar
 "<bot>" "<bot>" --map <map>`. Replays are picked from the local API, so the server must be
 running.
+
+## Arc Relay owner reviews
+
+Do not fill an Arc Relay gallery with arbitrary smoke matches or the first
+cells returned by a sweep. Prefer the latest tracked, canonical-verified,
+cohort-eligible operation corpus whose rules, map, stock artifact, and viewer
+match the work being reviewed. The current reusable baseline is the ten-play
+forward-combat corpus pinned by the `replay-highlights` skill. Keep it until a
+new set is demonstrably at least as useful.
+
+A useful Arc Relay set must:
+
+- contain distinct coordinated plays rather than ten variants of ordinary
+  Core return;
+- show causal trigger, preparation, commitment, physical success or failure,
+  bounded release, and return to baseline;
+- include real opposition and counterplay opportunities, not target practice;
+- cover several theaters, class signatures, possession beats, fights, and
+  match phases;
+- exclude runtime faults and felt-degeneracy failures; and
+- be outcome-visible for an owner review unless the user explicitly requests
+  a blind methodology read.
+
+Prefer at least six replays; use all ten retained operations for a broad
+renderer, awareness, or tactics review. A shorter targeted gallery may subset
+them only when every selected replay exercises the feature under review.
+
+For tactical galleries, follow the explanatory card contract in the
+`replay-highlights` skill. A matchup label is not enough: the reviewer must
+know what caused the play, what the operation intends, how the opponent can
+answer it, when it gives up, and what causal evidence to watch for.
 
 ## Diagnosing "there is no sound"
 

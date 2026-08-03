@@ -47,7 +47,12 @@ already-unblinded highlight reel) supplies its own card copy with
 progress markers and the export button:
 
     [{"id": "sample-02", "title": "vector-edge beats iron-root",
-      "subtitle": "striker over bulwark, seed 960017", "win": true}, ...]
+      "subtitle": "striker over bulwark, seed 960017", "win": true,
+      "trigger": "visible carrier enters the fork",
+      "tactic": "two Towlines close the return lane",
+      "counterplay": "screen the carrier or change route before commitment",
+      "fallback": "participant loss aborts and releases survivors",
+      "watch": "commit t25, hook t26, Core loose t31"}, ...]
 
 (a bare list, or an object with ``cards`` plus optional ``intro``/``title``;
 ``win`` only picks the win colour). Card order is the index order. Note the
@@ -94,6 +99,14 @@ GZIP_MIN_BYTES = 1024
 DEFAULT_INTRO = """Outcome-blind review: outcomes are hidden. Watch at normal
 speed and give two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy
 to follow &mdash; plus any notes."""
+
+CARD_EXPLANATION_FIELDS = (
+    ("trigger", "Trigger"),
+    ("tactic", "Intended tactic"),
+    ("counterplay", "Counterplay"),
+    ("fallback", "Fallback"),
+    ("watch", "Watch for"),
+)
 
 # Hosted boot: fetch the replay, publish it, *then* load the bundle. The
 # placeholder is plain markup so it is visible before any of this runs, and it
@@ -293,12 +306,22 @@ def index_cards(entries: list[dict], curated: list[dict] | None) -> list[dict]:
                 f"--index-cards names {sid!r}, which this sample does not "
                 f"build (have: {', '.join(derived)})")
         seen.add(sid)
-        cards.append({
+        resolved = {
             "id": sid,
             "title": card.get("title", derived[sid]["title"]),
             "subtitle": card.get("subtitle", derived[sid]["subtitle"]),
             "win": bool(card.get("win")),
-        })
+        }
+        for field, _ in CARD_EXPLANATION_FIELDS:
+            if field not in card:
+                continue
+            value = card[field]
+            if not isinstance(value, str) or not value.strip():
+                raise SystemExit(
+                    f"--index-cards {sid!r} field {field!r} must be a "
+                    "non-empty string")
+            resolved[field] = value.strip()
+        cards.append(resolved)
     # A sample the curated list forgot still gets a link rather than
     # vanishing from a gallery that was built with it.
     for sid, card in derived.items():
@@ -306,6 +329,24 @@ def index_cards(entries: list[dict], curated: list[dict] | None) -> list[dict]:
             print(f"note: --index-cards omits {sid}; appended with defaults")
             cards.append(card)
     return cards
+
+
+def render_card(card: dict) -> str:
+    explanation = "".join(
+        f'<div><dt>{html.escape(label)}</dt>'
+        f'<dd>{html.escape(card[field])}</dd></div>'
+        for field, label in CARD_EXPLANATION_FIELDS
+        if field in card
+    )
+    details = f'<dl>{explanation}</dl>' if explanation else ""
+    return (
+        f'<li><a href="{card["id"]}.html">'
+        f'<strong{" class=w" if card.get("win") else ""}>'
+        f'{html.escape(card["title"])}</strong>'
+        f' <span class=meta>{html.escape(card["subtitle"])}</span>'
+        f'{details}'
+        f'<em class=prog data-sid="{card["id"]}"></em></a></li>'
+    )
 
 
 def build(args: argparse.Namespace) -> None:
@@ -400,13 +441,7 @@ def build(args: argparse.Namespace) -> None:
     intro = args.intro if args.intro is not None else (
         curated_intro if curated_intro is not None else DEFAULT_INTRO)
 
-    items = "\n".join(
-        f'<li><a href="{card["id"]}.html">'
-        f'<strong{" class=w" if card.get("win") else ""}>'
-        f'{html.escape(card["title"])}</strong>'
-        f' <span>{html.escape(card["subtitle"])}</span>'
-        f'<em class=prog data-sid="{card["id"]}"></em></a></li>'
-        for card in cards)
+    items = "\n".join(render_card(card) for card in cards)
     review_block = ""
     if args.review_panel:
         review_block = f"""
@@ -439,15 +474,22 @@ refresh();window.addEventListener('pageshow',refresh);
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <style>
- body{{font:16px/1.5 system-ui;margin:2rem auto;max-width:40rem;padding:0 1rem;
+ body{{font:16px/1.5 system-ui;margin:2rem auto;max-width:52rem;padding:0 1rem;
       background:#0b1020;color:#dbe7ff}}
  h1{{font-size:1.3rem}} p{{color:#9fb2d8}}
- ul{{list-style:none;padding:0}} li{{margin:.4rem 0}}
- a{{display:block;padding:.7rem 1rem;border:1px solid #27355c;
+ ul{{list-style:none;padding:0}} li{{margin:.65rem 0}}
+ a{{display:block;padding:.85rem 1rem;border:1px solid #27355c;
    border-radius:.5rem;color:#dbe7ff;text-decoration:none;position:relative}}
- a:hover{{border-color:#4a6cc3}} a span{{color:#9fb2d8;font-size:.9rem;display:block}}
+ a:hover{{border-color:#4a6cc3}} a span.meta{{color:#9fb2d8;font-size:.9rem;
+   display:block;padding-right:2rem}}
+ dl{{margin:.65rem 0 0;display:grid;gap:.32rem}}
+ dl div{{display:grid;grid-template-columns:7.3rem 1fr;gap:.55rem}}
+ dt{{color:#7f96c7;font-size:.78rem;font-weight:700;text-transform:uppercase;
+   letter-spacing:.04em}}
+ dd{{margin:0;color:#c9d7f4;font-size:.88rem;line-height:1.38}}
  strong.w{{color:#7fd6a0}}
  em.prog{{position:absolute;right:1rem;top:.9rem;font-style:normal;color:#7fd6a0}}
+ @media(max-width:36rem){{dl div{{grid-template-columns:1fr;gap:0}}}}
  button{{padding:.6rem 1rem;border-radius:.5rem;border:1px solid #33477e;
    background:#1a2a55;color:#dbe7ff;cursor:pointer;font:inherit}}
 </style>

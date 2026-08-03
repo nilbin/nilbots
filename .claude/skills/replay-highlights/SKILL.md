@@ -83,11 +83,59 @@ the pages are fine, the tree beside them is not.
 
 A gallery that is **not** blind (an unblinded highlight reel) keeps the same
 builder: `--index-cards <json>` supplies curated card order, titles,
-subtitles and a `win` flag, `--intro` replaces the blind-protocol lede, and
-`--review-protocol` names the record. The index still emits its own progress
-markers and export button, so curated copy never costs the rating flow. The
-sample ids come from the builder's hash shuffle, not the manifest order —
-build once, read the mapping out of the output, then write the cards.
+subtitles, optional explanatory fields, and a `win` flag; `--intro` replaces
+the blind-protocol lede, and `--review-protocol` names the record. The index
+still emits its own progress markers and export button, so curated copy never
+costs the rating flow. The sample ids come from the builder's hash shuffle,
+not the manifest order — build once, read the mapping out of the output, then
+write the cards.
+
+## Arc Relay owner-gallery baseline
+
+For broad Arc Relay renderer, awareness, or tactics review, default to the
+latest compatible retained operation corpus instead of incidental smoke or
+balance matches. The current pin is:
+
+```text
+arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/
+  evidence/gallery-sample.json
+  evidence/gallery-cards.json
+  evidence/replays/*.broadcast.json.gz
+```
+
+It contains ten canonical-verified, operation-rich matches across Rear Hook,
+Lantern Sweep, Fork Shadow, Birth Rotation, Escort Counterpunch, Smoke Breach,
+Hardlight Gate, Relay Catch, Decoy Switch, and Emergency Exchange. Reuse this
+set while its rules, map, stock artifact, and broadcast schema remain
+compatible. If any axis changes, regenerate equivalent or better proofs; do
+not silently fall back to bland matches merely because they are newer.
+
+Owner galleries are outcome-visible by default. Use outcome blindness only
+when the requested evaluation methodology requires it.
+
+### Explanatory card contract
+
+Every tactical or Arc Relay curated card must contain:
+
+```json
+{
+  "id": "sample-01",
+  "title": "Operation — side",
+  "subtitle": "opponent, outcome, and verified phase ticks",
+  "trigger": "The causal, observable condition that arms the play.",
+  "tactic": "The intended coordinated sequence and participant roles.",
+  "counterplay": "Concrete legal answers available to the opponent.",
+  "fallback": "Abort, loss, deadline, and baseline-resumption behavior.",
+  "watch": "The actual causal beats and ticks this replay proves."
+}
+```
+
+Write `counterplay` from the real rules and visible tactical opportunities.
+Do not imply that the opponent took an answer unless the replay contains it.
+Write `watch` from authoritative replay evidence, not the intended sheet. A
+successful operation in a lost match must say both things plainly. Keep these
+fields optional only for a gallery whose sole purpose is a narrow visual or
+audio asset comparison with no tactical claim.
 
 ## Without the Sites integration
 
