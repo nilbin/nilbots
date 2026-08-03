@@ -41,6 +41,7 @@
         "transitions": [
           {
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "priority": 5,
             "stableTicks": 2,
             "to": "harvest",
@@ -56,19 +57,11 @@
                     "zone": ""
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "freshnessTicks": 0,
-                    "operator": "equals",
-                    "subject": "",
-                    "value": 0,
-                    "zone": ""
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "freshnessTicks": 0,
                     "operator": "at-least",
                     "subject": "",
-                    "value": 1,
+                    "value": 2,
                     "zone": ""
                   },
                   {
@@ -139,6 +132,7 @@
           },
           {
             "cause": "success",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 3,
             "to": "occupy",
@@ -160,6 +154,7 @@
           },
           {
             "cause": "failure",
+            "minimumPolicy": "respect",
             "priority": 20,
             "stableTicks": 3,
             "to": "regroup",
@@ -193,6 +188,7 @@
         "transitions": [
           {
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "priority": 5,
             "stableTicks": 2,
             "to": "harvest",
@@ -208,19 +204,11 @@
                     "zone": ""
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "freshnessTicks": 0,
-                    "operator": "equals",
-                    "subject": "",
-                    "value": 0,
-                    "zone": ""
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "freshnessTicks": 0,
                     "operator": "at-least",
                     "subject": "",
-                    "value": 1,
+                    "value": 2,
                     "zone": ""
                   },
                   {
@@ -291,6 +279,7 @@
           },
           {
             "cause": "failure",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 3,
             "to": "regroup",
@@ -324,6 +313,53 @@
         "transitions": [
           {
             "cause": "reaction",
+            "minimumPolicy": "interrupt",
+            "priority": 4,
+            "stableTicks": 2,
+            "to": "harvest",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "reactor-integrity",
+                    "freshnessTicks": 0,
+                    "operator": "at-most",
+                    "subject": "",
+                    "value": 1,
+                    "zone": ""
+                  },
+                  {
+                    "fact": "known-enemies-unavailable",
+                    "freshnessTicks": 0,
+                    "operator": "at-least",
+                    "subject": "",
+                    "value": 3,
+                    "zone": ""
+                  },
+                  {
+                    "fact": "outstanding-well-count",
+                    "freshnessTicks": 0,
+                    "operator": "at-least",
+                    "subject": "",
+                    "value": 2,
+                    "zone": ""
+                  },
+                  {
+                    "fact": "live-friendlies",
+                    "freshnessTicks": 0,
+                    "operator": "at-least",
+                    "subject": "",
+                    "value": 5,
+                    "zone": ""
+                  }
+                ],
+                "any": []
+              }
+            ]
+          },
+          {
+            "cause": "reaction",
+            "minimumPolicy": "respect",
             "priority": 5,
             "stableTicks": 2,
             "to": "harvest",
@@ -385,6 +421,7 @@
           },
           {
             "cause": "recovery",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 4,
             "to": "breach",
@@ -426,6 +463,7 @@
         "transitions": [
           {
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "priority": 5,
             "stableTicks": 2,
             "to": "harvest",
@@ -441,19 +479,11 @@
                     "zone": ""
                   },
                   {
-                    "fact": "visible-enemy-carriers",
-                    "freshnessTicks": 0,
-                    "operator": "equals",
-                    "subject": "",
-                    "value": 0,
-                    "zone": ""
-                  },
-                  {
-                    "fact": "visible-loose-cores",
+                    "fact": "outstanding-well-count",
                     "freshnessTicks": 0,
                     "operator": "at-least",
                     "subject": "",
-                    "value": 1,
+                    "value": 2,
                     "zone": ""
                   },
                   {
@@ -524,6 +554,7 @@
           },
           {
             "cause": "success",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 3,
             "to": "occupy",
@@ -545,6 +576,7 @@
           },
           {
             "cause": "failure",
+            "minimumPolicy": "respect",
             "priority": 20,
             "stableTicks": 3,
             "to": "regroup",
@@ -577,6 +609,7 @@
         "transitions": [
           {
             "cause": "success",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 1,
             "to": "delivery",
@@ -619,6 +652,7 @@
           },
           {
             "cause": "failure",
+            "minimumPolicy": "respect",
             "priority": 20,
             "stableTicks": 2,
             "to": "regroup",
@@ -659,6 +693,7 @@
         "transitions": [
           {
             "cause": "reaction",
+            "minimumPolicy": "respect",
             "priority": 10,
             "stableTicks": 2,
             "to": "harvest",
@@ -688,6 +723,7 @@
           },
           {
             "cause": "success",
+            "minimumPolicy": "respect",
             "priority": 20,
             "stableTicks": 2,
             "to": "breach",
@@ -913,8 +949,8 @@
       },
       "signatureCoordination": "damage-first",
       "targetPriorities": [
-        "fresh-respawn",
         "enemy-carrier",
+        "fresh-respawn",
         "closest-to-reactor",
         "lowest-health"
       ],
@@ -1325,6 +1361,7 @@
             "transitions": [
               {
                 "cause": "failure",
+                "minimumPolicy": "respect",
                 "priority": 10,
                 "stableTicks": 3,
                 "to": "recovering",
@@ -1352,6 +1389,7 @@
             "transitions": [
               {
                 "cause": "recovery",
+                "minimumPolicy": "respect",
                 "priority": 10,
                 "stableTicks": 3,
                 "to": "coherent",
@@ -1391,7 +1429,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-home-siege.json",
-    "sha256": "62685fb41d320d15cd36922f85b0add94d17c4e9de2cb7fb5cb2ffd9b9eb3139"
+    "sha256": "92aef0ea17f8bd53c4e4112e808603dbea17ec7368c64f2efc70ac026405717c"
   },
   "memory": {
     "enemyUnavailableTicks": 21,
