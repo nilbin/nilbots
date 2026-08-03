@@ -55,6 +55,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         "visible-enemies-in-zone", "remembered-enemies-in-zone",
     ];
 
+    private static readonly HashSet<string> FreshnessFacts =
+    [
+        "remembered-enemies-in-zone", "secured-cores",
+    ];
+
     public static TacticalPlaybookCompilation Compile(string playbookPath)
     {
         string fullPlaybookPath = Path.GetFullPath(playbookPath);
@@ -699,7 +704,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (ZoneFacts.Contains(fact))
             variantFields.Add("zone");
         Object(value, path,
-            ["fact", "operator", "value", .. variantFields]);
+            ["fact", "operator", "value", .. variantFields],
+            FreshnessFacts.Contains(fact) ? ["freshnessTicks"] : []);
         OneOf(value, "operator", path, [.. ConditionOperators]);
         Range(value, "value", path, 0, 100000);
         string subject = variantFields.Contains("subject", StringComparer.Ordinal)
@@ -707,6 +713,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             : "";
         if (variantFields.Contains("zone", StringComparer.Ordinal))
             NonEmptyString(value, "zone", path);
+        if (value.TryGetProperty("freshnessTicks", out _))
+            Range(value, "freshnessTicks", path, 1, 600);
         if (GroupSubjectFacts.Contains(fact) && !groupIds.Contains(subject))
             throw Error(path, $"condition references unknown group '{subject}'.");
         if (fact == "role-live-count" && !roleIds.Contains(subject))

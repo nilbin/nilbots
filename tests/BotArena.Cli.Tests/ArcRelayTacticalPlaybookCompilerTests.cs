@@ -110,6 +110,63 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void MemoryFactsAcceptAnExplicitBoundedFreshnessWindow()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject layout = source["layout"]!.AsObject();
+        layout["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            layout["path"]!.GetValue<string>()));
+        JsonObject condition = source["custodyPolicies"]![0]!
+            ["safeConversionAll"]![0]!["all"]![2]!.AsObject();
+        Assert.Equal("secured-cores", condition["fact"]!.GetValue<string>());
+        condition["freshnessTicks"] = 12;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            using JsonDocument normalized = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            Assert.Equal(12, normalized.RootElement
+                .GetProperty("custodyPolicies")[0]
+                .GetProperty("safeConversionAll")[0]
+                .GetProperty("all")[2]
+                .GetProperty("freshnessTicks")
+                .GetInt32());
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void NonMemoryFactsRejectFreshnessInsteadOfIgnoringIt()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject condition = source["custodyPolicies"]![0]!
+            ["safeConversionAll"]![0]!["all"]![0]!.AsObject();
+        Assert.Equal(
+            "known-enemies-unavailable",
+            condition["fact"]!.GetValue<string>());
+        condition["freshnessTicks"] = 12;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("unknown field 'freshnessTicks'", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void ConditionGroupsRequireOneExplicitCombinator()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!

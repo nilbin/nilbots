@@ -626,7 +626,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             value.FormationId == order.FormationId);
     }
 
-    private static bool Evaluate(
+    private bool Evaluate(
         TacticalPlaybookPackage.Condition condition,
         TacticalSnapshot snapshot,
         TacticalPlaybookPackage package)
@@ -653,11 +653,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "known-enemies-unavailable" => snapshot.KnownEnemiesUnavailable,
             "visible-enemies-in-zone" => snapshot.VisibleEnemiesByZone
                 .GetValueOrDefault(condition.Zone),
-            "remembered-enemies-in-zone" => snapshot.RememberedEnemiesByZone
-                .GetValueOrDefault(condition.Zone),
+            "remembered-enemies-in-zone" => condition.FreshnessTicks == 0
+                ? snapshot.RememberedEnemiesByZone
+                    .GetValueOrDefault(condition.Zone)
+                : _lastSeenEnemies.Count(enemy =>
+                    snapshot.Tick - enemy.Value.LastConfirmedTick
+                        <= condition.FreshnessTicks
+                    && package.Contains(
+                        condition.Zone, enemy.Value.Position)),
             "visible-enemy-carriers" => snapshot.VisibleEnemyCarriers,
             "friendly-carriers" => snapshot.FriendlyCarriers,
-            "secured-cores" => snapshot.SecuredCores,
+            "secured-cores" => condition.FreshnessTicks == 0
+                ? snapshot.SecuredCores
+                : _securedCores.Count(core =>
+                    snapshot.Tick - core.Value.LastConfirmedTick
+                        <= condition.FreshnessTicks),
             "visible-loose-cores" => snapshot.VisibleLooseCores,
             "well-has-outstanding" => snapshot.WellOutstanding
                 .GetValueOrDefault(condition.Subject),
