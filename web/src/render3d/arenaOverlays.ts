@@ -7,7 +7,7 @@ import type {
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
-import { arrivalsAt, spentBoltsAt } from '../render/interpolate';
+import { arrivalsAt, posesAt, spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
 import {
@@ -15,6 +15,7 @@ import {
   type TickPresentation,
 } from '../replayPresentation';
 import { buildArcRelayEffects } from './arcRelayEffects';
+import { teamVisionAt } from '../render/teamVision';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -61,7 +62,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
-  const arcRelay = buildArcRelayStory(disposables);
+  const arcRelay = buildArcRelayStory(replay, disposables);
   group.add(arcRelay.group);
 
   const arcRelayEffects = buildArcRelayEffects(replay, disposables);
@@ -99,22 +100,25 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const fraction = Math.max(0, Math.min(time - tick, 1));
     const presentation = presenter.at(tick);
 
-    const source =
-      showVisibility && selectedUnitKey !== null
-        ? replay.ticks[tick]?.actorTurns.find(
-            (turn) => turn.actor.unitKey === selectedUnitKey,
-          )
-        : undefined;
+    const teamVision = teamVisionAt(
+      replay,
+      replay.ticks[tick],
+      selectedUnitKey,
+      showVisibility,
+    );
 
     // Repainting the mask is a loop over every tile on the map, and the playhead crosses
     // dozens of frames per tick — so it only happens when the answer can have changed.
-    const signature = `${source ? tick : -1}:${selectedUnitKey}`;
+    const signature = `${teamVision ? tick : -1}:${teamVision?.teamId ?? -1}`;
     if (signature !== painted) {
       painted = signature;
       fog.paint(
-        source?.observation.visibleTiles.map(
-          ({ position }) => position,
-        ),
+        teamVision
+          ? [...teamVision.visibleTiles].map((key) => {
+              const [x, y] = key.split(',').map(Number);
+              return { x: x!, y: y! };
+            })
+          : undefined,
       );
     }
 
@@ -1501,6 +1505,7 @@ function buildAbsorptions(
 
 /** Arc Relay's objective objects and the unmistakable carrier beacon. */
 function buildArcRelayStory(
+  replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): {
   group: THREE.Group;
@@ -1516,10 +1521,12 @@ function buildArcRelayStory(
   const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
   reactorRingGeometry.rotateX(Math.PI / 2);
   const pipGeometry = new THREE.SphereGeometry(0.055, 10, 8);
-  const coreGeometry = new THREE.OctahedronGeometry(0.15, 0);
-  const carrierRingGeometry = new THREE.RingGeometry(0.5, 0.69, 40);
-  carrierRingGeometry.rotateX(-Math.PI / 2);
-  const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 0.85, 12);
+  // A shaded sphere, not a bright faceted token. The Core is a carried object now: its
+  // fixed hover above the hull makes possession legible without making it orbit through a
+  // neighbouring tile or borrowing the carrier's team treatment for the model itself.
+  const coreGeometry = new THREE.SphereGeometry(0.22, 28, 18);
+  const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 1.05, 12);
+  const coreGlowTexture = flare();
   const sourceTriangleGeometry = new THREE.ConeGeometry(0.17, 0.045, 3);
   const sourceDiamondGeometry = new THREE.BoxGeometry(0.23, 0.045, 0.23);
   sourceDiamondGeometry.rotateY(Math.PI / 4);
@@ -1533,13 +1540,13 @@ function buildArcRelayStory(
     reactorRingGeometry,
     pipGeometry,
     coreGeometry,
-    carrierRingGeometry,
     beamGeometry,
     sourceTriangleGeometry,
     sourceDiamondGeometry,
     sourceCircleGeometry,
     reactorPylonGeometry,
   );
+  if (coreGlowTexture) disposables.push(coreGlowTexture);
 
   type WellRig = {
     group: THREE.Group;
@@ -1679,10 +1686,11 @@ function buildArcRelayStory(
   type CoreRig = {
     group: THREE.Group;
     gem: THREE.Mesh;
-    ring: THREE.Mesh;
+    glow: THREE.Sprite;
+    light: THREE.PointLight;
     beam: THREE.Mesh;
-    gemMaterial: THREE.MeshStandardMaterial;
-    ringMaterial: THREE.MeshBasicMaterial;
+    gemMaterial: THREE.MeshLambertMaterial;
+    glowMaterial: THREE.SpriteMaterial;
     beamMaterial: THREE.MeshBasicMaterial;
     sourceGlyphs: THREE.Mesh[];
   };
@@ -1690,19 +1698,22 @@ function buildArcRelayStory(
   const core = (index: number): CoreRig => {
     while (cores.length <= index) {
       const rig = new THREE.Group();
-      const gemMaterial = new THREE.MeshStandardMaterial({
-        color: '#eef8fc',
-        emissive: '#eef8fc',
-        emissiveIntensity: 1.2,
-        roughness: 0.22,
-        metalness: 0.65,
+      // Lambert keeps enough directional shading to read as a volume but has no glossy
+      // specular lobe: this is a self-lit energy Core, not a polished pearl.
+      const gemMaterial = new THREE.MeshLambertMaterial({
+        // A darker body plus saturated emission leaves visible cyan in the centre instead
+        // of clipping the whole orb to pearl-white under the arena lights.
+        color: '#146b78',
+        emissive: '#38d8ee',
+        emissiveIntensity: 0.68,
       });
-      const ringMaterial = new THREE.MeshBasicMaterial({
+      const glowMaterial = new THREE.SpriteMaterial({
+        map: coreGlowTexture,
+        color: '#80ecff',
         transparent: true,
-        opacity: 0.72,
+        opacity: 0,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
       });
       const beamMaterial = new THREE.MeshBasicMaterial({
         transparent: true,
@@ -1711,10 +1722,14 @@ function buildArcRelayStory(
         blending: THREE.AdditiveBlending,
       });
       const gem = new THREE.Mesh(coreGeometry, gemMaterial);
-      const ring = new THREE.Mesh(carrierRingGeometry, ringMaterial);
-      ring.position.y = 0.035;
+      gem.castShadow = false;
+      gem.userData.kind = 'arc-relay-core-sphere';
+      const glow = new THREE.Sprite(glowMaterial);
+      glow.userData.kind = 'arc-relay-core-glow';
+      const light = new THREE.PointLight('#73eaff', 0, 2.4, 2);
+      light.userData.kind = 'arc-relay-core-light';
       const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-      beam.position.y = 0.44;
+      beam.position.y = 0.54;
       const sourceGlyphs = [
         sourceTriangleGeometry,
         sourceDiamondGeometry,
@@ -1726,20 +1741,22 @@ function buildArcRelayStory(
         rig.add(mesh);
         return mesh;
       });
-      rig.add(gem, ring, beam);
+      rig.add(glow, gem, light, beam);
+      rig.userData.kind = 'arc-relay-core';
       rig.visible = false;
       group.add(rig);
       cores.push({
         group: rig,
         gem,
-        ring,
+        glow,
+        light,
         beam,
         gemMaterial,
-        ringMaterial,
+        glowMaterial,
         beamMaterial,
         sourceGlyphs,
       });
-      disposables.push(gemMaterial, ringMaterial, beamMaterial);
+      disposables.push(gemMaterial, glowMaterial, beamMaterial);
     }
     return cores[index]!;
   };
@@ -1789,6 +1806,7 @@ function buildArcRelayStory(
     for (let index = story.reactors.length; index < reactors.length; index++)
       reactors[index]!.group.visible = false;
 
+    const actorPoses = posesAt(replay, time);
     for (const [index, state] of story.cores.entries()) {
       const rig = core(index);
       const carried = state.disposition === 'carried';
@@ -1797,36 +1815,63 @@ function buildArcRelayStory(
         : story.reactors.find((entry) => entry.teamId === state.carrierTeamId)
             ?.accent ?? '#eef8fc';
       const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + index * 1.7);
+      const carrier = carried && state.carrierUnitKey !== null
+        ? actorPoses.find((pose) => pose.unitKey === state.carrierUnitKey)
+        : null;
       rig.group.visible = true;
-      rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
-      rig.gem.position.set(
-        carried ? Math.cos(time * 4 + index) * 0.28 : 0,
-        carried ? 0.56 + Math.sin(time * 5 + index) * 0.05 : 0.24,
-        carried ? Math.sin(time * 4 + index) * 0.19 : 0,
+      rig.group.position.set(
+        (carrier?.x ?? state.position.x) + 0.5,
+        0,
+        (carrier?.y ?? state.position.y) + 0.5,
       );
-      rig.gem.rotation.y = time * 1.8;
-      rig.gem.rotation.x = time * 1.1;
+      rig.gem.position.set(
+        0,
+        carried
+          ? 1.18 + Math.sin(time * 2.4 + index) * 0.035
+          : 0.4 + Math.sin(time * 2 + index) * 0.025,
+        0,
+      );
+      rig.gem.rotation.y = time * 0.45;
       rig.gem.scale.setScalar(state.pulseCore ? 1.25 + pulse * 0.2 : 1);
-      rig.gemMaterial.color.set(accent);
-      rig.gemMaterial.emissive.set(accent);
-      rig.gemMaterial.emissiveIntensity = carried ? 1.55 : 0.9;
-      rig.ring.visible = carried;
+      rig.glow.position.copy(rig.gem.position);
+      rig.light.position.copy(rig.gem.position);
+      rig.glow.scale.setScalar(
+        state.pulseCore ? 0.88 + pulse * 0.12 : 0.72 + pulse * 0.07,
+      );
+      // The Core remains neutral cyan energy. Team ownership belongs to the faint tether;
+      // tinting the sphere itself made it vanish into the carrier's own emissives.
+      rig.gemMaterial.color.set('#146b78');
+      rig.gemMaterial.emissive.set('#38d8ee');
+      rig.gemMaterial.emissiveIntensity = carried ? 0.8 : 0.7;
+      rig.glowMaterial.opacity = carried
+        ? state.pulseCore ? 0.32 + pulse * 0.12 : 0.22 + pulse * 0.08
+        : 0.14 + pulse * 0.06;
+      rig.light.intensity = state.pulseCore
+        ? 3 + pulse * 1.4
+        : carried ? 2.2 + pulse * 0.6 : 1.6 + pulse * 0.4;
       rig.beam.visible = carried;
-      rig.ringMaterial.color.set(accent);
       rig.beamMaterial.color.set(accent);
-      rig.ringMaterial.opacity = 0.5 + pulse * 0.38;
-      rig.beamMaterial.opacity = state.pulseCore ? 0.26 + pulse * 0.22 : 0.1 + pulse * 0.1;
-      rig.ring.scale.setScalar(1 + pulse * (state.pulseCore ? 0.16 : 0.08));
-      rig.ring.rotation.y = time * 0.9;
+      rig.beamMaterial.opacity = state.pulseCore
+        ? 0.17 + pulse * 0.14
+        : 0.055 + pulse * 0.045;
       const glyphIndex = state.sourceLabel.toLowerCase().includes('north')
         ? 0
         : state.sourceLabel.toLowerCase().includes('south')
           ? 1
           : 2;
+      const atSourceWell = state.disposition === 'loose' && story.wells.some(
+        (well) =>
+          well.sourceLabel === state.sourceLabel &&
+          well.position.x === state.position.x &&
+          well.position.y === state.position.y,
+      );
       for (const [glyph, sourceGlyph] of rig.sourceGlyphs.entries()) {
-        sourceGlyph.visible = glyph === glyphIndex;
-        sourceGlyph.position.copy(rig.gem.position);
-        sourceGlyph.position.y += 0.02;
+        // A live well already carries its own source mark. Repeating it over the Core
+        // flattened the orb into a large token; only a dropped loose Core needs this
+        // small identity plate beneath the sphere.
+        sourceGlyph.visible =
+          state.disposition === 'loose' && !atSourceWell && glyph === glyphIndex;
+        sourceGlyph.position.set(0, 0.12, 0);
         sourceGlyph.rotation.y = -time * 1.1;
       }
     }

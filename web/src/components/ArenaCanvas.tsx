@@ -8,6 +8,7 @@ import { posesAt } from '../render/interpolate';
 import {
   ArenaCamera,
   arenaViewport,
+  directorMinSpan,
   focusFrame,
   focusPointsAt,
   type ArenaFraming,
@@ -62,7 +63,7 @@ export default function ArenaCanvas({
     mapWidth: replay.map.width,
     mapHeight: replay.map.height,
     aspect: 1,
-    minSpan: arcRelayDirectorMinSpan(replay),
+    minSpan: directorMinSpan(replay),
   });
 
   const gesturesRef = useRef<{ panned: () => boolean } | null>(null);
@@ -122,7 +123,7 @@ export default function ArenaCanvas({
           mapWidth: replay.map.width,
           mapHeight: replay.map.height,
           aspect: width / logicalArenaHeight(height),
-          minSpan: arcRelayDirectorMinSpan(replay),
+          minSpan: directorMinSpan(replay),
         };
         const camera =
           cameraRef.current ?? (cameraRef.current = new ArenaCamera(framingRef.current));
@@ -219,12 +220,4 @@ export default function ArenaCanvas({
       aria-label="nilbots match playback"
     />
   );
-}
-
-/** Arc Relay close-ups retain the bank, nearby cover, and approach lanes around a beat. */
-function arcRelayDirectorMinSpan(replay: ReplayModel): number | undefined {
-  return replay.contract.kind === 'v3-generic' &&
-    replay.contract.modeKind === 'arc-relay'
-    ? 10
-    : undefined;
 }

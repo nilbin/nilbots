@@ -525,6 +525,16 @@ function presentUnit(
         )?.ticks
       : undefined) ??
     null;
+  const publishedVision = replay.ticks[tickIndex]?.publishedTeamVision?.find(
+    (entry) => entry.teamId === unit.teamId,
+  );
+  const publishedTileKeys = publishedVision
+    ? new Set(
+        publishedVision.visibleTiles.map(
+          (tile) => `${tile.x},${tile.y}`,
+        ),
+      )
+    : null;
 
   return {
     unitKey,
@@ -572,12 +582,28 @@ function presentUnit(
       turn?.actionResolution.chosenPayload?.launchHeading ?? null,
     actionResult: turn?.actionResolution.result ?? null,
     debug: turn?.runtimeReply.debugMessage ?? null,
-    visibleTiles: turn?.observation.visibleTiles.length ?? 0,
+    visibleTiles:
+      publishedVision?.visibleTiles.length ??
+      turn?.observation.visibleTiles.length ??
+      0,
     visibleEnemies:
-      turn?.observation.enemies.map((enemy) => ({
-        x: enemy.position.x,
-        y: enemy.position.y,
-      })) ?? [],
+      publishedTileKeys === null
+        ? turn?.observation.enemies.map((enemy) => ({
+            x: enemy.position.x,
+            y: enemy.position.y,
+          })) ?? []
+        : (before?.actors ?? [])
+            .filter(
+              (enemy) =>
+                enemy.identity.teamId !== unit.teamId &&
+                publishedTileKeys.has(
+                  `${enemy.position.x},${enemy.position.y}`,
+                ),
+            )
+            .map((enemy) => ({
+              x: enemy.position.x,
+              y: enemy.position.y,
+            })),
     carriedScrap: load?.carried ?? 0,
     carriedFraction:
       load === null || load.capacity <= 0

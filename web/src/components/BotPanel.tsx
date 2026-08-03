@@ -723,8 +723,8 @@ export default function BotPanel({
           className="accent-(--color-arena-text)"
         />
         {mindProfile
-          ? "Show this mind's field of view"
-          : "Show selected unit's field of view"}
+          ? "Show this mind's team vision"
+          : "Show selected team's field of view"}
       </label>
     </div>
   );

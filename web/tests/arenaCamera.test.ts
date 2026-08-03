@@ -15,10 +15,12 @@ import {
   ARENA_MARGIN_TILES,
   ArenaCamera,
   arenaViewport,
+  directorMinSpan,
   focusFrame,
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
+  posesAt,
 } from './.harness/harness.entry.js';
 
 /**
@@ -156,6 +158,24 @@ test('it never gets closer than about six tiles, and never wider than the arena'
   );
   const full = fullArenaFrame(FRAMING);
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
+});
+
+test('Arc Relay gives both renderers the same wider ten-tile closest shot', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  assert.equal(arc.contract.kind, 'v3-generic');
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+
+  const minSpan = directorMinSpan(arc);
+  assert.equal(minSpan, 10);
+  assert.equal(directorMinSpan(frontline), undefined);
+  const close = focusFrame([{ x: 20, y: 12 }], {
+    ...FRAMING,
+    minSpan,
+  });
+  assert.ok(close.width >= 10, `Arc Relay close-up held at ${close.width} tiles`);
 });
 
 test('the fit is close enough to watch on a phone, and still never crops a life', () => {
@@ -571,4 +591,50 @@ test('the camera follows the fight rather than a fixed plan view', () => {
   );
   assert.ok(side.width < full.width * 0.7, `closed in (${side.width})`);
   assert.ok(side.x < full.x, 'and it is looking at that side of the map');
+});
+
+test('camera targets consume continuous rendered poses rather than snapped tiles', () => {
+  const tickIndex = frontline.ticks.findIndex((tick) =>
+    tick.before.actors.some((before) => {
+      const after = tick.after.actors.find(
+        (candidate) => candidate.actorKey === before.actorKey,
+      );
+      return after &&
+        (after.position.x !== before.position.x ||
+          after.position.y !== before.position.y);
+    }),
+  );
+  assert.ok(tickIndex >= 0);
+  const moving = frontline.ticks[tickIndex]!.before.actors.find((before) => {
+    const after = frontline.ticks[tickIndex]!.after.actors.find(
+      (candidate) => candidate.actorKey === before.actorKey,
+    );
+    return after &&
+      (after.position.x !== before.position.x ||
+        after.position.y !== before.position.y);
+  });
+  assert.ok(moving);
+
+  const samples = [0.25, 0.5, 0.75].map((fraction) => {
+    const time = tickIndex + fraction;
+    const pose = posesAt(frontline, time).find(
+      (candidate) => candidate.actorKey === moving.actorKey,
+    );
+    assert.ok(pose);
+    const points = focusPointsAt(frontline, time, null);
+    assert.ok(
+      points.some(
+        (point) =>
+          Math.abs(point.x - (pose.x + 0.5)) < 1e-9 &&
+          Math.abs(point.y - (pose.y + 0.5)) < 1e-9,
+      ),
+      'the camera receives the same fractional body position as both renderers',
+    );
+    return pose;
+  });
+  assert.notDeepEqual(
+    { x: samples[0]!.x, y: samples[0]!.y },
+    { x: samples[2]!.x, y: samples[2]!.y },
+    'the target moves within a tick instead of waiting for its boundary',
+  );
 });

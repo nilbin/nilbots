@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-longshot",
+  "taskId": "019fc381-a1d0-729b-be0f-149a70a90b1a",
+  "submittedAt": "2026-08-02T17:24:39.752Z",
+  "balanceBefore": 475,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-longshot/sprite.png",
+    "bytes": 29636,
+    "sha256": "a7ac1a9af984d00d46a8dfcbea8347e358c003c97406ec2b32dba7f90df75ea3",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

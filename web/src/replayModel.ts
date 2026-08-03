@@ -1507,9 +1507,20 @@ export interface ReplayTick {
   activeActorKeys: ReplayActorLifeKey[];
   lifecycleEvents: ReplayCausalEvent[];
   actorTurns: ReplayActorTurn[];
+  /**
+   * A compact spectator transport can publish one shared vision snapshot per
+   * team instead of repeating it in every body turn. Undefined on canonical
+   * replays and compact broadcasts that predate team-perspective fog.
+   */
+  publishedTeamVision?: ReplayPublishedTeamVision[];
   events: ReplayCausalEvent[];
   projectileTraversals: ReplayProjectileTraversal[];
   after: ReplayWorldSnapshot;
+}
+
+export interface ReplayPublishedTeamVision {
+  teamId: number;
+  visibleTiles: ReplayPosition[];
 }
 
 export interface ReplayTeamResult {

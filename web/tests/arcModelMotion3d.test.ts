@@ -17,8 +17,9 @@ function frame(
     facingAngle: 0,
     motionX: 0,
     motionY: 0,
+    previousMotionX: 0,
+    previousMotionY: 0,
     previousSpeed: 0,
-    nextSpeed: 0,
     turnDelta: 0,
     signedTravel: 0,
     braced: false,
@@ -39,11 +40,82 @@ test('Arc bodies express lateral and reverse displacement without changing facin
   assert.ok(Math.abs(Math.abs(reverse.wakeYaw) - Math.PI) < 1e-9);
 });
 
+test('lean and exhaust stay continuous through an active movement segment', () => {
+  const continued = { previousMotionY: 1, previousSpeed: 1, motionY: 1 };
+  const start = frame('arc-lantern', { ...continued, fraction: 0 });
+  const middle = frame('arc-lantern', { ...continued, fraction: 0.5 });
+  const end = frame('arc-lantern', { ...continued, fraction: 1 });
+
+  assert.ok(start.bank > 0);
+  assert.equal(start.bank, middle.bank);
+  assert.equal(middle.bank, end.bank);
+  assert.ok(start.wakeStrength > 0);
+  assert.equal(start.wakeStrength, middle.wakeStrength);
+  assert.equal(middle.wakeStrength, end.wakeStrength);
+});
+
+test('exhaust names current displacement while revealed inertia stays inside the hull', () => {
+  const corner = frame('arc-lantern', {
+    fraction: 0.1,
+    previousMotionX: 1,
+    previousSpeed: 1,
+    motionY: 1,
+  });
+  assert.ok(Math.abs(corner.wakeYaw + Math.PI / 2) < 1e-9);
+  assert.ok(Math.abs(corner.hullLagForward) > 0, 'the hull still carries old momentum');
+  assert.ok(Math.abs(corner.hullLagLateral) > 0, 'the hull begins taking the new direction');
+});
+
+test('body lean catches a revealed corner instead of snapping to the new axis', () => {
+  const entering = frame('arc-lantern', {
+    fraction: 0,
+    previousMotionX: 1,
+    previousSpeed: 1,
+    motionY: 1,
+  });
+  const leaving = frame('arc-lantern', {
+    fraction: 1,
+    previousMotionX: 1,
+    previousSpeed: 1,
+    motionY: 1,
+  });
+  assert.ok(entering.pitch < 0);
+  assert.ok(Math.abs(entering.bank) < 1e-9);
+  assert.ok(leaving.bank > 0);
+  assert.ok(Math.abs(leaving.pitch) < 1e-9);
+  assert.equal(entering.wakeYaw, leaving.wakeYaw, 'exhaust is current-direction truth');
+});
+
 test('wheel and tread motion scrolls from distance and dips on start or stop', () => {
   const moving = frame('arc-towline', { signedTravel: 1.25, motionX: 1 });
   assert.ok(Math.abs(moving.wheelRotation) > 10);
+  const rolling = frame('arc-towline', { previousSpeed: 1, motionX: 1 });
+  assert.ok(
+    Math.abs(rolling.pitch) < Math.abs(moving.pitch),
+    'continued travel does not replay the start dip at each tile',
+  );
   const stopping = frame('arc-towline', { previousSpeed: 1 });
   assert.ok(stopping.pitch < 0);
+});
+
+test('the inner hull carries revealed momentum into a slow hold without moving the chassis', () => {
+  const arriving = frame('arc-lantern', {
+    fraction: 1,
+    motionX: 1,
+  });
+  const settling = frame('arc-lantern', {
+    fraction: 0,
+    previousMotionX: 1,
+  });
+  const settled = frame('arc-lantern', {
+    fraction: 1,
+    previousMotionX: 1,
+  });
+
+  assert.ok(arriving.hullLagForward < -0.04);
+  assert.ok(Math.abs(arriving.hullLagForward - settling.hullLagForward) < 1e-9);
+  assert.ok(Math.abs(settled.hullLagForward) < 1e-9);
+  assert.ok(Math.abs(arriving.hullLagLateral) < 1e-9);
 });
 
 test('hardware follows handling lag, with only swift classes overshooting', () => {

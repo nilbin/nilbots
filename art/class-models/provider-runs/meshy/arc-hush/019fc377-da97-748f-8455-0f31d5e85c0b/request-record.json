@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-hush",
+  "taskId": "019fc377-da97-748f-8455-0f31d5e85c0b",
+  "submittedAt": "2026-08-02T17:13:58.907Z",
+  "balanceBefore": 520,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-hush/sprite.png",
+    "bytes": 39647,
+    "sha256": "85be80599ea71f4ece0f3613fbe73c696130b6e9253aab7e316077231edd4c43",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

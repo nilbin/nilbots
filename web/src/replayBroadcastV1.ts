@@ -53,6 +53,7 @@ type WorldTuple = [
   V3.ReplayV3ModeState,
 ];
 type ActionTuple = [string, number, V3.ReplayV3ActionArgument[]];
+type TeamVisionTuple = [number, PositionTuple[]];
 type TurnTuple = [
   ActorTuple,
   number,
@@ -75,6 +76,8 @@ export interface ArcRelayBroadcastV1 {
   initial: WorldTuple;
   worlds: WorldTuple[];
   turns: TurnTuple[][];
+  /** Additive: absent on archived broadcasts written before team-perspective fog. */
+  vision?: TeamVisionTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -95,6 +98,8 @@ export interface ArcRelayBroadcastV2 {
   initial: WorldTuple;
   worlds: WorldTuple[];
   turns: TurnTuple[][];
+  /** Additive: absent on stored broadcasts written before team-perspective fog. */
+  vision?: TeamVisionTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -125,6 +130,7 @@ export function expandArcRelayBroadcastV1(
   const count = broadcast.worlds.length;
   if (
     broadcast.turns.length !== count ||
+    (broadcast.vision !== undefined && broadcast.vision.length !== count) ||
     broadcast.startEvents.length !== count ||
     broadcast.events.length !== count ||
     broadcast.traversals.length !== count ||
@@ -168,7 +174,9 @@ export function expandArcRelayBroadcastV1(
       },
       // normalizeReplayV3 consumes actorTurns first. Broadcasts are already a
       // spectator projection, so one minimal public turn per body is the
-      // honest shape; no private union observation is reconstructed.
+      // honest shape. The published team-visible tile union stays as one
+      // replay-model sidecar per team rather than being multiplied by every
+      // body during normalization.
       actorTurns: turns,
       events: broadcast.events[tick],
       traversals: broadcast.traversals[tick],

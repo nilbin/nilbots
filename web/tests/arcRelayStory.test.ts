@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import * as THREE from 'three';
 import {
+  buildOverlays,
   createPresenter,
   defaultPlaybackSpeed,
+  posesAt,
+  signedTravelByActor,
 } from './.harness/harness.entry.js';
 import { replayAudioEventsAt } from '../src/audio/replayAudioEvents.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
@@ -196,6 +200,160 @@ test('Arc Relay presents the carrier and all five spectator beats', () => {
     [0, 2, 3, 4, 5].map((tick) => presenter.at(tick).arcRelay?.beat?.kind),
     ['birth', 'drop', 'steal', 'bank', 'pulse'],
   );
+});
+
+test('a slow carrier glides through its forced relocation hold without predicting the next tile', () => {
+  const replay = arcRelayReplay();
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind !== 'v3-generic') return;
+  replay.contract.mode.coreRelocationIntervalTicks = 2;
+  if (replay.contract.rawContract.rules.gameMode.kind === 'arc-relay')
+    replay.contract.rawContract.rules.gameMode.coreRelocationIntervalTicks = 2;
+
+  const actor = replay.ticks[0]!.before.actors[0]!;
+  const actorKey = actor.actorKey;
+  const coreId = { sourceWellId: 'well-centre', sourceOrdinal: 9 };
+  const place = (tick: number, side: 'before' | 'after', x: number) => {
+    const state = replay.ticks[tick]![side];
+    const body = state.actors.find((candidate) => candidate.actorKey === actorKey);
+    assert.ok(body);
+    body.position = { x, y: 7 };
+    const nextRelocationTick = tick < 2 ? 2 : 4;
+    assert.equal(state.mode?.kind, 'arc-relay');
+    if (state.mode?.kind !== 'arc-relay' || !('visibleCores' in state.mode)) return;
+    state.mode.visibleCores = [{
+      coreId,
+      position: { x, y: 7 },
+      disposition: 'carried',
+      carrierActor: actor.identity,
+      nextRelocationTick,
+      flightTarget: null,
+      flightCompletesAtTick: null,
+    }];
+  };
+
+  place(0, 'before', 1);
+  place(0, 'after', 2);
+  place(1, 'before', 2);
+  place(1, 'after', 2);
+  // The following move deliberately turns around. Nothing sampled in the forced hold may
+  // anticipate it; the renderer only finishes the already-revealed first relocation.
+  place(2, 'before', 2);
+  place(2, 'after', 1);
+
+  const pose = (time: number) =>
+    posesAt(replay, time).find((candidate) => candidate.actorKey === actorKey)!;
+  assert.equal(pose(0).x, 1);
+  assert.equal(pose(1).x, 1.5, 'crosses the occupancy edge on the move boundary');
+  assert.equal(pose(1.5).x, 1.75, 'keeps constant travel through the forced hold');
+  assert.equal(pose(2).x, 2, 'reaches the recorded tile before the next move');
+  assert.ok(pose(0.999).x < 1.5, 'never enters the destination tile early');
+  assert.ok(pose(1.001).x > 1.5, 'enters the destination after the exact boundary');
+  assert.equal(pose(0.5).motionX, 0.5);
+  assert.equal(pose(1.5).motionX, 0.5, 'lean and tread motion follow the visible glide');
+  const travel = signedTravelByActor(replay).get(actorKey);
+  assert.ok(travel);
+  assert.equal(Math.abs(travel[1]!), 0.5, 'wheels cover the rendered half-tile move');
+  assert.equal(Math.abs(travel[2]!), 1, 'wheels keep rolling through the forced hold');
+  const epsilon = 0.001;
+  assert.ok(
+    Math.abs(
+      (pose(1).x - pose(1 - epsilon).x) -
+        (pose(1 + epsilon).x - pose(1).x),
+    ) < 1e-9,
+    'the forced hold does not introduce a tile-centre dwell',
+  );
+  assert.ok(
+    Math.abs(
+      Math.abs(pose(2).x - pose(2 - epsilon).x) -
+        Math.abs(pose(2 + epsilon).x - pose(2).x),
+    ) < 1e-9,
+    'a newly revealed reversal changes direction without a dead frame',
+  );
+
+  const holdState = replay.ticks[1]!.after;
+  assert.equal(holdState.mode?.kind, 'arc-relay');
+  if (holdState.mode?.kind === 'arc-relay' && 'visibleCores' in holdState.mode) {
+    const receiver = holdState.actors.find(
+      (candidate) => candidate.actorKey !== actorKey,
+    );
+    assert.ok(receiver);
+    holdState.mode.visibleCores[0]!.carrierActor = receiver.identity;
+    assert.equal(
+      pose(1.5).x,
+      1.75,
+      'a handoff moves possession but cannot snap the revealed glide to its centre',
+    );
+  }
+});
+
+test('the carried Core is a sphere levitating on the interpolated carrier pose', () => {
+  const replay = arcRelayReplay();
+  const time = 1.5;
+  const core = createPresenter(replay).at(1).arcRelay?.cores[0];
+  assert.ok(core?.carrierUnitKey);
+  const carrier = posesAt(replay, time).find(
+    (pose) => pose.unitKey === core.carrierUnitKey,
+  );
+  assert.ok(carrier);
+
+  const overlays = buildOverlays(replay);
+  overlays.update(time, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const rig = objects.find((node) => node.userData.kind === 'arc-relay-core');
+  const sphere = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-sphere',
+  ) as THREE.Mesh | undefined;
+  const glow = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-glow',
+  ) as THREE.Sprite | undefined;
+
+  assert.ok(rig);
+  assert.ok(sphere);
+  assert.ok(glow);
+  assert.equal(sphere.geometry.type, 'SphereGeometry');
+  assert.equal(
+    (sphere.material as THREE.Material).type,
+    'MeshLambertMaterial',
+    'the energy Core has no glossy specular material',
+  );
+  assert.equal(sphere.castShadow, false, 'the luminous Core has no hard cast shadow');
+  assert.equal(rig.position.x, carrier.x + 0.5);
+  assert.equal(rig.position.z, carrier.y + 0.5);
+  assert.equal(sphere.position.x, 0, 'no neighbouring-tile orbit');
+  assert.equal(sphere.position.z, 0, 'stays centred over the carrier');
+  assert.ok(sphere.position.y > 0.85, `levitates above the hull (${sphere.position.y})`);
+  assert.equal(glow.position.y, sphere.position.y);
+  assert.ok(glow.scale.x > 0.6, 'soft glow extends beyond the sphere');
+
+  overlays.dispose();
+});
+
+test('a born Core is the same glowing sphere hovering over its authoritative well', () => {
+  const replay = arcRelayReplay();
+  const core = createPresenter(replay).at(0).arcRelay?.cores[0];
+  assert.ok(core);
+  assert.equal(core.disposition, 'loose');
+
+  const overlays = buildOverlays(replay);
+  overlays.update(0, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const rig = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core',
+  );
+  const sphere = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-sphere',
+  );
+
+  assert.ok(rig);
+  assert.ok(sphere);
+  assert.equal(rig.position.x, core.position.x + 0.5);
+  assert.equal(rig.position.z, core.position.y + 0.5);
+  assert.ok(sphere.position.y > 0.3, 'the loose sphere hovers visibly above the well');
+
+  overlays.dispose();
 });
 
 test('Arc Relay birth, steal, bank, and Pulse facts drive their diegetic audio cues', () => {

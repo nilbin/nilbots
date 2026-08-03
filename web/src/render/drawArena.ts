@@ -62,6 +62,11 @@ import {
   logicalArenaHeight,
   WORLD_VERTICAL_SCALE,
 } from './arenaProjection';
+import {
+  teamVisionAt,
+  teamVisionSeesActor,
+  teamVisionSeesProjectile,
+} from './teamVision';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -218,6 +223,11 @@ export function drawArena(
       ? null
       : frontlineCaptureVisual(tickPresentation);
   const poses = posesAt(replay, time);
+  const previousPoseByActor = new Map(
+    tick > 0
+      ? posesAt(replay, tick - 0.001).map((pose) => [pose.actorKey, pose] as const)
+      : [],
+  );
   // Lives that materialized at the start of this tick, by the life they belong to, so the
   // body pass can condense the chassis and the effect pass can ring it without either
   // asking the model the same question twice.
@@ -251,65 +261,35 @@ export function drawArena(
       : adjustAccentForLuminance(accent, background);
   };
 
-  // FOV mode: fog what the selected bot can't see, and ghost enemies it has no
-  // sight of — the panel view answers "what did this bot know?", so an unseen
-  // opponent rendered at full strength would be lying.
-  const fogSource =
-    showVisibility && selectedUnitKey !== null
+  // Selection chooses a team perspective. Unioning the team's recorded observations
+  // keeps fog replay-honest while matching the player's shared-vision expectation.
+  const teamVision = teamVisionAt(
+    replay,
+    currentTick,
+    selectedUnitKey,
+    showVisibility,
+  );
+  // Hearing remains attached to the selected observer: unlike tile visibility, a bearing
+  // is relative to one body and cannot be merged into a single team-space arc.
+  const hearingSource =
+    teamVision !== null && selectedUnitKey !== null
       ? currentTick?.actorTurns.find(
           (turn) => turn.actor.unitKey === selectedUnitKey,
         )
       : undefined;
   const hiddenByFog = (pose: BotPose): boolean =>
-    fogSource !== undefined &&
-    pose.unitKey !== selectedUnitKey &&
-    !fogSource.observation.allies.some(
-      (ally) =>
-        ally.actor.kind === 'exact' &&
-        ally.actor.identity.actorKey === pose.actorKey,
-    ) &&
-    !fogSource.observation.enemies.some((enemy) =>
-      enemy.actor.kind === 'exact'
-        ? enemy.actor.identity.actorKey === pose.actorKey
-        : enemy.actor.teamId === pose.teamId &&
-          enemy.actor.unitId === pose.unitId,
-    );
+    !teamVisionSeesActor(teamVision, pose);
 
-  // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
+  // FOV mode stays honest: bolts the selected team can't see aren't drawn at all
   // (an unseen bolt is precisely the threat it doesn't know about). Derived here rather
   // than inside the projectile pass because a volley's arrow has to obey exactly the same
   // rule its bolts do, and two copies of this would eventually stop agreeing.
-  const seenTiles =
-    fogSource !== undefined
-      ? new Set(
-          fogSource.observation.visibleTiles.map(
-            ({ position }) => `${position.x},${position.y}`,
-          ),
-        )
-      : null;
-  const seenProjectileIds =
-    fogSource?.observation.visibleProjectiles === null ||
-    fogSource === undefined
-      ? null
-      : new Set(
-          fogSource.aliases.projectiles
-            .filter((alias) =>
-              fogSource.observation.visibleProjectiles!.some(
-                (projectile) =>
-                  projectile.projectileHandle === alias.projectileHandle,
-              ),
-            )
-            .map((alias) => alias.projectileId),
-        );
   const boltHidden = (
     projectileId: string,
     x: number,
     y: number,
   ): boolean =>
-    seenProjectileIds !== null
-      ? !seenProjectileIds.has(projectileId)
-      : seenTiles !== null &&
-        !seenTiles.has(`${Math.round(x)},${Math.round(y)}`);
+    !teamVisionSeesProjectile(teamVision, projectileId, x, y);
 
   // A knock on impact, decaying across the tick it happened in.
   //
@@ -348,8 +328,7 @@ export function drawArena(
   };
   drawArcRelayGround(arcRelayVisual);
   drawSpill();
-  if (showVisibility && selectedUnitKey !== null)
-    drawFog(selectedUnitKey);
+  if (teamVision !== null) drawFog(teamVision.visibleTiles);
   drawProjectiles();
   drawVolleys();
   drawHeardSounds();
@@ -836,20 +815,10 @@ export function drawArena(
     drawLightSpill(ctx, sources, { px, py, tile });
   }
 
-  function drawFog(unitKey: ReplayStableUnitKey): void {
-    // Show the selected bot's field of view by FOGGING what it can NOT see.
+  function drawFog(visible: ReadonlySet<string>): void {
+    // Show the selected team's field of view by FOGGING what it can NOT see.
     // Vision range 6 spans most of a small map, so tinting the visible tiles
     // read as "everything highlighted"; darkening the blind area reads at any size.
-    const turn = currentTick?.actorTurns.find(
-      (candidate) => candidate.actor.unitKey === unitKey,
-    );
-    if (!turn) return;
-    const visible = new Set(
-      turn.observation.visibleTiles.map(
-        ({ position }) => `${position.x},${position.y}`,
-      ),
-    );
-
     // Walls overhang their tile by a gutter, so a visible wall is cleared at its drawn
     // extent — otherwise the tile grid cuts the sprite in half.
     const { contentPixels, gutterPixels } = theme.walls.atlas;
@@ -1069,8 +1038,8 @@ export function drawArena(
         });
     for (const plan of programmed.values()) {
       if (
-        fogSource !== undefined &&
-        selectedUnitKey !== plan.ownerActor.unitKey
+        teamVision !== null &&
+        teamVision.teamId !== plan.ownerActor.teamId
       )
         continue;
       const sample = plan.path[Math.floor(plan.path.length / 2)];
@@ -1397,11 +1366,11 @@ export function drawArena(
     // Redacted hearing, made visible: the selected bot's heard sounds render as
     // neutral arcs on the bearing octant, at a radius keyed to the distance band.
     // Deliberately identity-free and coordinate-free — exactly what the bot knows.
-    if (fogSource === undefined) return;
-    const sounds = fogSource.observation.heardSounds;
+    if (hearingSource === undefined) return;
+    const sounds = hearingSource.observation.heardSounds;
     if (!sounds || sounds.length === 0) return;
     const me = poses.find(
-      (pose) => pose.actorKey === fogSource.actorKey,
+      (pose) => pose.actorKey === hearingSource.actorKey,
     );
     if (!me) return;
     const cx = px(me.x) + tile / 2;
@@ -1740,7 +1709,7 @@ export function drawArena(
     // A moving body keeps a wake through the whole authoritative A-to-B
     // segment. Fading it to zero at every integer tick made consecutive
     // movement look like a sequence of chess-piece starts and stops.
-    const life = 0.58 + Math.sin(fraction * Math.PI) * 0.42;
+    const life = 1;
     const backX = cx - nx * tile * 0.36;
     const backY = cy - ny * tile * 0.36;
     ctx.save();
@@ -1827,9 +1796,7 @@ export function drawArena(
         : 0;
     const moving = Math.hypot(pose.motionX, pose.motionY) > 0;
     const travelLift = moving
-      ? tile *
-        (look.locomotionCue === 'low-hover' ? 0.026 : 0.009) *
-        (0.72 + Math.sin(fraction * Math.PI) * 0.28)
+      ? tile * (look.locomotionCue === 'low-hover' ? 0.026 : 0.009)
       : 0;
     const cy = py(pose.y) + tile / 2 + hover - travelLift;
     const radius = tile * 0.38;
@@ -1969,6 +1936,28 @@ export function drawArena(
       ctx.setLineDash([]);
     }
 
+    // Keep the authoritative root, shadow, and selection pad exactly on their sampled
+    // path, while the pictured chassis carries a few pixels of already-revealed momentum.
+    // This rounds the perceived corner and lets a stop settle mechanically without moving
+    // the occupied tile or reading the next action. The WebGL inner hull uses the same
+    // 0.055-tile ceiling.
+    if (!destroyed && form?.canMove !== false) {
+      const previousPose = previousPoseByActor.get(pose.actorKey);
+      const inertia = motionEase(fraction);
+      const priorX = previousPose?.motionX ?? 0;
+      const priorY = previousPose?.motionY ?? 0;
+      const inertialX = priorX + (pose.motionX - priorX) * inertia;
+      const inertialY = priorY + (pose.motionY - priorY) * inertia;
+      const worldLagX = -inertialX * tile * 0.055;
+      const worldLagY = -inertialY * tile * 0.055;
+      const cos = Math.cos(pose.angle);
+      const sin = Math.sin(pose.angle);
+      ctx.translate(
+        cos * worldLagX + sin * worldLagY,
+        -sin * worldLagX + cos * worldLagY,
+      );
+    }
+
     ctx.translate(-recoil, 0);
     const image = teamAccentedBotImage(look, accent);
     if (image?.complete && image.naturalWidth > 0) {
@@ -1998,7 +1987,7 @@ export function drawArena(
       const sideY = exhaustX;
       const sourceX = exhaustX * radius * 0.54;
       const sourceY = exhaustY * radius * 0.54;
-      const drive = 0.68 + Math.sin(fraction * Math.PI) * 0.32;
+      const drive = 1;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.strokeStyle = hexWithAlpha(accent, 0.74 * drive);
@@ -2614,6 +2603,10 @@ function nameHash(name: string): number {
 function easeOut(t: number): number {
   const clamped = Math.max(0, Math.min(t, 1));
   return 1 - (1 - clamped) ** 3;
+}
+
+function motionEase(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 }
 
 function hexWithAlpha(hex: string, alpha: number): string {

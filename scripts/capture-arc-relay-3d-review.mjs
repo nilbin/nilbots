@@ -6,6 +6,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
+import { withCanonicalTeamVision } from './arc-relay-team-vision.mjs';
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const requireFromWeb = createRequire(path.join(repository, 'web', 'package.json'));
@@ -26,7 +27,9 @@ for (const name of required)
   if (!options[name]) throw new Error(`Missing --${name}.`);
 
 const viewport = { width: 1440, height: 900 };
-const reviewDirectory = path.join(repository, 'art', 'reviews', 'arc-relay-3d');
+const reviewDirectory = options['output-directory']
+  ? absolute(options['output-directory'])
+  : path.join(repository, 'art', 'reviews', 'arc-relay-3d');
 const stillDirectory = path.join(reviewDirectory, 'stills');
 const reviewDist = path.join(repository, 'web', 'dist-review');
 const reviewUrl = options.url ?? 'http://127.0.0.1:8931/web/dist-review/?standalone&audio=off';
@@ -191,6 +194,14 @@ async function capture(scenarioName, renderer) {
   await page
     .getByRole('button', { name: 'Pause' })
     .evaluate((button) => button.click());
+  // A cold sixteen-model scene can spend long enough between React's restart and pause
+  // commits to cross tick 001. The transport is paused now, so step back to the requested
+  // authoritative opening frame instead of accepting a shifted comparison or racing the
+  // next animation frame again.
+  for (let attempts = 0; attempts < 3 && (await readTick(page)) > 0; attempts += 1)
+    await page
+      .getByRole('button', { name: 'Step back one tick' })
+      .evaluate((button) => button.click());
   if ((await readTick(page)) !== 0)
     throw new Error(`${scenarioName} ${renderer} restart escaped tick 000 before pause.`);
   await page.getByRole('button', { name: 'full screen' }).click();
@@ -269,13 +280,37 @@ function loadScenario(name) {
     broadcast.worlds?.length !== replay.ticks.length
   )
     throw new Error(`${name} inputs do not preserve one canonical Arc Relay replay.`);
-  return { canonicalGzip, broadcastGzip, broadcastJson, broadcast, replay, run };
+  const runtimeBroadcast = withCanonicalTeamVision(broadcast, replay);
+  const runtimeBroadcastJson = runtimeBroadcast === broadcast
+    ? broadcastJson
+    : JSON.stringify(runtimeBroadcast);
+  return {
+    canonicalGzip,
+    broadcastGzip,
+    broadcastJson: runtimeBroadcastJson,
+    broadcast,
+    replay,
+    run,
+  };
 }
 
 function installTransport(scenario) {
   mkdirSync(reviewDist, { recursive: true });
   writeFileSync(path.join(reviewDist, 'replay.json'), scenario.broadcastJson);
   writeFileSync(path.join(reviewDist, 'replay.json.gz'), scenario.broadcastGzip);
+  writeFileSync(
+    path.join(reviewDist, 'replays.json'),
+    `${JSON.stringify([
+      {
+        id: 'arc-relay-3d-capture',
+        url: 'replay.json',
+        map: scenario.run.MapId,
+        bots: scenario.run.Participants.map((participant) => participant.Name),
+        ticks: scenario.replay.ticks.length,
+        reason: null,
+      },
+    ], null, 2)}\n`,
+  );
 }
 
 function openingPositions(replay) {
@@ -327,16 +362,14 @@ function project(renderer, position, replay) {
 }
 
 async function crop(input, point) {
-  // A little more than two tiles preserves the authored silhouette and the real gameplay
-  // scale. Adjacent machines may edge into frame; that context is intentional evidence
-  // that these are arena captures rather than isolated showroom renders.
-  const width = 104;
-  const height = 104;
+  // Keep the arena pixels at 1:1 scale. The wider window preserves neighboring tiles
+  // and avoids making a gameplay-scale body look like a showroom close-up.
+  const width = 220;
+  const height = 220;
   const left = Math.max(0, Math.min(viewport.width - width, Math.round(point.x - width / 2)));
   const top = Math.max(0, Math.min(viewport.height - height, Math.round(point.y - height / 2)));
   return sharp(input)
     .extract({ left, top, width, height })
-    .resize(220, 220)
     .png()
     .toBuffer();
 }

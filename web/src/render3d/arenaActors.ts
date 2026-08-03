@@ -30,6 +30,7 @@ import {
   directionAngle,
   headingAngle,
   posesAt,
+  type BotPose,
 } from '../render/interpolate';
 import { volleyLanes } from '../render/volley';
 import { buildVolleyArrows } from './volleyArrows';
@@ -48,6 +49,11 @@ import {
   type ArcSignatureBodyState,
 } from './arcModelMotion';
 import { CAMERA_PITCH } from './arenaScene';
+import {
+  teamVisionAt,
+  teamVisionSeesActor,
+  teamVisionSeesProjectile,
+} from '../render/teamVision';
 
 /**
  * The things that move.
@@ -1476,29 +1482,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // here, for the same reason the overlays take theirs from it: two
     // renderers deciding what "channelling" means is two answers.
     const presentation = presenter.at(tick);
-    // What the followed bot could see this tick. The flat renderer ghosts an enemy it has
-    // no line on rather than removing it, because the panel answers "what did this bot
-    // know?" and an unseen opponent drawn at full strength would be lying.
-    const fogSource =
-      showVisibility && selectedUnitKey !== null
-        ? currentTick?.actorTurns.find(
-            (turn) => turn.actor.unitKey === selectedUnitKey,
-          )
-        : undefined;
+    // Selection follows the team's collective recorded vision, shared with the flat
+    // renderer. This reveals no omniscient state and avoids making the two views disagree.
+    const teamVision = teamVisionAt(
+      replay,
+      currentTick,
+      selectedUnitKey,
+      showVisibility,
+    );
     const hidden = (pose: ReturnType<typeof posesAt>[number]) =>
-      fogSource !== undefined &&
-      pose.unitKey !== selectedUnitKey &&
-      !fogSource.observation.allies.some(
-        (ally) =>
-          ally.actor.kind === 'exact' &&
-          ally.actor.identity.actorKey === pose.actorKey,
-      ) &&
-      !fogSource.observation.enemies.some((enemy) =>
-        enemy.actor.kind === 'exact'
-          ? enemy.actor.identity.actorKey === pose.actorKey
-          : enemy.actor.teamId === pose.teamId &&
-            enemy.actor.unitId === pose.unitId,
-      );
+      !teamVisionSeesActor(teamVision, pose);
 
     const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
@@ -1523,10 +1516,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // would give a paused bot a drift that depended on how the playhead got there.
     const opening = currentTick?.before ?? replay.initialWorld;
     const closing = currentTick?.after ?? opening;
-    // The tiles either side of this tick's, so movement can be splined through them.
+    // The tiles either side of this tick's, used for revealed turn drift and mechanical
+    // start/stop response. Position interpolation itself is shared by both renderers in
+    // `posesAt`, so the WebGL body and every overlay follow one authoritative glide.
     const previous = replay.ticks[tick - 1]?.before ?? opening;
     const earlier = replay.ticks[tick - 2]?.before ?? previous;
-    const next = replay.ticks[tick + 1]?.after ?? closing;
+    const previousPoseByActor = new Map(
+      tick > 0
+        ? posesAt(replay, tick - 0.001).map((pose) => [pose.actorKey, pose] as const)
+        : [],
+    );
+    const tickPoseByActor = new Map(
+      posesAt(replay, tick).map((pose) => [pose.actorKey, pose] as const),
+    );
     const turnedIn = [
       [opening, closing],
       [previous, opening],
@@ -1535,56 +1537,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // Beams and impacts land in the second half of the tick, after movement has settled —
     // the same window the flat renderer uses, so a hit lands at the same instant in both.
     const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
-
-    /**
-     * Where a bot is, splined through the tiles either side of the one it is crossing.
-     *
-     * `posesAt` eases each tick independently, which is right for the flat renderer and
-     * wrong here: a bot crossing four tiles in a row accelerates and comes to a **complete
-     * stop** at every tile boundary, four times, which reads as stepping rather than
-     * driving. A Catmull-Rom through the previous and next tiles gives continuous velocity
-     * across a run of moves, and — because a stationary bot's neighbouring tiles are the
-     * same tile — still eases in and out of a stop for free, with no special case.
-     *
-     * It also cuts corners very slightly, which on a grid that only turns 90° is exactly
-     * what a machine carrying speed through a corner does.
-     *
-     * Position only. Facing still comes from `posesAt`, so both renderers swing a bot
-     * through the same arc, and the tile a bot is *on* is never in question — this only
-     * changes the path taken between two tiles the replay already recorded.
-     */
-    const glideAt = (
-      actorKey: ReplayActorLifeKey,
-      fallback: { readonly x: number; readonly y: number },
-    ) => {
-      const at = (state: typeof opening) =>
-        state?.actors.find((actor) => actor.actorKey === actorKey);
-      const p1 = at(opening);
-      const p2 = at(closing);
-      if (!p1) return fallback;
-      // A destroyed life is absent from the authoritative closing state, but
-      // its collapse belongs where that life stood. It must not fall back to
-      // the map origin or inherit a later life occupying the stable slot.
-      if (!p2) return p1.position;
-      const p0 = at(previous) ?? p1;
-      const p3 = at(next) ?? p2;
-      return {
-        x: catmullRom(
-          p0.position.x,
-          p1.position.x,
-          p2.position.x,
-          p3.position.x,
-          fraction,
-        ),
-        y: catmullRom(
-          p0.position.y,
-          p1.position.y,
-          p2.position.y,
-          p3.position.y,
-          fraction,
-        ),
-      };
-    };
 
     // Stable slots can be absent while locked, rebuilding, ready, or queued for
     // fabrication. Hide every reusable rig first so the prior frame cannot leave a
@@ -1737,7 +1689,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // It only turns once it is out; something spinning while it unfolds reads as falling
       // over rather than deploying.
       bot.turret.rotation.y = raising >= 1 && emplacing ? time * TURRET_SPIN : 0;
-      const glide = glideAt(pose.actorKey, pose);
+      const glide = pose;
       bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
       bot.highlight(
         pose.unitKey === selectedUnitKey && pose.status === 'active',
@@ -1949,8 +1901,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
               directionAngle(closingActor.facing),
             )
           : 0;
-      const previousSpeed = actorStepSpeed(previous, opening, pose.actorKey);
-      const nextSpeed = actorStepSpeed(closing, next, pose.actorKey);
+      const previousPose = previousPoseByActor.get(pose.actorKey);
+      const previousMotion = previousPose
+        ? { x: previousPose.motionX, y: previousPose.motionY }
+        : actorStep(previous, opening, pose.actorKey);
+      const previousSpeed = Math.hypot(previousMotion.x, previousMotion.y);
       const signatureActive =
         arcState?.visibleSignatures.some(
           (signature) => signature.ownerActor.actorKey === pose.actorKey,
@@ -1965,6 +1920,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           ? 'cooldown'
           : 'ready';
       const travel = signedTravel.get(pose.actorKey);
+      const tickPose = tickPoseByActor.get(pose.actorKey);
       const motionFrame = bot.modelMotion?.update(
         {
           time,
@@ -1972,12 +1928,13 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           facingAngle: pose.angle,
           motionX: pose.motionX,
           motionY: pose.motionY,
+          previousMotionX: previousMotion.x,
+          previousMotionY: previousMotion.y,
           previousSpeed,
-          nextSpeed,
           turnDelta,
           signedTravel:
             (travel?.[tick] ?? 0) +
-            signedActorStep(opening, closing, pose.actorKey) * fraction,
+            (tickPose ? signedPoseDisplacement(tickPose, pose) : 0),
           braced,
           signatureState,
         },
@@ -1996,9 +1953,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           (firing ? Math.sin(shotProgress * Math.PI) * 0.045 : 0),
       );
 
-      bot.body.position.x = -kick;
+      bot.body.position.x = -kick + (motionFrame?.hullLagForward ?? 0);
       bot.body.position.z =
-        drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
+        drift * DRIFT_SLIDE +
+        idle * sway * IDLE_SWAY +
+        (motionFrame?.hullLagLateral ?? 0);
       bot.body.position.y =
         TURRET_LIFT * bot.size * tipping +
         (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE);
@@ -2024,38 +1983,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const jumped = Math.abs(time - lastTime) > 1.5;
     lastTime = time;
 
-    // In FOV mode a bolt the followed bot cannot see is not drawn at all, rather than
+    // In FOV mode a bolt the followed team cannot see is not drawn at all, rather than
     // ghosted the way a bot is. An unseen bolt is precisely the threat it does not know
     // about, and a faint one on screen would still answer the question.
-    const seenTiles =
-      fogSource !== undefined
-        ? new Set(
-            fogSource.observation.visibleTiles.map(
-              ({ position }) => `${position.x},${position.y}`,
-            ),
-          )
-        : null;
-    const seenProjectileIds =
-      fogSource?.observation.visibleProjectiles === null ||
-      fogSource === undefined
-        ? null
-        : new Set(
-            fogSource.aliases.projectiles
-              .filter((alias) =>
-                fogSource.observation.visibleProjectiles!.some(
-                  (projectile) =>
-                    projectile.projectileHandle ===
-                    alias.projectileHandle,
-                ),
-              )
-              .map((alias) => alias.projectileId),
-          );
-
     const boltHidden = (id: string, x: number, y: number) =>
-      seenProjectileIds !== null
-        ? !seenProjectileIds.has(id)
-        : seenTiles !== null &&
-          !seenTiles.has(`${Math.round(x)},${Math.round(y)}`);
+      !teamVisionSeesProjectile(teamVision, id, x, y);
 
     // A volley's members are drawn as its arrow and nowhere else — three bolts sitting
     // inside the glyph would undo the one thing the glyph is for.
@@ -2168,19 +2100,19 @@ function phaseForIdentity(identity: string): number {
   return ((hash >>> 0) / 0xffff_ffff) * Math.PI * 2;
 }
 
-function actorStepSpeed(
+function actorStep(
   fromState: ReplayWorldSnapshot | null | undefined,
   toState: ReplayWorldSnapshot | null | undefined,
   actorKey: ReplayActorLifeKey,
-): number {
+): { x: number; y: number } {
   const from = fromState?.actors.find((actor) => actor.actorKey === actorKey);
   const to = toState?.actors.find((actor) => actor.actorKey === actorKey);
   return from && to
-    ? Math.hypot(
-        to.position.x - from.position.x,
-        to.position.y - from.position.y,
-      )
-    : 0;
+    ? {
+        x: to.position.x - from.position.x,
+        y: to.position.y - from.position.y,
+      }
+    : { x: 0, y: 0 };
 }
 
 /**
@@ -2188,43 +2120,51 @@ function actorStepSpeed(
  * Magnitude is always the actual tile displacement; facing chooses direction only, so a
  * reverse or lateral move cannot accidentally inherit the visual speed of a forward move.
  */
-function signedActorStep(
-  fromState: ReplayWorldSnapshot | null | undefined,
-  toState: ReplayWorldSnapshot | null | undefined,
-  actorKey: ReplayActorLifeKey,
+function signedPoseDisplacement(
+  from: Pick<BotPose, 'x' | 'y' | 'angle'>,
+  to: Pick<BotPose, 'x' | 'y'>,
 ): number {
-  const from = fromState?.actors.find((actor) => actor.actorKey === actorKey);
-  const to = toState?.actors.find((actor) => actor.actorKey === actorKey);
-  if (!from || !to) return 0;
-  const dx = to.position.x - from.position.x;
-  const dy = to.position.y - from.position.y;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
   if (distance === 0) return 0;
-  const angle = directionAngle(from.facing);
-  const forward = dx * Math.cos(angle) + dy * Math.sin(angle);
-  const lateral = -dx * Math.sin(angle) + dy * Math.cos(angle);
+  const forward = dx * Math.cos(from.angle) + dy * Math.sin(from.angle);
+  const lateral = -dx * Math.sin(from.angle) + dy * Math.cos(from.angle);
   const signedAxis = Math.abs(forward) >= Math.abs(lateral) ? forward : lateral;
   return distance * (signedAxis < 0 ? -1 : 1);
 }
 
-function signedTravelByActor(
+export function signedTravelByActor(
   replay: ReplayModel,
 ): Map<ReplayActorLifeKey, number[]> {
   const result = new Map<ReplayActorLifeKey, number[]>();
   const running = new Map<ReplayActorLifeKey, number>();
-  for (const [tickIndex, tick] of replay.ticks.entries()) {
-    for (const actor of tick.before.actors) {
-      const distance = running.get(actor.actorKey) ?? 0;
-      let samples = result.get(actor.actorKey);
+  let prior = new Map(
+    posesAt(replay, 0).map((pose) => [pose.actorKey, pose] as const),
+  );
+  for (const pose of prior.values()) {
+    const samples = Array.from({ length: replay.ticks.length + 1 }, () => 0);
+    result.set(pose.actorKey, samples);
+    running.set(pose.actorKey, 0);
+  }
+  for (let boundary = 1; boundary <= replay.ticks.length; boundary += 1) {
+    const current = new Map(
+      posesAt(replay, boundary).map((pose) => [pose.actorKey, pose] as const),
+    );
+    for (const pose of current.values()) {
+      let samples = result.get(pose.actorKey);
       if (!samples) {
         samples = Array.from({ length: replay.ticks.length + 1 }, () => 0);
-        result.set(actor.actorKey, samples);
+        result.set(pose.actorKey, samples);
       }
-      samples[tickIndex] = distance;
-      const next = distance + signedActorStep(tick.before, tick.after, actor.actorKey);
-      samples[tickIndex + 1] = next;
-      running.set(actor.actorKey, next);
+      const distance = running.get(pose.actorKey) ?? 0;
+      const priorPose = prior.get(pose.actorKey);
+      const next =
+        distance + (priorPose ? signedPoseDisplacement(priorPose, pose) : 0);
+      samples[boundary] = next;
+      running.set(pose.actorKey, next);
     }
+    prior = current;
   }
   return result;
 }
@@ -2269,26 +2209,6 @@ function signatureCooldownsByActor(
     }
   }
   return result;
-}
-
-/**
- * Catmull-Rom through four samples, evaluated between the middle two.
- *
- * Tangents are damped to 0.4 of the standard half-difference. At the full 0.5 a bot leaving
- * a corner at speed bulges far enough outside it to clip the wall it is driving around;
- * this keeps the cut small enough to read as carrying speed rather than as a bug.
- */
-function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
-  const m1 = (p2 - p0) * 0.4;
-  const m2 = (p3 - p1) * 0.4;
-  const t2 = t * t;
-  const t3 = t2 * t;
-  return (
-    (2 * t3 - 3 * t2 + 1) * p1 +
-    (t3 - 2 * t2 + t) * m1 +
-    (-2 * t3 + 3 * t2) * p2 +
-    (t3 - t2) * m2
-  );
 }
 
 /**

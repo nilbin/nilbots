@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withCanonicalTeamVision } from './arc-relay-team-vision.mjs';
 
 const repository = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -87,8 +88,12 @@ if (command === 'prepare-sheets') {
   )
     throw new Error('Review broadcast does not preserve the canonical replay identity.');
 
+  const runtimeTransport = withCanonicalTeamVision(transport, replay);
+  const runtimeJson = runtimeTransport === transport
+    ? transportJson
+    : JSON.stringify(runtimeTransport);
   mkdirSync(dist, { recursive: true });
-  writeFileSync(path.join(dist, 'replay.json'), transportJson);
+  writeFileSync(path.join(dist, 'replay.json'), runtimeJson);
   writeFileSync(path.join(dist, 'replay.json.gz'), transportGzip);
   writeFileSync(
     path.join(dist, 'replays.json'),
@@ -115,6 +120,9 @@ if (command === 'prepare-sheets') {
       kind: transport.broadcastVersion === 1 ? 'arc-relay-broadcast-v1' : 'canonical-replay-v3',
       gzipBytes: transportGzip.length,
       gzipSha256: createHash('sha256').update(transportGzip).digest('hex'),
+      vision: transport.vision === undefined && runtimeTransport !== transport
+        ? 'canonical-replay'
+        : 'transport',
     },
     ticks: replay.ticks.length,
     viewport: { width: 1440, height: 900 },

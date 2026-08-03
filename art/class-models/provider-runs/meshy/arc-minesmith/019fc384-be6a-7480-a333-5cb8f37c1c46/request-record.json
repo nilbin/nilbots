@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-minesmith",
+  "taskId": "019fc384-be6a-7480-a333-5cb8f37c1c46",
+  "submittedAt": "2026-08-02T17:28:03.700Z",
+  "balanceBefore": 460,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-minesmith/sprite.png",
+    "bytes": 48293,
+    "sha256": "60f70b6220ad2f43d221ab284c22a681756b93698bddcd6ce25d4f8eeee9eff8",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

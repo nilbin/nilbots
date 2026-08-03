@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-palisade",
+  "taskId": "019fc38f-b5a7-7fce-8910-e708b93ecaac",
+  "submittedAt": "2026-08-02T17:40:02.345Z",
+  "balanceBefore": 415,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-palisade/sprite.png",
+    "bytes": 55548,
+    "sha256": "24be8a685296db3b1a5b1aa3645c63bb64ef5c183f658e39f432b9bf8cf37dcf",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

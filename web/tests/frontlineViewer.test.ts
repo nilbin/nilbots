@@ -318,8 +318,118 @@ test('interpolated poses expose replay-owned motion independently of facing', ()
 
   assert.equal(pose.motionX, after.position.x - before.position.x);
   assert.equal(pose.motionY, after.position.y - before.position.y);
-  assert.equal(pose.x, (before.position.x + after.position.x) / 2);
-  assert.equal(pose.y, (before.position.y + after.position.y) / 2);
+  assert.ok(
+    pose.x >= Math.min(before.position.x, after.position.x) &&
+      pose.x <= Math.max(before.position.x, after.position.x),
+    'smoothed x stays inside the authoritative segment',
+  );
+  assert.ok(
+    pose.y >= Math.min(before.position.y, after.position.y) &&
+      pose.y <= Math.max(before.position.y, after.position.y),
+    'smoothed y stays inside the authoritative segment',
+  );
+});
+
+test('movement eases out of rest, glides through a run, and never anticipates a later step', () => {
+  const cadence = structuredClone(replay) as ReplayModel;
+  const actorKey = cadence.ticks[0]!.before.actors[0]!.actorKey;
+  const place = (tick: number, side: 'before' | 'after', x: number) => {
+    const actor = cadence.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.position.x = x;
+    actor.position.y = 4;
+  };
+
+  // Two consecutive moves, a deliberate hold, then another move. The hold is the slow
+  // carrier cadence that must feel alive without leaking the following action early.
+  place(0, 'before', 1);
+  place(0, 'after', 2);
+  place(1, 'before', 2);
+  place(1, 'after', 3);
+  place(2, 'before', 3);
+  place(2, 'after', 3);
+  place(3, 'before', 3);
+  place(3, 'after', 4);
+
+  const x = (time: number) =>
+    posesAt(cadence, time).find((pose) => pose.actorKey === actorKey)!.x;
+  assert.equal(x(0), 1, 'starts on the authoritative tile');
+  assert.equal(x(0.5), 1.375, 'accelerates from a revealed rest');
+  assert.equal(x(1), 2, 'lands exactly on the tick boundary');
+  assert.equal(x(1.5), 2.5, 'same-direction continuation carries constant speed');
+  assert.equal(x(2), 3, 'the run lands on its recorded destination');
+  assert.equal(x(2.5), 3, 'the hold is still despite the following move');
+  assert.equal(x(3), 3, 'the next move does not begin a frame early');
+
+  const epsilon = 0.001;
+  assert.ok(
+    Math.abs((2 - x(1 - epsilon)) - (x(1 + epsilon) - 2)) < 1e-6,
+    'velocity is continuous between same-direction moves',
+  );
+});
+
+test('an already-revealed right-angle path carries speed through the tile centre', () => {
+  const corner = structuredClone(replay) as ReplayModel;
+  const actorKey = corner.ticks[0]!.before.actors[0]!.actorKey;
+  const place = (
+    tick: number,
+    side: 'before' | 'after',
+    x: number,
+    y: number,
+  ) => {
+    const actor = corner.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.position = { x, y };
+  };
+  place(0, 'before', 1, 4);
+  place(0, 'after', 2, 4);
+  place(1, 'before', 2, 4);
+  place(1, 'after', 2, 5);
+
+  const pose = (time: number) =>
+    posesAt(corner, time).find((candidate) => candidate.actorKey === actorKey)!;
+  const epsilon = 0.001;
+  const before = pose(1 - epsilon);
+  const boundary = pose(1);
+  const after = pose(1 + epsilon);
+  const incoming = Math.hypot(boundary.x - before.x, boundary.y - before.y);
+  const outgoing = Math.hypot(after.x - boundary.x, after.y - boundary.y);
+
+  assert.ok(Math.abs(incoming - outgoing) < 1e-6, 'the corner has no dead frame');
+  assert.equal(before.y, 4, 'incoming pose stays on the revealed horizontal segment');
+  assert.equal(after.x, 2, 'outgoing pose stays on the revealed vertical segment');
+});
+
+test('consecutive same-direction turns keep angular velocity at the tick boundary', () => {
+  const turning = structuredClone(replay) as ReplayModel;
+  const actorKey = turning.ticks[0]!.before.actors[0]!.actorKey;
+  const face = (
+    tick: number,
+    side: 'before' | 'after',
+    facing: 'east' | 'south' | 'west',
+  ) => {
+    const actor = turning.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.facing = facing;
+  };
+  face(0, 'before', 'east');
+  face(0, 'after', 'south');
+  face(1, 'before', 'south');
+  face(1, 'after', 'west');
+
+  const angle = (time: number) =>
+    posesAt(turning, time).find((pose) => pose.actorKey === actorKey)!.angle;
+  const epsilon = 0.0001;
+  const incoming = angle(1) - angle(1 - epsilon);
+  const outgoing = angle(1 + epsilon) - angle(1);
+  assert.ok(Math.abs(incoming - outgoing) < 1e-7, 'rotation does not settle between turns');
+  assert.ok(angle(1.5) > Math.PI / 2 && angle(1.5) < Math.PI);
 });
 
 test('Frontline presentation follows stable units through fabrication and anchoring', () => {

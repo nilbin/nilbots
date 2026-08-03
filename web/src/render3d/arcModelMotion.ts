@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import type { LookModelSpec } from './lookModel';
 
-const MAX_LEAN = 0.13;
-const MAX_PITCH = 0.09;
+const MAX_LEAN = 0.1;
+const MAX_PITCH = 0.075;
 const WHEEL_RADIUS = 0.09;
+/** Maximum inner-hull follow-through, in tile-space model units. */
+const HULL_LAG = 0.055;
 
 export type ArcSignatureBodyState = 'ready' | 'cooldown' | 'active';
 
@@ -13,8 +15,11 @@ export interface ArcMotionInput {
   facingAngle: number;
   motionX: number;
   motionY: number;
+  /** Already-revealed displacement from the preceding tick. */
+  previousMotionX: number;
+  /** Already-revealed displacement from the preceding tick. */
+  previousMotionY: number;
   previousSpeed: number;
-  nextSpeed: number;
   turnDelta: number;
   signedTravel: number;
   braced: boolean;
@@ -29,6 +34,8 @@ export interface ArcMotionFrame {
   wheelRotation: number;
   wakeYaw: number;
   wakeStrength: number;
+  hullLagForward: number;
+  hullLagLateral: number;
   idleGain: number;
   emissiveGain: number;
   ventStrength: number;
@@ -53,6 +60,8 @@ export function arcMotionFrame(
       wheelRotation: 0,
       wakeYaw: 0,
       wakeStrength: 0,
+      hullLagForward: 0,
+      hullLagLateral: 0,
       idleGain: 0,
       emissiveGain: 1,
       ventStrength: 0,
@@ -60,34 +69,49 @@ export function arcMotionFrame(
 
   const cos = Math.cos(input.facingAngle);
   const sin = Math.sin(input.facingAngle);
-  const localForward = input.motionX * cos + input.motionY * sin;
-  const localLateral = -input.motionX * sin + input.motionY * cos;
-  const speed = Math.hypot(input.motionX, input.motionY);
+  // Blend from the last revealed displacement into this tick's. The chassis root still
+  // lands on the exact recorded position; only the inner hull carries a few centimetres
+  // of follow-through, which softens a slow move/hold cadence without making the occupied
+  // tile unclear or anticipating a future action.
+  const inertia = easeInOut(clamp01(input.fraction));
+  const inertialMotionX =
+    input.previousMotionX + (input.motionX - input.previousMotionX) * inertia;
+  const inertialMotionY =
+    input.previousMotionY + (input.motionY - input.previousMotionY) * inertia;
+  // The sprung body leans through the revealed momentum change; the exhaust does not.
+  // Blending inertia into the wake made a right-angle move briefly thrust along a
+  // direction the root was not actually travelling.
+  const motionX = input.motionX;
+  const motionY = input.motionY;
+  const localForward = inertialMotionX * cos + inertialMotionY * sin;
+  const localLateral = -inertialMotionX * sin + inertialMotionY * cos;
+  const speed = Math.hypot(inertialMotionX, inertialMotionY);
+  const currentLocalForward = motionX * cos + motionY * sin;
+  const currentLocalLateral = -motionX * sin + motionY * cos;
+  const currentSpeed = Math.hypot(motionX, motionY);
+  const stepSpeed = Math.hypot(input.motionX, input.motionY);
   const normal = speed > 0 ? 1 / speed : 0;
   const forward = localForward * normal;
   const lateral = localLateral * normal;
-  const movementPulse = speed > 0 ? Math.sin(Math.PI * clamp01(input.fraction)) : 0;
+  const movementGain = clamp01(speed);
   const startStop = clamp01(
-    Math.max(
-      Math.abs(speed - input.previousSpeed),
-      Math.abs(input.nextSpeed - speed),
-    ),
+    Math.abs(stepSpeed - input.previousSpeed),
   );
 
   let bank = 0;
   let pitch = 0;
   let counterSteer = 0;
   if (tuning.locomotion === 'low-hover') {
-    bank = lateral * MAX_LEAN * movementPulse;
-    pitch = -forward * MAX_PITCH * movementPulse;
+    bank = lateral * MAX_LEAN * movementGain;
+    pitch = -forward * MAX_PITCH * movementGain;
   } else if (tuning.locomotion === 'treads' || tuning.locomotion === 'wheels') {
     // The floor contact remains planted. Only the sprung body nods, so tile occupancy is
     // never blurred by a chassis lifting or sliding outside its authoritative footprint.
     pitch = -MAX_PITCH * 0.72 * startStop * Math.sin(Math.PI * clamp01(input.fraction));
-    pitch += -forward * MAX_PITCH * 0.28 * movementPulse;
+    pitch += -forward * MAX_PITCH * 0.28 * movementGain;
   } else {
-    bank = lateral * MAX_LEAN * 0.45 * movementPulse;
-    pitch = -forward * MAX_PITCH * 0.42 * movementPulse;
+    bank = lateral * MAX_LEAN * 0.45 * movementGain;
+    pitch = -forward * MAX_PITCH * 0.42 * movementGain;
     counterSteer = -input.turnDelta * 0.12 * driftEnvelope(input.fraction);
   }
 
@@ -106,7 +130,10 @@ export function arcMotionFrame(
       (1 - overshootAge);
   }
 
-  const wakeYaw = speed > 0 ? -Math.atan2(localLateral, localForward) : 0;
+  const wakeYaw =
+    currentSpeed > 0
+      ? -Math.atan2(currentLocalLateral, currentLocalForward)
+      : 0;
   const signatureGain =
     input.signatureState === 'cooldown'
       ? 0.24
@@ -122,7 +149,11 @@ export function arcMotionFrame(
     hardwareYaw,
     wheelRotation: -input.signedTravel / WHEEL_RADIUS,
     wakeYaw,
-    wakeStrength: clamp01(speed) * movementPulse,
+    wakeStrength: clamp01(currentSpeed),
+    hullLagForward:
+      -(inertialMotionX * cos + inertialMotionY * sin) * HULL_LAG,
+    hullLagLateral:
+      -(-inertialMotionX * sin + inertialMotionY * cos) * HULL_LAG,
     idleGain: (input.braced ? 0.18 : 1) * (speed > 0 ? 0.25 : 1),
     emissiveGain: signatureGain * breath,
     ventStrength:

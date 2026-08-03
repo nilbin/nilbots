@@ -17,6 +17,7 @@ export {
   ARENA_MARGIN_TILES,
   ArenaCamera,
   arenaViewport,
+  directorMinSpan,
   focusFrame,
   focusPointsAt,
   frameEscapes,
@@ -57,6 +58,7 @@ export {
 export {
   buildActors,
   installMobileModel,
+  signedTravelByActor,
 } from '../../src/render3d/arenaActors';
 export {
   buildArena,

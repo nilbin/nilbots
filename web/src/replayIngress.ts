@@ -56,8 +56,19 @@ function loadArcRelayBroadcast(
   input: Parameters<typeof expandArcRelayBroadcastV1>[0],
 ): LoadedReplay {
   const wire = expandArcRelayBroadcastV1(input);
+  const replay = normalizeReplayV3(wire);
+  if (input.vision !== undefined) {
+    for (const [tickIndex, rows] of input.vision.entries()) {
+      const tick = replay.ticks[tickIndex];
+      if (!tick) continue;
+      tick.publishedTeamVision = rows.map(([teamId, tiles]) => ({
+        teamId,
+        visibleTiles: tiles.map(([x, y]) => ({ x, y })),
+      }));
+    }
+  }
   return {
-    replay: normalizeReplayV3(wire),
+    replay,
     wire,
     replayVersion: 3,
     // A gallery v1 carries the canonical audit replay's address; hosted v2
