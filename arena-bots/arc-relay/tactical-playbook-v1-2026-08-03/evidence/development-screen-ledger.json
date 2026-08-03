@@ -1,0 +1,89 @@
+{
+  "schema": "arc-relay-tactical-playbook-development-ledger-v1",
+  "status": "in-process-discovery-only",
+  "subject": "home-siege-v2",
+  "ruleset": "arc-relay-forward-combat-01",
+  "seed": "324161",
+  "controls": [
+    "frozen-static-baseline",
+    "coordination-parity-baseline-v1"
+  ],
+  "notes": [
+    "These screens select or reject development directions; none is final cohort evidence.",
+    "The frozen static baseline remains for historical continuity. The coordination-parity control has the same shared target allocation, expected-damage budgeting, overkill prevention, attacker caps, and target-lock capability as the tactical playbook mind.",
+    "Early exploratory rows were performed before this tracked ledger existed. Their exact per-cell receipts were ephemeral, so they are disclosed as qualitative summaries rather than reconstructed precision."
+  ],
+  "attempts": [
+    {
+      "attemptId": "composition-longshot",
+      "change": "Replace part of the promoted composition with Longshot hardware.",
+      "resultSummary": "Lost all four assignment/control screens.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "close-perimeter-runner-slot",
+      "change": "Tighten the living perimeter vertically and move the runner slot closer.",
+      "resultSummary": "Mixed and worse than the retained sheet.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "line-holds-during-harvest",
+      "change": "Keep the entire five-body line group at enemy home while runner and medics harvest.",
+      "resultSummary": "Mixed and worse; the three-body collection party could not convert control reliably.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "harvest-all-three-wells",
+      "change": "Require all three Wells to be outstanding before the main harvest transition.",
+      "resultSummary": "Lost every screened cell.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "pressure-harvest-condition",
+      "change": "Enter harvest from a pressure-state condition rather than the retained causal trigger.",
+      "resultSummary": "Mixed and worse than the retained sheet.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "runner-only-shuttle",
+      "change": "Keep seven bodies camped while the runner shuttles from the Well line.",
+      "resultSummary": "Lost every screened cell; one runner could not secure the objective economy.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "assault-harvest-threshold-one",
+      "change": "Lower the assault-to-harvest outstanding-Well threshold to one.",
+      "resultSummary": "Mixed with no material improvement.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "control-first-siege-signatures",
+      "change": "Use control-first signature coordination during siege, with one deterministic controller per target and signature.",
+      "resultSummary": "Worse than damage-first coordination.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "escape-lane-coverage",
+      "change": "Cover at least two one-tick escape options instead of firing only at the current target position.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 518 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 523 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 436 }
+      ],
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "three-guard-two-sweep",
+      "playbookSourceSha256": "aac70e4d761c94d840dfd5657f207b3c53fbdc62487add4f4f382d8fef9a0e83",
+      "change": "Split the five combat bodies into a three-body enemy-home guard and a two-body sweep/escort group; runner, medics, and sweep collected while guard held.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 479 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 433 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 502 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 453 }
+      ],
+      "verdict": "rejected"
+    }
+  ]
+}
