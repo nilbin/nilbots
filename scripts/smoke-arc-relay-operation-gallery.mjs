@@ -68,6 +68,12 @@ try {
       href: node.getAttribute('href'),
       title: node.querySelector('strong')?.textContent?.trim() ?? '',
       subtitle: node.querySelector('span')?.textContent?.trim() ?? '',
+      explanations: Object.fromEntries(
+        [...node.querySelectorAll('dl > div')].map((row) => [
+          row.querySelector('dt')?.textContent?.trim() ?? '',
+          row.querySelector('dd')?.textContent?.trim() ?? '',
+        ]),
+      ),
     })),
   );
   if (links.length !== 10) throw new Error(`Expected 10 gallery cards, got ${links.length}.`);
@@ -77,6 +83,10 @@ try {
     for (const phrase of ['wins', 'prepare t', 'commit t', 'success t', 'release t', 'baseline resumed'])
       if (!link.subtitle.includes(phrase))
         throw new Error(`${link.title}: subtitle is missing '${phrase}'.`);
+    if (!link.explanations['Actual opponent']?.includes('stock mind'))
+      throw new Error(`${link.title}: actual stock-mind opponent is not explained.`);
+    if (!link.explanations['Final score']?.includes('Core deliveries'))
+      throw new Error(`${link.title}: authoritative final score is not explained.`);
   }
   const indexScreenshot = path.join(outputDirectory, 'index.png');
   await page.screenshot({ path: indexScreenshot, fullPage: true });

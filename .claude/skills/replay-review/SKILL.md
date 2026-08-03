@@ -99,8 +99,10 @@ failure.
 
 For tactical galleries, follow the explanatory card contract in the
 `replay-highlights` skill. A matchup label is not enough: the reviewer must
-know what caused the play, what the operation intends, how the opponent can
-answer it, when it gives up, and what causal evidence to watch for.
+know the actual opponent's allocation and doctrine, whether it is bespoke
+counterplay or general live opposition, what caused the play, what the
+operation intends, how the opponent can answer it, when it gives up, and what
+causal evidence to watch for.
 
 ## Diagnosing "there is no sound"
 

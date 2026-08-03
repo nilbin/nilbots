@@ -64,7 +64,11 @@ committed. It records 20/20 passing operation cells across two campaigns,
 requires both teams in every whole match to pass the v4 felt-degeneracy bars,
 and retains compact broadcast slices from the first passing campaign under
 `evidence/replays/` for the outcome-visible production review gallery. Those
-slices do not replace canonical verification.
+slices do not replace canonical verification. Each gallery card names the
+actual static stock opponent and its allocation/doctrine, distinguishes
+possible counterplay from observed behavior, and reports the terminal Core
+delivery, Pulse, charge, and reactor-integrity score separately from operation
+success.
 
 Build the eligible review gallery with:
 

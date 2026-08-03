@@ -133,6 +133,8 @@ Every tactical or Arc Relay curated card must contain:
   "id": "sample-01",
   "title": "Operation — side",
   "subtitle": "opponent, outcome, and verified phase ticks",
+  "opponent": "The actual opposing sheet or mind, its allocation, and doctrine.",
+  "score": "Final scoreline, with operation success separate from match outcome.",
   "trigger": "The causal, observable condition that arms the play.",
   "tactic": "The intended coordinated sequence and participant roles.",
   "counterplay": "Concrete legal answers available to the opponent.",
@@ -143,6 +145,13 @@ Every tactical or Arc Relay curated card must contain:
 
 Write `counterplay` from the real rules and visible tactical opportunities.
 Do not imply that the opponent took an answer unless the replay contains it.
+Write `opponent` from the actual entrant data and say when it is general live
+opposition rather than a counter authored specifically for this operation.
+Write `score` from the authoritative terminal state. For Arc Relay, report
+Core deliveries (Pulses × 3 + stored charge), Pulse count, charge, and reactor
+integrity with a stable Blue-then-Orange ordering. Say separately whether the
+operation succeeded and whether its side won. A single final score is one
+match, never a win-rate or balance claim.
 Write `watch` from authoritative replay evidence, not the intended sheet. A
 successful operation in a lost match must say both things plainly. Keep these
 fields optional only for a gallery whose sole purpose is a narrow visual or

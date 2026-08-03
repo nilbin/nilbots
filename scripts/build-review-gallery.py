@@ -48,6 +48,8 @@ progress markers and the export button:
 
     [{"id": "sample-02", "title": "vector-edge beats iron-root",
       "subtitle": "striker over bulwark, seed 960017", "win": true,
+      "opponent": "the actual opposing entrant and its doctrine",
+      "score": "final scoreline with the operation and match outcomes separated",
       "trigger": "visible carrier enters the fork",
       "tactic": "two Towlines close the return lane",
       "counterplay": "screen the carrier or change route before commitment",
@@ -107,6 +109,8 @@ speed and give two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy
 to follow &mdash; plus any notes."""
 
 CARD_EXPLANATION_FIELDS = (
+    ("opponent", "Actual opponent"),
+    ("score", "Final score"),
     ("trigger", "Trigger"),
     ("tactic", "Intended tactic"),
     ("counterplay", "Counterplay"),
