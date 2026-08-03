@@ -1,0 +1,505 @@
+{
+  "schema": "arc-relay-tactical-playbook-v1",
+  "playbookId": "home-siege-v2",
+  "auditStatus": {
+    "provisionalEvaluationOnly": true,
+    "playerFacingProductSchema": false
+  },
+  "composition": [
+    "relay", "kestrel", "patchbay", "patchbay",
+    "sunder", "sunder", "repulsor", "repulsor"
+  ],
+  "layout": {
+    "path": "../layouts/counterflow-home-siege.json",
+    "sha256": "cdf14cde554f744487935119235d86e4067ab6c19216b28c72da6b9d11f0a273"
+  },
+  "perspective": "team-relative",
+  "memory": {
+    "enemyUnavailableTicks": 21,
+    "lastSeenEnemyTicks": 30,
+    "securedCoreTicks": 40,
+    "objectiveProgressTicks": 90,
+    "formationStableTicks": 3
+  },
+  "arbitration": {
+    "mode": "first-legal",
+    "channels": [
+      "custody-emergency", "self-preservation", "repair", "signature",
+      "focus-fire", "movement", "facing", "hold"
+    ]
+  },
+  "roles": [
+    {
+      "roleId": "runner",
+      "candidateClasses": ["relay", "kestrel"],
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
+      "carrierPreference": "prefer",
+      "deathPolicy": "promote-best",
+      "respawnPolicy": "replace",
+      "overflowRoleId": "line"
+    },
+    {
+      "roleId": "medic",
+      "candidateClasses": ["patchbay"],
+      "minimum": 2,
+      "preferred": 2,
+      "maximum": 2,
+      "carrierPreference": "forbid",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "line"
+    },
+    {
+      "roleId": "line",
+      "candidateClasses": ["sunder", "repulsor", "kestrel", "relay"],
+      "minimum": 3,
+      "preferred": 5,
+      "maximum": 5,
+      "carrierPreference": "forbid",
+      "deathPolicy": "rebalance",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": ""
+    }
+  ],
+  "groups": [
+    {
+      "groupId": "runner-group",
+      "roleIds": ["runner"],
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
+      "membership": {
+        "persistence": "stable-slot",
+        "casualty": "promote-role",
+        "preemption": "phase-boundary",
+        "overflow": "declared-role"
+      },
+      "localStateMachine": {
+        "initialState": "ready",
+        "states": [
+          { "stateId": "ready", "minimumTicks": 0, "transitions": [] }
+        ]
+      }
+    },
+    {
+      "groupId": "medic-group",
+      "roleIds": ["medic"],
+      "minimum": 1,
+      "preferred": 2,
+      "maximum": 2,
+      "membership": {
+        "persistence": "stable-slot",
+        "casualty": "hold-vacancy",
+        "preemption": "never",
+        "overflow": "unassigned"
+      },
+      "localStateMachine": {
+        "initialState": "ready",
+        "states": [
+          { "stateId": "ready", "minimumTicks": 0, "transitions": [] }
+        ]
+      }
+    },
+    {
+      "groupId": "line-group",
+      "roleIds": ["line"],
+      "minimum": 3,
+      "preferred": 5,
+      "maximum": 5,
+      "membership": {
+        "persistence": "stable-slot",
+        "casualty": "rebalance",
+        "preemption": "higher-priority",
+        "overflow": "lowest-count"
+      },
+      "localStateMachine": {
+        "initialState": "coherent",
+        "states": [
+          {
+            "stateId": "coherent",
+            "minimumTicks": 3,
+            "transitions": [
+              {
+                "priority": 10,
+                "to": "recovering",
+                "cause": "failure",
+                "stableTicks": 3,
+                "when": [
+                  {
+                    "all": [
+                      { "fact": "group-cohesion", "operator": "at-most", "value": 60, "subject": "line-group", "zone": "", "freshnessTicks": 0 }
+                    ],
+                    "any": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "stateId": "recovering",
+            "minimumTicks": 3,
+            "transitions": [
+              {
+                "priority": 10,
+                "to": "coherent",
+                "cause": "recovery",
+                "stableTicks": 3,
+                "when": [
+                  {
+                    "all": [
+                      { "fact": "group-cohesion", "operator": "at-least", "value": 80, "subject": "line-group", "zone": "", "freshnessTicks": 0 }
+                    ],
+                    "any": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "formations": [
+    {
+      "formationId": "rush-column",
+      "shape": "column",
+      "orientation": "route",
+      "spacing": { "metric": "chebyshev", "minimum": 1, "preferred": 1, "maximum": 3 },
+      "placements": [
+        { "roleId": "line", "sector": "front", "order": 0, "offset": [0, 0] },
+        { "roleId": "line", "sector": "front", "order": 1, "offset": [-1, -1] },
+        { "roleId": "line", "sector": "front", "order": 2, "offset": [-1, 1] },
+        { "roleId": "line", "sector": "centre", "order": 3, "offset": [-2, -1] },
+        { "roleId": "line", "sector": "centre", "order": 4, "offset": [-2, 1] },
+        { "roleId": "medic", "sector": "rear", "order": 5, "offset": [-3, -1] },
+        { "roleId": "medic", "sector": "rear", "order": 6, "offset": [-3, 1] },
+        { "roleId": "runner", "sector": "rear", "order": 7, "offset": [-4, 0] }
+      ],
+      "cohesion": { "arrivalRatioPercent": 75, "breakRatioPercent": 50, "breakTicks": 3, "reformTicks": 4, "pace": "slowest" },
+      "reflow": { "blockedSlot": "nearest-legal", "vacancy": "compress", "searchRadius": 3, "medicSeparation": 2 }
+    },
+    {
+      "formationId": "living-ring",
+      "shape": "ring",
+      "orientation": "enemy-reactor",
+      "spacing": { "metric": "chebyshev", "minimum": 1, "preferred": 1, "maximum": 3 },
+      "placements": [
+        { "roleId": "line", "sector": "front", "order": 0, "offset": [0, -3] },
+        { "roleId": "line", "sector": "front", "order": 1, "offset": [0, -2] },
+        { "roleId": "line", "sector": "right", "order": 2, "offset": [0, 2] },
+        { "roleId": "line", "sector": "right", "order": 3, "offset": [0, 3] },
+        { "roleId": "line", "sector": "centre", "order": 4, "offset": [-1, 0] },
+        { "roleId": "medic", "sector": "left", "order": 5, "offset": [-1, -2] },
+        { "roleId": "medic", "sector": "right", "order": 6, "offset": [-1, 2] },
+        { "roleId": "runner", "sector": "rear", "order": 7, "offset": [-2, 0] }
+      ],
+      "cohesion": { "arrivalRatioPercent": 75, "breakRatioPercent": 63, "breakTicks": 3, "reformTicks": 4, "pace": "free" },
+      "reflow": { "blockedSlot": "nearest-legal", "vacancy": "rebalance-role", "searchRadius": 3, "medicSeparation": 3 }
+    },
+    {
+      "formationId": "rally-wedge",
+      "shape": "wedge",
+      "orientation": "enemy-reactor",
+      "spacing": { "metric": "chebyshev", "minimum": 1, "preferred": 1, "maximum": 3 },
+      "placements": [
+        { "roleId": "line", "sector": "front", "order": 0, "offset": [2, 0] },
+        { "roleId": "line", "sector": "front", "order": 1, "offset": [1, -1] },
+        { "roleId": "line", "sector": "front", "order": 2, "offset": [1, 1] },
+        { "roleId": "line", "sector": "centre", "order": 3, "offset": [0, -2] },
+        { "roleId": "line", "sector": "centre", "order": 4, "offset": [0, 2] },
+        { "roleId": "medic", "sector": "rear", "order": 5, "offset": [-1, -2] },
+        { "roleId": "medic", "sector": "rear", "order": 6, "offset": [-1, 2] },
+        { "roleId": "runner", "sector": "rear", "order": 7, "offset": [-2, 0] }
+      ],
+      "cohesion": { "arrivalRatioPercent": 63, "breakRatioPercent": 50, "breakTicks": 3, "reformTicks": 4, "pace": "slowest" },
+      "reflow": { "blockedSlot": "nearest-legal", "vacancy": "compress", "searchRadius": 3, "medicSeparation": 3 }
+    }
+  ],
+  "engagements": [
+    {
+      "engagementId": "rush-focus",
+      "participants": ["line", "medic"],
+      "targetPriorities": ["enemy-carrier", "closest-to-anchor", "lowest-health"],
+      "tieBreakers": ["distance", "health", "unit-id", "life-id"],
+      "coordinationScope": "shared-policy",
+      "lockTicks": 4,
+      "maximumAttackersPerTarget": 4,
+      "overkillDamage": 0,
+      "chaseLeash": 3,
+      "signatureCoordination": "control-first",
+      "release": { "hiddenTicks": 2, "unreachableTicks": 3, "outsideLeash": true, "destroyed": true },
+      "selfDefense": { "enabled": true, "threatDistance": 3, "returnToFormation": true }
+    },
+    {
+      "engagementId": "siege-focus",
+      "participants": ["line", "medic"],
+      "targetPriorities": ["fresh-respawn", "enemy-carrier", "closest-to-reactor", "lowest-health"],
+      "tieBreakers": ["distance", "health", "unit-id", "life-id"],
+      "coordinationScope": "shared-policy",
+      "lockTicks": 6,
+      "maximumAttackersPerTarget": 3,
+      "overkillDamage": 0,
+      "chaseLeash": 2,
+      "signatureCoordination": "control-first",
+      "release": { "hiddenTicks": 1, "unreachableTicks": 2, "outsideLeash": true, "destroyed": true },
+      "selfDefense": { "enabled": true, "threatDistance": 3, "returnToFormation": true }
+    },
+    {
+      "engagementId": "regroup-defense",
+      "participants": ["line", "medic", "runner"],
+      "targetPriorities": ["enemy-carrier", "highest-threat", "lowest-health"],
+      "tieBreakers": ["distance", "health", "unit-id"],
+      "coordinationScope": "shared-policy",
+      "lockTicks": 2,
+      "maximumAttackersPerTarget": 2,
+      "overkillDamage": 0,
+      "chaseLeash": 1,
+      "signatureCoordination": "support-first",
+      "release": { "hiddenTicks": 1, "unreachableTicks": 1, "outsideLeash": true, "destroyed": true },
+      "selfDefense": { "enabled": true, "threatDistance": 2, "returnToFormation": true }
+    }
+  ],
+  "supportPolicies": [
+    {
+      "supportId": "cross-repair",
+      "providers": ["medic"],
+      "targetPriorities": ["carrier", "medic", "lowest-health", "focus-participant", "any"],
+      "maximumProvidersPerTarget": 1,
+      "minimumProviderSeparation": 3,
+      "reserveHealthPercent": 20,
+      "survivalFallback": "evade"
+    }
+  ],
+  "custodyPolicies": [
+    {
+      "custodyId": "secured-conversion",
+      "authorizedCarrierRoles": ["runner"],
+      "escortGroups": ["medic-group", "line-group"],
+      "sourceWell": "north",
+      "pickupReservationTicks": 8,
+      "transferTimeoutTicks": 8,
+      "deliveryTimeoutTicks": 120,
+      "accidentalPickup": "transfer",
+      "dropRecovery": "nearest-authorized",
+      "unreachableFallback": "guard",
+      "safeConversionAll": [
+        {
+          "all": [
+            { "fact": "known-enemies-unavailable", "operator": "at-least", "value": 5, "subject": "", "zone": "", "freshnessTicks": 21 },
+            { "fact": "friendlies-in-zone-count", "operator": "at-least", "value": 6, "subject": "", "zone": "siege-leash", "freshnessTicks": 0 },
+            { "fact": "secured-cores", "operator": "at-least", "value": 1, "subject": "", "zone": "", "freshnessTicks": 40 }
+          ],
+          "any": []
+        },
+        {
+          "all": [
+            { "fact": "ticks-without-objective-progress", "operator": "at-least", "value": 60, "subject": "", "zone": "", "freshnessTicks": 0 },
+            { "fact": "friendlies-in-zone-count", "operator": "at-least", "value": 5, "subject": "", "zone": "siege-leash", "freshnessTicks": 0 },
+            { "fact": "well-has-outstanding", "operator": "at-least", "value": 1, "subject": "north", "zone": "", "freshnessTicks": 0 }
+          ],
+          "any": []
+        }
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "orderId": "runner-rush", "groupId": "runner-group", "priority": 10,
+      "movement": { "kind": "route", "target": "outer-rush", "arrivalRadius": 0, "completion": "leader-arrived", "stuckTicks": 8, "stuckRecovery": "repath", "chaseLeash": 0, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "regroup-defense", "supportId": "", "custodyId": "secured-conversion", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "alternate" }
+    },
+    {
+      "orderId": "medics-rush", "groupId": "medic-group", "priority": 20,
+      "movement": { "kind": "route", "target": "outer-rush", "arrivalRadius": 0, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "yield", "chaseLeash": 3, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "rush-focus", "supportId": "cross-repair", "custodyId": "", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "line-rush", "groupId": "line-group", "priority": 30,
+      "movement": { "kind": "route", "target": "outer-rush", "arrivalRadius": 0, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 3, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "rush-focus", "supportId": "", "custodyId": "", "localState": "coherent",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "runner-siege", "groupId": "runner-group", "priority": 10,
+      "movement": { "kind": "anchor", "target": "enemy-perimeter", "arrivalRadius": 1, "completion": "continuous", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 0, "pace": "free" },
+      "formationId": "living-ring", "engagementId": "regroup-defense", "supportId": "", "custodyId": "secured-conversion", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "fallback-phase", "onInvalidTarget": "alternate" }
+    },
+    {
+      "orderId": "medics-siege", "groupId": "medic-group", "priority": 20,
+      "movement": { "kind": "anchor", "target": "enemy-perimeter", "arrivalRadius": 2, "completion": "continuous", "stuckTicks": 8, "stuckRecovery": "yield", "chaseLeash": 2, "pace": "free" },
+      "formationId": "living-ring", "engagementId": "siege-focus", "supportId": "cross-repair", "custodyId": "", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "line-siege", "groupId": "line-group", "priority": 30,
+      "movement": { "kind": "anchor", "target": "enemy-perimeter", "arrivalRadius": 2, "completion": "continuous", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 2, "pace": "free" },
+      "formationId": "living-ring", "engagementId": "siege-focus", "supportId": "", "custodyId": "", "localState": "coherent",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "line-recover", "groupId": "line-group", "priority": 25,
+      "movement": { "kind": "zone", "target": "forward-rally", "arrivalRadius": 1, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 1, "pace": "slowest" },
+      "formationId": "rally-wedge", "engagementId": "regroup-defense", "supportId": "", "custodyId": "", "localState": "recovering",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "runner-rally", "groupId": "runner-group", "priority": 10,
+      "movement": { "kind": "zone", "target": "forward-rally", "arrivalRadius": 1, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "repath", "chaseLeash": 0, "pace": "slowest" },
+      "formationId": "rally-wedge", "engagementId": "regroup-defense", "supportId": "", "custodyId": "secured-conversion", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "alternate" }
+    },
+    {
+      "orderId": "medics-rally", "groupId": "medic-group", "priority": 20,
+      "movement": { "kind": "zone", "target": "forward-rally", "arrivalRadius": 1, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "yield", "chaseLeash": 1, "pace": "slowest" },
+      "formationId": "rally-wedge", "engagementId": "regroup-defense", "supportId": "cross-repair", "custodyId": "", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "line-rally", "groupId": "line-group", "priority": 30,
+      "movement": { "kind": "zone", "target": "forward-rally", "arrivalRadius": 1, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 1, "pace": "slowest" },
+      "formationId": "rally-wedge", "engagementId": "regroup-defense", "supportId": "", "custodyId": "", "localState": "coherent",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "continue", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "runner-breach", "groupId": "runner-group", "priority": 10,
+      "movement": { "kind": "route", "target": "short-breach", "arrivalRadius": 0, "completion": "leader-arrived", "stuckTicks": 8, "stuckRecovery": "repath", "chaseLeash": 0, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "regroup-defense", "supportId": "", "custodyId": "secured-conversion", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "alternate" }
+    },
+    {
+      "orderId": "medics-breach", "groupId": "medic-group", "priority": 20,
+      "movement": { "kind": "route", "target": "short-breach", "arrivalRadius": 0, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "yield", "chaseLeash": 2, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "rush-focus", "supportId": "cross-repair", "custodyId": "", "localState": "ready",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "hold" }
+    },
+    {
+      "orderId": "line-breach", "groupId": "line-group", "priority": 30,
+      "movement": { "kind": "route", "target": "short-breach", "arrivalRadius": 0, "completion": "cohesion-arrived", "stuckTicks": 8, "stuckRecovery": "reflow", "chaseLeash": 2, "pace": "slowest" },
+      "formationId": "rush-column", "engagementId": "rush-focus", "supportId": "", "custodyId": "", "localState": "coherent",
+      "fallback": { "onNoPath": "reflow", "onUnderstrength": "regroup", "onInvalidTarget": "hold" }
+    }
+  ],
+  "coordination": {
+    "initialPhase": "assault",
+    "phases": [
+      {
+        "phaseId": "assault",
+        "minimumTicks": 20,
+        "orderIds": ["runner-rush", "medics-rush", "line-rush", "line-recover"],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "occupy",
+            "cause": "success",
+            "stableTicks": 3,
+            "when": [
+              {
+                "all": [
+                  { "fact": "friendlies-in-zone-count", "operator": "at-least", "value": 6, "subject": "", "zone": "siege-leash", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          },
+          {
+            "priority": 20,
+            "to": "regroup",
+            "cause": "failure",
+            "stableTicks": 3,
+            "when": [
+              {
+                "all": [
+                  { "fact": "live-friendlies", "operator": "at-most", "value": 4, "subject": "", "zone": "", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": "occupy",
+        "minimumTicks": 8,
+        "orderIds": ["runner-siege", "medics-siege", "line-siege", "line-recover"],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "regroup",
+            "cause": "failure",
+            "stableTicks": 3,
+            "when": [
+              {
+                "all": [
+                  { "fact": "friendlies-in-zone-count", "operator": "at-most", "value": 5, "subject": "", "zone": "enemy-home", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": "regroup",
+        "minimumTicks": 8,
+        "orderIds": ["runner-rally", "medics-rally", "line-rally", "line-recover"],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "breach",
+            "cause": "recovery",
+            "stableTicks": 4,
+            "when": [
+              {
+                "all": [
+                  { "fact": "group-in-zone-count", "operator": "at-least", "value": 3, "subject": "line-group", "zone": "forward-rally", "freshnessTicks": 0 },
+                  { "fact": "live-friendlies", "operator": "at-least", "value": 5, "subject": "", "zone": "", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": "breach",
+        "minimumTicks": 6,
+        "orderIds": ["runner-breach", "medics-breach", "line-breach", "line-recover"],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "occupy",
+            "cause": "success",
+            "stableTicks": 3,
+            "when": [
+              {
+                "all": [
+                  { "fact": "friendlies-in-zone-count", "operator": "at-least", "value": 6, "subject": "", "zone": "siege-leash", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          },
+          {
+            "priority": 20,
+            "to": "regroup",
+            "cause": "failure",
+            "stableTicks": 3,
+            "when": [
+              {
+                "all": [
+                  { "fact": "live-friendlies", "operator": "at-most", "value": 4, "subject": "", "zone": "", "freshnessTicks": 0 }
+                ],
+                "any": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

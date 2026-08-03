@@ -41,5 +41,14 @@
     <Compile
       Include="../../arena-bots/arc-relay/stock-mind-v5/StandingStrategyMachine.cs"
       Link="StandingStrategy/StandingStrategyMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookPackage.cs"
+      Link="TacticalPlaybook/TacticalPlaybookPackage.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookMachine.cs"
+      Link="TacticalPlaybook/TacticalPlaybookMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookJsonContext.cs"
+      Link="TacticalPlaybook/TacticalPlaybookJsonContext.cs" />
   </ItemGroup>
 </Project>

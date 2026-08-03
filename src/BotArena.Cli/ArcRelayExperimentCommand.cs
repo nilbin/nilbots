@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using BotArena.Engine;
 
 namespace BotArena.Cli;
@@ -294,7 +295,11 @@ public static class ArcRelayExperimentCommand
             entrant.RuntimeKind,
             sheet.Hash,
             sheet.Path,
-            sheet.Classes);
+            sheet.Classes)
+        {
+            LayoutHash = sheet.LayoutHash,
+            LayoutPath = sheet.LayoutPath,
+        };
 
     private static SheetSelection Sheet(
         IReadOnlyDictionary<string, string> options,
@@ -324,6 +329,22 @@ public static class ArcRelayExperimentCommand
             byte[] bytes = File.ReadAllBytes(fullPath);
             using JsonDocument document = JsonDocument.Parse(bytes);
             JsonElement root = document.RootElement;
+            if (root.TryGetProperty("schema", out JsonElement schema)
+                && string.Equals(
+                    schema.GetString(),
+                    ArcRelayTacticalPlaybookCompiler.PlaybookSchema,
+                    StringComparison.Ordinal))
+            {
+                TacticalPlaybookCompilation compilation =
+                    ArcRelayTacticalPlaybookCompiler.Compile(fullPath);
+                return new SheetSelection(
+                    compilation.Composition,
+                    compilation.PlaybookSha256,
+                    compilation.PlaybookPath,
+                    compilation.LinkedData,
+                    compilation.LayoutSha256,
+                    compilation.LayoutPath);
+            }
             JsonElement composition = root.TryGetProperty(
                     "composition",
                     out JsonElement value)
@@ -344,7 +365,9 @@ public static class ArcRelayExperimentCommand
                 fullPath,
                 HasExecutableEvaluationData(root)
                     ? EncodeEvaluationSheet(root, sheetHash)
-                    : null);
+                    : null,
+                LayoutHash: null,
+                LayoutPath: null);
         }
 
         string[] selected = hasClasses
@@ -355,7 +378,9 @@ public static class ArcRelayExperimentCommand
             selected,
             Convert.ToHexStringLower(SHA256.HashData(identity)),
             Path: null,
-            Data: null);
+            Data: null,
+            LayoutHash: null,
+            LayoutPath: null);
     }
 
     private static bool HasExecutableEvaluationData(JsonElement root) =>
@@ -958,7 +983,9 @@ public static class ArcRelayExperimentCommand
         string[] Classes,
         string Hash,
         string? Path,
-        byte[]? Data);
+        byte[]? Data,
+        string? LayoutHash,
+        string? LayoutPath);
 
     private readonly record struct PerfSnapshot(
         TimeSpan Wall,
@@ -1014,7 +1041,14 @@ public sealed record ArcRelayParticipantReceipt(
     string RuntimeKind,
     string SheetHash,
     string? SheetPath,
-    string[] Classes);
+    string[] Classes)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LayoutHash { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LayoutPath { get; init; }
+}
 
 public sealed record ArcRelayRunResultReceipt(
     int? WinnerTeamId,

@@ -1,0 +1,10 @@
+{
+  "name": "ArcRelayTacticalPlaybookMindV1",
+  "entryType": "ArcRelayTacticalPlaybookMind",
+  "sdkVersion": "0.10.12",
+  "appearance": {
+    "accent": "#f97316",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}
