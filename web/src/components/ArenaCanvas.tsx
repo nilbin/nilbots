@@ -17,7 +17,8 @@ import {
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
 import {
-  arenaPresentedFrameStamp,
+  createArenaFramePacer,
+  takeArenaFrame,
   type ArenaRenderProfile,
 } from '../render/arenaRenderProfile';
 import {
@@ -103,7 +104,7 @@ export default function ArenaCanvas({
     const ctx = canvas.getContext('2d')!;
     let frame = 0;
     let last: number | null = null;
-    let lastDrawStamp: number | null = null;
+    const framePacer = createArenaFramePacer();
     let aspect = 0;
     let lastFit = stateRef.current.autoFit;
     // A new replay is a new match: the camera must not open framed on the last one's fight.
@@ -138,14 +139,12 @@ export default function ArenaCanvas({
       const framesPerSecond = stateRef.current.active
         ? renderProfile.activeFramesPerSecond
         : renderProfile.idleFramesPerSecond;
-      const presentedStamp = renderProfile.id === 'full'
-        ? stamp
-        : arenaPresentedFrameStamp(stamp, lastDrawStamp, framesPerSecond);
-      if (document.hidden || presentedStamp === null) {
+      const frameDue = !renderProfile.presentationRateLimited ||
+        takeArenaFrame(framePacer, stamp, framesPerSecond);
+      if (document.hidden || !frameDue) {
         frame = requestAnimationFrame(render);
         return;
       }
-      lastDrawStamp = presentedStamp;
       const parent = canvas.parentElement!;
       const ratio = Math.min(
         window.devicePixelRatio || 1,
@@ -279,6 +278,7 @@ export default function ArenaCanvas({
       role="img"
       aria-label="nilbots match playback"
       data-render-profile={renderProfile.id}
+      data-rate-limited={renderProfile.presentationRateLimited}
       data-active-fps={renderProfile.activeFramesPerSecond}
       data-idle-fps={renderProfile.idleFramesPerSecond}
       data-pixel-ratio={Math.min(

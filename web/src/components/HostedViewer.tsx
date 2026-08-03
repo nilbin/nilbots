@@ -39,7 +39,7 @@ export default function HostedViewer({
   const assets = useAssetReadiness();
   const following = live !== undefined;
   const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
-  const playbackFrameCap = renderProfile.id === 'mobile'
+  const playbackFrameCap = renderProfile.presentationRateLimited
     ? renderProfile.activeFramesPerSecond
     : undefined;
   const playback = usePlayback(

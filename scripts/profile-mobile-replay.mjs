@@ -9,7 +9,7 @@
  *
  * Usage:
  *   node scripts/profile-mobile-replay.mjs <url> [output.json] [seconds]
- *     [webgl|canvas2d] [chromium|webkit] [active|idle]
+ *     [webgl|canvas2d] [chromium|webkit] [active|idle] [phone|desktop]
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -26,26 +26,39 @@ const seconds = Number(process.argv[4] ?? 20);
 const forceCanvas2d = process.argv[5] === 'canvas2d';
 const browserName = process.argv[6] ?? 'webkit';
 const activity = process.argv[7] ?? 'active';
+const deviceKind = process.argv[8] ?? 'phone';
 const browserType = { chromium, webkit }[browserName];
 
 if (!url || !Number.isFinite(seconds) || seconds <= 0) {
   throw new Error(
     'usage: profile-mobile-replay.mjs <url> [output] [seconds] ' +
-      '[webgl|canvas2d] [chromium|webkit] [active|idle]',
+      '[webgl|canvas2d] [chromium|webkit] [active|idle] [phone|desktop]',
   );
 }
 if (!browserType) throw new Error('browser must be chromium or webkit');
 if (!['active', 'idle'].includes(activity))
   throw new Error('activity must be active or idle');
+if (!['phone', 'desktop'].includes(deviceKind))
+  throw new Error('device must be phone or desktop');
 
 const browser = await browserType.launch({ headless: true });
-const context = await browser.newContext({
-  viewport: { width: 844, height: 390 },
-  screen: { width: 844, height: 390 },
-  deviceScaleFactor: 3,
-  isMobile: true,
-  hasTouch: true,
-});
+const context = await browser.newContext(
+  deviceKind === 'phone'
+    ? {
+        viewport: { width: 844, height: 390 },
+        screen: { width: 844, height: 390 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      }
+    : {
+        viewport: { width: 1440, height: 900 },
+        screen: { width: 1440, height: 900 },
+        deviceScaleFactor: 2,
+        isMobile: false,
+        hasTouch: false,
+      },
+);
 
 await context.addInitScript(({ forceCanvas2d }) => {
   const counters = {
@@ -179,6 +192,7 @@ const canvas = await page
       devicePixelRatio: window.devicePixelRatio,
       coarsePointer: matchMedia('(pointer: coarse)').matches,
       renderProfile: node.dataset.renderProfile ?? null,
+      presentationRateLimited: node.dataset.rateLimited === 'true',
       activeFramesPerSecond: Number(node.dataset.activeFps || 0),
       idleFramesPerSecond: Number(node.dataset.idleFps || 0),
       pixelRatio: Number(node.dataset.pixelRatio || 0),
@@ -210,6 +224,7 @@ const delta = (name) => (afterMetrics[name] ?? 0) - (beforeMetrics[name] ?? 0);
 const result = {
   url,
   browser: browserName,
+  device: deviceKind,
   activity,
   elapsedSeconds,
   canvas,

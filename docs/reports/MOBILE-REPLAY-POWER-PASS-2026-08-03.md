@@ -3,7 +3,7 @@ least five minutes and confirm that the device no longer heats objectionably.
 The renderer-controlled workload target passes; browser instrumentation cannot
 substitute for the owner's physical device and ambient conditions.
 
-# Mobile replay power pass
+# Replay power pass
 
 ## Result
 
@@ -14,10 +14,31 @@ map, and requests a low-power GPU. Replay and live-follow React updates use the
 same active cadence, and the hosted viewer no longer advances an unused local
 clock while the live server clock owns presentation.
 
+Desktop now selects a balanced profile instead of the unrestricted reference.
+It preserves DPR 2, 2048² shadows, antialiasing, and the complete scene, while
+capping active presentation and React clock updates at 60 fps and paused
+micro-life at 12 fps. It also uses the browser's default GPU selection rather
+than forcing the high-performance adapter. This avoids duplicate frames on
+high-refresh displays and avoids explicitly waking a discrete laptop GPU.
+
 No rule, replay, camera, model, effect, fog, animation duration, telegraph, or
 tile-occupancy contract changed. The full path remains available in the exact
 same build through `?render-profile=full`; it is unthrottled and retains DPR 2,
 2048² shadows, and the high-performance GPU request.
+
+### Desktop extension
+
+Hardware-accelerated WebKit measured the automatic desktop profile at 59.996 fps
+active and 11.999 fps paused on a 926×578 CSS / DPR-2 arena, with zero runtime
+or request errors. On the local 60 Hz display,
+active fill is intentionally identical to the unrestricted reference because
+image quality is unchanged and there are no duplicate refreshes to remove;
+paused weighted work falls from 380.1M to 76.0M pixels/s, an 80% reduction.
+
+The regression arithmetic charges the same DPR-2 color and 2048² shadow passes
+at the display rate. On 120 Hz and 144 Hz displays, the 60 fps ceiling therefore
+removes 50% and 58.3% of active renderer work respectively. Cadence tests cover
+all three refresh rates without changing wall-clock replay timing.
 
 ## Measured evidence
 
@@ -55,19 +76,20 @@ the final thermal judgment remains a physical-phone watch.
   camera preserve bot silhouettes, the levitating Core, team cues, projectiles,
   health, environment texture, and live shadows. The resolution/shadow change
   is not materially visible at the delivered phone scale.
-- A cadence test covers both 60 Hz and 120 Hz display clocks. The pacing anchor
+- Cadence tests cover mobile on 60/120 Hz and desktop on 60/120/144 Hz display
+  clocks. The pacing anchor
   follows the ideal deadline rather than accumulating callback jitter; measured
   WebKit output is 29.95 fps rather than the first implementation's 26 fps.
 - A hard unit budget fixes the iPhone-class weighted workload at 53,675,580
   pixels/s, below the 54M limit and below 17% of the full reference arithmetic.
 - The shadow-quality plumbing is exercised at 1024² in the real Three scene.
-  Capability selection and both explicit evidence overrides are unit-tested.
-- `scripts/profile-mobile-replay.mjs` is the repeatable active/idle,
-  WebGL/Canvas2D, WebKit/Chromium measurement path. It reports raw counters and
-  derived rates so a future render-pass change cannot silently reuse today's
-  two-clear assumption.
-- The web suite passes 396/396 tests, and the labelled operation gallery passes
+  Capability selection and all three explicit evidence overrides are unit-tested.
+- `scripts/profile-mobile-replay.mjs` is the repeatable phone/desktop,
+  active/idle, WebGL/Canvas2D, WebKit/Chromium measurement path. It reports raw
+  counters and derived rates so a future render-pass change cannot silently
+  reuse today's two-clear assumption.
+- The web suite passes 399/399 tests, and the labelled operation gallery passes
   its existing WebGL smoke on 10/10 real replays. The production build succeeds.
-  Each theme-scoped CLI viewer grows by 2,005 bytes (8,020 bytes total, under
-  0.04%) for the shared scheduling/profile code; it still contains no GLB,
+  Each theme-scoped CLI viewer grows by 2,502 bytes (10,008 bytes total, under
+  0.05%) for the shared scheduling/profile code; it still contains no GLB,
   KTX2, or Basis decoder asset.
