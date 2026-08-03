@@ -11,6 +11,7 @@ public sealed class ArcRelayExperimentCommandTests
     [InlineData("intelligent-gambit-v1-2026-08-02/sheets/rear-hook-lantern-sweep.json")]
     [InlineData("standing-strategy-v1-2026-08-03/sheets/home-siege-north.json")]
     [InlineData("tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json")]
+    [InlineData("tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json")]
     public void EvaluationSheetVersionsLinkDeterministicallyIntoTheContract(
         string relativeSheet)
     {

@@ -8,6 +8,7 @@ using BotArena.Sdk;
 public sealed class ArcRelayStrategyMind : IGenericMindBot
 {
     private readonly Dictionary<int, CarrierMotion> _carrierMotion = [];
+    private readonly CoordinatedAttackAllocator _attackAllocator = new();
     private readonly Dictionary<int, int> _catchHoldUntil = [];
     private readonly Dictionary<int, Position> _catchHoldPosition = [];
     private GenericActorResolvedMatchContract? _contract;
@@ -90,6 +91,13 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             .ToArray();
         GenericActorContext.ObservedEnemyState? enemyCarrier =
             ArenaBasics.VisibleEnemyCarrier(mind, _teamId);
+        IReadOnlyDictionary<int, GenericActorContext.ObservedEnemyState>
+            coordinatedTargets = _attackAllocator.Allocate(
+                contract,
+                mind,
+                arc,
+                sheet.AttackCoordination,
+                _teamId);
         Position enemyReactor = arc.Reactors
             .Where(reactor => reactor.TeamId != _teamId)
             .OrderBy(reactor => reactor.TeamId)
@@ -197,7 +205,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     body,
                     basePlan,
                     carriesCore,
-                    claims))
+                    claims,
+                    coordinatedTargets))
             {
                 continue;
             }
@@ -220,12 +229,14 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     body.Hold("waiting one tick for allied return-lane clearance");
                     continue;
                 }
-                ActCarrier(contract, mind, body, core, claims);
+                ActCarrier(
+                    contract, mind, body, core, claims, coordinatedTargets);
                 continue;
             }
             if (pickups.TryGetValue(body.UnitId, out var loose))
             {
-                ActPickup(contract, mind, body, loose, claims);
+                ActPickup(
+                    contract, mind, body, loose, claims, coordinatedTargets);
                 continue;
             }
 
@@ -245,7 +256,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     body,
                     enemyCarrier!,
                     enemyReactor,
-                    claims);
+                    claims,
+                    coordinatedTargets);
                 continue;
             }
             if (ShouldEscort(plan, partnerCarrier, nearestCarrier))
@@ -257,11 +269,14 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     partnerCarrier ?? nearestCarrier!,
                     enemyCarrier,
                     director.EscortPolicy(basePlan).FollowDistance,
-                    claims);
+                    claims,
+                    coordinatedTargets);
                 continue;
             }
 
-            ActPatrol(contract, mind, arc, body, plan, enemyCarrier, claims);
+            ActPatrol(
+                contract, mind, arc, body, plan, enemyCarrier, claims,
+                coordinatedTargets);
         }
 
         mind.Debug.Write(
@@ -271,6 +286,13 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
     }
 
     public void EndMatch(MindEnd end) => _ = end;
+
+    private static GenericActorContext.ObservedEnemyState? CoordinatedTarget(
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState? fallback) =>
+        coordinatedTargets.GetValueOrDefault(body.UnitId) ?? fallback;
 
     private Dictionary<int, ActorIdentity> PlanArcTosses(
         MindContext mind,
@@ -413,7 +435,9 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         MindContext mind,
         MindBody body,
         GenericActorContext.ArcRelayCoreState core,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
         CarrierMotion? motion = _carrierMotion.GetValueOrDefault(body.UnitId);
         int stuckTicks = motion?.StationaryTicks ?? 0;
@@ -474,7 +498,11 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                 contract,
                 mind,
                 body,
-                mind.Enemies.OrderBy(enemy => enemy.Health).FirstOrDefault()))
+                CoordinatedTarget(
+                    coordinatedTargets,
+                    body,
+                    mind.Enemies.OrderBy(enemy => enemy.Health)
+                        .FirstOrDefault())))
         {
             return;
         }
@@ -490,12 +518,15 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         MindContext mind,
         MindBody body,
         GenericActorContext.ArcRelayCoreState core,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
         GenericActorContext.ObservedEnemyState? threat = mind.Enemies
             .OrderBy(enemy => enemy.Position.ChebyshevDistance(core.Position))
             .ThenBy(enemy => enemy.Health)
             .FirstOrDefault();
+        threat = CoordinatedTarget(coordinatedTargets, body, threat);
         if (threat is not null
             && body.Position.ChebyshevDistance(threat.Position) <= 5
             && ArenaBasics.TryShoot(contract, mind, body, threat))
@@ -531,11 +562,15 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         MindBody body,
         GenericActorContext.ObservedEnemyState carrier,
         Position enemyReactor,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
-        if (TryDenialSignature(contract, mind, body, carrier))
+        GenericActorContext.ObservedEnemyState target = CoordinatedTarget(
+            coordinatedTargets, body, carrier) ?? carrier;
+        if (TryDenialSignature(contract, mind, body, target))
             return;
-        if (ArenaBasics.TryShoot(contract, mind, body, carrier))
+        if (ArenaBasics.TryShoot(contract, mind, body, target))
             return;
         Position cut = ArenaBasics.Cutoff(
             contract.Map,
@@ -573,13 +608,16 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         MindBody carrier,
         GenericActorContext.ObservedEnemyState? enemyCarrier,
         int followDistance,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
         GenericActorContext.ObservedEnemyState? threat = mind.Enemies
             .OrderBy(enemy => enemy.Position.ChebyshevDistance(carrier.Position))
             .ThenBy(enemy => enemy.Health)
             .ThenBy(enemy => enemy.ActorId)
             .FirstOrDefault();
+        threat = CoordinatedTarget(coordinatedTargets, body, threat);
         if (TrySupportSignature(
                 contract,
                 mind,
@@ -627,7 +665,9 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         MindBody body,
         UnitPlan plan,
         GenericActorContext.ObservedEnemyState? enemyCarrier,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
         string theater = EffectiveTheater(plan.Theater, mind.Tick);
         GenericActorContext.ArcRelayWellState well = WellFor(arc, theater);
@@ -695,6 +735,7 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             .OrderBy(enemy => enemy.Position.ChebyshevDistance(well.Position))
             .ThenBy(enemy => enemy.Health)
             .FirstOrDefault();
+        threat = CoordinatedTarget(coordinatedTargets, body, threat);
         if (threat is not null
             && body.Position.ChebyshevDistance(threat.Position) <= 4
             && TryDenialSignature(contract, mind, body, threat))

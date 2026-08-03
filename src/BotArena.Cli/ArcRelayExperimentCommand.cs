@@ -493,7 +493,14 @@ public static class ArcRelayExperimentCommand
         {
             WriteStrategySheetV1(writer, root, slots);
             if (schema == "arc-relay-evaluation-sheet-v2")
+            {
                 WriteIntelligentOperationsV2(writer, root);
+                if (root.TryGetProperty(
+                        "attackCoordination", out JsonElement coordination))
+                {
+                    WriteAttackCoordination(writer, coordination);
+                }
+            }
         }
         else
             WriteEvaluationGambitsV0(writer, root);
@@ -501,6 +508,20 @@ public static class ArcRelayExperimentCommand
         if (stream.Length > 64 * 1024)
             throw new InvalidDataException("Evaluation sheet data exceeds 64 KiB.");
         return stream.ToArray();
+    }
+
+    private static void WriteAttackCoordination(
+        BinaryWriter writer,
+        JsonElement coordination)
+    {
+        writer.Write(0x31434143); // CAC1, little-endian.
+        writer.Write(RequiredSheetString(coordination, "mode"));
+        WriteStrings(writer, coordination.GetProperty("targetPriorities"));
+        WriteStrings(writer, coordination.GetProperty("tieBreakers"));
+        writer.Write(coordination.GetProperty(
+            "maximumAttackersPerTarget").GetInt32());
+        writer.Write(coordination.GetProperty("overkillDamage").GetInt32());
+        writer.Write(coordination.GetProperty("lockTicks").GetInt32());
     }
 
     private static void WriteEvaluationGambitsV0(

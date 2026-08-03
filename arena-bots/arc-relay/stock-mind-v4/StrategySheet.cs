@@ -6,6 +6,8 @@ using BotArena.Sdk;
 /// </summary>
 internal sealed class StrategySheet
 {
+    private const int AttackCoordinationExtensionMagic = 0x31434143;
+
     private StrategySheet(
         string sheetId,
         string mapId,
@@ -19,7 +21,8 @@ internal sealed class StrategySheet
         EscortPolicy escort,
         InterceptionPolicy interception,
         GambitPlan[] gambits,
-        IntelligentOperationPlan[] operations)
+        IntelligentOperationPlan[] operations,
+        AttackCoordinationPolicy? attackCoordination)
     {
         SheetId = sheetId;
         MapId = mapId;
@@ -34,6 +37,7 @@ internal sealed class StrategySheet
         Interception = interception;
         Gambits = gambits;
         Operations = operations;
+        AttackCoordination = attackCoordination;
     }
 
     internal string SheetId { get; }
@@ -49,6 +53,7 @@ internal sealed class StrategySheet
     internal InterceptionPolicy Interception { get; }
     internal GambitPlan[] Gambits { get; }
     internal IntelligentOperationPlan[] Operations { get; }
+    internal AttackCoordinationPolicy? AttackCoordination { get; }
 
     internal static StrategySheet Load(
         System.Collections.Immutable.ImmutableArray<byte> evaluationData)
@@ -188,6 +193,23 @@ internal sealed class StrategySheet
                 "The prototype permits at most three operation cards.");
         foreach (IntelligentOperationPlan operation in operations)
             ValidateOperation(operation);
+        AttackCoordinationPolicy? attackCoordination = null;
+        if (!legacyV0 && reader.BaseStream.Position < reader.BaseStream.Length)
+        {
+            if (reader.ReadInt32() != AttackCoordinationExtensionMagic)
+            {
+                throw new InvalidDataException(
+                    "Unknown strategy sheet extension.");
+            }
+            attackCoordination = new AttackCoordinationPolicy(
+                reader.ReadString(),
+                Strings(reader),
+                Strings(reader),
+                reader.ReadInt32(),
+                reader.ReadInt32(),
+                reader.ReadInt32());
+            ValidateAttackCoordination(attackCoordination);
+        }
         if (reader.BaseStream.Position != reader.BaseStream.Length)
             throw new InvalidDataException("Trailing strategy sheet data.");
         return new StrategySheet(
@@ -203,7 +225,28 @@ internal sealed class StrategySheet
             escort,
             interception,
             gambits,
-            operations);
+            operations,
+            attackCoordination);
+    }
+
+    private static void ValidateAttackCoordination(
+        AttackCoordinationPolicy policy)
+    {
+        if (!string.Equals(policy.Mode, "shared-damage-budget",
+                StringComparison.Ordinal)
+            || policy.TargetPriorities.Length is < 1 or > 8
+            || policy.TargetPriorities.Any(value => value is not
+                ("enemy-carrier" or "lowest-health" or "nearest"))
+            || policy.TieBreakers.Length is < 1 or > 8
+            || policy.TieBreakers.Any(value => value is not
+                ("health" or "distance" or "actor-id"))
+            || policy.MaximumAttackersPerTarget is < 1 or > 8
+            || policy.OverkillDamage is < 0 or > 8
+            || policy.LockTicks is < 0 or > 30)
+        {
+            throw new InvalidDataException(
+                "Invalid coordinated-attack policy.");
+        }
     }
 
     private static IntelligentOperationPlan ReadOperation(BinaryReader reader)
@@ -452,6 +495,14 @@ internal sealed record EscortPolicy(int FollowDistance, bool FocusEnemyCarrier);
 internal sealed record InterceptionPolicy(
     bool FocusEnemyCarrier,
     bool LooseCoreFallback);
+
+internal sealed record AttackCoordinationPolicy(
+    string Mode,
+    string[] TargetPriorities,
+    string[] TieBreakers,
+    int MaximumAttackersPerTarget,
+    int OverkillDamage,
+    int LockTicks);
 
 internal sealed record GambitPlan(
     int Priority,

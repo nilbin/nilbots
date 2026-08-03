@@ -291,7 +291,9 @@ internal sealed class StrategyDirector
         MindBody body,
         UnitPlan basePlan,
         bool carriesCore,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ObservedEnemyState> coordinatedTargets)
     {
         OperationDirective? operation = _operations.DirectiveFor(body.UnitId);
         GambitPlan? active = Active;
@@ -326,7 +328,8 @@ internal sealed class StrategyDirector
                 ? mind.Enemies.SingleOrDefault(value =>
                     value.ActorId == exactTarget.Carrier)
                 : ArenaBasics.VisibleEnemyCarrier(mind, _teamId);
-        GenericActorContext.ObservedEnemyState? threat = carrier
+        GenericActorContext.ObservedEnemyState? threat =
+            coordinatedTargets.GetValueOrDefault(body.UnitId) ?? carrier
             ?? mind.Enemies
                 .OrderBy(enemy => body.Position.ChebyshevDistance(enemy.Position))
                 .ThenBy(enemy => enemy.ActorId)

@@ -669,6 +669,76 @@ internal static class ArenaBasics
         return false;
     }
 
+    public static bool CanAimAt(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, body.FormId,
+                    StringComparison.Ordinal));
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, attackId,
+                        StringComparison.Ordinal))
+                : null;
+        return attack is not null
+            && TryRay(body.Position, target.Position, out _, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles
+            && ClearRay(
+                contract.Map,
+                body.Position,
+                target.Position,
+                attack.Projectile.DiagonalCornersMustBeClear);
+    }
+
+    public static bool CanFireAt(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target)
+    {
+        GenericActorActionLegality? action = AvailableAction(
+            contract,
+            body,
+            GenericActorRulesContract.ActionKind.Attack,
+            requireAvailable: false);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        if (action is not { Available: true } || headings is null
+            || !CanAimAt(contract, body, target)
+            || !TryRay(body.Position, target.Position,
+                out ProjectileHeading heading, out _))
+        {
+            return false;
+        }
+        return headings.AllowedValues.Contains(heading);
+    }
+
+    public static int ExpectedAttackDamage(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, body.FormId,
+                    StringComparison.Ordinal));
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, attackId,
+                        StringComparison.Ordinal))
+                : null;
+        return attack is null
+            ? 1
+            : Math.Max(1, attack.Projectile.DamagePerHit
+                * attack.ProjectilesPerAttack);
+    }
+
     public static bool TryUnitSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
