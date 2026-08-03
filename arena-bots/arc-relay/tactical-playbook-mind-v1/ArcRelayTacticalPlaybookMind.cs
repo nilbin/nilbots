@@ -190,6 +190,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             body.UnitId, out FocusAssignment?
                                 signatureTarget)
                         && engagement.SignatureCoordination != "damage-first"
+                        && signatureTarget.UseSignature
                         && TryCombatSignature(
                             contract, mind, body, signatureTarget.Target, target,
                             engagement,
@@ -487,6 +488,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ActiveFormation(package.Source, machine, group.GroupId)
                     .Spacing.Maximum),
             StringComparer.Ordinal);
+        var groupStuckTicks = package.Source.Groups.ToDictionary(
+            group => group.GroupId,
+            group => mind.Bodies
+                .Where(body => groups[body.UnitId] == group.GroupId)
+                .Select(body => _motion.GetValueOrDefault(body.UnitId))
+                .Where(progress => progress is not null)
+                .Select(progress => progress!.StuckTicks)
+                .DefaultIfEmpty(0)
+                .Max(),
+            StringComparer.Ordinal);
         if (updateFormationState)
         {
             foreach (TacticalPlaybookPackage.Group group in package.Source.Groups)
@@ -556,6 +567,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             groupLive,
             groupJoining,
             groupCohesion,
+            groupStuckTicks,
             friendlyZones,
             groupZones,
             visibleEnemiesByZone,
@@ -632,7 +644,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Zone) ?? 0,
             "group-cohesion" => snapshot.GroupCohesion
                 .GetValueOrDefault(condition.Subject),
-            "group-stuck-ticks" => 0,
+            "group-stuck-ticks" => snapshot.GroupStuckTicks
+                .GetValueOrDefault(condition.Subject),
             "known-enemies-unavailable" => snapshot.KnownEnemiesUnavailable,
             "visible-enemies-in-zone" => snapshot.VisibleEnemiesByZone
                 .GetValueOrDefault(condition.Zone),
@@ -877,7 +890,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         directDamageNeeded: committedDamage.GetValueOrDefault(
                             selected.ActorId) < selected.Health);
                     allocations[body.UnitId] = new FocusAssignment(
-                        selected, aim);
+                        selected, aim, UseSignature: false);
                     attackerCounts[selected.ActorId] = attackerCounts
                         .GetValueOrDefault(selected.ActorId) + 1;
                     HashSet<Position> coverage = coveredOptions
@@ -896,10 +909,56 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             + ExpectedDamage(contract, body);
                     }
                 }
+
+                if (policy.SignatureCoordination is
+                    "control-first" or "support-first")
+                {
+                    Dictionary<ActorIdentity, int> targetCounts = allocations
+                        .Where(value => participants.Any(body =>
+                            body.UnitId == value.Key))
+                        .GroupBy(value => value.Value.Target.ActorId)
+                        .ToDictionary(group => group.Key, group => group.Count());
+                    TacticalCoordinationPrimitives.SignatureCandidate[]
+                        candidates = allocations
+                            .Where(value => participants.Any(body =>
+                                    body.UnitId == value.Key)
+                                && value.Value.Target.Health >= 2
+                                && targetCounts.GetValueOrDefault(
+                                    value.Value.Target.ActorId) >= 2)
+                            .Select(value => (
+                                Assignment: value,
+                                Body: participants.Single(body =>
+                                    body.UnitId == value.Key)))
+                            .Select(value => new
+                                TacticalCoordinationPrimitives
+                                    .SignatureCandidate(
+                                    value.Body.UnitId,
+                                    value.Assignment.Value.Target.ActorId,
+                                    CombatSignatureKey(contract, value.Body)
+                                        ?? ""))
+                            .Where(value => value.SignatureId.Length > 0)
+                            .ToArray();
+                    foreach (int controller in TacticalCoordinationPrimitives
+                                 .SelectSignatureControllers(candidates))
+                    {
+                        allocations[controller] = allocations[controller]
+                            with { UseSignature = true };
+                    }
+                }
             }
         }
         return allocations;
     }
+
+    private static string? CombatSignatureKey(
+        GenericActorResolvedMatchContract contract,
+        MindBody body) => contract.Rules.Actions
+        .Where(action => action.Kind
+            == GenericActorRulesContract.ActionKind.Signature)
+        .OrderBy(action => action.Code)
+        .Select(action => body.Action(action.Id))
+        .FirstOrDefault(action => action is { Available: true })
+        ?.ActionId;
 
     private static bool CanContributeToTarget(
         GenericActorResolvedMatchContract contract,
@@ -1631,7 +1690,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private sealed record FocusAssignment(
         GenericActorContext.ObservedEnemyState Target,
-        Position AimPosition);
+        Position AimPosition,
+        bool UseSignature);
 
     private sealed record CoreReservation(
         ActorIdentity ActorId,
@@ -1654,6 +1714,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> GroupLive,
         IReadOnlyDictionary<string, int> GroupJoining,
         IReadOnlyDictionary<string, int> GroupCohesion,
+        IReadOnlyDictionary<string, int> GroupStuckTicks,
         IReadOnlyDictionary<string, int> FriendlyZones,
         IReadOnlyDictionary<string, Dictionary<string, int>> GroupZones,
         IReadOnlyDictionary<string, int> VisibleEnemiesByZone,
