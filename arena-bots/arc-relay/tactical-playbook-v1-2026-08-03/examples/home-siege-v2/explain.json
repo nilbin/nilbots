@@ -3,7 +3,7 @@
   "playbook": {
     "id": "home-siege-v2",
     "sourcePath": "/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder/arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json",
-    "sourceSha256": "24349e285fe7220f3627d6e2e23de79f572494946a6812312f379eb4705eb691",
+    "sourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
     "normalizedBytes": 26012
   },
   "layout": {
@@ -270,7 +270,7 @@
     ]
   },
   "runtimePackage": {
-    "sha256": "665ca5b0d4ec8afbfb072f590432f0ddd7792edfc3b2510d8623f4f47af50abb",
+    "sha256": "bd5dc63f63dfefffe7db614da00335e349a88d2ff50e3b2e7f8bf816b9d5ef75",
     "bytes": 27686,
     "envelope": "ATP1"
   },
@@ -774,7 +774,7 @@
       ],
       "release": {
         "destroyed": true,
-        "hiddenTicks": 2,
+        "hiddenTicks": 1,
         "outsideLeash": true,
         "unreachableTicks": 3
       },

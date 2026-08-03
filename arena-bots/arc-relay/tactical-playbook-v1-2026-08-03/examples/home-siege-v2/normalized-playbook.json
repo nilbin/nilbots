@@ -896,7 +896,7 @@
       ],
       "release": {
         "destroyed": true,
-        "hiddenTicks": 2,
+        "hiddenTicks": 1,
         "outsideLeash": true,
         "unreachableTicks": 3
       },
