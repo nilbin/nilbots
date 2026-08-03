@@ -107,4 +107,26 @@ public sealed class TacticalCoordinationPrimitivesTests
             selfDefenseEnabled: true,
             selfDefenseThreatDistance: 1));
     }
+
+    [Fact]
+    public void RepairProvidersHonorAuthoredSeparation()
+    {
+        Position[] assigned = [new Position(5, 5), new Position(10, 10)];
+
+        Assert.False(TacticalCoordinationPrimitives.HonorsProviderSeparation(
+            new Position(7, 5), assigned, minimumSeparation: 3));
+        Assert.True(TacticalCoordinationPrimitives.HonorsProviderSeparation(
+            new Position(8, 5), assigned, minimumSeparation: 3));
+    }
+
+    [Theory]
+    [InlineData("evade")]
+    [InlineData("regroup")]
+    [InlineData("hold")]
+    [InlineData("self-defense")]
+    public void EverySupportSurvivalFallbackRemainsDistinct(string fallback)
+    {
+        Assert.Equal(fallback,
+            TacticalCoordinationPrimitives.SurvivalDirective(fallback));
+    }
 }

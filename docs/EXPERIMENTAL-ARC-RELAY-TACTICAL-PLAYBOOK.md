@@ -123,8 +123,10 @@ A support policy declares provider roles, ordered target priorities, a
 per-target provider cap, provider separation, reserve-health threshold, and
 survival fallback. Eligible Patchbays allocate independently in stable order;
 the per-target cap prevents both repair beams from being spent on the same body
-unless the playbook explicitly permits it. Repair wins its arbitration channel
-before firing or movement.
+unless the playbook explicitly permits it, and a permitted pair must also meet
+the declared minimum separation. `evade`, `regroup`, `hold`, and
+`self-defense` are distinct low-health fallbacks. Repair wins its arbitration
+channel before firing or movement.
 
 ### Core custody
 

@@ -60,4 +60,18 @@ internal static class TacticalCoordinationPrimitives
         || selfDefenseEnabled
         && bodyPosition.ChebyshevDistance(enemyPosition)
             <= selfDefenseThreatDistance;
+
+    internal static bool HonorsProviderSeparation(
+        Position provider,
+        IEnumerable<Position> providersAlreadyAssignedToTarget,
+        int minimumSeparation) => providersAlreadyAssignedToTarget.All(
+            assigned => provider.ChebyshevDistance(assigned)
+                >= minimumSeparation);
+
+    internal static string SurvivalDirective(string fallback) => fallback switch
+    {
+        "evade" or "regroup" or "hold" or "self-defense" => fallback,
+        _ => throw new InvalidDataException(
+            $"Unknown support survival fallback '{fallback}'."),
+    };
 }

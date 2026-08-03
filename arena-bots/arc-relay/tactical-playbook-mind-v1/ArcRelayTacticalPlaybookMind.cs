@@ -1380,6 +1380,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && orders[body.UnitId].SupportId == policy.SupportId)
                 .OrderBy(body => body.UnitId).ToArray();
             var counts = new Dictionary<int, int>();
+            var assignedProviderPositions = new Dictionary<int, List<Position>>();
             foreach (MindBody provider in providers)
             {
                 MindBody? selected = mind.Bodies
@@ -1388,7 +1389,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && ArenaBasics.CanUseUnitSignature(
                             contract, provider, "repair-beam", body.ActorId)
                         && counts.GetValueOrDefault(body.UnitId)
-                            < policy.MaximumProvidersPerTarget)
+                            < policy.MaximumProvidersPerTarget
+                        && TacticalCoordinationPrimitives
+                            .HonorsProviderSeparation(
+                                provider.Position,
+                                assignedProviderPositions.GetValueOrDefault(
+                                    body.UnitId) ?? [],
+                                policy.MinimumProviderSeparation))
                     .OrderBy(body => SupportRank(
                         policy, body, roles, carriers, focusParticipants))
                     .ThenBy(body => body.Health)
@@ -1401,6 +1408,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 result[provider.UnitId] = selected;
                 counts[selected.UnitId] = counts.GetValueOrDefault(
                     selected.UnitId) + 1;
+                if (!assignedProviderPositions.TryGetValue(
+                        selected.UnitId,
+                        out List<Position>? positions))
+                {
+                    positions = [];
+                    assignedProviderPositions[selected.UnitId] = positions;
+                }
+                positions.Add(provider.Position);
             }
         }
         return result;
@@ -1602,7 +1617,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return ArenaBasics.TryEvade(contract, mind, body, claims);
     }
 
-    private static bool TrySelfPreservation(
+    private bool TrySelfPreservation(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         TacticalPlaybookPackage.Playbook playbook,
@@ -1616,8 +1631,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : playbook.SupportPolicies.Single(value =>
                     value.SupportId == order.SupportId);
         int reserve = support?.ReserveHealthPercent ?? 20;
-        return body.Health * 100 <= MaxHealth(contract, body) * reserve
-            && ArenaBasics.TryEvade(contract, mind, body, claims);
+        if (body.Health * 100 > MaxHealth(contract, body) * reserve)
+            return false;
+        string directive = support is null
+            ? "evade"
+            : TacticalCoordinationPrimitives.SurvivalDirective(
+                support.SurvivalFallback);
+        return directive switch
+        {
+            "evade" => ArenaBasics.TryEvade(
+                contract, mind, body, claims),
+            "regroup" => ArenaBasics.TryMoveToward(
+                contract,
+                mind,
+                body,
+                [_ownReactor],
+                claims,
+                "support:survival-regroup"),
+            "hold" => Hold(body, "support:survival-hold"),
+            "self-defense" => false,
+            _ => throw new InvalidDataException(
+                $"Unknown support directive '{directive}'."),
+        };
     }
 
     private bool TryMovement(
