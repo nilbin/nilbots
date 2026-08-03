@@ -65,15 +65,24 @@ const MIN_SPAN_TILES = 6;
 /**
  * Mode-owned closest shot for the automatic director.
  *
- * Arc Relay needs the carrier's bank lane and nearby cover in frame even when the current
- * beat has only one anchor. This belongs beside the shared fit arithmetic: putting the
- * value in a renderer made Canvas2D hold ten tiles while WebGL silently fell back to six.
+ * Arc Relay is a team sport, not a portrait camera. Its closest shot holds the interaction,
+ * the route around it, and enough of the neighbouring theater to understand a rotation.
+ * This belongs beside the shared fit arithmetic: putting the value in a renderer made
+ * Canvas2D and WebGL silently disagree about the same match.
  */
 export function directorMinSpan(replay: ReplayModel): number | undefined {
   return replay.contract.kind === 'v3-generic' &&
     replay.contract.modeKind === 'arc-relay'
-    ? 10
+    ? 15
     : undefined;
+}
+
+/** Minimum time an Arc Relay shot gets to tell its story before another ordinary beat wins. */
+export function directorShotHoldTicks(replay: ReplayModel): number {
+  return replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay'
+    ? 7
+    : 0;
 }
 
 /** A framing of the arena: a centre and the span it shows, both in tiles. */
@@ -114,6 +123,37 @@ export function fullArenaFrame(framing: ArenaFraming): ArenaFrame {
     width,
     height: width / framing.aspect,
   };
+}
+
+/**
+ * Arc Relay's manual overview: all three theaters, without spending pixels on both deep
+ * home aprons when the viewport does not require them.
+ *
+ * The Wells are the stable visual definition of the theaters. They are read from the
+ * first causal mode state carried by the replay rather than reconstructed from a map id,
+ * so a later Arc Relay map gets the same behavior without a renderer-side map registry.
+ * Other modes keep the historical whole-arena overview.
+ */
+export function strategicOverviewFrame(
+  replay: ReplayModel,
+  framing: ArenaFraming,
+): ArenaFrame {
+  const wells = arcRelayModeState(replay, 0)?.wells ?? [];
+  if (wells.length < 2) return fullArenaFrame(framing);
+  return focusFrame(
+    wells.map((well) => ({
+      x: well.position.x + 0.5,
+      y: well.position.y + 0.5,
+    })),
+    {
+      ...framing,
+      // A theater overview needs a little approach around the outer Wells, not the whole
+      // home apron. At Counterflow's 31x23 shape this crops about two tiles at each deep
+      // end while retaining north, centre, and south at once.
+      margin: 1.5,
+      minSpan: 18,
+    },
+  );
 }
 
 /**
@@ -279,12 +319,13 @@ export function focusPointsAt(
 type DirectorPoint = { x: number; y: number };
 
 /**
- * Arc Relay's outcome-blind camera director.
+ * Arc Relay's causal camera director.
  *
  * It reads only facts already revealed at `time`. The ordering is the spectator grammar:
- * a carrier entering the bank run, then violence, then a loose Core contest, then the next
- * scheduled birth. A quiet board falls back to the closest opposing pair rather than all
- * sixteen bodies, which is what made the old "fit" indistinguishable from overview.
+ * sustained violence, a threatened carrier, a genuinely contested loose Core, and then
+ * the nearest opposing formation. An uncontested carrier jogging home is deliberately not
+ * a shot: the score bug and Core cue carry that fact while the camera stays with play that
+ * asks one team to answer the other.
  */
 function autoDirectorPoints(
   replay: ReplayModel,
@@ -301,11 +342,13 @@ function autoDirectorPoints(
     0,
     Math.min(Math.floor(time), replay.ticks.length - 1),
   );
-  const mode =
-    replay.ticks[tickIndex]?.after.mode ?? replay.initialWorld?.mode;
+  const mode = arcRelayModeState(replay, tickIndex);
   if (mode?.kind !== 'arc-relay' || !('visibleCores' in mode)) return [...active];
 
-  const carrierRuns = mode.visibleCores
+  const combat = combatFocus(replay, tickIndex, active);
+  if (combat.length > 0) return combat;
+
+  const threatenedCarriers = mode.visibleCores
     .filter(
       (core) => core.disposition === 'carried' && core.carrierActor !== null,
     )
@@ -316,11 +359,23 @@ function autoDirectorPoints(
       const reactor = mode.reactors.find(
         (candidate) => candidate.teamId === core.carrierActor!.teamId,
       );
-      return carrier && reactor
+      if (!carrier || !reactor) return null;
+      const threats = active
+        .filter((pose) => pose.teamId !== carrier.teamId)
+        .map((pose) => ({
+          pose,
+          distance: Math.max(
+            Math.abs(pose.x - carrier.x),
+            Math.abs(pose.y - carrier.y),
+          ),
+        }))
+        .sort((left, right) => left.distance - right.distance);
+      const threat = threats[0];
+      return threat && threat.distance <= 5
         ? {
             carrier,
-            reactor,
-            distance: Math.max(
+            threat: threat.pose,
+            bankDistance: Math.max(
               Math.abs(reactor.position.x - carrier.x),
               Math.abs(reactor.position.y - carrier.y),
             ),
@@ -332,55 +387,46 @@ function autoDirectorPoints(
     .sort(
       (left, right) =>
         Number(right.pulseCore) - Number(left.pulseCore) ||
-        left.distance - right.distance,
+        left.bankDistance - right.bankDistance,
     );
-  const bankRun = carrierRuns.find((run) => run.distance <= 6);
-  if (bankRun) {
+  const threatenedCarrier = threatenedCarriers[0];
+  if (threatenedCarrier) {
     return includeNearby(
       active,
-      [
-        bankRun.carrier,
-        { x: bankRun.reactor.position.x, y: bankRun.reactor.position.y },
-      ],
-      2.75,
+      [threatenedCarrier.carrier, threatenedCarrier.threat],
+      4.25,
     );
   }
 
-  // Hold a fight for three ticks so one impact does not make the target flicker away on
-  // the next frame. These are historical, already-revealed events only.
-  for (let age = 0; age <= 2; age += 1) {
-    const tick = replay.ticks[tickIndex - age];
-    if (!tick) continue;
-    const fight = tick.events.filter(
-      (event) =>
-        event.type === 'damage' ||
-        isDestructionEvent(event.type) ||
-        isAttackEvent(event.type),
-    );
-    if (fight.length === 0) continue;
-    const points: DirectorPoint[] = [];
-    for (const event of fight) {
-      const source = event.sourceActor
-        ? active.find((pose) => pose.actorKey === event.sourceActor!.actorKey)
-        : null;
-      const target = event.targetActor
-        ? active.find((pose) => pose.actorKey === event.targetActor!.actorKey)
-        : null;
-      if (source) points.push(source);
-      else if (event.from) points.push(event.from);
-      if (target) points.push(target);
-      else if (event.to) points.push(event.to);
-    }
-    if (points.length > 0) return includeNearby(active, points, 2.5);
-  }
-
-  const loose = [...mode.visibleCores]
+  const looseContests = mode.visibleCores
     .filter((core) => core.disposition === 'loose')
-    .sort((left, right) =>
-      left.coreId.sourceWellId.localeCompare(right.coreId.sourceWellId) ||
-      left.coreId.sourceOrdinal - right.coreId.sourceOrdinal,
-    )[0];
-  if (loose) return includeNearby(active, [loose.position], 3.5);
+    .map((core) => {
+      const nearestByTeam = new Map<number, { pose: DirectorPoint; distance: number }>();
+      for (const pose of active) {
+        const distance = Math.max(
+          Math.abs(pose.x - core.position.x),
+          Math.abs(pose.y - core.position.y),
+        );
+        const prior = nearestByTeam.get(pose.teamId);
+        if (!prior || distance < prior.distance)
+          nearestByTeam.set(pose.teamId, { pose, distance });
+      }
+      const sides = [...nearestByTeam.values()].sort(
+        (left, right) => left.distance - right.distance,
+      );
+      return sides.length >= 2 && sides[0]!.distance <= 6 && sides[1]!.distance <= 6
+        ? { core, sides, distance: sides[0]!.distance + sides[1]!.distance }
+        : null;
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort((left, right) => left.distance - right.distance);
+  const looseContest = looseContests[0];
+  if (looseContest)
+    return includeNearby(
+      active,
+      [looseContest.core.position, ...looseContest.sides.map((side) => side.pose)],
+      4.5,
+    );
 
   const nextWell = [...mode.wells]
     .filter((well) => well.nextScheduledBirthTick !== null)
@@ -389,9 +435,6 @@ function autoDirectorPoints(
         left.nextScheduledBirthTick! - right.nextScheduledBirthTick! ||
         left.wellId.localeCompare(right.wellId),
     )[0];
-  if (nextWell)
-    return includeNearby(active, [nextWell.position], 3.25);
-
   let closest: [DirectorPoint, DirectorPoint] | null = null;
   let closestDistance = Infinity;
   for (const left of active) {
@@ -404,7 +447,121 @@ function autoDirectorPoints(
       }
     }
   }
-  return closest ? includeNearby(active, closest, 2.5) : [...active];
+  if (closest && closestDistance <= 9)
+    return includeNearby(active, closest, 4.25);
+
+  // A birth about to create a meeting is worth establishing. A distant scheduled birth is
+  // not: during quiet setup the three-theater overview is more informative than an empty
+  // Well close-up.
+  if (
+    nextWell &&
+    nextWell.nextScheduledBirthTick! - tickIndex <= 8
+  ) {
+    return includeNearby(active, [nextWell.position], 5);
+  }
+
+  return mode.wells.map((well) => well.position);
+}
+
+type ArcRelayModeState = Extract<
+  NonNullable<ReplayModel['initialWorld']>['mode'],
+  { kind: 'arc-relay' }
+>;
+
+function arcRelayModeState(
+  replay: ReplayModel,
+  tickIndex: number,
+): ArcRelayModeState | null {
+  const at = Math.max(0, Math.min(tickIndex, replay.ticks.length - 1));
+  const candidates = [
+    replay.ticks[at]?.after.mode,
+    replay.ticks[at]?.before.mode,
+    replay.initialWorld?.mode,
+    replay.ticks[0]?.after.mode,
+    replay.ticks[0]?.before.mode,
+  ];
+  return candidates.find(
+    (candidate): candidate is ArcRelayModeState =>
+      candidate?.kind === 'arc-relay' && 'wells' in candidate,
+  ) ?? null;
+}
+
+interface CombatCluster {
+  x: number;
+  y: number;
+  score: number;
+  newestTick: number;
+  points: DirectorPoint[];
+}
+
+/**
+ * Pick one continuing interaction, not every shot fired on the latest tick.
+ *
+ * A seven-tick causal window makes an exchange accumulate enough weight to survive a
+ * stray shot in another theater. Events are spatially clustered, so simultaneous fights
+ * do not force a zoom-out that tells neither story. No event after `tickIndex` participates.
+ */
+function combatFocus(
+  replay: ReplayModel,
+  tickIndex: number,
+  active: readonly ReturnType<typeof posesAt>[number][],
+): DirectorPoint[] {
+  const clusters: CombatCluster[] = [];
+  for (let age = 0; age <= 7; age += 1) {
+    const tick = replay.ticks[tickIndex - age];
+    if (!tick) continue;
+    for (const event of tick.events) {
+      if (
+        event.type !== 'damage' &&
+        !isDestructionEvent(event.type) &&
+        !isAttackEvent(event.type)
+      ) {
+        continue;
+      }
+      const points: DirectorPoint[] = [];
+      const source = event.sourceActor
+        ? active.find((pose) => pose.actorKey === event.sourceActor!.actorKey)
+        : null;
+      const target = event.targetActor
+        ? active.find((pose) => pose.actorKey === event.targetActor!.actorKey)
+        : null;
+      if (source) points.push(source);
+      else if (event.from) points.push(event.from);
+      if (target) points.push(target);
+      else if (event.to) points.push(event.to);
+      if (points.length === 0) continue;
+
+      const x = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+      const y = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+      const base = isDestructionEvent(event.type)
+        ? 6
+        : event.type === 'damage'
+          ? 4
+          : 2;
+      const weight = base * (1 - age / 16);
+      let cluster = clusters
+        .filter((candidate) => Math.hypot(candidate.x - x, candidate.y - y) <= 5.5)
+        .sort((left, right) => right.score - left.score)[0];
+      if (!cluster) {
+        cluster = { x, y, score: 0, newestTick: tick.tick, points: [] };
+        clusters.push(cluster);
+      }
+      const total = cluster.score + weight;
+      cluster.x = (cluster.x * cluster.score + x * weight) / total;
+      cluster.y = (cluster.y * cluster.score + y * weight) / total;
+      cluster.score = total;
+      cluster.newestTick = Math.max(cluster.newestTick, tick.tick);
+      cluster.points.push(...points);
+    }
+  }
+  const chosen = clusters.sort(
+    (left, right) =>
+      right.score - left.score ||
+      right.newestTick - left.newestTick ||
+      left.y - right.y ||
+      left.x - right.x,
+  )[0];
+  return chosen ? includeNearby(active, chosen.points, 4.25) : [];
 }
 
 function includeNearby(
@@ -479,6 +636,9 @@ export class ArenaCamera {
   private target: ArenaFrame;
   private velocity = { x: 0, y: 0, span: 0 };
   private following = true;
+  /** Replay-time shot lock: ordinary Arc Relay beats cannot make the director channel-hop. */
+  private heldUntil = -Infinity;
+  private lastAimTime = -Infinity;
   /** Set by `engage`, so the first fit after a gesture is never held off by the deadband. */
   private forceAim = false;
 
@@ -501,11 +661,27 @@ export class ArenaCamera {
    * Offer a freshly fitted frame. Ignored unless the action has escaped the committed one.
    * Returns whether it was taken, which is what makes the deadband observable.
    */
-  aim(candidate: ArenaFrame): boolean {
+  aim(candidate: ArenaFrame, time?: number, holdTicks = 0): boolean {
     if (!this.following) return false;
+    if (time !== undefined && time < this.lastAimTime) {
+      // A seek or restart is a new watch from that point; a future shot lock must not leak
+      // backward and pin the camera to a scene that has not happened yet.
+      this.heldUntil = -Infinity;
+      this.forceAim = true;
+    }
+    if (time !== undefined) this.lastAimTime = time;
+    if (
+      !this.forceAim &&
+      time !== undefined &&
+      time < this.heldUntil &&
+      frameEscapes(this.target, candidate)
+    ) {
+      return false;
+    }
     if (!this.forceAim && !frameEscapes(this.target, candidate)) return false;
     this.forceAim = false;
     this.target = { ...candidate };
+    if (time !== undefined) this.heldUntil = time + Math.max(0, holdTicks);
     return true;
   }
 
@@ -526,6 +702,8 @@ export class ArenaCamera {
     this.frame = { ...frame };
     this.target = { ...frame };
     this.velocity = { x: 0, y: 0, span: 0 };
+    this.heldUntil = -Infinity;
+    this.lastAimTime = -Infinity;
   }
 
   /**
@@ -583,6 +761,12 @@ export class ArenaCamera {
     this.target = fullArenaFrame(framing);
   }
 
+  /** Stop following and head toward a mode-owned strategic overview. */
+  showFrame(frame: ArenaFrame): void {
+    this.following = false;
+    this.target = { ...frame };
+  }
+
   /**
    * A gesture. Drops auto-fit until something re-engages it.
    *
@@ -623,6 +807,7 @@ export class ArenaCamera {
     // after re-engaging, or re-engaging on a frame that happens to contain everybody
     // would look like the control did nothing.
     this.forceAim = true;
+    this.heldUntil = -Infinity;
   }
 }
 

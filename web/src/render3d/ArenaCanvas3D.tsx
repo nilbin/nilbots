@@ -7,8 +7,10 @@ import { buildOverlays } from './arenaOverlays';
 import {
   ArenaCamera,
   directorMinSpan,
+  directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
+  strategicOverviewFrame,
   type ArenaFrame,
   type ArenaFraming,
 } from '../render/arenaCamera';
@@ -273,10 +275,14 @@ export default function ArenaCanvas3D({
         if (fit !== lastFit) {
           lastFit = fit;
           if (fit) camera.engage();
-          else camera.showEverything(framing);
+          else camera.showFrame(strategicOverviewFrame(replay, framing));
         }
         if (camera.auto)
-          camera.aim(focusFrame(focusPointsAt(replay, now, followed), framing));
+          camera.aim(
+            focusFrame(focusPointsAt(replay, now, followed), framing),
+            now,
+            followed === null ? directorShotHoldTicks(replay) : 0,
+          );
         // Real seconds, so the camera settles at the same rate whatever the playback speed
         // and whatever the frame rate; the spring clamps a huge step of its own accord.
         camera.advance(last === null ? 0 : (stamp - last) / 1000);

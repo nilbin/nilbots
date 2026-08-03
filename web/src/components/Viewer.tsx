@@ -30,7 +30,10 @@ import { styleVariables } from '../presentation/styleVariables';
 import LiveStatus, { LiveDot } from './LiveStatus';
 import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
 import ClassIcon from './ClassIcon';
-import { createPresenter } from '../replayPresentation';
+import {
+  createPresenter,
+  type ArcRelayBeatPresentation,
+} from '../replayPresentation';
 
 export interface ViewerEntrantPresentation {
   teamId: number;
@@ -494,8 +497,16 @@ export default function Viewer({
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
           {isArcRelay && arcStanding && (
-            <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
-              reactors={arcStanding.reactors} />
+            <>
+              <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
+                reactors={arcStanding.reactors} />
+              {arcStanding.beat && (
+                <ArcRelayCoreBeat
+                  key={`${arcStanding.beat.tick}:${arcStanding.beat.kind}`}
+                  beat={arcStanding.beat}
+                />
+              )}
+            </>
           )}
           {/* A live broadcast has no play button — the clock belongs to the server and
               every viewer is on the same tick — so it keeps a plain indicator. */}
@@ -758,6 +769,59 @@ function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
       <span className="text-[7px] uppercase tracking-[.2em] text-white/55">Arc Relay</span>
     </div>
   </div>;
+}
+
+/**
+ * A score-bug-sized possession call, not the old centre-screen event banner.
+ *
+ * The Core already moves and blooms in-world, but at the wider director distance a pickup
+ * can be a six-pixel ownership change. This short causal call makes the important change
+ * readable without stealing the field or predicting anything beyond the playhead.
+ */
+function ArcRelayCoreBeat({ beat }: { beat: ArcRelayBeatPresentation }) {
+  const mark = beat.kind === 'pickup'
+    ? '↑'
+    : beat.kind === 'drop'
+      ? '↓'
+      : beat.kind === 'steal'
+        ? '↯'
+        : beat.kind === 'bank'
+          ? '◆'
+          : beat.kind === 'pulse'
+            ? '✦'
+            : '○';
+  const accent = beat.accent ?? '#d9e6ee';
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-none absolute top-[72px] right-2 z-[8] flex max-w-[min(330px,calc(100%-16px))] items-center gap-2 rounded-sm border border-white/12 bg-[#10161c]/88 px-2.5 py-1.5 text-white shadow-[0_4px_16px_rgba(0,0,0,.36)] backdrop-blur-[5px] transition-opacity duration-200"
+      style={{
+        borderLeftColor: accent,
+        borderLeftWidth: 3,
+        opacity: Math.max(0.58, beat.strength),
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full border text-[13px] font-bold"
+        style={{
+          borderColor: accent,
+          color: accent,
+          boxShadow: `0 0 10px ${accent}55`,
+        }}
+      >
+        {mark}
+      </span>
+      <span className="min-w-0 leading-none">
+        <strong className="block truncate text-[10px] tracking-[.12em]">
+          {beat.headline}
+        </strong>
+        <span className="mt-1 block truncate text-[9px] text-white/65">
+          {beat.detail}
+        </span>
+      </span>
+    </div>
+  );
 }
 
 function fallbackCrest(name: string, accent: string): CrestPresentation {

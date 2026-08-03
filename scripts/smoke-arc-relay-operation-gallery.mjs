@@ -87,29 +87,60 @@ try {
       throw new Error(`${link.title}: playback did not advance.`);
     await page.getByRole('button', { name: 'Pause' }).click();
     if (index === 0) {
+      const pickupTick = await page.evaluate(() => {
+        const replayDocument = window.__BOTARENA_REPLAY__;
+        const events = Array.isArray(replayDocument?.events) ? replayDocument.events : [];
+        for (let tick = 0; tick < events.length; tick += 1) {
+          for (const event of events[tick] ?? []) {
+            const fact = event?.payload?.fact ?? event?.arcRelayFact;
+            if (fact?.kind === 'core-picked-up') return tick;
+          }
+        }
+        return null;
+      });
+      if (!Number.isInteger(pickupTick))
+        throw new Error(`${link.title}: could not find a Core pickup beat.`);
+      await seekTick(page, pickupTick);
+      const possession = page.getByText('CORE PICKED UP', { exact: true });
+      await possession.waitFor({ timeout: 5_000 });
+      const possessionScreenshot = path.join(outputDirectory, 'core-pickup-webgl.png');
+      await arena.screenshot({ path: possessionScreenshot, animations: 'disabled' });
+
+      const cameraToggle = page.getByRole('button', { name: /director/i });
+      await cameraToggle.click();
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('button')].some((button) =>
+          /overview/i.test(button.textContent ?? '') && button.getAttribute('aria-pressed') === 'false',
+        ),
+      );
+      await page.waitForTimeout(1_200);
+      const overviewScreenshot = path.join(outputDirectory, 'three-theater-overview-webgl.png');
+      await arena.screenshot({ path: overviewScreenshot, animations: 'disabled' });
+      await page.getByRole('button', { name: /overview/i }).click();
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('button')].some((button) =>
+          /director/i.test(button.textContent ?? '') && button.getAttribute('aria-pressed') === 'true',
+        ),
+      );
+
       const evidenceTick = Number(
         link.subtitle.match(/(?:committed counter|preparation denial) t(\d+)/)?.[1],
       );
       if (!Number.isFinite(evidenceTick))
         throw new Error(`${link.title}: could not parse its counter evidence tick.`);
-      const timeline = page.locator('[aria-label^="Match timeline"]');
-      const thumb = timeline.locator('[role="slider"]');
-      const maximum = Number(await thumb.getAttribute('aria-valuemax'));
-      const bounds = await timeline.boundingBox();
-      if (!bounds || !Number.isFinite(maximum))
-        throw new Error(`${link.title}: could not measure its timeline.`);
-      await page.mouse.click(
-        bounds.x + bounds.width * (evidenceTick / maximum),
-        bounds.y + bounds.height / 2,
-      );
-      await page.waitForFunction(
-        (expected) =>
-          [...document.querySelectorAll('section[aria-label="Arena"] p')].some((node) =>
-            new RegExp(`^\\s*0*${expected}\\s*\\/`).test(node.textContent ?? ''),
-          ),
-        evidenceTick,
-      );
+      await seekTick(page, evidenceTick);
       await page.waitForTimeout(1_200);
+      smoke.possessionCue = {
+        tick: pickupTick,
+        headline: 'CORE PICKED UP',
+        screenshot: relative(possessionScreenshot),
+        screenshotSha256: sha256(readFileSync(possessionScreenshot)),
+      };
+      smoke.strategicOverview = {
+        scope: 'all three Wells; deep home aprons may be cropped',
+        screenshot: relative(overviewScreenshot),
+        screenshotSha256: sha256(readFileSync(overviewScreenshot)),
+      };
     }
     const screenshot = index === 0
       ? path.join(outputDirectory, 'first-operation-webgl.png')
@@ -171,6 +202,26 @@ async function readTick(currentPage) {
   const match = value?.match(/\d+/);
   if (!match) throw new Error(`Could not read arena tick from '${value}'.`);
   return Number(match[0]);
+}
+
+async function seekTick(currentPage, tick) {
+  const timeline = currentPage.locator('[aria-label^="Match timeline"]');
+  const thumb = timeline.locator('[role="slider"]');
+  const maximum = Number(await thumb.getAttribute('aria-valuemax'));
+  const bounds = await timeline.boundingBox();
+  if (!bounds || !Number.isFinite(maximum))
+    throw new Error(`Could not measure the timeline for tick ${tick}.`);
+  await currentPage.mouse.click(
+    bounds.x + bounds.width * (tick / maximum),
+    bounds.y + bounds.height / 2,
+  );
+  await currentPage.waitForFunction(
+    (expected) =>
+      [...document.querySelectorAll('section[aria-label="Arena"] p')].some((node) =>
+        new RegExp(`^\\s*0*${expected}\\s*\\/`).test(node.textContent ?? ''),
+      ),
+    tick,
+  );
 }
 
 function sha256(value) {

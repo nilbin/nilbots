@@ -16,11 +16,13 @@ import {
   ArenaCamera,
   arenaViewport,
   directorMinSpan,
+  directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
   posesAt,
+  strategicOverviewFrame,
 } from './.harness/harness.entry.js';
 
 /**
@@ -160,7 +162,7 @@ test('it never gets closer than about six tiles, and never wider than the arena'
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
 });
 
-test('Arc Relay gives both renderers the same wider ten-tile closest shot', () => {
+test('Arc Relay gives both renderers the same wider fifteen-tile closest shot', () => {
   const arc = loadReplayJson(
     readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
   ).replay;
@@ -169,13 +171,104 @@ test('Arc Relay gives both renderers the same wider ten-tile closest shot', () =
   arc.contract.modeKind = 'arc-relay';
 
   const minSpan = directorMinSpan(arc);
-  assert.equal(minSpan, 10);
+  assert.equal(minSpan, 15);
+  assert.equal(directorShotHoldTicks(arc), 7);
   assert.equal(directorMinSpan(frontline), undefined);
+  assert.equal(directorShotHoldTicks(frontline), 0);
   const close = focusFrame([{ x: 20, y: 12 }], {
     ...FRAMING,
     minSpan,
   });
-  assert.ok(close.width >= 10, `Arc Relay close-up held at ${close.width} tiles`);
+  assert.ok(close.width >= 15, `Arc Relay close-up held at ${close.width} tiles`);
+});
+
+test('Arc Relay overview frames all three theaters closer than the whole map', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  assert.equal(arc.contract.kind, 'v3-generic');
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  arc.ticks[0]!.after.mode = {
+    kind: 'arc-relay',
+    modeId: 'arc-relay',
+    wells: [
+      { wellId: 'well-north', position: { x: 15, y: 4 }, nextScheduledBirthTick: 10, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-centre', position: { x: 15, y: 11 }, nextScheduledBirthTick: 20, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-south', position: { x: 15, y: 18 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+    ],
+    reactors: [],
+    visibleCores: [],
+    visibleSignatures: [],
+    latestPulseTeamId: null,
+    latestPulseTick: null,
+  };
+  const framing = { mapWidth: 31, mapHeight: 23, aspect: 16 / 10 };
+  const overview = strategicOverviewFrame(arc, framing);
+  const full = fullArenaFrame(framing);
+  assert.ok(overview.width < full.width * 0.9, `${overview.width} is a closer overview than ${full.width}`);
+  for (const y of [4.5, 11.5, 18.5])
+    assert.ok(Math.abs(y - overview.y) < overview.height / 2, `theater ${y} remains visible`);
+});
+
+test('an unthreatened bank run does not outrank cross-team play', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  assert.equal(arc.contract.kind, 'v3-generic');
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  for (const tick of arc.ticks) tick.events = [];
+  const tick = arc.ticks[0]!;
+  const sides = [...new Set(tick.after.actors.map((actor) => actor.identity.teamId))];
+  assert.ok(sides.length >= 2);
+  const carrier = tick.after.actors.find((actor) => actor.identity.teamId === sides[0])!;
+  const opponent = tick.after.actors.find((actor) => actor.identity.teamId === sides[1])!;
+  const carrierBefore = tick.before.actors.find((actor) => actor.actorKey === carrier.actorKey)!;
+  const opponentBefore = tick.before.actors.find((actor) => actor.actorKey === opponent.actorKey)!;
+  carrier.position = { x: 5, y: 11 };
+  carrierBefore.position = { x: 5, y: 11 };
+  opponent.position = { x: 25, y: 11 };
+  opponentBefore.position = { x: 25, y: 11 };
+  const mode = {
+    kind: 'arc-relay' as const,
+    modeId: 'arc-relay',
+    wells: [
+      { wellId: 'well-north', position: { x: 15, y: 4 }, nextScheduledBirthTick: 50, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-centre', position: { x: 15, y: 11 }, nextScheduledBirthTick: 60, outstandingCoreId: { sourceWellId: 'well-centre', sourceOrdinal: 1 }, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-south', position: { x: 15, y: 18 }, nextScheduledBirthTick: 70, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+    ],
+    reactors: [
+      { teamId: carrier.identity.teamId, position: { x: 2, y: 11 }, chargePips: 1, integritySegments: 3 },
+      { teamId: opponent.identity.teamId, position: { x: 28, y: 11 }, chargePips: 1, integritySegments: 3 },
+    ],
+    visibleCores: [{
+      coreId: { sourceWellId: 'well-centre', sourceOrdinal: 1 },
+      position: carrier.position,
+      disposition: 'carried' as const,
+      carrierActor: carrier.identity,
+      nextRelocationTick: 4,
+      flightTarget: null,
+      flightCompletesAtTick: null,
+    }],
+    visibleSignatures: [],
+    latestPulseTeamId: null,
+    latestPulseTick: null,
+  };
+  tick.after.mode = mode;
+  tick.before.mode = mode;
+  const quiet = focusPointsAt(arc, 0, null);
+  assert.deepEqual(
+    quiet.map((point) => point.y),
+    [4.5, 11.5, 18.5],
+    'the director establishes all theaters instead of following the free carrier',
+  );
+
+  opponent.position = { x: 8, y: 11 };
+  opponentBefore.position = { x: 8, y: 11 };
+  const threatened = focusPointsAt(arc, 0, null);
+  assert.ok(threatened.some((point) => Math.abs(point.x - 5.5) < 1e-9));
+  assert.ok(threatened.some((point) => Math.abs(point.x - 8.5) < 1e-9));
 });
 
 test('the fit is close enough to watch on a phone, and still never crops a life', () => {
@@ -418,6 +511,22 @@ test('the camera converges without ever passing the target', () => {
   assert.ok(previousGap < 0.01);
   // It also never cuts: one frame may not do most of the journey.
   assert.ok(first < (start - target.width) * 0.25, `first frame eased (${first})`);
+});
+
+test('a director shot holds through ordinary off-screen churn, then releases', () => {
+  const camera = new ArenaCamera(FRAMING);
+  const north = focusFrame([{ x: 8, y: 5 }], FRAMING);
+  const south = focusFrame([{ x: 32, y: 19 }], FRAMING);
+  assert.equal(camera.aim(north, 10, 7), true);
+  assert.equal(
+    camera.aim(south, 13, 7),
+    false,
+    'a new ordinary beat cannot channel-hop during the shot',
+  );
+  assert.deepEqual(camera.aimed, north);
+  assert.equal(camera.aim(south, 17, 7), true, 'the shot releases on replay time');
+
+  assert.equal(camera.aim(north, 4, 7), true, 'a seek clears the future shot lock');
 });
 
 test('a huge frame gap — a backgrounded tab — is stepped, not flung', () => {

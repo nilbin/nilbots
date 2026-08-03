@@ -9,8 +9,10 @@ import {
   ArenaCamera,
   arenaViewport,
   directorMinSpan,
+  directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
+  strategicOverviewFrame,
   type ArenaFraming,
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
@@ -142,11 +144,13 @@ export default function ArenaCanvas({
         if (fit !== lastFit) {
           lastFit = fit;
           if (fit) camera.engage();
-          else camera.showEverything(framingRef.current);
+          else camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
         }
         if (camera.auto)
           camera.aim(
             focusFrame(focusPointsAt(replay, now, followed), framingRef.current),
+            now,
+            followed === null ? directorShotHoldTicks(replay) : 0,
           );
         // Real seconds, so the camera settles at the same rate whatever the playback speed
         // and whatever the frame rate; the spring clamps a huge step of its own accord.

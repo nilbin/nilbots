@@ -18,10 +18,12 @@ export {
   ArenaCamera,
   arenaViewport,
   directorMinSpan,
+  directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
+  strategicOverviewFrame,
 } from '../../src/render/arenaCamera';
 export { createPresenter } from '../../src/replayPresentation';
 export { defaultPlaybackSpeed } from '../../src/playback';

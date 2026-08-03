@@ -192,13 +192,13 @@ test('Arc Relay defaults to a human-readable half-speed first watch', () => {
   assert.equal(defaultPlaybackSpeed(arcRelayReplay()), 0.5);
 });
 
-test('Arc Relay presents the carrier and all five spectator beats', () => {
+test('Arc Relay presents the carrier and every possession beat', () => {
   const presenter = createPresenter(arcRelayReplay());
   assert.equal(presenter.at(1).arcRelay?.cue.headline.includes('PULSE CORE'), true);
   assert.equal(presenter.at(1).arcRelay?.cores[0]?.carrierTeamId, 0);
   assert.deepEqual(
-    [0, 2, 3, 4, 5].map((tick) => presenter.at(tick).arcRelay?.beat?.kind),
-    ['birth', 'drop', 'steal', 'bank', 'pulse'],
+    [0, 1, 2, 3, 4, 5].map((tick) => presenter.at(tick).arcRelay?.beat?.kind),
+    ['birth', 'pickup', 'drop', 'steal', 'bank', 'pulse'],
   );
 });
 

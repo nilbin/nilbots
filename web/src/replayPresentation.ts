@@ -320,7 +320,7 @@ export interface UnitPresentation {
 }
 
 export interface ArcRelayBeatPresentation {
-  kind: 'birth' | 'steal' | 'drop' | 'bank' | 'pulse';
+  kind: 'birth' | 'pickup' | 'steal' | 'drop' | 'bank' | 'pulse';
   tick: number;
   headline: string;
   detail: string;
@@ -1545,13 +1545,12 @@ function arcBeat(
     case 'core-picked-up': {
       const previous = lastOwner.get(arcCoreKey(fact.coreId));
       lastOwner.set(arcCoreKey(fact.coreId), fact.carrierActor);
-      if (previous === undefined || previous.teamId === fact.carrierActor.teamId)
-        return null;
+      const stolen = previous !== undefined && previous.teamId !== fact.carrierActor.teamId;
       return {
-        kind: 'steal',
+        kind: stolen ? 'steal' : 'pickup',
         tick,
-        headline: 'CORE STOLEN',
-        detail: `${arcActorName(replay, fact.carrierActor)} takes the ${arcSourceLabel(fact.coreId.sourceWellId)} Core`,
+        headline: stolen ? 'CORE STOLEN' : 'CORE PICKED UP',
+        detail: `${arcSourceLabel(fact.coreId.sourceWellId)} Core · possession changed`,
         teamId: fact.carrierActor.teamId,
         accent: unitAccent(replay, fact.carrierActor.unitKey),
       };
@@ -1569,7 +1568,7 @@ function arcBeat(
         kind: 'drop',
         tick,
         headline: 'CORE DROPPED',
-        detail: `${arcSourceLabel(fact.coreId.sourceWellId)} Core is loose at ${fact.position.x},${fact.position.y}`,
+        detail: `${arcSourceLabel(fact.coreId.sourceWellId)} Core · loose on the field`,
         teamId: fact.sourceActor.teamId,
         accent: unitAccent(replay, fact.sourceActor.unitKey),
       };
