@@ -49,6 +49,8 @@ try
             ArcRelayExperimentCommand.Run(rest),
         ["experiment", "arc-relay-screen-batch", .. var rest] =>
             ArcRelayScreenBatchCommand.Run(rest),
+        ["experiment", "arc-relay-playbook", .. var rest] =>
+            ArcRelayTacticalPlaybookCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -152,6 +154,12 @@ static int Help(int exitCode = 1)
                                                   screening; finalists still
                                                   require WASM + canonical
                                                   replay verification
+          nilbots experiment arc-relay-playbook
+                        --playbook <json> [--out <dir>]
+                                                  validate and compile a typed
+                                                  tactical playbook; emit its
+                                                  normalized IR, bound layout,
+                                                  ATP1 package, and explain view
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]

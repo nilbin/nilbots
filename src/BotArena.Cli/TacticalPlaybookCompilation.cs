@@ -10,4 +10,6 @@ public sealed record TacticalPlaybookCompilation(
     string LayoutPath,
     string LayoutSha256,
     string[] Composition,
+    byte[] NormalizedPlaybook,
+    byte[] NormalizedLayout,
     byte[] LinkedData);

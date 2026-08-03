@@ -89,6 +89,48 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void FactVariantsRejectIrrelevantFields()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject condition = source["custodyPolicies"]![0]!
+            ["safeConversionAll"]![0]!["all"]![0]!.AsObject();
+        condition["zone"] = "enemy-home";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("unknown field 'zone'", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void ConditionGroupsRequireOneExplicitCombinator()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject group = source["custodyPolicies"]![0]!
+            ["safeConversionAll"]![0]!.AsObject();
+        group["any"] = new JsonArray();
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("exactly one of 'all' or 'any'", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =
@@ -111,6 +153,13 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Equal(compilation.LayoutSha256, package.LayoutSha256);
         Assert.Equal(new BotArena.Sdk.Position(24, 11),
             package.AnchorPosition("enemy-perimeter"));
+        TacticalPlaybookPackage.Condition condition = package.Source
+            .CustodyPolicies[0].SafeConversionAll[0].All[0];
+        Assert.Equal("", condition.Subject);
+        Assert.Equal("", condition.Zone);
+        Assert.Equal(0, condition.FreshnessTicks);
+        Assert.Equal("", package.Source.Orders.Single(value =>
+            value.OrderId == "medics-rush").CustodyId);
     }
 
     private static string TemporaryJson(JsonNode source)

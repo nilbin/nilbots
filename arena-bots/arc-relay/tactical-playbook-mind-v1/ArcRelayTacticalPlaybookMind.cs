@@ -20,8 +20,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, MotionProgress> _motion = [];
     private readonly Dictionary<string, FocusLock> _focusLocks =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CoreReservation> _coreReservations =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _formationStableTicks =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<int, ActorIdentity> _friendlyLives = [];
+    private readonly HashSet<int> _joiningUnits = [];
     private GenericActorResolvedMatchContract? _contract;
     private TacticalPlaybookPackage? _package;
     private TacticalPlaybookMachine? _machine;
@@ -84,6 +88,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         UpdateMemory(mind, arc, package.Source.Memory);
         Dictionary<int, string> roles = AllocateRoles(mind, package.Source);
         Dictionary<int, string> groups = GroupMembership(roles, package.Source);
+        UpdateFriendlyMembership(mind, package.Source, machine, groups);
         TacticalSnapshot snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
             updateFormationState: false);
@@ -104,24 +109,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body => Target(
                 contract, mind, package, machine, roles, groups,
                 orders[body.UnitId], body));
-        Dictionary<int, MindBody> repairs = AllocateRepairs(
-            contract, mind, package.Source, roles, orders,
-            new HashSet<int>());
-        Dictionary<int, GenericActorContext.ObservedEnemyState> focus =
-            AllocateFocus(contract, mind, arc, package.Source, roles, orders,
-                targets, repairs.Keys.ToHashSet());
         Dictionary<ActorIdentity, GenericActorContext.ArcRelayCoreState> carried =
             arc.VisibleCores
                 .Where(core => core.Disposition
                     == GenericActorContext.ArcRelayCoreDisposition.Carried
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
+        Dictionary<int, MindBody> repairs = AllocateRepairs(
+            contract, mind, package.Source, roles, orders,
+            carried.Keys.ToHashSet(), new HashSet<int>());
+        Dictionary<int, FocusAssignment> focus =
+            AllocateFocus(contract, mind, arc, package.Source, roles, orders,
+                targets, repairs.Keys.ToHashSet());
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
             .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
             .ThenBy(core => core.CoreId.SourceOrdinal)
             .ToArray();
+        Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
+            AllocateCorePickups(
+                mind, package, snapshot, roles, orders, loose);
         var claims = ArenaBasics.Claims.ForTick(mind);
         Dictionary<int, Position> carrierSteps = mind.Bodies
             .Where(body => carried.ContainsKey(body.ActorId))
@@ -143,6 +151,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string role = roles[body.UnitId];
             string group = groups[body.UnitId];
             TacticalPlaybookPackage.Order order = orders[body.UnitId];
+            TacticalPlaybookPackage.Engagement engagement = package.Source
+                .Engagements.Single(value => value.EngagementId
+                    == order.EngagementId);
             Position target = targets[body.UnitId];
             body.SetRole(RoleTag(machine.PhaseId, group, role, order.OrderId));
 
@@ -172,29 +183,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             contract, body, "repair-beam", repairTarget.ActorId,
                             Provenance(machine, group, order, "repair")),
                     "signature" => focus.TryGetValue(
-                            body.UnitId, out GenericActorContext.ObservedEnemyState?
+                            body.UnitId, out FocusAssignment?
                                 signatureTarget)
+                        && engagement.SignatureCoordination != "damage-first"
                         && TryCombatSignature(
-                            contract, mind, body, signatureTarget, target,
-                            package.Source.Engagements.Single(value =>
-                                string.Equals(value.EngagementId,
-                                    order.EngagementId,
-                                    StringComparison.Ordinal)),
+                            contract, mind, body, signatureTarget.Target, target,
+                            engagement,
                             Provenance(machine, group, order, "signature")),
                     "focus-fire" => focus.TryGetValue(
-                            body.UnitId, out GenericActorContext.ObservedEnemyState?
+                            body.UnitId, out FocusAssignment?
                                 shotTarget)
-                        && WithinEngagementLeash(body, target, shotTarget,
-                            package.Source.Engagements.Single(value =>
-                                string.Equals(value.EngagementId,
-                                    order.EngagementId,
-                                    StringComparison.Ordinal)))
-                        && ArenaBasics.TryShoot(
-                            contract, mind, body, shotTarget,
-                            preferredOnly: true),
+                        && WithinEngagementLeash(
+                            body, target, shotTarget.Target, engagement)
+                        && TryFocusChannel(
+                            contract, mind, body, shotTarget, target,
+                            engagement,
+                            Provenance(machine, group, order, "signature")),
                     "movement" => TryMovement(
                         contract, mind, arc, package, machine, snapshot, body,
-                        role, group, order, target, loose, claims),
+                        role, group, order, target, pickupAssignments, claims),
                     "facing" => TryFaceTarget(
                         contract, body, target,
                         Provenance(machine, group, order, "facing")),
@@ -381,6 +388,74 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 group.RoleIds.Contains(value.Value, StringComparer.Ordinal))
                 .GroupId);
 
+    private void UpdateFriendlyMembership(
+        MindContext mind,
+        TacticalPlaybookPackage.Playbook playbook,
+        TacticalPlaybookMachine machine,
+        IReadOnlyDictionary<int, string> groups)
+    {
+        bool initialObservation = _friendlyLives.Count == 0;
+        foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
+        {
+            if (_friendlyLives.TryGetValue(body.UnitId, out ActorIdentity? prior)
+                && prior != body.ActorId)
+            {
+                _joiningUnits.Add(body.UnitId);
+            }
+            else if (!initialObservation && prior is null)
+            {
+                _joiningUnits.Add(body.UnitId);
+            }
+            _friendlyLives[body.UnitId] = body.ActorId;
+        }
+
+        foreach (TacticalPlaybookPackage.Group group in playbook.Groups)
+        {
+            TacticalPlaybookPackage.Formation formation = ActiveFormation(
+                playbook, machine, group.GroupId);
+            MindBody[] members = mind.Bodies
+                .Where(body => groups[body.UnitId] == group.GroupId)
+                .OrderBy(body => body.UnitId)
+                .ToArray();
+            var established = members
+                .Where(body => !_joiningUnits.Contains(body.UnitId))
+                .Select(body => body.Position)
+                .ToList();
+            MindBody[] joining = members
+                .Where(body => _joiningUnits.Contains(body.UnitId))
+                .ToArray();
+
+            // A replacement rejoins the tactical cohort only after physically
+            // reaching it. It must never pull an established formation back to
+            // the spawn simply because it inherited the same stable role.
+            foreach (MindBody replacement in joining)
+            {
+                if (!established.Any(position => position.ChebyshevDistance(
+                        replacement.Position) <= formation.Spacing.Maximum))
+                {
+                    continue;
+                }
+                _joiningUnits.Remove(replacement.UnitId);
+                established.Add(replacement.Position);
+            }
+
+            // If the entire group was destroyed there is no surviving cohort
+            // to meet. In that case its minimum viable replacement body may
+            // establish a new cohort once the replacements are mutually
+            // coherent; this prevents a permanent joining limbo after a wipe.
+            if (established.Count == 0
+                && joining.Length >= group.Minimum
+                && CohesionPercent(
+                    joining.Select(body => body.Position).ToArray(),
+                    formation.Spacing.Maximum)
+                    >= formation.Cohesion.ArrivalRatioPercent)
+            {
+                foreach (MindBody replacement in joining)
+                    _joiningUnits.Remove(replacement.UnitId);
+            }
+        }
+    }
+
     private TacticalSnapshot Snapshot(
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
@@ -394,10 +469,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             group => group.GroupId,
             group => groups.Count(value => value.Value == group.GroupId),
             StringComparer.Ordinal);
+        var groupJoining = package.Source.Groups.ToDictionary(
+            group => group.GroupId,
+            group => groups.Count(value => value.Value == group.GroupId
+                && _joiningUnits.Contains(value.Key)),
+            StringComparer.Ordinal);
         var groupCohesion = package.Source.Groups.ToDictionary(
             group => group.GroupId,
             group => CohesionPercent(
-                mind.Bodies.Where(body => groups[body.UnitId] == group.GroupId)
+                mind.Bodies.Where(body => groups[body.UnitId] == group.GroupId
+                        && !_joiningUnits.Contains(body.UnitId))
                     .Select(body => body.Position).ToArray(),
                 ActiveFormation(package.Source, machine, group.GroupId)
                     .Spacing.Maximum),
@@ -454,6 +535,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             reactor => reactor.TeamId == _teamId);
         return new TacticalSnapshot(
             mind.Tick,
+            Math.Max(0, mind.Tick - machine.PhaseEnteredTick),
             mind.Bodies.Length,
             _enemyUnavailableUntil.Count,
             _securedCores.Count,
@@ -468,6 +550,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .ToDictionary(group => group.Key, group => group.Count(),
                     StringComparer.Ordinal),
             groupLive,
+            groupJoining,
             groupCohesion,
             friendlyZones,
             groupZones,
@@ -532,10 +615,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             "always" => 1,
             "tick" => snapshot.Tick,
+            "phase-state-ticks" => snapshot.PhaseStateTicks,
             "live-friendlies" => snapshot.LiveFriendlies,
             "friendlies-in-zone-count" => snapshot.FriendlyZones
                 .GetValueOrDefault(condition.Zone),
             "group-live-count" => snapshot.GroupLive
+                .GetValueOrDefault(condition.Subject),
+            "group-joining-count" => snapshot.GroupJoining
                 .GetValueOrDefault(condition.Subject),
             "group-in-zone-count" => snapshot.GroupZones
                 .GetValueOrDefault(condition.Subject)?
@@ -554,6 +640,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "visible-loose-cores" => snapshot.VisibleLooseCores,
             "well-has-outstanding" => snapshot.WellOutstanding
                 .GetValueOrDefault(condition.Subject),
+            "outstanding-well-count" => snapshot.WellOutstanding.Values.Sum(),
             "ticks-without-objective-progress" =>
                 snapshot.TicksWithoutObjectiveProgress,
             "reactor-integrity" => snapshot.ReactorIntegrity,
@@ -617,11 +704,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "reactor" => order.Movement.Target == "own"
                 ? _ownReactor : _enemyReactor,
             "carrier" => mind.Bodies
-                .Where(candidate => candidate.UnitId != body.UnitId)
+                .Where(candidate => candidate.UnitId != body.UnitId
+                    && ArenaBasics.CarriedCore(
+                        mind, candidate.ActorId) is not null)
                 .OrderBy(candidate => candidate.Position.ChebyshevDistance(
                     body.Position))
                 .Select(candidate => candidate.Position)
-                .FirstOrDefault(body.Position),
+                .FirstOrDefault(_ownReactor),
             "hold" => body.Position,
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
@@ -677,7 +766,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return route[index];
     }
 
-    private Dictionary<int, GenericActorContext.ObservedEnemyState> AllocateFocus(
+    private Dictionary<int, FocusAssignment> AllocateFocus(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
@@ -687,8 +776,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<int, Position> targets,
         IReadOnlySet<int> unavailableParticipants)
     {
-        var allocations = new Dictionary<int,
-            GenericActorContext.ObservedEnemyState>();
+        var allocations = new Dictionary<int, FocusAssignment>();
         HashSet<ActorIdentity> carriers = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
@@ -723,44 +811,237 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 if (participants.Length == 0 || mind.Enemies.Length == 0)
                     continue;
                 GenericActorContext.ObservedEnemyState[] enemies = mind.Enemies
-                    .OrderBy(enemy => PriorityRank(
-                        policy.TargetPriorities, enemy, carriers, mind.Tick))
-                    .ThenBy(enemy => enemy.Health)
-                    .ThenBy(enemy => enemy.Position.ChebyshevDistance(
-                        _enemyReactor))
-                    .ThenBy(enemy => enemy.ActorId)
+                    .OrderBy(enemy => enemy,
+                        Comparer<GenericActorContext.ObservedEnemyState>.Create(
+                            (left, right) => CompareTargets(
+                                policy, left, right, carriers, participants,
+                                mind.Tick)))
                     .ToArray();
-                GenericActorContext.ObservedEnemyState selected = enemies[0];
+                GenericActorContext.ObservedEnemyState primary = enemies[0];
                 if (_focusLocks.TryGetValue(scopeId, out FocusLock? prior)
-                    && mind.Tick - prior.LockedTick <= policy.LockTicks)
+                    && mind.Tick - prior.LockedTick < policy.LockTicks)
                 {
-                    selected = enemies.FirstOrDefault(enemy =>
-                        enemy.ActorId == prior.ActorId) ?? selected;
+                    primary = enemies.FirstOrDefault(enemy =>
+                        enemy.ActorId == prior.ActorId) ?? primary;
                 }
-                _focusLocks[scopeId] = new FocusLock(
-                    selected.ActorId, mind.Tick);
-                int committedDamage = 0;
-                int attackers = 0;
-                foreach (MindBody body in participants
-                             .OrderBy(body => body.Position.ChebyshevDistance(
-                                 selected.Position))
-                             .ThenBy(body => body.UnitId))
+                if (!_focusLocks.TryGetValue(scopeId, out prior)
+                    || primary.ActorId != prior.ActorId)
                 {
-                    int damage = ExpectedDamage(contract, body);
-                    if (attackers >= policy.MaximumAttackersPerTarget
-                        || committedDamage
-                            >= selected.Health + policy.OverkillDamage)
-                        break;
-                    if (!WithinEngagementLeash(
-                            body, targets[body.UnitId], selected, policy))
+                    _focusLocks[scopeId] = new FocusLock(
+                        primary.ActorId, mind.Tick);
+                }
+                GenericActorContext.ObservedEnemyState[] targetOrder =
+                    [primary, .. enemies.Where(enemy =>
+                        enemy.ActorId != primary.ActorId)];
+                var committedDamage = new Dictionary<ActorIdentity, int>();
+                var attackerCounts = new Dictionary<ActorIdentity, int>();
+                var coveredOptions = new Dictionary<ActorIdentity,
+                    HashSet<Position>>();
+                foreach (MindBody body in participants
+                             .OrderBy(body => body.UnitId))
+                {
+                    GenericActorContext.ObservedEnemyState? selected =
+                        targetOrder.FirstOrDefault(enemy =>
+                            attackerCounts.GetValueOrDefault(enemy.ActorId)
+                                < policy.MaximumAttackersPerTarget
+                            && committedDamage.GetValueOrDefault(enemy.ActorId)
+                                < enemy.Health + policy.OverkillDamage
+                            && WithinEngagementLeash(
+                                body, targets[body.UnitId], enemy, policy)
+                            && CanContributeToTarget(
+                                contract, body, enemy, policy,
+                                committedDamage.GetValueOrDefault(
+                                    enemy.ActorId),
+                                requireFireReady: true));
+                    selected ??= targetOrder.FirstOrDefault(enemy =>
+                        attackerCounts.GetValueOrDefault(enemy.ActorId)
+                            < policy.MaximumAttackersPerTarget
+                        && committedDamage.GetValueOrDefault(enemy.ActorId)
+                            < enemy.Health + policy.OverkillDamage
+                        && WithinEngagementLeash(
+                            body, targets[body.UnitId], enemy, policy)
+                        && CanContributeToTarget(
+                            contract, body, enemy, policy,
+                            committedDamage.GetValueOrDefault(enemy.ActorId),
+                            requireFireReady: false));
+                    if (selected is null)
                         continue;
-                    allocations[body.UnitId] = selected;
-                    committedDamage += damage;
-                    attackers++;
+                    Position aim = SelectCoverageAim(
+                        contract, body, selected, policy,
+                        coveredOptions.GetValueOrDefault(selected.ActorId)
+                            ?? [],
+                        directDamageNeeded: committedDamage.GetValueOrDefault(
+                            selected.ActorId) < selected.Health);
+                    allocations[body.UnitId] = new FocusAssignment(
+                        selected, aim);
+                    attackerCounts[selected.ActorId] = attackerCounts
+                        .GetValueOrDefault(selected.ActorId) + 1;
+                    HashSet<Position> coverage = coveredOptions
+                        .GetValueOrDefault(selected.ActorId) ?? [];
+                    foreach (Position option in EscapeOptions(
+                                 contract, selected, policy))
+                    {
+                        if (SameShotLane(body.Position, aim, option))
+                            coverage.Add(option);
+                    }
+                    coveredOptions[selected.ActorId] = coverage;
+                    if (ArenaBasics.CanFireAtPosition(contract, body, aim))
+                    {
+                        committedDamage[selected.ActorId] = committedDamage
+                            .GetValueOrDefault(selected.ActorId)
+                            + ExpectedDamage(contract, body);
+                    }
                 }
             }
         }
         return allocations;
+    }
+
+    private static bool CanContributeToTarget(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        TacticalPlaybookPackage.Engagement policy,
+        int committedDamage,
+        bool requireFireReady) => EscapeOptions(contract, target, policy)
+        .Where(position => committedDamage >= target.Health
+            || position == target.Position)
+        .Any(position => requireFireReady
+            ? ArenaBasics.CanFireAtPosition(contract, body, position)
+            : ArenaBasics.CanAimAtPosition(contract, body, position));
+
+    private static Position SelectCoverageAim(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        TacticalPlaybookPackage.Engagement policy,
+        IReadOnlySet<Position> alreadyCovered,
+        bool directDamageNeeded)
+    {
+        Position[] options = EscapeOptions(contract, target, policy);
+        if (directDamageNeeded
+            || string.Equals(policy.DodgeCoverage.Mode, "current-position",
+                StringComparison.Ordinal)
+            || alreadyCovered.Count
+                >= policy.DodgeCoverage.MinimumCoveredOptions)
+        {
+            return ArenaBasics.CanAimAtPosition(
+                    contract, body, target.Position)
+                ? target.Position
+                : options.First(position => ArenaBasics.CanAimAtPosition(
+                    contract, body, position));
+        }
+        Position[] candidates = options
+            .Where(position => ArenaBasics.CanAimAtPosition(
+                contract, body, position))
+            .OrderByDescending(position => options.Count(option =>
+                !alreadyCovered.Contains(option)
+                && SameShotLane(body.Position, position, option)))
+            .ThenByDescending(position => options.Count(option =>
+                SameShotLane(body.Position, position, option)))
+            .ThenBy(position => position == target.Position ? 0 : 1)
+            .ThenBy(position => position.Y)
+            .ThenBy(position => position.X)
+            .ToArray();
+        if (candidates.Length > 0)
+            return candidates[0];
+        return target.Position;
+    }
+
+    private static Position[] EscapeOptions(
+        GenericActorResolvedMatchContract contract,
+        GenericActorContext.ObservedEnemyState target,
+        TacticalPlaybookPackage.Engagement policy)
+    {
+        if (string.Equals(policy.DodgeCoverage.Mode, "current-position",
+                StringComparison.Ordinal)
+            || policy.DodgeCoverage.HorizonTicks == 0)
+        {
+            return [target.Position];
+        }
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(value => value.Id == target.FormId);
+        GenericActorRulesContract.MovementProfile? movement =
+            form?.MovementProfileId is string movementId
+                ? contract.Rules.MovementProfiles.FirstOrDefault(value =>
+                    value.Id == movementId)
+                : null;
+        IEnumerable<ProjectileHeading> headings = movement?.FacingCoupling
+                == GenericActorRulesContract.MovementFacingCoupling.FacingLocked
+            ? [(ProjectileHeading)((int)target.Facing * 2)]
+            : Enum.GetValues<ProjectileHeading>();
+        return [target.Position, .. headings
+            .Select(heading =>
+            {
+                (int dx, int dy) = heading.Vector();
+                return target.Position.Offset(dx, dy);
+            })
+            .Where(position => ArenaBasics.IsLegalTerrainStep(
+                contract.Map, target.Position, position))
+            .Distinct()
+            .OrderBy(position => position.Y)
+            .ThenBy(position => position.X)];
+    }
+
+    private static bool SameShotLane(
+        Position origin,
+        Position first,
+        Position second)
+    {
+        (int X, int Y)? left = ShotRay(origin, first);
+        (int X, int Y)? right = ShotRay(origin, second);
+        return left.HasValue && right.HasValue && left.Value == right.Value;
+    }
+
+    private static (int X, int Y)? ShotRay(Position origin, Position target)
+    {
+        int dx = target.X - origin.X;
+        int dy = target.Y - origin.Y;
+        if (dx == 0 && dy == 0)
+            return null;
+        if (dx != 0 && dy != 0 && Math.Abs(dx) != Math.Abs(dy))
+            return null;
+        return (Math.Sign(dx), Math.Sign(dy));
+    }
+
+    private int CompareTargets(
+        TacticalPlaybookPackage.Engagement policy,
+        GenericActorContext.ObservedEnemyState left,
+        GenericActorContext.ObservedEnemyState right,
+        IReadOnlySet<ActorIdentity> carriers,
+        IReadOnlyCollection<MindBody> participants,
+        int tick)
+    {
+        int comparison = PriorityRank(
+            policy.TargetPriorities, left, carriers, tick).CompareTo(
+            PriorityRank(policy.TargetPriorities, right, carriers, tick));
+        if (comparison != 0)
+            return comparison;
+        foreach (string tieBreaker in policy.TieBreakers)
+        {
+            comparison = tieBreaker switch
+            {
+                "health" => left.Health.CompareTo(right.Health),
+                "distance" => participants.Min(body =>
+                        body.Position.ChebyshevDistance(left.Position))
+                    .CompareTo(participants.Min(body =>
+                        body.Position.ChebyshevDistance(right.Position))),
+                "unit-id" => left.ActorId.UnitId.CompareTo(
+                    right.ActorId.UnitId),
+                "life-id" => left.ActorId.LifeId.CompareTo(
+                    right.ActorId.LifeId),
+                "position" => left.Position.Y != right.Position.Y
+                    ? left.Position.Y.CompareTo(right.Position.Y)
+                    : left.Position.X.CompareTo(right.Position.X),
+                _ => 0,
+            };
+            if (comparison != 0)
+                return comparison;
+        }
+        comparison = left.ActorId.UnitId.CompareTo(right.ActorId.UnitId);
+        return comparison != 0
+            ? comparison
+            : left.ActorId.LifeId.CompareTo(right.ActorId.LifeId);
     }
 
     private int PriorityRank(
@@ -823,6 +1104,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Playbook playbook,
         IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        IReadOnlySet<ActorIdentity> carriers,
         IReadOnlySet<int> focusParticipants)
     {
         var result = new Dictionary<int, MindBody>();
@@ -840,10 +1122,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 MindBody? selected = mind.Bodies
                     .Where(body => body.UnitId != provider.UnitId
                         && body.Health < MaxHealth(contract, body)
+                        && ArenaBasics.CanUseUnitSignature(
+                            contract, provider, "repair-beam", body.ActorId)
                         && counts.GetValueOrDefault(body.UnitId)
                             < policy.MaximumProvidersPerTarget)
                     .OrderBy(body => SupportRank(
-                        policy, body, roles, focusParticipants))
+                        policy, body, roles, carriers, focusParticipants))
                     .ThenBy(body => body.Health)
                     .ThenBy(body => provider.Position.ChebyshevDistance(
                         body.Position))
@@ -863,13 +1147,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.SupportPolicy policy,
         MindBody body,
         IReadOnlyDictionary<int, string> roles,
+        IReadOnlySet<ActorIdentity> carriers,
         IReadOnlySet<int> focusParticipants)
     {
         for (int index = 0; index < policy.TargetPriorities.Length; index++)
         {
             bool matches = policy.TargetPriorities[index] switch
             {
-                "carrier" => roles[body.UnitId] == "runner",
+                "carrier" => carriers.Contains(body.ActorId),
                 "medic" => roles[body.UnitId] == "medic",
                 "lowest-health" => true,
                 "focus-participant" => focusParticipants.Contains(body.UnitId),
@@ -913,6 +1198,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 StringComparer.Ordinal))
             return ActCarrier(contract, mind, body, claims);
 
+        if (string.Equals(custody.AccidentalPickup, "deliver",
+                StringComparison.Ordinal))
+        {
+            return ActCarrier(contract, mind, body, claims);
+        }
+
+        if (string.Equals(custody.AccidentalPickup, "drop-safe",
+                StringComparison.Ordinal)
+            && IsSafeToDrop(mind, body)
+            && TryDropCore(body))
+        {
+            return true;
+        }
+
         GenericActorActionLegality? handoff = body.Action("handoff-core");
         GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
             targets = handoff?.Constraints.OfType<
@@ -940,6 +1239,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         // Do not create a drop/re-pickup cycle when a handoff is unavailable.
         return ActCarrier(contract, mind, body, claims);
+    }
+
+    private static bool IsSafeToDrop(MindContext mind, MindBody carrier) =>
+        mind.Enemies.All(enemy => enemy.Position.ChebyshevDistance(
+            carrier.Position) > 3)
+        && mind.Bodies.Any(ally => ally.UnitId != carrier.UnitId
+            && ally.Position.ChebyshevDistance(carrier.Position) <= 2);
+
+    private static bool TryDropCore(MindBody carrier)
+    {
+        GenericActorActionLegality? drop = carrier.Action("drop-core");
+        if (drop is not { Available: true })
+            return false;
+        carrier.Command(drop.ActionId, drop.ActionCode, [],
+            "custody:accidental-pickup-safe-drop");
+        return true;
     }
 
     private bool ActCarrier(
@@ -994,7 +1309,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string group,
         TacticalPlaybookPackage.Order order,
         Position target,
-        IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ArcRelayCoreState> pickupAssignments,
         ArenaBasics.Claims claims)
     {
         if (!string.IsNullOrEmpty(order.CustodyId))
@@ -1008,8 +1324,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (policy.AuthorizedCarrierRoles.Contains(role,
                     StringComparer.Ordinal)
                 && safe
+                && pickupAssignments.TryGetValue(
+                    body.UnitId,
+                    out GenericActorContext.ArcRelayCoreState? assignedCore)
                 && TryCollectCore(
-                    contract, mind, arc, body, policy, loose, claims))
+                    contract, mind, body, assignedCore, claims))
                 return true;
         }
 
@@ -1043,36 +1362,111 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private bool TryCollectCore(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        GenericActorContext.ModeObservationState.ArcRelay arc,
         MindBody body,
-        TacticalPlaybookPackage.CustodyPolicy policy,
-        IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose,
+        GenericActorContext.ArcRelayCoreState core,
         ArenaBasics.Claims claims)
     {
-        GenericActorContext.ArcRelayCoreState? core = loose
-            .OrderBy(value => _securedCores.ContainsKey(CoreKey(value.CoreId))
-                ? 0 : 1)
-            .ThenBy(value => body.Position.ChebyshevDistance(value.Position))
-            .ThenBy(value => value.CoreId.SourceWellId, StringComparer.Ordinal)
-            .ThenBy(value => value.CoreId.SourceOrdinal)
-            .FirstOrDefault();
-        Position? target = core?.Position;
-        if (target is null)
-        {
-            target = arc.Wells
-                .Where(well => well.OutstandingCoreId is not null
-                    && string.Equals(well.WellId, policy.SourceWell,
-                        StringComparison.Ordinal))
-                .Select(well => (Position?)well.Position)
-                .FirstOrDefault();
-        }
-        if (target is not Position destination)
-            return false;
+        Position destination = core.Position;
         if (TryAdvanceSignature(contract, body, destination))
             return true;
         return ArenaBasics.TryMoveToward(
             contract, mind, body, [destination], claims,
             "custody:authorized-pickup");
+    }
+
+    private Dictionary<int, GenericActorContext.ArcRelayCoreState>
+        AllocateCorePickups(
+            MindContext mind,
+            TacticalPlaybookPackage package,
+            TacticalSnapshot snapshot,
+            IReadOnlyDictionary<int, string> roles,
+            IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+            IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose)
+    {
+        GenericActorContext.ArcRelayCoreState[] targets = loose
+            .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
+            .ThenBy(core => core.CoreId.SourceOrdinal)
+            .ToArray();
+        HashSet<string> targetIds = targets
+            .Select(core => CoreKey(core.CoreId))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (string stale in _coreReservations
+                     .Where(value => !targetIds.Contains(value.Key)
+                         || mind.Tick >= value.Value.ExpiresTick)
+                     .Select(value => value.Key).ToArray())
+        {
+            _coreReservations.Remove(stale);
+        }
+
+        var eligible = new Dictionary<int,
+            (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>();
+        foreach (MindBody body in mind.Bodies.OrderBy(body => body.UnitId))
+        {
+            TacticalPlaybookPackage.Order order = orders[body.UnitId];
+            if (string.IsNullOrEmpty(order.CustodyId))
+                continue;
+            TacticalPlaybookPackage.CustodyPolicy policy = package.Source
+                .CustodyPolicies.Single(value => value.CustodyId
+                    == order.CustodyId);
+            if (!policy.AuthorizedCarrierRoles.Contains(
+                    roles[body.UnitId], StringComparer.Ordinal)
+                || !policy.SafeConversionAll.Any(group =>
+                    TacticalPlaybookMachine.Matches(group,
+                        condition => Evaluate(condition, snapshot, package))))
+            {
+                continue;
+            }
+            eligible[body.UnitId] = (body, policy);
+        }
+
+        var allocations = new Dictionary<int,
+            GenericActorContext.ArcRelayCoreState>();
+        foreach (GenericActorContext.ArcRelayCoreState core in targets)
+        {
+            string key = CoreKey(core.CoreId);
+            if (!_coreReservations.TryGetValue(
+                    key, out CoreReservation? reservation))
+                continue;
+            KeyValuePair<int,
+                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>
+                retained = eligible.FirstOrDefault(value =>
+                    value.Value.Body.ActorId == reservation.ActorId
+                    && string.Equals(value.Value.Policy.CustodyId,
+                        reservation.CustodyId, StringComparison.Ordinal)
+                    && value.Value.Policy.SourceWells.Contains(
+                        core.CoreId.SourceWellId, StringComparer.Ordinal));
+            if (retained.Value.Body is null
+                || allocations.ContainsKey(retained.Key))
+            {
+                _coreReservations.Remove(key);
+                continue;
+            }
+            allocations[retained.Key] = core;
+        }
+
+        foreach (GenericActorContext.ArcRelayCoreState core in targets
+                     .Where(core => !_coreReservations.ContainsKey(
+                         CoreKey(core.CoreId))))
+        {
+            KeyValuePair<int,
+                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>
+                selected = eligible
+                    .Where(value => !allocations.ContainsKey(value.Key)
+                        && value.Value.Policy.SourceWells.Contains(
+                            core.CoreId.SourceWellId, StringComparer.Ordinal))
+                    .OrderBy(value => value.Value.Body.Position
+                        .ChebyshevDistance(core.Position))
+                    .ThenBy(value => value.Key)
+                    .FirstOrDefault();
+            if (selected.Value.Body is null)
+                continue;
+            allocations[selected.Key] = core;
+            _coreReservations[CoreKey(core.CoreId)] = new CoreReservation(
+                selected.Value.Body.ActorId,
+                mind.Tick + selected.Value.Policy.PickupReservationTicks,
+                selected.Value.Policy.CustodyId);
+        }
+        return allocations;
     }
 
     private static Position[] ReflowGoals(
@@ -1126,6 +1520,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             target.Position, reason)
         || ArenaBasics.TryPositionSignature(
             contract, body, "hardlight-block", assignment, reason);
+    }
+
+    private static bool TryFocusChannel(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        FocusAssignment focus,
+        Position assignment,
+        TacticalPlaybookPackage.Engagement policy,
+        string signatureReason)
+    {
+        if (ArenaBasics.TryShootAtPosition(
+                contract, mind, body, focus.AimPosition,
+                $"focus {focus.Target.ActorId}"))
+            return true;
+        return policy.SignatureCoordination == "damage-first"
+            && TryCombatSignature(
+                contract, mind, body, focus.Target, assignment, policy,
+                signatureReason);
     }
 
     private static bool TryAdvanceSignature(
@@ -1212,8 +1625,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private sealed record FocusLock(ActorIdentity ActorId, int LockedTick);
 
+    private sealed record FocusAssignment(
+        GenericActorContext.ObservedEnemyState Target,
+        Position AimPosition);
+
+    private sealed record CoreReservation(
+        ActorIdentity ActorId,
+        int ExpiresTick,
+        string CustodyId);
+
     private sealed record TacticalSnapshot(
         int Tick,
+        int PhaseStateTicks,
         int LiveFriendlies,
         int KnownEnemiesUnavailable,
         int SecuredCores,
@@ -1225,6 +1648,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int ReactorCharge,
         IReadOnlyDictionary<string, int> RoleLive,
         IReadOnlyDictionary<string, int> GroupLive,
+        IReadOnlyDictionary<string, int> GroupJoining,
         IReadOnlyDictionary<string, int> GroupCohesion,
         IReadOnlyDictionary<string, int> FriendlyZones,
         IReadOnlyDictionary<string, Dictionary<string, int>> GroupZones,

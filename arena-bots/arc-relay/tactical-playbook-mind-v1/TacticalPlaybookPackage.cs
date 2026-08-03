@@ -12,7 +12,9 @@ internal sealed class TacticalPlaybookPackage
     private readonly Dictionary<string, Zone> _zones;
     private readonly Dictionary<string, Route> _routes;
     private readonly Dictionary<string, Anchor> _anchors;
+    private readonly IReadOnlyDictionary<string, string> _routeAliases;
     private readonly int _mapWidth;
+    private readonly int _mapHeight;
 
     private TacticalPlaybookPackage(
         Playbook source,
@@ -20,7 +22,9 @@ internal sealed class TacticalPlaybookPackage
         string playbookSha256,
         string layoutSha256,
         LayoutTransform transform,
-        int mapWidth)
+        int mapWidth,
+        int mapHeight,
+        IReadOnlyDictionary<string, string> routeAliases)
     {
         Source = source;
         LayoutSource = layout;
@@ -28,6 +32,8 @@ internal sealed class TacticalPlaybookPackage
         LayoutSha256 = layoutSha256;
         _transform = transform;
         _mapWidth = mapWidth;
+        _mapHeight = mapHeight;
+        _routeAliases = routeAliases;
         _zones = layout.Zones.ToDictionary(value => value.ZoneId,
             StringComparer.Ordinal);
         _routes = layout.Routes.ToDictionary(value => value.RouteId,
@@ -91,12 +97,13 @@ internal sealed class TacticalPlaybookPackage
         {
             "identity" => LayoutTransform.Identity,
             "mirror-x" => LayoutTransform.MirrorX,
+            "rotate-180" => LayoutTransform.Rotate180,
             _ => throw new InvalidDataException(
                 $"Unknown tactical layout transform '{binding.Transform}'."),
         };
         return new TacticalPlaybookPackage(
             playbook, layout, playbookSha256, layoutSha256, transform,
-            contract.Map.Width);
+            contract.Map.Width, contract.Map.Height, binding.RouteAliases);
     }
 
     internal bool Contains(string zoneId, Position position)
@@ -126,7 +133,8 @@ internal sealed class TacticalPlaybookPackage
 
     internal Position[] RoutePoints(string routeId)
     {
-        Route route = _routes.GetValueOrDefault(routeId)
+        string resolved = _routeAliases.GetValueOrDefault(routeId, routeId);
+        Route route = _routes.GetValueOrDefault(resolved)
             ?? throw new InvalidDataException($"Unknown tactical route '{routeId}'.");
         return route.Waypoints
             .Select(value => World(new Position(value[0], value[1])))
@@ -135,14 +143,22 @@ internal sealed class TacticalPlaybookPackage
 
     internal Position FormationPosition(Position anchor, int[] offset)
     {
-        int dx = _transform == LayoutTransform.MirrorX ? -offset[0] : offset[0];
-        return anchor.Offset(dx, offset[1]);
+        int dx = _transform is LayoutTransform.MirrorX
+            or LayoutTransform.Rotate180 ? -offset[0] : offset[0];
+        int dy = _transform == LayoutTransform.Rotate180
+            ? -offset[1] : offset[1];
+        return anchor.Offset(dx, dy);
     }
 
-    private Position Canonical(Position position) =>
-        _transform == LayoutTransform.MirrorX
-            ? new Position(_mapWidth - 1 - position.X, position.Y)
-            : position;
+    private Position Canonical(Position position) => _transform switch
+    {
+        LayoutTransform.MirrorX => new Position(
+            _mapWidth - 1 - position.X, position.Y),
+        LayoutTransform.Rotate180 => new Position(
+            _mapWidth - 1 - position.X,
+            _mapHeight - 1 - position.Y),
+        _ => position,
+    };
 
     private Position World(Position position) => Canonical(position);
 
@@ -171,6 +187,7 @@ internal sealed class TacticalPlaybookPackage
     {
         Identity,
         MirrorX,
+        Rotate180,
     }
 
     internal sealed record Playbook
@@ -286,8 +303,15 @@ internal sealed class TacticalPlaybookPackage
         int OverkillDamage,
         int ChaseLeash,
         string SignatureCoordination,
+        DodgeCoverage DodgeCoverage,
         ReleasePolicy Release,
         SelfDefensePolicy SelfDefense);
+
+    internal sealed record DodgeCoverage(
+        string Mode,
+        int HorizonTicks,
+        int MinimumCoveredOptions,
+        string Fallback);
 
     internal sealed record ReleasePolicy(
         int HiddenTicks,
@@ -313,7 +337,7 @@ internal sealed class TacticalPlaybookPackage
         string CustodyId,
         string[] AuthorizedCarrierRoles,
         string[] EscortGroups,
-        string SourceWell,
+        string[] SourceWells,
         int PickupReservationTicks,
         int TransferTimeoutTicks,
         int DeliveryTimeoutTicks,
@@ -388,7 +412,8 @@ internal sealed class TacticalPlaybookPackage
     internal sealed record Binding(
         string MatchContractFingerprint,
         string OwnReactorSide,
-        string Transform);
+        string Transform,
+        Dictionary<string, string> RouteAliases);
 
     internal sealed record Zone(string ZoneId, int[] Rect);
 

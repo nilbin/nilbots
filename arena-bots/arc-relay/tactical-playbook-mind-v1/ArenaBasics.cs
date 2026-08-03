@@ -98,6 +98,18 @@ internal static class ArenaBasics
             .ToArray()
         ?? [];
 
+    public static bool IsLegalTerrainStep(
+        GenericActorMapContract map,
+        Position from,
+        Position to)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+        return Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1
+            && (dx != 0 || dy != 0)
+            && CanStep(map, from, to, FromVector(dx, dy));
+    }
+
     public static bool TryMoveToward(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -669,6 +681,156 @@ internal static class ArenaBasics
         return false;
     }
 
+    public static bool CanFireAt(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target) =>
+        CanFireAtPosition(contract, body, target.Position);
+
+    public static bool CanFireAtPosition(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position target)
+    {
+        GenericActorActionLegality? action = AvailableAction(
+            contract, body, GenericActorRulesContract.ActionKind.Attack,
+            requireAvailable: false);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)
+                : null;
+        return action is { Available: true }
+            && headings is not null
+            && attack is not null
+            && TryRay(body.Position, target,
+                out ProjectileHeading heading, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles
+            && headings.AllowedValues.Contains(heading)
+            && ClearRay(contract.Map, body.Position, target,
+                attack.Projectile.DiagonalCornersMustBeClear);
+    }
+
+    public static bool CanAimAt(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target) =>
+        CanAimAtPosition(contract, body, target.Position);
+
+    public static bool CanAimAtPosition(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position target)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)
+                : null;
+        return attack is not null
+            && TryRay(body.Position, target, out _, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles
+            && ClearRay(contract.Map, body.Position, target,
+                attack.Projectile.DiagonalCornersMustBeClear);
+    }
+
+    public static bool TryShootAtPosition(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position target,
+        string reason)
+    {
+        GenericActorActionLegality? action = AvailableAction(
+            contract, body, GenericActorRulesContract.ActionKind.Attack,
+            requireAvailable: false);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)
+                : null;
+        if (action is null || headings is null || attack is null
+            || !TryRay(body.Position, target,
+                out ProjectileHeading heading, out int distance)
+            || distance > attack.Projectile.MaxTravelTiles
+            || !ClearRay(contract.Map, body.Position, target,
+                attack.Projectile.DiagonalCornersMustBeClear))
+        {
+            return false;
+        }
+        if (action.Available && headings.AllowedValues.Contains(heading))
+        {
+            body.Command(
+                action.ActionId,
+                action.ActionCode,
+                [new GenericActorActionArgument
+                    .ProjectileHeadingArgument(heading)],
+                $"{reason}; cover {target}");
+            return true;
+        }
+        if (CarriedCore(mind, body.ActorId) is not null
+            || headings.AllowedValues.Contains(heading))
+        {
+            return false;
+        }
+        GenericActorRulesContract.MovementProfile? movement =
+            form?.MovementProfileId is string movementId
+                ? contract.Rules.MovementProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == movementId)
+                : null;
+        GenericActorRulesContract.ActionKind? previousKind =
+            PreviousActionKind(contract, body);
+        if (previousKind == GenericActorRulesContract.ActionKind.Rotation
+            || (previousKind == GenericActorRulesContract.ActionKind.Movement
+                && movement?.FacingCoupling
+                    != GenericActorRulesContract.MovementFacingCoupling
+                        .FacingLocked))
+        {
+            return false;
+        }
+        return TryRotate(
+            contract, body, FacingForCone(body.Facing, heading),
+            $"prepare {reason}; cover {target}");
+    }
+
+    public static bool CanUseUnitSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        ActorIdentity target)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract, signatureKind);
+        GenericActorActionLegality? action = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
+            targets = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .UnitTargetConstraint>()
+                .SingleOrDefault();
+        var wanted = new GenericActorActionArgument.UnitTarget(
+            target.TeamId, target.UnitId);
+        return action is { Available: true }
+            && targets?.AllowedValues.Contains(wanted) == true;
+    }
+
     public static bool TryUnitSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
@@ -677,8 +839,7 @@ internal static class ArenaBasics
         string reason)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
-            contract,
-            signatureKind);
+            contract, signatureKind);
         GenericActorActionLegality? action = signature is null
             ? null
             : body.Action(signature.ActionId);
@@ -689,9 +850,8 @@ internal static class ArenaBasics
                 .SingleOrDefault();
         GenericActorActionArgument.UnitTarget wanted =
             new(target.TeamId, target.UnitId);
-        if (action is not { Available: true }
-            || targets is null
-            || !targets.AllowedValues.Contains(wanted))
+        if (!CanUseUnitSignature(contract, body, signatureKind, target)
+            || action is null || targets is null)
         {
             return false;
         }
