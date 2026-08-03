@@ -167,6 +167,30 @@
       ],
       "resultSummary": "Retained generic semantics. Home Siege caps repair at one provider per target and uses evade, so its four isolation outcomes remain unchanged; fixtures isolate the new branches.",
       "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "accidental-core-transfer-carrier-seeks-runner",
+      "change": "Change secured-conversion accidental pickup from deliver to transfer and make the accidental carrier seek the dedicated runner for eight ticks before delivering.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 403 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 460 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 488 }
+      ],
+      "resultSummary": "Rejected. It still removed the fighter from its formation and lost every isolation cell faster.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "accidental-core-transfer-runner-seeks-carrier",
+      "change": "Keep the accidental carrier at the perimeter while the authorized runner owns the bounded rendezvous; deliver on timeout. The generic executor retains this semantically correct transfer ownership, but Home Siege restores deliver after the tactic screen.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 562 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 512 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 377 }
+      ],
+      "resultSummary": "Rejected for Home Siege: one parity assignment improved to a max-tick win but the opposite assignment collapsed, and neither historical assignment won. Retained only as generic transfer semantics with an explicit fixture.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }

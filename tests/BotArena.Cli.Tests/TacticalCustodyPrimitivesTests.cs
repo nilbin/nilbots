@@ -49,6 +49,15 @@ public sealed class TacticalCustodyPrimitivesTests
             TacticalCustodyPrimitives.TransferWindowOpen(
                 carriedTicks, timeout));
 
+    [Fact]
+    public void AuthorizedCarrierOwnsTheBoundedTransferRendezvous()
+    {
+        Assert.Equal("authorized-carrier",
+            TacticalCustodyPrimitives.TransferRendezvousMover(true));
+        Assert.Equal("accidental-carrier-delivers",
+            TacticalCustodyPrimitives.TransferRendezvousMover(false));
+    }
+
     [Theory]
     [InlineData(119, 120, false)]
     [InlineData(120, 120, true)]

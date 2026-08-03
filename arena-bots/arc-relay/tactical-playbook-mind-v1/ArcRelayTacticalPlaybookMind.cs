@@ -1545,17 +1545,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (runner is not null
             && TacticalCustodyPrimitives.TransferWindowOpen(
                 mind.Tick - progress.StartedTick,
-                custody.TransferTimeoutTicks)
-            && (TryAdvanceSignature(contract, body, runner.Position)
-                || ArenaBasics.TryMoveToward(
-                    contract,
-                    mind,
-                    body,
-                    [runner.Position],
-                    claims,
-                    "custody:seek-authorized-transfer")))
+                custody.TransferTimeoutTicks))
         {
-            return true;
+            return Hold(body, "custody:await-authorized-transfer");
         }
         // Expiry deliberately becomes delivery, not a voluntary drop/re-pickup
         // loop. A temporarily unavailable runner must not strand the Core.
@@ -1681,6 +1673,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     condition => Evaluate(condition, snapshot, package)));
             if (policy.AuthorizedCarrierRoles.Contains(role,
                     StringComparer.Ordinal)
+                && string.Equals(
+                    policy.AccidentalPickup,
+                    "transfer",
+                    StringComparison.Ordinal)
+                && TryReachAccidentalCarrier(
+                    contract, mind, arc, policy, body, claims))
+            {
+                return true;
+            }
+            if (policy.AuthorizedCarrierRoles.Contains(role,
+                    StringComparer.Ordinal)
                 && safe
                 && pickupAssignments.TryGetValue(
                     body.UnitId,
@@ -1724,6 +1727,48 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 stuck >= order.Movement.StuckTicks
                     ? $"{order.Movement.StuckRecovery}-reflow"
                     : "formation-move"));
+    }
+
+    private bool TryReachAccidentalCarrier(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        TacticalPlaybookPackage.CustodyPolicy policy,
+        MindBody authorizedCarrier,
+        ArenaBasics.Claims claims)
+    {
+        HashSet<ActorIdentity> carrierIds = arc.VisibleCores
+            .Where(core => core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId?.TeamId == _teamId)
+            .Select(core => core.CarrierActorId!)
+            .ToHashSet();
+        MindBody? accidental = mind.Bodies
+            .Where(candidate => carrierIds.Contains(candidate.ActorId)
+                && !policy.AuthorizedCarrierRoles.Contains(
+                    _stableRoles.GetValueOrDefault(candidate.UnitId),
+                    StringComparer.Ordinal)
+                && _custodyProgress.TryGetValue(
+                    candidate.ActorId,
+                    out CustodyProgress? progress)
+                && TacticalCustodyPrimitives.TransferWindowOpen(
+                    mind.Tick - progress.StartedTick,
+                    policy.TransferTimeoutTicks))
+            .OrderBy(candidate => candidate.Position.ChebyshevDistance(
+                authorizedCarrier.Position))
+            .ThenBy(candidate => candidate.UnitId)
+            .FirstOrDefault();
+        if (accidental is null)
+            return false;
+        return TryAdvanceSignature(
+                contract, authorizedCarrier, accidental.Position)
+            || ArenaBasics.TryMoveToward(
+                contract,
+                mind,
+                authorizedCarrier,
+                [accidental.Position],
+                claims,
+                "custody:reach-accidental-carrier");
     }
 
     private bool TryCollectCore(

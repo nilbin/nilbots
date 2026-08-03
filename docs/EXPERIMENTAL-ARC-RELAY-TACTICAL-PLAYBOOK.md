@@ -139,9 +139,10 @@ Visible loose Cores are sorted by Well and ordinal. Pickup reservations bind an
 exact body life to an exact Core for a bounded tenure and expire on contrary
 visible evidence, life replacement, or timeout. A carrier's committed return is
 the highest tactical action and clears a deterministic movement lane through
-allies. Unauthorized carriers seek an authorized handoff for exactly the
-declared transfer window, then deliver rather than creating a voluntary
-drop/re-pickup loop. Delivery timeout counts stagnant ticks, not useful travel,
+allies. During an authorized transfer window, the accidental carrier holds the
+perimeter while the authorized carrier owns the rendezvous; on expiry the
+accidental carrier delivers rather than creating a voluntary drop/re-pickup
+loop. Delivery timeout counts stagnant ticks, not useful travel,
 before executing the declared unreachable fallback. Friendly drops retain their
 causal source life and apply `same-carrier`, `nearest-authorized`, or
 `guard-until-safe` recovery. Escort movement is explicit rather than magical:

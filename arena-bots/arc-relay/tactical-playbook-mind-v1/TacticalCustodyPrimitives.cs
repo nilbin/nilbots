@@ -34,6 +34,11 @@ internal static class TacticalCustodyPrimitives
         int carriedTicks,
         int transferTimeoutTicks) => carriedTicks < transferTimeoutTicks;
 
+    internal static string TransferRendezvousMover(
+        bool transferWindowOpen) => transferWindowOpen
+            ? "authorized-carrier"
+            : "accidental-carrier-delivers";
+
     internal static bool DeliveryTimedOut(
         int stagnantTicks,
         int deliveryTimeoutTicks) => stagnantTicks >= deliveryTimeoutTicks;
