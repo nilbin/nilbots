@@ -21,7 +21,9 @@ const scratch = mkdtempSync(path.join(tmpdir(), 'nilbots-arc-sfx-'));
 
 const definitions = [
   { id: 'arc-birth', duration: 0.82, render: renderBirth },
+  { id: 'arc-pickup', duration: 0.48, render: renderPickup },
   { id: 'arc-steal', duration: 0.64, render: renderSteal },
+  { id: 'arc-drop', duration: 0.48, render: renderDrop },
   { id: 'arc-bank', duration: 0.96, render: renderBank },
   { id: 'arc-pulse', duration: 1.42, render: renderPulse },
 ];
@@ -231,6 +233,24 @@ function renderBirth(signal, random) {
   addEcho(signal, 0.12, 0.18);
 }
 
+function renderPickup(signal, random) {
+  addTone(signal, {
+    duration: 0.44,
+    from: 330,
+    to: 940,
+    gain: 0.3,
+    release: 0.16,
+    partials: [[1, 1], [2.01, 0.16]],
+  });
+  addNoise(signal, random, {
+    duration: 0.3,
+    gain: 0.08,
+    attack: 0.02,
+    release: 0.13,
+    lowpass: 6_800,
+  });
+}
+
 function renderSteal(signal, random) {
   addTransient(signal, random, 0, 0.4, 142);
   addTone(signal, {
@@ -255,6 +275,19 @@ function renderSteal(signal, random) {
       partials: [[1, 1], [2.02, 0.16]],
     });
   addEcho(signal, 0.075, 0.16);
+}
+
+function renderDrop(signal, random) {
+  addTransient(signal, random, 0, 0.25, 112);
+  addTone(signal, {
+    duration: 0.43,
+    from: 720,
+    to: 118,
+    gain: 0.28,
+    release: 0.25,
+    partials: [[1, 1], [1.48, 0.2]],
+  });
+  addEcho(signal, 0.09, 0.12);
 }
 
 function renderBank(signal, random) {

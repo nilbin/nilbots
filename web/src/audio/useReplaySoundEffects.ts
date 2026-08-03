@@ -30,7 +30,9 @@ const cueGain: Record<SoundEffectCueId, number> = {
   impact: 0.48,
   destroyed: 0.56,
   'arc-birth': 0.44,
+  'arc-pickup': 0.38,
   'arc-steal': 0.56,
+  'arc-drop': 0.44,
   'arc-bank': 0.62,
   'arc-pulse': 0.72,
 };
@@ -39,7 +41,9 @@ const cueVoiceLimit: Record<SoundEffectCueId, number> = {
   impact: 2,
   destroyed: 1,
   'arc-birth': 2,
+  'arc-pickup': 2,
   'arc-steal': 1,
+  'arc-drop': 2,
   'arc-bank': 1,
   'arc-pulse': 1,
 };
@@ -50,7 +54,9 @@ const PRELOADED_CUES = [
   'impact',
   'destroyed',
   'arc-birth',
+  'arc-pickup',
   'arc-steal',
+  'arc-drop',
   'arc-bank',
   'arc-pulse',
 ] as const;

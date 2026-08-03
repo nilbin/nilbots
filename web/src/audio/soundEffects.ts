@@ -3,7 +3,9 @@ export type SoundEffectCueId =
   | 'impact'
   | 'destroyed'
   | 'arc-birth'
+  | 'arc-pickup'
   | 'arc-steal'
+  | 'arc-drop'
   | 'arc-bank'
   | 'arc-pulse';
 export type SoundEffectPackId = 'obsidian-foundry';
@@ -76,7 +78,9 @@ function loadSoundEffectPack(): SoundEffectPack {
         'impact',
         'destroyed',
         'arc-birth',
+        'arc-pickup',
         'arc-steal',
+        'arc-drop',
         'arc-bank',
         'arc-pulse',
       ] as const

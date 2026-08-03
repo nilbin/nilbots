@@ -17,7 +17,9 @@
     "impact": "impact.m4a",
     "destroyed": "destroyed.m4a",
     "arc-birth": "arc-birth.m4a",
+    "arc-pickup": "arc-pickup.m4a",
     "arc-steal": "arc-steal.m4a",
+    "arc-drop": "arc-drop.m4a",
     "arc-bank": "arc-bank.m4a",
     "arc-pulse": "arc-pulse.m4a"
   }

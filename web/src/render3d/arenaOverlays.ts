@@ -16,7 +16,8 @@ import {
 } from '../replayPresentation';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
-import { teamVisionAt } from '../render/teamVision';
+import { teamVisionAt, teamVisionSeesActor } from '../render/teamVision';
+import { playsAt } from '../presentation/playAwareness';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -41,6 +42,7 @@ export interface ArenaOverlays {
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    highlightedUnitKeys?: readonly ReplayStableUnitKey[],
   ) => void;
   /** Camera offset for the knock of an impact at this instant. */
   shake: (time: number) => { x: number; y: number };
@@ -72,6 +74,9 @@ export function buildOverlays(
   const arcRelayEffects = buildArcRelayEffects(replay, disposables);
   group.add(arcRelayEffects.group);
 
+  const playAwareness = buildPlayAwareness(replay, disposables);
+  group.add(playAwareness.group);
+
   const scrap = buildScrapPiles(disposables);
   group.add(scrap.group);
 
@@ -99,6 +104,7 @@ export function buildOverlays(
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    highlightedUnitKeys: readonly ReplayStableUnitKey[] = [],
   ) => {
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
     const fraction = Math.max(0, Math.min(time - tick, 1));
@@ -130,6 +136,11 @@ export function buildOverlays(
     objective.update(presentation, time);
     arcRelay.update(presentation, time);
     arcRelayEffects.update(time);
+    playAwareness.update(
+      time,
+      teamVision,
+      highlightedUnitKeys,
+    );
     scrap.update(presentation, time);
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
@@ -180,6 +191,183 @@ export function buildOverlays(
       for (const item of disposables) item.dispose();
     },
   };
+}
+
+/**
+ * Published coordinated-play brackets and sigils on the ground plane.
+ * Operation identity/phase comes only from the entrant's bounded role tag;
+ * contact comes only from an authoritative event at the current tick.
+ */
+function buildPlayAwareness(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (
+    time: number,
+    vision: ReturnType<typeof teamVisionAt>,
+    highlightedUnitKeys: readonly ReplayStableUnitKey[],
+  ) => void;
+} {
+  const group = new THREE.Group();
+  group.userData.kind = 'play-awareness';
+  const bracketGeometry = new THREE.BufferGeometry();
+  const points: number[] = [];
+  const inner = 0.29;
+  const outer = 0.47;
+  for (const [sx, sz] of [
+    [-1, -1], [1, -1], [1, 1], [-1, 1],
+  ] as const) {
+    points.push(
+      sx * inner, 0, sz * outer,
+      sx * outer, 0, sz * outer,
+      sx * outer, 0, sz * outer,
+      sx * outer, 0, sz * inner,
+    );
+  }
+  bracketGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(points, 3),
+  );
+  const sigilGeometry = new THREE.RingGeometry(0.1, 0.145, 4, 1, Math.PI / 4);
+  sigilGeometry.rotateX(-Math.PI / 2);
+  const contactGeometry = new THREE.RingGeometry(0.32, 0.37, 36);
+  contactGeometry.rotateX(-Math.PI / 2);
+  disposables.push(bracketGeometry, sigilGeometry, contactGeometry);
+
+  const brackets = Array.from({ length: 16 }, () => {
+    const material = new THREE.LineBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const line = new THREE.LineSegments(bracketGeometry, material);
+    line.visible = false;
+    line.position.y = 0.072;
+    group.add(line);
+    disposables.push(material);
+    return { line, material };
+  });
+  const sigils = Array.from({ length: 4 }, () => {
+    const material = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(sigilGeometry, material);
+    mesh.visible = false;
+    mesh.position.y = 0.078;
+    group.add(mesh);
+    disposables.push(material);
+    return { mesh, material };
+  });
+  const contacts = Array.from({ length: 4 }, () => {
+    const material = new THREE.MeshBasicMaterial({
+      color: '#eff6fa',
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(contactGeometry, material);
+    mesh.visible = false;
+    mesh.position.y = 0.084;
+    group.add(mesh);
+    disposables.push(material);
+    return { mesh, material };
+  });
+
+  const update = (
+    time: number,
+    vision: ReturnType<typeof teamVisionAt>,
+    highlightedUnitKeys: readonly ReplayStableUnitKey[],
+  ) => {
+    for (const entry of brackets) entry.line.visible = false;
+    for (const entry of sigils) entry.mesh.visible = false;
+    for (const entry of contacts) entry.mesh.visible = false;
+    const tickIndex = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const poses = posesAt(replay, time);
+    const selected = new Set(highlightedUnitKeys);
+    const frame = playsAt(replay, tickIndex);
+    const primary = new Map<number, string>();
+    for (const play of frame)
+      if (!primary.has(play.teamId)) primary.set(play.teamId, play.activationKey);
+    let bracketIndex = 0;
+    let sigilIndex = 0;
+    let contactIndex = 0;
+
+    for (const play of frame) {
+      const visible = play.participants
+        .map((participant) => poses.find((pose) =>
+          pose.actorKey === participant.actorKey &&
+          pose.status === 'active' &&
+          teamVisionSeesActor(vision, pose),
+        ))
+        .filter((pose): pose is NonNullable<typeof pose> => Boolean(pose));
+      if (visible.length === 0) continue;
+      const accent = unitAccent(replay, visible[0]!.unitKey);
+      const selectedPlay = visible.some((pose) => selected.has(pose.unitKey));
+      const full = selectedPlay || primary.get(play.teamId) === play.activationKey;
+      const age = Math.max(0, time - play.phaseStartedTick);
+      if (full) {
+        for (const pose of visible) {
+          const slot = brackets[bracketIndex++];
+          if (!slot) break;
+          slot.line.visible = true;
+          slot.line.position.set(pose.x + 0.5, 0.072, pose.y + 0.5);
+          const outward = play.phase === 'recovery'
+            ? 1 + Math.min(0.32, age * 0.07)
+            : 1;
+          slot.line.scale.setScalar(outward);
+          slot.material.color.set(accent);
+          slot.material.opacity = play.phase === 'preparing'
+            ? 0.42 + 0.12 * Math.sin(time * Math.PI * 2)
+            : play.phase === 'recovery'
+              ? Math.max(0.18, 0.72 - age * 0.12)
+              : selectedPlay ? 0.96 : 0.78;
+        }
+      }
+
+      const sigil = sigils[sigilIndex++];
+      if (sigil) {
+        sigil.mesh.visible = true;
+        sigil.mesh.position.set(
+          visible.reduce((total, pose) => total + pose.x + 0.5, 0) / visible.length,
+          0.078,
+          visible.reduce((total, pose) => total + pose.y + 0.5, 0) / visible.length,
+        );
+        sigil.mesh.scale.setScalar(full ? 1 : 0.68);
+        sigil.material.color.set(accent);
+        sigil.material.opacity = play.phase === 'committed' && age < 1
+          ? 0.92
+          : full ? 0.68 : 0.38;
+      }
+
+      if (play.contact) {
+        const contact = contacts[contactIndex++];
+        if (!contact) continue;
+        const event = replay.ticks[tickIndex]?.events.find(
+          (candidate) => candidate.eventId === play.contact!.eventId,
+        );
+        const position = event?.to ?? event?.from;
+        contact.mesh.visible = true;
+        contact.mesh.position.set(
+          position?.x ?? visible.reduce((sum, pose) => sum + pose.x, 0) / visible.length + 0.5,
+          0.084,
+          position?.y ?? visible.reduce((sum, pose) => sum + pose.y, 0) / visible.length + 0.5,
+        );
+        const fraction = Math.max(0, Math.min(time - tickIndex, 1));
+        contact.mesh.scale.setScalar(1 + fraction * 1.5);
+        contact.material.opacity = (1 - fraction) * 0.9;
+      }
+    }
+  };
+
+  return { group, update };
 }
 
 /**

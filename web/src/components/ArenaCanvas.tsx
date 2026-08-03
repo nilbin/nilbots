@@ -26,6 +26,7 @@ interface ArenaCanvasProps {
   replay: ReplayModel;
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
+  highlightedUnitKeys?: readonly ReplayStableUnitKey[];
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   /** Follow the action. On by default; a gesture or the chrome's toggle turns it off. */
@@ -49,6 +50,7 @@ export default function ArenaCanvas({
   replay,
   time,
   selectedUnitKey,
+  highlightedUnitKeys = [],
   showVisibility,
   onSelectUnit,
   autoFit = true,
@@ -57,8 +59,20 @@ export default function ArenaCanvas({
   entrants,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({ time, selectedUnitKey, showVisibility, autoFit });
-  stateRef.current = { time, selectedUnitKey, showVisibility, autoFit };
+  const stateRef = useRef({
+    time,
+    selectedUnitKey,
+    highlightedUnitKeys,
+    showVisibility,
+    autoFit,
+  });
+  stateRef.current = {
+    time,
+    selectedUnitKey,
+    highlightedUnitKeys,
+    showVisibility,
+    autoFit,
+  };
   const overrideRef = useRef(onManualCamera);
   overrideRef.current = onManualCamera;
   // Survives re-renders and belongs to the replay, not the frame: the spring's whole job
@@ -121,7 +135,13 @@ export default function ArenaCanvas({
       }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      const { time: now, selectedUnitKey: followed, showVisibility: fov, autoFit: fit } =
+      const {
+        time: now,
+        selectedUnitKey: followed,
+        highlightedUnitKeys: highlighted,
+        showVisibility: fov,
+        autoFit: fit,
+      } =
         stateRef.current;
       if (width > 0 && height > 0) {
         framingRef.current = {
@@ -148,7 +168,10 @@ export default function ArenaCanvas({
         }
         if (camera.auto)
           camera.aim(
-            focusFrame(focusPointsAt(replay, now, followed), framingRef.current),
+            focusFrame(
+              focusPointsAt(replay, now, followed, highlighted),
+              framingRef.current,
+            ),
             now,
             followed === null ? directorShotHoldTicks(replay) : 0,
           );
@@ -164,6 +187,7 @@ export default function ArenaCanvas({
         {
           time: now,
           selectedUnitKey: followed,
+          highlightedUnitKeys: highlighted,
           showVisibility: fov,
           frame: cameraRef.current?.frame ?? null,
           entrants,

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { roleTagCaption, roleTagColor } from '../presentation/roleTag';
+import { parsePlayRoleTag } from '../presentation/playAwareness';
 
 /** Rasterised role-caption size; generous, because it is read at gameplay scale. */
 const ROLE_LABEL_WIDTH = 256;
@@ -1752,9 +1753,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // ENEMIES too — half the drama of a set-piece is seeing both sides'
       // assignments and knowing one of them is wrong. An absent tag draws
       // nothing at all: an unlabelled body should look unlabelled.
-      bot.paintRole(mechanics?.roleTag ?? null);
+      const roleTag = mechanics?.roleTag ?? null;
+      const isArcRelay =
+        replay.contract.kind === 'v3-generic' &&
+        replay.contract.modeKind === 'arc-relay';
+      const visibleRoleTag = !isArcRelay && roleTag && !parsePlayRoleTag(roleTag)
+        ? roleTag
+        : null;
+      bot.paintRole(visibleRoleTag);
       bot.roleLabel.visible =
-        bot.chassis.visible && (mechanics?.roleTag ?? null) !== null;
+        bot.chassis.visible && visibleRoleTag !== null;
 
       const load = mechanics?.carriedScrap ?? 0;
       bot.carry.visible = load > 0 && bot.chassis.visible;

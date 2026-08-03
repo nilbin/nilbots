@@ -18,6 +18,7 @@ import { useImmersive } from './useImmersive';
 import { useScreenWakeLock } from './useScreenWakeLock';
 import ArenaCanvas from './ArenaCanvas';
 import PlayOverlay from './PlayOverlay';
+import TacticsLens from './TacticsLens';
 
 import SoundEffectsControl from './SoundEffectsControl';
 import CameraFitToggle from './CameraFitToggle';
@@ -32,8 +33,13 @@ import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
 import ClassIcon from './ClassIcon';
 import {
   createPresenter,
-  type ArcRelayBeatPresentation,
 } from '../replayPresentation';
+import {
+  playAwarenessTimeline,
+  playForUnit,
+  playsAt,
+} from '../presentation/playAwareness';
+import { teamVisionAt } from '../render/teamVision';
 
 export interface ViewerEntrantPresentation {
   teamId: number;
@@ -97,6 +103,7 @@ export default function Viewer({
   const liveTime = useLiveFollower(replay, live);
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
+  const [selectedPlayKey, setSelectedPlayKey] = useState<string | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
   // The camera follows the fight by default, and any pan or zoom gesture drops that until
   // the toggle in the transport hands it back. Owned here rather than inside either
@@ -132,6 +139,25 @@ export default function Viewer({
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const arcStanding = presenter.at(tick).arcRelay;
+  const playTimeline = useMemo(() => playAwarenessTimeline(replay), [replay]);
+  const activePlays = playsAt(replay, tick);
+  const selectedActivePlay = selectedPlayKey === null
+    ? null
+    : activePlays.find((play) => play.activationKey === selectedPlayKey) ?? null;
+  const selectedUnitPlay = playForUnit(replay, tick, selectedUnitKey);
+  const perspectiveTeamId = teamVisionAt(
+    replay,
+    replay.ticks[tick],
+    selectedUnitKey,
+    showVisibility,
+  )?.teamId ?? null;
+  const highlightedUnitKeys = (
+    selectedActivePlay ?? selectedUnitPlay
+  )?.participants.map((participant) => participant.unitKey) ?? [];
+  const selectUnit = (unitKey: ReplayStableUnitKey | null) => {
+    setSelectedUnitKey(unitKey);
+    if (unitKey !== null) setSelectedPlayKey(null);
+  };
   const soundEffects = useReplaySoundEffects({
     replay,
     time,
@@ -304,6 +330,8 @@ export default function Viewer({
       playback={playback}
       replay={replay}
       selectedUnitKey={selectedUnitKey}
+      selectedPlayKey={selectedPlayKey}
+      perspectiveTeamId={perspectiveTeamId}
       autoFit={autoFit}
       onToggleAutoFit={() => setAutoFit((value) => !value)}
     />
@@ -459,8 +487,9 @@ export default function Viewer({
                 replay={replay}
                 time={time}
                 selectedUnitKey={selectedUnitKey}
+                highlightedUnitKeys={highlightedUnitKeys}
                 showVisibility={showVisibility}
-                onSelectUnit={setSelectedUnitKey}
+                onSelectUnit={selectUnit}
                 onUnavailable={() => setDimensional(false)}
                 onReady={() => setSceneReady(true)}
                 autoFit={autoFit}
@@ -473,8 +502,9 @@ export default function Viewer({
               replay={replay}
               time={time}
               selectedUnitKey={selectedUnitKey}
+              highlightedUnitKeys={highlightedUnitKeys}
               showVisibility={showVisibility}
-              onSelectUnit={setSelectedUnitKey}
+              onSelectUnit={selectUnit}
               autoFit={autoFit}
               onManualCamera={() => setAutoFit(false)}
               entrants={entrants}
@@ -497,16 +527,22 @@ export default function Viewer({
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
           {isArcRelay && arcStanding && (
-            <>
-              <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
-                reactors={arcStanding.reactors} />
-              {arcStanding.beat && (
-                <ArcRelayCoreBeat
-                  key={`${arcStanding.beat.tick}:${arcStanding.beat.kind}`}
-                  beat={arcStanding.beat}
-                />
-              )}
-            </>
+            <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
+              reactors={arcStanding.reactors} />
+          )}
+          {isArcRelay && !playback.atEnd && playTimeline.activations.length > 0 && (
+            <TacticsLens
+              replay={replay}
+              tick={tick}
+              selectedActivationKey={selectedPlayKey}
+              onSelectActivation={setSelectedPlayKey}
+              onSelectUnit={selectUnit}
+              onSeek={(target) => {
+                if (!isLive) playback.seek(target);
+              }}
+              selectedUnitKey={selectedUnitKey}
+              showVisibility={showVisibility}
+            />
           )}
           {/* A live broadcast has no play button — the clock belongs to the server and
               every viewer is on the same tick — so it keeps a plain indicator. */}
@@ -627,7 +663,7 @@ export default function Viewer({
               tick={tick}
               selectedUnitKey={selectedUnitKey}
               showVisibility={showVisibility}
-              onSelectUnit={setSelectedUnitKey}
+              onSelectUnit={selectUnit}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
             {!isArcRelay && (
@@ -769,59 +805,6 @@ function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
       <span className="text-[7px] uppercase tracking-[.2em] text-white/55">Arc Relay</span>
     </div>
   </div>;
-}
-
-/**
- * A score-bug-sized possession call, not the old centre-screen event banner.
- *
- * The Core already moves and blooms in-world, but at the wider director distance a pickup
- * can be a six-pixel ownership change. This short causal call makes the important change
- * readable without stealing the field or predicting anything beyond the playhead.
- */
-function ArcRelayCoreBeat({ beat }: { beat: ArcRelayBeatPresentation }) {
-  const mark = beat.kind === 'pickup'
-    ? '↑'
-    : beat.kind === 'drop'
-      ? '↓'
-      : beat.kind === 'steal'
-        ? '↯'
-        : beat.kind === 'bank'
-          ? '◆'
-          : beat.kind === 'pulse'
-            ? '✦'
-            : '○';
-  const accent = beat.accent ?? '#d9e6ee';
-  return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none absolute top-[72px] right-2 z-[8] flex max-w-[min(330px,calc(100%-16px))] items-center gap-2 rounded-sm border border-white/12 bg-[#10161c]/88 px-2.5 py-1.5 text-white shadow-[0_4px_16px_rgba(0,0,0,.36)] backdrop-blur-[5px] transition-opacity duration-200"
-      style={{
-        borderLeftColor: accent,
-        borderLeftWidth: 3,
-        opacity: Math.max(0.58, beat.strength),
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="flex size-6 shrink-0 items-center justify-center rounded-full border text-[13px] font-bold"
-        style={{
-          borderColor: accent,
-          color: accent,
-          boxShadow: `0 0 10px ${accent}55`,
-        }}
-      >
-        {mark}
-      </span>
-      <span className="min-w-0 leading-none">
-        <strong className="block truncate text-[10px] tracking-[.12em]">
-          {beat.headline}
-        </strong>
-        <span className="mt-1 block truncate text-[9px] text-white/65">
-          {beat.detail}
-        </span>
-      </span>
-    </div>
-  );
 }
 
 function fallbackCrest(name: string, accent: string): CrestPresentation {

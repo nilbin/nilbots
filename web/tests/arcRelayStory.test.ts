@@ -386,12 +386,19 @@ test('a born Core is the same glowing sphere hovering over its authoritative wel
   overlays.dispose();
 });
 
-test('Arc Relay birth, steal, bank, and Pulse facts drive their diegetic audio cues', () => {
+test('every Arc Relay possession beat drives its diegetic audio cue', () => {
   const replay = arcRelayReplay();
   assert.deepEqual(
-    [0, 3, 4, 5].map((tick) =>
+    [0, 1, 2, 3, 4, 5].map((tick) =>
       replayAudioEventsAt(replay, tick).map((event) => event.cue),
     ),
-    [['arc-birth'], ['arc-steal'], ['arc-bank'], ['arc-pulse']],
+    [
+      ['arc-birth'],
+      ['arc-pickup'],
+      ['arc-drop'],
+      ['arc-steal'],
+      ['arc-bank'],
+      ['arc-pulse'],
+    ],
   );
 });

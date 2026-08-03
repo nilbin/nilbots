@@ -577,13 +577,24 @@ function paintStoryBeats(
   for (const event of replay.ticks[tickIndex]?.events ?? []) {
     const fact = event.arcRelayFact;
     if (!fact) continue;
-    if (fact.kind === 'core-born') borrowRing(fact.position, '#eef8fc', true);
-    else if (fact.kind === 'core-picked-up')
+    if (fact.kind === 'core-born') borrowRing(fact.position, '#eef8fc', false);
+    else if (fact.kind === 'core-picked-up') {
+      const previousTeam = coreOwnerTeamBefore(replay, tickIndex, fact.coreId);
+      if (previousTeam !== null && previousTeam !== fact.carrierActor.teamId) {
+        const previousUnit = replay.units.find((unit) => unit.teamId === previousTeam);
+        borrowRing(
+          fact.position,
+          previousUnit ? unitAccent(replay, previousUnit.unitKey) : '#eef8fc',
+          false,
+        );
+      }
       borrowRing(
         fact.position,
         unitAccent(replay, fact.carrierActor.unitKey),
         true,
       );
+    } else if (fact.kind === 'core-dropped')
+      borrowRing(fact.position, '#eef8fc', false);
     else if (fact.kind === 'core-banked')
       borrowRing(
         fact.position,
@@ -623,4 +634,25 @@ function paintStoryBeats(
     );
     pulseMaterial.opacity = Math.sin(fraction * Math.PI) * 0.26;
   }
+}
+
+function coreOwnerTeamBefore(
+  replay: ReplayModel,
+  tickIndex: number,
+  coreId: { sourceWellId: string; sourceOrdinal: number },
+): number | null {
+  const key = `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
+  for (let index = tickIndex - 1; index >= 0; index -= 1) {
+    for (const event of [...(replay.ticks[index]?.events ?? [])].reverse()) {
+      const fact = event.arcRelayFact;
+      if (!fact || !('coreId' in fact)) continue;
+      if (`${fact.coreId.sourceWellId}:${fact.coreId.sourceOrdinal}` !== key) continue;
+      if (fact.kind === 'core-picked-up') return fact.carrierActor.teamId;
+      if (fact.kind === 'core-handed-off') return fact.targetActor.teamId;
+      if (fact.kind === 'core-relocated') return fact.carrierActor?.teamId ?? null;
+      if (fact.kind === 'core-dropped') return fact.sourceActor.teamId;
+      if (fact.kind === 'core-banked') return fact.teamId;
+    }
+  }
+  return null;
 }
