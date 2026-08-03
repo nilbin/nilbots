@@ -18,6 +18,7 @@ import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
 import { teamVisionAt, teamVisionSeesActor } from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
+import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -1901,15 +1902,15 @@ function buildArcRelayStory(
       // Lambert keeps enough directional shading to read as a volume but has no glossy
       // specular lobe: this is a self-lit energy Core, not a polished pearl.
       const gemMaterial = new THREE.MeshLambertMaterial({
-        // A darker body plus saturated emission leaves visible cyan in the centre instead
-        // of clipping the whole orb to pearl-white under the arena lights.
-        color: '#146b78',
-        emissive: '#38d8ee',
+        // A darker body preserves the sphere's volume under emission. The low-chroma
+        // white/lilac light is deliberately distinct from either team's ownership hue.
+        color: ARC_CORE_NEUTRAL_PALETTE.body,
+        emissive: ARC_CORE_NEUTRAL_PALETTE.emissive,
         emissiveIntensity: 0.68,
       });
       const glowMaterial = new THREE.SpriteMaterial({
         map: coreGlowTexture,
-        color: '#80ecff',
+        color: ARC_CORE_NEUTRAL_PALETTE.glow,
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -1926,7 +1927,12 @@ function buildArcRelayStory(
       gem.userData.kind = 'arc-relay-core-sphere';
       const glow = new THREE.Sprite(glowMaterial);
       glow.userData.kind = 'arc-relay-core-glow';
-      const light = new THREE.PointLight('#73eaff', 0, 2.4, 2);
+      const light = new THREE.PointLight(
+        ARC_CORE_NEUTRAL_PALETTE.light,
+        0,
+        2.4,
+        2,
+      );
       light.userData.kind = 'arc-relay-core-light';
       const beam = new THREE.Mesh(beamGeometry, beamMaterial);
       beam.position.y = 0.54;
@@ -2058,10 +2064,10 @@ function buildArcRelayStory(
         rig.glowMaterial.color.set(accent);
         rig.light.color.set(accent);
       } else {
-        rig.gemMaterial.color.set('#146b78');
-        rig.gemMaterial.emissive.set('#38d8ee');
-        rig.glowMaterial.color.set('#80ecff');
-        rig.light.color.set('#73eaff');
+        rig.gemMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.body);
+        rig.gemMaterial.emissive.set(ARC_CORE_NEUTRAL_PALETTE.emissive);
+        rig.glowMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.glow);
+        rig.light.color.set(ARC_CORE_NEUTRAL_PALETTE.light);
       }
       rig.gemMaterial.emissiveIntensity = carried ? 0.8 : 0.7;
       rig.glowMaterial.opacity = carried

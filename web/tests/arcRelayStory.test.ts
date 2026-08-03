@@ -17,6 +17,7 @@ import type {
   ReplayCausalEvent,
   ReplayModel,
 } from '../src/replayModel.ts';
+import { ARC_CORE_NEUTRAL_PALETTE } from '../src/presentation/arcCorePalette.ts';
 
 function arcRelayReplay(): ReplayModel {
   const replay = loadReplayJson(
@@ -374,15 +375,65 @@ test('a born Core is the same glowing sphere hovering over its authoritative wel
   assert.ok(sphere.position.y > 0.3, 'the loose sphere hovers visibly above the well');
   assert.equal(
     (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
-    new THREE.Color('#38d8ee').getHexString(),
-    'a loose Core remains neutral energy',
+    new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.emissive).getHexString(),
+    'a loose Core uses neutral energy rather than a team hue',
   );
   assert.equal(
     (glow.material as THREE.SpriteMaterial).color.getHexString(),
-    new THREE.Color('#80ecff').getHexString(),
+    new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.glow).getHexString(),
     'a loose Core keeps the neutral glow',
   );
+  const teamAccents = createPresenter(replay).at(0).arcRelay?.reactors
+    .map((reactor) => new THREE.Color(reactor.accent).getHexString()) ?? [];
+  assert.equal(teamAccents.length, 2);
+  assert.equal(new Set(teamAccents).size, 2, 'the fixture exposes two team hues');
+  assert.ok(
+    !teamAccents.includes(
+      new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.emissive).getHexString(),
+    ),
+    'neutral Core emission is not either team colour',
+  );
+  assert.ok(
+    !teamAccents.includes(
+      new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.glow).getHexString(),
+    ),
+    'neutral Core glow is not either team colour',
+  );
 
+  overlays.dispose();
+});
+
+test('an airborne Core stays neutral until an authoritative pickup', () => {
+  const replay = arcRelayReplay();
+  const mode = replay.ticks[0]!.after.mode;
+  assert.equal(mode?.kind, 'arc-relay');
+  assert.ok(mode && 'visibleCores' in mode);
+  const core = mode.visibleCores[0];
+  assert.ok(core);
+  core.disposition = 'in-flight';
+  core.flightTarget = { x: core.position.x + 2, y: core.position.y };
+  core.flightCompletesAtTick = 1;
+
+  const overlays = buildOverlays(replay);
+  overlays.update(0.5, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const sphere = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-sphere',
+  ) as THREE.Mesh | undefined;
+  const glow = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-glow',
+  ) as THREE.Sprite | undefined;
+  assert.ok(sphere);
+  assert.ok(glow);
+  assert.equal(
+    (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.emissive).getHexString(),
+  );
+  assert.equal(
+    (glow.material as THREE.SpriteMaterial).color.getHexString(),
+    new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.glow).getHexString(),
+  );
   overlays.dispose();
 });
 

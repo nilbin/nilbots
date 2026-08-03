@@ -11,6 +11,7 @@ import type { BotPose } from './interpolate';
 import { unitLook } from './unitPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
 import type { CrestPresentation } from '../components/EntrantCrest';
+import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -570,15 +571,21 @@ function drawCoreSphere(
   const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 1.9);
   glow.addColorStop(
     0,
-    teamAccent ? withAlpha(teamAccent, 0.58) : 'rgba(215, 245, 255, 0.42)',
+    teamAccent
+      ? withAlpha(teamAccent, 0.58)
+      : ARC_CORE_NEUTRAL_PALETTE.canvasGlowInner,
   );
   glow.addColorStop(
     0.45,
-    teamAccent ? withAlpha(teamAccent, 0.3) : 'rgba(151, 226, 248, 0.22)',
+    teamAccent
+      ? withAlpha(teamAccent, 0.3)
+      : ARC_CORE_NEUTRAL_PALETTE.canvasGlowMiddle,
   );
   glow.addColorStop(
     1,
-    teamAccent ? withAlpha(teamAccent, 0) : 'rgba(151, 226, 248, 0)',
+    teamAccent
+      ? withAlpha(teamAccent, 0)
+      : ARC_CORE_NEUTRAL_PALETTE.canvasGlowOuter,
   );
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -595,10 +602,10 @@ function drawCoreSphere(
     shade.addColorStop(0.76, teamAccent);
     shade.addColorStop(1, '#10232a');
   } else {
-    shade.addColorStop(0, '#dcfbff');
-    shade.addColorStop(0.34, '#91efff');
-    shade.addColorStop(0.72, '#4bc9df');
-    shade.addColorStop(1, '#21869a');
+    shade.addColorStop(0, ARC_CORE_NEUTRAL_PALETTE.canvasCentre);
+    shade.addColorStop(0.34, ARC_CORE_NEUTRAL_PALETTE.canvasInner);
+    shade.addColorStop(0.72, ARC_CORE_NEUTRAL_PALETTE.canvasMiddle);
+    shade.addColorStop(1, ARC_CORE_NEUTRAL_PALETTE.canvasEdge);
   }
   ctx.fillStyle = shade;
   ctx.beginPath();
