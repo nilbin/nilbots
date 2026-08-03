@@ -8,9 +8,12 @@
   "up": "+y",
   "source": {
     "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
-    "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
-    "artifact": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
-    "sourceSha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-hush.glb",
+    "sourceSha256": "b360ef10ce0b2be32074921c10486ea4da53842a7a8fe1d1b38a7d0c75654529",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
+    "approvedSha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+    "textureTier": "arc-relay-ktx2-selective-v1",
     "provider": "Meshy",
     "model": "meshy-t2",
     "endpoint": "image-to-3d",
@@ -26,10 +29,17 @@
   },
   "signature": "null-field",
   "ledger": {
-    "bytes": 741832,
-    "sha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+    "bytes": 611748,
+    "sha256": "b360ef10ce0b2be32074921c10486ea4da53842a7a8fe1d1b38a7d0c75654529",
     "triangles": 13595,
     "materials": 1,
-    "textureCount": 4
+    "textureCount": 4,
+    "geometrySha256": "2b31d60733935edd05175495af84d97fb8db084dd5044f511418838295517c68",
+    "geometryGpuBytes": 396532,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 757060,
+    "modelGpuBytesRgba8Fallback": 2581060,
+    "textureTier": "arc-relay-ktx2-selective-v1"
   }
 }

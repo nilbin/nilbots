@@ -476,9 +476,22 @@ sprite-derived WebGL fallback:
 - An approved provider model may be monolithic when real-replay evidence clears
   it. In that case the manifest keeps root-level motion tuning but omits invented
   node names; only per-node hardware/emissive animation is disabled. The Arc
-  fleet's exact candidates, orientations, hashes, and counts come from its
-  `fleet-audit.json` and are promoted/checked by
+  fleet's exact candidate geometry, orientations, hashes, and counts come from its
+  `fleet-audit.json`. Shipping textures come from the separately audited
+  `arc-relay-ktx2-selective-v1` tier and are promoted/checked by
   `scripts/class-models/promote-meshy-arc-fleet.mjs`.
+- Arc Relay's selective mipmapped texture contract is 512 ETC1S base color,
+  256 UASTC tangent normal, 256 UASTC metallic/roughness, and 128 ETC1S emissive.
+  The tier builder must prove byte-semantic accessor equality with the approved
+  candidate; texture optimization is never permission to alter geometry, facing,
+  topology, or normalization.
+- Measure three costs independently: network transfer, compressed-target GPU
+  residency, and RGBA8 fallback residency on devices without a supported target.
+  The fleet audit hard-limits these values and the fixed decoder payload. A small
+  `.glb` is not evidence of a small decoded texture footprint.
+- The Three KTX2 transcoder is initialized only inside the lazy WebGL renderer,
+  before any actor can request a model. Canvas2D and self-contained CLI output must
+  not include the decoder or GLB package.
 - Presentation motion such as Striker's shallow `low-hover` belongs in the
   canonical `look.json`, not `model3d.json`. The SVG fallback and any future
   approved GLB must receive the same cue without duplicating metadata.
@@ -505,9 +518,11 @@ sprite-derived WebGL fallback:
 - Model packages load on first use and emit as separate hosted assets, so the
   decision is per-look rather than one catalog-wide bundle. Compare a lean and
   a richer tier with exact bytes, triangles, material count, atlas dimensions,
-  and first-use transfer. A larger tier earns its cost only through visible
-  gameplay-scale improvement. The theme-scoped CLI outputs must remain
-  byte-identical because they cannot render GLBs.
+  first-use transfer, and decoded residency. A larger tier earns its cost only
+  through visible gameplay-scale improvement. Compare under the real director and
+  player camera—browser zoom or an enlarged crop is not camera evidence. The
+  theme-scoped CLI outputs must remain byte-identical because they cannot render
+  GLBs.
 
 #### Multiview-AI to human handoff pilot
 

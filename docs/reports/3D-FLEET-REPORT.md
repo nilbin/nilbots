@@ -1,13 +1,48 @@
 # Arc Relay authored 3D fleet report
 
-## Production promotion correction (2026-08-03)
+## Production runtime texture tier (2026-08-03)
 
-The owner-approved Meshy T2 fleet is now the permanent runtime fleet. Commit
+The shipping WebGL fleet now uses the deterministic
+`arc-relay-ktx2-selective-v1` texture tier. The owner-approved Meshy candidates
+remain the appearance, silhouette, orientation, and geometry authority. The builder
+retains their byte-semantic accessor values, 219,230 triangles, monolithic topology,
+normalization, and Kestrel/Mortar facing corrections; only embedded texture payloads
+are derived from the normalized provider masters.
+
+Every look carries four mipmapped KTX2 maps: 512 ETC1S base color, 256 UASTC normal,
+256 UASTC metallic/roughness, and 128 ETC1S emissive. Across all sixteen looks the
+runtime GLBs transfer 8,941,992 bytes. Uploaded geometry consumes 5,386,440 bytes;
+textures consume 5,768,448 bytes on a supported compressed target, for 11,154,888
+bytes of total model residency. The audited worst-case RGBA8 fallback is 34,952,448
+texture bytes and 40,338,888 total model bytes. All values include mip levels and
+remain below the explicit 12 MiB compressed-model and 48 MiB fallback-model fleet
+budgets. The fixed Three Basis decoder emits 584,862 raw bytes and remains below its
+600,000-byte budget.
+
+For comparison, the visually approved 1024 WebP package transferred 10,726,052 bytes
+but decoded its 64 RGBA8 mipmapped textures to 357,913,856 GPU bytes before geometry.
+This is why transfer size and GPU residency are separate acceptance columns. The
+selected tier reduces texture residency by about 62× on a compressed target while
+preserving gameplay/director-scale read in the fixed replay comparison. That review
+uses the spectator canvas's own pan/wheel camera with browser scale locked to 1;
+an enlarged crop is not treated as zoom evidence.
+
+`scripts/class-models/build-arc-runtime-texture-tier.mjs --check` proves the checked-in
+tier, exact geometry fingerprint, per-map texture contract, and memory budgets without
+requiring authoring tools. `promote-meshy-arc-fleet.mjs --check` then proves every
+runtime GLB, manifest, and fleet ledger matches that tier. KTX2 target detection and
+the decoder live only in the lazy WebGL path; Canvas2D and CLI remain outside it.
+
+## Provider promotion history (superseded runtime-size details)
+
+The owner-approved Meshy T2 fleet became the permanent visual source. Commit
 `1cdce66a` correctly preserved the provider runs and built review evidence, but
 its review builder staged the Meshy candidates only temporarily and restored the
 older vector/procedural GLBs afterward. A later normal review build therefore
-served those older files. This follow-up promotes the approved candidate bytes
-without regenerating, modifying, splitting, or repainting them.
+served those older files. That follow-up promoted the approved candidate bytes
+without regenerating, splitting, or repainting them. The production texture tier
+above now preserves that geometry and approval while replacing only the shipping
+texture encoding.
 
 The source of truth is
 `art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json`: Mason
@@ -27,14 +62,13 @@ The reroll reference and provider turntable are retained under
 `art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/`.
 The exact promoted GLB at inspection and director scale is retained at
 `art/reviews/arc-relay-meshy-facing/mortar-reroll-approved.png`.
-`scripts/class-models/promote-meshy-arc-fleet.mjs --check` proves each runtime
-GLB equals its approved candidate byte-for-byte and that every manifest and the
-fleet ledger match. The production fleet totals 10,726,052 bytes, 219,230
+At that approval point the provider fleet totaled 10,726,052 bytes, 219,230
 triangles, 16 materials, and 64 embedded textures; the largest look is Veil at
-814,688 bytes, within the explicit 1 MiB on-demand per-look budget.
+814,688 bytes. Those transfer values describe the approved 1024 WebP candidates,
+not the current runtime tier.
 
 The provider meshes are intentionally monolithic and unsplit: one material and
-four WebP textures per class, no named mounted nodes, and no model-owned team
+four source textures per class, no named mounted nodes, and no model-owned team
 glow. Root-level renderer motion remains live—lean/bank/pitch, hull
 follow-through, wake/exhaust, cooldown venting, camera/position interpolation,
 and idle restraint. Only unavailable per-node hardware, wheel, idle-part, and
@@ -47,11 +81,11 @@ evidence. Their runtime, named-group, semantic-paint, 512 KiB, totals, and
 `build-arc-relay-models.mjs --check` claims are superseded by this production
 promotion; they no longer describe the shipping Arc GLBs.
 
-Follow-up validation: web tests pass 381/381; the production and review builds
-pass; both emitted asset directories contain all sixteen approved candidate
-hashes with none missing; the existing three-replay gallery was reinstalled;
-and real playback passed desktop WebGL, 844×390 phone-sized WebGL, and forced
-Canvas2D fallback with advancing ticks and no page or console errors.
+Historical validation at that promotion point: web tests passed 381/381; the
+production and review builds passed; both emitted asset directories contained all
+sixteen approved candidate hashes; and real playback passed desktop WebGL,
+844×390 phone-sized WebGL, and forced Canvas2D fallback. The current KTX2 tier has
+its own validation and hashes above.
 
 ## Result
 

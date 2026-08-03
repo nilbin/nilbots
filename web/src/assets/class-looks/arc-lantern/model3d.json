@@ -8,9 +8,12 @@
   "up": "+y",
   "source": {
     "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
-    "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
-    "artifact": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
-    "sourceSha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-lantern.glb",
+    "sourceSha256": "e6bf4157fac080466c9888fb3d42cccf67d137593a64976cd7aab3c3cda2d6f7",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
+    "approvedSha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+    "textureTier": "arc-relay-ktx2-selective-v1",
     "provider": "Meshy",
     "model": "meshy-t2",
     "endpoint": "image-to-3d",
@@ -26,10 +29,17 @@
   },
   "signature": "survey-flare",
   "ledger": {
-    "bytes": 623192,
-    "sha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+    "bytes": 533788,
+    "sha256": "e6bf4157fac080466c9888fb3d42cccf67d137593a64976cd7aab3c3cda2d6f7",
     "triangles": 15301,
     "materials": 1,
-    "textureCount": 4
+    "textureCount": 4,
+    "geometrySha256": "ca7186fcb0cb900c59e31e7631e6801adecdac8efac2643f68a1161637005ed2",
+    "geometryGpuBytes": 304968,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 665496,
+    "modelGpuBytesRgba8Fallback": 2489496,
+    "textureTier": "arc-relay-ktx2-selective-v1"
   }
 }

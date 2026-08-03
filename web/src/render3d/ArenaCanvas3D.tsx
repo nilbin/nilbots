@@ -4,6 +4,7 @@ import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
 import { buildArena, CAMERA_PITCH } from './arenaScene';
 import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
+import { configureModelTextureSupport } from './lookModel';
 import {
   ArenaCamera,
   directorMinSpan,
@@ -115,6 +116,7 @@ export default function ArenaCanvas3D({
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
+    configureModelTextureSupport(renderer);
     container.appendChild(renderer.domElement);
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.width = '100%';

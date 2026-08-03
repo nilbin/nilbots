@@ -8,9 +8,12 @@
   "up": "+y",
   "source": {
     "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
-    "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
-    "artifact": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
-    "sourceSha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-towline.glb",
+    "sourceSha256": "271ebcf8e48b139d5d5fcb40c9d897ff478c18076786d18015aa96a2e0dce90e",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
+    "approvedSha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+    "textureTier": "arc-relay-ktx2-selective-v1",
     "provider": "Meshy",
     "model": "meshy-t2",
     "endpoint": "image-to-3d",
@@ -26,10 +29,17 @@
   },
   "signature": "tractor-hook",
   "ledger": {
-    "bytes": 644856,
-    "sha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+    "bytes": 539112,
+    "sha256": "271ebcf8e48b139d5d5fcb40c9d897ff478c18076786d18015aa96a2e0dce90e",
     "triangles": 15375,
     "materials": 1,
-    "textureCount": 4
+    "textureCount": 4,
+    "geometrySha256": "1be0d5b93c7eef71b9a04689bcb5cbad7cacdd09b1e382ba412433c79b9b8dc1",
+    "geometryGpuBytes": 299332,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 659860,
+    "modelGpuBytesRgba8Fallback": 2483860,
+    "textureTier": "arc-relay-ktx2-selective-v1"
   }
 }

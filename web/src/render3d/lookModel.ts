@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { beginAsset } from '../render/assetReadiness';
 import { chassisModel } from './chassisModel';
 
@@ -50,6 +51,11 @@ export interface LookModelSpec {
     modelType?: string;
     taskId?: string;
     orientation?: 'identity' | 'lay-flat-x';
+    facingYawDegrees?: number;
+    /** Provider artifact whose appearance/orientation was approved before runtime encoding. */
+    approvedArtifact?: string;
+    approvedSha256?: string;
+    textureTier?: string;
   };
   ledger?: {
     bytes: number;
@@ -57,6 +63,13 @@ export interface LookModelSpec {
     triangles: number;
     materials: number;
     textureCount: number;
+    geometrySha256?: string;
+    geometryGpuBytes?: number;
+    textureGpuBytesCompressedTarget?: number;
+    textureGpuBytesRgba8Fallback?: number;
+    modelGpuBytesCompressedTarget?: number;
+    modelGpuBytesRgba8Fallback?: number;
+    textureTier?: string;
   };
 }
 
@@ -139,7 +152,20 @@ const models = registerModels([
 const loadingManager = new THREE.LoadingManager();
 
 const loader = new GLTFLoader(loadingManager);
+const ktx2Loader = new KTX2Loader(loadingManager);
+loader.setKTX2Loader(ktx2Loader);
 const rawModels = new Map<string, Promise<THREE.Group | null>>();
+
+/**
+ * Select the device-native target for Basis/KTX2 textures before model loading begins.
+ *
+ * The transcoder remains inside the lazy WebGL tree, and Vite resolves Three's pinned
+ * worker assets from the loader module. Canvas2D and the self-contained CLI viewer do not
+ * carry it. Existing WebP GLBs are unaffected because they never use this loader.
+ */
+export function configureModelTextureSupport(renderer: THREE.WebGLRenderer): void {
+  ktx2Loader.detectSupport(renderer);
+}
 
 /** Return renderer metadata synchronously without starting a model download. */
 export function modelSpec(id: string): LookModelSpec | null {
@@ -527,6 +553,20 @@ function validateSource(
         throw new Error(`3D look '${id}' has invalid provider source ${key}.`);
     if (input.orientation !== 'identity' && input.orientation !== 'lay-flat-x')
       throw new Error(`3D look '${id}' has invalid provider orientation.`);
+    if (input.facingYawDegrees !== undefined && !Number.isFinite(input.facingYawDegrees))
+      throw new Error(`3D look '${id}' has invalid provider facing correction.`);
+    const hasApprovedArtifact =
+      typeof input.approvedArtifact === 'string' && input.approvedArtifact.length > 0;
+    const hasTextureTier = typeof input.textureTier === 'string' && input.textureTier.length > 0;
+    if (hasApprovedArtifact !== hasTextureTier)
+      throw new Error(`3D look '${id}' runtime tier needs approval and tier provenance.`);
+    if (hasApprovedArtifact) {
+      if (
+        typeof input.approvedSha256 !== 'string' ||
+        !/^[0-9a-f]{64}$/.test(input.approvedSha256)
+      )
+        throw new Error(`3D look '${id}' has invalid approved provider hash.`);
+    }
   }
   return input as NonNullable<LookModelSpec['source']>;
 }
@@ -543,6 +583,31 @@ function validateLedger(
       throw new Error(`3D look '${id}' has invalid ledger ${key}.`);
   if (typeof input.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(input.sha256))
     throw new Error(`3D look '${id}' has invalid ledger hash.`);
+  const memoryFields = [
+    'geometryGpuBytes',
+    'textureGpuBytesCompressedTarget',
+    'textureGpuBytesRgba8Fallback',
+    'modelGpuBytesCompressedTarget',
+    'modelGpuBytesRgba8Fallback',
+  ];
+  const presentMemoryFields = memoryFields.filter((key) => input[key] !== undefined);
+  if (
+    presentMemoryFields.length !== 0 &&
+    (presentMemoryFields.length !== memoryFields.length ||
+      presentMemoryFields.some(
+        (key) => !Number.isInteger(input[key]) || (input[key] as number) <= 0,
+      ))
+  )
+    throw new Error(`3D look '${id}' has an incomplete GPU-memory ledger.`);
+  if (presentMemoryFields.length > 0) {
+    if (
+      typeof input.geometrySha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(input.geometrySha256) ||
+      typeof input.textureTier !== 'string' ||
+      input.textureTier.length === 0
+    )
+      throw new Error(`3D look '${id}' has invalid runtime texture provenance.`);
+  }
   return input as NonNullable<LookModelSpec['ledger']>;
 }
 

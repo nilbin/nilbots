@@ -8,6 +8,11 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  geometryFingerprint,
+  inspectModelMemory,
+  triangleCount,
+} from './model-memory.mjs';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const auditPath = join(
@@ -15,8 +20,13 @@ const auditPath = join(
   'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json',
 );
 const ledgerPath = join(repository, 'art/class-models/arc-relay/ledger.json');
+const tierAuditPath = join(
+  repository,
+  'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json',
+);
 const check = process.argv.includes('--check');
 const audit = JSON.parse(readFileSync(auditPath, 'utf8'));
+const tierAudit = JSON.parse(readFileSync(tierAuditPath, 'utf8'));
 const entries = [audit.pilot, ...audit.generated].sort((left, right) =>
   left.lookId.localeCompare(right.lookId),
 );
@@ -24,18 +34,37 @@ const entries = [audit.pilot, ...audit.generated].sort((left, right) =>
 if (entries.length !== 16 || new Set(entries.map((entry) => entry.lookId)).size !== 16)
   throw new Error('The Meshy fleet audit must contain exactly sixteen unique looks.');
 
-const totals = { bytes: 0, triangles: 0, materials: 0, textures: 0 };
+const tierLooks = new Map(tierAudit.looks.map((look) => [look.id, look]));
+const totals = {
+  bytes: 0,
+  triangles: 0,
+  materials: 0,
+  textures: 0,
+  geometryGpuBytes: 0,
+  textureGpuBytesCompressedTarget: 0,
+  textureGpuBytesRgba8Fallback: 0,
+  modelGpuBytesCompressedTarget: 0,
+  modelGpuBytesRgba8Fallback: 0,
+};
 const looks = [];
 
 for (const entry of entries) {
-  const candidatePath = join(repository, entry.candidate.file);
+  const tier = tierLooks.get(entry.lookId);
+  if (!tier) throw new Error(`${entry.lookId}: selective KTX2 tier entry is missing.`);
+  if (
+    tier.approvedCandidate.file !== entry.candidate.file ||
+    tier.approvedCandidate.bytes !== entry.candidate.bytes ||
+    tier.approvedCandidate.sha256 !== entry.candidate.sha256
+  )
+    throw new Error(`${entry.lookId}: texture tier is not derived from visual approval.`);
+  const candidatePath = join(repository, tier.runtime.file);
   const runtimeDirectory = join(repository, 'web/src/assets/class-looks', entry.lookId);
   const runtimePath = join(runtimeDirectory, 'model.glb');
   const manifestPath = join(runtimeDirectory, 'model3d.json');
   const candidate = readFileSync(candidatePath);
   const hash = sha256(candidate);
-  if (candidate.length !== entry.candidate.bytes || hash !== entry.candidate.sha256)
-    throw new Error(`${entry.lookId}: audited candidate bytes or SHA-256 changed.`);
+  if (candidate.length !== tier.runtime.bytes || hash !== tier.runtime.sha256)
+    throw new Error(`${entry.lookId}: audited runtime tier bytes or SHA-256 changed.`);
 
   const document = readGlb(candidate, entry.lookId);
   const normalization = document.nodes?.[document.scenes?.[0]?.nodes?.[0]]?.extras
@@ -43,6 +72,7 @@ for (const entry of entries) {
   const triangles = triangleCount(document);
   const materials = document.materials?.length ?? 0;
   const textures = document.textures?.length ?? 0;
+  const memory = inspectModelMemory(candidate, entry.lookId);
   if (document.cameras || document.skins || document.animations)
     throw new Error(`${entry.lookId}: provider model contains a camera, skin, or animation.`);
   if (triangles !== entry.candidate.triangles || materials !== entry.candidate.materials ||
@@ -50,6 +80,12 @@ for (const entry of entries) {
     throw new Error(`${entry.lookId}: provider model ledger no longer matches the audit.`);
   if (materials !== 1 || textures !== 4)
     throw new Error(`${entry.lookId}: approved Meshy contract is one material/four textures.`);
+  if (
+    !(document.extensionsRequired ?? []).includes('KHR_texture_basisu') ||
+    (document.images ?? []).some((image) => image.mimeType !== 'image/ktx2') ||
+    geometryFingerprint(candidate, entry.lookId) !== tier.geometrySha256
+  )
+    throw new Error(`${entry.lookId}: audited KTX2 or approved geometry contract drifted.`);
   if ((document.materials ?? []).some((material) => material.extras?.nilbotsRole === 'team-accent'))
     throw new Error(`${entry.lookId}: approved Meshy model must not own team paint.`);
   if (
@@ -74,9 +110,12 @@ for (const entry of entries) {
     up: '+y',
     source: {
       generator: 'scripts/class-models/promote-meshy-arc-fleet.mjs',
-      recipe: relative(repository, auditPath),
-      artifact: entry.candidate.file,
+      recipe: relative(repository, tierAuditPath),
+      artifact: tier.runtime.file,
       sourceSha256: hash,
+      approvedArtifact: entry.candidate.file,
+      approvedSha256: entry.candidate.sha256,
+      textureTier: tierAudit.id,
       provider: audit.provider,
       model: audit.model,
       endpoint: audit.endpoint,
@@ -93,6 +132,13 @@ for (const entry of entries) {
       triangles,
       materials,
       textureCount: textures,
+      geometrySha256: tier.geometrySha256,
+      geometryGpuBytes: memory.geometryGpuBytes,
+      textureGpuBytesCompressedTarget: memory.textureGpuBytesCompressedTarget,
+      textureGpuBytesRgba8Fallback: memory.textureGpuBytesRgba8Fallback,
+      modelGpuBytesCompressedTarget: memory.modelGpuBytesCompressedTarget,
+      modelGpuBytesRgba8Fallback: memory.modelGpuBytesRgba8Fallback,
+      textureTier: tierAudit.id,
     },
   };
 
@@ -108,10 +154,16 @@ for (const entry of entries) {
   totals.triangles += triangles;
   totals.materials += materials;
   totals.textures += textures;
+  totals.geometryGpuBytes += memory.geometryGpuBytes;
+  totals.textureGpuBytesCompressedTarget += memory.textureGpuBytesCompressedTarget;
+  totals.textureGpuBytesRgba8Fallback += memory.textureGpuBytesRgba8Fallback;
+  totals.modelGpuBytesCompressedTarget += memory.modelGpuBytesCompressedTarget;
+  totals.modelGpuBytesRgba8Fallback += memory.modelGpuBytesRgba8Fallback;
   looks.push({
     id: entry.lookId,
     taskId: entry.taskId,
-    artifact: entry.candidate.file,
+    artifact: tier.runtime.file,
+    approvedArtifact: entry.candidate.file,
     orientation: entry.orientation,
     facingYawDegrees: entry.facingYawDegrees ?? 0,
     bytes: candidate.length,
@@ -119,15 +171,19 @@ for (const entry of entries) {
     triangles,
     materials,
     textures,
+    geometrySha256: tier.geometrySha256,
+    memory,
     targetPlanformSpan: normalization.targetPlanformSpan,
     floorY: normalization.floorY,
   });
 }
 
 const ledger = {
-  version: 2,
+  version: 3,
   generator: 'scripts/class-models/promote-meshy-arc-fleet.mjs',
   sourceAudit: relative(repository, auditPath),
+  runtimeTier: relative(repository, tierAuditPath),
+  textureTier: tierAudit.id,
   provider: audit.provider,
   endpoint: audit.endpoint,
   model: audit.model,
@@ -135,9 +191,26 @@ const ledger = {
   meshContract: audit.reviewContract.meshContract,
   modelOwnedTeamGlow: audit.reviewContract.modelOwnedTeamGlow,
   budgetBytesPerLook: 1048576,
+  budgets: tierAudit.budgets,
   totals,
   looks,
 };
+
+for (const [actual, expected, label] of [
+  [totals.bytes, tierAudit.totals.runtimeTransferBytes, 'transfer bytes'],
+  [totals.geometryGpuBytes, tierAudit.totals.geometryGpuBytes, 'geometry GPU bytes'],
+  [
+    totals.textureGpuBytesCompressedTarget,
+    tierAudit.totals.textureGpuBytesCompressedTarget,
+    'compressed texture GPU bytes',
+  ],
+  [
+    totals.textureGpuBytesRgba8Fallback,
+    tierAudit.totals.textureGpuBytesRgba8Fallback,
+    'fallback texture GPU bytes',
+  ],
+])
+  if (actual !== expected) throw new Error(`Promoted fleet ${label} drifted from tier audit.`);
 
 if (check) assertText(ledgerPath, json(ledger));
 else writeFileSync(ledgerPath, json(ledger));
@@ -150,17 +223,6 @@ function readGlb(bytes, id) {
     throw new Error(`${id}: invalid GLB header.`);
   const jsonLength = bytes.readUInt32LE(12);
   return JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8').trim());
-}
-
-function triangleCount(document) {
-  return (document.meshes ?? []).flatMap((mesh) => mesh.primitives ?? []).reduce(
-    (sum, primitive) => {
-      if ((primitive.mode ?? 4) !== 4 || primitive.indices === undefined)
-        throw new Error('Approved fleet requires indexed triangle primitives.');
-      return sum + (document.accessors?.[primitive.indices]?.count ?? 0) / 3;
-    },
-    0,
-  );
 }
 
 function sha256(bytes) {
