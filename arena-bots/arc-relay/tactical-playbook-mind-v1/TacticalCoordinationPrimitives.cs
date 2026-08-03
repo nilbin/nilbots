@@ -24,4 +24,14 @@ internal static class TacticalCoordinationPrimitives
             value => value.UnitId)
         .Select(group => group.First())
         .ToHashSet();
+
+    internal static bool NeedsFocusAssignment(
+        int targetHealth,
+        int committedDamage,
+        int permittedOverkillDamage,
+        bool coverEscapeLanes,
+        int coveredOptions,
+        int minimumCoveredOptions) =>
+        committedDamage < targetHealth + permittedOverkillDamage
+        || coverEscapeLanes && coveredOptions < minimumCoveredOptions;
 }

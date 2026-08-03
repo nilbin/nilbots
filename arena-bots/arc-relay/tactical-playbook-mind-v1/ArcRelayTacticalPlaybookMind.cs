@@ -226,6 +226,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             $"playbook {package.Source.PlaybookId}; phase={machine.PhaseId}; "
             + $"live={mind.Bodies.Length}; enemy-down="
             + $"{_enemyUnavailableUntil.Count}; secured={_securedCores.Count}; "
+            + $"carriers={snapshot.FriendlyCarriers}; loose="
+            + $"{snapshot.VisibleLooseCores}; wells="
+            + $"{snapshot.WellOutstanding.Values.Sum()}; reactor="
+            + $"{snapshot.ReactorIntegrity}/{snapshot.ReactorCharge}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -861,8 +865,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         targetOrder.FirstOrDefault(enemy =>
                             attackerCounts.GetValueOrDefault(enemy.ActorId)
                                 < policy.MaximumAttackersPerTarget
-                            && committedDamage.GetValueOrDefault(enemy.ActorId)
-                                < enemy.Health + policy.OverkillDamage
+                            && NeedsFocusAssignment(
+                                policy,
+                                enemy,
+                                committedDamage.GetValueOrDefault(
+                                    enemy.ActorId),
+                                coveredOptions.GetValueOrDefault(enemy.ActorId)
+                                    ?.Count ?? 0)
                             && WithinEngagementLeash(
                                 body, targets[body.UnitId], enemy, policy)
                             && CanContributeToTarget(
@@ -873,8 +882,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     selected ??= targetOrder.FirstOrDefault(enemy =>
                         attackerCounts.GetValueOrDefault(enemy.ActorId)
                             < policy.MaximumAttackersPerTarget
-                        && committedDamage.GetValueOrDefault(enemy.ActorId)
-                            < enemy.Health + policy.OverkillDamage
+                        && NeedsFocusAssignment(
+                            policy,
+                            enemy,
+                            committedDamage.GetValueOrDefault(enemy.ActorId),
+                            coveredOptions.GetValueOrDefault(enemy.ActorId)
+                                ?.Count ?? 0)
                         && WithinEngagementLeash(
                             body, targets[body.UnitId], enemy, policy)
                         && CanContributeToTarget(
@@ -913,18 +926,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 if (policy.SignatureCoordination is
                     "control-first" or "support-first")
                 {
-                    Dictionary<ActorIdentity, int> targetCounts = allocations
-                        .Where(value => participants.Any(body =>
-                            body.UnitId == value.Key))
-                        .GroupBy(value => value.Value.Target.ActorId)
-                        .ToDictionary(group => group.Key, group => group.Count());
                     TacticalCoordinationPrimitives.SignatureCandidate[]
                         candidates = allocations
                             .Where(value => participants.Any(body =>
-                                    body.UnitId == value.Key)
-                                && value.Value.Target.Health >= 2
-                                && targetCounts.GetValueOrDefault(
-                                    value.Value.Target.ActorId) >= 2)
+                                body.UnitId == value.Key))
                             .Select(value => (
                                 Assignment: value,
                                 Body: participants.Single(body =>
@@ -949,6 +954,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         return allocations;
     }
+
+    private static bool NeedsFocusAssignment(
+        TacticalPlaybookPackage.Engagement policy,
+        GenericActorContext.ObservedEnemyState target,
+        int committedDamage,
+        int coveredOptions) => TacticalCoordinationPrimitives
+        .NeedsFocusAssignment(
+            target.Health,
+            committedDamage,
+            policy.OverkillDamage,
+            string.Equals(policy.DodgeCoverage.Mode, "escape-lanes",
+                StringComparison.Ordinal),
+            coveredOptions,
+            policy.DodgeCoverage.MinimumCoveredOptions);
 
     private static string? CombatSignatureKey(
         GenericActorResolvedMatchContract contract,
