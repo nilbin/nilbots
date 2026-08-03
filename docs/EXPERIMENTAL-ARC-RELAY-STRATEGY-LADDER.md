@@ -2,13 +2,32 @@
 
 Status: **draft for owner review**
 
-Branch: `codex/game-redesign`
+Planning source branch: `codex/game-redesign`
 
-Worktree: `/Users/sebastian.lind/hobby-projects/nilbots-wt/game-redesign`
+Planning source worktree:
+`/Users/sebastian.lind/hobby-projects/nilbots-wt/game-redesign`
+
+Required execution branch: `codex/arc-strategy-ladder`
+
+Required execution worktree:
+`/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder`
 
 This document is a self-contained handoff for a three-stage strategy experiment.
 Only Stage 1 is the proposed next goal. Stages 2 and 3 are registered follow-up
 goals and must not be blended into Stage 1 before the owner reviews its result.
+
+## Worktree and goal-runner sequencing
+
+Do not execute this ladder in `game-redesign`. The current Arc Relay
+play-awareness work must first be committed and integrated into an
+owner-accepted `codex/game-redesign` tip. Only then create the required fresh
+`arc-strategy-ladder` worktree and `codex/arc-strategy-ladder` branch from that
+exact tip, recording the base commit in the Stage 1 manifest and report.
+
+Only one ladder goal-runner may use the execution worktree at a time. Stages 1,
+2, and 3 are sequential owner gates. A later stage branches from the accepted,
+frozen predecessor only after the prior runner has stopped; no stage may race a
+renderer, awareness, or other strategy runner in the same worktree.
 
 ## Purpose
 
@@ -56,6 +75,26 @@ No stage may gain hidden information, change these rules, change the map or
 class balance, weaken an opponent, or key behavior to an opponent entrant,
 artifact, sheet, or tactic identifier.
 
+## Frozen eligibility contract
+
+Every ladder stage uses this exact felt-degeneracy registration:
+
+- path: `balance/arc-relay-felt-degeneracy-bars-v4.json`;
+- schema: `arc-relay-felt-degeneracy-bars-v4`; and
+- SHA-256:
+  `be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef`.
+
+The file, thresholds, detectors, scorecard interpretation, and eligibility
+logic are frozen for the entire ladder. They may not be loosened, replaced, or
+special-cased to admit Home Siege, its counter, or its adaptation. A siege that
+cannot stay eligible is a failed siege; the tactic must change. A suspected
+detector defect requires a separate owner-approved goal and invalidates the
+affected ladder evidence rather than authorizing an in-study threshold change.
+
+Both sides of every retained final match must pass the frozen bars. Diagnostic
+failure replays may be kept only as explicitly ineligible evidence and never
+count toward a result or enter the ordinary review gallery.
+
 ## Evaluation discipline shared by all stages
 
 - Development screening may use the tracked in-process batch path when result
@@ -63,11 +102,14 @@ artifact, sheet, or tactic identifier.
   verified canonical replays, and the current felt-degeneracy bars.
 - Freeze the subject sheet, stock artifact, opponent sheet, map/rules
   fingerprints, seeds, and team assignments before each final cohort.
-- Final seeds must be fresh, declared as one complete cohort, and represent
-  both team assignments. Never select favorable seeds or rerun only losses.
+- Final cohorts use five fresh paired seeds, each played from both team
+  assignments: ten raw matches with an exact 5/5 side split. Declare the whole
+  block before results. Never select favorable seeds or rerun only losses.
 - Preserve failed frozen attempts. A revision receives a fresh complete final
   cohort rather than silently replacing failed cells.
-- A required `9-0` is exact. `8-1` is not completion.
+- The owner's original dominance ambition was `9-0`. The balanced final gate
+  is deliberately stricter: a required sweep is `10-0`; `9-1` is not
+  completion.
 - Report runtime faults, eligibility failures, final Core deliveries, Pulses,
   charge, reactor integrity, completion reason, and relevant doctrine traces
   for every match.
@@ -84,9 +126,11 @@ artifact, sheet, or tactic identifier.
 
 ## Goal
 
-Build one declarative **Home Siege** sheet that defeats the current frozen
-static baseline **9 wins to 0 losses**, while adding general sheet mechanisms
-capable of expressing persistent coordinated strategies.
+Build one declarative **Home Siege** sheet that exceeds the owner's requested
+`9-0` dominance target by defeating the current frozen static baseline **10
+wins to 0 losses** across five paired seeds and an exact 5/5 team-assignment
+split, while adding general sheet mechanisms capable of expressing persistent
+coordinated strategies.
 
 The opponent remains the current real static 3/2/3 stock doctrine with its
 ordinary routes, combat, interception, Core scoring, and recovery. It is not a
@@ -211,11 +255,13 @@ then let causal evidence determine the remaining slots.
 ## Part 3 — Stage 1 proof
 
 Use disclosed development seeds for iteration. Once the candidate is frozen,
-run nine fresh deterministic final matches against the frozen baseline.
+run five fresh deterministic seeds twice each against the frozen baseline,
+swapping team assignments for the second leg. The final cohort therefore has
+ten raw matches and an exact 5/5 assignment split.
 
 Completion requires:
 
-- exactly `9-0` in favor of Home Siege;
+- exactly `10-0` in favor of Home Siege;
 - zero runtime faults and zero cohort-eligibility failures;
 - assault, occupation, and scoring conversion visible in causal traces;
 - a secured Core banked by the declared scorer path;
@@ -229,6 +275,31 @@ The proof must distinguish tactical execution from match outcome. A Home Siege
 phase transition succeeding in a lost match is not a win, and a win caused by
 unrelated baseline behavior is not doctrine evidence.
 
+## Part 4 — Dual ruling: grammar proof and camping alarm
+
+Home Siege is a disciplined spawn-camp. A `10-0` result therefore has two
+simultaneously true interpretations:
+
+1. **Sheet-grammar success:** the standing-strategy framework expressed and
+   executed the requested long-horizon doctrine.
+2. **Balance alarm:** the registered Gate 1 / Gate 2 risk **Home camping
+   dominates** fired against the current static defender.
+
+The Stage 1 report must run and publish the registered camping diagnostics:
+
+- opponent-final-third body-ticks;
+- kills and Core drops by distance to the enemy reactor;
+- camp-to-delivery conversion; and
+- counter-deliveries conceded while the camp is active.
+
+It must state the dual ruling plainly. A perfect sweep is not evidence that the
+game is already broken, nor may it be presented as an ordinary balance pass.
+Stage 2's competent evidence-based recognizer is the intended first answer to
+the alarm. Pending that counter-sheet test, Stage 1 authorizes no map, rules,
+spawn-safety, class, or balance reaction. If a competent Stage 2 counter cannot
+answer the frozen siege, the registered Gate 2 response—map gate, cover, and
+route geometry under a new map fingerprint—becomes the next design question.
+
 ## Stage 1 deliverables
 
 - The general standing-strategy interpreter and schema validation tests.
@@ -239,8 +310,8 @@ unrelated baseline behavior is not doctrine evidence.
 - An outcome-visible replay gallery with opponent, trigger, phase timeline,
   final score, and victory reason.
 - `docs/reports/ARC-RELAY-HOME-SIEGE-SHEET-PASS.md`, covering the grammar,
-  doctrine, all frozen attempts, final 9-0 cohort, determinism, degeneracy
-  checks, visible counters, and limitations.
+  doctrine, all frozen attempts, final 10-0 cohort, frozen-bar proof, camping
+  alarm diagnostics, determinism, visible counters, and limitations.
 
 Stage 1 stops after posting its report and gallery. Do not begin Stage 2 in the
 same goal.
@@ -278,10 +349,10 @@ denial, and one or more scoring bodies that exploit the theatres Home Siege
 abandons. Exact composition and response are evidence questions, not hard-coded
 requirements.
 
-The provisional ambition is the same clear head-to-head standard: a fresh
-`9-0` final cohort against the frozen Stage 1 Home Siege, plus a separate
-false-positive and ordinary-play read. The exact Stage 2 acceptance gate is
-confirmed with the owner before that goal starts.
+The provisional ambition is the same balanced head-to-head standard: a fresh
+`10-0` final cohort across five paired seeds against the frozen Stage 1 Home
+Siege, plus a separate false-positive and ordinary-play read. The exact Stage 2
+acceptance gate is confirmed with the owner before that goal starts.
 
 Stage 2 freezes its successful counter before Stage 3. Stage 1 may not be
 modified during the counter proof.
@@ -317,9 +388,10 @@ a bespoke anti-counter sheet. Its final proof should therefore re-run both:
 - the frozen Stage 2 counter; and
 - the original frozen static baseline.
 
-The provisional ambition is `9-0` against the counter while retaining the
-accepted Stage 1 result against baseline. Exact gates and whether this requires
-two fresh nine-match cohorts are confirmed with the owner before Stage 3.
+The provisional ambition is `10-0` across five paired seeds against the counter
+while retaining the accepted Stage 1 result against baseline. Exact gates and
+whether this requires two fresh ten-match cohorts are confirmed with the owner
+before Stage 3.
 
 ---
 
@@ -338,5 +410,6 @@ is strongest. It is that Arc Relay sheets can express:
 - visible counterplay a human can understand in a replay.
 
 If a stage can succeed only through a tactic-specific branch in C#, hidden
-information, opponent identity, seed selection, or weakening the opponent, the
-framework has failed even if the match table says `9-0`.
+information, opponent identity, seed selection, weakening the opponent, or
+relaxing a frozen eligibility bar, the framework has failed even if the match
+table says `10-0`.
