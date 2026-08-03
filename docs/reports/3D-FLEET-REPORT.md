@@ -14,16 +14,22 @@ The source of truth is
 comes from its audited pilot, Lantern and Mortar use the audited identity
 normalization, and the other thirteen use the audited lay-flat-X normalization.
 An enlarged fixed-camera comparison against the canonical `+X` sprites found two
-facing errors: Kestrel's exhaust pointed along authoritative facing, while Mortar's
-cannon pointed away from the replay camera instead of screen-right. Their approved
-normalized candidates now carry explicit 180° and 90° yaw corrections respectively.
-The other fourteen already agree with their canonical noses; Towline's hook is
-deliberately forward hardware and was not reversed.
-The fixed-camera Mortar confirmation is retained at
-`art/reviews/arc-relay-meshy-facing/mortar-corrected-axis.png`.
+facing errors. Kestrel's exhaust pointed along authoritative facing. The first
+Mortar generation flattened its defining raised tube into an ambiguous horizontal
+cannon, so yaw alone could not make it faithful. One owner-authorized 15-credit
+reroll from a clearer reference produced a planted tracked base with a dominant
+elevated tube. The audit explicitly selects task
+`019fc80a-8b00-783e-af88-a60d3dd45773`; both Kestrel and that Mortar candidate carry
+centred 180° yaw corrections. The other fourteen agree with their canonical noses;
+Towline's hook is deliberately forward hardware and was not reversed.
+The reroll reference and provider turntable are retained under
+`art/class-models/concept-targets/arc-mortar-meshy-reroll-v1/` and
+`art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/`.
+The exact promoted GLB at inspection and director scale is retained at
+`art/reviews/arc-relay-meshy-facing/mortar-reroll-approved.png`.
 `scripts/class-models/promote-meshy-arc-fleet.mjs --check` proves each runtime
 GLB equals its approved candidate byte-for-byte and that every manifest and the
-fleet ledger match. The production fleet totals 10,638,848 bytes, 215,130
+fleet ledger match. The production fleet totals 10,726,052 bytes, 219,230
 triangles, 16 materials, and 64 embedded textures; the largest look is Veil at
 814,688 bytes, within the explicit 1 MiB on-demand per-look budget.
 

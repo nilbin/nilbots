@@ -33,19 +33,32 @@ const orientations = new Map([
   ['arc-lantern', 'identity'],
   ['arc-mortar', 'identity'],
 ]);
+// A look may have multiple completed provider runs. Production review must never depend
+// on filesystem enumeration order: name the owner-approved reroll and the run it replaced.
+const rerollSelections = new Map([
+  ['arc-mortar', {
+    taskId: '019fc80a-8b00-783e-af88-a60d3dd45773',
+    supersedesTaskId: '019fc388-c331-7537-b3de-9f75125c5981',
+  }],
+]);
 const facingYawByLook = new Map([
   ['arc-kestrel', 180],
-  ['arc-mortar', 90],
+  ['arc-mortar', 180],
 ]);
 const generated = receipt.looks.map((lookId) => audit(lookId));
 const mason = audit('arc-mason');
+const supersededRuns = [...rerollSelections].map(([lookId, selection]) =>
+  timingFor(lookId, selection.supersedesTaskId),
+);
 const start = Math.min(...generated.map((entry) => Date.parse(entry.submittedAt)));
 const finish = Math.max(...generated.map((entry) => Date.parse(entry.finishedAt)));
-const credits = generated.reduce((sum, entry) => sum + entry.consumedCredits, 0);
+const credits =
+  generated.reduce((sum, entry) => sum + entry.consumedCredits, 0) +
+  supersededRuns.reduce((sum, entry) => sum + entry.consumedCredits, 0);
 const providerStageSeconds = generated.reduce(
   (sum, entry) => sum + entry.providerStageSeconds,
   0,
-);
+) + supersededRuns.reduce((sum, entry) => sum + entry.totalSeconds, 0);
 const bytes = generated.map((entry) => entry.candidate.bytes);
 const candidateBuildPath = path.join(
   path.dirname(outputPath),
@@ -69,19 +82,22 @@ const result = {
   model: receipt.model,
   modelType: receipt.modelType,
   batch: {
-    requestedCalls: receipt.authorizedCalls,
-    succeededCalls: generated.length,
+    requestedCalls: receipt.authorizedCalls + supersededRuns.length,
+    succeededCalls: generated.length + supersededRuns.length,
     failedCalls: 0,
-    rerolls: 0,
-    expectedCredits: receipt.expectedMaximumCredits,
+    rerolls: supersededRuns.length,
+    expectedCredits:
+      receipt.expectedMaximumCredits +
+      receipt.expectedCreditsPerCall * supersededRuns.length,
     consumedCredits: credits,
-    balanceBefore: generated[0].balanceBefore,
-    balanceAfter: generated.at(-1).balanceAfter,
+    balanceBefore: receipt.balanceBefore,
+    balanceAfter: Math.min(...generated.map((entry) => entry.balanceAfter)),
     submittedAt: new Date(start).toISOString(),
     finishedAt: new Date(finish).toISOString(),
     elapsedSeconds: (finish - start) / 1000,
     providerStageSeconds,
-    averageProviderStageSeconds: providerStageSeconds / generated.length,
+    averageProviderStageSeconds:
+      providerStageSeconds / (generated.length + supersededRuns.length),
     candidateBytes: {
       total: bytes.reduce((sum, value) => sum + value, 0),
       minimum: Math.min(...bytes),
@@ -97,6 +113,9 @@ const result = {
     realReplayScale: true,
     orientationOverrides: Object.fromEntries(orientations),
     facingYawDegrees: Object.fromEntries(facingYawByLook),
+    rerollTaskIds: Object.fromEntries(
+      [...rerollSelections].map(([lookId, selection]) => [lookId, selection.taskId]),
+    ),
     runtimeAssetsPromoted: false,
     runtimeModelsRestored,
   },
@@ -119,14 +138,19 @@ function audit(lookId) {
     'meshy',
     lookId,
   );
-  const runDirectory = readdirSync(providerRoot)
-    .map((name) => path.join(providerRoot, name))
-    .find(
-      (directory) =>
-        statSync(directory).isDirectory() &&
-        existsSync(path.join(directory, 'timing.json')),
-    );
+  const selectedTaskId = rerollSelections.get(lookId)?.taskId;
+  const runDirectory = selectedTaskId
+    ? path.join(providerRoot, selectedTaskId)
+    : readdirSync(providerRoot)
+      .map((name) => path.join(providerRoot, name))
+      .find(
+        (directory) =>
+          statSync(directory).isDirectory() &&
+          existsSync(path.join(directory, 'timing.json')),
+      );
   if (!runDirectory) throw new Error(`No completed provider run for ${lookId}.`);
+  if (!existsSync(path.join(runDirectory, 'timing.json')))
+    throw new Error(`${lookId} selected task ${selectedTaskId} is not complete.`);
 
   const orientation = orientations.get(lookId) ?? 'lay-flat-x';
   const hasFacingCorrection = facingYawByLook.has(lookId);
@@ -233,6 +257,22 @@ function triangleCount(document) {
         sum + (document.accessors?.[primitive.indices]?.count ?? 0) / 3,
       0,
     );
+}
+
+function timingFor(lookId, taskId) {
+  const filename = path.join(
+    repository,
+    'art',
+    'class-models',
+    'provider-runs',
+    'meshy',
+    lookId,
+    taskId,
+    'timing.json',
+  );
+  if (!existsSync(filename))
+    throw new Error(`${lookId} superseded task ${taskId} has no timing record.`);
+  return JSON.parse(readFileSync(filename, 'utf8'));
 }
 
 function parseOptions(args) {

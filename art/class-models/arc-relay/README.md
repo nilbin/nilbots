@@ -6,9 +6,23 @@ The production WebGL companions are the sixteen owner-approved Meshy T2
 That audit—not the older temporary review build—is the orientation and artifact
 authority. Mason uses its audited pilot file, Lantern and Mortar use their
 identity-normalized files, and the other thirteen use their lay-flat-X normalized
-files. A fixed-camera nose audit additionally applies baked facing corrections:
-180° for Kestrel and 90° for Mortar. Kestrel's nose was reversed, while Mortar's
-cannon pointed away from the replay camera instead of along authoritative `+X`.
+files. A fixed-camera nose audit additionally applies baked 180° facing corrections
+to Kestrel and Mortar. Kestrel's nose was reversed. Mortar uses the explicitly
+selected reroll task `019fc80a-8b00-783e-af88-a60d3dd45773`, whose raised tube is
+substantially closer to the canonical silhouette and projects forward-right after
+the correction.
+
+Prepare an explicit provider task without relying on directory enumeration:
+
+```sh
+node scripts/class-models/prepare-meshy-candidate.mjs \
+  --look arc-mortar \
+  --task 019fc80a-8b00-783e-af88-a60d3dd45773 \
+  --orientation identity \
+  --facing-yaw 180 \
+  --target-span 0.99 \
+  --texture-size 1024
+```
 
 Promote or verify the exact approved bytes from the repository root:
 

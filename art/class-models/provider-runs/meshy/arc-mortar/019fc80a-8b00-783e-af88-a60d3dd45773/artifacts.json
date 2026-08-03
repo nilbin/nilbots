@@ -1,0 +1,62 @@
+[
+  {
+    "file": "raw-model.glb",
+    "bytes": 29536148,
+    "sha256": "59e3948587abc9bebb0ace55c74662d310bd51f8ea3b4ee926f616f44232a849"
+  },
+  {
+    "file": "provider-preview.png",
+    "bytes": 269553,
+    "sha256": "0590b8afe95a47bb3915514542e6cc09f695e90284c50b91aa060857ce0857f7"
+  },
+  {
+    "file": "provider-preview-alpha.png",
+    "bytes": 269553,
+    "sha256": "0590b8afe95a47bb3915514542e6cc09f695e90284c50b91aa060857ce0857f7"
+  },
+  {
+    "file": "provider-back.png",
+    "bytes": 210518,
+    "sha256": "543ee761677e02c68fd9aae29a38f3b1428f737b901c485a0eb967100e793053"
+  },
+  {
+    "file": "provider-front.png",
+    "bytes": 269553,
+    "sha256": "0590b8afe95a47bb3915514542e6cc09f695e90284c50b91aa060857ce0857f7"
+  },
+  {
+    "file": "provider-left.png",
+    "bytes": 218890,
+    "sha256": "48b42943947be4d1394c50ba77c87c274f6078a9fc990b41cf73002d01c4cf12"
+  },
+  {
+    "file": "provider-right.png",
+    "bytes": 194816,
+    "sha256": "d427aaaae7cf10d58419d47a5aaed17814f972b89812b25fb916e9e887878e29"
+  },
+  {
+    "file": "texture-0-base_color.png",
+    "bytes": 26024222,
+    "sha256": "2d033a201ff34c710128e56e764c4666b821605bcb9482f40febde1529069a0b"
+  },
+  {
+    "file": "texture-0-metallic.png",
+    "bytes": 1339459,
+    "sha256": "df6e0df83bb6c92bc3f730f98e8944b3b0e81e54fc605ebd2d5d36a0f9b0c0bf"
+  },
+  {
+    "file": "texture-0-roughness.png",
+    "bytes": 1345825,
+    "sha256": "4137cd468bfabb3c5e3fde10fa2376171743d520b04eb2cfb13ce913b2b5f7fd"
+  },
+  {
+    "file": "texture-0-normal.png",
+    "bytes": 31327444,
+    "sha256": "311967b19e8c8825a5280f3a590ba12484342725578ecd982fa213090ec49ace"
+  },
+  {
+    "file": "texture-0-emission.png",
+    "bytes": 141823,
+    "sha256": "48c3938fdb319b0bcf20baee42b4e7b6529faeed0594bafb42cf51d0062aa284"
+  }
+]

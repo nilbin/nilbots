@@ -238,7 +238,7 @@ test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () =>
     if (entry.lookId === 'arc-kestrel')
       assertVectorNear(root?.rotation, [0, Math.SQRT1_2, Math.SQRT1_2, 0], entry.lookId);
     if (entry.lookId === 'arc-mortar')
-      assertVectorNear(root?.rotation, [0, Math.SQRT1_2, 0, Math.SQRT1_2], entry.lookId);
+      assertVectorNear(root?.rotation, [0, 1, 0, 0], entry.lookId);
 
     assert.equal(manifest.ledger.bytes, entry.candidate.bytes);
     assert.equal(manifest.ledger.triangles, entry.candidate.triangles);

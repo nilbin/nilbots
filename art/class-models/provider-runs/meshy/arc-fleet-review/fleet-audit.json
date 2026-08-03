@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
-  "auditedAt": "2026-08-02T18:20:31.876Z",
+  "auditedAt": "2026-08-03T14:45:54.310Z",
   "authorization": "art/class-models/provider-runs/meshy/arc-fleet-rest-15-2026-08-02.json",
   "provider": "Meshy",
   "endpoint": "image-to-3d",
   "model": "meshy-t2",
   "modelType": "smart-topology",
   "batch": {
-    "requestedCalls": 15,
-    "succeededCalls": 15,
+    "requestedCalls": 16,
+    "succeededCalls": 16,
     "failedCalls": 0,
-    "rerolls": 0,
-    "expectedCredits": 225,
-    "consumedCredits": 225,
+    "rerolls": 1,
+    "expectedCredits": 240,
+    "consumedCredits": 240,
     "balanceBefore": 520,
-    "balanceAfter": 295,
+    "balanceAfter": 280,
     "submittedAt": "2026-08-02T17:13:58.907Z",
-    "finishedAt": "2026-08-02T18:07:15.284Z",
-    "elapsedSeconds": 3196.377,
-    "providerStageSeconds": 3173.515835333,
-    "averageProviderStageSeconds": 211.56772235553333,
+    "finishedAt": "2026-08-03T14:37:01.393Z",
+    "elapsedSeconds": 76982.486,
+    "providerStageSeconds": 3433.7153413739998,
+    "averageProviderStageSeconds": 214.60720883587499,
     "candidateBytes": {
-      "total": 9960292,
+      "total": 10047496,
       "minimum": 591668,
       "maximum": 814688,
-      "average": 664019.4666666667
+      "average": 669833.0666666667
     }
   },
   "reviewContract": {
@@ -39,7 +39,10 @@
     },
     "facingYawDegrees": {
       "arc-kestrel": 180,
-      "arc-mortar": 90
+      "arc-mortar": 180
+    },
+    "rerollTaskIds": {
+      "arc-mortar": "019fc80a-8b00-783e-af88-a60d3dd45773"
     },
     "runtimeAssetsPromoted": false,
     "runtimeModelsRestored": true
@@ -60,6 +63,7 @@
       "mimeType": "image/png"
     },
     "orientation": "lay-flat-x",
+    "facingYawDegrees": 0,
     "candidate": {
       "file": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-review.glb",
       "bytes": 678556,
@@ -105,6 +109,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
         "bytes": 741832,
@@ -194,6 +199,7 @@
         "mimeType": "image/png"
       },
       "orientation": "identity",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
         "bytes": 623192,
@@ -238,6 +244,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-review.glb",
         "bytes": 648924,
@@ -282,6 +289,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-review.glb",
         "bytes": 700916,
@@ -312,38 +320,38 @@
     },
     {
       "lookId": "arc-mortar",
-      "taskId": "019fc388-c331-7537-b3de-9f75125c5981",
-      "submittedAt": "2026-08-02T17:32:27.060Z",
-      "finishedAt": "2026-08-02T17:36:21.727Z",
-      "providerStageSeconds": 234.667109,
+      "taskId": "019fc80a-8b00-783e-af88-a60d3dd45773",
+      "submittedAt": "2026-08-03T14:32:39.187Z",
+      "finishedAt": "2026-08-03T14:37:01.393Z",
+      "providerStageSeconds": 260.199506041,
       "consumedCredits": 15,
-      "balanceBefore": 445,
-      "balanceAfter": 430,
+      "balanceBefore": 295,
+      "balanceAfter": 280,
       "input": {
-        "file": "web/src/assets/class-looks/arc-mortar/sprite.png",
-        "bytes": 52085,
-        "sha256": "af20a5089099df2a6bc140b13e338f790a07d53df2884a5aaa3267b148bcbb27",
+        "file": "art/class-models/concept-targets/arc-mortar-meshy-reroll-v1/meshy-input.png",
+        "bytes": 2396590,
+        "sha256": "dbaa4ccfb184b3850da14a5e8b7176c2dbe4b297c77b41b9ea9f15a2a96a3fa1",
         "mimeType": "image/png"
       },
       "orientation": "identity",
-      "facingYawDegrees": 90,
+      "facingYawDegrees": 180,
       "candidate": {
-        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-facing-review.glb",
-        "bytes": 677512,
-        "sha256": "a1f242910b26db706a523c8c9c90cef8fa5f6cef95c37279c2476a1f18b519e7",
-        "triangles": 9636,
+        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/model-normalized-identity-facing-review.glb",
+        "bytes": 764716,
+        "sha256": "818cb92ed6b4cc39a38a8bed6cbe530798e82c9246f5d97b483817b18931bb8c",
+        "triangles": 13736,
         "materials": 1,
         "textures": 4,
         "sourceBounds": {
           "min": [
-            -0.1703391969203949,
+            -1.3806736469268799,
             0,
-            -0.2169494926929474
+            -1.2997745275497437
           ],
           "max": [
-            0.17203399538993835,
-            0.25,
-            0.2169494926929474
+            1.3806736469268799,
+            2.4000000953674316,
+            1.2943814992904663
           ]
         }
       },
@@ -371,6 +379,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
         "bytes": 612864,
@@ -415,6 +424,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-review.glb",
         "bytes": 641408,
@@ -459,6 +469,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-review.glb",
         "bytes": 672520,
@@ -503,6 +514,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
         "bytes": 626756,
@@ -547,6 +559,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-review.glb",
         "bytes": 600348,
@@ -591,6 +604,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-review.glb",
         "bytes": 673812,
@@ -635,6 +649,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-review.glb",
         "bytes": 591668,
@@ -679,6 +694,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
         "bytes": 644856,
@@ -723,6 +739,7 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
         "bytes": 814688,

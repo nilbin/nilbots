@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-mortar",
+  "taskId": "019fc80a-8b00-783e-af88-a60d3dd45773",
+  "submittedAt": "2026-08-03T14:32:39.187Z",
+  "balanceBefore": 295,
+  "input": {
+    "file": "art/class-models/concept-targets/arc-mortar-meshy-reroll-v1/meshy-input.png",
+    "bytes": 2396590,
+    "sha256": "dbaa4ccfb184b3850da14a5e8b7176c2dbe4b297c77b41b9ea9f15a2a96a3fa1",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}
