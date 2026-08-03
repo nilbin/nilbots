@@ -84,6 +84,19 @@
         { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 453 }
       ],
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "towline-control-line",
+      "playbookSourceSha256": "cbc1edaea6c665a50f7fb0658b020cea7bdd6a6ac973092c0f92961b21c50fbd",
+      "layoutSourceSha256": "0a05897c55c9c4af64b148dffffdb3644ceedce675113853bd5a60c565148291",
+      "change": "Replace both Sunder slots with Towlines and bind the resulting two exact match-contract fingerprints, retaining the same phases and damage-first focus policy.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 581 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 391 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 400 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 375 }
+      ],
+      "verdict": "rejected"
     }
   ]
 }
