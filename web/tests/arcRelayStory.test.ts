@@ -290,8 +290,14 @@ test('a slow carrier glides through its forced relocation hold without predictin
 test('the carried Core is a sphere levitating on the interpolated carrier pose', () => {
   const replay = arcRelayReplay();
   const time = 1.5;
-  const core = createPresenter(replay).at(1).arcRelay?.cores[0];
+  const story = createPresenter(replay).at(1).arcRelay;
+  assert.ok(story);
+  const core = story.cores[0];
   assert.ok(core?.carrierUnitKey);
+  const accent = story.reactors.find(
+    (reactor) => reactor.teamId === core.carrierTeamId,
+  )?.accent;
+  assert.ok(accent);
   const carrier = posesAt(replay, time).find(
     (pose) => pose.unitKey === core.carrierUnitKey,
   );
@@ -326,6 +332,16 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
   assert.ok(sphere.position.y > 0.85, `levitates above the hull (${sphere.position.y})`);
   assert.equal(glow.position.y, sphere.position.y);
   assert.ok(glow.scale.x > 0.6, 'soft glow extends beyond the sphere');
+  assert.equal(
+    (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(accent).getHexString(),
+    'the carried sphere itself takes the carrier team colour',
+  );
+  assert.equal(
+    (glow.material as THREE.SpriteMaterial).color.getHexString(),
+    new THREE.Color(accent).getHexString(),
+    'the carried glow takes the carrier team colour',
+  );
 
   overlays.dispose();
 });
@@ -345,13 +361,27 @@ test('a born Core is the same glowing sphere hovering over its authoritative wel
   );
   const sphere = objects.find(
     (node) => node.userData.kind === 'arc-relay-core-sphere',
-  );
+  ) as THREE.Mesh | undefined;
+  const glow = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-glow',
+  ) as THREE.Sprite | undefined;
 
   assert.ok(rig);
   assert.ok(sphere);
+  assert.ok(glow);
   assert.equal(rig.position.x, core.position.x + 0.5);
   assert.equal(rig.position.z, core.position.y + 0.5);
   assert.ok(sphere.position.y > 0.3, 'the loose sphere hovers visibly above the well');
+  assert.equal(
+    (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color('#38d8ee').getHexString(),
+    'a loose Core remains neutral energy',
+  );
+  assert.equal(
+    (glow.material as THREE.SpriteMaterial).color.getHexString(),
+    new THREE.Color('#80ecff').getHexString(),
+    'a loose Core keeps the neutral glow',
+  );
 
   overlays.dispose();
 });

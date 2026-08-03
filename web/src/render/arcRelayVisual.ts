@@ -538,7 +538,7 @@ function drawCores(
         accent,
         cracked,
       );
-    drawCoreSphere(input.ctx, x, y, radius);
+    drawCoreSphere(input.ctx, x, y, radius, carried ? accent : null);
     if (!carried && coreKey(core.coreId) === threat) {
       input.ctx.strokeStyle = withAlpha(accent, 0.7);
       input.ctx.lineWidth = Math.max(1.5, input.tile * 0.035);
@@ -565,11 +565,21 @@ function drawCoreSphere(
   x: number,
   y: number,
   radius: number,
+  teamAccent: string | null,
 ): void {
   const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 1.9);
-  glow.addColorStop(0, 'rgba(215, 245, 255, 0.42)');
-  glow.addColorStop(0.45, 'rgba(151, 226, 248, 0.22)');
-  glow.addColorStop(1, 'rgba(151, 226, 248, 0)');
+  glow.addColorStop(
+    0,
+    teamAccent ? withAlpha(teamAccent, 0.58) : 'rgba(215, 245, 255, 0.42)',
+  );
+  glow.addColorStop(
+    0.45,
+    teamAccent ? withAlpha(teamAccent, 0.3) : 'rgba(151, 226, 248, 0.22)',
+  );
+  glow.addColorStop(
+    1,
+    teamAccent ? withAlpha(teamAccent, 0) : 'rgba(151, 226, 248, 0)',
+  );
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.fillStyle = glow;
@@ -579,10 +589,17 @@ function drawCoreSphere(
   ctx.restore();
 
   const shade = ctx.createRadialGradient(x, y, radius * 0.06, x, y, radius);
-  shade.addColorStop(0, '#dcfbff');
-  shade.addColorStop(0.34, '#91efff');
-  shade.addColorStop(0.72, '#4bc9df');
-  shade.addColorStop(1, '#21869a');
+  if (teamAccent) {
+    shade.addColorStop(0, '#f7fcff');
+    shade.addColorStop(0.28, teamAccent);
+    shade.addColorStop(0.76, teamAccent);
+    shade.addColorStop(1, '#10232a');
+  } else {
+    shade.addColorStop(0, '#dcfbff');
+    shade.addColorStop(0.34, '#91efff');
+    shade.addColorStop(0.72, '#4bc9df');
+    shade.addColorStop(1, '#21869a');
+  }
   ctx.fillStyle = shade;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);

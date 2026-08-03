@@ -1528,9 +1528,8 @@ function buildArcRelayStory(
   const crestGeometry = new THREE.CircleGeometry(0.2, 32);
   crestGeometry.rotateX(-Math.PI / 2);
   const pipGeometry = new THREE.SphereGeometry(0.055, 10, 8);
-  // A shaded sphere, not a bright faceted token. The Core is a carried object now: its
-  // fixed hover above the hull makes possession legible without making it orbit through a
-  // neighbouring tile or borrowing the carrier's team treatment for the model itself.
+  // A shaded sphere, not a bright faceted token. The Core's fixed hover above the hull
+  // makes possession legible without making it orbit through a neighbouring tile.
   const coreGeometry = new THREE.SphereGeometry(0.22, 28, 18);
   const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 1.05, 12);
   const coreGlowTexture = flare();
@@ -1863,10 +1862,19 @@ function buildArcRelayStory(
       rig.glow.scale.setScalar(
         state.pulseCore ? 0.88 + pulse * 0.12 : 0.72 + pulse * 0.07,
       );
-      // The Core remains neutral cyan energy. Team ownership belongs to the faint tether;
-      // tinting the sphere itself made it vanish into the carrier's own emissives.
-      rig.gemMaterial.color.set('#146b78');
-      rig.gemMaterial.emissive.set('#38d8ee');
+      // Loose and in-flight Cores are neutral. Possession changes the object itself—not
+      // merely its tether—so a carrier is identifiable at the wider spectator distance.
+      if (carried) {
+        rig.gemMaterial.color.set(accent).multiplyScalar(0.5);
+        rig.gemMaterial.emissive.set(accent);
+        rig.glowMaterial.color.set(accent);
+        rig.light.color.set(accent);
+      } else {
+        rig.gemMaterial.color.set('#146b78');
+        rig.gemMaterial.emissive.set('#38d8ee');
+        rig.glowMaterial.color.set('#80ecff');
+        rig.light.color.set('#73eaff');
+      }
       rig.gemMaterial.emissiveIntensity = carried ? 0.8 : 0.7;
       rig.glowMaterial.opacity = carried
         ? state.pulseCore ? 0.32 + pulse * 0.12 : 0.22 + pulse * 0.08
