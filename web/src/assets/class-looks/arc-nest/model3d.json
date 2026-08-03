@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "arc-nest",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-nest/layers.json",
+    "sourceSha256": "78c696f99d0ac1eba1f2817e156062d84b39060d71a2915eddeca2fc4d76d7f6"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": [
+      "idle-nest-pod-left",
+      "idle-nest-pod-right"
+    ]
+  },
+  "motion": {
+    "locomotion": "wheels",
+    "handling": "deliberate",
+    "hardwareLagTicks": 0.48,
+    "hardwareOvershoot": 0
+  },
+  "signature": "sentinel-seed",
+  "ledger": {
+    "bytes": 353564,
+    "sha256": "a8992c81217049155c254bb3c9d8740134e679d9da85a400fd4be514c76bc854",
+    "triangles": 5854,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

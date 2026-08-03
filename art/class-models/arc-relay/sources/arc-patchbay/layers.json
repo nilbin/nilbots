@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "arc-patchbay",
+  "canonicalLayeredVector": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback/arc-patchbay.svg",
+  "generatedAlbedo": "art/class-models/arc-relay/sources/arc-patchbay/albedo.png",
+  "archivedAlbedo": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/patchbay-base.png",
+  "archivedTeamMask": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/patchbay-team-mask.png",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "generatedNormal": "art/class-models/arc-relay/sources/arc-patchbay/normal.png",
+  "generatedEmissive": "art/class-models/arc-relay/sources/arc-patchbay/emissive.png",
+  "sourceSha256": "769857869dbd4e9e095e1d541474d1491a000d56680f18c2260b818e81774d59",
+  "groups": {
+    "underbody-locomotion": {
+      "construction": "skids",
+      "floorY": 0,
+      "extrusionHeight": 0.07,
+      "bevel": 0.018
+    },
+    "chassis": {
+      "construction": "orthographic-vector-distance-relief",
+      "sourceProjectionDegrees": 0,
+      "extrusionHeight": 0.14,
+      "domeHeight": 0.1,
+      "bevel": 0.014,
+      "albedo": "art/class-models/arc-relay/sources/arc-patchbay/albedo.png",
+      "normal": "art/class-models/arc-relay/sources/arc-patchbay/normal.png"
+    },
+    "weapon-hardware": {
+      "construction": "named-vector-group-distance-relief",
+      "sourceGroup": "weapon-hardware",
+      "hardwareIdentity": "repair-arms",
+      "extrusionHeight": 0.225,
+      "domeHeight": 0.065,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "team-accents": {
+      "construction": "named-vector-semantic-surface",
+      "sourceGroup": "team-accents",
+      "materialRole": "team-accent",
+      "bakedTeamColor": false
+    },
+    "emissives": {
+      "construction": "derived-authored-light-surface",
+      "map": "art/class-models/arc-relay/sources/arc-patchbay/emissive.png"
+    }
+  }
+}

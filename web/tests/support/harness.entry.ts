@@ -17,6 +17,7 @@ export {
   ARENA_MARGIN_TILES,
   ArenaCamera,
   arenaViewport,
+  directorMinSpan,
   focusFrame,
   focusPointsAt,
   frameEscapes,
@@ -58,6 +59,7 @@ export {
 export {
   buildActors,
   installMobileModel,
+  signedTravelByActor,
 } from '../../src/render3d/arenaActors';
 export {
   buildArena,
@@ -70,6 +72,11 @@ export {
   lookModelSource,
   modelSpec,
 } from '../../src/render3d/lookModel';
+export { arcMotionFrame } from '../../src/render3d/arcModelMotion';
+export {
+  ARC_SIGNATURE_STYLES,
+  arcSignatureVisualPhase,
+} from '../../src/render3d/arcRelayEffects';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {
   arenaModeParticipantsReady,

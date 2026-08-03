@@ -8,8 +8,10 @@ namespace BotArena.Engine;
 /// <summary>
 /// Deterministic spectator replay for the trusted Arc Relay product lane.
 /// It records authoritative world states, public combat/objective facts,
-/// projectile paths and chosen body actions while deliberately excluding
-/// private observations, legality constraints, fuel and debug text.
+/// projectile paths, chosen body actions and each scoring team's visible-tile
+/// union while deliberately excluding private decision state, fuel and debug
+/// text. Team vision is spectator presentation data: without it a selected
+/// team would incorrectly see either nothing or the authoritative whole world.
 /// <para>
 /// This is broadcast format 2, not canonical replay v3. Its own hash covers
 /// its exact canonical payload. Audit and admission continue to use replay v3
@@ -62,6 +64,7 @@ public sealed class ArcRelayBroadcastDocument
             .ToHashSet(StringComparer.Ordinal);
         var worlds = new List<ReplayV3.WorldState>(session.Definition.Rules.Limits.MaxTicks);
         var turns = new List<ImmutableArray<CompactTurn>>(session.Definition.Rules.Limits.MaxTicks);
+        var vision = new List<ImmutableArray<CompactTeamVision>>(session.Definition.Rules.Limits.MaxTicks);
         var startEvents = new List<ImmutableArray<ReplayV3.AuthoritativeEvent>>(session.Definition.Rules.Limits.MaxTicks);
         var events = new List<ImmutableArray<ReplayV3.AuthoritativeEvent>>(session.Definition.Rules.Limits.MaxTicks);
         var traversals = new List<ImmutableArray<ReplayV3.ProjectileTraversal>>(session.Definition.Rules.Limits.MaxTicks);
@@ -88,6 +91,7 @@ public sealed class ArcRelayBroadcastDocument
             ReplayV3.WorldState startWorld = ReplayV3Projection.WorldState(tickStart.State);
             worlds.Add(ReplayV3Projection.WorldState(step.PostState));
             turns.Add(ProjectTurns(step, signatureIds));
+            vision.Add(ProjectVision(step));
             startEvents.Add(ProjectEvents(tickStart.Events));
             events.Add(ProjectEvents(step.AuthoritativeEvents));
             traversals.Add(step.ProjectileTraversals
@@ -113,6 +117,7 @@ public sealed class ArcRelayBroadcastDocument
             initial,
             worlds,
             turns,
+            vision,
             startEvents,
             events,
             traversals,
@@ -171,6 +176,7 @@ public sealed class ArcRelayBroadcastDocument
             Copy(writer, root, "initial");
             CopyPrefix(writer, root, "worlds", count);
             CopyPrefix(writer, root, "turns", count);
+            CopyPrefixIfPresent(writer, root, "vision", count);
             CopyPrefix(writer, root, "startEvents", count);
             CopyPrefix(writer, root, "events", count);
             CopyPrefix(writer, root, "traversals", count);
@@ -233,11 +239,30 @@ public sealed class ArcRelayBroadcastDocument
             .Select(ReplayV3Projection.Event),
     ];
 
+    private static ImmutableArray<CompactTeamVision> ProjectVision(
+        GenericActorMatchStepResult step) =>
+    [
+        .. step.TickStart.MindObservations
+            .GroupBy(value => value.TeamId)
+            .OrderBy(group => group.Key)
+            .Select(group => new CompactTeamVision(
+                group.Key,
+                group
+                    .SelectMany(value => value.VisibleTiles)
+                    .Select(value => value.Position)
+                    .Distinct()
+                    .OrderBy(value => value.Y)
+                    .ThenBy(value => value.X)
+                    .Select(value => new ReplayV3.PositionValue(value.X, value.Y))
+                    .ToImmutableArray())),
+    ];
+
     private static byte[] WritePayload(
         ReplayV3.ReplayHeader header,
         ReplayV3.WorldState initial,
         IReadOnlyList<ReplayV3.WorldState> worlds,
         IReadOnlyList<ImmutableArray<CompactTurn>> turns,
+        IReadOnlyList<ImmutableArray<CompactTeamVision>> vision,
         IReadOnlyList<ImmutableArray<ReplayV3.AuthoritativeEvent>> startEvents,
         IReadOnlyList<ImmutableArray<ReplayV3.AuthoritativeEvent>> events,
         IReadOnlyList<ImmutableArray<ReplayV3.ProjectileTraversal>> traversals,
@@ -255,6 +280,7 @@ public sealed class ArcRelayBroadcastDocument
             WriteWorld(writer, initial);
             WriteColumn(writer, "worlds", worlds, WriteWorld);
             WriteColumn(writer, "turns", turns, static (json, value) => WriteTurns(json, value));
+            WriteColumn(writer, "vision", vision, static (json, value) => WriteVision(json, value));
             WriteColumn(writer, "startEvents", startEvents, static (json, value) => WriteEvents(json, value));
             WriteColumn(writer, "events", events, static (json, value) => WriteEvents(json, value));
             WriteColumn(writer, "traversals", traversals, static (json, value) => WriteTraversals(json, value));
@@ -469,6 +495,24 @@ public sealed class ArcRelayBroadcastDocument
         writer.WriteEndArray();
     }
 
+    private static void WriteVision(
+        Utf8JsonWriter writer,
+        IReadOnlyList<CompactTeamVision> values)
+    {
+        writer.WriteStartArray();
+        foreach (CompactTeamVision vision in values)
+        {
+            writer.WriteStartArray();
+            writer.WriteNumberValue(vision.TeamId);
+            writer.WriteStartArray();
+            foreach (ReplayV3.PositionValue tile in vision.VisibleTiles)
+                WritePosition(writer, tile);
+            writer.WriteEndArray();
+            writer.WriteEndArray();
+        }
+        writer.WriteEndArray();
+    }
+
     private static void WriteEvents(
         Utf8JsonWriter writer,
         IReadOnlyList<ReplayV3.AuthoritativeEvent> values)
@@ -544,6 +588,16 @@ public sealed class ArcRelayBroadcastDocument
         writer.WriteEndArray();
     }
 
+    private static void CopyPrefixIfPresent(
+        Utf8JsonWriter writer,
+        JsonElement root,
+        string name,
+        int count)
+    {
+        if (root.TryGetProperty(name, out _))
+            CopyPrefix(writer, root, name, count);
+    }
+
     private sealed record CompactTurn(
         ReplayV3.ActorId ActorId,
         int ParticipantId,
@@ -557,4 +611,8 @@ public sealed class ArcRelayBroadcastDocument
         string ActionId,
         int ActionCode,
         bool Available);
+
+    private sealed record CompactTeamVision(
+        int TeamId,
+        ImmutableArray<ReplayV3.PositionValue> VisibleTiles);
 }

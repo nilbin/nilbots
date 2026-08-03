@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "url": "http://127.0.0.1:8931/web/dist-review/?standalone&audio=off",
+  "captures": [
+    {
+      "scenario": "primary",
+      "renderer": "2d",
+      "canonicalReplayHash": "507ed83e13f4ec9a99271a532167471e542eaa11b8507afef219a2291b45fb1c",
+      "broadcastGzipSha256": "79defbd28e5d73c7f5a3bda3011bd468920a7c429e6c9350778d68252ff4d1a9",
+      "ticks": 253,
+      "readyMilliseconds": 1017,
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "canvasKind": "2d",
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshotSha256": "33224e4bda55d03572779c5196e72e34b7144924b8e15478ed33e05cd7c6a2b9",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "scenario": "primary",
+      "renderer": "3d",
+      "canonicalReplayHash": "507ed83e13f4ec9a99271a532167471e542eaa11b8507afef219a2291b45fb1c",
+      "broadcastGzipSha256": "79defbd28e5d73c7f5a3bda3011bd468920a7c429e6c9350778d68252ff4d1a9",
+      "ticks": 253,
+      "readyMilliseconds": 3199,
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "canvasKind": "webgl",
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshotSha256": "0e2edabc086da3895980ebafc2a3b676c508d14b9f45674cd398a0304b7d54bf",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "scenario": "swapped",
+      "renderer": "2d",
+      "canonicalReplayHash": "a2b1e24964a879f482aff92152e273ff2a848edc40ea88570f8176dfb517f4f9",
+      "broadcastGzipSha256": "85f8f85e99a87c8157fe4c682f13d1fc2800b2ea95a32940bb8da6c204048e93",
+      "ticks": 284,
+      "readyMilliseconds": 1019,
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "canvasKind": "2d",
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshotSha256": "7ac57446f0742c993f6d88245a65a37867a3ffb8d1cb5371b5056a73bab721eb",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "scenario": "swapped",
+      "renderer": "3d",
+      "canonicalReplayHash": "a2b1e24964a879f482aff92152e273ff2a848edc40ea88570f8176dfb517f4f9",
+      "broadcastGzipSha256": "85f8f85e99a87c8157fe4c682f13d1fc2800b2ea95a32940bb8da6c204048e93",
+      "ticks": 284,
+      "readyMilliseconds": 3177,
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "canvasKind": "webgl",
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshotSha256": "16fc2b7f39437e2c009d1d1472a38e15710d5f0b3f422cb7a1dd1594898de7c3",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ]
+}

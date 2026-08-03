@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-relay",
+  "taskId": "019fc396-a4ea-7171-a329-7aeb2e9c42b8",
+  "submittedAt": "2026-08-02T17:47:36.743Z",
+  "balanceBefore": 385,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-relay/sprite.png",
+    "bytes": 41895,
+    "sha256": "d6d93511288d27d3db9155c9c447326bb1f7382a6ca8cb9356fb9a4d02f62fd7",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

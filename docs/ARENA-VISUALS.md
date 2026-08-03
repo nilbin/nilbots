@@ -587,8 +587,8 @@ Animations describe recorded events; they do not create events.
 
 | Presentation | Authoritative source | Current treatment |
 | --- | --- | --- |
-| Movement | Consecutive replay states | Eased tile-to-tile interpolation |
-| Turning | Recorded facings | Shortest-angle rotation |
+| Movement | Consecutive replay states plus a declared Arc carrier relocation cadence | Monotone, causal tile-to-tile glide with boundary-speed continuity; carriers cross the tile edge on the resolved move boundary and keep travelling through relocation-locked ticks |
+| Turning | Recorded facings | Shortest-angle rotation with causal angular-velocity continuity |
 | Idle | Active status | Subtle hover and separate soft shadow |
 | Firing | `Shot` event | Brief chassis recoil and layered beam/muzzle glow |
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
@@ -599,11 +599,38 @@ Animations describe recorded events; they do not create events.
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
-| Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
+| Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask |
+| Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: low over its well or dropped tile, arcing in flight, then fixed above the carrier with subtle hover and a faint possession tether |
+
+Arc Relay's compact spectator transport carries that visible-tile union once per
+team per tick. The renderer may reconstruct the corresponding visible actors
+from that tick's authoritative public world, but it must never recompute vision
+geometry or substitute the spectator's omniscient state. Archived compact
+broadcasts that predate the column disable perspective fog instead of presenting
+an empty black board as if it were real vision.
 
 Animation timing is expressed inside the current replay tick window. Do not
 change tick duration, delay result disclosure, or extrapolate beyond received
 live ticks to make an effect look better.
+
+Ordinary position curves land exactly on every recorded tick boundary, remain
+inside the current axis-aligned movement segment, and use only current plus
+previously revealed displacement. A revealed right-angle turn carries scalar
+speed into the new segment while taking its direction only from that segment; a
+true reversal brakes rather than overshooting the path. A hold therefore stays
+still even when a later tick moves. When an Arc contract declares a multi-tick
+carrier relocation cadence, the renderer may spread the already-resolved move
+across that cadence: the body remains on the origin side until the authoritative
+move boundary, crosses the tile edge on that boundary, then keeps the same
+visual speed through relocation-locked ticks. It never reads the next action or
+direction. Rotation follows the same causal rule for consecutive same-direction
+turns. Renderer-only hull lag may settle inside the chassis root after a move,
+but it cannot start a future action early. Movement wakes and thrust remain on
+through an active segment rather than pulsing at integer tick boundaries. Tread
+and wheel scroll accumulates distance along this rendered path, including a
+carrier's relocation-locked glide, rather than the underlying one-tile action.
+Arc Relay's automatic director has a shared ten-tile closest shot in Canvas2D
+and WebGL so an opening beat retains the carrier lane, nearby cover, and context.
 
 ## Art-generation brief
 

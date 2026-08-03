@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-mason",
+  "taskId": "019fc335-af21-735b-ac08-6215f3031b69",
+  "submittedAt": "2026-08-02T16:01:42.456Z",
+  "balanceBefore": 535,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-mason/sprite.png",
+    "bytes": 41791,
+    "sha256": "8adbc038d3aa203074b5105cea0e878722707deaac555b94a80f31b17d77c3df",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

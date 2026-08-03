@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "arc-minesmith",
+  "canonicalLayeredVector": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback/arc-minesmith.svg",
+  "generatedAlbedo": "art/class-models/arc-relay/sources/arc-minesmith/albedo.png",
+  "archivedAlbedo": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/minesmith-base.png",
+  "archivedTeamMask": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/minesmith-team-mask.png",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "generatedNormal": "art/class-models/arc-relay/sources/arc-minesmith/normal.png",
+  "generatedEmissive": "art/class-models/arc-relay/sources/arc-minesmith/emissive.png",
+  "sourceSha256": "82c4246a54509dfffdb6ff0c8889611fdbe355e8e37f2ae2aad207e3ced7d0af",
+  "groups": {
+    "underbody-locomotion": {
+      "construction": "wheels",
+      "floorY": 0,
+      "extrusionHeight": 0.16,
+      "bevel": 0.018
+    },
+    "chassis": {
+      "construction": "orthographic-vector-distance-relief",
+      "sourceProjectionDegrees": 0,
+      "extrusionHeight": 0.14,
+      "domeHeight": 0.1,
+      "bevel": 0.014,
+      "albedo": "art/class-models/arc-relay/sources/arc-minesmith/albedo.png",
+      "normal": "art/class-models/arc-relay/sources/arc-minesmith/normal.png"
+    },
+    "weapon-hardware": {
+      "construction": "named-vector-group-distance-relief",
+      "sourceGroup": "weapon-hardware",
+      "hardwareIdentity": "mine-rack",
+      "extrusionHeight": 0.225,
+      "domeHeight": 0.065,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "team-accents": {
+      "construction": "named-vector-semantic-surface",
+      "sourceGroup": "team-accents",
+      "materialRole": "team-accent",
+      "bakedTeamColor": false
+    },
+    "emissives": {
+      "construction": "derived-authored-light-surface",
+      "map": "art/class-models/arc-relay/sources/arc-minesmith/emissive.png"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-palisade",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-palisade/layers.json",
+    "sourceSha256": "a09396baa461da3f881fd2e9d96bb2b458db0684bc95cad61b5a891af528c5b9"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "treads",
+    "handling": "deliberate",
+    "hardwareLagTicks": 0.48,
+    "hardwareOvershoot": 0
+  },
+  "signature": "prism-wall",
+  "ledger": {
+    "bytes": 408908,
+    "sha256": "3f3faaf04a2e82a971682e29461df0c90002d11f838dc7766dabca1d89eb1684",
+    "triangles": 7324,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

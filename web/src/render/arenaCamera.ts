@@ -62,6 +62,20 @@ const FOCUS_MARGIN_TILES = 1.5;
  */
 const MIN_SPAN_TILES = 6;
 
+/**
+ * Mode-owned closest shot for the automatic director.
+ *
+ * Arc Relay needs the carrier's bank lane and nearby cover in frame even when the current
+ * beat has only one anchor. This belongs beside the shared fit arithmetic: putting the
+ * value in a renderer made Canvas2D hold ten tiles while WebGL silently fell back to six.
+ */
+export function directorMinSpan(replay: ReplayModel): number | undefined {
+  return replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay'
+    ? 10
+    : undefined;
+}
+
 /** A framing of the arena: a centre and the span it shows, both in tiles. */
 export interface ArenaFrame {
   x: number;

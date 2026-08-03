@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-towline",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-towline/layers.json",
+    "sourceSha256": "8cc52c1fc8b2f82e2c0c073a121fe9c4cf2b4cf912e4c0d8d4c0a3e694d88a17"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "wheels",
+    "handling": "standard",
+    "hardwareLagTicks": 0.31,
+    "hardwareOvershoot": 0
+  },
+  "signature": "tractor-hook",
+  "ledger": {
+    "bytes": 332480,
+    "sha256": "357514db4878f9cfded572687d6e9fd2a782602aa5811b85db871e563832e28c",
+    "triangles": 5560,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

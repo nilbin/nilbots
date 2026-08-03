@@ -89,6 +89,189 @@ function easeInOut(t: number): number {
 }
 
 /**
+ * Monotone cubic interpolation through one authoritative axis segment.
+ *
+ * A same-direction run retains its boundary velocity, a step out of rest accelerates once,
+ * and a hold remains exactly still. The incoming tangent uses only already-revealed motion;
+ * the outgoing tangent is the current displacement, so smoothing never peeks at a future
+ * action. Tangents are capped to the current step, so the curve cannot overshoot the
+ * recorded segment or make tile occupancy ambiguous.
+ */
+function smoothAxis(
+  start: number,
+  end: number,
+  previousDelta: number,
+  fraction: number,
+): number {
+  const delta = end - start;
+  if (delta === 0) return start;
+  const tangent = (neighbour: number) =>
+    Math.sign(neighbour) === Math.sign(delta)
+      ? Math.sign(delta) * Math.min(Math.abs(delta), Math.abs(neighbour))
+      : 0;
+  const fromTangent = tangent(previousDelta);
+  const toTangent = delta;
+  const squared = fraction * fraction;
+  const cubed = squared * fraction;
+  return (
+    (2 * cubed - 3 * squared + 1) * start +
+    (cubed - 2 * squared + fraction) * fromTangent +
+    (-2 * cubed + 3 * squared) * end +
+    (cubed - squared) * toTangent
+  );
+}
+
+/**
+ * One causal path segment with speed continuity through an already-revealed corner.
+ *
+ * Positions remain on the authoritative A→B segment. The preceding displacement may
+ * contribute speed, but never direction: when a new tick reveals a right-angle turn the
+ * body enters the new segment at its carried speed instead of stopping on the tile centre.
+ * A true reversal still brakes because carrying its old velocity through the new segment
+ * would point outside the authoritative path.
+ */
+function smoothSegment(
+  start: ReplayPosition,
+  end: ReplayPosition,
+  previousDeltaX: number,
+  previousDeltaY: number,
+  fraction: number,
+): { x: number; y: number } {
+  const deltaX = end.x - start.x;
+  const deltaY = end.y - start.y;
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance === 0) return { x: start.x, y: start.y };
+  const previousDistance = Math.hypot(previousDeltaX, previousDeltaY);
+  const dot = deltaX * previousDeltaX + deltaY * previousDeltaY;
+  const incomingSpeed =
+    previousDistance > 0 && dot >= 0
+      ? Math.min(distance, previousDistance)
+      : 0;
+  const progress = smoothAxis(
+    0,
+    1,
+    incomingSpeed / distance,
+    fraction,
+  );
+  return {
+    x: start.x + deltaX * progress,
+    y: start.y + deltaY * progress,
+  };
+}
+
+type CarrierGlide = {
+  x: number;
+  y: number;
+  motionX: number;
+  motionY: number;
+};
+
+/**
+ * Spread an already-resolved Arc carrier relocation across its rules-declared cadence.
+ *
+ * The move tick reaches the edge between the two tiles exactly at its authoritative
+ * boundary. Relocation-locked ticks continue at the same visual speed from that edge to
+ * the recorded centre. Only the revealed move behind the playhead is used; a later
+ * direction is never read.
+ */
+function arcCarrierGlide(
+  replay: ReplayModel,
+  tickIndex: number,
+  actorKey: ReplayActorLifeKey,
+  fraction: number,
+): CarrierGlide | null {
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.mode.kind !== 'arc-relay'
+  )
+    return null;
+  const cadence = Math.max(
+    1,
+    Math.floor(replay.contract.mode.coreRelocationIntervalTicks),
+  );
+  if (cadence <= 1) return null;
+
+  for (let offset = 0; offset < cadence; offset += 1) {
+    const sourceIndex = tickIndex - offset;
+    if (sourceIndex < 0) break;
+    const source = replay.ticks[sourceIndex]!;
+    const start = source.before.actors.find(
+      (actor) => actor.actorKey === actorKey,
+    );
+    const end = source.after.actors.find(
+      (actor) => actor.actorKey === actorKey,
+    );
+    if (!start || !end) continue;
+    const deltaX = end.position.x - start.position.x;
+    const deltaY = end.position.y - start.position.y;
+    if (deltaX === 0 && deltaY === 0) continue;
+
+    const carriedAfter = carriedCoreFor(source.after, actorKey);
+    if (
+      !carriedAfter ||
+      carriedAfter.nextRelocationTick !== source.tick + cadence
+    )
+      continue;
+
+    let uninterrupted = true;
+    for (let index = sourceIndex + 1; index <= tickIndex; index += 1) {
+      const tick = replay.ticks[index]!;
+      const before = tick.before.actors.find(
+        (actor) => actor.actorKey === actorKey,
+      );
+      const after = tick.after.actors.find(
+        (actor) => actor.actorKey === actorKey,
+      );
+      if (
+        !before ||
+        !after ||
+        before.position.x !== after.position.x ||
+        before.position.y !== after.position.y
+      ) {
+        uninterrupted = false;
+        break;
+      }
+    }
+    if (!uninterrupted) continue;
+
+    const progressAt = (localFraction: number) =>
+      offset === 0
+        ? localFraction * 0.5
+        : 0.5 +
+          ((offset - 1 + localFraction) / Math.max(1, cadence - 1)) * 0.5;
+    // The cadence is the movement duration, not a fresh ease-in/ease-out cycle. A linear
+    // phase keeps a carrier rolling through its forced relocation hold and into the next
+    // revealed relocation instead of visibly settling on every tile centre.
+    const progress = progressAt(fraction);
+    const tickStart = progressAt(0);
+    const tickEnd = progressAt(1);
+    return {
+      x: start.position.x + deltaX * progress,
+      y: start.position.y + deltaY * progress,
+      motionX: deltaX * (tickEnd - tickStart),
+      motionY: deltaY * (tickEnd - tickStart),
+    };
+  }
+  return null;
+}
+
+function carriedCoreFor(
+  state: ReplayWorldSnapshot,
+  actorKey: ReplayActorLifeKey,
+): { nextRelocationTick: number } | null {
+  if (
+    state.mode?.kind !== 'arc-relay' ||
+    !('visibleCores' in state.mode)
+  )
+    return null;
+  return state.mode.visibleCores.find(
+    (core) =>
+      core.disposition === 'carried' &&
+      core.carrierActor?.actorKey === actorKey,
+  ) ?? null;
+}
+
+/**
  * Interpolated presentation poses at continuous playhead `time`.
  * The renderer animates between authoritative states; it never invents them (plan §32).
  */
@@ -100,13 +283,15 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
   const clamped = Math.max(0, Math.min(time, tickCount));
   const tick = Math.min(Math.floor(clamped), tickCount - 1);
   const fraction = Math.max(0, Math.min(clamped - tick, 1));
-  // Position is linear inside the authoritative A→B segment. Easing every tile caused
-  // a visible stop/start at every tick boundary; linear interpolation preserves velocity
-  // across consecutive moves and, crucially, never leaves the segment the replay states.
-  // Facing and discrete presentation changes keep their ease so a turn does not snap.
+  // Position uses a monotone cubic inside the authoritative A→B segment. Its endpoint
+  // tangents come only from the current and already-recorded previous displacement: a
+  // continuous run glides through tile boundaries, a move out of rest accelerates once,
+  // and a hold never drifts in anticipation of a later action. Facing and discrete
+  // presentation changes keep their independent ease so a turn does not snap.
   const actionFraction = easeInOut(fraction);
   const before = replay.ticks[tick].before.actors;
   const after = replay.ticks[tick].after.actors;
+  const previous = replay.ticks[tick - 1]?.before.actors ?? [];
 
   return before.map((start) => {
     // Actor life, never stable unit, is the interpolation identity. A destroyed
@@ -120,6 +305,26 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
     };
     const fromAngle = directionAngle(start.facing);
     const rotation = shortestRotation(fromAngle, directionAngle(end.facing));
+    const prior = previous.find(
+      (candidate) => candidate.actorKey === start.actorKey,
+    );
+    const previousMotionX = prior ? start.position.x - prior.position.x : 0;
+    const previousMotionY = prior ? start.position.y - prior.position.y : 0;
+    const previousAngle = prior ? directionAngle(prior.facing) : fromAngle;
+    const previousRotation = shortestRotation(previousAngle, fromAngle);
+    const carrierGlide = arcCarrierGlide(
+      replay,
+      tick,
+      start.actorKey,
+      fraction,
+    );
+    const position = carrierGlide ?? smoothSegment(
+      start.position,
+      end.position,
+      previousMotionX,
+      previousMotionY,
+      fraction,
+    );
     const startedTransitionEvent = replay.ticks[tick].events.find(
       (event) =>
         event.type === 'form-transition-started' &&
@@ -155,15 +360,13 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
       unitId: start.identity.unitId,
       lifeId: start.identity.lifeId,
       formId: actionFraction < 0.9 ? start.formId : end.formId,
-      x:
-        start.position.x +
-        (end.position.x - start.position.x) * fraction,
-      y:
-        start.position.y +
-        (end.position.y - start.position.y) * fraction,
-      motionX: end.position.x - start.position.x,
-      motionY: end.position.y - start.position.y,
-      angle: fromAngle + rotation * actionFraction,
+      x: position.x,
+      y: position.y,
+      motionX: carrierGlide?.motionX ?? end.position.x - start.position.x,
+      motionY: carrierGlide?.motionY ?? end.position.y - start.position.y,
+      angle:
+        fromAngle +
+        smoothAxis(0, rotation, previousRotation, fraction),
       health: actionFraction < 0.6 ? start.health : end.health,
       cooldown: end.cooldown,
       pendingFormTransition,

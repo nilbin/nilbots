@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-longshot",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-longshot/layers.json",
+    "sourceSha256": "53481d6b4dd92155674f4a312ffb65afebbdd6305564ac4be81f9b0b9dd6d314"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "skids",
+    "handling": "deliberate",
+    "hardwareLagTicks": 0.48,
+    "hardwareOvershoot": 0
+  },
+  "signature": "rail-line",
+  "ledger": {
+    "bytes": 252672,
+    "sha256": "e2ce116e52d778b6c91a6f429979897fe263782c87de9a0979e4c20515c35c66",
+    "triangles": 3790,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

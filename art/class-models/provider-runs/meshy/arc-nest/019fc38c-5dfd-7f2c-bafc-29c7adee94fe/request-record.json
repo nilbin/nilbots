@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-nest",
+  "taskId": "019fc38c-5dfd-7f2c-bafc-29c7adee94fe",
+  "submittedAt": "2026-08-02T17:36:23.294Z",
+  "balanceBefore": 430,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-nest/sprite.png",
+    "bytes": 46440,
+    "sha256": "6bf8954d9791584b4c5ad762de3006ff8a5766c293041abb55ec424ddff5dc4b",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

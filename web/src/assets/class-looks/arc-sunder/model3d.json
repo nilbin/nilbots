@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-sunder",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-sunder/layers.json",
+    "sourceSha256": "ee2302f6a0e1f6130492f44bd82854a17604fb9d58d55abaf77e99788bc1493c"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "standard",
+    "hardwareLagTicks": 0.31,
+    "hardwareOvershoot": 0
+  },
+  "signature": "target-paint",
+  "ledger": {
+    "bytes": 338184,
+    "sha256": "ef5a38804c0d59f79956b1b4fd5022603855172298204829480b3aee504d9b0f",
+    "triangles": 5190,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

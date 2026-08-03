@@ -6,6 +6,7 @@ import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
 import {
   ArenaCamera,
+  directorMinSpan,
   focusFrame,
   focusPointsAt,
   type ArenaFrame,
@@ -126,7 +127,12 @@ export default function ArenaCanvas3D({
     const framed = new THREE.Vector3();
     const looking = new THREE.Vector3(mapWidth / 2, 0, mapHeight / 2);
 
-    let framing: ArenaFraming = { mapWidth, mapHeight, aspect: 1 };
+    let framing: ArenaFraming = {
+      mapWidth,
+      mapHeight,
+      aspect: 1,
+      minSpan: directorMinSpan(replay),
+    };
     let camera: ArenaCamera | null = null;
 
     /**
@@ -162,7 +168,12 @@ export default function ArenaCanvas3D({
       renderer.setSize(width, height, false);
       arena.camera.aspect = width / height;
       arena.camera.updateProjectionMatrix();
-      framing = { mapWidth, mapHeight, aspect: width / height };
+      framing = {
+        mapWidth,
+        mapHeight,
+        aspect: width / height,
+        minSpan: directorMinSpan(replay),
+      };
       if (camera === null) camera = new ArenaCamera(framing);
       else camera.reframe(framing);
       look(camera.frame);

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-repulsor",
+  "taskId": "019fc399-7a64-78a8-b9df-bc7f765eeddf",
+  "submittedAt": "2026-08-02T17:50:42.525Z",
+  "balanceBefore": 370,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-repulsor/sprite.png",
+    "bytes": 49207,
+    "sha256": "b38a30d924b1980cbe477ef8230451d1993c4bb4aa109aba61a1a7e2a7afbe65",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

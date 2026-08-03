@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-lantern",
+  "taskId": "019fc37e-1510-7c24-8d4b-079bcbdd48c1",
+  "submittedAt": "2026-08-02T17:20:47.073Z",
+  "balanceBefore": 490,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-lantern/sprite.png",
+    "bytes": 40848,
+    "sha256": "81b9575a86c0d820dd60ef2278a2115f57c108b8f8b58f67e0f51149a0effa6a",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

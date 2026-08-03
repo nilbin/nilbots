@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "arc-hush",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/build-arc-relay-models.mjs",
+    "recipe": "art/class-models/arc-relay/fleet.json",
+    "layeredSource": "art/class-models/arc-relay/sources/arc-hush/layers.json",
+    "sourceSha256": "77fb9a7bd37d693214163839acf385bbfcfb2566f8cbebb45a3a340702ffcada"
+  },
+  "nodes": {
+    "locomotion": "underbody-locomotion",
+    "chassis": "chassis",
+    "hardware": "weapon-hardware",
+    "teamAccents": "team-accents",
+    "emissives": "emissives",
+    "idle": []
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "standard",
+    "hardwareLagTicks": 0.31,
+    "hardwareOvershoot": 0
+  },
+  "signature": "null-field",
+  "ledger": {
+    "bytes": 339688,
+    "sha256": "cc3f60bf8582e85e925ea85c0737dbc100e1208f0fabfe108051b1e0263364c1",
+    "triangles": 5486,
+    "materials": 5,
+    "textureCount": 3
+  }
+}

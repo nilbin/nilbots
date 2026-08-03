@@ -19,6 +19,37 @@ export interface LookModelSpec {
   facing: '+x';
   up: '+y';
   skillHardware?: 'volley' | 'aegis';
+  /** Optional authored node contract. The renderer never guesses part names. */
+  nodes?: {
+    locomotion: string;
+    chassis: string;
+    hardware: string;
+    teamAccents: string;
+    emissives: string;
+    idle: string[];
+  };
+  /** Presentation-only movement tuning carried beside the model. */
+  motion?: {
+    locomotion: 'low-hover' | 'treads' | 'wheels' | 'skids';
+    handling: 'swift' | 'standard' | 'deliberate';
+    hardwareLagTicks: number;
+    hardwareOvershoot: number;
+  };
+  /** Arc Relay signature whose body hardware this companion depicts. */
+  signature?: string;
+  source?: {
+    generator: string;
+    recipe: string;
+    layeredSource: string;
+    sourceSha256: string;
+  };
+  ledger?: {
+    bytes: number;
+    sha256: string;
+    triangles: number;
+    materials: number;
+    textureCount: number;
+  };
 }
 
 export interface ModelledLook {
@@ -326,6 +357,11 @@ function validateSpec(
   const facing = input.facing;
   const up = input.up;
   const skillHardware = input.skillHardware;
+  const nodes = input.nodes;
+  const motion = input.motion;
+  const signature = input.signature;
+  const source = input.source;
+  const ledger = input.ledger;
 
   if (version !== 1)
     throw new Error(`3D look manifest '${path}' has unsupported version.`);
@@ -362,6 +398,20 @@ function validateSpec(
   if (part === 'turret-arm' && skillHardware !== undefined)
     throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
 
+  const optionalNodes = validateNodes(nodes, id);
+  const optionalMotion = validateMotion(motion, id);
+  if (signature !== undefined && (
+    typeof signature !== 'string' ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(signature)
+  ))
+    throw new Error(`3D look '${id}' has an invalid signature.`);
+  const optionalSource = validateSource(source, id);
+  const optionalLedger = validateLedger(ledger, id);
+  if ((optionalNodes === undefined) !== (optionalMotion === undefined))
+    throw new Error(`3D look '${id}' must declare nodes and motion together.`);
+  if (signature !== undefined && optionalNodes === undefined)
+    throw new Error(`3D look '${id}' signature needs an authored node contract.`);
+
   return {
     version,
     id,
@@ -371,7 +421,104 @@ function validateSpec(
     facing,
     up,
     ...(skillHardware === undefined ? {} : { skillHardware }),
+    ...(optionalNodes === undefined ? {} : { nodes: optionalNodes }),
+    ...(optionalMotion === undefined ? {} : { motion: optionalMotion }),
+    ...(signature === undefined ? {} : { signature }),
+    ...(optionalSource === undefined ? {} : { source: optionalSource }),
+    ...(optionalLedger === undefined ? {} : { ledger: optionalLedger }),
   };
+}
+
+function validateNodes(
+  input: unknown,
+  id: string,
+): LookModelSpec['nodes'] | undefined {
+  if (input === undefined) return undefined;
+  if (!isRecord(input))
+    throw new Error(`3D look '${id}' nodes must be an object.`);
+  const values = [
+    input.locomotion,
+    input.chassis,
+    input.hardware,
+    input.teamAccents,
+    input.emissives,
+  ];
+  if (values.some((value) => typeof value !== 'string' || value.length === 0))
+    throw new Error(`3D look '${id}' has invalid authored node names.`);
+  if (!Array.isArray(input.idle) || input.idle.some((value) => typeof value !== 'string'))
+    throw new Error(`3D look '${id}' idle nodes must be strings.`);
+  return {
+    locomotion: input.locomotion as string,
+    chassis: input.chassis as string,
+    hardware: input.hardware as string,
+    teamAccents: input.teamAccents as string,
+    emissives: input.emissives as string,
+    idle: input.idle as string[],
+  };
+}
+
+function validateMotion(
+  input: unknown,
+  id: string,
+): LookModelSpec['motion'] | undefined {
+  if (input === undefined) return undefined;
+  if (!isRecord(input))
+    throw new Error(`3D look '${id}' motion must be an object.`);
+  const locomotion = input.locomotion;
+  const handling = input.handling;
+  const hardwareLagTicks = input.hardwareLagTicks;
+  const hardwareOvershoot = input.hardwareOvershoot;
+  if (!['low-hover', 'treads', 'wheels', 'skids'].includes(String(locomotion)))
+    throw new Error(`3D look '${id}' has invalid model locomotion.`);
+  if (!['swift', 'standard', 'deliberate'].includes(String(handling)))
+    throw new Error(`3D look '${id}' has invalid handling.`);
+  if (
+    typeof hardwareLagTicks !== 'number' ||
+    !Number.isFinite(hardwareLagTicks) ||
+    hardwareLagTicks <= 0 ||
+    hardwareLagTicks > 1 ||
+    typeof hardwareOvershoot !== 'number' ||
+    !Number.isFinite(hardwareOvershoot) ||
+    hardwareOvershoot < 0 ||
+    hardwareOvershoot > 0.25
+  )
+    throw new Error(`3D look '${id}' has invalid hardware lag tuning.`);
+  return {
+    locomotion: locomotion as NonNullable<LookModelSpec['motion']>['locomotion'],
+    handling: handling as NonNullable<LookModelSpec['motion']>['handling'],
+    hardwareLagTicks,
+    hardwareOvershoot,
+  };
+}
+
+function validateSource(
+  input: unknown,
+  id: string,
+): LookModelSpec['source'] | undefined {
+  if (input === undefined) return undefined;
+  if (!isRecord(input))
+    throw new Error(`3D look '${id}' source must be an object.`);
+  for (const key of ['generator', 'recipe', 'layeredSource', 'sourceSha256'])
+    if (typeof input[key] !== 'string' || input[key].length === 0)
+      throw new Error(`3D look '${id}' has invalid source ${key}.`);
+  if (!/^[0-9a-f]{64}$/.test(input.sourceSha256 as string))
+    throw new Error(`3D look '${id}' has invalid source hash.`);
+  return input as NonNullable<LookModelSpec['source']>;
+}
+
+function validateLedger(
+  input: unknown,
+  id: string,
+): LookModelSpec['ledger'] | undefined {
+  if (input === undefined) return undefined;
+  if (!isRecord(input))
+    throw new Error(`3D look '${id}' ledger must be an object.`);
+  for (const key of ['bytes', 'triangles', 'materials', 'textureCount'])
+    if (!Number.isInteger(input[key]) || (input[key] as number) <= 0)
+      throw new Error(`3D look '${id}' has invalid ledger ${key}.`);
+  if (typeof input.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(input.sha256))
+    throw new Error(`3D look '${id}' has invalid ledger hash.`);
+  return input as NonNullable<LookModelSpec['ledger']>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

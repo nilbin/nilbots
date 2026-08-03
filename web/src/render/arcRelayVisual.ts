@@ -465,7 +465,13 @@ function drawCores(
   for (const core of state.visibleCores) {
     const carried = core.disposition === 'carried' && core.carrierActor !== null;
     if (carried !== carriedPass) continue;
-    const base = centre(input, core.position);
+    const recordedBase = centre(input, core.position);
+    // The mode snapshot owns possession, while the shared pose owns where the carrier is
+    // between its two recorded tiles. Binding the Core to that pose keeps the combined
+    // silhouette from snapping ahead of a slowly moving carrier.
+    const base = carried
+      ? actorCentre(input, core.carrierActor!) ?? recordedBase
+      : recordedBase;
     const accent = carried
       ? input.accentFor(core.carrierActor!.unitKey)
       : '#f5f8fb';
@@ -473,37 +479,13 @@ function drawCores(
     let x = base.x;
     let y = base.y;
     if (carried) {
-      const orbit = input.time * Math.PI * 1.4;
-      x += Math.cos(orbit) * input.tile * 0.3;
-      y += Math.sin(orbit) * input.tile * 0.18 - input.tile * 0.14;
+      y -= input.tile * (0.66 + 0.025 * Math.sin(input.time * Math.PI * 1.1));
       input.ctx.save();
       input.ctx.strokeStyle = withAlpha(accent, 0.78);
       input.ctx.lineWidth = Math.max(2, input.tile * 0.05);
       input.ctx.beginPath();
       input.ctx.moveTo(base.x, base.y);
-      input.ctx.quadraticCurveTo(base.x, y - input.tile * 0.18, x, y);
-      input.ctx.stroke();
-      input.ctx.restore();
-
-      // The carrier is the story. A small orbiting Core identified the object but
-      // disappeared into a sixteen-body fight; this broken, breathing ring marks the
-      // machine that matters without repainting its chassis or confusing team identity.
-      input.ctx.save();
-      input.ctx.globalCompositeOperation = 'lighter';
-      input.ctx.strokeStyle = withAlpha(accent, 0.72);
-      input.ctx.shadowColor = accent;
-      input.ctx.shadowBlur = Math.max(8, input.tile * 0.34);
-      input.ctx.lineWidth = Math.max(3, input.tile * 0.075);
-      input.ctx.setLineDash([input.tile * 0.3, input.tile * 0.13]);
-      input.ctx.lineDashOffset = -input.time * input.tile * 0.7;
-      input.ctx.beginPath();
-      input.ctx.arc(
-        base.x,
-        base.y,
-        input.tile * (0.5 + 0.035 * Math.sin(input.time * Math.PI * 2)),
-        0,
-        Math.PI * 2,
-      );
+      input.ctx.quadraticCurveTo(base.x, y + input.tile * 0.28, x, y);
       input.ctx.stroke();
       input.ctx.restore();
     } else if (core.disposition === 'in-flight' && core.flightTarget) {
@@ -526,6 +508,10 @@ function drawCores(
       );
       input.ctx.stroke();
       input.ctx.restore();
+    } else {
+      // Keep a loose Core visually anchored to its authoritative tile while lifting the
+      // sphere just enough to read as the same object that later rides above a carrier.
+      y -= input.tile * 0.12;
     }
 
     const cracked = (input.tick?.events ?? []).some(
@@ -536,8 +522,24 @@ function drawCores(
     input.ctx.save();
     input.ctx.shadowColor = accent;
     input.ctx.shadowBlur = Math.max(4, input.tile * (carried ? 0.28 : 0.18));
-    drawSourceGlyph(input.ctx, x, y, radius, core.coreId.sourceWellId, accent, cracked);
-    if (coreKey(core.coreId) === threat) {
+    const atSourceWell = core.disposition === 'loose' && state.wells.some(
+      (well) =>
+        well.wellId === core.coreId.sourceWellId &&
+        well.position.x === core.position.x &&
+        well.position.y === core.position.y,
+    );
+    if (core.disposition === 'loose' && !atSourceWell)
+      drawSourceGlyph(
+        input.ctx,
+        base.x,
+        base.y,
+        radius,
+        core.coreId.sourceWellId,
+        accent,
+        cracked,
+      );
+    drawCoreSphere(input.ctx, x, y, radius);
+    if (!carried && coreKey(core.coreId) === threat) {
       input.ctx.strokeStyle = withAlpha(accent, 0.7);
       input.ctx.lineWidth = Math.max(1.5, input.tile * 0.035);
       input.ctx.beginPath();
@@ -555,6 +557,36 @@ function drawCores(
     }
     input.ctx.restore();
   }
+}
+
+/** Canvas fallback for the WebGL Core: internally lit energy, not a glossy ball. */
+function drawCoreSphere(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+): void {
+  const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 1.9);
+  glow.addColorStop(0, 'rgba(215, 245, 255, 0.42)');
+  glow.addColorStop(0.45, 'rgba(151, 226, 248, 0.22)');
+  glow.addColorStop(1, 'rgba(151, 226, 248, 0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 1.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  const shade = ctx.createRadialGradient(x, y, radius * 0.06, x, y, radius);
+  shade.addColorStop(0, '#dcfbff');
+  shade.addColorStop(0.34, '#91efff');
+  shade.addColorStop(0.72, '#4bc9df');
+  shade.addColorStop(1, '#21869a');
+  ctx.fillStyle = shade;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function closestCoreToReactor(state: ArcState): string | null {

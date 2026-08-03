@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-towline",
+  "taskId": "019fc3a2-7382-78a9-8950-3d67759a5e5d",
+  "submittedAt": "2026-08-02T18:00:30.717Z",
+  "balanceBefore": 325,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-towline/sprite.png",
+    "bytes": 48073,
+    "sha256": "63fb27f126b629768bbb4a889607a22a4bdfd5fdd3d401935c183bfbc047fd6f",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

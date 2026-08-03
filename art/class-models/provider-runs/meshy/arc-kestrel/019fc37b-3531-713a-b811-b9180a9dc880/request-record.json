@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-kestrel",
+  "taskId": "019fc37b-3531-713a-b811-b9180a9dc880",
+  "submittedAt": "2026-08-02T17:17:38.743Z",
+  "balanceBefore": 505,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-kestrel/sprite.png",
+    "bytes": 41444,
+    "sha256": "8526f942f94486a744d823d31dc607f7cbd018b90ddf5b58e67796a18df20cc6",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

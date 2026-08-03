@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "arc-towline",
+  "canonicalLayeredVector": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback/arc-towline.svg",
+  "generatedAlbedo": "art/class-models/arc-relay/sources/arc-towline/albedo.png",
+  "archivedAlbedo": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/towline-base.png",
+  "archivedTeamMask": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/towline-team-mask.png",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "generatedNormal": "art/class-models/arc-relay/sources/arc-towline/normal.png",
+  "generatedEmissive": "art/class-models/arc-relay/sources/arc-towline/emissive.png",
+  "sourceSha256": "8cc52c1fc8b2f82e2c0c073a121fe9c4cf2b4cf912e4c0d8d4c0a3e694d88a17",
+  "groups": {
+    "underbody-locomotion": {
+      "construction": "wheels",
+      "floorY": 0,
+      "extrusionHeight": 0.16,
+      "bevel": 0.018
+    },
+    "chassis": {
+      "construction": "orthographic-vector-distance-relief",
+      "sourceProjectionDegrees": 0,
+      "extrusionHeight": 0.14,
+      "domeHeight": 0.1,
+      "bevel": 0.014,
+      "albedo": "art/class-models/arc-relay/sources/arc-towline/albedo.png",
+      "normal": "art/class-models/arc-relay/sources/arc-towline/normal.png"
+    },
+    "weapon-hardware": {
+      "construction": "named-vector-group-distance-relief",
+      "sourceGroup": "weapon-hardware",
+      "hardwareIdentity": "winch-boom",
+      "extrusionHeight": 0.225,
+      "domeHeight": 0.065,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "team-accents": {
+      "construction": "named-vector-semantic-surface",
+      "sourceGroup": "team-accents",
+      "materialRole": "team-accent",
+      "bakedTeamColor": false
+    },
+    "emissives": {
+      "construction": "derived-authored-light-surface",
+      "map": "art/class-models/arc-relay/sources/arc-towline/emissive.png"
+    }
+  }
+}

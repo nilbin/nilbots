@@ -2,6 +2,7 @@ using BotArena.App.ArcRelay;
 using BotArena.App.Competition;
 using BotArena.Engine;
 using BotArena.Runtime;
+using System.Text.Json;
 
 namespace BotArena.App.Tests;
 
@@ -87,12 +88,28 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(normalHash, optimizedHash);
         Assert.Equivalent(normalResult, optimizedResult, strict: true);
 
-        GenericActorMatchResult compactResult = RunCompact(
+        ArcRelayBroadcastDocument compact = RunCompact(
             definition,
             hosted.ReplayPresentation,
             first,
             second);
-        Assert.Equivalent(normalResult, compactResult, strict: true);
+        Assert.Equivalent(normalResult, compact.Result, strict: true);
+
+        using JsonDocument broadcast = JsonDocument.Parse(compact.CanonicalUtf8);
+        JsonElement root = broadcast.RootElement;
+        JsonElement worlds = root.GetProperty("worlds");
+        JsonElement vision = root.GetProperty("vision");
+        Assert.Equal(worlds.GetArrayLength(), vision.GetArrayLength());
+        Assert.All(vision[0].EnumerateArray(), team =>
+            Assert.NotEmpty(team[1].EnumerateArray()));
+
+        using JsonDocument prefix = JsonDocument.Parse(
+            ArcRelayBroadcastDocument.CreatePartialPrefix(
+                System.Text.Encoding.UTF8.GetString(compact.CanonicalUtf8.Span),
+                3));
+        Assert.Equal(
+            Math.Min(3, worlds.GetArrayLength()),
+            prefix.RootElement.GetProperty("vision").GetArrayLength());
     }
 
     private static (string Hash, GenericActorMatchResult Result) RunFull(
@@ -114,7 +131,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         return (replay.ReplayHash, result);
     }
 
-    private static GenericActorMatchResult RunCompact(
+    private static ArcRelayBroadcastDocument RunCompact(
         ActorResolvedMatchDefinition definition,
         GenericActorReplayPresentation presentation,
         ArcRelaySheetCompilation first,
@@ -125,7 +142,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
             Configurations(first, second, optimized: true),
             104729,
             recordChronology: false);
-        return ArcRelayBroadcastDocument.CreateAndRun(session, presentation).Result;
+        return ArcRelayBroadcastDocument.CreateAndRun(session, presentation);
     }
 
     private static GenericActorParticipantConfiguration[] Configurations(
