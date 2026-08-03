@@ -97,6 +97,25 @@
         { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 375 }
       ],
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "enemy-relative-combat-leash",
+      "change": "Interpret chaseLeash as enemy distance from the assigned formation slot rather than shooter adherence to that slot, then retune rush/siege/regroup radii to 4/6/3.",
+      "resultSummary": "Correctly bounded enemy geography but lost or drew every historical/parity assignment; firing itself does not move the shooter, so this interpretation discarded useful formation-owned fire without preventing a chase.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "focus-release-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Execute declared hidden, destroyed, outside-formation, and unreachable focus-release causes. Home Siege uses one-tick hidden release so the framework change does not retain a stale target through a fog flicker.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "Retained as generic semantics, not promoted as a dominance result: both coordinated-control assignments win, both historical-control assignments currently fail.",
+      "verdict": "retained-framework-change"
     }
   ]
 }
