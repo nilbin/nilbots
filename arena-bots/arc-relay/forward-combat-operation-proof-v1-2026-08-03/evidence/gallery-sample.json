@@ -1,6 +1,6 @@
 {
-  "sampleVersion": 1,
-  "selection": "outcome-visible final forward-combat live proof",
+  "sampleVersion": 2,
+  "selection": "outcome-visible eligible stock-recovery live proof",
   "outcomeBlind": false,
   "identitiesBlind": false,
   "replays": [

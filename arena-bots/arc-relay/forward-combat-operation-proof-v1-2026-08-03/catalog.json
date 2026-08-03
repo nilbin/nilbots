@@ -21,7 +21,6 @@
       ],
       "proofSeed": "67867967",
       "opponentId": "balanced",
-      "opponentArtifact": "../stock-mind-forward-v1/bot.wasm",
       "opponentSheet": "../depth-map-v1-2026-08-02/counterflow/sheets/balanced.json",
       "sheet": "sheets/rear-hook.json"
     },
@@ -82,7 +81,6 @@
       ],
       "proofSeed": "67867967",
       "opponentId": "hook-burst",
-      "opponentArtifact": "../stock-mind-forward-v1/bot.wasm",
       "opponentSheet": "../depth-map-v1-2026-08-02/counterflow/sheets/hook-burst.json",
       "sheet": "sheets/relay-catch.json"
     },

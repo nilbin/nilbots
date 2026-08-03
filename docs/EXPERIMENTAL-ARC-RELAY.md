@@ -1,12 +1,13 @@
 # Arc Relay — experimental player rules
 
 Arc Relay is the current experimental game. It is not the shipped Duel
-ruleset. Hosted entrant playlist v4 uses rules identity
+ruleset. Hosted entrant playlist v5 uses rules identity
 `arc-relay-forward-combat-01` on map
-`arc-relay-threefold-depth-counterflow-01`. Playlist v3 retains the accepted
-Counterflow geometry with the prior omnidirectional basic-fire rules;
-historical H0 and playlist-v2 remain immutable and executable under their
-original identities.
+`arc-relay-threefold-depth-counterflow-01` and the repaired first-party stock
+mind. Playlist v4 retains the original forward-combat stock artifact; playlist
+v3 retains the accepted Counterflow geometry with the prior omnidirectional
+basic-fire rules. Historical H0 and playlist-v2 remain immutable and executable
+under their original identities.
 
 ## Match shape
 

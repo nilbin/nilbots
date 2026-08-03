@@ -11,16 +11,18 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v4_adds_forward_combat_while_v2_and_v3_remain_executable()
+    public void Entrant_v5_repairs_stock_while_v2_through_v4_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
-        ArcRelayEntrantPlaylistDefinition historical =
+        ArcRelayEntrantPlaylistDefinition historicalV2 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2();
         ArcRelayEntrantPlaylistDefinition counterflow =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3();
+        ArcRelayEntrantPlaylistDefinition forward =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV4();
 
-        Assert.Equal(4, current.PlaylistVersion);
+        Assert.Equal(5, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.Current.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.ForwardCombat.RulesetId,
@@ -28,8 +30,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
             current.CanonicalDefinition);
-        Assert.Equal(2, historical.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.HomeGatesWide.MapId, historical.Match.Map.Id);
+        Assert.Equal(4, forward.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Current.MapId, forward.Match.Map.Id);
+        Assert.Contains(
+            ArcRelayPlaylistDefinition.HistoricalForwardStockArtifactHash,
+            forward.CanonicalDefinition);
+        Assert.Equal(2, historicalV2.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.HomeGatesWide.MapId,
+            historicalV2.Match.Map.Id);
         Assert.Equal(3, counterflow.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.DepthCounterflow.RulesetId,
@@ -38,11 +47,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayPlaylistDefinition.StockArtifactHash,
             counterflow.CanonicalDefinition);
         var registry = new HostedGenericMatchDefinitionRegistry(
-            [ArcRelayPlaylistDefinition.Create(), historical, counterflow, current]);
-        Assert.Same(historical, registry.Resolve(
+            [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
+                forward, current]);
+        Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
         Assert.Same(counterflow, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.CounterflowVersion));
+        Assert.Same(forward, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.PreviousVersion));
         Assert.Same(current, registry.Resolve(

@@ -14,8 +14,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 4;
-    public const int PreviousVersion = 3;
+    public const int Version = 5;
+    public const int PreviousVersion = 4;
+    public const int CounterflowVersion = 3;
     public const int HistoricalVersion = 2;
     public const string SeriesPolicyId = "single-match-v1";
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
@@ -57,11 +58,17 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.Current,
+        source: "arc-relay-stock-recovery-pass",
+        canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV4() => Create(
+        PreviousVersion,
+        ArcRelayLoopProfile.ForwardCombat,
         source: "arc-relay-forward-combat-owner-ruling",
         canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV3() => Create(
-        PreviousVersion,
+        CounterflowVersion,
         ArcRelayLoopProfile.DepthCounterflow,
         source: "arc-relay-counterflow-owner-ruling",
         canonicalGameplayUnchangedFromVersion1: false);
@@ -103,9 +110,13 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             writer.WriteString("runtimeModel", "arc-relay-entrants-v1");
             writer.WriteString(
                 "stockArtifactHash",
-                version == Version
-                    ? ArcRelayPlaylistDefinition.ForwardStockArtifactHash
-                    : ArcRelayPlaylistDefinition.StockArtifactHash);
+                version switch
+                {
+                    Version => ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                    PreviousVersion => ArcRelayPlaylistDefinition
+                        .HistoricalForwardStockArtifactHash,
+                    _ => ArcRelayPlaylistDefinition.StockArtifactHash,
+                });
             writer.WriteString("sheetSchema", ArcRelayPlayerSheetCodec.SchemaId);
             writer.WriteString("compositionSchema", "arc-relay-composition-v1");
             writer.WriteNumber("compositionSlots", ArcRelayPlayerSheetCodec.SlotCount);
@@ -131,9 +142,17 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             if (version == Version)
             {
                 writer.WriteBoolean("ownerApprovedForwardCombat", true);
+                writer.WriteBoolean("stockRecoveryPass", true);
                 writer.WriteNumber("ratingContinuityFromVersion", PreviousVersion);
             }
             else if (version == PreviousVersion)
+            {
+                // Preserve v4's immutable provenance bytes exactly.
+                writer.WriteBoolean("ownerApprovedForwardCombat", true);
+                writer.WriteNumber(
+                    "ratingContinuityFromVersion", CounterflowVersion);
+            }
+            else if (version == CounterflowVersion)
             {
                 // Preserve v3's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerAcceptedFailedDepthGates", true);

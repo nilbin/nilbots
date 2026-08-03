@@ -21,8 +21,10 @@ public sealed class ArcRelayPlaylistDefinition : IHostedGenericMatchDefinition
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string StockArtifactHash =
         "c574c09a832d0a28cd1be8fd645a02685ad9c24a02543bce5c9819d5e1fd65f9";
-    public const string ForwardStockArtifactHash =
+    public const string HistoricalForwardStockArtifactHash =
         "195114c7bd12758dc5b55060381c48782fe4e370a26a7c79883d6eb921490a64";
+    public const string ForwardStockArtifactHash =
+        "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368";
 
     private ArcRelayPlaylistDefinition(
         ActorResolvedMatchDefinition representative,

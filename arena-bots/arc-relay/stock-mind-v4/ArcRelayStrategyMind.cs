@@ -433,8 +433,6 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         {
             return;
         }
-        if (stuckTicks >= 8 && TryDrop(body))
-            return;
         bool commitShortestStep = noProgressTicks >= 12;
         if (commitShortestStep)
         {
@@ -1014,15 +1012,6 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             "vector-dash",
             target,
             reason);
-
-    private static bool TryDrop(MindBody body)
-    {
-        GenericActorActionLegality? drop = body.Action("drop-core");
-        if (drop is not { Available: true } || !drop.Constraints.IsEmpty)
-            return false;
-        body.Command(drop);
-        return true;
-    }
 
     private void UpdateCarrierMotion(
         MindContext mind,

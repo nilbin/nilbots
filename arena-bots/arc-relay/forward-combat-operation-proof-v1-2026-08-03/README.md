@@ -4,9 +4,10 @@ This is an evaluation-grade mechanics corpus, not the player-facing sheet
 format. Each sheet embeds one bounded team operation beside a complete stock
 baseline. The same compiled `stock-mind-v4` artifact loads every operation
 sheet as deterministic data and explicitly prepares facing under the
-three-heading basic-fire cone. Rear Hook and Relay Catch use the retained
-forward-aware baseline as named opponents to create reproducible tactical
-situations; their opponent artifact is recorded separately in the catalog.
+three-heading basic-fire cone. Rear Hook and Relay Catch use retained legacy
+sheet data as named opponents to create reproducible tactical situations, but
+both sides execute through the same current stock artifact. Historical stock
+artifacts are compatibility sentinels, not eligible tactical opponents.
 
 Every retained example must show, in one authoritative WASM activation:
 
@@ -32,7 +33,7 @@ Abort-only traces are diagnostic and never count as proof.
 | Decoy Switch | Public Well timing plus visible north pressure stages one north decoy and a declared south pair. | Both hitters reach south-forward after the locked south-pincer branch. | A home overload aborts. The decoy and pair otherwise pay the loss of centre coverage. |
 | Emergency Exchange | A wounded carrier in the risk fork claims the declared Switchback. | `exchange` occurs during the activation and an own carrier is on the home half. | Core loss or participant loss aborts; the Switchback cannot create a success merely by arriving late. |
 
-Reproduce the proof from the repository root:
+Reproduce the two-campaign proof from the repository root:
 
 ```sh
 python3 scripts/arc-relay-operation-proof.py prove \
@@ -40,18 +41,32 @@ python3 scripts/arc-relay-operation-proof.py prove \
   --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
   --output /tmp/nilbots-forward-combat-operation-proof \
   --workers 4
+
+python3 scripts/arc-relay-operation-proof.py prove \
+  --catalog arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json \
+  --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
+  --seed 86080202 \
+  --output /tmp/nilbots-forward-combat-operation-proof-seed2 \
+  --workers 4
+
+python3 scripts/retain-arc-relay-live-proof.py \
+  --catalog arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json \
+  --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
+  --proof /tmp/nilbots-forward-combat-operation-proof/proof.json \
+  --proof /tmp/nilbots-forward-combat-operation-proof-seed2/proof.json \
+  --output arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence
 ```
 
 The tracked compact receipt is
 [`evidence/live-proof-summary.json`](evidence/live-proof-summary.json). Full
 canonical replays are deliberately regenerated and verified rather than
-committed. Compact broadcast slices from the final passing run are retained in
-`evidence/replays/` for the outcome-visible production review gallery; they do
-not replace canonical verification.
+committed. It records 20/20 passing operation cells across two campaigns,
+requires both teams in every whole match to pass the v4 felt-degeneracy bars,
+and retains compact broadcast slices from the first passing campaign under
+`evidence/replays/` for the outcome-visible production review gallery. Those
+slices do not replace canonical verification.
 
-The historical rebuild command below now serves as a quarantine check: it must
-refuse the three ineligible broadcasts before writing output. Regenerate clean
-proofs rather than adding the diagnostic-only skip flag:
+Build the eligible review gallery with:
 
 ```sh
 python3 scripts/build-review-gallery.py \
@@ -65,12 +80,8 @@ python3 scripts/build-review-gallery.py \
 This corpus proves executable grammar and recovery behavior only; it is not a
 balance, reliability, fun, or product-UX claim.
 
-> **Current-bar quarantine (2026-08-03):** current scoring rejects three
-> retained broadcasts. Emergency Exchange contains a same-body, same-Core
-> pickup/drop cycle from tick 343 through the terminal tick; Rear Hook's
-> opponent trips home-carrier non-progress; Relay Catch's opponent trips
-> stuck-carrier. They pass the historical operation-transition proof but fail
-> whole-match gallery eligibility and must not enter an eligible cohort read or
-> owner gallery. The proof harness now runs the current scorecard and requires
-> whole-match eligibility, so a regenerated corpus cannot reproduce these
-> false passes.
+The superseded retained broadcasts exposed three false passes under the v4
+bars: Emergency Exchange pickup/drop cycling, Rear Hook home-carrier
+non-progress, and Relay Catch stationary-carrier stalling. The current corpus
+replaces them rather than suppressing diagnostics: all three matches now pass
+the same bars that found the defects.

@@ -216,7 +216,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 EntryType = "ArcRelayStrategyMind",
                 SourcesJson = "[]",
                 SourceHash =
-                    "cc85c8da7f8e9c2dfd87e20ec1985dce77c2b2f2da7f01bc2f0683a224d2cb96",
+                    "637822b12b9b0643410ddaa42919d009f0a4727768e210b792ae3179e5a8b23b",
                 Status = BuildStatus.Built,
                 ArtifactKey = artifactKey,
                 ArtifactHash = artifactHash,
@@ -227,7 +227,7 @@ public sealed class ArcRelayPlaylistSeeder(
                     combatProfile = ArcRelayLoopProfile.ForwardCombat.Id,
                     sheetSchema = ArcRelay.ArcRelayPlayerSheetCodec.SchemaId,
                     sourceSha256 =
-                        "cc85c8da7f8e9c2dfd87e20ec1985dce77c2b2f2da7f01bc2f0683a224d2cb96",
+                        "637822b12b9b0643410ddaa42919d009f0a4727768e210b792ae3179e5a8b23b",
                     arenaBasicsSha256 =
                         "35ff4bcd0c634e01f3f6f89d9741fe9ed02a57b9a32cc04fd3d1d20fd807b8c1",
                     artifactSha256 = artifactHash,

@@ -15,12 +15,12 @@
     {
       "id": "sample-02",
       "title": "Emergency Exchange — Blue operation",
-      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t436 · prepare t101→commit t102→success t113→release t114 · baseline resumed",
       "trigger": "A wounded Blue carrier is visible in the risk fork while the declared Switchback is alive and able to reach it.",
       "tactic": "Pull the Switchback out of interception duty, bring it to the carrier, then use Exchange to swap the endangered carrier onto the safer homeward position.",
       "counterplay": "Finish or displace the carrier before the Switchback arrives, deny a legal swap position, or isolate and destroy the Switchback en route.",
       "fallback": "Core loss or either required participant's loss aborts. A late Switchback arrival cannot manufacture success after the rescue window.",
-      "watch": "Blue commits at t102, Exchange fires at t112, an own carrier is safely on the home half at t113, and the operation releases at t114. Blue later wins."
+      "watch": "Blue commits at t102, Exchange fires at t112, an own carrier is safely on the home half at t113, and the operation releases at t114. Blue later wins at t436 without entering the old pickup/drop loop."
     },
     {
       "id": "sample-03",
@@ -65,12 +65,12 @@
     {
       "id": "sample-07",
       "title": "Rear Hook — Blue operation",
-      "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed",
+      "subtitle": "Blue operation vs Balanced · Orange wins by reactor destroyed at t376 · prepare t186→commit t203→success t219→release t231 · baseline resumed",
       "trigger": "Public Well timing and visible forward pressure let two Towlines infiltrate; commitment waits for an observed enemy carrier inside its return corridor.",
       "tactic": "Give up ordinary Well pressure to place the Towlines behind the line, lock onto the exact carrier, then use Tractor Hook to make that Core loose or Blue-owned.",
       "counterplay": "Screen the carrier, vary its return route before commitment, reveal and kill a staging Towline, or punish the objectives Blue vacated to set the trap.",
       "fallback": "Loss of a required stager before commitment aborts. After commitment an optional survivor may continue, but the deadline always releases it.",
-      "watch": "The ambush prepares at t9, commits at t25, uses Tractor Hook at t25–26, succeeds at t31, and releases at t37. Blue later destroys the reactor at t407."
+      "watch": "The ambush prepares at t186, commits at t203, uses Tractor Hook at t203 and t209, succeeds at t219, and releases at t231. Orange wins the wider match at t376; its carriers keep progressing rather than oscillating near home."
     },
     {
       "id": "sample-08",
@@ -85,12 +85,12 @@
     {
       "id": "sample-09",
       "title": "Relay Catch — Blue operation",
-      "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed",
+      "subtitle": "Blue operation vs Hook Burst · Orange wins by reactor destroyed at t380 · prepare t76→commit t77→success t80→release t84 · baseline resumed",
       "trigger": "The assigned south Relay carries a Core and its paired Relay receiver is alive on the safer homeward side.",
       "tactic": "Hold the receiver behind the carrier, use Arc Toss to move possession across the dangerous gap, then let the specifically assigned receiver complete the return.",
       "counterplay": "Block or attack the catch lane, displace or destroy the receiver, pressure the carrier before the toss, or force a drop that breaks the assigned handoff.",
       "fallback": "The expected one-tick in-flight possession gap is tolerated; a genuinely missed catch times out and releases both Relays to baseline.",
-      "watch": "Blue prepares at t76, commits at t77, throws with Arc Toss at t78, the receiver owns the Core at t80, and both release at t85. Blue wins at t505."
+      "watch": "Blue prepares at t76, commits at t77, throws with Arc Toss at t78, the receiver owns the Core at t80, and both release at t84. Orange wins the wider match at t380; neither side trips stationary-carrier behavior."
     },
     {
       "id": "sample-10",

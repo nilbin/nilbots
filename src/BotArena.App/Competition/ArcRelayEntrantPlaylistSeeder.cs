@@ -35,12 +35,21 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         }
         PlaylistVersion? counterflowVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
-                value.Version == ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                value.Version == ArcRelayEntrantPlaylistDefinition.CounterflowVersion,
                 cancellationToken);
         if (counterflowVersion is not null)
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3()
                 .Validate(playlist, counterflowVersion);
+        }
+        PlaylistVersion? forwardVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                cancellationToken);
+        if (forwardVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV4()
+                .Validate(playlist, forwardVersion);
         }
         PlaylistVersion? version = await db.PlaylistVersions.SingleOrDefaultAsync(
             value => value.PlaylistId == playlist.Id &&
@@ -141,51 +150,57 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                     RankedMatches = value.RankedMatches,
                 }));
 
-            IReadOnlySet<string> allClasses = classCatalog.All
-                .Select(value => value.Id)
-                .ToHashSet(StringComparer.Ordinal);
-            List<ArcRelaySheet> sheets = await db.ArcRelaySheets.ToListAsync(
-                cancellationToken);
-            foreach (ArcRelaySheet sheet in sheets)
+            if (previous.Version < ArcRelayEntrantPlaylistDefinition.PreviousVersion)
             {
-                ArcRelaySheetDocument source = sheetCodec.Read(sheet.CanonicalJson);
-                if (string.Equals(
-                        source.MapId,
-                        ArcRelayLoopProfile.Current.MapId,
-                        StringComparison.Ordinal))
+                IReadOnlySet<string> allClasses = classCatalog.All
+                    .Select(value => value.Id)
+                    .ToHashSet(StringComparer.Ordinal);
+                List<ArcRelaySheet> sheets = await db.ArcRelaySheets.ToListAsync(
+                    cancellationToken);
+                foreach (ArcRelaySheet sheet in sheets)
                 {
-                    continue;
+                    ArcRelaySheetDocument source = sheetCodec.Read(
+                        sheet.CanonicalJson);
+                    if (string.Equals(
+                            source.MapId,
+                            ArcRelayLoopProfile.Current.MapId,
+                            StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    int revision = sheet.Revision + 1;
+                    ArcRelaySheetDocument migrated = sheetCodec.UpgradeToCurrentMap(
+                        source,
+                        allClasses);
+                    ArcRelaySheetCompilation compilation = sheetCodec.Compile(
+                        migrated,
+                        allClasses,
+                        $"{sheet.Id}:r{revision}");
+                    sheet.Revision = revision;
+                    sheet.CanonicalJson = compilation.CanonicalJson;
+                    sheet.ContentHash = compilation.ContentHash;
+                    sheet.UpdatedAt = DateTime.UtcNow;
+                    ArcRelayEntrant? entrant = await db.ArcRelayEntrants
+                        .SingleOrDefaultAsync(
+                            value => value.Id == sheet.Id,
+                            cancellationToken);
+                    if (entrant is not null)
+                        entrant.UpdatedAt = sheet.UpdatedAt;
                 }
-                int revision = sheet.Revision + 1;
-                ArcRelaySheetDocument migrated = sheetCodec.UpgradeToCurrentMap(
-                    source,
-                    allClasses);
-                ArcRelaySheetCompilation compilation = sheetCodec.Compile(
-                    migrated,
-                    allClasses,
-                    $"{sheet.Id}:r{revision}");
-                sheet.Revision = revision;
-                sheet.CanonicalJson = compilation.CanonicalJson;
-                sheet.ContentHash = compilation.ContentHash;
-                sheet.UpdatedAt = DateTime.UtcNow;
-                ArcRelayEntrant? entrant = await db.ArcRelayEntrants
-                    .SingleOrDefaultAsync(value => value.Id == sheet.Id, cancellationToken);
-                if (entrant is not null)
-                    entrant.UpdatedAt = sheet.UpdatedAt;
-            }
 
-            List<ArcRelayEntrant> minds = await db.ArcRelayEntrants
-                .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind)
-                .ToListAsync(cancellationToken);
-            foreach (ArcRelayEntrant mind in minds)
-            {
-                mind.PreflightStatus = ArcRelayPreflightStatus.Required;
-                mind.PreflightMatchId = null;
-                mind.PreflightRevision = null;
-                mind.PreflightFailure = null;
-                mind.LadderOptedIn = false;
-                mind.LadderOptedInAt = null;
-                mind.UpdatedAt = DateTime.UtcNow;
+                List<ArcRelayEntrant> minds = await db.ArcRelayEntrants
+                    .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind)
+                    .ToListAsync(cancellationToken);
+                foreach (ArcRelayEntrant mind in minds)
+                {
+                    mind.PreflightStatus = ArcRelayPreflightStatus.Required;
+                    mind.PreflightMatchId = null;
+                    mind.PreflightRevision = null;
+                    mind.PreflightFailure = null;
+                    mind.LadderOptedIn = false;
+                    mind.LadderOptedInAt = null;
+                    mind.UpdatedAt = DateTime.UtcNow;
+                }
             }
 
             previous.Ladder.Status = LadderStatus.Closed;

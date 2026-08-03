@@ -69,11 +69,12 @@ running.
 Do not fill an Arc Relay gallery with arbitrary smoke matches or the first
 cells returned by a sweep. Prefer the latest tracked, canonical-verified,
 cohort-eligible operation corpus whose rules, map, stock artifact, and viewer
-match the work being reviewed. The former ten-play forward-combat baseline
-named by the `replay-highlights` skill is currently quarantined: current
-scoring rejects three of its matches. Do not treat operation success as
-gallery eligibility. Regenerate or select a replacement set that passes the
-current bars before the next broad owner review.
+match the work being reviewed. The ten-play stock-recovery baseline named by
+the `replay-highlights` skill is the current pin: its retained campaign passes
+the v4 bars for both teams in every match, and a second seed campaign repeats
+all ten successes. Do not treat operation success alone as gallery
+eligibility. Re-run the pinned retention check or select a replacement set
+that passes the current bars before the next broad owner review.
 
 A useful Arc Relay set must:
 
