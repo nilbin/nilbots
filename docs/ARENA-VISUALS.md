@@ -666,7 +666,7 @@ Animations describe recorded events; they do not create events.
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
 | Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask |
-| Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: low over its well or dropped tile, arcing in flight, then fixed above the carrier with subtle hover and a faint possession tether |
+| Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: neutral white/lilac (never a team hue) over its well, dropped tile, or flight arc; only possession adds the carrier team's colour, fixed above the carrier with subtle hover and a faint tether |
 
 Arc Relay's compact spectator transport carries that visible-tile union once per
 team per tick. The renderer may reconstruct the corresponding visible actors
