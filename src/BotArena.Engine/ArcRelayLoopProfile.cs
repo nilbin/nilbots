@@ -15,7 +15,8 @@ public sealed record ArcRelayLoopProfile
         int respawnDelayTicks,
         int wellCadenceTicks,
         int firstGlobalBeatTicks,
-        int scheduledBirthRounds)
+        int scheduledBirthRounds,
+        bool directionalCombat = false)
     {
         Id = id;
         RulesetId = rulesetId;
@@ -25,6 +26,7 @@ public sealed record ArcRelayLoopProfile
         WellCadenceTicks = wellCadenceTicks;
         FirstGlobalBeatTicks = firstGlobalBeatTicks;
         ScheduledBirthRounds = scheduledBirthRounds;
+        DirectionalCombat = directionalCombat;
     }
 
     public string Id { get; }
@@ -35,6 +37,7 @@ public sealed record ArcRelayLoopProfile
     public int WellCadenceTicks { get; }
     public int FirstGlobalBeatTicks { get; }
     public int ScheduledBirthRounds { get; }
+    internal bool DirectionalCombat { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -117,10 +120,26 @@ public sealed record ArcRelayLoopProfile
         7);
 
     /// <summary>
+    /// Owner-approved combat-facing rules on the accepted Counterflow map.
+    /// Kept beside the historical profile so prior contracts and replay hashes
+    /// remain executable byte-for-byte.
+    /// </summary>
+    public static ArcRelayLoopProfile ForwardCombat { get; } = new(
+        "forward-combat",
+        "arc-relay-forward-combat-01",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
-    public static ArcRelayLoopProfile Current => DepthCounterflow;
+    public static ArcRelayLoopProfile Current => ForwardCombat;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -171,6 +190,7 @@ public sealed record ArcRelayLoopProfile
         CoverTrim,
         DepthLarger,
         DepthCounterflow,
+        ForwardCombat,
         Return16,
         Return24,
         Hot60,

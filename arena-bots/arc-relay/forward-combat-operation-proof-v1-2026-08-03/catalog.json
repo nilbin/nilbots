@@ -1,0 +1,111 @@
+{
+  "acceptance": {
+    "requireNextTickBaseline": true,
+    "requireRecoveryRelease": true,
+    "requiredCommitExit": "mission-success",
+    "requiredStates": [
+      "prepare",
+      "commit",
+      "recover",
+      "dormant"
+    ]
+  },
+  "baselineSheet": "sheets/baseline.json",
+  "cards": [
+    {
+      "distinctiveCost": "Both outer interceptors abandon ordinary Well pressure before a carrier is confirmed.",
+      "id": "rear-hook",
+      "mission": "Pre-position two Towlines and force one exact returning Core loose.",
+      "requiredActionIds": [
+        "tractor-hook"
+      ],
+      "proofSeed": "67867967",
+      "opponentId": "balanced",
+      "opponentArtifact": "../stock-mind-forward-v1/bot.wasm",
+      "opponentSheet": "../depth-map-v1-2026-08-02/counterflow/sheets/balanced.json",
+      "sheet": "sheets/rear-hook.json"
+    },
+    {
+      "distinctiveCost": "The carrier pauses while a Lantern and screen leave their baseline jobs.",
+      "id": "lantern-sweep",
+      "mission": "Probe a risky fork, choose one route once, and bring the carrier home.",
+      "requiredActionIds": [],
+      "sheet": "sheets/lantern-sweep.json"
+    },
+    {
+      "distinctiveCost": "The Towlines react late and must choose north or south from causal sight.",
+      "id": "fork-shadow",
+      "mission": "React to a revealed return route and force the exact carrier off that lane.",
+      "requiredActionIds": [
+        "tractor-hook"
+      ],
+      "sheet": "sheets/fork-shadow.json"
+    },
+    {
+      "distinctiveCost": "Two bodies give up current-theater pressure for a timed future position.",
+      "id": "birth-rotation",
+      "mission": "Move two of three reserves across theaters before the next public Well beat.",
+      "requiredActionIds": [],
+      "sheet": "sheets/birth-rotation.json"
+    },
+    {
+      "distinctiveCost": "A carrier and guard surrender delivery tempo to answer visible pressure.",
+      "id": "escort-counterpunch",
+      "mission": "Hold a pressured carrier, then choose a direct or counter route home.",
+      "requiredActionIds": [],
+      "sheet": "sheets/escort-counterpunch.json"
+    },
+    {
+      "distinctiveCost": "The breach concentrates a Veil and one reserve into one exposed lane.",
+      "id": "smoke-breach",
+      "mission": "Stage a Veil-led pair and cross the contested centre under signature cover.",
+      "requiredActionIds": [
+        "smoke-canister"
+      ],
+      "sheet": "sheets/smoke-breach.json"
+    },
+    {
+      "distinctiveCost": "A Mason and Lantern stop contesting objectives to protect one return.",
+      "id": "hardlight-gate",
+      "mission": "Build a two-body gate that keeps a pressured carrier's home line open.",
+      "requiredActionIds": [
+        "hardlight-block"
+      ],
+      "sheet": "sheets/hardlight-gate.json"
+    },
+    {
+      "distinctiveCost": "The receiver holds a catch lane instead of fighting or collecting.",
+      "id": "relay-catch",
+      "mission": "Set a receiver behind a Relay carrier and complete a bounded Core return.",
+      "requiredActionIds": [
+        "arc-toss"
+      ],
+      "proofSeed": "67867967",
+      "opponentId": "hook-burst",
+      "opponentArtifact": "../stock-mind-forward-v1/bot.wasm",
+      "opponentSheet": "../depth-map-v1-2026-08-02/counterflow/sheets/hook-burst.json",
+      "sheet": "sheets/relay-catch.json"
+    },
+    {
+      "distinctiveCost": "The decoy is isolated and the opposite pair concedes centre coverage.",
+      "id": "decoy-switch",
+      "mission": "Show one body north, then send a paired strike through the south lane.",
+      "requiredActionIds": [],
+      "sheet": "sheets/decoy-switch.json"
+    },
+    {
+      "distinctiveCost": "The Switchback leaves interception before the carrier is guaranteed to survive.",
+      "id": "emergency-exchange",
+      "mission": "Bring a Switchback to a wounded carrier and complete the emergency return.",
+      "requiredActionIds": [
+        "exchange"
+      ],
+      "sheet": "sheets/emergency-exchange.json"
+    }
+  ],
+  "cohortId": "forward-combat-operation-proof-v1",
+  "mapProfile": "forward-combat",
+  "proofSeed": "86080201",
+  "runtimeForEvidence": "wasm",
+  "schema": "arc-relay-forward-combat-operation-proof-catalog-v1"
+}

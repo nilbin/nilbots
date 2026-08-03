@@ -29,6 +29,9 @@
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
+    <!-- Exact managed twin of the current operation-capable stock WASM. Keeping
+         it in its own assembly avoids type collisions with frozen v0 sources. -->
+    <ProjectReference Include="../../arena-bots/arc-relay/stock-mind-v4/ArcRelayStrategyMind.csproj" />
     <!-- Not used by any App code: it puts BotArena.Guest.dll beside the server the way
          it already sits beside the CLI, so both hosts stage the assemblies they shipped
          with. Without it the server had only Sdk.dll here and silently fell back to

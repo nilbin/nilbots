@@ -1,0 +1,587 @@
+{
+  "actionKinds": {
+    "attack": 167762,
+    "movement": 865550,
+    "objective": 5248,
+    "rotation": 178590,
+    "signature": 36654,
+    "wait": 371116
+  },
+  "allHardGatesPass": true,
+  "authority": {
+    "canonicalReplayHashes": 320,
+    "loopProfile": "forward-combat",
+    "plan": "arena-bots/arc-relay/forward-combat-cohort-v14-2026-08-03/sweep-plan.json",
+    "planSha256": "cc4d014bb4999289f2194d6e7238d633f4d47d026f95131d46e05f766603d20f",
+    "registration": "balance/arc-relay-forward-combat-v14.json",
+    "registrationSha256": "ef1b2d7204ddc656724a744cc931ec41ebb88b2d5e3b62fd77ae236a1341cc54",
+    "resultsSha256": "fca4c86752fc384c61bf68f149305dc4aa54f86acd310d9ca69b21fbfd9d2223",
+    "rulesetId": "arc-relay-forward-combat-01",
+    "runtime": "wasm"
+  },
+  "classRead": {
+    "hush": {
+      "combatShare": 0.04739355040701315,
+      "combatShareToTurnShareRatio": 1.2664988311575143,
+      "fieldedCopies": 200,
+      "fieldedTeamWinRate": 0.5,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 90,
+      "successfulCombatActions": 9688,
+      "teamMatchAppearances": 180,
+      "turnShare": 0.03742091918371366,
+      "turns": 60806,
+      "wins": 90
+    },
+    "kestrel": {
+      "combatShare": 0.08170593299937383,
+      "combatShareToTurnShareRatio": 0.8662882502012458,
+      "fieldedCopies": 500,
+      "fieldedTeamWinRate": 0.5058823529411764,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 168,
+      "successfulCombatActions": 16702,
+      "teamMatchAppearances": 340,
+      "turnShare": 0.09431725869581271,
+      "turns": 153258,
+      "wins": 172
+    },
+    "lantern": {
+      "combatShare": 0.06932921102066375,
+      "combatShareToTurnShareRatio": 1.046818517429536,
+      "fieldedCopies": 360,
+      "fieldedTeamWinRate": 0.5428571428571428,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 128,
+      "successfulCombatActions": 14172,
+      "teamMatchAppearances": 280,
+      "turnShare": 0.06622849124879994,
+      "turns": 107616,
+      "wins": 152
+    },
+    "longshot": {
+      "combatShare": 0.02807020976831559,
+      "combatShareToTurnShareRatio": 0.6665085375212814,
+      "fieldedCopies": 200,
+      "fieldedTeamWinRate": 0.5714285714285714,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 60,
+      "successfulCombatActions": 5738,
+      "teamMatchAppearances": 140,
+      "turnShare": 0.042115304138049876,
+      "turns": 68434,
+      "wins": 80
+    },
+    "mason": {
+      "combatShare": 0.03696383844708829,
+      "combatShareToTurnShareRatio": 1.091186693725796,
+      "fieldedCopies": 160,
+      "fieldedTeamWinRate": 0.42,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 58,
+      "successfulCombatActions": 7556,
+      "teamMatchAppearances": 100,
+      "turnShare": 0.0338748984565394,
+      "turns": 55044,
+      "wins": 42
+    },
+    "minesmith": {
+      "combatShare": 0.04516280525986224,
+      "combatShareToTurnShareRatio": 1.2469999239227758,
+      "fieldedCopies": 180,
+      "fieldedTeamWinRate": 0.68,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 32,
+      "successfulCombatActions": 9232,
+      "teamMatchAppearances": 100,
+      "turnShare": 0.03621716761440563,
+      "turns": 58850,
+      "wins": 68
+    },
+    "mortar": {
+      "combatShare": 0.04827410770194114,
+      "combatShareToTurnShareRatio": 1.0602790285074504,
+      "fieldedCopies": 240,
+      "fieldedTeamWinRate": 0.5285714285714286,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 66,
+      "successfulCombatActions": 9868,
+      "teamMatchAppearances": 140,
+      "turnShare": 0.04552962607389902,
+      "turns": 73982,
+      "wins": 74
+    },
+    "nest": {
+      "combatShare": 0.03778569192235441,
+      "combatShareToTurnShareRatio": 1.0440184750632908,
+      "fieldedCopies": 180,
+      "fieldedTeamWinRate": 0.5428571428571428,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 64,
+      "successfulCombatActions": 7724,
+      "teamMatchAppearances": 140,
+      "turnShare": 0.036192551017896264,
+      "turns": 58810,
+      "wins": 76
+    },
+    "palisade": {
+      "combatShare": 0.08433782091421416,
+      "combatShareToTurnShareRatio": 0.9040320071239849,
+      "fieldedCopies": 440,
+      "fieldedTeamWinRate": 0.42142857142857143,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 162,
+      "successfulCombatActions": 17240,
+      "teamMatchAppearances": 280,
+      "turnShare": 0.09329074662137213,
+      "turns": 151590,
+      "wins": 118
+    },
+    "patchbay": {
+      "combatShare": 0.06904547589229806,
+      "combatShareToTurnShareRatio": 1.0195319570981878,
+      "fieldedCopies": 340,
+      "fieldedTeamWinRate": 0.4642857142857143,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 150,
+      "successfulCombatActions": 14114,
+      "teamMatchAppearances": 280,
+      "turnShare": 0.06772271865691849,
+      "turns": 110044,
+      "wins": 130
+    },
+    "relay": {
+      "combatShare": 0.14001839386349405,
+      "combatShareToTurnShareRatio": 0.860574508497877,
+      "fieldedCopies": 840,
+      "fieldedTeamWinRate": 0.49032258064516127,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 316,
+      "successfulCombatActions": 28622,
+      "teamMatchAppearances": 620,
+      "turnShare": 0.16270339462865865,
+      "turns": 264380,
+      "wins": 304
+    },
+    "repulsor": {
+      "combatShare": 0.044106136505948655,
+      "combatShareToTurnShareRatio": 1.441450992181136,
+      "fieldedCopies": 160,
+      "fieldedTeamWinRate": 0.48,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 52,
+      "successfulCombatActions": 9016,
+      "teamMatchAppearances": 100,
+      "turnShare": 0.030598429461142704,
+      "turns": 49720,
+      "wins": 48
+    },
+    "sunder": {
+      "combatShare": 0.06032795867251096,
+      "combatShareToTurnShareRatio": 1.198182543404998,
+      "fieldedCopies": 260,
+      "fieldedTeamWinRate": 0.4888888888888889,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 92,
+      "successfulCombatActions": 12332,
+      "teamMatchAppearances": 180,
+      "turnShare": 0.050349555670433005,
+      "turns": 81814,
+      "wins": 88
+    },
+    "switchback": {
+      "combatShare": 0.045730275516593616,
+      "combatShareToTurnShareRatio": 0.8003881871221812,
+      "fieldedCopies": 300,
+      "fieldedTeamWinRate": 0.4636363636363636,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 118,
+      "successfulCombatActions": 9348,
+      "teamMatchAppearances": 220,
+      "turnShare": 0.05713512049823991,
+      "turns": 92840,
+      "wins": 102
+    },
+    "towline": {
+      "combatShare": 0.11167423293675642,
+      "combatShareToTurnShareRatio": 1.2103255868389777,
+      "fieldedCopies": 480,
+      "fieldedTeamWinRate": 0.5117647058823529,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 166,
+      "successfulCombatActions": 22828,
+      "teamMatchAppearances": 340,
+      "turnShare": 0.09226792703640795,
+      "turns": 149928,
+      "wins": 174
+    },
+    "veil": {
+      "combatShare": 0.050074358171571694,
+      "combatShareToTurnShareRatio": 0.9266870083384616,
+      "fieldedCopies": 280,
+      "fieldedTeamWinRate": 0.56,
+      "gates": {
+        "combatShareToTurnShareRatio": true,
+        "fieldedTeamWinRate": true
+      },
+      "losses": 88,
+      "successfulCombatActions": 10236,
+      "teamMatchAppearances": 200,
+      "turnShare": 0.05403589099771065,
+      "turns": 87804,
+      "wins": 112
+    }
+  },
+  "classification": "representative shared-mind implementation and dominance gate; not a causal class-balance or human-fun claim",
+  "gates": {
+    "canonicalReplayVerification": true,
+    "classDominance": true,
+    "cohortEligibility": true,
+    "deliberateRotationShare": true,
+    "drawRate": true,
+    "handlingHighExposure": true,
+    "leaderShareOfDecidedWins": true,
+    "minimumWinningSheets": true,
+    "noZeroWinSheet": true,
+    "runtimeFaults": true,
+    "swiftStrafeShare": true,
+    "swiftTurnWithMoveShare": true
+  },
+  "handlingRead": {
+    "deliberateRotationShare": 0.36072192193787433,
+    "highExposure": {
+      "deliberate": {
+        "absoluteWinRateDelta": 0.18813559322033901,
+        "gatePassed": true,
+        "high": {
+          "fieldedBodies": 560,
+          "losses": 78,
+          "teamMatchAppearances": 120,
+          "winRate": 0.35,
+          "wins": 42
+        },
+        "highExposureDefinition": "at least four of eight fielded bodies",
+        "minimumHighExposureSampleMet": true,
+        "other": {
+          "fieldedBodies": 660,
+          "losses": 218,
+          "teamMatchAppearances": 472,
+          "winRate": 0.538135593220339,
+          "wins": 254
+        }
+      },
+      "standard": {
+        "absoluteWinRateDelta": 0.02909090909090911,
+        "gatePassed": true,
+        "high": {
+          "fieldedBodies": 940,
+          "losses": 96,
+          "teamMatchAppearances": 200,
+          "winRate": 0.52,
+          "wins": 104
+        },
+        "highExposureDefinition": "at least four of eight fielded bodies",
+        "minimumHighExposureSampleMet": true,
+        "other": {
+          "fieldedBodies": 980,
+          "losses": 224,
+          "teamMatchAppearances": 440,
+          "winRate": 0.4909090909090909,
+          "wins": 216
+        }
+      },
+      "swift": {
+        "absoluteWinRateDelta": 0.08000000000000007,
+        "gatePassed": true,
+        "high": {
+          "fieldedBodies": 1080,
+          "losses": 108,
+          "teamMatchAppearances": 240,
+          "winRate": 0.55,
+          "wins": 132
+        },
+        "highExposureDefinition": "at least four of eight fielded bodies",
+        "minimumHighExposureSampleMet": true,
+        "other": {
+          "fieldedBodies": 900,
+          "losses": 212,
+          "teamMatchAppearances": 400,
+          "winRate": 0.47,
+          "wins": 188
+        }
+      }
+    },
+    "successfulValidatedActions": {
+      "deliberate": {
+        "drop-core": 1474,
+        "falling-star": 3200,
+        "handoff-core": 258,
+        "hardlight-block": 2690,
+        "move-eight-way": 192548,
+        "prism-wall": 2980,
+        "rail-line": 2064,
+        "rotate": 108648,
+        "sentinel-seed": 1676,
+        "shoot-direction": 35516,
+        "wait": 56806
+      },
+      "standard": {
+        "drop-core": 622,
+        "exchange": 330,
+        "handoff-core": 1014,
+        "kinetic-burst": 1580,
+        "move-eight-way": 325484,
+        "null-field": 2458,
+        "repair-beam": 2114,
+        "rotate": 44646,
+        "shoot-direction": 66978,
+        "target-paint": 3196,
+        "tractor-hook": 6724,
+        "trip-node": 3178,
+        "wait": 145678
+      },
+      "swift": {
+        "arc-toss": 516,
+        "drop-core": 58,
+        "handoff-core": 1822,
+        "move-eight-way": 332000,
+        "rotate": 25296,
+        "shoot-direction": 65268,
+        "smoke-canister": 658,
+        "strafe-eight-way": 15518,
+        "survey-flare": 1388,
+        "vector-dash": 1902,
+        "wait": 168632
+      }
+    },
+    "swiftStrafeShareOfMovement": 0.04465380210521469,
+    "swiftTurnWithMoveShareOfMovement": 0.9553461978947853
+  },
+  "sample": {
+    "eligibleMatches": 320,
+    "ineligibleSides": [],
+    "matches": 320,
+    "runtimeFaults": 0,
+    "verified": 320
+  },
+  "schema": "arc-relay-forward-combat-read-v1",
+  "sheetBalance": {
+    "decidedMatches": 320,
+    "drawRate": 0.0,
+    "draws": 0,
+    "leaderShareOfDecidedWins": 0.05625,
+    "leaderWins": 18,
+    "leaders": [
+      "sensor-grid"
+    ],
+    "records": {
+      "balanced": {
+        "games": 20,
+        "losses": 12,
+        "wins": 8
+      },
+      "beacon-hunt": {
+        "games": 20,
+        "losses": 4,
+        "wins": 16
+      },
+      "breach-column": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "centre-phalanx": {
+        "games": 20,
+        "losses": 18,
+        "wins": 2
+      },
+      "control-grid": {
+        "games": 20,
+        "losses": 4,
+        "wins": 16
+      },
+      "convoy": {
+        "games": 20,
+        "losses": 12,
+        "wins": 8
+      },
+      "counter-courier": {
+        "games": 20,
+        "losses": 6,
+        "wins": 14
+      },
+      "courier-sprint": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "displacement-control": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "elastic-reserve": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "feint-switch": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "fireline-picks": {
+        "games": 20,
+        "losses": 12,
+        "wins": 8
+      },
+      "fortress-counterattack": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "home-counterpunch": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "hook-burst": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "interception": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "mine-crescent": {
+        "games": 20,
+        "losses": 4,
+        "wins": 16
+      },
+      "mortar-wheel": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "null-veil": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "outer-pincers": {
+        "games": 20,
+        "losses": 12,
+        "wins": 8
+      },
+      "pod-lattice": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "rail-screen": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "relay-chain": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "repair-web": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "rotating-bastions": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "sensor-grid": {
+        "games": 20,
+        "losses": 2,
+        "wins": 18
+      },
+      "smoke-and-mines": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "smoke-convoy": {
+        "games": 20,
+        "losses": 10,
+        "wins": 10
+      },
+      "split": {
+        "games": 20,
+        "losses": 14,
+        "wins": 6
+      },
+      "sustain-attrition": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "three-well-race": {
+        "games": 20,
+        "losses": 8,
+        "wins": 12
+      },
+      "trap-punish": {
+        "games": 20,
+        "losses": 12,
+        "wins": 8
+      }
+    },
+    "winningSheets": 32,
+    "zeroWinSheets": []
+  }
+}

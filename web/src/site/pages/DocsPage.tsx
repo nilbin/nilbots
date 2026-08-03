@@ -41,6 +41,22 @@ export default function DocsPage() {
         </p>
       </Doc>
 
+      <Doc title="Facing and basic fire">
+        <p>
+          A mobile body fires only straight ahead or along either adjacent diagonal.
+          Swift bodies normally turn with travel but may deliberately strafe to keep
+          their current aim; Standard bodies preserve aim while moving forward or
+          sideways but turn around on a rear move; Deliberate bodies move only forward
+          until they spend a turn action. Signature targeting keeps each class&apos;s own
+          authored rules, and deployed Sentinels remain omnidirectional.
+        </p>
+        <p className="mt-2 text-arena-dim">
+          Your mind should read the action legality mask every tick. If a visible target
+          is outside the published three-heading cone, rotate or reposition before
+          firing instead of submitting a forbidden heading.
+        </p>
+      </Doc>
+
       <Doc title="Custom mind shape">
         <pre className="term">{`using BotArena.Sdk;
 

@@ -683,6 +683,14 @@ public static class ActorRulesDefinitionValidator
         {
             if (action is null)
                 continue;
+            if (action.MovementFacingOverride is { } facingOverride
+                && (!Enum.IsDefined(facingOverride)
+                    || action.Kind != ActorActionKind.Movement))
+            {
+                errors.Add(
+                    $"Action '{action.Id}' may declare movement-facing " +
+                    "behavior only on a Movement action with a known value.");
+            }
             switch (action.Kind)
             {
                 case ActorActionKind.Wait
@@ -742,6 +750,16 @@ public static class ActorRulesDefinitionValidator
                     ActorActionParameterKind.ProjectileHeading);
             expected =
                 "an omnidirectional profile with disabled shot programs and " +
+                "exactly ProjectileHeading";
+        }
+        else if (attackProfile.FacingAimHalfWidthSectors > 0)
+        {
+            valid = !shotProgram.Enabled
+                && HasExactly(
+                    action.ParameterKinds,
+                    ActorActionParameterKind.ProjectileHeading);
+            expected =
+                "a facing-cone profile with disabled shot programs and " +
                 "exactly ProjectileHeading";
         }
         else if (shotProgram.Enabled)

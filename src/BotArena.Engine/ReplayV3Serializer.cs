@@ -3314,16 +3314,37 @@ internal static class ReplayV3Serializer
             values.GetArrayLength());
         foreach (JsonElement value in values.EnumerateArray())
         {
+            bool hasMovementFacingOverride = value.TryGetProperty(
+                "movementFacingOverride",
+                out JsonElement movementFacingOverride);
             RequireExactObject(
                 value,
                 "embedded action",
-                "id",
-                "code",
-                "kind",
-                "parameterKinds");
+                hasMovementFacingOverride
+                    ? ["id", "code", "kind", "parameterKinds",
+                        "movementFacingOverride"]
+                    : ["id", "code", "kind", "parameterKinds"]);
             string id = RequiredString(value, "id");
             int code = RequiredInt32(value, "code");
             string kind = RequiredString(value, "kind");
+            if (hasMovementFacingOverride)
+            {
+                string facing = movementFacingOverride.ValueKind
+                    == JsonValueKind.String
+                    ? movementFacingOverride.GetString()!
+                    : throw new ArgumentException(
+                        "Embedded movement-facing override must be a string.");
+                if (!string.Equals(kind, "movement", StringComparison.Ordinal)
+                    || facing is not ("preserve-facing"
+                        or "face-movement-direction"
+                        or "facing-locked"
+                        or "face-movement-heading-projected"
+                        or "combat-strafe"))
+                {
+                    throw new ArgumentException(
+                        "Embedded movement-facing override is invalid.");
+                }
+            }
             JsonElement parameterValues = RequiredArray(
                 value,
                 "parameterKinds");

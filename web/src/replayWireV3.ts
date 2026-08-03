@@ -71,7 +71,8 @@ export interface ReplayV3MovementProfile {
   movementLayer: string;
   /**
    * Optional facing coupling: 'preserve-facing' (the inert default),
-   * 'face-movement-direction', or 'facing-locked'. The engine's canonical
+   * 'face-movement-direction', 'facing-locked',
+   * 'face-movement-heading-projected', or 'combat-strafe'. The engine's canonical
    * writer omits the property entirely while the profile preserves facing,
    * so an absent field means 'preserve-facing' — never a missing value.
    */
@@ -119,6 +120,9 @@ export interface ReplayV3ShotProgramDefinition extends ReplayV3JsonObject {
 export interface ReplayV3AttackProfile extends ReplayV3JsonObject {
   id: string;
   omnidirectionalAim: boolean;
+  aimInterpretation: string;
+  /** Optional non-inert facing-relative half-width in eight-way sectors. */
+  facingAimHalfWidthSectors?: number;
   projectile: ReplayV3ProjectileDefinition;
   cooldownTicks: number;
   maxEnergy: number;
@@ -133,6 +137,8 @@ export interface ReplayV3ActionDefinition {
   code: number;
   kind: string;
   parameterKinds: string[];
+  /** Optional per-movement-action override of the profile's facing coupling. */
+  movementFacingOverride?: string;
 }
 
 export interface ReplayV3ScoreCatalogEntry {

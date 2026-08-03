@@ -2,6 +2,8 @@ using BotArena.App.ArcRelay;
 using BotArena.App.Competition;
 using BotArena.Engine;
 using BotArena.Runtime;
+using BotArena.Runtime.Wasm;
+using BotArena.Toolchain;
 using System.Text.Json;
 
 namespace BotArena.App.Tests;
@@ -9,22 +11,40 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v3_advances_to_counterflow_while_v2_remains_executable()
+    public void Entrant_v4_adds_forward_combat_while_v2_and_v3_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
         ArcRelayEntrantPlaylistDefinition historical =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2();
+        ArcRelayEntrantPlaylistDefinition counterflow =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3();
 
-        Assert.Equal(3, current.PlaylistVersion);
+        Assert.Equal(4, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.Current.MapId, current.Match.Map.Id);
+        Assert.Equal(
+            ArcRelayLoopProfile.ForwardCombat.RulesetId,
+            current.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+            current.CanonicalDefinition);
         Assert.Equal(2, historical.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.HomeGatesWide.MapId, historical.Match.Map.Id);
+        Assert.Equal(3, counterflow.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.DepthCounterflow.RulesetId,
+            counterflow.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayPlaylistDefinition.StockArtifactHash,
+            counterflow.CanonicalDefinition);
         var registry = new HostedGenericMatchDefinitionRegistry(
-            [ArcRelayPlaylistDefinition.Create(), historical, current]);
+            [ArcRelayPlaylistDefinition.Create(), historical, counterflow, current]);
         Assert.Same(historical, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
+        Assert.Same(counterflow, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.PreviousVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -111,6 +131,101 @@ public sealed class ArcRelayPlaylistDefinitionTests
             Math.Min(3, worlds.GetArrayLength()),
             prefix.RootElement.GetProperty("vision").GetArrayLength());
     }
+
+    [Fact]
+    public void Forward_stock_wasm_and_trusted_runtime_produce_identical_canonical_replay()
+    {
+        ArcRelayEntrantPlaylistDefinition hosted =
+            ArcRelayEntrantPlaylistDefinition.Create();
+        ArcRelayClassCatalog catalog = ArcRelayClassCatalog.Default;
+        var codec = new ArcRelayPlayerSheetCodec(catalog);
+        ArcRelaySheetCompilation first = codec.Compile(
+            ArcRelayPlayerSheetCodec.NewSheetTemplate(),
+            catalog.StarterIds,
+            "forward-parity-a:r1");
+        ArcRelaySheetCompilation second = codec.Compile(
+            ArcRelayPlayerSheetCodec.NewSheetTemplate(),
+            catalog.StarterIds,
+            "forward-parity-b:r1");
+        ActorResolvedMatchDefinition definition = hosted.ResolveMatch(
+        [
+            new HostedGenericParticipantInput(0, 0, first.Classes),
+            new HostedGenericParticipantInput(1, 1, second.Classes),
+        ]);
+        string artifact = RepoPaths.FindUpward(Path.Combine(
+            "arena-bots",
+            "arc-relay",
+            "stock-mind-v4",
+            "bot.wasm")) ?? throw new InvalidOperationException(
+                "Forward-combat stock artifact is missing.");
+
+        using var wasmFirst = new WasmGenericMindRuntimeFactory(
+            new WasmMindRuntimeOptions { ModulePath = artifact });
+        using var wasmSecond = new WasmGenericMindRuntimeFactory(
+            new WasmMindRuntimeOptions { ModulePath = artifact });
+        Assert.Equal(
+            ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+            wasmFirst.ArtifactHash);
+
+        string wasmHash = RunForwardParity(
+            definition,
+            hosted.ReplayPresentation,
+            first,
+            second,
+            wasmFirst,
+            wasmSecond);
+        string trustedHash = RunForwardParity(
+            definition,
+            hosted.ReplayPresentation,
+            first,
+            second,
+            new InProcessGenericMindRuntimeFactory(
+                static () => new global::ArcRelayStrategyMind(),
+                trustedArcRelayStockProjection: true),
+            new InProcessGenericMindRuntimeFactory(
+                static () => new global::ArcRelayStrategyMind(),
+                trustedArcRelayStockProjection: true));
+
+        Assert.Equal(wasmHash, trustedHash);
+    }
+
+    private static string RunForwardParity(
+        ActorResolvedMatchDefinition definition,
+        GenericActorReplayPresentation presentation,
+        ArcRelaySheetCompilation first,
+        ArcRelaySheetCompilation second,
+        IGenericMindRuntimeFactory firstFactory,
+        IGenericMindRuntimeFactory secondFactory)
+    {
+        using var session = new GenericActorMatchSession(
+            definition,
+            [
+                ForwardParityConfiguration(0, first, firstFactory),
+                ForwardParityConfiguration(1, second, secondFactory),
+            ],
+            2026080301,
+            recordChronology: true);
+        session.Run();
+        return GenericActorReplayDocument.Create(session, presentation).ReplayHash;
+    }
+
+    private static GenericActorParticipantConfiguration ForwardParityConfiguration(
+        int participantId,
+        ArcRelaySheetCompilation sheet,
+        IGenericMindRuntimeFactory factory) => new()
+    {
+        ParticipantId = participantId,
+        TeamId = participantId,
+        Name = $"forward-parity-{participantId}",
+        MindRuntimeFactory = factory,
+        RuntimeKind = "forward-stock-parity-v1",
+        ArtifactHash = ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+        MindDataHash = sheet.ContentHash,
+        MindEvaluationData = [.. sheet.LinkedData],
+        Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
+        LookId = "arc-relay-sheet",
+        ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+    };
 
     private static (string Hash, GenericActorMatchResult Result) RunFull(
         ActorResolvedMatchDefinition definition,

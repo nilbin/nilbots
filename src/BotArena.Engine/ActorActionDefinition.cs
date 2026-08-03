@@ -47,4 +47,12 @@ public sealed record ActorActionDefinition
     public int Code { get; }
     public ActorActionKind Kind { get; }
     public ImmutableArray<ActorActionParameterKind> ParameterKinds { get; }
+
+    /// <summary>
+    /// Optional action-specific movement/facing behavior. Null uses the
+    /// selected movement profile. This lets one form expose a deliberate
+    /// strafe verb beside its ordinary turn-with-move verb without adding a
+    /// new wire argument. Non-movement actions must leave it null.
+    /// </summary>
+    public ActorMovementFacingCoupling? MovementFacingOverride { get; init; }
 }

@@ -4046,9 +4046,12 @@ public sealed record GenericActorMatchChronology
                     reservation.Position == target
                     && (reservation.TeamId != life.ActorId.TeamId
                         || reservation.UnitId != life.ActorId.UnitId));
+            ActorActionDefinition movementAction =
+                actions[turn.ActionResolution.ValidatedAction.ActionId];
             ActorMovementFacingCoupling coupling =
-                movementProfiles[forms[life.FormId].MovementProfileId]
-                    .FacingCoupling;
+                ActorMovementFacingResolver.EffectiveCoupling(
+                    movementProfiles[forms[life.FormId].MovementProfileId],
+                    movementAction);
             Direction queueFacing = poses[turn.ActorId].Facing;
             bool arcBlocked = before.Mode is
                 GenericActorRuntimeObservation.ModeObservationState.ArcRelay
@@ -4085,14 +4088,10 @@ public sealed record GenericActorMatchChronology
                     life.Position,
                     target,
                     queueFacing,
-                    coupling
-                        == ActorMovementFacingCoupling.FaceMovementDirection
-                        && heading is ProjectileHeading.North
-                            or ProjectileHeading.East
-                            or ProjectileHeading.South
-                            or ProjectileHeading.West
-                        ? (Direction)((int)heading / 2)
-                        : queueFacing,
+                    ActorMovementFacingResolver.AfterSuccessfulMove(
+                        queueFacing,
+                        heading,
+                        coupling),
                     blocked));
         }
 

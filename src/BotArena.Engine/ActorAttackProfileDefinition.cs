@@ -17,7 +17,8 @@ public sealed record ActorAttackProfileDefinition
         int energyRegenerationIntervalTicks,
         int energyRegenerationAmount,
         ActorShotProgramDefinition shotProgram,
-        ActorAttackVolleyDefinition? volley = null)
+        ActorAttackVolleyDefinition? volley = null,
+        int facingAimHalfWidthSectors = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(projectile);
@@ -78,6 +79,19 @@ public sealed record ActorAttackProfileDefinition
                 + "are unavailable on a volley profile.",
                 nameof(volley));
         }
+        if (facingAimHalfWidthSectors is < 0 or > 3)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(facingAimHalfWidthSectors));
+        }
+        if (facingAimHalfWidthSectors > 0
+            && (omnidirectionalAim || shotProgram.Enabled))
+        {
+            throw new ArgumentException(
+                "A facing aim cone is incompatible with omnidirectional aim "
+                + "and programmed shots.",
+                nameof(facingAimHalfWidthSectors));
+        }
 
         Id = id;
         OmnidirectionalAim = omnidirectionalAim;
@@ -89,6 +103,7 @@ public sealed record ActorAttackProfileDefinition
         EnergyRegenerationAmount = energyRegenerationAmount;
         ShotProgram = shotProgram;
         Volley = volley;
+        FacingAimHalfWidthSectors = facingAimHalfWidthSectors;
     }
 
     public string Id { get; }
@@ -117,11 +132,21 @@ public sealed record ActorAttackProfileDefinition
         OmnidirectionalAim
             ? AimInterpretationKind
                 .AbsoluteSubmittedEightWayHeadingFacingUnchanged
+            : FacingAimHalfWidthSectors > 0
+                ? AimInterpretationKind
+                    .AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged
             : ShotProgram.Enabled
                 ? AimInterpretationKind
                     .CurrentFacingPlusRelativeEightWayShotProgram
                 : AimInterpretationKind.CurrentFacingStraight;
     public ActorShotProgramDefinition ShotProgram { get; }
+
+    /// <summary>
+    /// Half-width of a facing-relative eight-way aim cone. Zero is the inert
+    /// historical straight-shot behavior and writes no additional canonical
+    /// bytes. A value of one permits straight and the two adjacent diagonals.
+    /// </summary>
+    public int FacingAimHalfWidthSectors { get; }
 
     /// <summary>
     /// Multi-projectile launch shape, or null for the historical one-bolt
@@ -181,5 +206,6 @@ public sealed record ActorAttackProfileDefinition
         CurrentFacingStraight = 0,
         CurrentFacingPlusRelativeEightWayShotProgram = 1,
         AbsoluteSubmittedEightWayHeadingFacingUnchanged = 2,
+        AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged = 3,
     }
 }

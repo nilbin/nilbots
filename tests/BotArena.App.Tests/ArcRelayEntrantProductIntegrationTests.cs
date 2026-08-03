@@ -296,7 +296,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Counterflow_cutover_migrates_sheets_and_carries_ratings_to_v3()
+    public async Task Forward_combat_cutover_migrates_sheets_and_carries_ratings_to_v4()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration = await database.CreateMigratedContextAsync()) { }

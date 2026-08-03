@@ -19,6 +19,7 @@ public static class ArcRelayH0Definition
     public const string HomePadRoleId = "own-home-pad";
     public const string WaitActionId = "wait";
     public const string MoveActionId = "move-eight-way";
+    public const string StrafeActionId = "strafe-eight-way";
     public const string RotateActionId = "rotate";
     public const string ShootActionId = "shoot-direction";
 
@@ -197,9 +198,13 @@ public static class ArcRelayH0Definition
         ActorMovementProfileDefinition[] movement =
         [
             new("swift", ActorMovementLayer.Ground,
-                ActorMovementFacingCoupling.FaceMovementDirection),
+                loopProfile.DirectionalCombat
+                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
+                    : ActorMovementFacingCoupling.FaceMovementDirection),
             new("standard", ActorMovementLayer.Ground,
-                ActorMovementFacingCoupling.PreserveFacing),
+                loopProfile.DirectionalCombat
+                    ? ActorMovementFacingCoupling.CombatStrafe
+                    : ActorMovementFacingCoupling.PreserveFacing),
             new("deliberate", ActorMovementLayer.Ground,
                 ActorMovementFacingCoupling.FacingLocked),
         ];
@@ -217,9 +222,12 @@ public static class ArcRelayH0Definition
             loudEventKinds: []);
         ActorAttackProfileDefinition[] attacks =
         [
-            Attack("short-fast", range: 4, nextFireInterval: 2),
-            Attack("medium-steady", range: 6, nextFireInterval: 3),
-            Attack("long-slow", range: 9, nextFireInterval: 5),
+            Attack("short-fast", range: 4, nextFireInterval: 2,
+                loopProfile.DirectionalCombat),
+            Attack("medium-steady", range: 6, nextFireInterval: 3,
+                loopProfile.DirectionalCombat),
+            Attack("long-slow", range: 9, nextFireInterval: 5,
+                loopProfile.DirectionalCombat),
         ];
         List<ActorActionDefinition> actions =
         [
@@ -237,6 +245,18 @@ public static class ArcRelayH0Definition
                 ActorActionKind.Objective,
                 [ActorActionParameterKind.UnitTarget]),
         ];
+        if (loopProfile.DirectionalCombat)
+        {
+            actions.Add(new ActorActionDefinition(
+                StrafeActionId,
+                3,
+                ActorActionKind.Movement,
+                [ActorActionParameterKind.ProjectileHeading])
+            {
+                MovementFacingOverride =
+                    ActorMovementFacingCoupling.PreserveFacing,
+            });
+        }
         actions.AddRange(mode.Signatures.Select((signature, index) =>
             new ActorActionDefinition(
                 signature.ActionId,
@@ -275,15 +295,7 @@ public static class ArcRelayH0Definition
                 vision.Id,
                 entry.Gun,
                 objectiveWeight: 0,
-                [
-                    WaitActionId,
-                    MoveActionId,
-                    RotateActionId,
-                    ShootActionId,
-                    ArcRelayActionIds.DropCore,
-                    ArcRelayActionIds.HandoffCore,
-                    entry.Signature.ActionId,
-                ])),
+                AllowedActions(entry, loopProfile))),
             movement,
             [vision],
             attacks,
@@ -465,10 +477,11 @@ public static class ArcRelayH0Definition
     private static ActorAttackProfileDefinition Attack(
         string id,
         int range,
-        int nextFireInterval) =>
+        int nextFireInterval,
+        bool directionalCombat) =>
         new(
             id,
-            omnidirectionalAim: true,
+            omnidirectionalAim: !directionalCombat,
             new ActorProjectileDefinition(
                 ActorProjectileMode.Discrete,
                 damagePerHit: 1,
@@ -484,7 +497,26 @@ public static class ArcRelayH0Definition
             attackEnergyCost: 0,
             energyRegenerationIntervalTicks: 0,
             energyRegenerationAmount: 0,
-            DisabledShotProgram());
+            DisabledShotProgram(),
+            facingAimHalfWidthSectors: directionalCombat ? 1 : 0);
+
+    private static IEnumerable<string> AllowedActions(
+        LaunchClass entry,
+        ArcRelayLoopProfile loopProfile)
+    {
+        yield return WaitActionId;
+        yield return MoveActionId;
+        if (loopProfile.DirectionalCombat
+            && string.Equals(entry.Handling, "swift", StringComparison.Ordinal))
+        {
+            yield return StrafeActionId;
+        }
+        yield return RotateActionId;
+        yield return ShootActionId;
+        yield return ArcRelayActionIds.DropCore;
+        yield return ArcRelayActionIds.HandoffCore;
+        yield return entry.Signature.ActionId;
+    }
 
     private static ActorShotProgramDefinition DisabledShotProgram() =>
         new(

@@ -389,9 +389,12 @@ public static class ToolchainInfo
     /// The separately hashed sheet data can express bounded coordinated
     /// spatial gambits without rebuilding the frozen stock algorithm; no
     /// hosted contract, SDK wire shape, or player-facing sheet format moves.
+    /// 0.9.33 publishes Arc Relay's versioned forward-combat contract: the
+    /// facing aim cone, projected Swift facing, Standard combat strafe, and
+    /// explicit Swift strafe action are all readable from the SDK contract.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.32";
+    public const string CliVersion = "0.9.33";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -525,7 +528,9 @@ public static class ToolchainInfo
     // edits. The one documented divergence is the sub-brain's private random
     // seed, which is derived from the mind's participant-domain seed because
     // the per-life seed is mixed from a match seed the mind is never handed.
-    public const string SdkVersion = "0.10.11";
+    // 0.10.12: additive Arc Relay forward-combat contract fields and closed
+    // movement/facing values. Historical contracts omit them byte-identically.
+    public const string SdkVersion = "0.10.12";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.

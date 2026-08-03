@@ -2203,6 +2203,14 @@ test('replay-v3 accepts the optional movement facing coupling and rejects an ine
 
   assert.equal(decoded.sourceVersion, 3);
   assert.equal(decoded.forms[0]?.movementLayer, 'ground');
+  for (const value of [
+    'face-movement-heading-projected',
+    'combat-strafe',
+  ]) {
+    const candidate = replayV3FixtureInput();
+    candidate.header.contract.rules.movementProfiles[0]!.facingCoupling = value;
+    assert.equal(decodeReplay(candidate).replay.sourceVersion, 3);
+  }
 
   // The engine's canonical writer omits the property entirely while the
   // profile preserves facing, so an explicitly inert value is a second,
@@ -2220,7 +2228,7 @@ test('replay-v3 accepts the optional movement facing coupling and rejects an ine
     'tank-controls';
   assert.throws(
     () => decodeReplay(unknown),
-    /facingCoupling: expected face-movement-direction or facing-locked/,
+    /facingCoupling: expected a known non-inert movement\/facing coupling/,
   );
 
   const strayField = replayV3FixtureInput();
@@ -2237,6 +2245,47 @@ test('replay-v3 accepts the optional movement facing coupling and rejects an ine
   assert.throws(
     () => decodeReplay(strayField),
     /movementProfiles\[0\]\.couplings: unknown property/,
+  );
+});
+
+test('replay-v3 accepts the forward aim cone and movement-action override as one strict contract', () => {
+  const forward = replayV3FixtureInput();
+  const attackIndex = 0;
+  const attack = forward.header.contract.rules.attackProfiles[attackIndex]!;
+  attack.shotProgram.enabled = false;
+  attack.omnidirectionalAim = false;
+  attack.aimInterpretation =
+    'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged';
+  attack.facingAimHalfWidthSectors = 1;
+  const action = forward.header.contract.rules.actions.find(
+    (candidate) => candidate.kind === 'movement',
+  )!;
+  action.movementFacingOverride = 'preserve-facing';
+  assert.equal(decodeReplay(forward).replay.sourceVersion, 3);
+
+  const inert = structuredClone(forward);
+  inert.header.contract.rules.attackProfiles[attackIndex]!
+    .facingAimHalfWidthSectors = 0;
+  assert.throws(
+    () => decodeReplay(inert),
+    /facingAimHalfWidthSectors: must be 1\.\.3 when present/,
+  );
+
+  const missing = structuredClone(forward);
+  delete missing.header.contract.rules.attackProfiles[attackIndex]!
+    .facingAimHalfWidthSectors;
+  assert.throws(
+    () => decodeReplay(missing),
+    /aimInterpretation: requires facingAimHalfWidthSectors/,
+  );
+
+  const wrongKind = structuredClone(forward);
+  wrongKind.header.contract.rules.actions.find(
+    (candidate) => candidate.kind === 'attack',
+  )!.movementFacingOverride = 'preserve-facing';
+  assert.throws(
+    () => decodeReplay(wrongKind),
+    /movementFacingOverride: is permitted only on movement actions/,
   );
 });
 

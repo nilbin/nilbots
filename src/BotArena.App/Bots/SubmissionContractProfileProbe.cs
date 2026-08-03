@@ -147,7 +147,7 @@ public sealed class SubmissionContractProfileProbe(
         var candidate = new WasmGenericMindRuntimeFactory(
             new WasmMindRuntimeOptions { ModulePath = wasmPath, BotName = "candidate" });
         var stock = new InProcessGenericMindRuntimeFactory(
-            static () => new global::ArcRelayStockMind(),
+            static () => new global::ArcRelayStrategyMind(),
             trustedArcRelayStockProjection: true);
         using var session = new GenericActorMatchSession(
             definition,
@@ -168,7 +168,7 @@ public sealed class SubmissionContractProfileProbe(
                     Name = "stock",
                     MindRuntimeFactory = stock,
                     RuntimeKind = "trusted-stock-preflight-probe",
-                    ArtifactHash = ArcRelayPlaylistDefinition.StockArtifactHash,
+                    ArtifactHash = ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
                 },
             ],
             matchSeed: 1,

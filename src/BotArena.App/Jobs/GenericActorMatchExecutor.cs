@@ -237,6 +237,10 @@ public sealed class GenericActorMatchExecutor(
             }
             else
             {
+                bool forwardCombat = expected is ArcRelayEntrantPlaylistDefinition
+                {
+                    PlaylistVersion: ArcRelayEntrantPlaylistDefinition.Version,
+                };
                 configurations = new GenericActorParticipantConfiguration[participants.Count];
                 for (int index = 0; index < participants.Count; index++)
                 {
@@ -271,7 +275,9 @@ public sealed class GenericActorMatchExecutor(
                     else
                     {
                         var factory = new InProcessGenericMindRuntimeFactory(
-                            static () => new global::ArcRelayStockMind(),
+                            forwardCombat
+                                ? static () => new global::ArcRelayStrategyMind()
+                                : static () => new global::ArcRelayStockMind(),
                             trustedArcRelayStockProjection: true);
                         factories.Add(factory);
                         ArcRelaySheetCompilation compilation = sheetCompilations[index]

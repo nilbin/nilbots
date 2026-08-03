@@ -128,7 +128,7 @@ public sealed class ArcRelayMatchAdmissionService(
             return new ParticipantMaterial(
                 entrant.Id, "sheet", sheet.Revision, entrant.Name, owner,
                 ArcRelayCrestGenerator.Snapshot(entrant.Id, entrant.CrestVariant),
-                bot.Id, version.Id, ArcRelayPlaylistDefinition.StockArtifactHash,
+                bot.Id, version.Id, ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
                 compiled.Classes, composition, compositionHash,
                 sheet.Id, sheet.Revision, sheet.ContentHash, sheet.CanonicalJson, compiled.LinkedData);
         }
@@ -158,15 +158,22 @@ public sealed class ArcRelayMatchAdmissionService(
         return new ParticipantMaterial(
             null, "stock-fixture", 1, "Stock validation", "Nilbots",
             ArcRelayCrestGenerator.Snapshot(fixtureId, 0),
-            bot.Id, version.Id, ArcRelayPlaylistDefinition.StockArtifactHash,
+            bot.Id, version.Id, ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
             compiled.Classes, composition.CanonicalJson, composition.ContentHash,
             fixtureId, 1, compiled.ContentHash, compiled.CanonicalJson, compiled.LinkedData);
     }
 
     private async Task<(Bot, BotVersion)> StockArtifactAsync(CancellationToken cancellationToken)
     {
-        Bot bot = await db.Bots.SingleAsync(value => value.Slug == ArcRelayPlaylistSeeder.StockBotSlug, cancellationToken);
-        BotVersion version = await db.BotVersions.SingleAsync(value => value.BotId == bot.Id && value.IsActive && value.ArtifactHash == ArcRelayPlaylistDefinition.StockArtifactHash, cancellationToken);
+        Bot bot = await db.Bots.SingleAsync(value =>
+            value.Slug == ArcRelayPlaylistSeeder.ForwardStockBotSlug,
+            cancellationToken);
+        BotVersion version = await db.BotVersions.SingleAsync(value =>
+            value.BotId == bot.Id
+            && value.IsActive
+            && value.ArtifactHash
+                == ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+            cancellationToken);
         return (bot, version);
     }
 

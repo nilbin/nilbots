@@ -1,0 +1,1493 @@
+{
+  "cells": [
+    {
+      "cellId": "balanced--counter-courier--s32452843--a0",
+      "matchContractFingerprint": "72b59228e4a30bb644ea87f4833cbfd2ef6d36292d6503945df784b69b4acbb8",
+      "seed": "32452843",
+      "team0": "balanced",
+      "team1": "counter-courier",
+      "topologyFingerprint": "888a303d061e73b59037b609a991b6a4aa98cfc81e0c8faa19199a6edac984e4"
+    },
+    {
+      "cellId": "balanced--counter-courier--s32452843--a1",
+      "matchContractFingerprint": "82cd816443e090e851e2a9bb0ff5c43405cf0fb093eea6aff2a4f957c89683d7",
+      "seed": "32452843",
+      "team0": "counter-courier",
+      "team1": "balanced",
+      "topologyFingerprint": "ff805d36c0415553aca57b8227e90070327164c2c741f87bc6d0d86d01231e25"
+    },
+    {
+      "cellId": "balanced--displacement-control--s32452843--a0",
+      "matchContractFingerprint": "845adadeb8571241ca749a56e02ced72bac61af473fde99a37c10f8d9ed4cf9a",
+      "seed": "32452843",
+      "team0": "balanced",
+      "team1": "displacement-control",
+      "topologyFingerprint": "1b87a51cad6d7e685356329b2f04cf3759d81e9d1d383d5b8b4b09b6de11cb0a"
+    },
+    {
+      "cellId": "balanced--displacement-control--s32452843--a1",
+      "matchContractFingerprint": "e7ec0a15e1a03d76953afedc085d83e385936e4533b8c5013c15ded4335a3cbc",
+      "seed": "32452843",
+      "team0": "displacement-control",
+      "team1": "balanced",
+      "topologyFingerprint": "393de1fba4e4b0c53f4c18ac9b06bfa5794fe22491e970d98e757caba14735f5"
+    },
+    {
+      "cellId": "balanced--hook-burst--s32452843--a0",
+      "matchContractFingerprint": "71a84ad3c3cbf9a18c4779bdfa8fc72d06abeb898ab5bbf4900f92b40ec835f8",
+      "seed": "32452843",
+      "team0": "balanced",
+      "team1": "hook-burst",
+      "topologyFingerprint": "bfe39b83da83af36327a8a0f6cf535b6362b30d71cdc2b213afc7a61ac25fc5a"
+    },
+    {
+      "cellId": "balanced--hook-burst--s32452843--a1",
+      "matchContractFingerprint": "533c01385bd9c8a6c95dfcd4f92557e0d2686ef0d9a03f7867c048eca0fd73be",
+      "seed": "32452843",
+      "team0": "hook-burst",
+      "team1": "balanced",
+      "topologyFingerprint": "5819f012d4f1ee3463872598510527400008e79068be8ef83775fb7a60adf174"
+    },
+    {
+      "cellId": "balanced--mine-crescent--s32452843--a0",
+      "matchContractFingerprint": "1bc3f2c66a70170a6509d8e7e4194e4b6b6ac83e28ac5ddfa95a4cb04eab50d2",
+      "seed": "32452843",
+      "team0": "balanced",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "cf99501de7ad16cd9ace3b75efd5a0a1619bc2768374f529dd4c388654fd53ff"
+    },
+    {
+      "cellId": "balanced--mine-crescent--s32452843--a1",
+      "matchContractFingerprint": "e10992c31370bca30168c9254a7d081ad8ecabb1016e28f8ffba3ac95c2687d0",
+      "seed": "32452843",
+      "team0": "mine-crescent",
+      "team1": "balanced",
+      "topologyFingerprint": "4b9c2ac86d0551ba0c1068efb427ff4149c87cd782f7cbf0c8a61ee883723db2"
+    },
+    {
+      "cellId": "balanced--pod-lattice--s32452843--a0",
+      "matchContractFingerprint": "9cf2693e75ae78838240b1384a309a2c0bc4882edb6c606a72497a26735dae4a",
+      "seed": "32452843",
+      "team0": "balanced",
+      "team1": "pod-lattice",
+      "topologyFingerprint": "6a8159b55daa4529357ced7997f9092768c2fbbfa4312d4e0549742e6f1af34f"
+    },
+    {
+      "cellId": "balanced--pod-lattice--s32452843--a1",
+      "matchContractFingerprint": "eb6a28079dc7e274228fea6e2f22b3e56827229d54e06f1831df42b2045771c9",
+      "seed": "32452843",
+      "team0": "pod-lattice",
+      "team1": "balanced",
+      "topologyFingerprint": "d5a0a284e66e73356ec4ae6ec291ff1352f7f3368c724401f2fa5f166e1f96ac"
+    },
+    {
+      "cellId": "beacon-hunt--breach-column--s32452843--a0",
+      "matchContractFingerprint": "fe0e4d749c9497daf7cd4e74bab21101e9cf477fd51c33a885aef0a62be85a20",
+      "seed": "32452843",
+      "team0": "beacon-hunt",
+      "team1": "breach-column",
+      "topologyFingerprint": "8bad79d7c15eccdf559e31d80bdf5c99fec0677295df832cbe388a24725b8ca1"
+    },
+    {
+      "cellId": "beacon-hunt--breach-column--s32452843--a1",
+      "matchContractFingerprint": "4483fac01652edacad7d411ffc2fe6851f08a75894b71cbb875570faf0e6fee4",
+      "seed": "32452843",
+      "team0": "breach-column",
+      "team1": "beacon-hunt",
+      "topologyFingerprint": "e9d5911e58c37eb98bd59274f75f69e43aa9f997bb2e804041fbe05b77831d23"
+    },
+    {
+      "cellId": "beacon-hunt--home-counterpunch--s32452843--a0",
+      "matchContractFingerprint": "bd4997faca6876be74260a6155d623ab1be6219332546b79180b0607c4273e5c",
+      "seed": "32452843",
+      "team0": "beacon-hunt",
+      "team1": "home-counterpunch",
+      "topologyFingerprint": "7709848fb2cbd0c994b329d140801e855b56b4936abc42b38b10aa3c971fd780"
+    },
+    {
+      "cellId": "beacon-hunt--home-counterpunch--s32452843--a1",
+      "matchContractFingerprint": "41ecb4accc63944386e8cf90cd5ad2ed06c2a614438e8c81947d64d40efeb8d5",
+      "seed": "32452843",
+      "team0": "home-counterpunch",
+      "team1": "beacon-hunt",
+      "topologyFingerprint": "3202da3448484a1ad0f719e7db9d90ee7e027efd94983dbaab5ad0ac1bd36c1d"
+    },
+    {
+      "cellId": "beacon-hunt--repair-web--s32452843--a0",
+      "matchContractFingerprint": "b51329fa7d13163b39fb27ecb5b9c0c92de7adc2caec02cc9655e195d5fefd1d",
+      "seed": "32452843",
+      "team0": "beacon-hunt",
+      "team1": "repair-web",
+      "topologyFingerprint": "da8a7ee91622ec847a10938e53741c0adf5819273f11dea2b08f5f9b84c5fe2f"
+    },
+    {
+      "cellId": "beacon-hunt--repair-web--s32452843--a1",
+      "matchContractFingerprint": "29d9f2e3d168ab03d7e2011f8e964a97b9c120d61f3ed53768e3107b555e993e",
+      "seed": "32452843",
+      "team0": "repair-web",
+      "team1": "beacon-hunt",
+      "topologyFingerprint": "b05da0668869abf962ea227ebcc8262474a586dd681cda1494ff523f4a2c7389"
+    },
+    {
+      "cellId": "beacon-hunt--split--s32452843--a0",
+      "matchContractFingerprint": "a1974f4fb1d3a70f7ab12cc47e9e6e3267c7ca060c114f2105a92f9ec643aa50",
+      "seed": "32452843",
+      "team0": "beacon-hunt",
+      "team1": "split",
+      "topologyFingerprint": "d778f90c0b8601bc0fdfa478ebd565699d6e01a010e1eba80fb4dab4c979f8f1"
+    },
+    {
+      "cellId": "beacon-hunt--split--s32452843--a1",
+      "matchContractFingerprint": "22bf0cbddc63a15d7eb40660e60fd15aabaf2987040c6e30a0ae56b44e79b935",
+      "seed": "32452843",
+      "team0": "split",
+      "team1": "beacon-hunt",
+      "topologyFingerprint": "74a01859e723f76a1f72f4b8801d60fb5c58fc599f09a60fd6de13f7b0a9cceb"
+    },
+    {
+      "cellId": "beacon-hunt--three-well-race--s32452843--a0",
+      "matchContractFingerprint": "49d657f45e850ca302cd5327d1f24c588644545dfe21096f7d980c82b4c5564d",
+      "seed": "32452843",
+      "team0": "beacon-hunt",
+      "team1": "three-well-race",
+      "topologyFingerprint": "9798ac4c494d37d54d49611962b94f50901903597a328eaff10b8f69a9b59219"
+    },
+    {
+      "cellId": "beacon-hunt--three-well-race--s32452843--a1",
+      "matchContractFingerprint": "2ca4a17d1b56873b7262bb7c4f298d59e8e4a06e680cd8b2784f2bb24d2ce172",
+      "seed": "32452843",
+      "team0": "three-well-race",
+      "team1": "beacon-hunt",
+      "topologyFingerprint": "5a3dd97c9adddbe54f132a93116e7d5138bb7a557867f03f85b0e75e024166b0"
+    },
+    {
+      "cellId": "breach-column--control-grid--s32452843--a0",
+      "matchContractFingerprint": "bc9ea0fc1d7d19fc77e6291e3ba645b6b7815d416139aae664c903d4006c664f",
+      "seed": "32452843",
+      "team0": "breach-column",
+      "team1": "control-grid",
+      "topologyFingerprint": "4aba342aed9b7a61a0b65823fa431bc7fc1c171f103168b67b539a7922c5467d"
+    },
+    {
+      "cellId": "breach-column--control-grid--s32452843--a1",
+      "matchContractFingerprint": "167f047443cd8c2753b1ac59bae6bd3be64d96f5af68400dce818b70c6b27b74",
+      "seed": "32452843",
+      "team0": "control-grid",
+      "team1": "breach-column",
+      "topologyFingerprint": "89318a2143fa04dc3382157f8aa43cb59d8cb7cdedf66645c578684d0bfe90c9"
+    },
+    {
+      "cellId": "breach-column--outer-pincers--s32452843--a0",
+      "matchContractFingerprint": "43ec6961c3380810e6d029313a250a6b432bdfdec97530e6600c5b671b8c1a29",
+      "seed": "32452843",
+      "team0": "breach-column",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "bd718bcf3b15c0c87ba55f0912d9689dc59ffa2b37afa49976a36b060d12319a"
+    },
+    {
+      "cellId": "breach-column--outer-pincers--s32452843--a1",
+      "matchContractFingerprint": "9c0e215e4b24612ce9c40234324125d168bafb37a10f460a3dfe9bc3d74479dc",
+      "seed": "32452843",
+      "team0": "outer-pincers",
+      "team1": "breach-column",
+      "topologyFingerprint": "63df3833c75db9b7640615c70f28123c68a2f22918b4cdc26fb1442eb3bdc7ab"
+    },
+    {
+      "cellId": "breach-column--smoke-convoy--s32452843--a0",
+      "matchContractFingerprint": "4de09cd42522f2d45c9aa7cfbc70ff14b2c59cee32655f42b80dd3cf496051cd",
+      "seed": "32452843",
+      "team0": "breach-column",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "5e0af4f88c278cb5b5daa02346df88c33ba9435547983600fd7b97c59364a08e"
+    },
+    {
+      "cellId": "breach-column--smoke-convoy--s32452843--a1",
+      "matchContractFingerprint": "85b8963430c580aea06dafa2048f1e1620fd17ad7586da077606588895d10f39",
+      "seed": "32452843",
+      "team0": "smoke-convoy",
+      "team1": "breach-column",
+      "topologyFingerprint": "9e3b60297d7c901bd81d0a818bebf91e56c5350fa2633602e5121c560fbe4562"
+    },
+    {
+      "cellId": "breach-column--trap-punish--s32452843--a0",
+      "matchContractFingerprint": "61d92287c094555c67b57d288e9c5ba52e3d967bdb739a3269590d008d1f626b",
+      "seed": "32452843",
+      "team0": "breach-column",
+      "team1": "trap-punish",
+      "topologyFingerprint": "beb803c1ca9e8d925d3820e9cc1294beebda913b0476964332e6ac5665f29c10"
+    },
+    {
+      "cellId": "breach-column--trap-punish--s32452843--a1",
+      "matchContractFingerprint": "aaced164b922f9744becf1942974a43c896b8a663a7c8650129c8082fce1a42a",
+      "seed": "32452843",
+      "team0": "trap-punish",
+      "team1": "breach-column",
+      "topologyFingerprint": "b9919e37b36d9f96e20330ed5dbb2092e4764b5aad633abae188c5c2f0754501"
+    },
+    {
+      "cellId": "centre-phalanx--convoy--s32452843--a0",
+      "matchContractFingerprint": "b0704e6c0a470e0ee11addc1303c2d6fa23caf8c90e86ab81eac320b0f2d5416",
+      "seed": "32452843",
+      "team0": "centre-phalanx",
+      "team1": "convoy",
+      "topologyFingerprint": "ea3082b2a315225c413a487e118d211da648b4f7f99669cf935b7e0f943c1ebc"
+    },
+    {
+      "cellId": "centre-phalanx--convoy--s32452843--a1",
+      "matchContractFingerprint": "791599ffa96f30a754b0f85fc52ebca708cb3b8f52d8c6fd9949d667dbc778a2",
+      "seed": "32452843",
+      "team0": "convoy",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "9fa512c24ad25f93f71dd04248b8a144736bccf4e0456c6ed0d934deebca14d3"
+    },
+    {
+      "cellId": "centre-phalanx--null-veil--s32452843--a0",
+      "matchContractFingerprint": "41269a527dba5c0bfa28a107518386c14cede51b68b9a5c990e5336b55a5cb2b",
+      "seed": "32452843",
+      "team0": "centre-phalanx",
+      "team1": "null-veil",
+      "topologyFingerprint": "46fd27582f5befe775ece743234dbb981455dd92df0dcccac446fe9ca2d3c3e7"
+    },
+    {
+      "cellId": "centre-phalanx--null-veil--s32452843--a1",
+      "matchContractFingerprint": "34b4438d9a3092e914b202e02b2ea39753cb50303ddc30859fd6dd7b3d4e3c6a",
+      "seed": "32452843",
+      "team0": "null-veil",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "fb994eba983d3fa129fd685fb60050a19761d972be4720eb2d8910e153a3568f"
+    },
+    {
+      "cellId": "centre-phalanx--rail-screen--s32452843--a0",
+      "matchContractFingerprint": "c225560f0dafbf7c48b37bae0547709a50882b3260190fe822ca7895023965e5",
+      "seed": "32452843",
+      "team0": "centre-phalanx",
+      "team1": "rail-screen",
+      "topologyFingerprint": "53a8768e4d1e22e2b42042e11829c2341ec8d31c7a90915e171e6273d3c723a2"
+    },
+    {
+      "cellId": "centre-phalanx--rail-screen--s32452843--a1",
+      "matchContractFingerprint": "9b473135ac407dd4842ea66545c1cc033f257e108440220c7f47a570f6c3fa0a",
+      "seed": "32452843",
+      "team0": "rail-screen",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "f93aae0050149e606218707088f72e60fe18e33515e32ff3b035b4a7ddadc1b6"
+    },
+    {
+      "cellId": "centre-phalanx--split--s32452843--a0",
+      "matchContractFingerprint": "504f02a205a41b729960c5d02c217d2e4a029bf934a7a7e3a0b38df921c13be2",
+      "seed": "32452843",
+      "team0": "centre-phalanx",
+      "team1": "split",
+      "topologyFingerprint": "e3c5312a84c0abb7ac9d55fcee22bbc5724a4ea4c36962e0407cd7ed8c4235b4"
+    },
+    {
+      "cellId": "centre-phalanx--split--s32452843--a1",
+      "matchContractFingerprint": "0d79283cae6d7bbf115b4964407293073b084813565a5ee57b291a1abbf56462",
+      "seed": "32452843",
+      "team0": "split",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "88b27ba554d3a9a310a321867f85ac05761e50ef7b6d396a533ead3ae233cddd"
+    },
+    {
+      "cellId": "centre-phalanx--three-well-race--s32452843--a0",
+      "matchContractFingerprint": "a319ba177012730a053f97b37a2fa66a7e441e59fa0cac3faa3ee6ab825c0922",
+      "seed": "32452843",
+      "team0": "centre-phalanx",
+      "team1": "three-well-race",
+      "topologyFingerprint": "20e1bc603fd45aa3319e99529cf1b8ac0fbe9550d66f24a104a5cbbb1e99603d"
+    },
+    {
+      "cellId": "centre-phalanx--three-well-race--s32452843--a1",
+      "matchContractFingerprint": "51b33db6ce069126ea718e58f1939e061a0c0adcff86a8e6efeee4c1aca30cb0",
+      "seed": "32452843",
+      "team0": "three-well-race",
+      "team1": "centre-phalanx",
+      "topologyFingerprint": "dc032718c5a9c0a032433eda615a5a7b5f90b0e034dce05b1071b1720287dfa8"
+    },
+    {
+      "cellId": "control-grid--counter-courier--s32452843--a0",
+      "matchContractFingerprint": "12b429190e5fbd00befe65015e6b2e43f630731db291a0af9dba3e5180d0df63",
+      "seed": "32452843",
+      "team0": "control-grid",
+      "team1": "counter-courier",
+      "topologyFingerprint": "251912ad8bc1c352a69ce9783aab2e5131962201d473e2dd560aa83fc7bb7207"
+    },
+    {
+      "cellId": "control-grid--counter-courier--s32452843--a1",
+      "matchContractFingerprint": "64910b1f1bf6b6a148322742c7d9b6910581d55fb5d9473be9ed6debc6959770",
+      "seed": "32452843",
+      "team0": "counter-courier",
+      "team1": "control-grid",
+      "topologyFingerprint": "a3e173b46218b32a0e0eb3d9f4dffc28a974718a75565ed494f9ac3b30ffe503"
+    },
+    {
+      "cellId": "control-grid--displacement-control--s32452843--a0",
+      "matchContractFingerprint": "6e2cb026b86d3f49347c7c162863dd71d43b0b144c3e137695914a57496dcdee",
+      "seed": "32452843",
+      "team0": "control-grid",
+      "team1": "displacement-control",
+      "topologyFingerprint": "9c7455122d9b5da429b734c0e646f23145c32a77c5f82b8790c4e4b76104027f"
+    },
+    {
+      "cellId": "control-grid--displacement-control--s32452843--a1",
+      "matchContractFingerprint": "b2186682e672720dc1fecc2b7de6d2d9e9a9f70afc90f36294716811f20c0db1",
+      "seed": "32452843",
+      "team0": "displacement-control",
+      "team1": "control-grid",
+      "topologyFingerprint": "1c21c3afa49db55d302a6d2cb4820a966626664e210f5eadf7c1d03facced496"
+    },
+    {
+      "cellId": "control-grid--rail-screen--s32452843--a0",
+      "matchContractFingerprint": "0f29bc78efdb99bfe4304eb8dade7d26b4ee4b55e3922dbc59f86c9db5476ce3",
+      "seed": "32452843",
+      "team0": "control-grid",
+      "team1": "rail-screen",
+      "topologyFingerprint": "40ba728938c3f9bd1efa02d26b8c1e5e41332c5a7f093a1633e5eb584e4cb765"
+    },
+    {
+      "cellId": "control-grid--rail-screen--s32452843--a1",
+      "matchContractFingerprint": "1ddb939f033bf18d19b3d82ccde71baa745aaf22bc38c48784ab3bdd5d8ad9b8",
+      "seed": "32452843",
+      "team0": "rail-screen",
+      "team1": "control-grid",
+      "topologyFingerprint": "35b016b73b4720090806af486f15a5159ce60d38d334eb62aa8bbeffbcc20b10"
+    },
+    {
+      "cellId": "control-grid--split--s32452843--a0",
+      "matchContractFingerprint": "70e6098b575b09e160368cf8fc436bb06f1dc7f2537a9c22668e333511bf3471",
+      "seed": "32452843",
+      "team0": "control-grid",
+      "team1": "split",
+      "topologyFingerprint": "fbe7bb815544ad3890d09a9873bf782442af07c30f82bd4bba7fd1457dcef8e8"
+    },
+    {
+      "cellId": "control-grid--split--s32452843--a1",
+      "matchContractFingerprint": "771099d61536cf077ab3e20371d62d93e5235021608c3de5620728ccae079eb3",
+      "seed": "32452843",
+      "team0": "split",
+      "team1": "control-grid",
+      "topologyFingerprint": "71afa69697de8f0b18c5e6ea7f8e8feae2ad82ab4f7febf22c3b18e64646708a"
+    },
+    {
+      "cellId": "convoy--fortress-counterattack--s32452843--a0",
+      "matchContractFingerprint": "517adbb57bf1070058b55731f390bab0c76677fe435b919b4a76b56b72cc0ce9",
+      "seed": "32452843",
+      "team0": "convoy",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "087eccfd09a578ca7052ca82157f9cd94f8a85d457a24ad40b551314a25ceb3a"
+    },
+    {
+      "cellId": "convoy--fortress-counterattack--s32452843--a1",
+      "matchContractFingerprint": "6ebae7402af663727c4e08d7be744e6ce6568d3480bb9ad5125ae175acd2be0b",
+      "seed": "32452843",
+      "team0": "fortress-counterattack",
+      "team1": "convoy",
+      "topologyFingerprint": "a76c53b6de498c1814a0ce66c042e73644008470ee67e2666e1cecf1f1e83287"
+    },
+    {
+      "cellId": "convoy--interception--s32452843--a0",
+      "matchContractFingerprint": "000f45aa4be7512f9c65982f14d52be5ba48d1c435fa1f797f9e325d310d2cf6",
+      "seed": "32452843",
+      "team0": "convoy",
+      "team1": "interception",
+      "topologyFingerprint": "b49c99a79d258e339b89c875af14a599d11ce875b862bb874cf838d9c0b3740f"
+    },
+    {
+      "cellId": "convoy--interception--s32452843--a1",
+      "matchContractFingerprint": "bc7b6c76f18a209c69d76da863554ab3430f87a4fae51f9c2432502df9d038d4",
+      "seed": "32452843",
+      "team0": "interception",
+      "team1": "convoy",
+      "topologyFingerprint": "03f0fbede58a7490ba5fce441e80de94e828e7a6464939e46d769287ec73a677"
+    },
+    {
+      "cellId": "convoy--relay-chain--s32452843--a0",
+      "matchContractFingerprint": "f13a943ac03c67da87266a136ad843894a7948eb4933865342fee059911a8bb3",
+      "seed": "32452843",
+      "team0": "convoy",
+      "team1": "relay-chain",
+      "topologyFingerprint": "3868bd6873633334b3f85c7a62117cf4e886993389ff038ade847f2e306701a3"
+    },
+    {
+      "cellId": "convoy--relay-chain--s32452843--a1",
+      "matchContractFingerprint": "db366103956dc6f7e27801d730bea918a9adbc1149f641c1977102ca602cdcee",
+      "seed": "32452843",
+      "team0": "relay-chain",
+      "team1": "convoy",
+      "topologyFingerprint": "0c84380b6f4fd27cc1255de9a4bfcceac0d283f8c185be4f82d5972c72a50c3d"
+    },
+    {
+      "cellId": "convoy--sensor-grid--s32452843--a0",
+      "matchContractFingerprint": "154a5626c8ba1c5f7e291711a765fcf1b09a35c49e42a6b20bb110085478a558",
+      "seed": "32452843",
+      "team0": "convoy",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "2fb81abd8dfcdb7efabedaca871b3a656a9e9be36fa165ce4dabf93804132978"
+    },
+    {
+      "cellId": "convoy--sensor-grid--s32452843--a1",
+      "matchContractFingerprint": "7e6464dfe6612065f26f6966673a0f7f461c9b2c91f60d47eff50e8637c2f630",
+      "seed": "32452843",
+      "team0": "sensor-grid",
+      "team1": "convoy",
+      "topologyFingerprint": "02af9fc49fa0292866296e4cef7168681735e52da58b36b47c6f8e5513efa99f"
+    },
+    {
+      "cellId": "counter-courier--interception--s32452843--a0",
+      "matchContractFingerprint": "b3ac91c2f7feb185c6714d29d75f8247e41a2bbce73935711205360a3a9fcbb1",
+      "seed": "32452843",
+      "team0": "counter-courier",
+      "team1": "interception",
+      "topologyFingerprint": "39af1ef88fe5e5c5b1d0bf1838d1747539f812282889837ceb6a7d0af69f40b6"
+    },
+    {
+      "cellId": "counter-courier--interception--s32452843--a1",
+      "matchContractFingerprint": "582809fb72ec7f7dcbb2cf5598d2ef37d3dc6367ef64ad6550ffa2875014a905",
+      "seed": "32452843",
+      "team0": "interception",
+      "team1": "counter-courier",
+      "topologyFingerprint": "bdb0d0f405c84869f34b7d3d6b1e142e5caeb0ccc01127aa9af78b18f0dd0087"
+    },
+    {
+      "cellId": "counter-courier--rotating-bastions--s32452843--a0",
+      "matchContractFingerprint": "b936f158ccc4cc0a4e4eef0e0f2a67a65500c99ef3559b74de994bc5b1049b9d",
+      "seed": "32452843",
+      "team0": "counter-courier",
+      "team1": "rotating-bastions",
+      "topologyFingerprint": "be02ee9bda82aac8625545f246d0498b234fbf0dff07f36bda6fa073ad1a3655"
+    },
+    {
+      "cellId": "counter-courier--rotating-bastions--s32452843--a1",
+      "matchContractFingerprint": "57c0780dcd6cc459b8e426041a75c48d5034a58c409c92f9c7d35b22b38039b6",
+      "seed": "32452843",
+      "team0": "rotating-bastions",
+      "team1": "counter-courier",
+      "topologyFingerprint": "485d3ad6b89e774b125ef4ccad1d1e3df8aa15a806b57c62f7bc7563644794cf"
+    },
+    {
+      "cellId": "counter-courier--trap-punish--s32452843--a0",
+      "matchContractFingerprint": "1ee604bf9a516621643da8ac8faf3b93d2ecf32579d7f317d1ccb9cb1fccb06d",
+      "seed": "32452843",
+      "team0": "counter-courier",
+      "team1": "trap-punish",
+      "topologyFingerprint": "90af777efc4ef1a75e3c9b44fe3ed574c1dd53b0ca0413221f70ef760540e32f"
+    },
+    {
+      "cellId": "counter-courier--trap-punish--s32452843--a1",
+      "matchContractFingerprint": "b12f8c3b7f287b582ad67fd6463fc59c7f7f0aaedd4bf6683d710c56660d037f",
+      "seed": "32452843",
+      "team0": "trap-punish",
+      "team1": "counter-courier",
+      "topologyFingerprint": "ca639eb0671e4f3c19fad2c8dd707f0400ccc1153a3a6c1c36ce297927e37350"
+    },
+    {
+      "cellId": "courier-sprint--displacement-control--s32452843--a0",
+      "matchContractFingerprint": "a59a16a3055a01536cbbf6b9aabbc948416537c9987e3505a7730b0e093ba9b2",
+      "seed": "32452843",
+      "team0": "courier-sprint",
+      "team1": "displacement-control",
+      "topologyFingerprint": "b50aa31d1a22623403a22dc751d62ba36c445fe939e02126a12ef30f85e27100"
+    },
+    {
+      "cellId": "courier-sprint--displacement-control--s32452843--a1",
+      "matchContractFingerprint": "705aacfe635ef32f7fb6a190f40112f233d26080430ffd8df138602a967d2caa",
+      "seed": "32452843",
+      "team0": "displacement-control",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "d9bfe0fa2fb2f640989e9818e6e0988cf8da61a246752e38c6f9f36bcbe9c27b"
+    },
+    {
+      "cellId": "courier-sprint--outer-pincers--s32452843--a0",
+      "matchContractFingerprint": "8d2c855f22cf78449755a1480dac774eb4acb54e3f5cf182d1718a595c7cc1d7",
+      "seed": "32452843",
+      "team0": "courier-sprint",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "1cb64657bf8be7fa3e10ef78392f2d00038dc79229291e86f65d8c5eeee4b13b"
+    },
+    {
+      "cellId": "courier-sprint--outer-pincers--s32452843--a1",
+      "matchContractFingerprint": "33f19c5340ca58aa3a04cd6f621a3ee25461f5844e9a70dcc5959b28c0bb8411",
+      "seed": "32452843",
+      "team0": "outer-pincers",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "5df89a64b81fa6242f590b80d7788725f383325c31008853c05b4358c5658643"
+    },
+    {
+      "cellId": "courier-sprint--repair-web--s32452843--a0",
+      "matchContractFingerprint": "2cca18c83c6d6d324b7f5f6347b4ed4285e23de4e27f6aecae639bd788a9a845",
+      "seed": "32452843",
+      "team0": "courier-sprint",
+      "team1": "repair-web",
+      "topologyFingerprint": "7ff88dd133f5c13494dfe659ae3c4dc429a581cbc43e6edde451a4b97def3b00"
+    },
+    {
+      "cellId": "courier-sprint--repair-web--s32452843--a1",
+      "matchContractFingerprint": "6e44fa5418ed008ff5930ce759fd2301e430c8cd1bc333bc48f10d876d3a4185",
+      "seed": "32452843",
+      "team0": "repair-web",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "f3c51a1bba2164530e53715ed778a735fcd2e34cb608cd421e03479417ab3c6d"
+    },
+    {
+      "cellId": "courier-sprint--smoke-and-mines--s32452843--a0",
+      "matchContractFingerprint": "16bcce79070aac815060f2b564da22b97e8c1d95f5ba0239ef4785e43571bd46",
+      "seed": "32452843",
+      "team0": "courier-sprint",
+      "team1": "smoke-and-mines",
+      "topologyFingerprint": "abeed49cb4c7f5b7907a9fb328665188d5325f76db887ca6b7934aa1ac882df5"
+    },
+    {
+      "cellId": "courier-sprint--smoke-and-mines--s32452843--a1",
+      "matchContractFingerprint": "e854cf83570da2c2d0af8b8b514d56fbe1de88491b764026b9ac36e2c7f03fd9",
+      "seed": "32452843",
+      "team0": "smoke-and-mines",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "5195fcf6026bcf8290a7a12c6315dc66abf6b80d420a7ef380a0e7b309650e9b"
+    },
+    {
+      "cellId": "courier-sprint--split--s32452843--a0",
+      "matchContractFingerprint": "8b5658c9fb4b4d7a35cb9755bd3a68bd1ad4a22a9ddc8f19c0b4af1f1fc193e4",
+      "seed": "32452843",
+      "team0": "courier-sprint",
+      "team1": "split",
+      "topologyFingerprint": "c0682ab953f32c35d53c111007d74a86fe0ca97c288349de3ae25a73a79d5a6d"
+    },
+    {
+      "cellId": "courier-sprint--split--s32452843--a1",
+      "matchContractFingerprint": "23da1ccc029619bb1db8afc5319c7b165630067af77afc6e682cd0864c04ae8e",
+      "seed": "32452843",
+      "team0": "split",
+      "team1": "courier-sprint",
+      "topologyFingerprint": "3686f6825ab672f8b2fa295667336f51cb956d4dd4ca817ad7253027b0154983"
+    },
+    {
+      "cellId": "displacement-control--elastic-reserve--s32452843--a0",
+      "matchContractFingerprint": "a4303d3900303bb50a36033bc17f20490461e8662736bf28fdd2f1454f02dddd",
+      "seed": "32452843",
+      "team0": "displacement-control",
+      "team1": "elastic-reserve",
+      "topologyFingerprint": "f872f18995698c5641e88081b0e2ff47afd986220c1c1477640c8efdc1893b7b"
+    },
+    {
+      "cellId": "displacement-control--elastic-reserve--s32452843--a1",
+      "matchContractFingerprint": "cea05e504ffeaaf3f3086136f92c3745b330a0aa4c8f7116ced93938862097a7",
+      "seed": "32452843",
+      "team0": "elastic-reserve",
+      "team1": "displacement-control",
+      "topologyFingerprint": "5bf3a71729a847f5a9a87a51202f5675462a79519158c49434158915c081eb84"
+    },
+    {
+      "cellId": "displacement-control--smoke-convoy--s32452843--a0",
+      "matchContractFingerprint": "f692288d1f13eb717da2ae591a297fe5328731732bc7001a10fdabaa9f23d1f5",
+      "seed": "32452843",
+      "team0": "displacement-control",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "72ac3e91b5a4a4866bc97ac80b7452f479d7778b97f188eab61c8386135ca0cb"
+    },
+    {
+      "cellId": "displacement-control--smoke-convoy--s32452843--a1",
+      "matchContractFingerprint": "9734840919f714a564a2edb47fbc39ed932ae4d80fc0ac2f8812c7dcaa44463b",
+      "seed": "32452843",
+      "team0": "smoke-convoy",
+      "team1": "displacement-control",
+      "topologyFingerprint": "35021c3201d65c6198b1eeef623bdc02386d218052caf8c3d070693ed31c9762"
+    },
+    {
+      "cellId": "elastic-reserve--mine-crescent--s32452843--a0",
+      "matchContractFingerprint": "a61bc615d9d6eeb8e59748359d56473fb5a092a48837658349d2be8f83d02d06",
+      "seed": "32452843",
+      "team0": "elastic-reserve",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "c457aa64ce4d94fb519bba21a698e767707172afec0f5cbc05b5e365a5041ba6"
+    },
+    {
+      "cellId": "elastic-reserve--mine-crescent--s32452843--a1",
+      "matchContractFingerprint": "4b08b65898aee44831559fafd028c15979cf5301206c0ad150bb4497510ec6b1",
+      "seed": "32452843",
+      "team0": "mine-crescent",
+      "team1": "elastic-reserve",
+      "topologyFingerprint": "3c7bba6a3d1738a9e653f3d6ca620643908ccc6f49af1681a4ee3bd5e3ce37e5"
+    },
+    {
+      "cellId": "elastic-reserve--outer-pincers--s32452843--a0",
+      "matchContractFingerprint": "b214bbbbf31bc289161cfdb6471eb8a357e836aa39fb052e1e3297a571d0983d",
+      "seed": "32452843",
+      "team0": "elastic-reserve",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "46cabdc9dc719db33e5e9d9719f16f3d42e50aa7348c4b9ff5dbb5d03bbc3eee"
+    },
+    {
+      "cellId": "elastic-reserve--outer-pincers--s32452843--a1",
+      "matchContractFingerprint": "b5b85a2fe176ac9b42bc5c1f0c7514944b5ce04865fe2db8e62391f4b6af4d6b",
+      "seed": "32452843",
+      "team0": "outer-pincers",
+      "team1": "elastic-reserve",
+      "topologyFingerprint": "9728e83c23cf28ada6fa7c4cfc26d565e4d9b817172129a610f6cf4bf1976aab"
+    },
+    {
+      "cellId": "elastic-reserve--rotating-bastions--s32452843--a0",
+      "matchContractFingerprint": "a67bd377c7bff8641ce28fcf7a833ed219803593f33044c1b4640beb87392e78",
+      "seed": "32452843",
+      "team0": "elastic-reserve",
+      "team1": "rotating-bastions",
+      "topologyFingerprint": "2ccbc13c8daaae708dc7090bed6a6d18f94a465d16bccb096c2ae6fa0de2f3f2"
+    },
+    {
+      "cellId": "elastic-reserve--rotating-bastions--s32452843--a1",
+      "matchContractFingerprint": "6977a37e1d62e1c085fdbaffc1e0611c31f2ce58f0c0f0286220dc2a65595e10",
+      "seed": "32452843",
+      "team0": "rotating-bastions",
+      "team1": "elastic-reserve",
+      "topologyFingerprint": "86e32b89702f3f9111a3068d5eabcf37458f98506263e42c58b3c8745034ac8c"
+    },
+    {
+      "cellId": "elastic-reserve--trap-punish--s32452843--a0",
+      "matchContractFingerprint": "2862ca6eaad32c73f6889d511c00a0b1afc564b2c3ad48db0ccce6643936b389",
+      "seed": "32452843",
+      "team0": "elastic-reserve",
+      "team1": "trap-punish",
+      "topologyFingerprint": "9594f7fff89d15dd1288c1f2fda30212a57c91a1d5c5525646e53267a25e7ec7"
+    },
+    {
+      "cellId": "elastic-reserve--trap-punish--s32452843--a1",
+      "matchContractFingerprint": "4d834233589dff215aec27667133dc40f4c3d64e468d230917d985bce8bbcfc6",
+      "seed": "32452843",
+      "team0": "trap-punish",
+      "team1": "elastic-reserve",
+      "topologyFingerprint": "6effa79dec422e44adfa195f27a13ad797f4fcd74613cbc6e2af1d49fb6c3086"
+    },
+    {
+      "cellId": "feint-switch--fortress-counterattack--s32452843--a0",
+      "matchContractFingerprint": "06d38c3176d66f883cd01403fcefb729bae6d85d93bfbf3d655b48db6117132e",
+      "seed": "32452843",
+      "team0": "feint-switch",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "c264d0dbcafa19cf12a36fce85b3ce941a9c5c53a6f0919dd337375e818fa28f"
+    },
+    {
+      "cellId": "feint-switch--fortress-counterattack--s32452843--a1",
+      "matchContractFingerprint": "d7463fff8b1465f89237eb82038f17000112c37608ba04a99ccb09e8a4db15cf",
+      "seed": "32452843",
+      "team0": "fortress-counterattack",
+      "team1": "feint-switch",
+      "topologyFingerprint": "026f1fb7a7adc7edeff8d56320856888c3600663fa03bf31e8df23578e2b0826"
+    },
+    {
+      "cellId": "feint-switch--interception--s32452843--a0",
+      "matchContractFingerprint": "8a10b8680a009d7fb8fdc7ae2565ff53e85dd239789dc00dcbe6632e932a2070",
+      "seed": "32452843",
+      "team0": "feint-switch",
+      "team1": "interception",
+      "topologyFingerprint": "446c984dc982c5f8f79a3d7ba045e389920fb00af2d662ecbbaef5d753a04dbf"
+    },
+    {
+      "cellId": "feint-switch--interception--s32452843--a1",
+      "matchContractFingerprint": "df4e8e68a1a969cbe6f9d429af56ae6fb6ae16f7270f1ca6c7e4028ced792774",
+      "seed": "32452843",
+      "team0": "interception",
+      "team1": "feint-switch",
+      "topologyFingerprint": "76967c0e0d207acb4303563cb43f02060a67b2b637ce38ecb2c1fb79dd105d1f"
+    },
+    {
+      "cellId": "feint-switch--mine-crescent--s32452843--a0",
+      "matchContractFingerprint": "859fa6ef429043e331c3f90a0ce2fa3f1960647e01b244eb7a95e2de3c4ae9c5",
+      "seed": "32452843",
+      "team0": "feint-switch",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "c0ab3b46b890e6410ad32e2d3238e009973d561be2e25c94c05dbb3ebee0b3cd"
+    },
+    {
+      "cellId": "feint-switch--mine-crescent--s32452843--a1",
+      "matchContractFingerprint": "4a1d3d6d936627a0d9b4a768652f0d78e0b9ea275494b6b375bdaabb6f8722d8",
+      "seed": "32452843",
+      "team0": "mine-crescent",
+      "team1": "feint-switch",
+      "topologyFingerprint": "80c7c4a95ce3b52c5ff5d2b41a5383fe2a5c064e174773bc20bb51b2e76a65c1"
+    },
+    {
+      "cellId": "feint-switch--mortar-wheel--s32452843--a0",
+      "matchContractFingerprint": "317a5bbdced958fa701a2aee9160c8f4dfc092a79c4b04c121205a7d04bcdddf",
+      "seed": "32452843",
+      "team0": "feint-switch",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "f0cd6f0cfd7f7820acc9da77a7da113ccef2f5f365b5ff90a7b6cc4c0a6e6de8"
+    },
+    {
+      "cellId": "feint-switch--mortar-wheel--s32452843--a1",
+      "matchContractFingerprint": "565570e9ceea4a1c7cb88bc12d8829fdf2e37364b6d9c05050fd3c77f6dab0aa",
+      "seed": "32452843",
+      "team0": "mortar-wheel",
+      "team1": "feint-switch",
+      "topologyFingerprint": "85a0577cfdd629f719e85ec8263e4a11e4f7d074096bd7965d375e2927260c6c"
+    },
+    {
+      "cellId": "feint-switch--trap-punish--s32452843--a0",
+      "matchContractFingerprint": "fddf65025a1b06c2ccc962be92b5d0bb87680a7387434547de5719735930a770",
+      "seed": "32452843",
+      "team0": "feint-switch",
+      "team1": "trap-punish",
+      "topologyFingerprint": "74d6e8c551eac112f25b032948d38345c2444c6cbd83c3b444868f088be5efbd"
+    },
+    {
+      "cellId": "feint-switch--trap-punish--s32452843--a1",
+      "matchContractFingerprint": "b84e7736072cb11d0d4975893d2d9e396e3e4520c3bf55bce4bf1868bba44794",
+      "seed": "32452843",
+      "team0": "trap-punish",
+      "team1": "feint-switch",
+      "topologyFingerprint": "a1180b7cc8764d209cfc171e273ba3057ad56ebca50c5f6c9391ed5c6c3ac717"
+    },
+    {
+      "cellId": "fireline-picks--interception--s32452843--a0",
+      "matchContractFingerprint": "b87186e0dd57079bf428217f0ecf07d1da49764aeb316b0e1e1d2eaa5e4090c8",
+      "seed": "32452843",
+      "team0": "fireline-picks",
+      "team1": "interception",
+      "topologyFingerprint": "b139c05cb0abba53f0c7382fbd82d584d238303d772a817bd018c6c3b858606c"
+    },
+    {
+      "cellId": "fireline-picks--interception--s32452843--a1",
+      "matchContractFingerprint": "645506ec651d81d8e38c6d616f8b5931542094429208f5117c33e3f0e3271371",
+      "seed": "32452843",
+      "team0": "interception",
+      "team1": "fireline-picks",
+      "topologyFingerprint": "d2216e702f32ee7b00ef9ba3695361cd1a1fb94ae2805d9d6358116a774c50db"
+    },
+    {
+      "cellId": "fireline-picks--mine-crescent--s32452843--a0",
+      "matchContractFingerprint": "694ffe62edeace79b51a823a71b3e4de10b0bc13663ac87e7507e62b34663dac",
+      "seed": "32452843",
+      "team0": "fireline-picks",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "94e153aaf82a22647fae637b71ce5ca1e3ced028eed01c7f095a9f8dd5624ddb"
+    },
+    {
+      "cellId": "fireline-picks--mine-crescent--s32452843--a1",
+      "matchContractFingerprint": "787c71b5831e0ee899df54171e6a14223a2620817b33ecedbb35b6fb9142a549",
+      "seed": "32452843",
+      "team0": "mine-crescent",
+      "team1": "fireline-picks",
+      "topologyFingerprint": "13a1fbfc782ad211c15ccef192c3549be6ad6254751972b1532195a84ecc6fd1"
+    },
+    {
+      "cellId": "fireline-picks--pod-lattice--s32452843--a0",
+      "matchContractFingerprint": "f47cc67f8972a93f8a0a2bc61294e73b2ac9817cc9751eb9f8ee4d79f54d001a",
+      "seed": "32452843",
+      "team0": "fireline-picks",
+      "team1": "pod-lattice",
+      "topologyFingerprint": "46c64859d7f43db69be9c7bd41615120f3be14150f30b9f799f4cb362a944ad9"
+    },
+    {
+      "cellId": "fireline-picks--pod-lattice--s32452843--a1",
+      "matchContractFingerprint": "d2bd8633054158d7172deff908441aba1e0d699575601b3a39a8154b759909e7",
+      "seed": "32452843",
+      "team0": "pod-lattice",
+      "team1": "fireline-picks",
+      "topologyFingerprint": "45ca9d91fabb3d0b77f5721b9d0d0f8e030801600f803990bf283a14d4225032"
+    },
+    {
+      "cellId": "fireline-picks--relay-chain--s32452843--a0",
+      "matchContractFingerprint": "acd293c04ec65b113513fadb541db881c99157c7e972583af04593163801edad",
+      "seed": "32452843",
+      "team0": "fireline-picks",
+      "team1": "relay-chain",
+      "topologyFingerprint": "f9e6788d8c34e773681f321b18d64ffe9f93fcc61b46cc4fa6797102659746d0"
+    },
+    {
+      "cellId": "fireline-picks--relay-chain--s32452843--a1",
+      "matchContractFingerprint": "6a24d8d5fb824fd16c82af9be984e5a8c4fbea4a6c32934c9aadd27e07364d3c",
+      "seed": "32452843",
+      "team0": "relay-chain",
+      "team1": "fireline-picks",
+      "topologyFingerprint": "ec939508a766c1014c55ad89f3537d2b07067c1b00aa9b675dccdbf12008bb79"
+    },
+    {
+      "cellId": "fireline-picks--rotating-bastions--s32452843--a0",
+      "matchContractFingerprint": "c68243775fde8ff0decddf1331aefea8612d05535106cbf51c6efc486674f8df",
+      "seed": "32452843",
+      "team0": "fireline-picks",
+      "team1": "rotating-bastions",
+      "topologyFingerprint": "2e88b92ad8f2f98bbd9927a5a193792d9758a362ddb9e2e67547110060168655"
+    },
+    {
+      "cellId": "fireline-picks--rotating-bastions--s32452843--a1",
+      "matchContractFingerprint": "4f2df617884fdecb97f59df13e92e0dee8ffc88527b63bd763fbad15b21c46f4",
+      "seed": "32452843",
+      "team0": "rotating-bastions",
+      "team1": "fireline-picks",
+      "topologyFingerprint": "ac8d2380d94ed7b414b34a04e74e1cff6805a0044f73402fa3ab9ac57969b8fb"
+    },
+    {
+      "cellId": "fortress-counterattack--home-counterpunch--s32452843--a0",
+      "matchContractFingerprint": "192fee81f9dedc4b84a912de6a38387f818d3efb53e51b2d71255d420155da78",
+      "seed": "32452843",
+      "team0": "fortress-counterattack",
+      "team1": "home-counterpunch",
+      "topologyFingerprint": "950cad2caa0754761a917535fcb6fb7eac65ea28d5a834e88eddf85d08a59e4e"
+    },
+    {
+      "cellId": "fortress-counterattack--home-counterpunch--s32452843--a1",
+      "matchContractFingerprint": "bcd25344ba2931901f03c6dc17cadcc35e23ee1cf387ad163b01f4e401f458aa",
+      "seed": "32452843",
+      "team0": "home-counterpunch",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "e7b2af4e193e30f7dd70fe426e512590d45f7c70c43b225f676eaed9a4c46203"
+    },
+    {
+      "cellId": "fortress-counterattack--sustain-attrition--s32452843--a0",
+      "matchContractFingerprint": "1e1ff1035fd03fd628469a7cb8bcb65d2e177d3a94bbddc6175902d1b75a30b6",
+      "seed": "32452843",
+      "team0": "fortress-counterattack",
+      "team1": "sustain-attrition",
+      "topologyFingerprint": "a7c1f2519ad54aa83948d9721e0bb134264ab75399720ff6c0351ef054709a63"
+    },
+    {
+      "cellId": "fortress-counterattack--sustain-attrition--s32452843--a1",
+      "matchContractFingerprint": "d96ae977beb3f5798c3f887ee4c978f38f858372906f444f97ce044bc83e67d6",
+      "seed": "32452843",
+      "team0": "sustain-attrition",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "f8eae79b58a66be2518e4c5d3f4788cb6f0ec399c22093eaac238ebf6144f694"
+    },
+    {
+      "cellId": "fortress-counterattack--three-well-race--s32452843--a0",
+      "matchContractFingerprint": "3a98efbebd88475f1f40bac402a9fc9df8ec04ef322f8fed36370904fa0c936f",
+      "seed": "32452843",
+      "team0": "fortress-counterattack",
+      "team1": "three-well-race",
+      "topologyFingerprint": "df06a828d4a9b118140da4a2f95283d7a0345bbed1c2a66c44a6be78a142cbd6"
+    },
+    {
+      "cellId": "fortress-counterattack--three-well-race--s32452843--a1",
+      "matchContractFingerprint": "effe27b77be8f16354d6cd0f5944e9cdf0212a0f81b2973e45ba73fdf3da8787",
+      "seed": "32452843",
+      "team0": "three-well-race",
+      "team1": "fortress-counterattack",
+      "topologyFingerprint": "af601f13dca1e04efc8f66bb421ffbe33421dbbecaf33389b249d2677c1b4c1e"
+    },
+    {
+      "cellId": "home-counterpunch--mortar-wheel--s32452843--a0",
+      "matchContractFingerprint": "3675504b97003545f9488a26511fa4d7ee2e1e7e9355cb916b9e7216a654a6fa",
+      "seed": "32452843",
+      "team0": "home-counterpunch",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "677a3a17d93efdb73a189266368a393bc64cfa510a8185e36a7318331dea6ad1"
+    },
+    {
+      "cellId": "home-counterpunch--mortar-wheel--s32452843--a1",
+      "matchContractFingerprint": "6c2380b3580cb0d7afee7e651edb17ea2a887c815e0a7e6f7cacf2da58a57996",
+      "seed": "32452843",
+      "team0": "mortar-wheel",
+      "team1": "home-counterpunch",
+      "topologyFingerprint": "d13b26d8b7d37120fd637948037c36db927113419a72d537918d0615b55178de"
+    },
+    {
+      "cellId": "home-counterpunch--null-veil--s32452843--a0",
+      "matchContractFingerprint": "33a22524c93ac05bea2e27d2acae758c6d01c592adafc8579dc7aa9f635b4a74",
+      "seed": "32452843",
+      "team0": "home-counterpunch",
+      "team1": "null-veil",
+      "topologyFingerprint": "366b08b2db80936a63dbb0f8592fec8233bb1adcfcddcfc2ca22cea2fc34af5f"
+    },
+    {
+      "cellId": "home-counterpunch--null-veil--s32452843--a1",
+      "matchContractFingerprint": "2eb739740759218a7fb450d6d6cf41505e91db325653e4fd16ce6ab1fbc81a9d",
+      "seed": "32452843",
+      "team0": "null-veil",
+      "team1": "home-counterpunch",
+      "topologyFingerprint": "91a27915d293b7a8f68b6f6116d27db749b0a1e3a51449270fa6e22aee0ab93a"
+    },
+    {
+      "cellId": "home-counterpunch--sensor-grid--s32452843--a0",
+      "matchContractFingerprint": "fcd9d2ae98b1e126471327ec135369f0cffbcfce4b1e72194eb5a8d3a652c624",
+      "seed": "32452843",
+      "team0": "home-counterpunch",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "8e5ab5e5d01cf1f3ce5b1d750cd07276ea61d23d40400ac011e03aac75bf3c43"
+    },
+    {
+      "cellId": "home-counterpunch--sensor-grid--s32452843--a1",
+      "matchContractFingerprint": "6d706c36f17c4bbcc0d5f7f30ff144c7770342a285be3c21d186d382a015c91a",
+      "seed": "32452843",
+      "team0": "sensor-grid",
+      "team1": "home-counterpunch",
+      "topologyFingerprint": "2587c97bd24dc2d297128b6ab085c583d9259a6ea5e686a00bd3e96576cd8f5c"
+    },
+    {
+      "cellId": "hook-burst--interception--s32452843--a0",
+      "matchContractFingerprint": "337b24d89c65fdcf5866520d149d518d29326ed7ea4fafa042d39df1fde37fae",
+      "seed": "32452843",
+      "team0": "hook-burst",
+      "team1": "interception",
+      "topologyFingerprint": "ba62edacff7e159850ac384cb153bce279f3083440a91bd4ecf2c0acaaf8ecaf"
+    },
+    {
+      "cellId": "hook-burst--interception--s32452843--a1",
+      "matchContractFingerprint": "12f7c57c5596142c6c00014ddbf385264137a606194d1950b7b777421c6db385",
+      "seed": "32452843",
+      "team0": "interception",
+      "team1": "hook-burst",
+      "topologyFingerprint": "003777762b4f1cd9a9e3dff918bd880312c6fe686098f5bd1f5ab2ebb5448359"
+    },
+    {
+      "cellId": "hook-burst--mortar-wheel--s32452843--a0",
+      "matchContractFingerprint": "c45830c124388c21abcb8c2c26424fb876a4b9c09b9e12d8e73b505999bc69a8",
+      "seed": "32452843",
+      "team0": "hook-burst",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "7d7b9f4b85fa7d2ba5e446f333527bbb918297e1a8a8b69f8185e387bbba6889"
+    },
+    {
+      "cellId": "hook-burst--mortar-wheel--s32452843--a1",
+      "matchContractFingerprint": "159cb4f86695185e7ae65b051bbd55dfb5368c91ff9118251bb4eaff24b8c982",
+      "seed": "32452843",
+      "team0": "mortar-wheel",
+      "team1": "hook-burst",
+      "topologyFingerprint": "56c6c8e10699b0d8a7bc277f2606cc5775296d432e006073dfa0cde96f4a5e25"
+    },
+    {
+      "cellId": "hook-burst--sensor-grid--s32452843--a0",
+      "matchContractFingerprint": "a667b4a58ff09b086388f73b7bd3a4bfb23493d87983c21430e0fcf7045c1f4f",
+      "seed": "32452843",
+      "team0": "hook-burst",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "6242d99ea804aa3245f7829e22a6558db2ceb472d6a73a67c42a144672c0f76a"
+    },
+    {
+      "cellId": "hook-burst--sensor-grid--s32452843--a1",
+      "matchContractFingerprint": "dd0ed71d118b152ad9b40e2c40dd0c9999e293da9a072b10f76d582c5c56adc8",
+      "seed": "32452843",
+      "team0": "sensor-grid",
+      "team1": "hook-burst",
+      "topologyFingerprint": "3aa07a7fc89fa7bbdd20314cd9b9815bebb5b6a8bd9d366c3f7b029458154060"
+    },
+    {
+      "cellId": "hook-burst--sustain-attrition--s32452843--a0",
+      "matchContractFingerprint": "63e761c611fe6b7a836e8af23b89f185f5ed273605e1344d58dcb5694c2c5abe",
+      "seed": "32452843",
+      "team0": "hook-burst",
+      "team1": "sustain-attrition",
+      "topologyFingerprint": "556d2a7beb77614be4ac583aa641b449806916d47a241ba0bd64223a8f06eb89"
+    },
+    {
+      "cellId": "hook-burst--sustain-attrition--s32452843--a1",
+      "matchContractFingerprint": "b5c8f9e352f02dedcb8413b1e866c7b0e488ac1f8d3dc90b80834eddb4f0b03f",
+      "seed": "32452843",
+      "team0": "sustain-attrition",
+      "team1": "hook-burst",
+      "topologyFingerprint": "904b388ab9dbd2e2235a8cc12d14b3344d312f3bbaa34305539202cb85c284c2"
+    },
+    {
+      "cellId": "mine-crescent--sustain-attrition--s32452843--a0",
+      "matchContractFingerprint": "1d757e3846a4f3692177df2af1ecb2c7c204f80f723118c725e4c58772c32fed",
+      "seed": "32452843",
+      "team0": "mine-crescent",
+      "team1": "sustain-attrition",
+      "topologyFingerprint": "2c5f04dc015c52d48a70291090791ede395e7ff0115554ed9ca0e112fe61b4be"
+    },
+    {
+      "cellId": "mine-crescent--sustain-attrition--s32452843--a1",
+      "matchContractFingerprint": "9f857cd98c00a1c38d66bc897ada70294486044b48fb9c1a82fda580934ddc6d",
+      "seed": "32452843",
+      "team0": "sustain-attrition",
+      "team1": "mine-crescent",
+      "topologyFingerprint": "011bbf1f90b9cbe45e44211766ae5624da30369e5149160b3fa03b2b4d2e616e"
+    },
+    {
+      "cellId": "mortar-wheel--pod-lattice--s32452843--a0",
+      "matchContractFingerprint": "55f6d1b1237c56cebe7049164ee3501a0f57f85a5a9e7ebe56996d1c04e69c4f",
+      "seed": "32452843",
+      "team0": "mortar-wheel",
+      "team1": "pod-lattice",
+      "topologyFingerprint": "8ec85786aa1474edc4bb968091806b99f37c04790a1f46848cb6c4fef99d2aa7"
+    },
+    {
+      "cellId": "mortar-wheel--pod-lattice--s32452843--a1",
+      "matchContractFingerprint": "34e95620ab9b1b4a5e41096cd14b03f720cb150ed57fbe8b602e5cac4d6f9860",
+      "seed": "32452843",
+      "team0": "pod-lattice",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "2a8899a8066a8a28fbe3cd967d0275a178c8a313503b41b928d8e10a5c2250c5"
+    },
+    {
+      "cellId": "mortar-wheel--relay-chain--s32452843--a0",
+      "matchContractFingerprint": "b42233d4d535ed14ce17b4c9fad8f4f7bbb3c8d2d5552a8881f9069562ec44ad",
+      "seed": "32452843",
+      "team0": "mortar-wheel",
+      "team1": "relay-chain",
+      "topologyFingerprint": "b9810ffa96e27c8817e602d657cb5449a15c762916f298bd5fcbb485d309c3fe"
+    },
+    {
+      "cellId": "mortar-wheel--relay-chain--s32452843--a1",
+      "matchContractFingerprint": "96989bfb3d624958249627a6325acd862334adc0a8a7a73a59c626a98789bcb1",
+      "seed": "32452843",
+      "team0": "relay-chain",
+      "team1": "mortar-wheel",
+      "topologyFingerprint": "b504315879bd2f98fbd9475afd4a3c7691e8673fc72cfaaabc364300f1e31de7"
+    },
+    {
+      "cellId": "null-veil--relay-chain--s32452843--a0",
+      "matchContractFingerprint": "809bc5ec980a450ca7a7c8c14ab625b9b85b3ada1e380dde87e98a90d23f5ae4",
+      "seed": "32452843",
+      "team0": "null-veil",
+      "team1": "relay-chain",
+      "topologyFingerprint": "3738227bf91d56f3b484784f2ad74dfed01179fe21038163cb92c49fe34db1cd"
+    },
+    {
+      "cellId": "null-veil--relay-chain--s32452843--a1",
+      "matchContractFingerprint": "91fd104fa24b9af918f9f7efc7d4b2fc637dac826be8c763938bb8cd57f620ab",
+      "seed": "32452843",
+      "team0": "relay-chain",
+      "team1": "null-veil",
+      "topologyFingerprint": "f2f8afa26e0a467cefd676799ebcda0f82281c6514fa9339f27bbea74f55f966"
+    },
+    {
+      "cellId": "null-veil--repair-web--s32452843--a0",
+      "matchContractFingerprint": "ff2c4fbb0bfaad07e7f86cf534b92f30f43c47ef8ae10c5a13ff388791a75d10",
+      "seed": "32452843",
+      "team0": "null-veil",
+      "team1": "repair-web",
+      "topologyFingerprint": "2b4603f97faaa2e2d0f264f80dbb72d754a8b14a0d27ab5c73fbdacd4603f02a"
+    },
+    {
+      "cellId": "null-veil--repair-web--s32452843--a1",
+      "matchContractFingerprint": "cb70e6acda91d1cace44f5bf3790afca4cc544c049af89227880871bfd238abf",
+      "seed": "32452843",
+      "team0": "repair-web",
+      "team1": "null-veil",
+      "topologyFingerprint": "501210d2a9b40d9ffb63b331ace86b650908ce7f1d897d948fb1bc633d123712"
+    },
+    {
+      "cellId": "null-veil--smoke-and-mines--s32452843--a0",
+      "matchContractFingerprint": "095d657be2dd24ce0490381c51a3a5d689a20a6d05f1ebb346f7f8deb50b7caf",
+      "seed": "32452843",
+      "team0": "null-veil",
+      "team1": "smoke-and-mines",
+      "topologyFingerprint": "498564ff77b7a1d740a8b6f6e1cf084298f68d8f2d4e3520fa515854e2ed1ecc"
+    },
+    {
+      "cellId": "null-veil--smoke-and-mines--s32452843--a1",
+      "matchContractFingerprint": "5fa843d77355436fa4d8d84deb33003d2b1e49fb1affc4715afcbcf3fc3ad00c",
+      "seed": "32452843",
+      "team0": "smoke-and-mines",
+      "team1": "null-veil",
+      "topologyFingerprint": "17db15da957fad38ee126d4fb6c207bc8d7853c882884eaa0a341a77a08d7562"
+    },
+    {
+      "cellId": "outer-pincers--rail-screen--s32452843--a0",
+      "matchContractFingerprint": "645bf75e15329dd3b26f43741be1ef08dbcd2e4bec83e8913e25a4c4373260d3",
+      "seed": "32452843",
+      "team0": "outer-pincers",
+      "team1": "rail-screen",
+      "topologyFingerprint": "32f3dec3ea579e024cec3890f8286f0b1c59b40f4ab12a8ef8ee274d53811e65"
+    },
+    {
+      "cellId": "outer-pincers--rail-screen--s32452843--a1",
+      "matchContractFingerprint": "d3e0cf6155c966ade9389f6cdc50c2f100661dd230ced8280e9c8dc5c0d23da6",
+      "seed": "32452843",
+      "team0": "rail-screen",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "e518faab2395e2f816703922e2a1d1a7f85a45a206aac6399843d522c2be5634"
+    },
+    {
+      "cellId": "outer-pincers--three-well-race--s32452843--a0",
+      "matchContractFingerprint": "42f8dabb348decf55c43a81cfa5e9a3ff06e94a03bc3627a9749eaa38c6eb821",
+      "seed": "32452843",
+      "team0": "outer-pincers",
+      "team1": "three-well-race",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "outer-pincers--three-well-race--s32452843--a1",
+      "matchContractFingerprint": "b3337452ba18634b7197352740433461da4d135efa1792b8f67c4433bfd222f3",
+      "seed": "32452843",
+      "team0": "three-well-race",
+      "team1": "outer-pincers",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "pod-lattice--smoke-convoy--s32452843--a0",
+      "matchContractFingerprint": "938568b0bfcc650b34bd85170f53b3e615dbe67ecf52c38a5cf70f8e2a1c418e",
+      "seed": "32452843",
+      "team0": "pod-lattice",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "7cce7eff8905247430c0bd8f608a013c1b8e300a390b15b62dc7d37a9557d806"
+    },
+    {
+      "cellId": "pod-lattice--smoke-convoy--s32452843--a1",
+      "matchContractFingerprint": "42905e62d15f262530f53d5c1b8924e0fca32ca4861d46e201ca4a57146b758f",
+      "seed": "32452843",
+      "team0": "smoke-convoy",
+      "team1": "pod-lattice",
+      "topologyFingerprint": "e4d59248236cb72c66550d80b834f0c5b64db23348f5067f6c061a0cf098f333"
+    },
+    {
+      "cellId": "pod-lattice--trap-punish--s32452843--a0",
+      "matchContractFingerprint": "7ce591243ea6406627ab909766309e1d1d1bc66cf9d88915f43ded2fefb9d70f",
+      "seed": "32452843",
+      "team0": "pod-lattice",
+      "team1": "trap-punish",
+      "topologyFingerprint": "c35f34db5ee74103262196ce2ade36f5848e5a57b9cd1f4fcbe945045d4a8035"
+    },
+    {
+      "cellId": "pod-lattice--trap-punish--s32452843--a1",
+      "matchContractFingerprint": "3302624266630beba1e31055acd9ae956551d448e9c9b777e0f674fd9321b660",
+      "seed": "32452843",
+      "team0": "trap-punish",
+      "team1": "pod-lattice",
+      "topologyFingerprint": "641633a20190ba4852e9e916383f4b114eb069ba9444dce92ed10283ab9e2fec"
+    },
+    {
+      "cellId": "rail-screen--repair-web--s32452843--a0",
+      "matchContractFingerprint": "738ea7089a35e77cdabe28e113da9af6eb89c45471c4cfef33e25f30c3801414",
+      "seed": "32452843",
+      "team0": "rail-screen",
+      "team1": "repair-web",
+      "topologyFingerprint": "fba06d5152e15f0cda86e2c6201861d5ae56e747491ebfbb3d193d4441870a95"
+    },
+    {
+      "cellId": "rail-screen--repair-web--s32452843--a1",
+      "matchContractFingerprint": "2db66c1d3817dc474844b5c835d83a334b080c7173419f0dc3f1b9991cc9aa59",
+      "seed": "32452843",
+      "team0": "repair-web",
+      "team1": "rail-screen",
+      "topologyFingerprint": "8af2b418575c61c81cbf8c4ff76780268ccdae29a5bd58ced1852a7c739e3a53"
+    },
+    {
+      "cellId": "rail-screen--rotating-bastions--s32452843--a0",
+      "matchContractFingerprint": "0d46c6a0ac1a6edd26a191b266a85d0a3faceb5e8960e8d8ca0ebf7fdf39fba1",
+      "seed": "32452843",
+      "team0": "rail-screen",
+      "team1": "rotating-bastions",
+      "topologyFingerprint": "384d5036475a7a022e7effd536ced444ce5ae7b2ead718db10c975a79ee521dd"
+    },
+    {
+      "cellId": "rail-screen--rotating-bastions--s32452843--a1",
+      "matchContractFingerprint": "138d45d70d72517db9b8d093d27c33df2e68931c8d0fd3348ac7515828791035",
+      "seed": "32452843",
+      "team0": "rotating-bastions",
+      "team1": "rail-screen",
+      "topologyFingerprint": "309a1fa1845eebdf0b22585f27d6a3ed986553948e3706b6bf5c259ef7e9bab8"
+    },
+    {
+      "cellId": "relay-chain--sustain-attrition--s32452843--a0",
+      "matchContractFingerprint": "73f7aca588ff8edfcf9ad2a29333a69ca271f83a8eb3937e417d800b3a7adce3",
+      "seed": "32452843",
+      "team0": "relay-chain",
+      "team1": "sustain-attrition",
+      "topologyFingerprint": "46c87099e8c5f60cdb3adb4c5762d5212555eb7ce8fb7384bed9cb3f2a3fd093"
+    },
+    {
+      "cellId": "relay-chain--sustain-attrition--s32452843--a1",
+      "matchContractFingerprint": "b8a7757a981933a005b5b79ac3b54fcee54e4f9b0c542e4f2a54ea8d1d4af042",
+      "seed": "32452843",
+      "team0": "sustain-attrition",
+      "team1": "relay-chain",
+      "topologyFingerprint": "b6a3b90c0d1c3ca6b6474b92abf37abed7b6c91276f121f0cfd0f8a76944edc7"
+    },
+    {
+      "cellId": "repair-web--smoke-convoy--s32452843--a0",
+      "matchContractFingerprint": "b1ef416238d93ec7e1b099d95201b13d143e775c1f069f942d060902742b7980",
+      "seed": "32452843",
+      "team0": "repair-web",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "32d4b52a5ce4b6bc27f0163224b4ea8eb5ed1fc5f8ddf9b2880771c9472936db"
+    },
+    {
+      "cellId": "repair-web--smoke-convoy--s32452843--a1",
+      "matchContractFingerprint": "76de48157f6ca6fce00065a02df49e0b2adbf8b74d77a94a151d17c76dc7deca",
+      "seed": "32452843",
+      "team0": "smoke-convoy",
+      "team1": "repair-web",
+      "topologyFingerprint": "5a1fa3dacdd56989bae3643279081e3ce6f48cc69e4843c13368ef79b3980d8c"
+    },
+    {
+      "cellId": "rotating-bastions--smoke-convoy--s32452843--a0",
+      "matchContractFingerprint": "28e1f3e0b67f2cd167c19a03f4e8a5cb213156940c66ac9387c359a35bc27e0a",
+      "seed": "32452843",
+      "team0": "rotating-bastions",
+      "team1": "smoke-convoy",
+      "topologyFingerprint": "1496f88f0884dad750eac29e7c85b3bfb72c58f0d355110280ec2a4b717dc164"
+    },
+    {
+      "cellId": "rotating-bastions--smoke-convoy--s32452843--a1",
+      "matchContractFingerprint": "23f4c0c30b8896e56d67831891bdca7ae1204596d0ed0ac4ac3d3fe7a57eee4b",
+      "seed": "32452843",
+      "team0": "smoke-convoy",
+      "team1": "rotating-bastions",
+      "topologyFingerprint": "55876def9b31c41411cd6112726b55c68366514225a60b13bb2a3b542ca1a7ae"
+    },
+    {
+      "cellId": "sensor-grid--smoke-and-mines--s32452843--a0",
+      "matchContractFingerprint": "de7d56975064c604b426c84e31dd22580eb880fe139b2416520b6d76b68baa17",
+      "seed": "32452843",
+      "team0": "sensor-grid",
+      "team1": "smoke-and-mines",
+      "topologyFingerprint": "e298286382f6904cd273d0536343cc025c3a1a9e6859fcbe21ec33e9f748f37e"
+    },
+    {
+      "cellId": "sensor-grid--smoke-and-mines--s32452843--a1",
+      "matchContractFingerprint": "dc9049ce56db09706fac8ba6c01803033c7de5aa01fd85ce37855144942a4c74",
+      "seed": "32452843",
+      "team0": "smoke-and-mines",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "a690e9f903de8dba134ef4316ab3fe736df8ed37825efc39a7929c4eab168f21"
+    },
+    {
+      "cellId": "sensor-grid--split--s32452843--a0",
+      "matchContractFingerprint": "28ecb698c2af90d118b4145dc203f50e8fe9706a18b884ea344be8fc814b4e71",
+      "seed": "32452843",
+      "team0": "sensor-grid",
+      "team1": "split",
+      "topologyFingerprint": "eb84fd636edf33eaca17738b42b5e82b8e3ec304868ed6898c7d99bd68244d30"
+    },
+    {
+      "cellId": "sensor-grid--split--s32452843--a1",
+      "matchContractFingerprint": "a9d783963c4e48c14ceda4e0e95af7b6c2b4d4a65cd6ffec314645d54d66ecae",
+      "seed": "32452843",
+      "team0": "split",
+      "team1": "sensor-grid",
+      "topologyFingerprint": "8004a6fe8be14146d1d63e57c66880d11fc84a37198e1fe16af9106c3f28bfb4"
+    },
+    {
+      "cellId": "smoke-and-mines--sustain-attrition--s32452843--a0",
+      "matchContractFingerprint": "c9886f3980d9a693a11b00c93f723c02b1e39447ef567b2ea373068ae9acc758",
+      "seed": "32452843",
+      "team0": "smoke-and-mines",
+      "team1": "sustain-attrition",
+      "topologyFingerprint": "18a64cdbe2b0dbc9649f2d67c81500a11aba83ff6aec1853133f3f67abc1f4c8"
+    },
+    {
+      "cellId": "smoke-and-mines--sustain-attrition--s32452843--a1",
+      "matchContractFingerprint": "84a3d36e59921456328b7f4c9aca47baf6d4bb84055ae81e4681aa809d7328de",
+      "seed": "32452843",
+      "team0": "sustain-attrition",
+      "team1": "smoke-and-mines",
+      "topologyFingerprint": "025fbd138e497e2da1ba5b2e6a3bd42a97ea0d8f0d463e99da532adbbe2a12f8"
+    },
+    {
+      "cellId": "smoke-and-mines--three-well-race--s32452843--a0",
+      "matchContractFingerprint": "6125ba1932e30de2dce7382efab6da6d30f26712c959b28ae1bfe35c0fdfbb5b",
+      "seed": "32452843",
+      "team0": "smoke-and-mines",
+      "team1": "three-well-race",
+      "topologyFingerprint": "69fe1b051f1493c5a4a666181ed99424072c330a3985e29032563820bc62df0b"
+    },
+    {
+      "cellId": "smoke-and-mines--three-well-race--s32452843--a1",
+      "matchContractFingerprint": "2ef46dc93cd176ba17abb9c8a7cce8dc6d7fa469e52392c0494d0bc7d89003fb",
+      "seed": "32452843",
+      "team0": "three-well-race",
+      "team1": "smoke-and-mines",
+      "topologyFingerprint": "05a544930c2abde516948b5b8a90402754c17f913492758843d99209a4ab1710"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/forward-combat-cohort-v5-2026-08-03/cohort.json",
+  "cohortId": "arc-relay-forward-combat-strategy-mind-v5",
+  "cohortSha256": "ba8f375f726f3e058551beb711958ace5be8aabba8e01696199dae0446687c1d",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "eligibilityBarsSha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "balanced": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/balanced.json",
+      "sheetSha256": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137"
+    },
+    "beacon-hunt": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/beacon-hunt.json",
+      "sheetSha256": "6d7b7f62b9c5f4ee7431d7bf1928417a6d1beb5fd2fce370a5d5c5551952eaed"
+    },
+    "breach-column": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/breach-column.json",
+      "sheetSha256": "fc390cd089ed1f64c756c953c6fd170104a2dcc3010516bf7071d5d62bae64ed"
+    },
+    "centre-phalanx": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/centre-phalanx.json",
+      "sheetSha256": "ea954359e1469dfcd7f3e98730497ec7cacd28bf6e6879294504f0ab70dca60e"
+    },
+    "control-grid": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/control-grid.json",
+      "sheetSha256": "091f12cf8beb37ee15a5042a89fbe82ed6727359b4d8a8ead0da6ad457b5f545"
+    },
+    "convoy": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/convoy.json",
+      "sheetSha256": "bd468b2b528299a443c12be005bf2765938e47fb4289ff8889ae773168a7f9f7"
+    },
+    "counter-courier": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/counter-courier.json",
+      "sheetSha256": "5a4cde2e61d6f9bab16c6281218516308da7aa83e6dab9641a67806ad5e23a77"
+    },
+    "courier-sprint": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/courier-sprint.json",
+      "sheetSha256": "2dbfa9cca3e46f0ea50c8e4a390841237f83b8d5bb71974d2d54f81bc1d4893b"
+    },
+    "displacement-control": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/displacement-control.json",
+      "sheetSha256": "33ad7959779fe6f64223befbdc7b9460506e8c0ff75517aff736af5d7c5aa94f"
+    },
+    "elastic-reserve": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/elastic-reserve.json",
+      "sheetSha256": "7b6e11b230c8e4965a6c53b709056044eb0359f42a78d0a37c862508d060cb85"
+    },
+    "feint-switch": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/feint-switch.json",
+      "sheetSha256": "04d48ddb90827271ed029086874fe8bf16e1c3e3c694b17e90b80803409e0e8d"
+    },
+    "fireline-picks": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fireline-picks.json",
+      "sheetSha256": "43b2ee077846c119b448a42e953a298744d59368a501b0ca51f85cf23895000a"
+    },
+    "fortress-counterattack": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fortress-counterattack.json",
+      "sheetSha256": "92eda68aeee837dde2093b8ef7bf515dac23f7db64d746175c4b9d79ce813c1d"
+    },
+    "home-counterpunch": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/home-counterpunch.json",
+      "sheetSha256": "bfb15f294b383673406ebde1c959957c3a6999a62e7a2b1858e364e64c5cf686"
+    },
+    "hook-burst": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/hook-burst.json",
+      "sheetSha256": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97"
+    },
+    "interception": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/interception.json",
+      "sheetSha256": "bae86dbc1dd219c0b7a01bdaf6c1036dd6d38fcf9798a696c165555a49f7cfd1"
+    },
+    "mine-crescent": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/mine-crescent.json",
+      "sheetSha256": "686130b6bcc2545d1583ed4fc9a5241b1fed03b19cb0f88cf7be3728103c3428"
+    },
+    "mortar-wheel": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/mortar-wheel.json",
+      "sheetSha256": "df04d488f6279f27d0308992940823f1cfc2d7673a994ca4f6bce168f04a897a"
+    },
+    "null-veil": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/null-veil.json",
+      "sheetSha256": "e4b662b2300688cfa5481a199387dd8203e1e690c5dedbc942dfd6cbb286c6eb"
+    },
+    "outer-pincers": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/outer-pincers.json",
+      "sheetSha256": "269f5b91ee4e5fb6874c6116e9ea179eb2f5472cb4aa6cc79e23ba2daedd9d64"
+    },
+    "pod-lattice": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/pod-lattice.json",
+      "sheetSha256": "4da5dad38a8a0feaed544f89e1bb70ef6241503d3ae1df6524ad64ce07ae18a3"
+    },
+    "rail-screen": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/rail-screen.json",
+      "sheetSha256": "f210aff1618a02300338fc86a7223af57f0b2b2091c5ec8de7c8b9b40fc68223"
+    },
+    "relay-chain": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/relay-chain.json",
+      "sheetSha256": "e12013a2e038e9ae0e5dc6234329b20bc3280588cf5a44b5f04afbad18b3a1cb"
+    },
+    "repair-web": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/repair-web.json",
+      "sheetSha256": "95941d5c90aa4fc45979a28f4468fb546c63b32381cf41da8594b2873c92bcb6"
+    },
+    "rotating-bastions": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/rotating-bastions.json",
+      "sheetSha256": "10d6c6b53ac4608c25330e988f5701526199eab4baa645ef8fbe1e888a0b2ea3"
+    },
+    "sensor-grid": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/sensor-grid.json",
+      "sheetSha256": "d84288626d58cbdcfded113be44b13b079ad4e3554d2695e067f727e1d6e621c"
+    },
+    "smoke-and-mines": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/smoke-and-mines.json",
+      "sheetSha256": "4cbc482cf676a3fe2d9c618840c2b8112be86cd2d0f9137b3067a26387f7dfee"
+    },
+    "smoke-convoy": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/smoke-convoy.json",
+      "sheetSha256": "de0a3ea3635203a41c7293df65a2fbd7bddcb3ee9272d1f1be45f97da7a3b690"
+    },
+    "split": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/split.json",
+      "sheetSha256": "33bad51bbcbed960e2d4168750a4d8df2a18647b690fe4c3317182af8c23cedd"
+    },
+    "sustain-attrition": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/sustain-attrition.json",
+      "sheetSha256": "ceaec3e68e5edf6e9493998e2357965889702105355c3e023768cc1ce8a9dea5"
+    },
+    "three-well-race": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/three-well-race.json",
+      "sheetSha256": "6ce9e259018ea3d6a40b7c6585f1187dcf0b5568defc9a6b1f2d888435449ab8"
+    },
+    "trap-punish": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "a0fd93f50c77cecc5a808428eaf935d7cbfeae21163e719797ae97627e90ec77",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/trap-punish.json",
+      "sheetSha256": "bf27d3f1c247a1ac02683c188cb33b96e1d1a98e614ff6f4b4f12ad101e121c2"
+    }
+  },
+  "loopProfile": "forward-combat",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "0acab8947506cf6224ac00029d8c3d62e9ec61cbda224e2a955db45b711b90a9",
+  "rulesetId": "arc-relay-forward-combat-01",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-forward-combat-strategy-mind-v5"
+}

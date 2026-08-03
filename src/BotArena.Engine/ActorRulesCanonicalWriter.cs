@@ -798,6 +798,12 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteString(
                 "aimInterpretation",
                 Id(profile.AimInterpretation));
+            if (profile.FacingAimHalfWidthSectors > 0)
+            {
+                writer.WriteNumber(
+                    "facingAimHalfWidthSectors",
+                    profile.FacingAimHalfWidthSectors);
+            }
             writer.WritePropertyName("projectile");
             WriteProjectile(writer, profile.Projectile);
             writer.WriteNumber("cooldownTicks", profile.CooldownTicks);
@@ -990,6 +996,12 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteStringValue(Id(parameter));
             }
             writer.WriteEndArray();
+            if (action.MovementFacingOverride is { } facingOverride)
+            {
+                writer.WriteString(
+                    "movementFacingOverride",
+                    Id(facingOverride));
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

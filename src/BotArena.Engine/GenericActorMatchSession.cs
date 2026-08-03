@@ -1541,7 +1541,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 // facing to a FacingLocked mover, so a non-facing direction
                 // never survives argument admission. If one ever did, it must
                 // resolve as Blocked rather than as a free sidestep.
-                || (MovementFor(life).FacingCoupling
+                || (ActorMovementFacingResolver.EffectiveCoupling(
+                            MovementFor(life), action)
                         == ActorMovementFacingCoupling.FacingLocked
                     && heading != life.Facing.ToProjectileHeading()))
             {
@@ -1629,17 +1630,13 @@ public sealed class GenericActorMatchSession : IDisposable
             life.Position = target;
             ProjectileHeading heading = MovementHeading(
                 resolution.ValidatedAction);
-            if (MovementFor(life).FacingCoupling
-                    == ActorMovementFacingCoupling.FaceMovementDirection
-                && heading is ProjectileHeading.North
-                    or ProjectileHeading.East
-                    or ProjectileHeading.South
-                    or ProjectileHeading.West)
-            {
-                // Facing is set before the event is emitted so the Movement
-                // payload carries — and therefore evidences — the new facing.
-                life.Facing = (Direction)((int)heading / 2);
-            }
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            life.Facing = ActorMovementFacingResolver.AfterSuccessfulMove(
+                life.Facing,
+                heading,
+                ActorMovementFacingResolver.EffectiveCoupling(
+                    MovementFor(life), action));
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind.Movement,
@@ -4693,12 +4690,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.ProjectileHeading =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .ProjectileHeadingConstraint(
-                            action.Kind == ActorActionKind.Movement
-                                && MovementFor(life).FacingCoupling
-                                    == ActorMovementFacingCoupling.FacingLocked
-                                ? [life.Facing.ToProjectileHeading()]
-                                : Enum.GetValues<ProjectileHeading>()
-                                    .ToImmutableArray()),
+                            AllowedProjectileHeadings(life, action)),
                 // Affordability lives in the mask, not in the bot: a track is
                 // offered only when the team's bank covers its next tier and
                 // no cap forbids it. The mask is a SET in canonical ordinal
@@ -4746,6 +4738,37 @@ public sealed class GenericActorMatchSession : IDisposable
             == ActorMovementFacingCoupling.FacingLocked
             ? [life.Facing]
             : Enum.GetValues<Direction>().ToImmutableArray();
+
+    private ImmutableArray<ProjectileHeading> AllowedProjectileHeadings(
+        LifeState life,
+        ActorActionDefinition action)
+    {
+        if (action.Kind == ActorActionKind.Movement
+            && ActorMovementFacingResolver.EffectiveCoupling(
+                    MovementFor(life), action)
+                == ActorMovementFacingCoupling.FacingLocked)
+        {
+            return [life.Facing.ToProjectileHeading()];
+        }
+        if (action.Kind == ActorActionKind.Attack
+            && AttackFor(life) is { FacingAimHalfWidthSectors: > 0 } attack)
+        {
+            ProjectileHeading centre = life.Facing.ToProjectileHeading();
+            return Enum.GetValues<ProjectileHeading>()
+                .Where(heading => CircularHeadingDistance(centre, heading)
+                    <= attack.FacingAimHalfWidthSectors)
+                .ToImmutableArray();
+        }
+        return Enum.GetValues<ProjectileHeading>().ToImmutableArray();
+    }
+
+    private static int CircularHeadingDistance(
+        ProjectileHeading first,
+        ProjectileHeading second)
+    {
+        int difference = Math.Abs((int)first - (int)second);
+        return Math.Min(difference, 8 - difference);
+    }
 
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
@@ -5193,7 +5216,8 @@ public sealed class GenericActorMatchSession : IDisposable
         ActorAttackProfileDefinition profile,
         GenericActorRuntimeActionResolution.ResolvedAction action)
     {
-        if (profile.OmnidirectionalAim)
+        if (profile.OmnidirectionalAim
+            || profile.FacingAimHalfWidthSectors > 0)
         {
             return action.Arguments
                 .OfType<

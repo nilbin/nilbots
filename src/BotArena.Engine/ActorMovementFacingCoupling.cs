@@ -42,4 +42,21 @@ public enum ActorMovementFacingCoupling
     /// turning stays a separate action.
     /// </summary>
     FacingLocked = 2,
+
+    /// <summary>
+    /// A successful move projects its eight-way travel heading back onto the
+    /// four cardinal body facings. Cardinal travel faces that cardinal;
+    /// diagonal travel keeps the current facing when it is one of the
+    /// diagonal's components and otherwise flips to the opposite cardinal.
+    /// Blocked movement changes neither position nor facing.
+    /// </summary>
+    FaceMovementHeadingProjected = 3,
+
+    /// <summary>
+    /// Forward, forward-diagonal, and exact lateral movement preserve facing,
+    /// while a successful rear or rear-diagonal move flips facing by 180
+    /// degrees. This permits combat strafing without making reverse kiting a
+    /// free way to retain aim. Blocked movement never changes facing.
+    /// </summary>
+    CombatStrafe = 4,
 }

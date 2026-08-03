@@ -14,6 +14,7 @@ public sealed class ArcRelayPlaylistSeeder(
     IObjectStore objectStore)
 {
     public const string StockBotSlug = "arc-relay-stock-mind";
+    public const string ForwardStockBotSlug = "arc-relay-forward-stock-mind";
 
     public async Task<ArcRelaySeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -63,6 +64,7 @@ public sealed class ArcRelayPlaylistSeeder(
         expected.Validate(playlist, version);
 
         BotVersion stockVersion = await SeedStockMindAsync(cancellationToken);
+        await SeedForwardStockMindAsync(cancellationToken);
         if (await db.Ladders.AnyAsync(
                 ladder => ladder.PlaylistVersionId == version.Id,
                 cancellationToken))
@@ -135,6 +137,108 @@ public sealed class ArcRelayPlaylistSeeder(
                 GameRulesVersion = ArcRelayH0Definition.RulesetId,
                 RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion = BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+                BuiltAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+            bot.Versions.Add(version);
+            db.BotVersions.Add(version);
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return version;
+    }
+
+    private async Task<BotVersion> SeedForwardStockMindAsync(
+        CancellationToken cancellationToken)
+    {
+        string? wasmPath = RepoPaths.FindUpward(
+            Path.Combine(
+                "arena-bots",
+                "arc-relay",
+                "stock-mind-v4",
+                "bot.wasm"));
+        if (wasmPath is null)
+        {
+            throw new InvalidOperationException(
+                "Forward-combat Arc Relay stock mind artifact is missing.");
+        }
+        string artifactHash = BotBuilder.Sha256File(wasmPath);
+        if (!string.Equals(
+                artifactHash,
+                ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Forward-combat Arc Relay stock mind hash moved.");
+        }
+        string artifactKey = ObjectKeys.Artifact(artifactHash);
+        await using (var stream = File.OpenRead(wasmPath))
+        {
+            await objectStore.PutAsync(
+                artifactKey,
+                stream,
+                artifactHash,
+                cancellationToken);
+        }
+
+        var system = await BuiltInBotSeeder.GetOrCreateSystemUser(
+            db,
+            cancellationToken);
+        Bot? bot = await db.Bots.Include(value => value.Versions)
+            .SingleOrDefaultAsync(
+                value => value.Slug == ForwardStockBotSlug,
+                cancellationToken);
+        if (bot is null)
+        {
+            bot = new Bot
+            {
+                OwnerUserId = system.Id,
+                Name = "Arc Relay forward-combat stock mind",
+                Slug = ForwardStockBotSlug,
+                Accent = "#22d3ee",
+                LookId = "arc-relay",
+                ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+            };
+            db.Bots.Add(bot);
+        }
+        BotVersion? version = bot.Versions.SingleOrDefault(value =>
+            string.Equals(
+                value.ArtifactHash,
+                artifactHash,
+                StringComparison.Ordinal));
+        if (version is null)
+        {
+            foreach (BotVersion old in bot.Versions)
+                old.IsActive = false;
+            version = new BotVersion
+            {
+                BotId = bot.Id,
+                VersionNumber = bot.Versions.Count + 1,
+                EntryType = "ArcRelayStrategyMind",
+                SourcesJson = "[]",
+                SourceHash =
+                    "cc85c8da7f8e9c2dfd87e20ec1985dce77c2b2f2da7f01bc2f0683a224d2cb96",
+                Status = BuildStatus.Built,
+                ArtifactKey = artifactKey,
+                ArtifactHash = artifactHash,
+                BuildReceiptJson = JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "versioned-first-party-stock-mind",
+                    combatProfile = ArcRelayLoopProfile.ForwardCombat.Id,
+                    sheetSchema = ArcRelay.ArcRelayPlayerSheetCodec.SchemaId,
+                    sourceSha256 =
+                        "cc85c8da7f8e9c2dfd87e20ec1985dce77c2b2f2da7f01bc2f0683a224d2cb96",
+                    arenaBasicsSha256 =
+                        "35ff4bcd0c634e01f3f6f89d9741fe9ed02a57b9a32cc04fd3d1d20fd807b8c1",
+                    artifactSha256 = artifactHash,
+                }),
+                SupportedContractProfiles =
+                    [BotArenaVersions.GenericMindContractProfileId],
+                GuestBotName = "Arc Relay forward-combat stock mind",
+                GameRulesVersion = ArcRelayLoopProfile.ForwardCombat.RulesetId,
+                RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
+                RuntimeConfigurationVersion =
+                    BotArenaVersions.GenericMindRuntimeConfigurationVersion,
                 BuiltAt = DateTime.UtcNow,
                 IsActive = true,
             };

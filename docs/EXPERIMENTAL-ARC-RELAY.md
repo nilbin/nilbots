@@ -1,10 +1,12 @@
 # Arc Relay — experimental player rules
 
 Arc Relay is the current experimental game. It is not the shipped Duel
-ruleset. The rules identity remains `arc-relay-h0-01`; hosted entrant playlist
-v3 uses map `arc-relay-threefold-depth-counterflow-01`. The historical H0 and
-playlist-v2 maps remain immutable and executable under their original
-identities; changed mechanics or map content require changed fingerprints.
+ruleset. Hosted entrant playlist v4 uses rules identity
+`arc-relay-forward-combat-01` on map
+`arc-relay-threefold-depth-counterflow-01`. Playlist v3 retains the accepted
+Counterflow geometry with the prior omnidirectional basic-fire rules;
+historical H0 and playlist-v2 remain immutable and executable under their
+original identities.
 
 ## Match shape
 
@@ -94,15 +96,23 @@ Wells and reactor sockets refuse placed constructs.
 Every body moves one tile per accepted movement. Handling changes facing
 commitment, not speed:
 
-- `swift`: movement faces the moved direction;
-- `standard`: movement preserves facing;
+- `swift`: ordinary movement projects the eight-way travel heading onto a
+  cardinal facing. The mind may instead choose the separately published
+  `strafe-eight-way` action to preserve facing for that move;
+- `standard`: forward and lateral movement preserve facing; successful rear
+  or rear-diagonal travel turns the chassis around, preventing free reverse
+  kiting;
 - `deliberate`: movement is allowed only in the current cardinal facing, so
   changing travel direction costs a rotation.
 
-All bodies have facing-quadrant vision range 7 plus adjacency sight. Basic
-guns are omnidirectional eight-way shots: short/fast range 4 cooldown 2,
-medium/steady range 6 cooldown 3, and long/slow range 9 cooldown 5. A basic
-hit deals 1 hull.
+All bodies have facing-quadrant vision range 7 plus adjacency sight. A mobile
+basic gun may fire in three headings relative to the body's cardinal facing:
+straight and the two adjacent diagonals. The legality mask publishes those
+exact headings each tick. An off-cone target therefore costs orientation; a
+shot does not silently rotate the body. Short/fast range is 4 with cooldown 2,
+medium/steady range 6 with cooldown 3, and long/slow range 9 with cooldown 5.
+A basic hit deals 1 hull. Signature targeting is unchanged, and the deployed,
+faceless Sentinel remains an omnidirectional automated exception.
 
 ## Launch classes
 
@@ -131,7 +141,7 @@ available from the public CLI:
 
 ```bash
 nilbots experiment arc-relay \
-  --loop-profile depth-counterflow --print-contract
+  --loop-profile forward-combat --print-contract
 ```
 
 Run a native mind locally with:

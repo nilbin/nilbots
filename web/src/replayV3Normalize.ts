@@ -166,8 +166,18 @@ function movementFacingCoupling(
   if (value === 'preserve-facing') {
     fail(path, 'must be omitted instead of emitted inert');
   }
-  if (!['face-movement-direction', 'facing-locked'].includes(String(value))) {
-    fail(path, 'expected face-movement-direction or facing-locked');
+  if (
+    ![
+      'face-movement-direction',
+      'facing-locked',
+      'face-movement-heading-projected',
+      'combat-strafe',
+    ].includes(String(value))
+  ) {
+    fail(
+      path,
+      'expected a known non-inert movement/facing coupling',
+    );
   }
 }
 
@@ -1269,6 +1279,50 @@ function validateContract(
   ).forEach((entry, index) => {
     const profilePath = `${path}.rules.attackProfiles[${index}]`;
     const profileValue = object(entry, profilePath, fail);
+    const hasFacingCone = own(profileValue, 'facingAimHalfWidthSectors');
+    if (hasFacingCone) {
+      integer(
+        profileValue.facingAimHalfWidthSectors,
+        `${profilePath}.facingAimHalfWidthSectors`,
+        fail,
+      );
+      const halfWidth = profileValue.facingAimHalfWidthSectors as number;
+      if (halfWidth < 1 || halfWidth > 3) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'must be 1..3 when present',
+        );
+      }
+      if (
+        profileValue.omnidirectionalAim !== false ||
+        profileValue.aimInterpretation !==
+          'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged'
+      ) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'requires non-omnidirectional facing-cone aim interpretation',
+        );
+      }
+      const program = object(
+        profileValue.shotProgram,
+        `${profilePath}.shotProgram`,
+        fail,
+      );
+      if (program.enabled !== false) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'is mutually exclusive with programmed shots',
+        );
+      }
+    } else if (
+      profileValue.aimInterpretation ===
+      'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged'
+    ) {
+      fail(
+        `${profilePath}.aimInterpretation`,
+        'requires facingAimHalfWidthSectors',
+      );
+    }
     if (!own(profileValue, 'volley')) {
       return;
     }
@@ -1312,6 +1366,34 @@ function validateContract(
       fail(
         volleyPath,
         'is mutually exclusive with programmed shots',
+      );
+    }
+  });
+  array(rules.actions, `${path}.rules.actions`, fail).forEach((entry, index) => {
+    const actionPath = `${path}.rules.actions[${index}]`;
+    const actionValue = object(entry, actionPath, fail);
+    if (!own(actionValue, 'movementFacingOverride')) {
+      return;
+    }
+    if (actionValue.kind !== 'movement') {
+      fail(
+        `${actionPath}.movementFacingOverride`,
+        'is permitted only on movement actions',
+      );
+    }
+    const override = String(actionValue.movementFacingOverride);
+    if (
+      ![
+        'preserve-facing',
+        'face-movement-direction',
+        'facing-locked',
+        'face-movement-heading-projected',
+        'combat-strafe',
+      ].includes(override)
+    ) {
+      fail(
+        `${actionPath}.movementFacingOverride`,
+        'expected a known movement/facing coupling',
       );
     }
   });

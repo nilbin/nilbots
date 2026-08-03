@@ -33,6 +33,15 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2()
                 .Validate(playlist, historicalVersion);
         }
+        PlaylistVersion? counterflowVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                cancellationToken);
+        if (counterflowVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3()
+                .Validate(playlist, counterflowVersion);
+        }
         PlaylistVersion? version = await db.PlaylistVersions.SingleOrDefaultAsync(
             value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.Version,

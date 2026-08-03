@@ -1,0 +1,123 @@
+{
+  "schema": "arc-relay-intelligent-operation-live-proof-summary-v1",
+  "catalog": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json",
+  "catalogSha256": "5f6f79dad6ee823673ad2a983d7a1ce43b570fbe91e482fad82b02be30f2eed9",
+  "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+  "artifactSha256": "195114c7bd12758dc5b55060381c48782fe4e370a26a7c79883d6eb921490a64",
+  "runtime": "wasm",
+  "passed": true,
+  "passedCount": 10,
+  "requiredCount": 10,
+  "operations": [
+    {
+      "id": "rear-hook",
+      "replaySha256": "47984075a174bc277d62751402d4ba5aa4411dff0b33013a2b45fa834703cd2a",
+      "branch": "carrier-strike",
+      "prepareTick": 9,
+      "commitTick": 25,
+      "successTick": 31,
+      "releaseTick": 37,
+      "requiredActions": { "tractor-hook": [25, 26] },
+      "baselineRoleTagsAfterRelease": { "5": "a-amb-int-s" }
+    },
+    {
+      "id": "lantern-sweep",
+      "replaySha256": "2e18ba6f1d5e79ca4c1b8e4de1074cc14f877b3518ad1591ce2555329a0d9d3e",
+      "branch": "alternate-return",
+      "prepareTick": 53,
+      "commitTick": 59,
+      "successTick": 60,
+      "releaseTick": 61,
+      "requiredActions": {},
+      "baselineRoleTagsAfterRelease": { "0": "a-bal-car-n", "7": "a-bal-res-c" }
+    },
+    {
+      "id": "fork-shadow",
+      "replaySha256": "c8939e465c30d802ccc12fcfb2b6f3fc458a6510eef9d5161af0b06a27629c14",
+      "branch": "north-cutoff",
+      "prepareTick": 93,
+      "commitTick": 103,
+      "successTick": 124,
+      "releaseTick": 136,
+      "requiredActions": { "tractor-hook": [104, 105, 116, 118] },
+      "baselineRoleTagsAfterRelease": { "4": "a-amb-int-n", "5": "a-amb-int-s" }
+    },
+    {
+      "id": "birth-rotation",
+      "replaySha256": "a87fee069eadc60dbbb5c0bbac7c892043e25322e90aa5d6faf49c908a2f4767",
+      "branch": "release-to-next-well",
+      "prepareTick": 373,
+      "commitTick": 379,
+      "successTick": 386,
+      "releaseTick": 388,
+      "requiredActions": {},
+      "baselineRoleTagsAfterRelease": { "2": "a-spl-scr-n", "6": "a-spl-res-c" }
+    },
+    {
+      "id": "escort-counterpunch",
+      "replaySha256": "87f17fb6e9257786ebe8e28a85d31fe10407442789815006cf2c97f6c57f5113",
+      "branch": "direct-return",
+      "prepareTick": 53,
+      "commitTick": 59,
+      "successTick": 60,
+      "releaseTick": 61,
+      "requiredActions": {},
+      "baselineRoleTagsAfterRelease": { "0": "a-int-car-n", "4": "a-int-int-n" }
+    },
+    {
+      "id": "smoke-breach",
+      "replaySha256": "ed8c39ce437bd0c22c25b166eba4185bc93c1be2904f95bf1f6543d7d8bda7a5",
+      "branch": "cross-centre",
+      "prepareTick": 255,
+      "commitTick": 264,
+      "successTick": 273,
+      "releaseTick": 277,
+      "requiredActions": { "smoke-canister": [255] },
+      "baselineRoleTagsAfterRelease": { "4": "a-amb-int-n", "6": "a-amb-res-c" }
+    },
+    {
+      "id": "hardlight-gate",
+      "replaySha256": "4c53853246e81602f3084d9d284dd4534d86eec69d075cd52165034ce5cf9006",
+      "branch": "hold-gate",
+      "prepareTick": 57,
+      "commitTick": 69,
+      "successTick": 70,
+      "releaseTick": 71,
+      "requiredActions": { "hardlight-block": [57] },
+      "baselineRoleTagsAfterRelease": { "2": "a-for-scr-n", "3": "a-for-scr-s" }
+    },
+    {
+      "id": "relay-catch",
+      "replaySha256": "ac9c111113487e11122052868d83880fa85e997037051720bcc5910d4f5220ea",
+      "branch": "throw-home",
+      "prepareTick": 76,
+      "commitTick": 77,
+      "successTick": 80,
+      "releaseTick": 85,
+      "requiredActions": { "arc-toss": [78] },
+      "baselineRoleTagsAfterRelease": { "0": "a-rly-scr-s", "1": "a-rly-car-s" }
+    },
+    {
+      "id": "decoy-switch",
+      "replaySha256": "cc89864872c13e4ab68a7bd30e7fe7359c5c86230e692c31187292f4533f4859",
+      "branch": "south-pincer",
+      "prepareTick": 9,
+      "commitTick": 15,
+      "successTick": 25,
+      "releaseTick": 29,
+      "requiredActions": {},
+      "baselineRoleTagsAfterRelease": { "6": "a-fnt-res-c", "7": "a-fnt-res-c" }
+    },
+    {
+      "id": "emergency-exchange",
+      "replaySha256": "ff3c2dad7c4ee2b78f1ee2f68fa04d6804316197bb8a6a66f7adaf6c42b26e0e",
+      "branch": "exchange-and-return",
+      "prepareTick": 101,
+      "commitTick": 102,
+      "successTick": 113,
+      "releaseTick": 114,
+      "requiredActions": { "exchange": [112] },
+      "baselineRoleTagsAfterRelease": { "6": "a-int-res-c", "7": "a-int-res-c" }
+    }
+  ]
+}

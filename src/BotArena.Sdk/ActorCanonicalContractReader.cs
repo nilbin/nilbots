@@ -1568,12 +1568,18 @@ public static class ActorCanonicalContractReader
         bool hasVolley = element.TryGetProperty(
             "volley",
             out JsonElement volley);
+        bool hasFacingAimHalfWidth = element.TryGetProperty(
+            "facingAimHalfWidthSectors",
+            out JsonElement facingAimHalfWidth);
         ExactObject(
             element,
             [
                 "id",
                 "omnidirectionalAim",
                 "aimInterpretation",
+                .. hasFacingAimHalfWidth
+                    ? new[] { "facingAimHalfWidthSectors" }
+                    : [],
                 "projectile",
                 "cooldownTicks",
                 "maxEnergy",
@@ -1598,9 +1604,42 @@ public static class ActorCanonicalContractReader
                 "A canonical volley profile fires straight: programmed shots "
                 + "and multi-projectile volleys are mutually exclusive.");
         }
-        return BaseAttackProfile(element, shotProgram) with
+        RulesContract.AttackProfile profile = BaseAttackProfile(
+            element,
+            shotProgram);
+        int halfWidth = hasFacingAimHalfWidth
+            ? Int(facingAimHalfWidth)
+            : 0;
+        const string coneAim =
+            "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged";
+        if (hasFacingAimHalfWidth
+            && (halfWidth is < 1 or > 3
+                || profile.OmnidirectionalAim
+                || profile.ShotProgram.Enabled
+                || !string.Equals(
+                    profile.AimInterpretation,
+                    coneAim,
+                    StringComparison.Ordinal)))
+        {
+            throw new FormatException(
+                "A canonical facing aim cone has width 1..3, is not "
+                + "omnidirectional or programmed, and uses the facing-cone "
+                + "aim interpretation.");
+        }
+        if (!hasFacingAimHalfWidth
+            && string.Equals(
+                profile.AimInterpretation,
+                coneAim,
+                StringComparison.Ordinal))
+        {
+            throw new FormatException(
+                "The facing-cone aim interpretation requires a non-inert "
+                + "facingAimHalfWidthSectors field.");
+        }
+        return profile with
         {
             Volley = launch,
+            FacingAimHalfWidthSectors = halfWidth,
         };
     }
 
@@ -1647,7 +1686,8 @@ public static class ActorCanonicalContractReader
                 "aimInterpretation",
                 "current-facing-straight",
                 "current-facing-plus-relative-eight-way-shot-program",
-                "absolute-submitted-eight-way-heading-facing-unchanged"),
+                "absolute-submitted-eight-way-heading-facing-unchanged",
+                "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged"),
             ReadProjectile(Property(element, "projectile")),
             Int(element, "cooldownTicks"),
             Int(element, "maxEnergy"),
@@ -1789,15 +1829,54 @@ public static class ActorCanonicalContractReader
     private static RulesContract.ActionDefinition ReadAction(
         JsonElement element)
     {
-        ExactObject(element, "id", "code", "kind", "parameterKinds");
+        bool hasMovementFacingOverride = element.TryGetProperty(
+            "movementFacingOverride",
+            out JsonElement movementFacingOverride);
+        ExactObject(
+            element,
+            hasMovementFacingOverride
+                ? ["id", "code", "kind", "parameterKinds",
+                    "movementFacingOverride"]
+                : ["id", "code", "kind", "parameterKinds"]);
+        RulesContract.ActionKind kind = ActionKind(element, "kind");
+        if (hasMovementFacingOverride
+            && kind != RulesContract.ActionKind.Movement)
+        {
+            throw new FormatException(
+                "Only a movement action may carry movementFacingOverride.");
+        }
         return new RulesContract.ActionDefinition(
             Id(element, "id"),
             Int(element, "code"),
-            ActionKind(element, "kind"),
+            kind,
             Array(
                 Property(element, "parameterKinds"),
-                ActionParameterKind));
+                ActionParameterKind))
+        {
+            MovementFacingOverride = hasMovementFacingOverride
+                ? ReadMovementFacingOverride(movementFacingOverride)
+                : null,
+        };
     }
+
+    private static RulesContract.MovementFacingCoupling
+        ReadMovementFacingOverride(JsonElement element) =>
+        Semantic(element) switch
+        {
+            "preserve-facing" =>
+                RulesContract.MovementFacingCoupling.PreserveFacing,
+            "face-movement-direction" =>
+                RulesContract.MovementFacingCoupling.FaceMovementDirection,
+            "facing-locked" =>
+                RulesContract.MovementFacingCoupling.FacingLocked,
+            "face-movement-heading-projected" =>
+                RulesContract.MovementFacingCoupling
+                    .FaceMovementHeadingProjected,
+            "combat-strafe" =>
+                RulesContract.MovementFacingCoupling.CombatStrafe,
+            string value => throw Unsupported(
+                "action movement facing override", value),
+        };
 
     private static RulesContract.FabricationTransition
         ReadFabricationTransition(JsonElement element)
@@ -2972,6 +3051,11 @@ public static class ActorCanonicalContractReader
                 RulesContract.MovementFacingCoupling.FaceMovementDirection,
             "facing-locked" =>
                 RulesContract.MovementFacingCoupling.FacingLocked,
+            "face-movement-heading-projected" =>
+                RulesContract.MovementFacingCoupling
+                    .FaceMovementHeadingProjected,
+            "combat-strafe" =>
+                RulesContract.MovementFacingCoupling.CombatStrafe,
             string value =>
                 throw Unsupported("movement facing coupling", value),
         };

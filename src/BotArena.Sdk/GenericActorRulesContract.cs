@@ -783,6 +783,19 @@ public sealed class GenericActorRulesContract
         /// Movement itself does not change facing.
         /// </summary>
         FacingLocked = 2,
+
+        /// <summary>
+        /// Successful eight-way travel is projected to a cardinal facing:
+        /// cardinal travel faces its heading; diagonal travel preserves a
+        /// component-facing and otherwise flips to its opposite.
+        /// </summary>
+        FaceMovementHeadingProjected = 3,
+
+        /// <summary>
+        /// Forward and lateral movement preserve facing; successful rear or
+        /// rear-diagonal movement flips facing by 180 degrees.
+        /// </summary>
+        CombatStrafe = 4,
     }
 
     /// <summary>Named movement-layer capability.</summary>
@@ -871,6 +884,13 @@ public sealed class GenericActorRulesContract
         string CooldownUpdate,
         ShotProgramDefinition ShotProgram)
     {
+        /// <summary>
+        /// Optional facing-relative half-width in eight-way sectors. Zero is
+        /// the historical behavior; one means straight plus both adjacent
+        /// diagonal headings.
+        /// </summary>
+        public int FacingAimHalfWidthSectors { get; init; }
+
         /// <summary>
         /// Optional multi-projectile launch shape. Contracts that do not
         /// publish the field launch exactly one projectile per attack.
@@ -983,7 +1003,14 @@ public sealed class GenericActorRulesContract
         string Id,
         int Code,
         ActionKind Kind,
-        ImmutableArray<ActionParameterKind> ParameterKinds);
+        ImmutableArray<ActionParameterKind> ParameterKinds)
+    {
+        /// <summary>
+        /// Optional action-specific movement/facing behavior. Null selects
+        /// the form's movement profile. Only Movement actions may publish it.
+        /// </summary>
+        public MovementFacingCoupling? MovementFacingOverride { get; init; }
+    }
 
     /// <summary>Closed union of transitions that create child lives in other slots.</summary>
     /// <param name="Kind">Fabrication transition discriminator.</param>

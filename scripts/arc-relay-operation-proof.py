@@ -329,15 +329,24 @@ def run_proof_cell(
     output = args.output.resolve() / card["id"]
     output.mkdir(parents=True, exist_ok=True)
     replay = output / "replay.json.gz"
-    seed = args.seed or str(catalog["proofSeed"])
+    seed = args.seed or str(card.get("proofSeed", catalog["proofSeed"]))
     sheet = catalog_root / card["sheet"]
-    baseline = catalog_root / catalog["baselineSheet"]
+    baseline = catalog_root / card.get(
+        "opponentSheet", catalog["baselineSheet"]
+    )
+    opponent_artifact = (
+        catalog_root / card["opponentArtifact"]
+        if "opponentArtifact" in card
+        else args.artifact
+    )
+    loop_profile = args.loop_profile or catalog["mapProfile"]
     expected_inputs = {
         "seed": seed,
         "runtime": args.runtime,
-        "mapProfile": catalog["mapProfile"],
+        "mapProfile": loop_profile,
         "teamId": args.team_id,
         "artifactHash": sha256(args.artifact),
+        "opponentArtifactHash": sha256(opponent_artifact),
         "sheetHash": sha256(sheet),
         "baselineHash": sha256(baseline),
         "catalogHash": sha256(args.catalog),
@@ -363,7 +372,7 @@ def run_proof_cell(
                 "--artifact0",
                 str(args.artifact.resolve()),
                 "--artifact1",
-                str(args.artifact.resolve()),
+                str(opponent_artifact.resolve()),
                 "--sheet0",
                 str(sheet),
                 "--sheet1",
@@ -379,11 +388,11 @@ def run_proof_cell(
                 "--entrant0-id",
                 card["id"],
                 "--entrant1-id",
-                "baseline",
+                card.get("opponentId", "baseline"),
                 "--runtime",
                 args.runtime,
                 "--loop-profile",
-                catalog["mapProfile"],
+                loop_profile,
             ],
             output / "harness-run.log",
         )
@@ -402,6 +411,9 @@ def run_proof_cell(
     result["resumed"] = can_resume
     result["sheetHash"] = match_record["participants"][0]["sheetHash"]
     result["baselineSheetHash"] = match_record["participants"][1]["sheetHash"]
+    result["opponentArtifactHash"] = match_record["participants"][1][
+        "artifactHash"
+    ]
     result["matchRecord"] = f"{card['id']}/match-record.json"
     result["matchRecordBytes"] = (output / "match-record.json").stat().st_size
     result["broadcastBytes"] = match_record["broadcast"]["gzipBytes"]
@@ -415,11 +427,20 @@ def prove(args: argparse.Namespace) -> int:
             "proof runtime must match catalog runtimeForEvidence: "
             + catalog["runtimeForEvidence"]
         )
+    cards = catalog["cards"]
+    if args.operation_id:
+        requested = set(args.operation_id)
+        cards = [card for card in cards if card["id"] in requested]
+        missing = requested - {card["id"] for card in cards}
+        if missing:
+            raise ValueError(
+                "unknown operation ids: " + ", ".join(sorted(missing))
+            )
     results: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
             executor.submit(run_proof_cell, card, catalog, args): card["id"]
-            for card in catalog["cards"]
+            for card in cards
         }
         for future in as_completed(futures):
             operation_id = futures[future]
@@ -472,6 +493,15 @@ def main() -> int:
     prove_parser.add_argument("--output", type=Path, required=True)
     prove_parser.add_argument("--cli", type=Path, default=DEFAULT_CLI)
     prove_parser.add_argument("--seed")
+    prove_parser.add_argument(
+        "--operation-id",
+        action="append",
+        help="run only this operation (repeatable)",
+    )
+    prove_parser.add_argument(
+        "--loop-profile",
+        help="override the catalog map/rules profile for a versioned candidate run",
+    )
     prove_parser.add_argument("--team-id", type=int, default=0)
     prove_parser.add_argument("--runtime", choices=("wasm",), default="wasm")
     prove_parser.add_argument("--workers", type=int, default=4)

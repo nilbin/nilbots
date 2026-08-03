@@ -166,6 +166,9 @@ internal static class ActorContractCanonicalIds
         ActorMovementFacingCoupling.FaceMovementDirection =>
             "face-movement-direction",
         ActorMovementFacingCoupling.FacingLocked => "facing-locked",
+        ActorMovementFacingCoupling.FaceMovementHeadingProjected =>
+            "face-movement-heading-projected",
+        ActorMovementFacingCoupling.CombatStrafe => "combat-strafe",
         ActorFormProjectileGuardKind.None => "none",
         ActorFormProjectileGuardKind.FacingQuadrantContactsDeflected =>
             "facing-quadrant-contacts-deflected",
@@ -359,6 +362,9 @@ internal static class ActorContractCanonicalIds
         ActorAttackProfileDefinition.AimInterpretationKind
                 .AbsoluteSubmittedEightWayHeadingFacingUnchanged =>
             "absolute-submitted-eight-way-heading-facing-unchanged",
+        ActorAttackProfileDefinition.AimInterpretationKind
+                .AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged =>
+            "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged",
 
         ActorActionKind.Wait => "wait",
         ActorActionKind.Movement => "movement",
