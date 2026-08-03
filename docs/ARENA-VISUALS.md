@@ -509,6 +509,14 @@ sprite-derived WebGL fallback:
   paint: its textured monolithic meshes stay untouched. Do not infer semantic
   surfaces, hue-key, split, or repaint them merely to satisfy this optional
   material convention; team ownership stays in renderer-owned cues and effects.
+- Persistent signature props use the same exception and a separate
+  `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
+  hosted WebGL signature layer; their existing procedural marker remains the
+  telegraph, load-failure, and Canvas fallback. A finished prop never appears
+  during its authoritative tell. The mine keeps its audited lay-flat floor
+  transform, ownership is a restrained renderer-owned ground ring, and the
+  monolithic sentry may yaw only from an observed authoritative shot at or
+  before the playhead—never from a future target or inferred firing arc.
 - Broad flat colors are not a sufficient translation when the sprite depends
   on layered values, panel lines, material contrast, or surface wear. In that
   case use compact embedded base-color, normal, metallic/roughness, and

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "sourceUrl": "http://127.0.0.1:4175/?standalone&audio=off",
+  "replay": "web/dist-review/replay.json",
+  "captures": [
+    {
+      "id": "desktop-overview-tick-60",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 60,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-signature-props/desktop-overview-tick-60.png",
+      "imageBytes": 1193061,
+      "imageSha256": "fac3645c32139383f9cf945b9bd29db31cd64b6644b52a5467b2bfee5be70e23",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "desktop-overview-tick-90",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 90,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-signature-props/desktop-overview-tick-90.png",
+      "imageBytes": 1224925,
+      "imageSha256": "63c7b43ce649dfbf155462afff153d17197c78ed208979f6b4bef151597cb50b",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "phone-landscape-overview-tick-60",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 60,
+      "mobile": true,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-signature-props/phone-landscape-overview-tick-60.png",
+      "imageBytes": 342335,
+      "imageSha256": "525d78f8cc47a4886b9a7192ac39666fddfdbf1cff8fcc7afa0462fa621b237b",
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ],
+  "contactSheet": "art/reviews/arc-relay-signature-props/gameplay-scale-review.webp",
+  "contactSheetSha256": "52eb7cb1acb11015b27d83030b55f4b850ee7c0542d75647b02972f88165d845"
+}

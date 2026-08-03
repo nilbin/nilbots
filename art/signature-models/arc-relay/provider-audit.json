@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-08-03T22:45:26.000Z",
+  "authorization": "Owner approved both gameplay-scale review candidates in the Codex thread on 2026-08-04.",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "batch": {
+    "requestedCalls": 2,
+    "succeededCalls": 2,
+    "failedCalls": 0,
+    "rerolls": 0,
+    "expectedCredits": 30,
+    "consumedCredits": 30,
+    "balanceBefore": 280,
+    "balanceAfter": 250,
+    "providerStageSeconds": 394.971658083,
+    "wallSeconds": 395.12
+  },
+  "reviewContract": {
+    "targetPlanformSpan": 0.99,
+    "modelOwnedTeamGlow": false,
+    "meshContract": "monolithic",
+    "realReplayScale": true,
+    "tripNodeFloorContact": true,
+    "sentinelTargeting": "omnidirectional; renderer may turn only from an authoritative observed shot"
+  },
+  "models": [
+    {
+      "lookId": "arc-trip-node",
+      "signatureId": "trip-node",
+      "taskId": "019fc9af-e9ee-70d9-84ac-f5266e7e71a0",
+      "submittedAt": "2026-08-03T22:12:56.160Z",
+      "finishedAt": "2026-08-03T22:16:19.372Z",
+      "providerStageSeconds": 203.208840208,
+      "consumedCredits": 15,
+      "balanceBefore": 280,
+      "balanceAfter": 265,
+      "input": {
+        "file": "art/signature-models/arc-relay/trip-node/concept-source-v1.png",
+        "bytes": 1021688,
+        "sha256": "095bacefe58b0b6cc58d7ffae28defab3923c9f592a363ec05f595fff20c5f1d",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-trip-node/019fc9af-e9ee-70d9-84ac-f5266e7e71a0/model-normalized-review.glb",
+        "bytes": 565320,
+        "sha256": "efed3d3fdc016f8b37c86462c52db2ce6065f8da74068d4f301dec43e00e9295",
+        "triangles": 15673,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [-0.03999999910593033, 0, -0.01421871967613697],
+          "max": [0.03999999910593033, 0.07999999821186066, 0.01398439984768629]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": ["MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"]
+      }
+    },
+    {
+      "lookId": "arc-sentinel-seed",
+      "signatureId": "sentinel-seed",
+      "taskId": "019fc9b3-1dbf-79e2-98c8-44e5658ddf0b",
+      "submittedAt": "2026-08-03T22:16:26.070Z",
+      "finishedAt": "2026-08-03T22:19:37.836Z",
+      "providerStageSeconds": 191.762817875,
+      "consumedCredits": 15,
+      "balanceBefore": 265,
+      "balanceAfter": 250,
+      "input": {
+        "file": "art/signature-models/arc-relay/sentinel-seed/concept-source-v2.png",
+        "bytes": 1036460,
+        "sha256": "22a8fec31336dde344424e3c7f7b0d9cf0bc7a7ea26477e3f39af8998bc9c728",
+        "mimeType": "image/png"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-sentinel-seed/019fc9b3-1dbf-79e2-98c8-44e5658ddf0b/model-normalized-identity-review.glb",
+        "bytes": 697104,
+        "sha256": "811fef88c756a7bc0c4bdb3f077d23057b9a617734ac85e210c3c438b66a06cf",
+        "triangles": 13612,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [-1.7195097208023071, 0, -1.5570476055145264],
+          "max": [1.7181215286254883, 2, 1.5637586116790771]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": ["MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"]
+      }
+    }
+  ]
+}

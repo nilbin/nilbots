@@ -35,6 +35,10 @@ node scripts/class-models/build-arc-runtime-texture-tier.mjs \
   --toktx /path/to/ktx-tools-4.4.2/bin/toktx \
   --gltf-transform /path/to/gltf-transform-4.4.2
 node scripts/class-models/build-arc-runtime-texture-tier.mjs --check
+node scripts/class-models/build-arc-runtime-texture-tier.mjs \
+  --profile signatures --toktx /path/to/ktx-tools-4.4.2/bin/toktx
+node scripts/class-models/build-arc-runtime-texture-tier.mjs \
+  --profile signatures --check
 node scripts/class-models/promote-meshy-arc-fleet.mjs --check
 ```
 
@@ -43,3 +47,7 @@ compressed-target texture residency, and worst-case RGBA8 fallback residency. It
 hard fleet budgets cover both paths, plus a separate 600,000-byte raw decoder cap.
 `model-memory.mjs` is the shared GLB/WebP/KTX2 measurement implementation used by
 the builder, promoter, and audit tests.
+The default `fleet` profile remains locked to all sixteen class bodies. The
+`signatures` profile is separately locked to the two owner-approved persistent
+props and its stricter two-model transfer/GPU budgets; it cannot silently admit
+another provider result.

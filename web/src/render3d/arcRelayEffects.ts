@@ -6,6 +6,7 @@ import type {
 } from '../replayModel';
 import { posesAt } from '../render/interpolate';
 import { unitAccent } from '../render/unitPresentation';
+import { signatureModel } from './lookModel';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
 type SignatureForm =
@@ -88,12 +89,82 @@ interface EffectRig {
   markers: THREE.Mesh[];
 }
 
+interface SignatureShotYaw {
+  tick: number;
+  yaw: number;
+}
+
+interface SignaturePropSlot {
+  group: THREE.Group;
+  model: THREE.Group | null;
+  emissives: { material: THREE.MeshStandardMaterial; base: number }[];
+  ready: boolean;
+  disposed: boolean;
+}
+
+export const ARC_SIGNATURE_PROP_SCALE = {
+  'trip-node': 0.46,
+  'sentinel-seed': 0.66,
+} as const;
+
+/** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
+export function latestObservedSignatureYaw(
+  shots: readonly SignatureShotYaw[],
+  time: number,
+): number | null {
+  let yaw: number | null = null;
+  for (const shot of shots) {
+    if (shot.tick > Math.floor(time)) break;
+    yaw = shot.yaw;
+  }
+  return yaw;
+}
+
 export function buildArcRelayEffects(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-signatures-and-beats';
+  const signatureShotYaws = indexSignatureShotYaws(replay);
+  const propSlots = new Map<string, SignaturePropSlot>();
+
+  const propAt = (signature: Signature): SignaturePropSlot => {
+    const existing = propSlots.get(signature.operationId);
+    if (existing) return existing;
+    const propGroup = new THREE.Group();
+    propGroup.visible = false;
+    propGroup.userData.kind = 'arc-relay-signature-prop';
+    propGroup.userData.operationId = signature.operationId;
+    propGroup.userData.signatureId = signature.signatureId;
+    group.add(propGroup);
+    const slot: SignaturePropSlot = {
+      group: propGroup,
+      model: null,
+      emissives: [],
+      ready: false,
+      disposed: false,
+    };
+    propSlots.set(signature.operationId, slot);
+    disposables.push({
+      dispose: () => {
+        slot.disposed = true;
+        if (slot.model) disposeModelMaterials(slot.model);
+      },
+    });
+    void signatureModel(signature.signatureId).then((model) => {
+      if (!model) return;
+      if (slot.disposed) {
+        disposeModelMaterials(model);
+        return;
+      }
+      slot.model = model;
+      slot.emissives = signaturePropEmissives(model);
+      slot.ready = true;
+      propGroup.add(model);
+    });
+    return slot;
+  };
 
   const discGeometry = new THREE.CircleGeometry(0.5, 40);
   discGeometry.rotateX(-Math.PI / 2);
@@ -219,6 +290,7 @@ export function buildArcRelayEffects(
 
   const update = (time: number) => {
     for (const rig of rigs) rig.group.visible = false;
+    for (const slot of propSlots.values()) slot.group.visible = false;
     pulse.visible = false;
     for (const ring of beatRings) ring.visible = false;
 
@@ -280,7 +352,37 @@ export function buildArcRelayEffects(
       const target = targetPose
         ? new THREE.Vector3(targetPose.x + 0.5, 0.08, targetPose.y + 0.5)
         : points[0] ?? owner;
-      paintSignature(rig, style.form, points, owner, target, time, phase);
+      let persistentPropReady = false;
+      if (
+        phase === 'active' &&
+        (signature.signatureId === 'trip-node' ||
+          signature.signatureId === 'sentinel-seed') &&
+        points[0]
+      ) {
+        const slot = propAt(signature);
+        slot.group.visible = true;
+        slot.group.position.copy(points[0]).setY(0);
+        slot.group.scale.setScalar(ARC_SIGNATURE_PROP_SCALE[signature.signatureId]);
+        slot.group.rotation.y =
+          signature.signatureId === 'sentinel-seed'
+            ? latestObservedSignatureYaw(
+                signatureShotYaws.get(signature.operationId) ?? [],
+                time,
+              ) ?? 0
+            : 0;
+        paintSignaturePropBody(slot.emissives, signature.suppressed, time);
+        persistentPropReady = slot.ready;
+      }
+      paintSignature(
+        rig,
+        style.form,
+        points,
+        owner,
+        target,
+        time,
+        phase,
+        persistentPropReady,
+      );
     }
 
     paintStoryBeats(
@@ -320,6 +422,7 @@ function paintSignature(
   target: THREE.Vector3 | undefined,
   time: number,
   phase: Exclude<ArcSignatureVisualPhase, 'hidden'>,
+  persistentPropReady = false,
 ): void {
   const anchor = points[0] ?? target ?? owner;
   if (!anchor) return;
@@ -408,16 +511,20 @@ function paintSignature(
   }
 
   if (form === 'trip' || form === 'seed') {
-    for (const [index, point] of points.entries()) {
-      const marker = rig.markers[index];
-      if (!marker) break;
-      marker.visible = true;
-      marker.position.copy(point).setY(form === 'seed' ? 0.17 : 0.12);
-      marker.rotation.y = time * (form === 'seed' ? 0.35 : -0.2) + index;
-      if (form === 'seed') marker.scale.set(0.82, 1.15, 0.82);
-      if (index > 0) lineAt(rig.segments[index - 1]!, points[index - 1]!, point, 0.035);
+    if (!persistentPropReady) {
+      for (const [index, point] of points.entries()) {
+        const marker = rig.markers[index];
+        if (!marker) break;
+        marker.visible = true;
+        marker.position.copy(point).setY(form === 'seed' ? 0.17 : 0.12);
+        marker.rotation.y = time * (form === 'seed' ? 0.35 : -0.2) + index;
+        if (form === 'seed') marker.scale.set(0.82, 1.15, 0.82);
+        if (index > 0)
+          lineAt(rig.segments[index - 1]!, points[index - 1]!, point, 0.035);
+      }
     }
-    if (form === 'seed') targetRing(rig, anchor, tellScale * 0.75);
+    targetRing(rig, anchor, tellScale * (form === 'seed' ? 0.72 : 0.54));
+    if (phase === 'active') rig.main.opacity *= 0.58;
     return;
   }
 
@@ -547,6 +654,83 @@ function areaBounds(points: THREE.Vector3[]): {
 
 function worldPoint(position: ReplayPosition): THREE.Vector3 {
   return new THREE.Vector3(position.x + 0.5, 0.065, position.y + 0.5);
+}
+
+function indexSignatureShotYaws(
+  replay: ReplayModel,
+): Map<string, SignatureShotYaw[]> {
+  const result = new Map<string, SignatureShotYaw[]>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const state =
+      tick.after.mode?.kind === 'arc-relay' &&
+      'visibleSignatures' in tick.after.mode
+        ? tick.after.mode
+        : null;
+    if (!state) continue;
+    for (const event of tick.events) {
+      const fact = event.arcRelayFact;
+      if (
+        fact?.kind !== 'signature-damage' ||
+        fact.signatureId !== 'sentinel-seed'
+      )
+        continue;
+      const signature = state.visibleSignatures.find(
+        (candidate) => candidate.operationId === fact.operationId,
+      );
+      const anchor = signature?.positions[0];
+      if (!anchor) continue;
+      const dx = fact.position.x - anchor.x;
+      const dz = fact.position.y - anchor.y;
+      if (Math.hypot(dx, dz) < 0.001) continue;
+      const shots = result.get(fact.operationId) ?? [];
+      shots.push({ tick: tickIndex, yaw: -Math.atan2(dz, dx) });
+      result.set(fact.operationId, shots);
+    }
+  }
+  return result;
+}
+
+function paintSignaturePropBody(
+  emissives: readonly { material: THREE.MeshStandardMaterial; base: number }[],
+  suppressed: boolean,
+  time: number,
+): void {
+  const breathing = 0.95 + Math.sin(time * Math.PI * 0.42) * 0.05;
+  for (const { material, base } of emissives)
+    material.emissiveIntensity = base * (suppressed ? 0.22 : breathing);
+}
+
+function signaturePropEmissives(
+  model: THREE.Group,
+): { material: THREE.MeshStandardMaterial; base: number }[] {
+  const materials = new Set<THREE.MeshStandardMaterial>();
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material]) {
+      if (!(material instanceof THREE.MeshStandardMaterial)) continue;
+      materials.add(material);
+    }
+  });
+  return [...materials].map((material) => ({
+    material,
+    base: material.emissiveIntensity,
+  }));
+}
+
+function disposeModelMaterials(model: THREE.Group): void {
+  const materials = new Set<THREE.Material>();
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material])
+      materials.add(material);
+  });
+  for (const material of materials) material.dispose();
 }
 
 function paintStoryBeats(

@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "id": "arc-relay-signatures-ktx2-selective-v1",
+  "generator": "scripts/class-models/build-arc-runtime-texture-tier.mjs",
+  "sourceAudit": "art/signature-models/arc-relay/provider-audit.json",
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "ktxSoftware": "4.4.2"
+  },
+  "contract": {
+    "geometry": "byte-semantic accessor match to the approved quantized monolithic candidate",
+    "texturePolicy": {
+      "baseColorTexture": {
+        "width": 512,
+        "height": 512,
+        "encoding": "ETC1S",
+        "quality": 255
+      },
+      "normalTexture": {
+        "width": 256,
+        "height": 256,
+        "encoding": "UASTC",
+        "level": 2,
+        "rdoLambda": 0.5
+      },
+      "metallicRoughnessTexture": {
+        "width": 256,
+        "height": 256,
+        "encoding": "UASTC",
+        "level": 2,
+        "rdoLambda": 4
+      },
+      "emissiveTexture": {
+        "width": 128,
+        "height": 128,
+        "encoding": "ETC1S",
+        "quality": 255
+      }
+    },
+    "mipmaps": true,
+    "compressedTarget": "opaque ETC1S to ETC1/ETC2 RGB at 4 bpp; UASTC to ASTC/BC7/ETC2 RGBA at 8 bpp",
+    "fallback": "RGBA8 when the device exposes no supported compressed texture target",
+    "decoder": "Three KTX2Loader, initialized only by the WebGL renderer"
+  },
+  "budgets": {
+    "decoderTransferBytes": 600000,
+    "perLookTransferBytes": 1048576,
+    "fleetTransferBytes": 2097152,
+    "compressedTextureGpuBytes": 1048576,
+    "rgba8FallbackTextureGpuBytes": 5242880,
+    "compressedModelGpuBytes": 2097152,
+    "rgba8FallbackModelGpuBytes": 6291456
+  },
+  "totals": {
+    "approvedTransferBytes": 1262424,
+    "runtimeTransferBytes": 1096832,
+    "geometryGpuBytes": 713192,
+    "textureGpuBytesCompressedTarget": 721056,
+    "textureGpuBytesRgba8Fallback": 4369056,
+    "modelGpuBytesCompressedTarget": 1434248,
+    "modelGpuBytesRgba8Fallback": 5082248,
+    "triangles": 29285
+  },
+  "looks": [
+    {
+      "id": "arc-sentinel-seed",
+      "taskId": "019fc9b3-1dbf-79e2-98c8-44e5658ddf0b",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-sentinel-seed/019fc9b3-1dbf-79e2-98c8-44e5658ddf0b/model-normalized-identity-review.glb",
+        "bytes": 697104,
+        "sha256": "811fef88c756a7bc0c4bdb3f077d23057b9a617734ac85e210c3c438b66a06cf"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-sentinel-seed/019fc9b3-1dbf-79e2-98c8-44e5658ddf0b/model-normalized-identity-raw.glb",
+        "bytes": 27708632,
+        "sha256": "d8ccd5a674166e7c5b14c1d89fce3ad9fc953b86657a8818a3c5499d05537e5e"
+      },
+      "runtime": {
+        "file": "art/signature-models/arc-relay/runtime-tiers/ktx2-selective-v1/arc-sentinel-seed.glb",
+        "bytes": 586772,
+        "sha256": "dcd216c22a4ba745b0fe22ba4838acae535244e458cb81dd8c668ee79801463b"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "triangles": 13612,
+      "geometrySha256": "05d17d663cf8b94d3678a4dbf7b238b06155fbc9576b81149fd7620e05598d2d",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 586772,
+        "geometryGpuBytes": 393692,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 754220,
+        "modelGpuBytesRgba8Fallback": 2578220,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 2084,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 37394,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 98303,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 52632,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-trip-node",
+      "taskId": "019fc9af-e9ee-70d9-84ac-f5266e7e71a0",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-trip-node/019fc9af-e9ee-70d9-84ac-f5266e7e71a0/model-normalized-review.glb",
+        "bytes": 565320,
+        "sha256": "efed3d3fdc016f8b37c86462c52db2ce6065f8da74068d4f301dec43e00e9295"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-trip-node/019fc9af-e9ee-70d9-84ac-f5266e7e71a0/model-normalized-raw.glb",
+        "bytes": 23903520,
+        "sha256": "20e6d646e6455c6a477a42e85ed05636abcedc0fdec5d273e23fbe765695c552"
+      },
+      "runtime": {
+        "file": "art/signature-models/arc-relay/runtime-tiers/ktx2-selective-v1/arc-trip-node.glb",
+        "bytes": 510060,
+        "sha256": "85d56ac003fb54cb0b308aeaf4571a1b9a9c4b87962af782c24fa50398da0220"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 15673,
+      "geometrySha256": "56d9a5122319b95e031187f087e4408c3b7527201e7db17d70798d5ccca43b68",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 510060,
+        "geometryGpuBytes": 319500,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 680028,
+        "modelGpuBytesRgba8Fallback": 2504028,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 724,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 31268,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 97666,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 58145,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    }
+  ]
+}

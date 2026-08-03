@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-trip-node",
+  "taskId": "019fc9af-e9ee-70d9-84ac-f5266e7e71a0",
+  "submittedAt": "2026-08-03T22:12:56.160Z",
+  "balanceBefore": 280,
+  "input": {
+    "file": "art/signature-models/arc-relay/trip-node/concept-source-v1.png",
+    "bytes": 1021688,
+    "sha256": "095bacefe58b0b6cc58d7ffae28defab3923c9f592a363ec05f595fff20c5f1d",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

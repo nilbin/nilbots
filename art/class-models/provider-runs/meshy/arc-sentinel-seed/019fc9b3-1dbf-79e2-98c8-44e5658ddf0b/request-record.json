@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-sentinel-seed",
+  "taskId": "019fc9b3-1dbf-79e2-98c8-44e5658ddf0b",
+  "submittedAt": "2026-08-03T22:16:26.070Z",
+  "balanceBefore": 265,
+  "input": {
+    "file": "art/signature-models/arc-relay/sentinel-seed/concept-source-v2.png",
+    "bytes": 1036460,
+    "sha256": "22a8fec31336dde344424e3c7f7b0d9cf0bc7a7ea26477e3f39af8998bc9c728",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

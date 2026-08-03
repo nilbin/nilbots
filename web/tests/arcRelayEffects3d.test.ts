@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  ARC_SIGNATURE_PROP_SCALE,
   ARC_SIGNATURE_STYLES,
   arcSignatureVisualPhase,
+  latestObservedSignatureYaw,
 } from './.harness/harness.entry.js';
 
 const signatureIds = [
@@ -68,4 +70,18 @@ test('signature anticipation never starts early or outlives its authoritative te
     arcSignatureVisualPhase({ ...signature, phase: 'active' }, 15),
     'hidden',
   );
+});
+
+test('approved persistent props stay inside their tiles and sentinel yaw never looks ahead', () => {
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.46);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.66);
+
+  const shots = [
+    { tick: 12, yaw: Math.PI / 2 },
+    { tick: 18, yaw: -Math.PI / 2 },
+  ];
+  assert.equal(latestObservedSignatureYaw(shots, 11.999), null);
+  assert.equal(latestObservedSignatureYaw(shots, 12), Math.PI / 2);
+  assert.equal(latestObservedSignatureYaw(shots, 17.999), Math.PI / 2);
+  assert.equal(latestObservedSignatureYaw(shots, 18), -Math.PI / 2);
 });
