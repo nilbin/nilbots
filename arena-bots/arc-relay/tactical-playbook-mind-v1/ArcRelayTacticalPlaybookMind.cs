@@ -12,6 +12,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _enemyUnavailableUntil = [];
     private readonly Dictionary<int, LastSeenEnemy> _lastSeenEnemies = [];
     private readonly Dictionary<ActorIdentity, int> _firstSeenEnemyLife = [];
+    private readonly HashSet<ActorIdentity> _observedDestroyedEnemies = [];
     private readonly Dictionary<string, SecuredCore> _securedCores =
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _processedEvents =
@@ -270,6 +271,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (observed.Payload is GenericActorContext.EventPayload.Destruction death
                 && death.ActorId.TeamId != _teamId)
             {
+                _observedDestroyedEnemies.Add(death.ActorId);
                 _enemyUnavailableUntil[death.ActorId.UnitId] =
                     observed.SourceTick + memory.EnemyUnavailableTicks;
                 _lastSeenEnemies.Remove(death.ActorId.UnitId);
@@ -849,17 +851,78 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 mind.Tick)))
                     .ToArray();
                 GenericActorContext.ObservedEnemyState primary = enemies[0];
-                if (_focusLocks.TryGetValue(scopeId, out FocusLock? prior)
-                    && mind.Tick - prior.LockedTick < policy.LockTicks)
+                bool retainHiddenLock = false;
+                bool selectedExistingLock = false;
+                if (_focusLocks.TryGetValue(scopeId, out FocusLock? prior))
                 {
-                    primary = enemies.FirstOrDefault(enemy =>
-                        enemy.ActorId == prior.ActorId) ?? primary;
+                    GenericActorContext.ObservedEnemyState? locked = enemies
+                        .FirstOrDefault(enemy =>
+                            enemy.ActorId == prior.ActorId);
+                    if (locked is null)
+                    {
+                        bool destroyed = _observedDestroyedEnemies.Contains(
+                            prior.ActorId);
+                        retainHiddenLock = !destroyed
+                            && mind.Tick - prior.LastVisibleTick
+                                < policy.Release.HiddenTicks;
+                        if (!retainHiddenLock)
+                            _focusLocks.Remove(scopeId);
+                    }
+                    else
+                    {
+                        bool withinLeash = participants.Any(body =>
+                            WithinEngagementLeash(
+                                body, targets[body.UnitId], locked, policy));
+                        bool reachable = participants.Any(body =>
+                            CanContributeToTarget(
+                                contract, body, locked, policy,
+                                committedDamage: 0,
+                                requireFireReady: false));
+                        int unreachableTicks = reachable
+                            ? 0
+                            : prior.UnreachableTicks + 1;
+                        bool release = TacticalCoordinationPrimitives
+                            .ShouldReleaseFocus(
+                                destroyed: _observedDestroyedEnemies.Contains(
+                                    prior.ActorId),
+                                releaseOnDestroyed: policy.Release.Destroyed,
+                                outsideLeash: !withinLeash,
+                                releaseOutsideLeash:
+                                    policy.Release.OutsideLeash,
+                                reachable,
+                                unreachableTicks,
+                                policy.Release.UnreachableTicks);
+                        if (release)
+                        {
+                            _focusLocks.Remove(scopeId);
+                        }
+                        else
+                        {
+                            _focusLocks[scopeId] = prior with
+                            {
+                                LastVisibleTick = mind.Tick,
+                                UnreachableTicks = unreachableTicks,
+                            };
+                            if (mind.Tick - prior.LockedTick
+                                    < policy.LockTicks
+                                || primary.ActorId == locked.ActorId)
+                            {
+                                primary = locked;
+                                selectedExistingLock = true;
+                            }
+                        }
+                    }
                 }
-                if (!_focusLocks.TryGetValue(scopeId, out prior)
-                    || primary.ActorId != prior.ActorId)
+                if (!retainHiddenLock && !selectedExistingLock
+                    && (!_focusLocks.TryGetValue(
+                            scopeId, out FocusLock? current)
+                        || current.ActorId != primary.ActorId))
                 {
                     _focusLocks[scopeId] = new FocusLock(
-                        primary.ActorId, mind.Tick);
+                        primary.ActorId,
+                        mind.Tick,
+                        mind.Tick,
+                        UnreachableTicks: 0);
                 }
                 GenericActorContext.ObservedEnemyState[] targetOrder =
                     [primary, .. enemies.Where(enemy =>
@@ -1185,10 +1248,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position assignment,
         GenericActorContext.ObservedEnemyState enemy,
         TacticalPlaybookPackage.Engagement policy) =>
-        body.Position.ChebyshevDistance(assignment) <= policy.ChaseLeash
-        || policy.SelfDefense.Enabled
-        && body.Position.ChebyshevDistance(enemy.Position)
-            <= policy.SelfDefense.ThreatDistance;
+        TacticalCoordinationPrimitives.IsWithinEngagementLeash(
+            assignment,
+            enemy.Position,
+            body.Position,
+            policy.ChaseLeash,
+            policy.SelfDefense.Enabled,
+            policy.SelfDefense.ThreatDistance);
 
     private static Dictionary<int, MindBody> AllocateRepairs(
         GenericActorResolvedMatchContract contract,
@@ -1715,7 +1781,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position Position,
         int StuckTicks);
 
-    private sealed record FocusLock(ActorIdentity ActorId, int LockedTick);
+    private sealed record FocusLock(
+        ActorIdentity ActorId,
+        int LockedTick,
+        int LastVisibleTick,
+        int UnreachableTicks);
 
     private sealed record FocusAssignment(
         GenericActorContext.ObservedEnemyState Target,

@@ -34,4 +34,30 @@ internal static class TacticalCoordinationPrimitives
         int minimumCoveredOptions) =>
         committedDamage < targetHealth + permittedOverkillDamage
         || coverEscapeLanes && coveredOptions < minimumCoveredOptions;
+
+    internal static bool ShouldReleaseFocus(
+        bool destroyed,
+        bool releaseOnDestroyed,
+        bool outsideLeash,
+        bool releaseOutsideLeash,
+        bool reachable,
+        int unreachableTicks,
+        int releaseAfterUnreachableTicks) =>
+        destroyed && releaseOnDestroyed
+        || outsideLeash && releaseOutsideLeash
+        || !reachable
+        && releaseAfterUnreachableTicks > 0
+        && unreachableTicks >= releaseAfterUnreachableTicks;
+
+    internal static bool IsWithinEngagementLeash(
+        Position assignment,
+        Position enemyPosition,
+        Position bodyPosition,
+        int chaseLeash,
+        bool selfDefenseEnabled,
+        int selfDefenseThreatDistance) =>
+        bodyPosition.ChebyshevDistance(assignment) <= chaseLeash
+        || selfDefenseEnabled
+        && bodyPosition.ChebyshevDistance(enemyPosition)
+            <= selfDefenseThreatDistance;
 }

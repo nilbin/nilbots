@@ -535,7 +535,7 @@
         "fallback": "current-position"
       },
       "release": {
-        "hiddenTicks": 2,
+        "hiddenTicks": 1,
         "unreachableTicks": 3,
         "outsideLeash": true,
         "destroyed": true
