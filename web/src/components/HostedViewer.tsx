@@ -19,6 +19,7 @@ import {
 } from '../hostedBridge';
 import ArenaCanvas from './ArenaCanvas';
 import { useScreenWakeLock } from './useScreenWakeLock';
+import { currentArenaRenderProfile } from '../render/arenaRenderProfile';
 
 /**
  * Canvas-only viewer for an embedding host. Bridge 1 is the historical mobile
@@ -36,14 +37,28 @@ export default function HostedViewer({
   bridgeVersion: HostedBridgeVersion;
 }) {
   const assets = useAssetReadiness();
-  const playback = usePlayback(replay, assets.ready);
-  const liveTime = useLiveFollower(replay, live);
+  const following = live !== undefined;
+  const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
+  const playbackFrameCap = renderProfile.id === 'mobile'
+    ? renderProfile.activeFramesPerSecond
+    : undefined;
+  const playback = usePlayback(
+    replay,
+    assets.ready,
+    !following,
+    true,
+    playbackFrameCap,
+  );
+  const liveTime = useLiveFollower(
+    replay,
+    live,
+    playbackFrameCap,
+  );
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
 
-  const following = live !== undefined;
   const time = following ? liveTime : playback.time;
   const tick = Math.max(
     0,
@@ -172,6 +187,8 @@ export default function HostedViewer({
         // it back on. Adding one is a bridge change, and a bridge change is a mobile
         // change in the same commit.
         cameraGestures={false}
+        active={following || playback.playing}
+        renderProfile={renderProfile}
       />
     </div>
   );

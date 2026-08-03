@@ -546,6 +546,38 @@ unproven vertical slice, not a validated replacement for authored modeling:
   proven production method. The rejected generated binaries and sources are
   intentionally not retained.
 
+### Sustained mobile-watch budget
+
+A replay is a minutes-long workload, so phone acceptance is based on sustained
+renderer work rather than first-frame speed. Browser code cannot make a
+portable temperature claim; it can own and bound the work most directly tied
+to heat: presentation frequency, drawing-buffer pixels, live shadow-map pixels,
+draw submissions, and Canvas2D operations.
+
+- Select the mobile profile from input and viewport capabilities, never from a
+  user-agent string. A coarse pointer or a touch phone-sized viewport receives
+  the profile. `?render-profile=full` and `?render-profile=mobile` are evidence
+  overrides for same-build A/B only, not a player-facing graphics menu.
+- While a replay or live broadcast advances, mobile WebGL and Canvas2D present
+  at 30 fps. Paused WebGL/Canvas2D presentation runs at 12 fps so selection,
+  camera settling, emissive breathing, and other micro-life remain alive.
+  Replay interpolation remains wall-clock-based; authoritative telegraphs and
+  discrete facts do not move earlier or later.
+- Mobile drawing buffers cap at DPR 1.5. WebGL retains antialiasing, all actors,
+  effects, fog, and shadows, but uses a 1024² rather than 2048² shadow map and
+  requests the browser's low-power GPU. The full profile remains the unthrottled
+  DPR-2, 2048² visual reference.
+- At the fixed 844×390 CSS / DPR-3 phone viewport, active WebGL must remain at
+  or below 54 million weighted pixels per second, charging one full color pass
+  plus one complete shadow-map pass per presented frame. The exact arithmetic is
+  regression-tested. Canvas2D is charged by its actual backing-buffer area.
+- Validate both the hosted WebGL path and the Canvas2D host/fallback. Use
+  `scripts/profile-mobile-replay.mjs` on a real replay, confirm its renderer
+  profile data, inspect a fixed-camera full/mobile image pair at actual game
+  scale, smoke representative replays in WebKit and Chromium, and finish with
+  a real phone watch. Software WebGL is useful as a stress path, not as a proxy
+  for an iPhone GPU's achievable frame rate.
+
 ## Projectile-look contract
 
 - Genuine SVG with `viewBox="0 0 256 256"`, transparent and facing East/right.

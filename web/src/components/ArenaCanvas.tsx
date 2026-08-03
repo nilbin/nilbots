@@ -17,6 +17,10 @@ import {
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
 import {
+  arenaPresentedFrameStamp,
+  type ArenaRenderProfile,
+} from '../render/arenaRenderProfile';
+import {
   logicalArenaHeight,
   unprojectCanvasY,
 } from '../render/arenaProjection';
@@ -44,6 +48,9 @@ interface ArenaCanvasProps {
    */
   cameraGestures?: boolean;
   entrants?: readonly ViewerEntrantPresentation[];
+  /** Whether replay time is advancing. Idle frames retain camera/selection response. */
+  active: boolean;
+  renderProfile: ArenaRenderProfile;
 }
 
 export default function ArenaCanvas({
@@ -57,6 +64,8 @@ export default function ArenaCanvas({
   onManualCamera,
   cameraGestures = true,
   entrants,
+  active,
+  renderProfile,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
@@ -65,6 +74,7 @@ export default function ArenaCanvas({
     highlightedUnitKeys,
     showVisibility,
     autoFit,
+    active,
   });
   stateRef.current = {
     time,
@@ -72,6 +82,7 @@ export default function ArenaCanvas({
     highlightedUnitKeys,
     showVisibility,
     autoFit,
+    active,
   };
   const overrideRef = useRef(onManualCamera);
   overrideRef.current = onManualCamera;
@@ -92,6 +103,7 @@ export default function ArenaCanvas({
     const ctx = canvas.getContext('2d')!;
     let frame = 0;
     let last: number | null = null;
+    let lastDrawStamp: number | null = null;
     let aspect = 0;
     let lastFit = stateRef.current.autoFit;
     // A new replay is a new match: the camera must not open framed on the last one's fight.
@@ -123,13 +135,29 @@ export default function ArenaCanvas({
     gesturesRef.current = gestures;
 
     const render = (stamp: number) => {
+      const framesPerSecond = stateRef.current.active
+        ? renderProfile.activeFramesPerSecond
+        : renderProfile.idleFramesPerSecond;
+      const presentedStamp = renderProfile.id === 'full'
+        ? stamp
+        : arenaPresentedFrameStamp(stamp, lastDrawStamp, framesPerSecond);
+      if (document.hidden || presentedStamp === null) {
+        frame = requestAnimationFrame(render);
+        return;
+      }
+      lastDrawStamp = presentedStamp;
       const parent = canvas.parentElement!;
-      const ratio = window.devicePixelRatio || 1;
+      const ratio = Math.min(
+        window.devicePixelRatio || 1,
+        renderProfile.canvasMaxPixelRatio,
+      );
       const width = parent.clientWidth;
       const height = parent.clientHeight;
-      if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
-        canvas.width = width * ratio;
-        canvas.height = height * ratio;
+      const backingWidth = Math.round(width * ratio);
+      const backingHeight = Math.round(height * ratio);
+      if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+        canvas.width = backingWidth;
+        canvas.height = backingHeight;
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
       }
@@ -203,7 +231,7 @@ export default function ArenaCanvas({
       gestures?.detach();
       gesturesRef.current = null;
     };
-  }, [replay, cameraGestures, entrants]);
+  }, [replay, cameraGestures, entrants, renderProfile]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     // A drag that moved the camera is not a tap on a bot.
@@ -250,6 +278,13 @@ export default function ArenaCanvas({
       className="absolute inset-0 h-full w-full cursor-pointer"
       role="img"
       aria-label="nilbots match playback"
+      data-render-profile={renderProfile.id}
+      data-active-fps={renderProfile.activeFramesPerSecond}
+      data-idle-fps={renderProfile.idleFramesPerSecond}
+      data-pixel-ratio={Math.min(
+        typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1,
+        renderProfile.canvasMaxPixelRatio,
+      )}
     />
   );
 }

@@ -40,6 +40,7 @@ import {
   playsAt,
 } from '../presentation/playAwareness';
 import { teamVisionAt } from '../render/teamVision';
+import { currentArenaRenderProfile } from '../render/arenaRenderProfile';
 
 export interface ViewerEntrantPresentation {
   teamId: number;
@@ -83,6 +84,10 @@ export default function Viewer({
   const immersive = useImmersive();
   const shell = useRef<HTMLDivElement>(null);
   const isLive = live !== undefined;
+  const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
+  const playbackFrameCap = renderProfile.id === 'mobile'
+    ? renderProfile.activeFramesPerSecond
+    : undefined;
   const audioSession = useMemo(() => new ArenaAudioSession(), []);
   const audioActivationInFlight = useRef(false);
   const [audioActivationGranted, setAudioActivationGranted] =
@@ -100,7 +105,11 @@ export default function Viewer({
   // transport owns pause and resume from there, and a scrim over a running match would be
   // worse than none.
   const [started, setStarted] = useState(false);
-  const liveTime = useLiveFollower(replay, live);
+  const liveTime = useLiveFollower(
+    replay,
+    live,
+    playbackFrameCap,
+  );
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [selectedPlayKey, setSelectedPlayKey] = useState<string | null>(null);
@@ -131,7 +140,13 @@ export default function Viewer({
   });
   // Never autostarted. A live broadcast is the exception and not a contradiction: its clock
   // is the server's, every viewer is on the same tick, and there is no transport to press.
-  const playback = usePlayback(replay, gate.ready, !isLive, false);
+  const playback = usePlayback(
+    replay,
+    gate.ready,
+    !isLive,
+    false,
+    playbackFrameCap,
+  );
 
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
@@ -495,6 +510,8 @@ export default function Viewer({
                 autoFit={autoFit}
                 onManualCamera={() => setAutoFit(false)}
                 entrants={entrants}
+                active={isLive || playback.playing}
+                renderProfile={renderProfile}
               />
             </Suspense>
           ) : (
@@ -508,6 +525,8 @@ export default function Viewer({
               autoFit={autoFit}
               onManualCamera={() => setAutoFit(false)}
               entrants={entrants}
+              active={isLive || playback.playing}
+              renderProfile={renderProfile}
             />
           )}
           {/* Where we are, over the game rather than under it: the eye is on the arena,

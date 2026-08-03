@@ -57,13 +57,20 @@ export interface ArenaScene {
   dispose: () => void;
 }
 
+export interface ArenaSceneQuality {
+  shadowMapSize: number;
+}
+
 /**
  * Build the static half of the scene: floor, walls, lights.
  *
  * Static for the life of a replay — the map does not change — so this runs once and the
  * per-frame work is only moving bots and projectiles.
  */
-export function buildArena(replay: ReplayModel): ArenaScene {
+export function buildArena(
+  replay: ReplayModel,
+  quality: ArenaSceneQuality = { shadowMapSize: 2048 },
+): ArenaScene {
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const mapWidth = replay.map.width;
   const mapHeight = replay.map.height;
@@ -76,7 +83,7 @@ export function buildArena(replay: ReplayModel): ArenaScene {
 
   const disposables: { dispose: () => void }[] = [];
 
-  scene.add(...lights(theme, mapWidth, mapHeight, disposables));
+  scene.add(...lights(theme, mapWidth, mapHeight, quality.shadowMapSize, disposables));
   scene.add(floor(theme, mapWidth, mapHeight, disposables));
   const layout = wallLayout(replay, theme);
   for (const mesh of walls(replay, theme, layout, disposables))
@@ -113,6 +120,7 @@ function lights(
   theme: ArenaTheme,
   mapWidth: number,
   mapHeight: number,
+  shadowMapSize: number,
   disposables: { dispose: () => void }[],
 ): THREE.Object3D[] {
   const lighting = theme.environment3d.lighting;
@@ -122,7 +130,7 @@ function lights(
   );
   key.position.set(mapWidth * 0.55, mapWidth * 0.85, mapHeight * 0.75);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
   // The shadow camera has to contain the whole map or walls at the edge stop casting.
   const extent = Math.max(mapWidth, mapHeight) * 0.8;
   key.shadow.camera.left = -extent;
