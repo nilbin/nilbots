@@ -89,6 +89,7 @@ export {
   lookModel,
   lookModelSource,
   modelSpec,
+  signatureModel,
 } from '../../src/render3d/lookModel';
 export {
   arcMotionFrame,
@@ -96,7 +97,9 @@ export {
 } from '../../src/render3d/arcModelMotion';
 export {
   ARC_SIGNATURE_STYLES,
+  ARC_SIGNATURE_PROP_SCALE,
   arcSignatureVisualPhase,
+  latestObservedSignatureYaw,
 } from '../../src/render3d/arcRelayEffects';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
 export {

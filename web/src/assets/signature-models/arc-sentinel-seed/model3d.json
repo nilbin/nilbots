@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "arc-sentinel-seed",
+  "file": "model.glb",
+  "kind": "signature",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "signature": "sentinel-seed",
+  "source": {
+    "generator": "scripts/class-models/build-arc-runtime-texture-tier.mjs",
+    "recipe": "art/signature-models/arc-relay/runtime-tiers/ktx2-selective-v1/audit.json",
+    "artifact": "art/signature-models/arc-relay/runtime-tiers/ktx2-selective-v1/arc-sentinel-seed.glb",
+    "sourceSha256": "dcd216c22a4ba745b0fe22ba4838acae535244e458cb81dd8c668ee79801463b",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-sentinel-seed/019fc9b3-1dbf-79e2-98c8-44e5658ddf0b/model-normalized-identity-review.glb",
+    "approvedSha256": "811fef88c756a7bc0c4bdb3f077d23057b9a617734ac85e210c3c438b66a06cf",
+    "textureTier": "arc-relay-signatures-ktx2-selective-v1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc9b3-1dbf-79e2-98c8-44e5658ddf0b",
+    "orientation": "identity"
+  },
+  "ledger": {
+    "bytes": 586772,
+    "sha256": "dcd216c22a4ba745b0fe22ba4838acae535244e458cb81dd8c668ee79801463b",
+    "triangles": 13612,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "05d17d663cf8b94d3678a4dbf7b238b06155fbc9576b81149fd7620e05598d2d",
+    "geometryGpuBytes": 393692,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 754220,
+    "modelGpuBytesRgba8Fallback": 2578220,
+    "textureTier": "arc-relay-signatures-ktx2-selective-v1"
+  }
+}

@@ -22,19 +22,50 @@ import {
 } from './model-memory.mjs';
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const auditPath = path.join(
-  repository,
-  'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json',
-);
-const tierDirectory = path.join(
-  repository,
-  'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1',
-);
-const tierAuditPath = path.join(tierDirectory, 'audit.json');
 const check = process.argv.includes('--check');
 const options = parseOptions(process.argv.slice(2).filter((value) => value !== '--check'));
+const profile = options.profile ?? 'fleet';
+const profileContract = {
+  fleet: {
+    audit: 'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json',
+    tier: 'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1',
+    id: 'arc-relay-ktx2-selective-v1',
+    expectedCount: 16,
+    entries: (audit) => [audit.pilot, ...audit.generated],
+    budgets: {
+      decoderTransferBytes: 600_000,
+      perLookTransferBytes: 1_048_576,
+      fleetTransferBytes: 12 * 1_048_576,
+      compressedTextureGpuBytes: 6 * 1_048_576,
+      rgba8FallbackTextureGpuBytes: 36 * 1_048_576,
+      compressedModelGpuBytes: 12 * 1_048_576,
+      rgba8FallbackModelGpuBytes: 48 * 1_048_576,
+    },
+  },
+  signatures: {
+    audit: 'art/signature-models/arc-relay/provider-audit.json',
+    tier: 'art/signature-models/arc-relay/runtime-tiers/ktx2-selective-v1',
+    id: 'arc-relay-signatures-ktx2-selective-v1',
+    expectedCount: 2,
+    entries: (audit) => audit.models,
+    budgets: {
+      decoderTransferBytes: 600_000,
+      perLookTransferBytes: 1_048_576,
+      fleetTransferBytes: 2 * 1_048_576,
+      compressedTextureGpuBytes: 1 * 1_048_576,
+      rgba8FallbackTextureGpuBytes: 5 * 1_048_576,
+      compressedModelGpuBytes: 2 * 1_048_576,
+      rgba8FallbackModelGpuBytes: 6 * 1_048_576,
+    },
+  },
+}[profile];
+if (!profileContract)
+  throw new Error(`Unknown Arc runtime texture profile '${profile}'.`);
+const auditPath = path.join(repository, profileContract.audit);
+const tierDirectory = path.join(repository, profileContract.tier);
+const tierAuditPath = path.join(tierDirectory, 'audit.json');
 const providerAudit = JSON.parse(readFileSync(auditPath, 'utf8'));
-const entries = [providerAudit.pilot, ...providerAudit.generated].sort((left, right) =>
+const entries = profileContract.entries(providerAudit).sort((left, right) =>
   left.lookId.localeCompare(right.lookId),
 );
 const TOOL_VERSION = '4.4.2';
@@ -56,18 +87,16 @@ const textureContract = {
   },
   emissiveTexture: { width: 128, height: 128, encoding: 'ETC1S', quality: 255 },
 };
-const budgets = {
-  decoderTransferBytes: 600_000,
-  perLookTransferBytes: 1_048_576,
-  fleetTransferBytes: 12 * 1_048_576,
-  compressedTextureGpuBytes: 6 * 1_048_576,
-  rgba8FallbackTextureGpuBytes: 36 * 1_048_576,
-  compressedModelGpuBytes: 12 * 1_048_576,
-  rgba8FallbackModelGpuBytes: 48 * 1_048_576,
-};
+const budgets = profileContract.budgets;
 
-if (entries.length !== 16 || new Set(entries.map((entry) => entry.lookId)).size !== 16)
-  throw new Error('The provider audit must contain exactly sixteen unique Arc Relay looks.');
+if (
+  entries.length !== profileContract.expectedCount ||
+  new Set(entries.map((entry) => entry.lookId)).size !== profileContract.expectedCount
+)
+  throw new Error(
+    `The ${profile} provider audit must contain exactly ` +
+      `${profileContract.expectedCount} unique Arc Relay models.`,
+  );
 
 let tool = null;
 let toolEnvironment = process.env;
@@ -204,11 +233,11 @@ const totals = looks.reduce(
     triangles: 0,
   },
 );
-assertFleetBudgets(totals);
+assertTierBudgets(totals);
 
 const tierAudit = {
   schemaVersion: 1,
-  id: 'arc-relay-ktx2-selective-v1',
+  id: profileContract.id,
   generator: 'scripts/class-models/build-arc-runtime-texture-tier.mjs',
   sourceAudit: path.relative(repository, auditPath),
   toolchain: {
@@ -310,13 +339,25 @@ function buildLook(entry, approvedPath, sourcePath, outputPath) {
       '--jobs',
       '1',
     ]);
-    const encoded = path.join(temporary, '22-color-etc1s.glb');
+    const baseColor = path.join(temporary, '22-base-color-etc1s.glb');
     run(tool, [
       'etc1s',
       material,
+      baseColor,
+      '--slots',
+      'baseColorTexture',
+      '--quality',
+      '255',
+      '--jobs',
+      '1',
+    ]);
+    const encoded = path.join(temporary, '23-emissive-etc1s.glb');
+    run(tool, [
+      'etc1s',
+      baseColor,
       encoded,
       '--slots',
-      '{baseColorTexture,emissiveTexture}',
+      'emissiveTexture',
       '--quality',
       '255',
       '--jobs',
@@ -486,7 +527,7 @@ function assertTextureContract(lookId, textures) {
   }
 }
 
-function assertFleetBudgets(totals) {
+function assertTierBudgets(totals) {
   for (const [field, budget] of [
     ['runtimeTransferBytes', budgets.fleetTransferBytes],
     ['textureGpuBytesCompressedTarget', budgets.compressedTextureGpuBytes],
@@ -495,7 +536,7 @@ function assertFleetBudgets(totals) {
     ['modelGpuBytesRgba8Fallback', budgets.rgba8FallbackModelGpuBytes],
   ])
     if (totals[field] > budget)
-      throw new Error(`Fleet ${field} ${totals[field]} exceeds budget ${budget}.`);
+      throw new Error(`${profile} ${field} ${totals[field]} exceeds budget ${budget}.`);
 }
 
 function run(selected, args, { capture = false } = {}) {
@@ -531,7 +572,7 @@ function required(name) {
   if (!value)
     throw new Error(
       'Usage: build-arc-runtime-texture-tier.mjs --toktx <path> ' +
-        '[--gltf-transform <path>] [--check]',
+        '[--profile fleet|signatures] [--gltf-transform <path>] [--check]',
     );
   return value;
 }

@@ -90,6 +90,23 @@ test('legacy looks without a genuine model remain on the SVG fallback path', () 
   assert.equal(modelSpec('not-a-look'), null);
 });
 
+test('approved Arc Relay signature props resolve independently of bot looks', () => {
+  for (const [id, signature, orientation] of [
+    ['arc-trip-node', 'trip-node', 'lay-flat-x'],
+    ['arc-sentinel-seed', 'sentinel-seed', 'identity'],
+  ] as const) {
+    const spec = modelSpec(id);
+    assert.equal(spec?.kind, 'signature');
+    assert.equal(spec?.part, 'whole');
+    assert.equal(spec?.signature, signature);
+    assert.equal(spec?.source?.orientation, orientation);
+    assert.equal(spec?.source?.textureTier, 'arc-relay-signatures-ktx2-selective-v1');
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 1024 * 1024);
+    assert.equal(spec?.nodes, undefined);
+    assert.equal(spec?.motion, undefined);
+  }
+});
+
 test('a whole-body GLB cannot serve a turret sector and yields to the sprite', () => {
   // The turret is the chassis' forward section repeated around an axis. A layered SVG can
   // be cropped to that section; the Striker's `part: 'whole'` mesh cannot, and handing the
