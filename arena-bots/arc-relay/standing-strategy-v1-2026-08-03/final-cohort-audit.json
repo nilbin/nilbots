@@ -1,0 +1,780 @@
+{
+  "cells": [
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.3333333333333333,
+        "enemyFinalThirdBodyTicks": 2670,
+        "enemyReactorRadiusSixBodyTicks": 2513,
+        "fiveBodyCampTicks": 268,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 13,
+          "within2": 0,
+          "within6": 21
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 0,
+          "within6": 15
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 6,
+          "within2": 0,
+          "within6": 1
+        }
+      },
+      "canonicalReplaySha256": "2a384152f95b7454fe244e73e9bd3a99011e24824db26308dec95dfac0b01f00",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 18,
+        "respawnsRejoiningStrategy": 17,
+        "subjectDeaths": 19
+      },
+      "cellId": "home-siege--static-baseline--s324161--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 3,
+        "declaredScorerPickups": 4,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 7,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 2,
+        "securedCoreScorerPickups": 3,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 3,
+        "subjectPickups": 15
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 578,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        }
+      ],
+      "recoveryCycleObserved": false,
+      "repair": {
+        "acceptedRepairCommands": 123,
+        "distinctMedicLives": 5,
+        "distinctTargetSlots": 8
+      },
+      "seed": "324161",
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.2222222222222222,
+        "enemyFinalThirdBodyTicks": 2505,
+        "enemyReactorRadiusSixBodyTicks": 2301,
+        "fiveBodyCampTicks": 305,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 1,
+          "within6": 24
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 1,
+          "within6": 11
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 3,
+          "within2": 1,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "6ef1cef837de6f5a8caa037fd6b3dbaad70c170ff5018bf2ab3463cd48d59f79",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 24,
+        "respawnsRejoiningStrategy": 24,
+        "subjectDeaths": 25
+      },
+      "cellId": "home-siege--static-baseline--s324161--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 7,
+        "declaredScorerPickups": 2,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 8,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 1,
+        "securedCoreScorerPickups": 1,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 2,
+        "subjectPickups": 13
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 557,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 44
+        },
+        {
+          "phase": "regroup",
+          "tick": 68
+        },
+        {
+          "phase": "breach",
+          "tick": 140
+        },
+        {
+          "phase": "regroup",
+          "tick": 531
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 112,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "324161",
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.3333333333333333,
+        "enemyFinalThirdBodyTicks": 2670,
+        "enemyReactorRadiusSixBodyTicks": 2513,
+        "fiveBodyCampTicks": 268,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 13,
+          "within2": 0,
+          "within6": 21
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 0,
+          "within6": 15
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 6,
+          "within2": 0,
+          "within6": 1
+        }
+      },
+      "canonicalReplaySha256": "475ea6fc55d8244179bdb5c1afb2256ecf287ec4ff5846c7a9a24c6439824310",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 18,
+        "respawnsRejoiningStrategy": 17,
+        "subjectDeaths": 19
+      },
+      "cellId": "home-siege--static-baseline--s350377--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 3,
+        "declaredScorerPickups": 4,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 7,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 2,
+        "securedCoreScorerPickups": 3,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 3,
+        "subjectPickups": 15
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 578,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        }
+      ],
+      "recoveryCycleObserved": false,
+      "repair": {
+        "acceptedRepairCommands": 123,
+        "distinctMedicLives": 5,
+        "distinctTargetSlots": 8
+      },
+      "seed": "350377",
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.2222222222222222,
+        "enemyFinalThirdBodyTicks": 2505,
+        "enemyReactorRadiusSixBodyTicks": 2301,
+        "fiveBodyCampTicks": 305,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 1,
+          "within6": 24
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 1,
+          "within6": 11
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 3,
+          "within2": 1,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "5e0328e6d5148790b64432b64c40bac9c4d3c3f5b33847dc52227f846d7aba12",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 24,
+        "respawnsRejoiningStrategy": 24,
+        "subjectDeaths": 25
+      },
+      "cellId": "home-siege--static-baseline--s350377--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 7,
+        "declaredScorerPickups": 2,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 8,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 1,
+        "securedCoreScorerPickups": 1,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 2,
+        "subjectPickups": 13
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 557,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 44
+        },
+        {
+          "phase": "regroup",
+          "tick": 68
+        },
+        {
+          "phase": "breach",
+          "tick": 140
+        },
+        {
+          "phase": "regroup",
+          "tick": 531
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 112,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "350377",
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.3333333333333333,
+        "enemyFinalThirdBodyTicks": 2670,
+        "enemyReactorRadiusSixBodyTicks": 2513,
+        "fiveBodyCampTicks": 268,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 13,
+          "within2": 0,
+          "within6": 21
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 0,
+          "within6": 15
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 6,
+          "within2": 0,
+          "within6": 1
+        }
+      },
+      "canonicalReplaySha256": "a86253478bf777fbc06fe06b642117b338c34ce11095924eb0703ae1ed326aaf",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 18,
+        "respawnsRejoiningStrategy": 17,
+        "subjectDeaths": 19
+      },
+      "cellId": "home-siege--static-baseline--s376573--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 3,
+        "declaredScorerPickups": 4,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 7,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 2,
+        "securedCoreScorerPickups": 3,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 3,
+        "subjectPickups": 15
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 578,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        }
+      ],
+      "recoveryCycleObserved": false,
+      "repair": {
+        "acceptedRepairCommands": 123,
+        "distinctMedicLives": 5,
+        "distinctTargetSlots": 8
+      },
+      "seed": "376573",
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.2222222222222222,
+        "enemyFinalThirdBodyTicks": 2505,
+        "enemyReactorRadiusSixBodyTicks": 2301,
+        "fiveBodyCampTicks": 305,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 1,
+          "within6": 24
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 1,
+          "within6": 11
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 3,
+          "within2": 1,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "e013dcd6c540c7164f21bc3b3a155cecb7d2d9da289484ae1d82ab4610a81954",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 24,
+        "respawnsRejoiningStrategy": 24,
+        "subjectDeaths": 25
+      },
+      "cellId": "home-siege--static-baseline--s376573--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 7,
+        "declaredScorerPickups": 2,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 8,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 1,
+        "securedCoreScorerPickups": 1,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 2,
+        "subjectPickups": 13
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 557,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 44
+        },
+        {
+          "phase": "regroup",
+          "tick": 68
+        },
+        {
+          "phase": "breach",
+          "tick": 140
+        },
+        {
+          "phase": "regroup",
+          "tick": 531
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 112,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "376573",
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.3333333333333333,
+        "enemyFinalThirdBodyTicks": 2670,
+        "enemyReactorRadiusSixBodyTicks": 2513,
+        "fiveBodyCampTicks": 268,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 13,
+          "within2": 0,
+          "within6": 21
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 0,
+          "within6": 15
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 6,
+          "within2": 0,
+          "within6": 1
+        }
+      },
+      "canonicalReplaySha256": "d3698ccc82d4ced27e2cfbce3e1027c956afc609446c5cc0478239b45fd46dbf",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 18,
+        "respawnsRejoiningStrategy": 17,
+        "subjectDeaths": 19
+      },
+      "cellId": "home-siege--static-baseline--s402943--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 3,
+        "declaredScorerPickups": 4,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 7,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 2,
+        "securedCoreScorerPickups": 3,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 3,
+        "subjectPickups": 15
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 578,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        }
+      ],
+      "recoveryCycleObserved": false,
+      "repair": {
+        "acceptedRepairCommands": 123,
+        "distinctMedicLives": 5,
+        "distinctTargetSlots": 8
+      },
+      "seed": "402943",
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.2222222222222222,
+        "enemyFinalThirdBodyTicks": 2505,
+        "enemyReactorRadiusSixBodyTicks": 2301,
+        "fiveBodyCampTicks": 305,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 1,
+          "within6": 24
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 1,
+          "within6": 11
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 3,
+          "within2": 1,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "dd27d2374aec59faffa4fd828a8b3dd53d71e852fd41839392b0cd02cad5fd00",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 24,
+        "respawnsRejoiningStrategy": 24,
+        "subjectDeaths": 25
+      },
+      "cellId": "home-siege--static-baseline--s402943--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 7,
+        "declaredScorerPickups": 2,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 8,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 1,
+        "securedCoreScorerPickups": 1,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 2,
+        "subjectPickups": 13
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 557,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 44
+        },
+        {
+          "phase": "regroup",
+          "tick": 68
+        },
+        {
+          "phase": "breach",
+          "tick": 140
+        },
+        {
+          "phase": "regroup",
+          "tick": 531
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 112,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "402943",
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.3333333333333333,
+        "enemyFinalThirdBodyTicks": 2670,
+        "enemyReactorRadiusSixBodyTicks": 2513,
+        "fiveBodyCampTicks": 268,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 13,
+          "within2": 0,
+          "within6": 21
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 0,
+          "within6": 15
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 6,
+          "within2": 0,
+          "within6": 1
+        }
+      },
+      "canonicalReplaySha256": "ab9f8b862b2a83bb57dda51f03924cff3a3545f37e03762d3212d39727e0b99e",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 18,
+        "respawnsRejoiningStrategy": 17,
+        "subjectDeaths": 19
+      },
+      "cellId": "home-siege--static-baseline--s429127--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 3,
+        "declaredScorerPickups": 4,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 7,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 2,
+        "securedCoreScorerPickups": 3,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 3,
+        "subjectPickups": 15
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 578,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        }
+      ],
+      "recoveryCycleObserved": false,
+      "repair": {
+        "acceptedRepairCommands": 123,
+        "distinctMedicLives": 5,
+        "distinctTargetSlots": 8
+      },
+      "seed": "429127",
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.2222222222222222,
+        "enemyFinalThirdBodyTicks": 2505,
+        "enemyReactorRadiusSixBodyTicks": 2301,
+        "fiveBodyCampTicks": 305,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 1,
+          "within6": 24
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 4,
+          "within2": 1,
+          "within6": 11
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 3,
+          "within2": 1,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "850ed05151614790179ca7f48fb34cc6e31ccad1c245145890036852d8087d54",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 24,
+        "respawnsRejoiningStrategy": 24,
+        "subjectDeaths": 25
+      },
+      "cellId": "home-siege--static-baseline--s429127--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 7,
+        "declaredScorerPickups": 2,
+        "opportunisticPickups": 11,
+        "securedCoreBanks": 8,
+        "securedCorePickups": 12,
+        "securedCoreScorerBanks": 1,
+        "securedCoreScorerPickups": 1,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 2,
+        "subjectPickups": 13
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 557,
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 44
+        },
+        {
+          "phase": "regroup",
+          "tick": 68
+        },
+        {
+          "phase": "breach",
+          "tick": 140
+        },
+        {
+          "phase": "regroup",
+          "tick": 531
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 112,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "429127",
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    }
+  ],
+  "schema": "arc-relay-home-siege-audit-v1",
+  "sourceSweep": "out/arc-strategy/final-cohort/attempt-01",
+  "summary": {
+    "acceptedRepairCommands": 1175,
+    "allEligible": true,
+    "cells": 10,
+    "cellsWithRecoveryCycle": 5,
+    "counterBanksDuringCamp": 50,
+    "deathsWithLaterRespawn": 210,
+    "enemyFinalThirdBodyTicks": 25875,
+    "homeSiegeWins": 10,
+    "respawnsRejoiningStrategy": 205,
+    "securedCoreBanks": 75,
+    "securedCoreScorerBanks": 15,
+    "subjectBanks": 90
+  }
+}

@@ -19,6 +19,14 @@ npm run review -- --tunnel     # + a public HTTPS URL via cloudflared
 npm run review -- --no-build   # serve what is already in dist-review
 ```
 
+For iterative tactics or sheet review, build the production viewer once, then
+reuse it with `--no-build` and refresh only the selected replay payloads and
+explanatory cards. A one- or two-replay targeted gallery plus a focused browser
+smoke is enough while discovering. Rebuild assets, run the full browser matrix,
+and publish the permanent gallery only for a frozen promotion candidate or a
+change to viewer code/assets. Do not turn every replay refresh into a release
+gauntlet.
+
 **The review build cannot be opened from disk.** It is deliberately not self-contained —
 separate hashed atlases, audio and JavaScript, so a phone streams them instead of parsing
 one ~15 MiB inline document — and `file://` blocks ES modules. Double-clicking

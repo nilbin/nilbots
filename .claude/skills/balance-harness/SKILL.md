@@ -91,6 +91,23 @@ verification, and the registered felt-degeneracy scorecard before it enters a
 balance read or gallery. Keep both runtime labels in the report and prove a
 same-cell result-parity sample for every screening sweep.
 
+Use a deliberate two-speed loop for Arc Relay sheet/doctrine iteration:
+
+1. **Discovery loop:** run in-process batch screening, targeted tests, current
+   bars, and one or two deliberately chosen replay cards. Reuse the existing
+   production viewer build and replace only replay payloads/cards. This loop is
+   for diagnosis and selection; label every result `in-process` and provisional.
+2. **Promotion gate:** only after freezing a candidate, run the declared paired
+   sandboxed-WASM cohort, canonical verification, golden hashes, full registered
+   eligibility audit, production build/tests, browser smoke, permanent evidence,
+   and public review gallery. This is the only lane that supports a balance or
+   strategy-proof claim.
+
+Do not pay the promotion-gate cost for every sheet edit. Conversely, never
+promote a discovery-loop result because its quick replay looked convincing.
+Record the discovery ledger so the final report discloses the search rather
+than presenting the promoted candidate as a first try.
+
 Score Arc Relay events across both `startEvents` and `events`; post-state worlds
 alone are insufficient. In particular, reject repeated same-Core, same-life,
 same-tile automatic-pickup/voluntary-drop cycles even though each post-state
