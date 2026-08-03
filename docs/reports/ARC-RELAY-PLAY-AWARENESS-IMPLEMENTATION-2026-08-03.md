@@ -77,49 +77,82 @@ and Pulse are carried by the field and audio. Pickup and drop gained distinct
 deterministic Obsidian Foundry cues (`8,681 B` and `9,559 B`; `18,240 B`
 combined), with corresponding Canvas2D/WebGL effects and timeline anchors.
 
-## Retained-operation proof
+## Final forward-combat operation proof
 
-The outcome-visible gallery was rebuilt from all ten retained operation matches
-under `arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/`.
-The broadcasts remain `1,364,354 B` total, `164,315 B` maximum: the viewer
-change adds no replay bytes.
+The outcome-visible gallery was rebuilt again after integration, this time from
+the ten final `arc-relay-forward-combat-01` live proofs under
+`arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/`.
+The compact broadcasts total `1,276,527 B`; the largest is Relay Catch at
+`160,235 B`. The awareness layer adds no replay or broadcast bytes.
+
+Every card says what is being watched: operation, side, opponent, winner,
+terminal reason, and the verified prepare/commit/success/release window. The
+index is deliberately outcome-visible.
 
 The production-browser smoke:
 
-- opened all ten pages in WebGL;
+- opened all ten final forward-combat pages in WebGL;
 - advanced every replay and found the score bug;
-- sought to each retained operation's success tick;
+- sought to each operation's verified success tick;
 - opened and selected a real current execution trace in all ten;
-- rejected any card that exposed the later retained release tick;
+- rejected any card that exposed its later release tick;
 - verified the old Core pickup text banner is absent;
 - verified the Core pickup timeline anchor and captured its in-world effect;
+- verified every model visible in this gallery comes from the promoted Meshy
+  runtime assets rather than the older procedural fleet;
 - produced no page, console, or failed-request errors.
+
+A second production smoke deliberately denied WebGL context creation. The
+viewer fell back to Canvas2D, advanced the same current replay, exposed the
+same score and tactics trace, and produced no unexpected browser error.
 
 Evidence:
 
 - `art/reviews/arc-relay-play-awareness/smoke.json`
+- `art/reviews/arc-relay-play-awareness/smoke-canvas2d.json`
 - `art/reviews/arc-relay-play-awareness/first-operation-webgl.png`
+- `art/reviews/arc-relay-play-awareness/first-operation-canvas2d.png`
 - `art/reviews/arc-relay-play-awareness/core-pickup-webgl.png`
 - `art/reviews/arc-relay-play-awareness/three-theater-overview-webgl.png`
-- `art/reviews/arc-relay-play-awareness/rear-hook-canvas2d.png`
 - `art/reviews/arc-relay-play-awareness/index.png`
+
+The earlier procedural-model comparison screenshot is invalid evidence and is
+excluded. The retained replacement pair uses the same completed replay, tick
+26, camera, map, and approved Meshy fleet on both sides:
+
+- before awareness: `core-pickup-before-awareness-webgl.png`, SHA-256
+  `5d9846c8428eea6fc90af208eb8629f1d53b6e956d38e99e5a1bcbbd8107a771`;
+- after awareness: `core-pickup-after-awareness-same-replay-webgl.png`,
+  SHA-256
+  `23c7f43e162cc9213818c9530b83fa562128758e16a9a231939c96ba8124c7b1`.
+
+That A/B changes only presentation: it removes the obsolete pickup banner,
+keeps the existing diegetic Core cue, and adds the closed Tactics entry point.
+The current forward-combat screenshot is kept separately as
+`core-pickup-webgl.png`.
+
+Mortar does not appear in this gallery. Its separate facing review was still in
+progress when this awareness evidence was captured, so this report makes no
+claim about that model's final orientation.
 
 Local gallery build:
 
-`sandbox/arc-relay-play-awareness-review-v4/`
+`sandbox/arc-relay-forward-awareness-review-v1/`
 
 ## Validation
 
-- `cd web && npm test` — `389/389` web tests pass, including bounded parsing,
+- `cd web && npm test` — `390/390` web tests pass, including bounded parsing,
   phase/release grouping, current-playmate selection, Core cue coverage, asset
-  coverage, and contact semantics.
+  coverage, contact semantics, the forward-facing replay contract, and exact
+  runtime-to-audited Meshy asset hashes at the captured revision.
 - `cd web && npm run build` — production and all four scoped CLI viewers build.
 - `git diff --check` — clean.
 - Ten-match production WebGL smoke — all ten pass with zero browser errors.
-- Forced-WebGL-failure Canvas2D smoke — Rear Hook trace and field layer pass.
+- Forced-WebGL-failure Canvas2D smoke — current Escort Counterpunch trace and
+  field layer pass.
 
-The production entry bundle is `1,272,207 B` uncompressed and the WebGL chunk
-is `793,318 B` uncompressed in this build. The only new binary runtime payload
+The production entry bundle is `1,274,257 B` uncompressed and the WebGL chunk
+is `793,373 B` uncompressed in this build. The only new binary runtime payload
 is the `18,240 B` pair of compressed event cues.
 
 ## Honest remaining seam
@@ -133,12 +166,10 @@ presentation-safe operation/branch trace emitted by the entrant. It is not a
 reason to infer tactics from movement, entrant names, or outcomes in the web
 renderer.
 
-## Integration notes
+## Integration result
 
-The branch is deliberately isolated. The likely conflict surfaces with the
-directional-combat track are `Viewer.tsx`, `drawArena.ts`, `arenaCamera.ts`,
-`ArenaCanvas3D.tsx`, `arenaActors.ts`, and `arenaOverlays.ts`. Merge the two
-features semantically: retain directional facing/fire visuals while preserving
-the awareness props, causal contact camera gate, role-caption suppression, and
-fog-filtered bracket/sigil layers. No engine or replay artifact should be
-resolved in favor of this branch because this branch changes none of them.
+The awareness pass is integrated after the versioned forward-combat contract.
+Directional facing and fire visuals coexist with the awareness props, causal
+contact camera gate, role-caption suppression, and fog-filtered bracket/sigil
+layers. The final browser evidence above comes from that combined production
+build, not from the former isolated awareness branch.

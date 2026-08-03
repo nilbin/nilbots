@@ -1,0 +1,56 @@
+{
+  "title": "Arc Relay forward combat — labelled operation review",
+  "intro": "Outcome-visible review of the final forward-facing combat rules and stock mind. Every card names the operation, winner, terminal reason, and verified prepare-to-release window.",
+  "cards": [
+    {
+      "id": "sample-01",
+      "title": "Escort Counterpunch — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+    },
+    {
+      "id": "sample-02",
+      "title": "Emergency Exchange — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed"
+    },
+    {
+      "id": "sample-03",
+      "title": "Birth Rotation — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed"
+    },
+    {
+      "id": "sample-04",
+      "title": "Smoke Breach — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed"
+    },
+    {
+      "id": "sample-05",
+      "title": "Lantern Sweep — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+    },
+    {
+      "id": "sample-06",
+      "title": "Decoy Switch — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed"
+    },
+    {
+      "id": "sample-07",
+      "title": "Rear Hook — Blue operation",
+      "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed"
+    },
+    {
+      "id": "sample-08",
+      "title": "Hardlight Gate — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed"
+    },
+    {
+      "id": "sample-09",
+      "title": "Relay Catch — Blue operation",
+      "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed"
+    },
+    {
+      "id": "sample-10",
+      "title": "Fork Shadow — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed"
+    }
+  ]
+}

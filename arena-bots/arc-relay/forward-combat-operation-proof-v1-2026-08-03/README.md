@@ -45,5 +45,20 @@ python3 scripts/arc-relay-operation-proof.py prove \
 The tracked compact receipt is
 [`evidence/live-proof-summary.json`](evidence/live-proof-summary.json). Full
 canonical replays are deliberately regenerated and verified rather than
-committed. This corpus proves executable grammar and recovery behavior only;
-it is not a balance, reliability, fun, or product-UX claim.
+committed. Compact broadcast slices from the final passing run are retained in
+`evidence/replays/` for the outcome-visible production review gallery; they do
+not replace canonical verification.
+
+Rebuild the current gallery after `cd web && npm run build`:
+
+```sh
+python3 scripts/build-review-gallery.py \
+  --sample arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/gallery-sample.json \
+  --index-cards arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/gallery-cards.json \
+  --output sandbox/arc-relay-forward-awareness-review-v1 \
+  --viewer hosted --viewer-build web/dist --review-panel \
+  --review-protocol arc-relay-forward-awareness-v1
+```
+
+This corpus proves executable grammar and recovery behavior only; it is not a
+balance, reliability, fun, or product-UX claim.

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "url": "http://127.0.0.1:8941/",
+  "outcomeVisible": true,
+  "expectedRenderer": "canvas2d",
+  "index": {
+    "cards": [
+      {
+        "href": "sample-01.html",
+        "title": "Escort Counterpunch — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      },
+      {
+        "href": "sample-02.html",
+        "title": "Emergency Exchange — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed"
+      },
+      {
+        "href": "sample-03.html",
+        "title": "Birth Rotation — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed"
+      },
+      {
+        "href": "sample-04.html",
+        "title": "Smoke Breach — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed"
+      },
+      {
+        "href": "sample-05.html",
+        "title": "Lantern Sweep — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      },
+      {
+        "href": "sample-06.html",
+        "title": "Decoy Switch — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed"
+      },
+      {
+        "href": "sample-07.html",
+        "title": "Rear Hook — Blue operation",
+        "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed"
+      },
+      {
+        "href": "sample-08.html",
+        "title": "Hardlight Gate — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed"
+      },
+      {
+        "href": "sample-09.html",
+        "title": "Relay Catch — Blue operation",
+        "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed"
+      },
+      {
+        "href": "sample-10.html",
+        "title": "Fork Shadow — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed"
+      }
+    ],
+    "screenshot": "art/reviews/arc-relay-play-awareness/index.png",
+    "screenshotSha256": "35493ee7ee4c5fc92cf6bd7d43b778d8cae0779e2af34ee37a3840a16bd40912"
+  },
+  "samples": [
+    {
+      "sample": "sample-01.html",
+      "title": "Escort Counterpunch — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed",
+      "readyMilliseconds": 18060,
+      "canvasKind": "2d",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 60,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "screenshot": "art/reviews/arc-relay-play-awareness/first-operation-canvas2d.png",
+      "screenshotSha256": "4e2e84fd331ea88e88afe2ef7b308ed5bdacc4497825ad7592732e2c807117b1"
+    }
+  ],
+  "possessionCue": {
+    "tick": 30,
+    "presentation": "diegetic Core pickup effect plus timeline anchor; no text banner",
+    "screenshot": "art/reviews/arc-relay-play-awareness/core-pickup-canvas2d.png",
+    "screenshotSha256": "8bc05c63e762a56c4e11abe07e4ea7d38bf5a8517878489d93d62b19f0b2e4ec"
+  },
+  "tacticsLens": {
+    "tick": 59,
+    "activeTrace": true,
+    "selectedTraceCard": true
+  },
+  "strategicOverview": {
+    "scope": "all three Wells; deep home aprons may be cropped",
+    "screenshot": "art/reviews/arc-relay-play-awareness/three-theater-overview-canvas2d.png",
+    "screenshotSha256": "30ee8287c6a078427de42726dd89e096f21fb3c60eb4ebc3cf48a585774557fa"
+  }
+}

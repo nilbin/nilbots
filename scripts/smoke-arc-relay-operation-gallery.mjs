@@ -15,6 +15,12 @@ if (!baseUrl) throw new Error('Missing --url.');
 const outputDirectory = path.resolve(
   options.output ?? path.join(repository, 'art', 'reviews', 'arc-relay-operation-counterplay'),
 );
+const expectedRenderer = options.renderer ?? 'webgl';
+if (!['webgl', 'canvas2d'].includes(expectedRenderer))
+  throw new Error(`Unsupported --renderer '${expectedRenderer}'.`);
+const sampleLimit = Number(options.limit ?? 10);
+if (!Number.isInteger(sampleLimit) || sampleLimit < 1 || sampleLimit > 10)
+  throw new Error('--limit must be an integer from 1 to 10.');
 mkdirSync(outputDirectory, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
@@ -22,6 +28,15 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
   deviceScaleFactor: 1,
 });
+if (expectedRenderer === 'canvas2d') {
+  await context.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+      if (['webgl', 'webgl2', 'experimental-webgl'].includes(kind)) return null;
+      return original.call(this, kind, ...args);
+    };
+  });
+}
 const page = await context.newPage();
 const failures = [];
 page.on('pageerror', (error) => failures.push(`page: ${error.message}`));
@@ -29,14 +44,19 @@ page.on('requestfailed', (request) =>
   failures.push(`request: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`),
 );
 page.on('console', (message) => {
-  if (message.type() === 'error') failures.push(`console: ${message.text()}`);
+  if (message.type() !== 'error') return;
+  if (
+    expectedRenderer === 'canvas2d' &&
+    message.text().includes('Error creating WebGL context')
+  ) return;
+  failures.push(`console: ${message.text()}`);
 });
 
 const smoke = {
   schemaVersion: 1,
   url: baseUrl,
   outcomeVisible: true,
-  expectedRenderer: 'webgl',
+  expectedRenderer,
   index: null,
   samples: [],
 };
@@ -54,7 +74,7 @@ try {
   for (const link of links) {
     if (!link.href || !link.title || !link.subtitle)
       throw new Error('Every gallery card must have a link, title, and subtitle.');
-    for (const phrase of ['wins', 'success t', 'release t', 'casualty t', 'baseline life'])
+    for (const phrase of ['wins', 'prepare t', 'commit t', 'success t', 'release t', 'baseline resumed'])
       if (!link.subtitle.includes(phrase))
         throw new Error(`${link.title}: subtitle is missing '${phrase}'.`);
   }
@@ -66,7 +86,7 @@ try {
     screenshotSha256: sha256(readFileSync(indexScreenshot)),
   };
 
-  for (const [index, link] of links.entries()) {
+  for (const [index, link] of links.slice(0, sampleLimit).entries()) {
     const beforeFailures = failures.length;
     const started = Date.now();
     await page.goto(new URL(link.href, baseUrl).href, { waitUntil: 'domcontentloaded' });
@@ -76,8 +96,9 @@ try {
     const canvasKind = await arena.locator('canvas').evaluate((canvas) =>
       canvas.getContext('2d') ? '2d' : 'webgl',
     );
-    if (canvasKind !== 'webgl')
-      throw new Error(`${link.title}: expected WebGL, got ${canvasKind}.`);
+    const expectedCanvasKind = expectedRenderer === 'webgl' ? 'webgl' : '2d';
+    if (canvasKind !== expectedCanvasKind)
+      throw new Error(`${link.title}: expected ${expectedCanvasKind}, got ${canvasKind}.`);
     await page.locator('[aria-label="Arc Relay score"]').waitFor({ timeout: 15_000 });
     const tickBefore = await readTick(page);
     await page.getByRole('button', { name: 'Play match' }).click();
@@ -121,7 +142,10 @@ try {
       }).waitFor({ timeout: 5_000 });
       if (await page.getByText('CORE PICKED UP', { exact: true }).count())
         throw new Error(`${link.title}: obsolete text event banner is still mounted.`);
-      const possessionScreenshot = path.join(outputDirectory, 'core-pickup-webgl.png');
+      const possessionScreenshot = path.join(
+        outputDirectory,
+        `core-pickup-${expectedRenderer}.png`,
+      );
       await arena.screenshot({ path: possessionScreenshot, animations: 'disabled' });
 
       const cameraToggle = page.getByRole('button', { name: /director/i });
@@ -132,7 +156,10 @@ try {
         ),
       );
       await page.waitForTimeout(1_200);
-      const overviewScreenshot = path.join(outputDirectory, 'three-theater-overview-webgl.png');
+      const overviewScreenshot = path.join(
+        outputDirectory,
+        `three-theater-overview-${expectedRenderer}.png`,
+      );
       await arena.screenshot({ path: overviewScreenshot, animations: 'disabled' });
       await page.getByRole('button', { name: /overview/i }).click();
       await page.waitForFunction(() =>
@@ -141,11 +168,9 @@ try {
         ),
       );
 
-      const evidenceTick = Number(
-        link.subtitle.match(/(?:committed counter|preparation denial) t(\d+)/)?.[1],
-      );
+      const evidenceTick = Number(link.subtitle.match(/commit t(\d+)/)?.[1]);
       if (!Number.isFinite(evidenceTick))
-        throw new Error(`${link.title}: could not parse its counter evidence tick.`);
+        throw new Error(`${link.title}: could not parse its commitment tick.`);
       await seekTick(page, evidenceTick);
       await page.waitForTimeout(1_200);
       await page.getByRole('button', { name: /tactics/i }).click();
@@ -173,7 +198,7 @@ try {
       };
     }
     const screenshot = index === 0
-      ? path.join(outputDirectory, 'first-operation-webgl.png')
+      ? path.join(outputDirectory, `first-operation-${expectedRenderer}.png`)
       : null;
     if (screenshot) await arena.screenshot({ path: screenshot, animations: 'disabled' });
     const newFailures = failures.slice(beforeFailures);
@@ -207,9 +232,14 @@ try {
   await browser.close();
 }
 
-const output = path.join(outputDirectory, 'smoke.json');
+const output = path.join(
+  outputDirectory,
+  expectedRenderer === 'webgl' ? 'smoke.json' : `smoke-${expectedRenderer}.json`,
+);
 writeFileSync(output, `${JSON.stringify(smoke, null, 2)}\n`);
-console.log(`Smoked ${smoke.samples.length} labelled WebGL operation replays.`);
+console.log(
+  `Smoked ${smoke.samples.length} labelled ${expectedRenderer} operation replays.`,
+);
 
 function parseOptions(args) {
   const parsed = {};
