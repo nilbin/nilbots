@@ -35,7 +35,7 @@ const orientations = new Map([
 ]);
 const facingYawByLook = new Map([
   ['arc-kestrel', 180],
-  ['arc-mortar', 180],
+  ['arc-mortar', 90],
 ]);
 const generated = receipt.looks.map((lookId) => audit(lookId));
 const mason = audit('arc-mason');

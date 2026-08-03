@@ -21,10 +21,10 @@
     "providerStageSeconds": 3173.515835333,
     "averageProviderStageSeconds": 211.56772235553333,
     "candidateBytes": {
-      "total": 9960260,
+      "total": 9960292,
       "minimum": 591668,
       "maximum": 814688,
-      "average": 664017.3333333334
+      "average": 664019.4666666667
     }
   },
   "reviewContract": {
@@ -39,7 +39,7 @@
     },
     "facingYawDegrees": {
       "arc-kestrel": 180,
-      "arc-mortar": 180
+      "arc-mortar": 90
     },
     "runtimeAssetsPromoted": false,
     "runtimeModelsRestored": true
@@ -326,11 +326,11 @@
         "mimeType": "image/png"
       },
       "orientation": "identity",
-      "facingYawDegrees": 180,
+      "facingYawDegrees": 90,
       "candidate": {
         "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-facing-review.glb",
-        "bytes": 677480,
-        "sha256": "35d16336e988b46f0a7385f3bbe1fa71e0ad891cffeb9e7bb093d718960445d9",
+        "bytes": 677512,
+        "sha256": "a1f242910b26db706a523c8c9c90cef8fa5f6cef95c37279c2476a1f18b519e7",
         "triangles": 9636,
         "materials": 1,
         "textures": 4,

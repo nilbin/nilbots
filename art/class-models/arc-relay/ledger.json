@@ -10,7 +10,7 @@
   "modelOwnedTeamGlow": false,
   "budgetBytesPerLook": 1048576,
   "totals": {
-    "bytes": 10638816,
+    "bytes": 10638848,
     "triangles": 215130,
     "materials": 16,
     "textures": 64
@@ -105,9 +105,9 @@
       "taskId": "019fc388-c331-7537-b3de-9f75125c5981",
       "artifact": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-facing-review.glb",
       "orientation": "identity",
-      "facingYawDegrees": 180,
-      "bytes": 677480,
-      "sha256": "35d16336e988b46f0a7385f3bbe1fa71e0ad891cffeb9e7bb093d718960445d9",
+      "facingYawDegrees": 90,
+      "bytes": 677512,
+      "sha256": "a1f242910b26db706a523c8c9c90cef8fa5f6cef95c37279c2476a1f18b519e7",
       "triangles": 9636,
       "materials": 1,
       "textures": 4,

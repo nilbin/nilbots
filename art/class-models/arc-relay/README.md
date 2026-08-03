@@ -6,9 +6,9 @@ The production WebGL companions are the sixteen owner-approved Meshy T2
 That audit—not the older temporary review build—is the orientation and artifact
 authority. Mason uses its audited pilot file, Lantern and Mortar use their
 identity-normalized files, and the other thirteen use their lay-flat-X normalized
-files. A fixed-camera nose audit additionally applies a baked 180° facing correction
-to Kestrel and Mortar; their provider geometry otherwise pointed opposite the
-authoritative `+X` facing axis.
+files. A fixed-camera nose audit additionally applies baked facing corrections:
+180° for Kestrel and 90° for Mortar. Kestrel's nose was reversed, while Mortar's
+cannon pointed away from the replay camera instead of along authoritative `+X`.
 
 Promote or verify the exact approved bytes from the repository root:
 
