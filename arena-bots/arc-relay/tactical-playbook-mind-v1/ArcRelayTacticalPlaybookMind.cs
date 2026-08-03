@@ -762,11 +762,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             package.Source.Formations.Single(value =>
                 value.FormationId == order.FormationId);
         string role = roles[body.UnitId];
-        int ordinal = roles
-            .Where(value => value.Value == role)
-            .OrderBy(value => value.Key)
-            .Select((value, index) => (value.Key, index))
-            .Single(value => value.Key == body.UnitId).index;
+        int ordinal = TacticalFormationPrimitives.FormationOrdinal(
+            body.UnitId,
+            role,
+            roles,
+            _stableRoles,
+            formation.Reflow.Vacancy);
         TacticalPlaybookPackage.Placement[] placements = formation.Placements
             .Where(value => value.RoleId == role)
             .OrderBy(value => value.Order).ToArray();
@@ -1502,11 +1503,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Formation formation =
             package.Source.Formations.Single(value =>
                 value.FormationId == order.FormationId);
-        Position[] goals = ReflowGoals(
-            contract.Map, target,
-            stuck >= order.Movement.StuckTicks
+        bool targetBlocked = !TacticalFormationPrimitives.IsEnterable(
+            contract.Map.Width,
+            contract.Map.Height,
+            contract.Map.TileRows,
+            target);
+        Position[] goals = TacticalFormationPrimitives.ReflowGoals(
+            contract.Map.Width,
+            contract.Map.Height,
+            contract.Map.TileRows,
+            target,
+            stuck >= order.Movement.StuckTicks || targetBlocked
                 ? formation.Reflow.SearchRadius
-                : 0);
+                : 0,
+            formation.Reflow.BlockedSlot);
         if (TryAdvanceSignature(contract, body, target))
             return true;
         return ArenaBasics.TryMoveToward(
@@ -1625,28 +1635,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 selected.Value.Policy.CustodyId);
         }
         return allocations;
-    }
-
-    private static Position[] ReflowGoals(
-        GenericActorMapContract map,
-        Position target,
-        int radius)
-    {
-        var result = new List<Position> { target };
-        for (int distance = 1; distance <= radius; distance++)
-        {
-            for (int dy = -distance; dy <= distance; dy++)
-            for (int dx = -distance; dx <= distance; dx++)
-            {
-                if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != distance)
-                    continue;
-                Position candidate = target.Offset(dx, dy);
-                if (candidate.X >= 0 && candidate.Y >= 0
-                    && candidate.X < map.Width && candidate.Y < map.Height)
-                    result.Add(candidate);
-            }
-        }
-        return result.Distinct().ToArray();
     }
 
     private static bool TryCombatSignature(
