@@ -94,7 +94,10 @@ write the cards.
 
 For broad Arc Relay renderer, awareness, or tactics review, default to the
 latest compatible retained operation corpus instead of incidental smoke or
-balance matches. The current pin is:
+balance matches. Run the current felt-degeneracy scorecard first; the gallery
+builder does this automatically for complete Arc Relay broadcast-v1 inputs.
+
+The former ten-match pin below is **quarantined**, not a reusable baseline:
 
 ```text
 arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/
@@ -105,10 +108,16 @@ arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/
 
 It contains ten canonical-verified, operation-rich matches across Rear Hook,
 Lantern Sweep, Fork Shadow, Birth Rotation, Escort Counterpunch, Smoke Breach,
-Hardlight Gate, Relay Catch, Decoy Switch, and Emergency Exchange. Reuse this
-set while its rules, map, stock artifact, and broadcast schema remain
-compatible. If any axis changes, regenerate equivalent or better proofs; do
-not silently fall back to bland matches merely because they are newer.
+Hardlight Gate, Relay Catch, Decoy Switch, and Emergency Exchange. Current
+scoring rejects three matches: Emergency Exchange trips the v4 pickup/drop
+cycle, Rear Hook's opponent trips home-carrier non-progress, and Relay Catch's
+opponent trips stuck-carrier. Do not reuse or rebuild this set as an eligible
+gallery. Regenerate an equivalent or better operation-rich set under the
+current bars; do not silently fall back to bland matches merely because they
+are newer.
+
+Use `--skip-arc-relay-eligibility` only when the gallery is explicitly about a
+known failure. The default builder refusal is part of the methodology.
 
 Owner galleries are outcome-visible by default. Use outcome blindness only
 when the requested evaluation methodology requires it.

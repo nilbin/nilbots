@@ -91,6 +91,15 @@ verification, and the registered felt-degeneracy scorecard before it enters a
 balance read or gallery. Keep both runtime labels in the report and prove a
 same-cell result-parity sample for every screening sweep.
 
+Score Arc Relay events across both `startEvents` and `events`; post-state worlds
+alone are insufficient. In particular, reject repeated same-Core, same-life,
+same-tile automatic-pickup/voluntary-drop cycles even though each post-state
+shows a loose Core and would reset an ordinary stuck-carrier counter. Use the
+current default registration (`arc-relay-felt-degeneracy-bars-v4`) for new
+studies. Preserve an older frozen registration only when reproducing its named
+historical cohort, and never describe that older result as passing the current
+bars.
+
 ## 4. Run outcomes, dynamics, and replay review
 
 ```bash

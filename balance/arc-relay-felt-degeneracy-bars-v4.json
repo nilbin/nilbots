@@ -1,0 +1,43 @@
+{
+  "schema": "arc-relay-felt-degeneracy-bars-v4",
+  "status": "frozen-after-owner-observed-pickup-drop-loop-2026-08-03",
+  "authority": "owner observed one carrier repeatedly picking up and voluntarily dropping the same Core on one tile through the end of a gallery match",
+  "purpose": "Cohort, ladder, and gallery eligibility, not an outcome or fun score",
+  "supersedes": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "handoffPingPong": {
+    "maximumGapCoreRelocationIntervals": 2,
+    "tripAtReversalsInOneSamePairEpisode": 3
+  },
+  "pickupDropCycle": {
+    "maximumPickupToVoluntaryDropTicks": 1,
+    "maximumGapTicksBetweenCycles": 2,
+    "tripAtCyclesInOneSameCoreActorPositionEpisode": 3,
+    "episodeIdentity": "same Core, same carrier life, and same tile",
+    "resetEvents": "bank, handoff, relocation, birth, a different carrier or tile, or a gap above the configured maximum"
+  },
+  "sustainedPassivity": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtQuietTicksInWindow": 60,
+    "quietTickMinimumWaitShare": 0.75,
+    "liveCoreTheaterChebyshevDistance": 4
+  },
+  "formationFreeze": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtHighWaitTicksInWindow": 60,
+    "highWaitMinimumShare": 0.75
+  },
+  "stuckCarrier": {
+    "tripAtConsecutiveSameCarrierPositionTicks": 30
+  },
+  "homeCarrierNonProgress": {
+    "homeRadiusShortestPathTiles": 6,
+    "enemyContestChebyshevDistance": 2,
+    "tripAtUncontestedTicksWithoutNewBestDistance": 30,
+    "ownershipScope": "same-team continuous carried possession; an allied handoff does not reset the run",
+    "progressDefinition": "strictly lower static eight-way walkable distance to the owning team's reactor",
+    "contestDisposition": "ticks with an enemy within the configured distance pause but do not reset the run"
+  },
+  "eligibility": "A doctrine or sheet side that trips pickup-drop cycling, ping-pong, off-theater passivity, formation freeze, stuck-carrier, or uncontested home-carrier non-progress bars is excluded from cohort reads, ladders, and galleries until fixed; exclusions are disclosed."
+}

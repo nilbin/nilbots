@@ -77,10 +77,16 @@ import html
 import json
 import re
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 MARKER = "<!--BOTARENA_REPLAY-->"
 REPO = Path(__file__).resolve().parent.parent
+DEFAULT_ARC_RELAY_BARS = (
+    REPO / "balance/arc-relay-felt-degeneracy-bars-v4.json"
+)
+ARC_RELAY_SCORECARD = REPO / "scripts/arc-relay-scorecard.py"
 
 # The hashed module script(s) `web/dist/index.html` loads. Hosted pages strip
 # them out of the template and re-append them from JS once the replay is in
@@ -349,6 +355,94 @@ def render_card(card: dict) -> str:
     )
 
 
+def replay_document(path: Path) -> dict:
+    with path.open("rb") as source:
+        compressed = source.read(2) == b"\x1f\x8b"
+    opener = gzip.open if compressed else open
+    with opener(path, "rt", encoding="utf-8") as source:
+        document = json.load(source)
+    return document if isinstance(document, dict) else {}
+
+
+def is_complete_arc_relay_broadcast(path: Path) -> bool:
+    document = replay_document(path)
+    initial = document.get("initial")
+    return (
+        document.get("broadcastVersion") == 1
+        and document.get("result") is not None
+        and isinstance(initial, list)
+        and len(initial) > 7
+        and isinstance(initial[7], dict)
+        and initial[7].get("kind") == "arc-relay"
+    )
+
+
+def enforce_arc_relay_eligibility(
+    entries: list[dict], bars: Path
+) -> None:
+    failures = []
+    checked = 0
+    for entry in entries:
+        source = Path(entry["source"])
+        if not is_complete_arc_relay_broadcast(source):
+            continue
+        checked += 1
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ARC_RELAY_SCORECARD),
+                str(source),
+                "--bars",
+                str(bars),
+            ],
+            cwd=REPO,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        if completed.returncode != 0:
+            raise SystemExit(
+                f"Arc Relay eligibility scoring failed for {source}:\n"
+                + completed.stdout[-2000:]
+            )
+        scorecard = json.loads(completed.stdout)
+        felt = scorecard["feltDegeneracy"]
+        if felt["matchEligibleForCohortRead"]:
+            continue
+        trips = {
+            metric: sorted(
+                int(team)
+                for team, value in details.get(
+                    "barTrippedByTeam", {}
+                ).items()
+                if value
+            )
+            for metric, details in felt.items()
+            if isinstance(details, dict)
+            and any(details.get("barTrippedByTeam", {}).values())
+        }
+        failures.append(
+            f"{entry['id']} ({source}): "
+            + ", ".join(
+                f"{metric}=teams{teams}"
+                for metric, teams in sorted(trips.items())
+            )
+        )
+    if failures:
+        raise SystemExit(
+            "Arc Relay gallery eligibility failed; fix or exclude these "
+            "matches (use --skip-arc-relay-eligibility only for an "
+            "explicitly labelled diagnostic gallery):\n- "
+            + "\n- ".join(failures)
+        )
+    if checked:
+        print(
+            f"Arc Relay eligibility passed for {checked} replay(s) "
+            f"under {bars}"
+        )
+
+
 def build(args: argparse.Namespace) -> None:
     # Multiple --sample manifests merge into one blind sequence. The order
     # is a deterministic hash shuffle: concatenation order would otherwise
@@ -363,6 +457,14 @@ def build(args: argparse.Namespace) -> None:
         str(entry.get("source", entry)).encode()).hexdigest())
     for index, entry in enumerate(entries, start=1):
         entry["id"] = f"sample-{index:02}"
+    if args.skip_arc_relay_eligibility:
+        print(
+            "warning: Arc Relay eligibility was explicitly skipped; label "
+            "this as a diagnostic gallery"
+        )
+    else:
+        enforce_arc_relay_eligibility(
+            entries, args.arc_relay_bars.resolve())
     output = args.output
     output.mkdir(parents=True, exist_ok=True)
     hosted = args.viewer == "hosted"
@@ -533,6 +635,19 @@ def main() -> int:
     parser.add_argument("--review-panel", action="store_true")
     parser.add_argument("--review-protocol", default="outcome-blind-review-v1",
                         help="protocol id stamped into the exported record")
+    parser.add_argument(
+        "--arc-relay-bars",
+        type=Path,
+        default=DEFAULT_ARC_RELAY_BARS,
+        help="felt-degeneracy registration enforced automatically for "
+             "complete Arc Relay broadcast-v1 inputs",
+    )
+    parser.add_argument(
+        "--skip-arc-relay-eligibility",
+        action="store_true",
+        help="allow ineligible Arc Relay replays only for a clearly labelled "
+             "diagnostic gallery",
+    )
     build(parser.parse_args())
     return 0
 

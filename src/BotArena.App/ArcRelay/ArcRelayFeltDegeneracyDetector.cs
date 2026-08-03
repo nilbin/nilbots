@@ -18,6 +18,9 @@ public static class ArcRelayFeltDegeneracyDetector
     private const int WindowTrip = 60;
     private const int StuckTrip = 30;
     private const int HomeProgressTrip = 30;
+    private const int PickupDropMaximumHoldTicks = 1;
+    private const int PickupDropMaximumGapTicks = 2;
+    private const int PickupDropCycleTrip = 3;
 
     public static ArcRelayDegeneracyRead Analyze(ReadOnlyMemory<byte> canonicalBroadcast)
     {
@@ -113,6 +116,8 @@ public static class ArcRelayFeltDegeneracyDetector
                 reasons[team].Add("formation freeze");
         }
         DetectPingPong(events, reasons);
+        DetectPickupDropCycles(
+            root.GetProperty("startEvents"), events, reasons);
         return new ArcRelayDegeneracyRead(reasons.ToDictionary(
             value => value.Key,
             value => (IReadOnlyList<string>)value.Value.Order(StringComparer.Ordinal).ToArray()));
@@ -153,6 +158,83 @@ public static class ArcRelayFeltDegeneracyDetector
                 else { pair = null; reversals = 0; }
                 if (reversals >= 3) reasons[current.Source.Team].Add("handoff ping-pong");
                 prior = current;
+            }
+        }
+    }
+
+    private static void DetectPickupDropCycles(
+        JsonElement startEvents,
+        JsonElement events,
+        Dictionary<int, HashSet<string>> reasons)
+    {
+        var pickups = new Dictionary<string, Pickup>(StringComparer.Ordinal);
+        var episodes = new Dictionary<string, PickupDropEpisode>(StringComparer.Ordinal);
+
+        for (int tick = 0; tick < events.GetArrayLength(); tick++)
+        {
+            Observe(startEvents[tick], tick);
+            Observe(events[tick], tick);
+        }
+
+        void Observe(JsonElement batch, int tick)
+        {
+            foreach (JsonElement value in batch.EnumerateArray())
+            {
+                if (!string.Equals(value.GetProperty("kind").GetString(), "arc-relay", StringComparison.Ordinal))
+                    continue;
+                JsonElement fact = value.GetProperty("payload").GetProperty("fact");
+                string kind = fact.GetProperty("kind").GetString()!;
+                if (!fact.TryGetProperty("coreId", out JsonElement coreId))
+                    continue;
+                string key = CoreKey(coreId);
+                if (kind == "core-picked-up")
+                {
+                    pickups[key] = new Pickup(
+                        tick,
+                        ActorFrom(fact.GetProperty("carrierActorId")),
+                        Position(fact.GetProperty("position")));
+                    continue;
+                }
+                if (kind == "core-dropped")
+                {
+                    bool voluntary = string.Equals(
+                        fact.GetProperty("dropKind").GetString(),
+                        "voluntary",
+                        StringComparison.Ordinal);
+                    Actor actor = ActorFrom(fact.GetProperty("sourceActorId"));
+                    (int X, int Y) position = Position(fact.GetProperty("position"));
+                    bool cycle = pickups.Remove(key, out Pickup pickup)
+                        && voluntary
+                        && pickup.Actor == actor
+                        && pickup.Position == position
+                        && tick - pickup.Tick <= PickupDropMaximumHoldTicks;
+                    if (!cycle)
+                    {
+                        episodes.Remove(key);
+                        continue;
+                    }
+                    if (!episodes.TryGetValue(key, out PickupDropEpisode prior)
+                        || prior.Actor != actor
+                        || prior.Position != position
+                        || tick - prior.LastTick > PickupDropMaximumGapTicks)
+                    {
+                        prior = new PickupDropEpisode(actor, position, tick, 0);
+                    }
+                    PickupDropEpisode current = prior with
+                    {
+                        LastTick = tick,
+                        Cycles = prior.Cycles + 1,
+                    };
+                    episodes[key] = current;
+                    if (current.Cycles >= PickupDropCycleTrip)
+                        reasons[actor.Team].Add("pickup-drop cycle");
+                    continue;
+                }
+                if (kind is "core-born" or "core-handed-off" or "core-banked" or "core-relocated")
+                {
+                    pickups.Remove(key);
+                    episodes.Remove(key);
+                }
             }
         }
     }
@@ -203,4 +285,10 @@ public static class ArcRelayFeltDegeneracyDetector
     private sealed record StuckState(Actor Carrier, (int X, int Y) Position, int Count);
     private sealed record HomeState(int Team, int BestDistance, int QuietTicks);
     private readonly record struct Handoff(int Tick, int Epoch, Actor Source, Actor Target);
+    private readonly record struct Pickup(int Tick, Actor Actor, (int X, int Y) Position);
+    private readonly record struct PickupDropEpisode(
+        Actor Actor,
+        (int X, int Y) Position,
+        int LastTick,
+        int Cycles);
 }

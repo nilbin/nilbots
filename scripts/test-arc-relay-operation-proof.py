@@ -36,6 +36,50 @@ class ArcRelayOperationProofTests(unittest.TestCase):
             result["qualificationFailures"][0]["reasons"],
         )
 
+    def test_felt_degeneracy_trip_disqualifies_an_operation_proof(self) -> None:
+        result = {"passed": True}
+        scorecard = {
+            "feltDegeneracy": {
+                "pickupDropCycle": {
+                    "barTrippedByTeam": {"0": True, "1": False},
+                },
+                "cohortEligibilityByTeam": {"0": False, "1": True},
+                "matchEligibleForCohortRead": False,
+            },
+            "method": {
+                "feltDegeneracyBarsSchema":
+                    "arc-relay-felt-degeneracy-bars-v4",
+            },
+        }
+
+        PROOF.apply_scorecard_eligibility(result, scorecard)
+
+        self.assertFalse(result["passed"])
+        self.assertEqual(
+            "felt-degeneracy eligibility bar tripped", result["failure"])
+        self.assertEqual({"pickupDropCycle": [0]}, result["feltDegeneracyTrips"])
+
+    def test_eligible_scorecard_preserves_operation_success(self) -> None:
+        result = {"passed": True}
+        scorecard = {
+            "feltDegeneracy": {
+                "pickupDropCycle": {
+                    "barTrippedByTeam": {"0": False, "1": False},
+                },
+                "cohortEligibilityByTeam": {"0": True, "1": True},
+                "matchEligibleForCohortRead": True,
+            },
+            "method": {
+                "feltDegeneracyBarsSchema":
+                    "arc-relay-felt-degeneracy-bars-v4",
+            },
+        }
+
+        PROOF.apply_scorecard_eligibility(result, scorecard)
+
+        self.assertTrue(result["passed"])
+        self.assertNotIn("failure", result)
+
     def inspect(self, required_actions: list[str]) -> dict:
         replay = {
             "replayHash": "proof-hash",

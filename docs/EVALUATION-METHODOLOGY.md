@@ -122,6 +122,18 @@ No single action is inherently bad. A deliberate Wait or repeated pursuit can
 be correct. The metrics locate replays to inspect; exact loops, low entropy,
 and long inactivity together are the warning.
 
+Arc Relay additionally runs every retained WASM match through the versioned
+felt-degeneracy registration used by `scripts/arc-relay-scorecard.py`. Treat
+those bars as cohort and gallery eligibility, not descriptive warnings. Event
+cycles must correlate both tick-start and post-decision columns: a world-only
+detector can miss a body that automatically picks up and voluntarily drops the
+same Core every tick because every post-state truthfully shows the Core loose.
+The current registration rejects three rapid same-Core, same-life, same-tile
+pickup/drop cycles, alongside the existing handoff, passivity, formation,
+stationary-carrier, and home-progress bars. Exclude either-side failures before
+aggregate reads or gallery construction and disclose them; an explicit
+diagnostic gallery may retain a failure only when labelled as such.
+
 ### Objective interaction
 
 - contested-zone ticks;
@@ -323,6 +335,11 @@ Numbers cannot certify entertainment. Before reading aggregate outcomes:
    metrics. Diagnose every stalled/looped game and all low-rated samples.
 6. Publish a separately labeled 3–5 replay highlight gallery. Highlights
    demonstrate the ceiling; they never replace the outcome-blind sample.
+
+For complete Arc Relay broadcast-v1 inputs, `scripts/build-review-gallery.py`
+enforces the current felt-degeneracy registration before writing the gallery.
+Do not bypass it to obtain a convenient sample. Its explicit skip exists only
+to publish a labelled failure/diagnostic gallery.
 
 The review notes, sample manifest, artifact hashes, metrics table, and explicit
 ship/hold rationale are part of the decision record.

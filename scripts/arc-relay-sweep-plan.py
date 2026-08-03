@@ -16,7 +16,7 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_CLI = REPO / "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
-DEFAULT_BARS = REPO / "balance/arc-relay-felt-degeneracy-bars-v3.json"
+DEFAULT_BARS = REPO / "balance/arc-relay-felt-degeneracy-bars-v4.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:

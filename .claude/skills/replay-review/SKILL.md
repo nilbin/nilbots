@@ -69,9 +69,11 @@ running.
 Do not fill an Arc Relay gallery with arbitrary smoke matches or the first
 cells returned by a sweep. Prefer the latest tracked, canonical-verified,
 cohort-eligible operation corpus whose rules, map, stock artifact, and viewer
-match the work being reviewed. The current reusable baseline is the ten-play
-forward-combat corpus pinned by the `replay-highlights` skill. Keep it until a
-new set is demonstrably at least as useful.
+match the work being reviewed. The former ten-play forward-combat baseline
+named by the `replay-highlights` skill is currently quarantined: current
+scoring rejects three of its matches. Do not treat operation success as
+gallery eligibility. Regenerate or select a replacement set that passes the
+current bars before the next broad owner review.
 
 A useful Arc Relay set must:
 
@@ -86,9 +88,13 @@ A useful Arc Relay set must:
 - be outcome-visible for an owner review unless the user explicitly requests
   a blind methodology read.
 
-Prefer at least six replays; use all ten retained operations for a broad
-renderer, awareness, or tactics review. A shorter targeted gallery may subset
-them only when every selected replay exercises the feature under review.
+Prefer at least six replays and cover all ten operations for a broad renderer,
+awareness, or tactics review. A shorter targeted gallery may use fewer only
+when every selected replay exercises the feature under review.
+
+Let `scripts/build-review-gallery.py` enforce the current Arc Relay bars. Never
+use its explicit eligibility skip except to show a clearly labelled diagnostic
+failure.
 
 For tactical galleries, follow the explanatory card contract in the
 `replay-highlights` skill. A matchup label is not enough: the reviewer must

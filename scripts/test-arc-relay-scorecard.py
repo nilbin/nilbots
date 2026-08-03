@@ -85,6 +85,67 @@ class FeltDegeneracyTests(unittest.TestCase):
         )
         self.assertFalse(output["barTrippedByTeam"]["0"])
 
+    @staticmethod
+    def pickup_drop_tick(
+        tick: int,
+        *,
+        unit: int = 7,
+        x: int = 8,
+    ) -> list[dict]:
+        core = {"sourceWellId": "south", "sourceOrdinal": 3}
+        actor = {"teamId": 0, "unitId": unit, "lifeId": 5}
+        tile = {"x": x, "y": 11}
+        return [
+            {
+                "kind": "arc-relay",
+                "payload": {"fact": {
+                    "kind": "core-picked-up",
+                    "coreId": core,
+                    "carrierActorId": actor,
+                    "position": tile,
+                }},
+            },
+            {
+                "kind": "arc-relay",
+                "payload": {"fact": {
+                    "kind": "core-dropped",
+                    "coreId": core,
+                    "sourceActorId": actor,
+                    "position": tile,
+                    "dropKind": "voluntary",
+                }},
+            },
+        ]
+
+    def test_three_same_core_actor_tile_pickup_drop_cycles_trip_bar(self) -> None:
+        output = SCORE.pickup_drop_cycle_metrics(
+            [self.pickup_drop_tick(tick) for tick in range(3)],
+            [0, 1],
+        )
+
+        self.assertTrue(output["barTrippedByTeam"]["0"])
+        self.assertEqual(3, output["maxCyclesInOneEpisodeByTeam"]["0"])
+        self.assertEqual(3, output["trippingEpisodes"][0]["cycles"])
+        self.assertFalse(output["barTrippedByTeam"]["1"])
+
+    def test_two_cycles_or_a_different_tile_do_not_trip_bar(self) -> None:
+        two = SCORE.pickup_drop_cycle_metrics(
+            [self.pickup_drop_tick(tick) for tick in range(2)],
+            [0],
+        )
+        moved = SCORE.pickup_drop_cycle_metrics(
+            [
+                self.pickup_drop_tick(0, x=8),
+                self.pickup_drop_tick(1, x=8),
+                self.pickup_drop_tick(2, x=9),
+            ],
+            [0],
+        )
+
+        self.assertFalse(two["barTrippedByTeam"]["0"])
+        self.assertFalse(moved["barTrippedByTeam"]["0"])
+        self.assertEqual(2, moved["maxCyclesInOneEpisodeByTeam"]["0"])
+
     def test_sixty_quiet_ticks_in_seventy_five_trip_passivity_bar(self) -> None:
         maximum, windows = SCORE.sustained_passivity_windows(
             [True] * 60 + [False] * 15)

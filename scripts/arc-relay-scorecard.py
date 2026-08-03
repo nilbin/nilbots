@@ -22,7 +22,7 @@ SCHEMA = "arc-relay-scorecard-v2"
 TICKS_PER_SECOND = 5
 DEFAULT_BARS_PATH = (
     Path(__file__).resolve().parent.parent
-    / "balance/arc-relay-felt-degeneracy-bars-v3.json"
+    / "balance/arc-relay-felt-degeneracy-bars-v4.json"
 )
 
 
@@ -35,6 +35,8 @@ def configure_bars(path: Path) -> None:
     global FREEZE_WAIT_SHARE, STUCK_CARRIER_TICKS
     global HOME_PROGRESS_RADIUS, HOME_PROGRESS_CONTEST_DISTANCE
     global HOME_PROGRESS_TICKS
+    global PICKUP_DROP_MAX_HOLD_TICKS, PICKUP_DROP_MAX_GAP_TICKS
+    global PICKUP_DROP_CYCLE_BAR
 
     BARS_PATH = path.resolve()
     BARS = json.loads(BARS_PATH.read_text(encoding="utf-8"))
@@ -74,6 +76,19 @@ def configure_bars(path: Path) -> None:
     HOME_PROGRESS_TICKS = (
         home_progress["tripAtUncontestedTicksWithoutNewBestDistance"]
         if home_progress is not None else None
+    )
+    pickup_drop = BARS.get("pickupDropCycle")
+    PICKUP_DROP_MAX_HOLD_TICKS = (
+        pickup_drop["maximumPickupToVoluntaryDropTicks"]
+        if pickup_drop is not None else None
+    )
+    PICKUP_DROP_MAX_GAP_TICKS = (
+        pickup_drop["maximumGapTicksBetweenCycles"]
+        if pickup_drop is not None else None
+    )
+    PICKUP_DROP_CYCLE_BAR = (
+        pickup_drop["tripAtCyclesInOneSameCoreActorPositionEpisode"]
+        if pickup_drop is not None else None
     )
 
 
@@ -323,6 +338,148 @@ def ping_pong_metrics(
         "maxEpisodeReversalsByTeam": team_counter(max_reversals, team_ids),
         "barTrippedByTeam": {
             str(team): max_reversals[team] >= PING_PONG_REVERSAL_BAR
+            for team in team_ids
+        },
+    }
+
+
+def pickup_drop_cycle_metrics(
+    events_by_tick: list[list[dict]],
+    team_ids: list[int],
+) -> dict:
+    """Find rapid same-body pickup/drop loops hidden by loose post-states.
+
+    Automatic pickup is a tick-start event while a voluntary drop is a
+    post-decision event. Looking only at spectator worlds therefore sees a
+    loose Core after every cycle and incorrectly resets carrier-stall state.
+    Correlating both event columns preserves that causal interval.
+    """
+    if (PICKUP_DROP_MAX_HOLD_TICKS is None
+            or PICKUP_DROP_MAX_GAP_TICKS is None
+            or PICKUP_DROP_CYCLE_BAR is None):
+        return {
+            "enabled": False,
+            "definition": "not registered by this eligibility-bar version",
+            "barTrippedByTeam": {str(team): False for team in team_ids},
+            "maxCyclesInOneEpisodeByTeam": {
+                str(team): 0 for team in team_ids
+            },
+            "trippingEpisodes": [],
+        }
+
+    pickups: dict[str, dict] = {}
+    active: dict[str, dict] = {}
+    tripping: list[dict] = []
+    maximum = collections.Counter()
+
+    def finish(key: str) -> None:
+        episode = active.pop(key, None)
+        if episode is None:
+            return
+        team = episode["teamId"]
+        maximum[team] = max(maximum[team], episode["cycles"])
+        if episode["cycles"] < PICKUP_DROP_CYCLE_BAR:
+            return
+        tripping.append({
+            "coreId": key,
+            "teamId": team,
+            "carrierActorId": list(episode["carrier"]),
+            "position": list(episode["position"]),
+            "fromTick": episode["fromTick"],
+            "throughTick": episode["throughTick"],
+            "cycles": episode["cycles"],
+            "maximumPickupToDropTicks": episode["maximumHoldTicks"],
+        })
+
+    for tick, events in enumerate(events_by_tick):
+        for event in events:
+            kind, value = fact(event)
+            core_id = value.get("coreId")
+            if core_id is None:
+                continue
+            key = core_key(core_id)
+            if kind == "core-picked-up":
+                carrier = actor_key(value.get("carrierActorId"))
+                if carrier is None:
+                    pickups.pop(key, None)
+                    finish(key)
+                    continue
+                pickups[key] = {
+                    "tick": tick,
+                    "carrier": carrier,
+                    "position": position(value["position"]),
+                }
+                continue
+            if kind == "core-dropped":
+                pickup = pickups.pop(key, None)
+                carrier = actor_key(value.get("sourceActorId"))
+                drop_position = position(value["position"])
+                is_cycle = (
+                    value.get("dropKind") == "voluntary"
+                    and pickup is not None
+                    and carrier is not None
+                    and pickup["carrier"] == carrier
+                    and pickup["position"] == drop_position
+                    and tick - pickup["tick"]
+                        <= PICKUP_DROP_MAX_HOLD_TICKS
+                )
+                if not is_cycle:
+                    finish(key)
+                    continue
+                prior = active.get(key)
+                same_episode = (
+                    prior is not None
+                    and prior["carrier"] == carrier
+                    and prior["position"] == drop_position
+                    and tick - prior["throughTick"]
+                        <= PICKUP_DROP_MAX_GAP_TICKS
+                )
+                if not same_episode:
+                    finish(key)
+                    active[key] = prior = {
+                        "teamId": carrier[0],
+                        "carrier": carrier,
+                        "position": drop_position,
+                        "fromTick": pickup["tick"],
+                        "throughTick": tick,
+                        "cycles": 0,
+                        "maximumHoldTicks": 0,
+                    }
+                prior["throughTick"] = tick
+                prior["cycles"] += 1
+                prior["maximumHoldTicks"] = max(
+                    prior["maximumHoldTicks"], tick - pickup["tick"])
+                continue
+            if kind in {
+                "core-born",
+                "core-handed-off",
+                "core-banked",
+                "core-relocated",
+            }:
+                pickups.pop(key, None)
+                finish(key)
+
+    for key in list(active):
+        finish(key)
+
+    return {
+        "enabled": True,
+        "definition": (
+            "rapid automatic pickup followed by voluntary drop for the same "
+            "Core, carrier life, and tile, correlated across tick-start and "
+            "post-decision events"
+        ),
+        "bar": {
+            "operator": ">=",
+            "cyclesInOneEpisode": PICKUP_DROP_CYCLE_BAR,
+            "maximumPickupToVoluntaryDropTicks":
+                PICKUP_DROP_MAX_HOLD_TICKS,
+            "maximumGapTicksBetweenCycles": PICKUP_DROP_MAX_GAP_TICKS,
+        },
+        "maxCyclesInOneEpisodeByTeam": team_counter(maximum, team_ids),
+        "trippingEpisodes": tripping,
+        "barTrippedByTeam": {
+            str(team): maximum[team] >= PICKUP_DROP_CYCLE_BAR
             for team in team_ids
         },
     }
@@ -1297,6 +1454,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             rules["coreRelocationIntervalTicks"] * PING_PONG_GAP_INTERVALS,
         ),
     )
+    pickup_drop_cycles = pickup_drop_cycle_metrics(all_events, team_ids)
     first_birth_tick = min(
         well["firstBirthTick"] for well in rules["wells"])
     passivity, formation_freeze = passivity_metrics(
@@ -1311,6 +1469,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     eligibility_by_team = {
         str(team): not (
             ping_pong["barTrippedByTeam"][str(team)]
+            or pickup_drop_cycles["barTrippedByTeam"][str(team)]
             or passivity["barTrippedByTeam"][str(team)]
             or formation_freeze["barTrippedByTeam"][str(team)]
             or stuck_carrier["barTrippedByTeam"][str(team)]
@@ -1387,6 +1546,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         },
         "feltDegeneracy": {
             "handoffPingPong": ping_pong,
+            "pickupDropCycle": pickup_drop_cycles,
             "sustainedPassivity": passivity,
             "formationFreeze": formation_freeze,
             "stuckCarrier": stuck_carrier,
@@ -1459,13 +1619,9 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "feltDegeneracyEligibility": (
                 "the frozen registration in balance/arc-relay-felt-"
                 f"degeneracy-bars-{BARS['schema'].rsplit('-', 1)[-1]}.json "
-                "excludes a team for three rapid "
-                "same-pair handoff reversals, 60-of-75 off-theater quiet "
-                "ticks, 60-of-75 high-wait formation ticks, or a carried "
-                "Core held by one life on one tile for 30 ticks; v3 also "
-                "excludes same-team carried Core possession that spends 30 "
-                "uncontested home-radius ticks without reaching a closer "
-                "static path distance"
+                "excludes a team whenever any registered felt-degeneracy "
+                "bar trips. The versioned metric blocks above carry the "
+                "exact thresholds and causal definitions"
             ),
             "feltDegeneracyBars": str(BARS_PATH),
             "feltDegeneracyBarsSchema": BARS["schema"],

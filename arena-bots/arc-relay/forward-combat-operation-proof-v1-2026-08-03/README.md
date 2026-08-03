@@ -49,7 +49,9 @@ committed. Compact broadcast slices from the final passing run are retained in
 `evidence/replays/` for the outcome-visible production review gallery; they do
 not replace canonical verification.
 
-Rebuild the current gallery after `cd web && npm run build`:
+The historical rebuild command below now serves as a quarantine check: it must
+refuse the three ineligible broadcasts before writing output. Regenerate clean
+proofs rather than adding the diagnostic-only skip flag:
 
 ```sh
 python3 scripts/build-review-gallery.py \
@@ -62,3 +64,13 @@ python3 scripts/build-review-gallery.py \
 
 This corpus proves executable grammar and recovery behavior only; it is not a
 balance, reliability, fun, or product-UX claim.
+
+> **Current-bar quarantine (2026-08-03):** current scoring rejects three
+> retained broadcasts. Emergency Exchange contains a same-body, same-Core
+> pickup/drop cycle from tick 343 through the terminal tick; Rear Hook's
+> opponent trips home-carrier non-progress; Relay Catch's opponent trips
+> stuck-carrier. They pass the historical operation-transition proof but fail
+> whole-match gallery eligibility and must not enter an eligible cohort read or
+> owner gallery. The proof harness now runs the current scorecard and requires
+> whole-match eligibility, so a regenerated corpus cannot reproduce these
+> false passes.

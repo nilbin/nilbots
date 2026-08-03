@@ -24,6 +24,8 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_CLI = REPO / "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
+DEFAULT_BARS = REPO / "balance/arc-relay-felt-degeneracy-bars-v4.json"
+SCORECARD = REPO / "scripts/arc-relay-scorecard.py"
 
 
 STATE_PATTERN = r"(?:^|;)\s*{operation}=(dormant|prepare|commit|recover)(?:/([^\[]+))?\[([^\]]+)\]"
@@ -320,6 +322,35 @@ def run_command(command: list[str], log_path: Path) -> None:
         )
 
 
+def apply_scorecard_eligibility(
+    result: dict[str, Any], scorecard: dict[str, Any]
+) -> None:
+    felt = scorecard["feltDegeneracy"]
+    result["feltDegeneracyBarsSchema"] = scorecard["method"][
+        "feltDegeneracyBarsSchema"
+    ]
+    result["cohortEligibilityByTeam"] = felt["cohortEligibilityByTeam"]
+    result["matchEligibleForCohortRead"] = felt[
+        "matchEligibleForCohortRead"
+    ]
+    if result.get("passed") and not felt["matchEligibleForCohortRead"]:
+        tripped = {
+            metric: sorted(
+                int(team)
+                for team, value in details.get(
+                    "barTrippedByTeam", {}
+                ).items()
+                if value
+            )
+            for metric, details in felt.items()
+            if isinstance(details, dict)
+            and any(details.get("barTrippedByTeam", {}).values())
+        }
+        result["passed"] = False
+        result["failure"] = "felt-degeneracy eligibility bar tripped"
+        result["feltDegeneracyTrips"] = tripped
+
+
 def run_proof_cell(
     card: dict[str, Any],
     catalog: dict[str, Any],
@@ -353,6 +384,8 @@ def run_proof_cell(
         "cliHash": sha256(args.cli),
         "proofHarnessHash": sha256(Path(__file__)),
         "matchHarnessHash": sha256(REPO / "scripts/arc-relay-match.py"),
+        "scorecardHash": sha256(SCORECARD),
+        "eligibilityBarsHash": sha256(args.bars),
     }
     resume_receipt = output / "cell-inputs.json"
     can_resume = (
@@ -404,7 +437,23 @@ def run_proof_cell(
         ["dotnet", str(args.cli.resolve()), "verify", str(replay)],
         output / "verify.log",
     )
+    scorecard_path = output / "scorecard.json"
+    run_command(
+        [
+            sys.executable,
+            str(SCORECARD),
+            str(output / "broadcast.json.gz"),
+            "--record",
+            str(output / "match-record.json"),
+            "--bars",
+            str(args.bars.resolve()),
+            "--output",
+            str(scorecard_path),
+        ],
+        output / "scorecard.log",
+    )
     result = inspect_card(card, replay, args.team_id)
+    apply_scorecard_eligibility(result, read_json(scorecard_path))
     match_record = read_json(output / "match-record.json")
     result["seed"] = seed
     result["runtime"] = args.runtime
@@ -417,6 +466,8 @@ def run_proof_cell(
     result["matchRecord"] = f"{card['id']}/match-record.json"
     result["matchRecordBytes"] = (output / "match-record.json").stat().st_size
     result["broadcastBytes"] = match_record["broadcast"]["gzipBytes"]
+    result["scorecard"] = f"{card['id']}/scorecard.json"
+    result["scorecardHash"] = sha256(scorecard_path)
     return result
 
 
@@ -506,6 +557,12 @@ def main() -> int:
     prove_parser.add_argument("--runtime", choices=("wasm",), default="wasm")
     prove_parser.add_argument("--workers", type=int, default=4)
     prove_parser.add_argument("--resume", action="store_true")
+    prove_parser.add_argument(
+        "--bars",
+        type=Path,
+        default=DEFAULT_BARS,
+        help="frozen felt-degeneracy registration required for proof/gallery eligibility",
+    )
     prove_parser.set_defaults(handler=prove)
     args = parser.parse_args()
     return args.handler(args)
