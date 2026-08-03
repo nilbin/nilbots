@@ -35,5 +35,11 @@
     <Compile
       Include="../../arena-bots/arc-relay/stock-mind-v3/CausalCarrierTarget.cs"
       Link="IntelligentGambit/CausalCarrierTarget.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v5/StandingStrategyModels.cs"
+      Link="StandingStrategy/StandingStrategyModels.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v5/StandingStrategyMachine.cs"
+      Link="StandingStrategy/StandingStrategyMachine.cs" />
   </ItemGroup>
 </Project>

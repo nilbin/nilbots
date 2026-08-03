@@ -9,6 +9,7 @@ public sealed class ArcRelayExperimentCommandTests
     [InlineData("stock-mind-v0/sheet.json")]
     [InlineData("dynamic-strategy-v4-2026-08-02/sheets/rear-ambush-dynamic.json")]
     [InlineData("intelligent-gambit-v1-2026-08-02/sheets/rear-hook-lantern-sweep.json")]
+    [InlineData("standing-strategy-v1-2026-08-03/sheets/home-siege-north.json")]
     public void EvaluationSheetVersionsLinkDeterministicallyIntoTheContract(
         string relativeSheet)
     {

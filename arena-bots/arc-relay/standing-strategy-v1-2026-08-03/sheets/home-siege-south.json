@@ -1,0 +1,39 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v3",
+  "sheetId": "home-siege-south-load-proof-v1",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "composition": ["relay", "kestrel", "patchbay", "patchbay", "palisade", "palisade", "repulsor", "repulsor"],
+  "zones": {
+    "enemy-home": [24, 7, 29, 15],
+    "forward-rally.north": [20, 5, 24, 9],
+    "forward-rally.south": [20, 13, 24, 17]
+  },
+  "paths": {
+    "assault.north": [[4, 8], [10, 6], [16, 5], [22, 6], [26, 10]],
+    "assault.south": [[4, 14], [10, 16], [16, 17], [22, 16], [26, 12]]
+  },
+  "formations": {
+    "rally.north": [[21, 6]],
+    "rally.south": [[21, 16]]
+  },
+  "standingStrategy": {
+    "initialPhase": "assault",
+    "parameters": {"lane": "south"},
+    "memory": {"enemyUnavailableTicks": 21, "securedCoreMemoryTicks": 40, "objectiveProgressMemoryTicks": 90},
+    "phases": [{
+      "id": "assault",
+      "minimumTicks": 0,
+      "assignments": [{
+        "priority": 10,
+        "id": "lane-rush",
+        "resilience": "replaceable",
+        "count": -1,
+        "behavior": "advance",
+        "position": {"kind": "path", "target": "assault"},
+        "corePolicy": "avoid",
+        "respawn": "rejoin"
+      }],
+      "transitions": []
+    }]
+  }
+}

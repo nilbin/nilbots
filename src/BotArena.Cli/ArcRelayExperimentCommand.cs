@@ -359,11 +359,17 @@ public static class ArcRelayExperimentCommand
     }
 
     private static bool HasExecutableEvaluationData(JsonElement root) =>
-        root.TryGetProperty("slots", out _)
+        (root.TryGetProperty("schema", out JsonElement schema)
+        && string.Equals(
+            schema.GetString(),
+            "arc-relay-evaluation-sheet-v3",
+            StringComparison.Ordinal)
+        && root.TryGetProperty("standingStrategy", out _))
+        || (root.TryGetProperty("slots", out _)
         && root.TryGetProperty("zones", out _)
         && root.TryGetProperty("rallyLines", out _)
         && root.TryGetProperty("policies", out _)
-        && root.TryGetProperty("gambits", out _);
+        && root.TryGetProperty("gambits", out _));
 
     private static byte[] EncodeEvaluationSheet(
         JsonElement root,
@@ -377,6 +383,20 @@ public static class ArcRelayExperimentCommand
         writer.Write(0x31535241); // ARS1, little-endian.
         writer.Write(sourceSha256);
         string schema = RequiredSheetString(root, "schema");
+        if (schema == "arc-relay-evaluation-sheet-v3")
+        {
+            writer.Write(schema);
+            byte[] json = System.Text.Encoding.UTF8.GetBytes(root.GetRawText());
+            writer.Write(json.Length);
+            writer.Write(json);
+            writer.Flush();
+            if (stream.Length > 64 * 1024)
+            {
+                throw new InvalidDataException(
+                    "Evaluation sheet data exceeds 64 KiB.");
+            }
+            return stream.ToArray();
+        }
         if (schema is not "arc-relay-evaluation-sheet-v0"
             and not "arc-relay-evaluation-sheet-v1"
             and not "arc-relay-evaluation-sheet-v2")
