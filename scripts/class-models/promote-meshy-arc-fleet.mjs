@@ -57,6 +57,8 @@ for (const entry of entries) {
     normalization?.up !== '+y' ||
     normalization?.floorY !== 0 ||
     normalization?.orientation !== entry.orientation ||
+    (normalization?.facingYawDegrees ?? 0) !== (entry.facingYawDegrees ?? 0) ||
+    ((entry.facingYawDegrees ?? 0) !== 0 && normalization?.facingCorrectionVersion !== 1) ||
     normalization?.targetPlanformSpan !== audit.reviewContract.targetPlanformSpan
   )
     throw new Error(`${entry.lookId}: provider normalization no longer matches the audit.`);
@@ -81,6 +83,7 @@ for (const entry of entries) {
       modelType: audit.modelType,
       taskId: entry.taskId,
       orientation: entry.orientation,
+      ...(entry.facingYawDegrees ? { facingYawDegrees: entry.facingYawDegrees } : {}),
     },
     ...(previous.motion ? { motion: previous.motion } : {}),
     ...(previous.signature ? { signature: previous.signature } : {}),
@@ -110,6 +113,7 @@ for (const entry of entries) {
     taskId: entry.taskId,
     artifact: entry.candidate.file,
     orientation: entry.orientation,
+    facingYawDegrees: entry.facingYawDegrees ?? 0,
     bytes: candidate.length,
     sha256: hash,
     triangles,

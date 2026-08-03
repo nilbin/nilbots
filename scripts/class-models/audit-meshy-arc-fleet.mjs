@@ -33,6 +33,10 @@ const orientations = new Map([
   ['arc-lantern', 'identity'],
   ['arc-mortar', 'identity'],
 ]);
+const facingYawByLook = new Map([
+  ['arc-kestrel', 180],
+  ['arc-mortar', 180],
+]);
 const generated = receipt.looks.map((lookId) => audit(lookId));
 const mason = audit('arc-mason');
 const start = Math.min(...generated.map((entry) => Date.parse(entry.submittedAt)));
@@ -92,6 +96,7 @@ const result = {
     cameraPitchDegrees: 58,
     realReplayScale: true,
     orientationOverrides: Object.fromEntries(orientations),
+    facingYawDegrees: Object.fromEntries(facingYawByLook),
     runtimeAssetsPromoted: false,
     runtimeModelsRestored,
   },
@@ -124,11 +129,16 @@ function audit(lookId) {
   if (!runDirectory) throw new Error(`No completed provider run for ${lookId}.`);
 
   const orientation = orientations.get(lookId) ?? 'lay-flat-x';
+  const hasFacingCorrection = facingYawByLook.has(lookId);
   const filename = lookId === 'arc-mason'
     ? 'mason-normalized-large-review.glb'
     : orientation === 'identity'
-      ? 'model-normalized-identity-review.glb'
-      : 'model-normalized-review.glb';
+      ? hasFacingCorrection
+        ? 'model-normalized-identity-facing-review.glb'
+        : 'model-normalized-identity-review.glb'
+      : hasFacingCorrection
+        ? 'model-normalized-facing-review.glb'
+        : 'model-normalized-review.glb';
   const candidatePath = path.join(runDirectory, filename);
   const candidateBytes = readFileSync(candidatePath);
   const document = glbJson(candidateBytes);
@@ -142,6 +152,11 @@ function audit(lookId) {
     normalization.targetPlanformSpan !== receipt.normalization.targetPlanformSpan
   )
     throw new Error(`${lookId} candidate normalization does not match review contract.`);
+  const facingYawDegrees = facingYawByLook.get(lookId) ?? 0;
+  if ((normalization.facingYawDegrees ?? 0) !== facingYawDegrees)
+    throw new Error(`${lookId} candidate does not match its audited facing correction.`);
+  if (facingYawDegrees !== 0 && normalization.facingCorrectionVersion !== 1)
+    throw new Error(`${lookId} candidate lacks the centred facing correction contract.`);
 
   const timing = JSON.parse(
     readFileSync(path.join(runDirectory, 'timing.json'), 'utf8'),
@@ -161,6 +176,7 @@ function audit(lookId) {
     balanceAfter: timing.balanceAfter,
     input: request.input,
     orientation,
+    facingYawDegrees,
     candidate: {
       file: path.relative(repository, candidatePath),
       bytes: candidateBytes.length,

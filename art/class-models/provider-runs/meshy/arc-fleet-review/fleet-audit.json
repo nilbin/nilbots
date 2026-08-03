@@ -21,10 +21,10 @@
     "providerStageSeconds": 3173.515835333,
     "averageProviderStageSeconds": 211.56772235553333,
     "candidateBytes": {
-      "total": 9960136,
+      "total": 9960260,
       "minimum": 591668,
       "maximum": 814688,
-      "average": 664009.0666666667
+      "average": 664017.3333333334
     }
   },
   "reviewContract": {
@@ -36,6 +36,10 @@
     "orientationOverrides": {
       "arc-lantern": "identity",
       "arc-mortar": "identity"
+    },
+    "facingYawDegrees": {
+      "arc-kestrel": 180,
+      "arc-mortar": 180
     },
     "runtimeAssetsPromoted": false,
     "runtimeModelsRestored": true
@@ -145,10 +149,11 @@
         "mimeType": "image/png"
       },
       "orientation": "lay-flat-x",
+      "facingYawDegrees": 180,
       "candidate": {
-        "file": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-review.glb",
-        "bytes": 688944,
-        "sha256": "40cd78ceb4cbffc21a08b408405ed57bee10772ccba02b4820a1435bd310bfe6",
+        "file": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-facing-review.glb",
+        "bytes": 688996,
+        "sha256": "08a59ea57608acedb2c61aaf8a7e019e02b4cfecc310cc66cc59d73bc3e07ad8",
         "triangles": 13362,
         "materials": 1,
         "textures": 4,
@@ -321,10 +326,11 @@
         "mimeType": "image/png"
       },
       "orientation": "identity",
+      "facingYawDegrees": 180,
       "candidate": {
-        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-review.glb",
-        "bytes": 677408,
-        "sha256": "1cb048579706f228370925084c7f3ab3fa800c4957e91b4d7eb0d964109351f5",
+        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-facing-review.glb",
+        "bytes": 677480,
+        "sha256": "35d16336e988b46f0a7385f3bbe1fa71e0ad891cffeb9e7bb093d718960445d9",
         "triangles": 9636,
         "materials": 1,
         "textures": 4,

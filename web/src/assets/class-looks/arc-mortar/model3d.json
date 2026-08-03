@@ -9,14 +9,15 @@
   "source": {
     "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
     "recipe": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
-    "artifact": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-review.glb",
-    "sourceSha256": "1cb048579706f228370925084c7f3ab3fa800c4957e91b4d7eb0d964109351f5",
+    "artifact": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-identity-facing-review.glb",
+    "sourceSha256": "35d16336e988b46f0a7385f3bbe1fa71e0ad891cffeb9e7bb093d718960445d9",
     "provider": "Meshy",
     "model": "meshy-t2",
     "endpoint": "image-to-3d",
     "modelType": "smart-topology",
     "taskId": "019fc388-c331-7537-b3de-9f75125c5981",
-    "orientation": "identity"
+    "orientation": "identity",
+    "facingYawDegrees": 180
   },
   "motion": {
     "locomotion": "treads",
@@ -26,8 +27,8 @@
   },
   "signature": "falling-star",
   "ledger": {
-    "bytes": 677408,
-    "sha256": "1cb048579706f228370925084c7f3ab3fa800c4957e91b4d7eb0d964109351f5",
+    "bytes": 677480,
+    "sha256": "35d16336e988b46f0a7385f3bbe1fa71e0ad891cffeb9e7bb093d718960445d9",
     "triangles": 9636,
     "materials": 1,
     "textureCount": 4

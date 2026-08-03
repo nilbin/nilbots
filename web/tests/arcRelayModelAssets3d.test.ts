@@ -23,6 +23,7 @@ interface AuditEntry {
   lookId: string;
   taskId: string;
   orientation: 'identity' | 'lay-flat-x';
+  facingYawDegrees?: number;
   candidate: {
     file: string;
     bytes: number;
@@ -62,6 +63,7 @@ interface FleetLedger {
     taskId: string;
     artifact: string;
     orientation: string;
+    facingYawDegrees: number;
     bytes: number;
     sha256: string;
     triangles: number;
@@ -81,6 +83,7 @@ interface GlbDocument {
   meshes?: { primitives?: { indices?: number; mode?: number }[] }[];
   nodes?: {
     name?: string;
+    rotation?: number[];
     camera?: number;
     skin?: number;
     extras?: {
@@ -89,6 +92,8 @@ interface GlbDocument {
         up?: string;
         floorY?: number;
         orientation?: string;
+        facingYawDegrees?: number;
+        facingCorrectionVersion?: number;
         targetPlanformSpan?: number;
         sourceBounds?: unknown;
       };
@@ -129,6 +134,12 @@ function triangles(document: GlbDocument): number {
   );
 }
 
+function assertVectorNear(actual: number[] | undefined, expected: number[], label: string): void {
+  assert.equal(actual?.length, expected.length, label);
+  for (let index = 0; index < expected.length; index += 1)
+    assert.ok(Math.abs(actual![index]! - expected[index]!) < 1e-9, `${label} component ${index}`);
+}
+
 test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () => {
   assert.equal(approved.length, 16);
   assert.equal(new Set(approved.map((entry) => entry.lookId)).size, 16);
@@ -162,6 +173,7 @@ test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () =>
         modelType: string;
         taskId: string;
         orientation: string;
+        facingYawDegrees?: number;
       };
       ledger: {
         bytes: number;
@@ -195,6 +207,7 @@ test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () =>
     assert.equal(manifest.source.modelType, audit.modelType);
     assert.equal(manifest.source.taskId, entry.taskId);
     assert.equal(manifest.source.orientation, entry.orientation);
+    assert.equal(manifest.source.facingYawDegrees ?? 0, entry.facingYawDegrees ?? 0);
 
     const document = runtime.document;
     assert.equal(document.cameras, undefined, entry.lookId);
@@ -217,9 +230,15 @@ test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () =>
       up: '+y',
       floorY: 0,
       orientation: entry.orientation,
+      ...(entry.facingYawDegrees ? { facingYawDegrees: entry.facingYawDegrees } : {}),
+      ...(entry.facingYawDegrees ? { facingCorrectionVersion: 1 } : {}),
       targetPlanformSpan: audit.reviewContract.targetPlanformSpan,
       sourceBounds: root?.extras?.nilbotsProviderNormalization?.sourceBounds,
     });
+    if (entry.lookId === 'arc-kestrel')
+      assertVectorNear(root?.rotation, [0, Math.SQRT1_2, Math.SQRT1_2, 0], entry.lookId);
+    if (entry.lookId === 'arc-mortar')
+      assertVectorNear(root?.rotation, [0, 1, 0, 0], entry.lookId);
 
     assert.equal(manifest.ledger.bytes, entry.candidate.bytes);
     assert.equal(manifest.ledger.triangles, entry.candidate.triangles);
@@ -230,6 +249,7 @@ test('all runtime Arc Relay GLBs are the exact approved Meshy candidates', () =>
       taskId: entry.taskId,
       artifact: entry.candidate.file,
       orientation: entry.orientation,
+      facingYawDegrees: entry.facingYawDegrees ?? 0,
       bytes: entry.candidate.bytes,
       sha256: entry.candidate.sha256,
       triangles: entry.candidate.triangles,

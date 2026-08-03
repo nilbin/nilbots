@@ -13,9 +13,14 @@ The source of truth is
 `art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json`: Mason
 comes from its audited pilot, Lantern and Mortar use the audited identity
 normalization, and the other thirteen use the audited lay-flat-X normalization.
+An enlarged fixed-camera comparison against the canonical `+X` sprites found two
+genuine 180° nose errors: Kestrel's exhaust and Mortar's barrel pointed along
+authoritative facing. Their approved normalized candidates now carry an explicit
+180° yaw correction. The other fourteen already agree with their canonical noses;
+Towline's hook is deliberately forward hardware and was not reversed.
 `scripts/class-models/promote-meshy-arc-fleet.mjs --check` proves each runtime
 GLB equals its approved candidate byte-for-byte and that every manifest and the
-fleet ledger match. The production fleet totals 10,638,692 bytes, 215,130
+fleet ledger match. The production fleet totals 10,638,816 bytes, 215,130
 triangles, 16 materials, and 64 embedded textures; the largest look is Veil at
 814,688 bytes, within the explicit 1 MiB on-demand per-look budget.
 
