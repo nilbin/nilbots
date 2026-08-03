@@ -1,0 +1,40 @@
+{
+  "counterQualifiesWhen": {
+    "committedCounter": [
+      "the operation reached its commitment lock",
+      "it terminated for a non-success reason",
+      "a claimed life took direct hostile damage or destruction before termination",
+      "all surviving claims released within the card recovery deadline",
+      "released survivors returned to non-operation baseline behavior",
+      "the match passed runtime and frozen felt-degeneracy eligibility"
+    ],
+    "preparationDenial": [
+      "the operation had claimed its preparation actors but had not committed",
+      "a claimed life was directly destroyed by the opponent",
+      "the operation explicitly terminated as prepare-abort or prepare-participant-minimum",
+      "all surviving claims released within the card recovery deadline",
+      "released survivors returned to non-operation baseline behavior",
+      "the match passed runtime and frozen felt-degeneracy eligibility"
+    ]
+  },
+  "discoveryCommittedOnlyResult": {
+    "missingCommittedCounter": [
+      "hardlight-gate",
+      "lantern-sweep"
+    ],
+    "operationsMeetingSuccessCounterCasualty": 8,
+    "operationsTotal": 10
+  },
+  "neverQualifiesByItself": [
+    "entrant or doctrine name",
+    "winning the match",
+    "operation non-activation",
+    "a condition becoming false before actors were claimed",
+    "damage without a causally claimed casualty during preparation",
+    "deadline expiry without causal hostile interaction",
+    "a terminal operation that does not release to baseline in time"
+  ],
+  "rationale": "Counterplay includes disrupting an observed setup before its lock; forcing premature commitment merely to satisfy a committed-only metric would make the operation less intelligent. The categories remain separate in every result.",
+  "schema": "arc-relay-operation-counter-taxonomy-v2",
+  "status": "frozen-after-discovery-before-held-out-confirmation"
+}

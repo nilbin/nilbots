@@ -1,0 +1,119 @@
+{
+  "identitiesBlind": false,
+  "outcomeBlind": false,
+  "populationSize": 40,
+  "replays": [
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "hardlight-gate",
+      "participants": [
+        "Op Hardlight Gate",
+        "Pop Breach Column"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/hardlight-gate/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "982451653",
+      "operationId": "escort-counterpunch",
+      "participants": [
+        "Pop Fireline Picks",
+        "Op Escort Counterpunch"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/escort-counterpunch/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "982451653",
+      "operationId": "fork-shadow",
+      "participants": [
+        "Op Fork Shadow",
+        "Pop Counter Courier"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/fork-shadow/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "relay-catch",
+      "participants": [
+        "Op Relay Catch",
+        "Pop Hook Burst"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/relay-catch/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "birth-rotation",
+      "participants": [
+        "Pop Beacon Hunt",
+        "Op Birth Rotation"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/birth-rotation/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "rear-hook",
+      "participants": [
+        "Op Rear Hook",
+        "Pop Balanced"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/rear-hook/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "decoy-switch",
+      "participants": [
+        "Op Decoy Switch",
+        "Pop Beacon Hunt"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/decoy-switch/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "smoke-breach",
+      "participants": [
+        "Pop Null Veil",
+        "Op Smoke Breach"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/smoke-breach/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "emergency-exchange",
+      "participants": [
+        "Pop Interception",
+        "Op Emergency Exchange"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/emergency-exchange/broadcast.json.gz"
+    },
+    {
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "matchSeed": "67867967",
+      "operationId": "lantern-sweep",
+      "participants": [
+        "Pop Beacon Hunt",
+        "Op Lantern Sweep"
+      ],
+      "rules": "arc-relay-h0-01",
+      "source": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/lantern-sweep/broadcast.json.gz"
+    }
+  ],
+  "sampleVersion": 2,
+  "selection": "outcome-visible deterministic one-all-three-cell-per-operation"
+}

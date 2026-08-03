@@ -1,0 +1,435 @@
+{
+  "discoveryManifest": "discovery-manifest.json",
+  "operations": [
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "counter-courier",
+          "thesis": "carrier protection and direct escort pressure"
+        },
+        {
+          "entrantId": "smoke-convoy",
+          "thesis": "concealed convoy denies a clean exact-carrier hook"
+        },
+        {
+          "entrantId": "fortress-counterattack",
+          "thesis": "prepared home defence punishes infiltrators"
+        },
+        {
+          "entrantId": "interception",
+          "thesis": "active carrier hunters contest the rear strike group"
+        },
+        {
+          "entrantId": "trap-punish",
+          "thesis": "route traps punish fixed ambush staging"
+        },
+        {
+          "entrantId": "null-veil",
+          "thesis": "smoke and dampening shorten causal target access"
+        },
+        {
+          "entrantId": "elastic-reserve",
+          "thesis": "reserve rotation answers a revealed rear commitment"
+        },
+        {
+          "entrantId": "balanced",
+          "thesis": "general baseline control checks over-specialisation"
+        }
+      ],
+      "distinctiveCost": "Both outer interceptors abandon ordinary Well pressure before a carrier is confirmed.",
+      "id": "rear-hook",
+      "mission": "Pre-position two Towlines and force one exact returning Core loose.",
+      "requiredActionIds": [
+        "tractor-hook"
+      ],
+      "sheet": "sheets/rear-hook.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "null-veil",
+          "thesis": "concealment and dampening oppose the probe"
+        },
+        {
+          "entrantId": "beacon-hunt",
+          "thesis": "sensor contest hunts the exposed Lantern"
+        },
+        {
+          "entrantId": "interception",
+          "thesis": "carrier pressure forces the route decision"
+        },
+        {
+          "entrantId": "outer-pincers",
+          "thesis": "two-lane pressure attacks the chosen fork"
+        },
+        {
+          "entrantId": "trap-punish",
+          "thesis": "fixed fork movement encounters prepared traps"
+        },
+        {
+          "entrantId": "sensor-grid",
+          "thesis": "distributed vision contests information advantage"
+        },
+        {
+          "entrantId": "smoke-and-mines",
+          "thesis": "concealment and denial complicate both branches"
+        },
+        {
+          "entrantId": "control-grid",
+          "thesis": "persistent nodes constrain the return lanes"
+        }
+      ],
+      "distinctiveCost": "The carrier pauses while a Lantern and screen leave their baseline jobs.",
+      "id": "lantern-sweep",
+      "mission": "Probe a risky fork, choose one route once, and bring the carrier home.",
+      "requiredActionIds": [],
+      "sheet": "sheets/lantern-sweep.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "feint-switch",
+          "thesis": "route feints test locked-branch discipline"
+        },
+        {
+          "entrantId": "relay-chain",
+          "thesis": "Core tosses can bypass a conventional cutoff"
+        },
+        {
+          "entrantId": "counter-courier",
+          "thesis": "escort pressure protects the exact carrier"
+        },
+        {
+          "entrantId": "courier-sprint",
+          "thesis": "swift route commitment tests cutoff timing"
+        },
+        {
+          "entrantId": "smoke-convoy",
+          "thesis": "concealment tests last-seen pursuit"
+        },
+        {
+          "entrantId": "repair-web",
+          "thesis": "sustain tests whether displacement converts"
+        },
+        {
+          "entrantId": "displacement-control",
+          "thesis": "counter-displacement contests the hook pair"
+        },
+        {
+          "entrantId": "rotating-bastions",
+          "thesis": "lane rotation tests a fixed north/south branch"
+        }
+      ],
+      "distinctiveCost": "The Towlines react late and must choose north or south from causal sight.",
+      "id": "fork-shadow",
+      "mission": "React to a revealed return route and force the exact carrier off that lane.",
+      "requiredActionIds": [
+        "tractor-hook"
+      ],
+      "sheet": "sheets/fork-shadow.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "three-well-race",
+          "thesis": "all-Well pressure contests the timed rotation"
+        },
+        {
+          "entrantId": "split",
+          "thesis": "distributed theater control contests both rotators"
+        },
+        {
+          "entrantId": "mine-crescent",
+          "thesis": "future objective lanes are trapped"
+        },
+        {
+          "entrantId": "pod-lattice",
+          "thesis": "deployable control occupies the destination band"
+        },
+        {
+          "entrantId": "mortar-wheel",
+          "thesis": "ranged denial attacks predictable timing"
+        },
+        {
+          "entrantId": "centre-phalanx",
+          "thesis": "central mass tests whether rotation concedes home"
+        },
+        {
+          "entrantId": "control-grid",
+          "thesis": "persistent control challenges arrival"
+        },
+        {
+          "entrantId": "beacon-hunt",
+          "thesis": "scouting pressure detects early rotation"
+        }
+      ],
+      "distinctiveCost": "Two bodies give up current-theater pressure for a timed future position.",
+      "id": "birth-rotation",
+      "mission": "Move two of three reserves across theaters before the next public Well beat.",
+      "requiredActionIds": [],
+      "sheet": "sheets/birth-rotation.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "interception",
+          "thesis": "dedicated carrier pressure creates the decision"
+        },
+        {
+          "entrantId": "home-counterpunch",
+          "thesis": "mirrored counterpressure tests route choice"
+        },
+        {
+          "entrantId": "hook-burst",
+          "thesis": "forced displacement separates carrier and guard"
+        },
+        {
+          "entrantId": "fireline-picks",
+          "thesis": "long-range focus punishes a held carrier"
+        },
+        {
+          "entrantId": "rail-screen",
+          "thesis": "screened rails deny the direct return"
+        },
+        {
+          "entrantId": "sustain-attrition",
+          "thesis": "sustained pressure tests bounded commitment"
+        },
+        {
+          "entrantId": "repair-web",
+          "thesis": "opposing sustain tests conversion rather than survival"
+        },
+        {
+          "entrantId": "convoy",
+          "thesis": "dense escorting tests whether the counterpunch finds leverage"
+        }
+      ],
+      "distinctiveCost": "A carrier and guard surrender delivery tempo to answer visible pressure.",
+      "id": "escort-counterpunch",
+      "mission": "Hold a pressured carrier, then choose a direct or counter route home.",
+      "requiredActionIds": [],
+      "sheet": "sheets/escort-counterpunch.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "sensor-grid",
+          "thesis": "distributed sensors contest smoke cover"
+        },
+        {
+          "entrantId": "beacon-hunt",
+          "thesis": "active scouting searches the breach pair"
+        },
+        {
+          "entrantId": "null-veil",
+          "thesis": "counter-concealment and dampening contest signatures"
+        },
+        {
+          "entrantId": "mortar-wheel",
+          "thesis": "area denial punishes concentrated staging"
+        },
+        {
+          "entrantId": "trap-punish",
+          "thesis": "fixed breach lane enters prepared traps"
+        },
+        {
+          "entrantId": "centre-phalanx",
+          "thesis": "central mass contests the crossing"
+        },
+        {
+          "entrantId": "rotating-bastions",
+          "thesis": "hard lane defence absorbs the breach"
+        },
+        {
+          "entrantId": "fortress-counterattack",
+          "thesis": "fortified response punishes concentration"
+        }
+      ],
+      "distinctiveCost": "The breach concentrates a Veil and one reserve into one exposed lane.",
+      "id": "smoke-breach",
+      "mission": "Stage a Veil-led pair and cross the contested centre under signature cover.",
+      "requiredActionIds": [
+        "smoke-canister"
+      ],
+      "sheet": "sheets/smoke-breach.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "breach-column",
+          "thesis": "concentrated breach pressure tests the gate"
+        },
+        {
+          "entrantId": "displacement-control",
+          "thesis": "forced movement can separate gate actors"
+        },
+        {
+          "entrantId": "hook-burst",
+          "thesis": "hook and burst pressure tests carrier clearance"
+        },
+        {
+          "entrantId": "mortar-wheel",
+          "thesis": "lobbed denial reaches behind the gate"
+        },
+        {
+          "entrantId": "outer-pincers",
+          "thesis": "split pressure attacks both gate edges"
+        },
+        {
+          "entrantId": "smoke-and-mines",
+          "thesis": "concealment and traps contest the safe line"
+        },
+        {
+          "entrantId": "counter-courier",
+          "thesis": "carrier hunters force the protection mission"
+        },
+        {
+          "entrantId": "fireline-picks",
+          "thesis": "ranged focus tests hardlight timing"
+        }
+      ],
+      "distinctiveCost": "A Mason and Lantern stop contesting objectives to protect one return.",
+      "id": "hardlight-gate",
+      "mission": "Build a two-body gate that keeps a pressured carrier's home line open.",
+      "requiredActionIds": [
+        "hardlight-block"
+      ],
+      "sheet": "sheets/hardlight-gate.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "interception",
+          "thesis": "carrier hunters can punish the toss setup"
+        },
+        {
+          "entrantId": "counter-courier",
+          "thesis": "escort denial attacks sender and receiver"
+        },
+        {
+          "entrantId": "hook-burst",
+          "thesis": "forced movement can break the catch lane"
+        },
+        {
+          "entrantId": "displacement-control",
+          "thesis": "receiver displacement contests ownership"
+        },
+        {
+          "entrantId": "relay-chain",
+          "thesis": "an opposing toss network contests tempo"
+        },
+        {
+          "entrantId": "courier-sprint",
+          "thesis": "direct speed tests whether setup is worthwhile"
+        },
+        {
+          "entrantId": "smoke-convoy",
+          "thesis": "concealment complicates interception and pursuit"
+        },
+        {
+          "entrantId": "trap-punish",
+          "thesis": "predictable catch position is denied"
+        }
+      ],
+      "distinctiveCost": "The receiver holds a catch lane instead of fighting or collecting.",
+      "id": "relay-catch",
+      "mission": "Set a receiver behind a Relay carrier and complete a bounded Core return.",
+      "requiredActionIds": [
+        "arc-toss"
+      ],
+      "sheet": "sheets/relay-catch.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "sensor-grid",
+          "thesis": "distributed sensing should expose the decoy"
+        },
+        {
+          "entrantId": "beacon-hunt",
+          "thesis": "active scouts test false-pressure credibility"
+        },
+        {
+          "entrantId": "three-well-race",
+          "thesis": "broad pressure punishes conceded centre"
+        },
+        {
+          "entrantId": "split",
+          "thesis": "balanced theater coverage resists the switch"
+        },
+        {
+          "entrantId": "elastic-reserve",
+          "thesis": "mobile reserves answer the locked pincer"
+        },
+        {
+          "entrantId": "feint-switch",
+          "thesis": "a competing feint tests branch discipline"
+        },
+        {
+          "entrantId": "outer-pincers",
+          "thesis": "opposite multi-lane pressure attacks staging"
+        },
+        {
+          "entrantId": "control-grid",
+          "thesis": "persistent control makes the real lane costly"
+        }
+      ],
+      "distinctiveCost": "The decoy is isolated and the opposite pair concedes centre coverage.",
+      "id": "decoy-switch",
+      "mission": "Show one body north, then send a paired strike through the south lane.",
+      "requiredActionIds": [],
+      "sheet": "sheets/decoy-switch.json"
+    },
+    {
+      "counterCandidates": [
+        {
+          "entrantId": "fireline-picks",
+          "thesis": "focus fire creates and then pursues the wounded carrier"
+        },
+        {
+          "entrantId": "rail-screen",
+          "thesis": "long-range denial contests the exchange route"
+        },
+        {
+          "entrantId": "mortar-wheel",
+          "thesis": "area pressure attacks the rendezvous"
+        },
+        {
+          "entrantId": "interception",
+          "thesis": "carrier hunters force the emergency"
+        },
+        {
+          "entrantId": "home-counterpunch",
+          "thesis": "return-lane pressure tests the rescue"
+        },
+        {
+          "entrantId": "sustain-attrition",
+          "thesis": "continued damage tests whether exchange stabilises"
+        },
+        {
+          "entrantId": "null-veil",
+          "thesis": "concealment tests causal rendezvous information"
+        },
+        {
+          "entrantId": "repair-web",
+          "thesis": "sustain alternative checks exchange opportunity cost"
+        }
+      ],
+      "distinctiveCost": "The Switchback leaves interception before the carrier is guaranteed to survive.",
+      "id": "emergency-exchange",
+      "mission": "Bring a Switchback to a wounded carrier and complete the emergency return.",
+      "requiredActionIds": [
+        "exchange"
+      ],
+      "sheet": "sheets/emergency-exchange.json"
+    }
+  ],
+  "populationCohort": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/cohort.json",
+  "proofCatalog": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/catalog.json",
+  "schema": "arc-relay-operation-counterplay-catalog-v1",
+  "seeds": [
+    "32452843",
+    "49979687",
+    "86080201"
+  ]
+}

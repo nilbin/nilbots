@@ -1,0 +1,56 @@
+{
+  "cards": [
+    {
+      "id": "sample-01",
+      "subtitle": "Blue operation vs Breach Column · Orange wins by reactor destroyed at t430 · success t169→release t170; preparation denial t284→release t287; casualty t283→baseline life 3 t304",
+      "title": "Hardlight Gate — Blue operation"
+    },
+    {
+      "id": "sample-02",
+      "subtitle": "Orange operation vs Fireline Picks · Orange wins by reactor destroyed at t346 · success t65→release t70; committed counter t236→release t244; casualty t151→baseline life 3 t172",
+      "title": "Escort Counterpunch — Orange operation"
+    },
+    {
+      "id": "sample-03",
+      "subtitle": "Blue operation vs Counter Courier · Orange wins by reactor destroyed at t384 · success t77→release t89; committed counter t351→release t363; casualty t215→baseline life 3 t236",
+      "title": "Fork Shadow — Blue operation"
+    },
+    {
+      "id": "sample-04",
+      "subtitle": "Blue operation vs Hook Burst · Orange wins by reactor destroyed at t426 · success t167→release t172; committed counter t336→release t337; casualty t335→baseline life 3 t356",
+      "title": "Relay Catch — Blue operation"
+    },
+    {
+      "id": "sample-05",
+      "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t376 · success t132→release t134; committed counter t293→release t294; casualty t70→baseline life 1 t91",
+      "title": "Birth Rotation — Orange operation"
+    },
+    {
+      "id": "sample-06",
+      "subtitle": "Blue operation vs Balanced · Orange wins by reactor destroyed at t407 · success t158→release t163; committed counter t74→release t86; casualty t36→baseline life 1 t86",
+      "title": "Rear Hook — Blue operation"
+    },
+    {
+      "id": "sample-07",
+      "subtitle": "Blue operation vs Beacon Hunt · Orange wins by reactor destroyed at t406 · success t72→release t75; committed counter t19→release t20; casualty t18→baseline life 1 t39",
+      "title": "Decoy Switch — Blue operation"
+    },
+    {
+      "id": "sample-08",
+      "subtitle": "Orange operation vs Null Veil · Blue wins by reactor destroyed at t426 · success t62→release t66; committed counter t115→release t116; casualty t215→baseline life 4 t236",
+      "title": "Smoke Breach — Orange operation"
+    },
+    {
+      "id": "sample-09",
+      "subtitle": "Orange operation vs Interception · Blue wins by reactor destroyed at t458 · success t304→release t305; committed counter t69→release t73; casualty t68→baseline life 2 t89",
+      "title": "Emergency Exchange — Orange operation"
+    },
+    {
+      "id": "sample-10",
+      "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t432 · success t336→release t337; preparation denial t102→release t106; casualty t101→baseline life 3 t122",
+      "title": "Lantern Sweep — Orange operation"
+    }
+  ],
+  "intro": "Outcome-visible review. Every card names the operation side, opponent, final result, and exact success, counter, casualty, release, and baseline-return ticks.",
+  "title": "Arc Relay operation reliability — labelled 3D review"
+}
