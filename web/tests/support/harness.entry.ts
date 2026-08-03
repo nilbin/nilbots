@@ -26,6 +26,13 @@ export {
   strategicOverviewFrame,
 } from '../../src/render/arenaCamera';
 export { createPresenter } from '../../src/replayPresentation';
+export {
+  parsePlayRoleTag,
+  playAwarenessTimeline,
+  playForUnit,
+  playRoleSummary,
+  playsAt,
+} from '../../src/presentation/playAwareness';
 export { defaultPlaybackSpeed } from '../../src/playback';
 export {
   classFamilyForForm,

@@ -81,6 +81,13 @@ export function replayAudioEventsAt(
             priority: 7,
             pan: factPan,
           });
+        } else {
+          scheduled.push({
+            cue: 'arc-pickup',
+            tickOffset: 0.28,
+            priority: 5,
+            pan: factPan,
+          });
         }
         coreOwners.set(key, fact.carrierActor.teamId);
         break;
@@ -94,6 +101,12 @@ export function replayAudioEventsAt(
         break;
       case 'core-dropped':
         coreOwners.set(coreKey(fact.coreId), fact.sourceActor.teamId);
+        scheduled.push({
+          cue: 'arc-drop',
+          tickOffset: 0.34,
+          priority: 6,
+          pan: factPan,
+        });
         break;
       case 'core-banked':
         coreOwners.set(coreKey(fact.coreId), fact.teamId);

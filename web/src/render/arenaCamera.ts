@@ -1,6 +1,7 @@
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { posesAt } from './interpolate';
+import { playsAt } from '../presentation/playAwareness';
 
 /**
  * Where the arena is looked at from, shared by both renderers.
@@ -296,6 +297,7 @@ export function focusPointsAt(
   replay: ReplayModel,
   time: number,
   selectedUnitKey: ReplayStableUnitKey | null,
+  highlightedUnitKeys: readonly ReplayStableUnitKey[] = [],
 ): { x: number; y: number }[] {
   const active = posesAt(replay, time).filter(
     (pose) => pose.status === 'active',
@@ -305,8 +307,12 @@ export function focusPointsAt(
       ? null
       : replay.units.find((unit) => unit.unitKey === selectedUnitKey)?.teamId ??
         null;
+  const highlighted = new Set(highlightedUnitKeys);
+  const play = active.filter((pose) => highlighted.has(pose.unitKey));
   const chosen =
-    teamId === null
+    play.length > 0
+      ? includeNearby(active, play, 4.5)
+      : teamId === null
       ? autoDirectorPoints(replay, time, active)
       : active.filter((pose) => pose.teamId === teamId);
   // A tile's centre, which is where both renderers draw the body standing on it.
@@ -344,6 +350,19 @@ function autoDirectorPoints(
   );
   const mode = arcRelayModeState(replay, tickIndex);
   if (mode?.kind !== 'arc-relay' || !('visibleCores' in mode)) return [...active];
+
+  // A published coordinated play only takes the camera when it meets an
+  // authoritative hostile/Core event. Preparation by itself stays quiet.
+  const contactPlay = playsAt(replay, tickIndex).find(
+    (play) => play.contact !== null,
+  );
+  if (contactPlay) {
+    const claimed = new Set(
+      contactPlay.participants.map((participant) => participant.unitKey),
+    );
+    const anchors = active.filter((pose) => claimed.has(pose.unitKey));
+    if (anchors.length > 0) return includeNearby(active, anchors, 5);
+  }
 
   const combat = combatFocus(replay, tickIndex, active);
   if (combat.length > 0) return combat;

@@ -15,6 +15,7 @@ import type { PlaybackState } from '../playback';
 import { playerAccent } from '../presentation/playerAccent';
 import { unitAccent } from '../render/unitPresentation';
 import { styleVariables } from '../presentation/styleVariables';
+import { playAwarenessTimeline } from '../presentation/playAwareness';
 
 /**
  * The timeline, carrying what happened rather than only where we are.
@@ -57,6 +58,14 @@ interface Mark {
   accent: string;
 }
 
+interface Bookmark {
+  key: string;
+  tick: number;
+  label: string;
+  accent: string;
+  kind: 'core' | 'play' | 'contact';
+}
+
 /** Events that belong to the match rather than to any one team. */
 const MATCH_EVENTS = new Set([
   'frontline-position-advanced',
@@ -67,14 +76,18 @@ export default function Timeline({
   replay,
   playback,
   selectedUnitKey,
+  selectedPlayKey,
+  perspectiveTeamId,
 }: {
   replay: ReplayModel;
   playback: PlaybackState;
   selectedUnitKey: ReplayStableUnitKey | null;
+  selectedPlayKey: string | null;
+  perspectiveTeamId: number | null;
 }) {
   const lastTick = Math.max(1, playback.tickCount - 1);
 
-  const { lanes, marks, moments } = useMemo(() => {
+  const { lanes, marks, moments, bookmarks } = useMemo(() => {
     // Through `unitAccent`, not `participant.accent`: a generation-3 class match
     // gives every participant the same default colour, and two lanes of marks in
     // one hue is the same as no lanes at all.
@@ -87,6 +100,7 @@ export default function Timeline({
 
     const collected: Mark[] = [];
     const matchMoments: { key: string; tick: number }[] = [];
+    const collectedBookmarks: Bookmark[] = [];
 
     const add = (
       event: ReplayCausalEvent,
@@ -125,6 +139,10 @@ export default function Timeline({
           matchMoments.push({ key: event.eventId, tick });
           continue;
         }
+        if (event.arcRelayFact) {
+          const bookmark = arcBookmark(replay, replayTick.tick, event);
+          if (bookmark) collectedBookmarks.push(bookmark);
+        }
         // Firing, dying and being disqualified each arrive in two spellings —
         // a duel says `shot`/`destroyed`/`disqualified` where a generic
         // replay-v3 match says `attack`/`destruction`/`participant-disqualified`.
@@ -152,6 +170,40 @@ export default function Timeline({
       }
     }
 
+    const trace = playAwarenessTimeline(replay);
+    const visibleActivations = perspectiveTeamId === null
+      ? trace.activations
+      : trace.activations.filter((entry) => entry.teamId === perspectiveTeamId);
+    const activations = selectedPlayKey === null
+      ? visibleActivations
+      : visibleActivations.filter((entry) => entry.key === selectedPlayKey);
+    for (const activation of activations) {
+      const unit = replay.units.find((candidate) =>
+        candidate.teamId === activation.teamId,
+      );
+      const accent = unit
+        ? playerAccent(unitAccent(replay, unit.unitKey), 'panel')
+        : '#d9e6ee';
+      for (const transition of activation.transitions) {
+        collectedBookmarks.push({
+          key: `${activation.key}:${transition.phase}:${transition.tick}`,
+          tick: transition.tick,
+          label: `${activation.name} ${transition.phase}`,
+          accent,
+          kind: 'play',
+        });
+      }
+      for (const contact of activation.contacts) {
+        collectedBookmarks.push({
+          key: `${activation.key}:contact:${contact.eventId}`,
+          tick: contact.tick,
+          label: `${activation.name}: ${contact.summary}`,
+          accent,
+          kind: 'contact',
+        });
+      }
+    }
+
     // Teams in their own declared order; nothing here counts them.
     const teamLanes = replay.teams.map((team) => ({
       key: `team:${team.teamId}`,
@@ -161,8 +213,13 @@ export default function Timeline({
       ? [{ key: 'selected', label: 'Selected' }, ...teamLanes]
       : teamLanes;
 
-    return { lanes: laneList, marks: collected, moments: matchMoments };
-  }, [replay, selectedUnitKey]);
+    return {
+      lanes: laneList,
+      marks: collected,
+      moments: matchMoments,
+      bookmarks: collectedBookmarks,
+    };
+  }, [perspectiveTeamId, replay, selectedPlayKey, selectedUnitKey]);
 
   const at = (tick: number) => `${(tick / lastTick) * 100}%`;
   const progress = Math.min(playback.time, lastTick) / lastTick;
@@ -186,6 +243,35 @@ export default function Timeline({
             aria-hidden
             className="runtime-position absolute inset-y-0 w-px bg-arena-edge2"
             style={styleVariables({ '--runtime-position': at(moment.tick) })}
+          />
+        ))}
+
+        {bookmarks.map((bookmark, index) => (
+          <button
+            key={bookmark.key}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              playback.seek(bookmark.tick);
+            }}
+            title={`${bookmark.label} · tick ${bookmark.tick}`}
+            aria-label={`Seek to ${bookmark.label} at tick ${bookmark.tick}`}
+            className={clsx(
+              'runtime-position absolute z-[3] block -translate-x-1/2 border focus:outline-1 focus:outline-white',
+              bookmark.kind === 'core'
+                ? 'top-0 size-2 rounded-full'
+                : bookmark.kind === 'contact'
+                  ? 'top-0 size-2 rotate-45'
+                  : 'top-[3px] h-1.5 w-2.5 rounded-[1px]',
+            )}
+            style={{
+              ...styleVariables({ '--runtime-position': at(bookmark.tick) }),
+              borderColor: bookmark.accent,
+              backgroundColor: `${bookmark.accent}55`,
+              // Separate coincident marks enough to remain tappable without
+              // moving them to a different tick on the horizontal axis.
+              marginTop: `${(index % 2) * 5}px`,
+            }}
           />
         ))}
 
@@ -272,4 +358,39 @@ export default function Timeline({
       </Slider.Thumb>
     </Slider.Root>
   );
+}
+
+function arcBookmark(
+  replay: ReplayModel,
+  tick: number,
+  event: ReplayCausalEvent,
+): Bookmark | null {
+  const fact = event.arcRelayFact;
+  if (!fact) return null;
+  let label: string;
+  let teamId: number | null = null;
+  switch (fact.kind) {
+    case 'core-born': label = 'Core birth'; break;
+    case 'core-picked-up':
+      label = 'Core pickup'; teamId = fact.carrierActor.teamId; break;
+    case 'core-handed-off':
+      label = 'Core handoff'; teamId = fact.targetActor.teamId; break;
+    case 'core-dropped':
+      label = 'Core drop'; teamId = fact.sourceActor.teamId; break;
+    case 'core-banked': label = 'Core bank'; teamId = fact.teamId; break;
+    case 'pulse': label = `Pulse ${fact.pulseOrdinal}`; teamId = fact.teamId; break;
+    default: return null;
+  }
+  const unit = teamId === null
+    ? null
+    : replay.units.find((candidate) => candidate.teamId === teamId) ?? null;
+  return {
+    key: `${event.eventId}:arc`,
+    tick,
+    label,
+    accent: unit
+      ? playerAccent(unitAccent(replay, unit.unitKey), 'panel')
+      : '#d9e6ee',
+    kind: 'core',
+  };
 }

@@ -33,6 +33,7 @@ export default function ArenaCanvas3D({
   replay,
   time,
   selectedUnitKey,
+  highlightedUnitKeys = [],
   showVisibility,
   onSelectUnit,
   onUnavailable,
@@ -44,6 +45,7 @@ export default function ArenaCanvas3D({
   replay: ReplayModel;
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
+  highlightedUnitKeys?: readonly ReplayStableUnitKey[];
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onUnavailable: () => void;
@@ -68,6 +70,7 @@ export default function ArenaCanvas3D({
   const frameState = useRef({
     time,
     selectedUnitKey,
+    highlightedUnitKeys,
     showVisibility,
     onSelectUnit,
     onUnavailable,
@@ -78,6 +81,7 @@ export default function ArenaCanvas3D({
   frameState.current = {
     time,
     selectedUnitKey,
+    highlightedUnitKeys,
     showVisibility,
     onSelectUnit,
     onUnavailable,
@@ -265,7 +269,12 @@ export default function ArenaCanvas3D({
         autoFit: fit,
       } = frameState.current;
       actors.update(now, followed, fov);
-      overlays.update(now, followed, fov);
+      overlays.update(
+        now,
+        followed,
+        fov,
+        frameState.current.highlightedUnitKeys,
+      );
 
       if (camera) {
         // On the toggle *changing*, never on a mismatch. A gesture drops auto-fit inside
@@ -279,7 +288,15 @@ export default function ArenaCanvas3D({
         }
         if (camera.auto)
           camera.aim(
-            focusFrame(focusPointsAt(replay, now, followed), framing),
+            focusFrame(
+              focusPointsAt(
+                replay,
+                now,
+                followed,
+                frameState.current.highlightedUnitKeys,
+              ),
+              framing,
+            ),
             now,
             followed === null ? directorShotHoldTicks(replay) : 0,
           );

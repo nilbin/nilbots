@@ -733,7 +733,7 @@ function drawTransferEffects(input: ArcRelayVisualContext): void {
 }
 
 /**
- * The four big beats formerly stated by a banner, now spoken in the world itself.
+ * The possession beats formerly stated by a banner, now spoken in the world itself.
  * Geometry and cadence are deliberately distinct so the animation still communicates
  * without team colour: birth blooms, a steal snaps inward, a bank locks, a Pulse strikes.
  */
@@ -747,17 +747,22 @@ function drawDiegeticEvents(
     if (!fact) continue;
     let point: { x: number; y: number } | null = null;
     let accent = '#f5f8fb';
-    let kind: 'birth' | 'steal' | 'bank' | 'pulse' | null = null;
+    let secondaryAccent: string | null = null;
+    let kind: 'birth' | 'pickup' | 'steal' | 'drop' | 'bank' | 'pulse' | null = null;
     if (fact.kind === 'core-born') {
       point = centre(input, fact.position);
       kind = 'birth';
     } else if (fact.kind === 'core-picked-up') {
       const previousTeam = previousOwnerTeam(input, fact.coreId);
-      if (previousTeam !== null && previousTeam !== fact.carrierActor.teamId) {
-        point = actorCentre(input, fact.carrierActor) ?? centre(input, fact.position);
-        accent = input.accentFor(fact.carrierActor.unitKey);
-        kind = 'steal';
-      }
+      point = actorCentre(input, fact.carrierActor) ?? centre(input, fact.position);
+      accent = input.accentFor(fact.carrierActor.unitKey);
+      kind = previousTeam !== null && previousTeam !== fact.carrierActor.teamId
+        ? 'steal'
+        : 'pickup';
+      if (kind === 'steal') secondaryAccent = teamAccent(input, previousTeam!);
+    } else if (fact.kind === 'core-dropped') {
+      point = centre(input, fact.position);
+      kind = 'drop';
     } else if (fact.kind === 'core-banked') {
       point = centre(input, fact.position);
       accent = teamAccent(input, fact.teamId);
@@ -786,8 +791,23 @@ function drawDiegeticEvents(
         ctx.arc(point.x, point.y, tile * (0.18 + progress * 0.7), 0, Math.PI * 2);
         ctx.stroke();
       }
+    } else if (kind === 'pickup') {
+      const radius = tile * (0.95 - fraction * 0.62);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, tile * (0.12 + fraction * 0.16), 0, Math.PI * 2);
+      ctx.fill();
     } else if (kind === 'steal') {
       const radius = tile * (0.9 - fraction * 0.45);
+      if (secondaryAccent) {
+        ctx.strokeStyle = withAlpha(secondaryAccent, (1 - fraction) * 0.7);
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, tile * (0.34 + fraction * 0.58), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = withAlpha(accent, (1 - fraction) * 0.96);
+      }
       ctx.setLineDash([tile * 0.16, tile * 0.08]);
       ctx.lineDashOffset = fraction * tile * 1.4;
       ctx.beginPath();
@@ -797,6 +817,28 @@ function drawDiegeticEvents(
       ctx.beginPath();
       ctx.arc(point.x, point.y, tile * (0.28 + 0.15 * fraction), 0, Math.PI * 2);
       ctx.fill();
+    } else if (kind === 'drop') {
+      ctx.strokeStyle = `rgba(238, 248, 252, ${(1 - fraction) * 0.92})`;
+      for (let ring = 0; ring < 2; ring += 1) {
+        ctx.beginPath();
+        ctx.arc(
+          point.x,
+          point.y,
+          tile * (0.28 + fraction * 0.72 + ring * 0.13),
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+      }
+      for (let ray = 0; ray < 6; ray += 1) {
+        const angle = ray * Math.PI / 3;
+        const inner = tile * (0.18 + fraction * 0.2);
+        const outer = tile * (0.35 + fraction * 0.56);
+        ctx.beginPath();
+        ctx.moveTo(point.x + Math.cos(angle) * inner, point.y + Math.sin(angle) * inner);
+        ctx.lineTo(point.x + Math.cos(angle) * outer, point.y + Math.sin(angle) * outer);
+        ctx.stroke();
+      }
     } else if (kind === 'bank') {
       const radius = tile * (0.38 + 0.52 * fraction);
       ctx.beginPath();

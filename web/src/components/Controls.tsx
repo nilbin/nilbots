@@ -21,12 +21,16 @@ export default function Controls({
   playback,
   replay,
   selectedUnitKey,
+  selectedPlayKey,
+  perspectiveTeamId,
   autoFit,
   onToggleAutoFit,
 }: {
   playback: PlaybackState;
   replay: ReplayModel;
   selectedUnitKey: ReplayStableUnitKey | null;
+  selectedPlayKey: string | null;
+  perspectiveTeamId: number | null;
   autoFit: boolean;
   onToggleAutoFit: () => void;
 }) {
@@ -61,6 +65,8 @@ export default function Controls({
             replay={replay}
             playback={playback}
             selectedUnitKey={selectedUnitKey}
+            selectedPlayKey={selectedPlayKey}
+            perspectiveTeamId={perspectiveTeamId}
           />
         </div>
 

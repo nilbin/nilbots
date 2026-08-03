@@ -14,6 +14,8 @@ const root = join(
 const expectedCues = [
   'arc-bank',
   'arc-birth',
+  'arc-drop',
+  'arc-pickup',
   'arc-pulse',
   'arc-steal',
   'destroyed',

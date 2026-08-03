@@ -67,6 +67,7 @@ import {
   teamVisionSeesActor,
   teamVisionSeesProjectile,
 } from './teamVision';
+import { parsePlayRoleTag, playsAt } from '../presentation/playAwareness';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -141,6 +142,7 @@ function tintedProjectileSprite(
 export interface DrawOptions {
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
+  highlightedUnitKeys?: readonly ReplayStableUnitKey[];
   showVisibility: boolean;
   /**
    * Where the camera is looking, in tiles. Absent means the whole arena, framed the way
@@ -155,7 +157,14 @@ export interface DrawOptions {
 export function drawArena(
   ctx: CanvasRenderingContext2D,
   replay: ReplayModel,
-  { time, selectedUnitKey, showVisibility, frame = null, entrants = [] }: DrawOptions,
+  {
+    time,
+    selectedUnitKey,
+    highlightedUnitKeys = [],
+    showVisibility,
+    frame = null,
+    entrants = [],
+  }: DrawOptions,
   width: number,
   height: number,
 ): void {
@@ -164,6 +173,9 @@ export function drawArena(
     height: mapHeight,
     tileRows: mapTiles,
   } = replay.map;
+  const isArcRelay =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay';
   // The tile size and origin the camera asks for. `arenaViewport` also owns the whole-map
   // fallback and its margin, so `ArenaCanvas`'s hit-test converts a click back to a tile
   // through the same arithmetic — the two used to state it separately, with a comment on
@@ -1405,6 +1417,7 @@ export function drawArena(
       if (pose.status !== 'active' || hiddenByFog(pose)) continue;
       drawLocomotionMotion(pose);
     }
+    drawPlayAwareness();
     // Under the bodies, on the floor, exactly like the 3D renderer puts them
     // there: a ring drawn over a chassis would paint on the machine it is
     // describing.
@@ -1429,6 +1442,105 @@ export function drawArena(
   }
 
   /**
+   * The coordinated-play glance layer. It only renders tags the entrant
+   * actually published at this tick and physical contact from this tick. No
+   * future route, private trigger, or inferred formation enters the picture.
+   */
+  function drawPlayAwareness(): void {
+    const frame = playsAt(replay, tick);
+    if (frame.length === 0) return;
+    const selected = new Set(highlightedUnitKeys);
+    const primary = new Map<number, string>();
+    for (const play of frame) {
+      if (!primary.has(play.teamId)) primary.set(play.teamId, play.activationKey);
+    }
+
+    for (const play of frame) {
+      const visible = play.participants
+        .map((participant) => poses.find((pose) =>
+          pose.actorKey === participant.actorKey &&
+          pose.status === 'active' &&
+          !hiddenByFog(pose),
+        ))
+        .filter((pose): pose is BotPose => Boolean(pose));
+      if (visible.length === 0) continue;
+      const accent = accentFor(visible[0]!.unitKey);
+      const selectedPlay = visible.some((pose) => selected.has(pose.unitKey));
+      const full = selectedPlay || primary.get(play.teamId) === play.activationKey;
+      const phaseAge = Math.max(0, time - play.phaseStartedTick);
+      const strength = full ? 0.92 : 0.48;
+
+      if (full) {
+        for (const pose of visible) {
+          const cx = px(pose.x) + tile / 2;
+          const cy = py(pose.y) + tile / 2;
+          const outward = play.phase === 'recovery'
+            ? Math.min(0.18, phaseAge * 0.045)
+            : 0;
+          const inner = tile * (0.31 + outward);
+          const outer = tile * (0.47 + outward);
+          ctx.save();
+          ctx.strokeStyle = hexWithAlpha(accent, strength);
+          ctx.lineWidth = Math.max(1.5, tile * (selectedPlay ? 0.06 : 0.045));
+          if (play.phase === 'preparing')
+            ctx.setLineDash([tile * 0.08, tile * 0.075]);
+          else if (play.phase === 'recovery')
+            ctx.globalAlpha = Math.max(0.28, 1 - phaseAge / 6);
+          for (const [sx, sy] of [
+            [-1, -1], [1, -1], [1, 1], [-1, 1],
+          ] as const) {
+            ctx.beginPath();
+            ctx.moveTo(cx + sx * inner, cy + sy * outer);
+            ctx.lineTo(cx + sx * outer, cy + sy * outer);
+            ctx.lineTo(cx + sx * outer, cy + sy * inner);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      const centroid = visible.reduce(
+        (point, pose) => ({
+          x: point.x + px(pose.x) + tile / 2,
+          y: point.y + py(pose.y) + tile / 2,
+        }),
+        { x: 0, y: 0 },
+      );
+      centroid.x /= visible.length;
+      centroid.y /= visible.length;
+      ctx.save();
+      ctx.translate(centroid.x, centroid.y);
+      ctx.rotate(Math.PI / 4);
+      ctx.strokeStyle = hexWithAlpha(accent, strength);
+      ctx.lineWidth = Math.max(1.5, tile * 0.04);
+      const size = tile * (full ? 0.14 : 0.09);
+      ctx.strokeRect(-size, -size, size * 2, size * 2);
+      if (play.phase === 'committed' && phaseAge < 1) {
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = tile * 0.35;
+        ctx.strokeRect(-size * 1.45, -size * 1.45, size * 2.9, size * 2.9);
+      }
+      ctx.restore();
+
+      if (play.contact) {
+        const event = currentTick?.events.find(
+          (candidate) => candidate.eventId === play.contact!.eventId,
+        );
+        const at = event?.to ?? event?.from;
+        const cx = at ? px(at.x) + tile / 2 : centroid.x;
+        const cy = at ? py(at.y) + tile / 2 : centroid.y;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(239, 246, 250, 0.9)';
+        ctx.lineWidth = Math.max(2, tile * 0.055);
+        ctx.beginPath();
+        ctx.arc(cx, cy, tile * (0.35 + fraction * 0.55), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  /**
    * THE WATCHABILITY DELIVERABLE (§12.3). A small caption under each labelled
    * body, coloured by a stable hash of the tag so `channeler` is the same
    * colour all match and across matches — and drawn for VISIBLE ENEMIES too,
@@ -1444,6 +1556,8 @@ export function drawArena(
     );
     const tag = unit?.roleTag;
     if (!tag) return;
+    if (isArcRelay) return;
+    if (parsePlayRoleTag(tag)) return;
     const caption = roleTagCaption(tag);
     // Camera close-ups must enlarge the machine, not turn sheet metadata into a billboard.
     const size = Math.min(13, Math.max(7, Math.round(tile * 0.24)));

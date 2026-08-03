@@ -16,6 +16,7 @@ import { playerAccent } from '../presentation/playerAccent';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import { roleTagColor } from '../presentation/roleTag';
+import { playRoleSummary } from '../presentation/playAwareness';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -179,6 +180,9 @@ export default function BotPanel({
   // author's plan, not from nine bodies agreeing.
   const mindProfile =
     replay.versions.actorRuntime?.family === 'generic-mind-match-1';
+  const isArcRelay =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay';
   // Arc Relay has sixteen bodies. Pair equal slots across teams so the roster
   // reads like a lineup, rather than a long diagnostic log for one team and
   // then another. Full detail remains one click away.
@@ -423,6 +427,8 @@ export default function BotPanel({
         // entering a stance show up in the panel at the same tick they show up in the
         // arena.
         const look = unitLook(replay, unit.unitKey, unit.formId);
+        const displayedRole = playRoleSummary(unit.roleTag) ??
+          (isArcRelay ? null : unit.roleTag);
         const controllerName = replay.participants.find(
           (participant) => participant.participantId === unit.participantId,
         )?.name;
@@ -534,7 +540,7 @@ export default function BotPanel({
                   ))}
                 </span>
                 <span className="min-w-0 truncate text-[9px] text-arena-dim">
-                  {unit.roleTag ??
+                  {displayedRole ??
                     (unit.actionId
                       ? describeAction(unit.actionId, unit.actionLaunchHeading)
                       : unit.status)}
@@ -647,7 +653,7 @@ export default function BotPanel({
                 </>
               )}
 
-              {unit.roleTag !== null && (
+              {displayedRole !== null && (
                 <>
                   <dt className="lab">Role</dt>
                   <dd className="t-body col-span-2">
@@ -656,11 +662,11 @@ export default function BotPanel({
                       style={{
                         // Coloured by a stable hash of the tag, so `channeler`
                         // is the same colour all match and across matches.
-                        color: roleTagColor(unit.roleTag),
-                        borderColor: roleTagColor(unit.roleTag),
+                        color: roleTagColor(displayedRole),
+                        borderColor: roleTagColor(displayedRole),
                       }}
                     >
-                      {unit.roleTag}
+                      {displayedRole}
                     </span>
                   </dd>
                 </>

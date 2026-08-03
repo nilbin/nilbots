@@ -86,6 +86,21 @@ try {
     if (tickAfter <= tickBefore)
       throw new Error(`${link.title}: playback did not advance.`);
     await page.getByRole('button', { name: 'Pause' }).click();
+    const operationTick = Number(link.subtitle.match(/success t(\d+)/)?.[1]);
+    const releaseTick = Number(link.subtitle.match(/success t\d+→release t(\d+)/)?.[1]);
+    if (!Number.isFinite(operationTick) || !Number.isFinite(releaseTick))
+      throw new Error(`${link.title}: could not parse its operation proof window.`);
+    await seekTick(page, operationTick);
+    await page.getByRole('button', { name: /tactics/i }).click();
+    let tactics = page.locator('section[aria-label="Tactics lens"]');
+    await tactics.waitFor({ timeout: 5_000 });
+    let activePlay = tactics.locator('button[aria-pressed]').first();
+    await activePlay.waitFor({ timeout: 5_000 });
+    await activePlay.click();
+    await tactics.getByText('entrant execution trace', { exact: false }).waitFor({ timeout: 5_000 });
+    if (operationTick < releaseTick && (await tactics.textContent())?.includes(`T${releaseTick}`))
+      throw new Error(`${link.title}: tactics card exposed its future release tick.`);
+    await tactics.getByRole('button', { name: 'Close tactics lens' }).click();
     if (index === 0) {
       const pickupTick = await page.evaluate(() => {
         const replayDocument = window.__BOTARENA_REPLAY__;
@@ -101,8 +116,11 @@ try {
       if (!Number.isInteger(pickupTick))
         throw new Error(`${link.title}: could not find a Core pickup beat.`);
       await seekTick(page, pickupTick);
-      const possession = page.getByText('CORE PICKED UP', { exact: true });
-      await possession.waitFor({ timeout: 5_000 });
+      await page.getByRole('button', {
+        name: new RegExp(`Seek to Core pickup at tick ${pickupTick}$`),
+      }).waitFor({ timeout: 5_000 });
+      if (await page.getByText('CORE PICKED UP', { exact: true }).count())
+        throw new Error(`${link.title}: obsolete text event banner is still mounted.`);
       const possessionScreenshot = path.join(outputDirectory, 'core-pickup-webgl.png');
       await arena.screenshot({ path: possessionScreenshot, animations: 'disabled' });
 
@@ -130,11 +148,23 @@ try {
         throw new Error(`${link.title}: could not parse its counter evidence tick.`);
       await seekTick(page, evidenceTick);
       await page.waitForTimeout(1_200);
+      await page.getByRole('button', { name: /tactics/i }).click();
+      tactics = page.locator('section[aria-label="Tactics lens"]');
+      await tactics.waitFor({ timeout: 5_000 });
+      activePlay = tactics.locator('button[aria-pressed]').first();
+      await activePlay.waitFor({ timeout: 5_000 });
+      await activePlay.click();
+      await tactics.getByText('entrant execution trace', { exact: false }).waitFor({ timeout: 5_000 });
       smoke.possessionCue = {
         tick: pickupTick,
-        headline: 'CORE PICKED UP',
+        presentation: 'diegetic Core pickup effect plus timeline anchor; no text banner',
         screenshot: relative(possessionScreenshot),
         screenshotSha256: sha256(readFileSync(possessionScreenshot)),
+      };
+      smoke.tacticsLens = {
+        tick: evidenceTick,
+        activeTrace: true,
+        selectedTraceCard: true,
       };
       smoke.strategicOverview = {
         scope: 'all three Wells; deep home aprons may be cropped',
@@ -158,6 +188,9 @@ try {
       tickBefore,
       tickAfter,
       scoreBug: true,
+      tacticsTrace: true,
+      tacticsProofTick: operationTick,
+      causalCard: true,
       pageErrors: [],
       consoleErrors: [],
       failedRequests: [],
