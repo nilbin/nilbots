@@ -191,6 +191,40 @@
       ],
       "resultSummary": "Rejected for Home Siege: one parity assignment improved to a max-tick win but the opposite assignment collapsed, and neither historical assignment won. Retained only as generic transfer semantics with an explicit fixture.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "enemy-perimeter-anchor-x26",
+      "layoutSourceSha256": "bdbc20c9269b493019616dbd93962c6cee3aa997318d76893124c572080e281b",
+      "change": "Move the same living-ring anchor two tiles deeper, from team-relative x=24 to x=26, to acquire returning north/south couriers closer to the reactor.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 354 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 407 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 444 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 484 }
+      ],
+      "resultSummary": "Rejected. The deeper anchor lost all four cells, consistent with compressed home geometry and worse firing lanes.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "enemy-perimeter-anchor-x25",
+      "layoutSourceSha256": "249404ebbcb8ff8e6a762c8bf4c63a9993abdc35f7fa6533301039776babeb62",
+      "change": "Move the same living-ring anchor one tile deeper, from team-relative x=24 to x=25.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 331 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 }
+      ],
+      "resultSummary": "Rejected after the primary fair control lost both assignments substantially faster; historical cells were not spent after that decisive screen.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "wide-north-south-living-ring",
+      "change": "Keep the proven x=24 anchor but widen the five line placements from y offsets -3..3 to -5,-3,0,3,5 and separate the medics to -1,+1, targeting both return gates.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 361 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 }
+      ],
+      "resultSummary": "Rejected after both fair-control assignments collapsed; spreading the shared damage group traded away the central concentration that produced the camp kills.",
+      "verdict": "rejected"
     }
   ]
 }
