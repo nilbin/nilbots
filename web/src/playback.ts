@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ReplayModel } from './replayModel';
+import { arenaPresentedFrameStamp } from './render/arenaRenderProfile';
 
 export interface PlaybackState {
   /** Continuous playhead: floor(t) is the tick being animated, frac(t) its progress. */
@@ -44,6 +45,7 @@ export function defaultPlaybackSpeed(replay: ReplayModel): number {
  * clock runs behind a loading screen, and the match is already underway when it lifts.
  * @param active False while the server's live clock owns presentation time.
  * @param autoStart Whether the clock runs as soon as it is allowed to.
+ * @param framesPerSecond Optional React update cap. Elapsed wall time remains authoritative.
  *
  * `autoStart` is false wherever a person is watching and a play button is offered: waiting
  * for assets and then starting anyway is the same missed opening as not waiting at all,
@@ -56,6 +58,7 @@ export function usePlayback(
   ready = true,
   active = true,
   autoStart = true,
+  framesPerSecond?: number,
 ): PlaybackState {
   const tickCount = replay.ticks.length;
   const [time, setTime] = useState(0);
@@ -66,6 +69,7 @@ export function usePlayback(
   const timeRef = useRef(0);
   const frame = useRef<number>(0);
   const lastStamp = useRef<number | null>(null);
+  const pacingStamp = useRef<number | null>(null);
   const wasActive = useRef(active);
 
   useEffect(() => {
@@ -94,9 +98,18 @@ export function usePlayback(
   useEffect(() => {
     if (!active || !playing || !ready) {
       lastStamp.current = null;
+      pacingStamp.current = null;
       return;
     }
     const advance = (stamp: number) => {
+      const presentedStamp = framesPerSecond === undefined
+        ? stamp
+        : arenaPresentedFrameStamp(stamp, pacingStamp.current, framesPerSecond);
+      if (presentedStamp === null) {
+        frame.current = requestAnimationFrame(advance);
+        return;
+      }
+      pacingStamp.current = presentedStamp;
       const dt = lastStamp.current === null ? 0 : (stamp - lastStamp.current) / 1000;
       lastStamp.current = stamp;
       setTime((current) => {
@@ -114,7 +127,7 @@ export function usePlayback(
     };
     frame.current = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame.current);
-  }, [active, playing, ready, speed, tickCount]);
+  }, [active, playing, ready, speed, tickCount, framesPerSecond]);
 
   const pause = useCallback(() => setPlaying(false), []);
   const play = useCallback(() => {
@@ -189,23 +202,37 @@ export interface LiveFollow {
 
 /// Follows the server's presentation clock: re-anchors on every update from the
 /// server and advances smoothly between polls, never running past received ticks.
-export function useLiveFollower(replay: ReplayModel, live?: LiveFollow): number {
+export function useLiveFollower(
+  replay: ReplayModel,
+  live?: LiveFollow,
+  framesPerSecond?: number,
+): number {
   const [time, setTime] = useState(0);
   const anchor = useRef<{ tick: number; at: number } | null>(null);
+  const lastFrameStamp = useRef<number | null>(null);
 
   useEffect(() => {
     if (!live) return;
     anchor.current = { tick: Math.max(0, live.tick), at: performance.now() };
+    lastFrameStamp.current = null;
     let frame = 0;
-    const advance = () => {
+    const advance = (stamp: number) => {
+      const presentedStamp = framesPerSecond === undefined
+        ? stamp
+        : arenaPresentedFrameStamp(stamp, lastFrameStamp.current, framesPerSecond);
+      if (presentedStamp === null) {
+        frame = requestAnimationFrame(advance);
+        return;
+      }
+      lastFrameStamp.current = presentedStamp;
       const a = anchor.current!;
-      const elapsed = (performance.now() - a.at) / 1000;
+      const elapsed = (stamp - a.at) / 1000;
       setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
       frame = requestAnimationFrame(advance);
     };
     frame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame);
-  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length]);
+  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length, framesPerSecond]);
 
   return time;
 }

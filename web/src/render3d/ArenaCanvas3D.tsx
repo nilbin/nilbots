@@ -17,6 +17,10 @@ import {
 } from '../render/arenaCamera';
 import { attachCameraGestures } from '../render/cameraGestures';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
+import {
+  arenaPresentedFrameStamp,
+  type ArenaRenderProfile,
+} from '../render/arenaRenderProfile';
 
 /**
  * The 3D arena.
@@ -42,6 +46,8 @@ export default function ArenaCanvas3D({
   autoFit = true,
   onManualCamera,
   entrants,
+  active,
+  renderProfile,
 }: {
   replay: ReplayModel;
   time: number;
@@ -63,6 +69,9 @@ export default function ArenaCanvas3D({
   /** Fired when a gesture takes the camera, so the chrome can show auto-fit as off. */
   onManualCamera?: () => void;
   entrants?: readonly ViewerEntrantPresentation[];
+  /** Whether replay time is advancing. Idle frames retain camera/selection response. */
+  active: boolean;
+  renderProfile: ArenaRenderProfile;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All of these go through refs for the same reason `time` does: they change while a
@@ -78,6 +87,7 @@ export default function ArenaCanvas3D({
     onReady,
     autoFit,
     onManualCamera,
+    active,
   });
   frameState.current = {
     time,
@@ -89,6 +99,7 @@ export default function ArenaCanvas3D({
     onReady,
     autoFit,
     onManualCamera,
+    active,
   };
 
   useEffect(() => {
@@ -99,7 +110,7 @@ export default function ArenaCanvas3D({
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        powerPreference: 'high-performance',
+        powerPreference: renderProfile.powerPreference,
       });
     } catch {
       // WebGL can be disabled, blocked, or out of contexts. The dimensional renderer is
@@ -107,9 +118,9 @@ export default function ArenaCanvas3D({
       frameState.current.onUnavailable();
       return;
     }
-    // Capped at 2: beyond that the shadow map and fill rate cost more than the sharpness
-    // is worth, and a 3× phone would otherwise render nine times the pixels of a 1×.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, renderProfile.webglMaxPixelRatio),
+    );
     renderer.shadowMap.enabled = true;
     // PCFSoftShadowMap is deprecated as of r185 and silently downgrades to this one while
     // warning on every mount; naming it is the same picture without the console noise.
@@ -121,8 +132,13 @@ export default function ArenaCanvas3D({
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
+    renderer.domElement.dataset.renderProfile = renderProfile.id;
+    renderer.domElement.dataset.activeFps = String(renderProfile.activeFramesPerSecond);
+    renderer.domElement.dataset.idleFps = String(renderProfile.idleFramesPerSecond);
+    renderer.domElement.dataset.pixelRatio = String(renderer.getPixelRatio());
+    renderer.domElement.dataset.shadowMapSize = String(renderProfile.shadowMapSize);
 
-    const arena = buildArena(replay);
+    const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
     const overlays = buildOverlays(replay, entrants);
     arena.scene.add(actors.group);
@@ -261,9 +277,21 @@ export default function ArenaCanvas3D({
 
     let animation = 0;
     let last: number | null = null;
+    let lastDrawStamp: number | null = null;
     let announced = false;
     let lastFit = frameState.current.autoFit;
     const draw = (stamp: number) => {
+      const framesPerSecond = frameState.current.active
+        ? renderProfile.activeFramesPerSecond
+        : renderProfile.idleFramesPerSecond;
+      const presentedStamp = renderProfile.id === 'full'
+        ? stamp
+        : arenaPresentedFrameStamp(stamp, lastDrawStamp, framesPerSecond);
+      if (document.hidden || presentedStamp === null) {
+        animation = requestAnimationFrame(draw);
+        return;
+      }
+      lastDrawStamp = presentedStamp;
       const {
         time: now,
         selectedUnitKey: followed,
@@ -350,7 +378,7 @@ export default function ArenaCanvas3D({
       renderer.forceContextLoss();
       container.removeChild(renderer.domElement);
     };
-  }, [replay, entrants]);
+  }, [replay, entrants, renderProfile]);
 
   return (
     <div

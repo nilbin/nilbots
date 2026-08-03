@@ -35,6 +35,14 @@ export {
 } from '../../src/presentation/playAwareness';
 export { defaultPlaybackSpeed } from '../../src/playback';
 export {
+  FULL_ARENA_RENDER_PROFILE,
+  MOBILE_ARENA_RENDER_PROFILE,
+  arenaFrameDue,
+  arenaPresentedFrameStamp,
+  arenaWeightedPixelsPerSecond,
+  selectArenaRenderProfile,
+} from '../../src/render/arenaRenderProfile';
+export {
   classFamilyForForm,
   fallbackProjectileLookIdForForm,
   fallbackLookIdForForm,

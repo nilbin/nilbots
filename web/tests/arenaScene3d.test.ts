@@ -102,7 +102,16 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
   }
   globalThis.Image = GeometryImage as unknown as typeof Image;
   try {
-    const arena = buildArena(withEmberPresentation(replay));
+    const arena = buildArena(withEmberPresentation(replay), {
+      shadowMapSize: 1024,
+    });
+    const shadowLight = arena.scene.children.find(
+      (node): node is THREE.DirectionalLight =>
+        node instanceof THREE.DirectionalLight && node.castShadow,
+    );
+    assert.ok(shadowLight);
+    assert.equal(shadowLight.shadow.mapSize.width, 1024);
+    assert.equal(shadowLight.shadow.mapSize.height, 1024);
     const bodies = wallsByKind(arena.scene, 'arena-wall-body');
     const caps = wallsByKind(arena.scene, 'arena-wall-caps');
     const profiles = wallsByKind(
