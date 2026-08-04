@@ -333,6 +333,27 @@
       ],
       "resultSummary": "Rejected. The tight sentry recovered one assignment but badly failed its mirror; the retained five-body shared line remains the robust force shape.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-zero-lock",
+      "change": "Set the authored siege-focus lock tenure to zero so every tick may immediately re-rank a newly visible enemy carrier; the byte-frozen parity control retains its declared three-tick lock.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 528 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 531 }
+      ],
+      "resultSummary": "Rejected. Immediate reprioritization improved one assignment but introduced enough target churn to lose the mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-four-tick-lock",
+      "playbookSourceSha256": "29babb2f468f271c992c0afa8b95f862e9545955dd882f94cc248c9e429d0699",
+      "change": "Reduce the authored siege-focus lock tenure from six ticks to the four-tick midpoint.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 529 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 525 }
+      ],
+      "resultSummary": "Rejected. It reproduced the same asymmetric failure as zero lock; the original six-tick tenure is retained.",
+      "verdict": "rejected"
     }
   ]
 }
