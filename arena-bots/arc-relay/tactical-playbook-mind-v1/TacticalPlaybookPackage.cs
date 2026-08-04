@@ -89,9 +89,17 @@ internal sealed class TacticalPlaybookPackage
                 "Tactical playbook schema, map, or composition is invalid.");
         }
         string side = ownReactor.X < contract.Map.Width / 2 ? "west" : "east";
+        // Exact contract bindings win; a side may also declare one
+        // "any-composition" binding so a sheet can meet opponents whose
+        // composition pair it has never seen without layout surgery.
         Binding binding = layout.Bindings.SingleOrDefault(value =>
                 string.Equals(value.MatchContractFingerprint,
                     contract.MatchContractFingerprint, StringComparison.Ordinal)
+                && string.Equals(value.OwnReactorSide, side,
+                    StringComparison.Ordinal))
+            ?? layout.Bindings.SingleOrDefault(value =>
+                string.Equals(value.MatchContractFingerprint,
+                    "any-composition", StringComparison.Ordinal)
                 && string.Equals(value.OwnReactorSide, side,
                     StringComparison.Ordinal))
             ?? throw new InvalidDataException(

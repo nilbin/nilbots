@@ -1908,7 +1908,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         string id = Identifier(value, "engagementId", at);
         References(value.GetProperty("participants"), roleIds,
             $"{at}.{id}.participants", 1, 16);
-        OneOfArray(value.GetProperty("targetPriorities"), at, 1, 16,
+        PriorityArray(value.GetProperty("targetPriorities"), at, 1, 16,
             "enemy-carrier", "lowest-health", "closest-to-anchor",
             "closest-to-reactor", "highest-threat", "fresh-respawn");
         OneOfArray(value.GetProperty("tieBreakers"), at, 1, 8,
@@ -2631,10 +2631,21 @@ public static class ArcRelayTacticalPlaybookCompiler
             Object(binding, $"{path}.bindings",
                 ["matchContractFingerprint", "ownReactorSide", "transform",
                     "routeAliases"], ["formationAliases"]);
-            string fingerprint = Hash(
+            // "any-composition" is the side-keyed wildcard: a sheet may meet
+            // opponents whose composition pair it has never seen. Exact
+            // fingerprints still take precedence at match time.
+            string fingerprint = RequiredString(
                 binding, "matchContractFingerprint", $"{path}.bindings");
-            if (!fingerprints.Add(fingerprint))
-                throw Error(path, $"duplicate layout binding '{fingerprint}'.");
+            if (!string.Equals(fingerprint, "any-composition",
+                    StringComparison.Ordinal))
+            {
+                fingerprint = Hash(
+                    binding, "matchContractFingerprint", $"{path}.bindings");
+            }
+            string sideKey = fingerprint + "|" + RequiredString(
+                binding, "ownReactorSide", $"{path}.bindings");
+            if (!fingerprints.Add(sideKey))
+                throw Error(path, $"duplicate layout binding '{sideKey}'.");
             OneOf(binding, "ownReactorSide", path, "west", "east");
             OneOf(binding, "transform", path,
                 "identity", "mirror-x", "rotate-180");
@@ -3137,6 +3148,37 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (!permitted.Contains(actual, StringComparer.Ordinal))
             throw Error(path,
                 $"'{name}' must be one of: {string.Join(", ", permitted)}.");
+    }
+
+    /// <summary>
+    /// Like OneOfArray, but additionally accepts "class:&lt;classId&gt;"
+    /// qualified terms so an engagement can prefer targets of one chassis
+    /// (the kill-the-medics verb) without a per-class vocabulary explosion.
+    /// </summary>
+    private static void PriorityArray(
+        JsonElement value,
+        string path,
+        int minimum,
+        int maximum,
+        params string[] permitted)
+    {
+        string[] values = StringArray(value, path, minimum, maximum);
+        foreach (string actual in values)
+        {
+            if (permitted.Contains(actual, StringComparer.Ordinal))
+                continue;
+            if (actual.StartsWith("class:", StringComparison.Ordinal)
+                && actual.Length > "class:".Length)
+            {
+                IdentifierValue(actual["class:".Length..], path);
+                continue;
+            }
+            throw Error(path,
+                $"invalid priority term '{actual}'; expected one of "
+                + $"[{string.Join(", ", permitted)}] or 'class:<classId>'.");
+        }
+        if (values.Distinct(StringComparer.Ordinal).Count() != values.Length)
+            throw Error(path, "duplicate priority term.");
     }
 
     private static void OneOfArray(

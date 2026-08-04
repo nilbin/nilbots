@@ -295,7 +295,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && TryCombatSignatureWithReturn(
                             contract, mind, body, signatureTarget.Target, target,
                             signatureTarget, engagement,
-                            Provenance(machine, group, order, "signature")),
+                            Provenance(machine, group, order, "signature"))
+                        || engagement.SignatureCoordination == "support-first"
+                        && !focus.ContainsKey(body.UnitId)
+                        && TrySupportIdleSignature(
+                            contract, mind, body,
+                            Provenance(machine, group, order,
+                                "signature-idle")),
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
@@ -2055,6 +2061,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             bool matches = priorities[index] switch
             {
+                // "class:<classId>" prefers targets of one chassis — the
+                // kill-the-medics verb and its siblings, expressible in data.
+                var term when term.StartsWith("class:", StringComparison.Ordinal)
+                    => string.Equals(enemy.ClassId,
+                        term["class:".Length..], StringComparison.Ordinal),
                 "enemy-carrier" => carriers.Contains(enemy.ActorId),
                 "lowest-health" => true,
                 "closest-to-anchor" => enemy.Position.ChebyshevDistance(
@@ -2450,6 +2461,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         ArenaBasics.Claims claims)
     {
+        // A Relay carrier with a teammate meaningfully closer to the bank
+        // throws instead of walking: the pass is the designed answer to a
+        // contested return, and the catcher inherits ordinary custody.
+        if (TryTossToForwardCatcher(contract, mind, body))
+            return true;
         Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
             contract, mind, body, _ownReactor);
         if (step is Position committed
@@ -2464,6 +2480,72 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 "custody:delivery"))
             return true;
         return false;
+    }
+
+    /// <summary>
+    /// Throws the carried Core to a live teammate standing on a legal toss
+    /// landing at least three tiles closer to the own reactor. Purely an
+    /// executor competence: legality (range, walls, carrier state) is
+    /// enforced by the action mask, and a teammate on the landing tile
+    /// catches by rule, so a failed prediction degrades to a loose Core
+    /// exactly as the rules intend.
+    /// </summary>
+    private bool TryTossToForwardCatcher(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body)
+    {
+        int carrierDistance = body.Position.ChebyshevDistance(_ownReactor);
+        MindBody? catcher = mind.Bodies
+            .Where(candidate => candidate.UnitId != body.UnitId
+                && candidate.Position.ChebyshevDistance(_ownReactor)
+                    <= carrierDistance - 3
+                && candidate.Position.ChebyshevDistance(body.Position) <= 5)
+            .OrderBy(candidate => candidate.Position.ChebyshevDistance(
+                _ownReactor))
+            .ThenBy(candidate => candidate.UnitId)
+            .FirstOrDefault();
+        return catcher is not null
+            && ArenaBasics.TryPositionSignature(
+                contract, body, "arc-toss", catcher.Position,
+                "custody:forward-pass");
+    }
+
+    /// <summary>
+    /// Support casting for a body holding formation with no combat focus:
+    /// a wall projector angles toward the nearest known threat, and a
+    /// flare-bearer illuminates the stalest remembered enemy nearby.
+    /// Everything remains causal team knowledge; legality masks decide
+    /// whether the cast actually happens.
+    /// </summary>
+    private bool TrySupportIdleSignature(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        string reason)
+    {
+        Position? nearestThreat = mind.Enemies
+            .Select(enemy => (Position?)enemy.Position)
+            .Concat(_lastSeenEnemies.Values
+                .Select(seen => (Position?)seen.Position))
+            .Where(position => position is Position candidate
+                && body.Position.ChebyshevDistance(candidate) <= 6)
+            .OrderBy(position => body.Position.ChebyshevDistance(
+                position!.Value))
+            .FirstOrDefault();
+        if (nearestThreat is Position threat
+            && ArenaBasics.TryDirectionSignature(
+                contract, body, "prism-wall", threat, reason))
+            return true;
+        LastSeenEnemy? stalest = _lastSeenEnemies.Values
+            .Where(seen => seen.LastConfirmedTick < mind.Tick - 4
+                && body.Position.ChebyshevDistance(seen.Position) <= 8)
+            .OrderBy(seen => seen.LastConfirmedTick)
+            .ThenBy(seen => seen.ActorId.UnitId)
+            .FirstOrDefault();
+        return stalest is not null
+            && ArenaBasics.TryPositionSignature(
+                contract, body, "survey-flare", stalest.Position, reason);
     }
 
     private bool TrySelfPreservation(
@@ -3111,29 +3193,72 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorContext.ObservedEnemyState target,
         Position assignment,
         TacticalPlaybookPackage.Engagement policy,
-        string reason)
+        string reason) => policy.SignatureCoordination != "none"
+        && (TrySignatureCategory(
+                contract, body, target, assignment, "damage", reason)
+            || TrySignatureCategory(
+                contract, body, target, assignment, "control", reason)
+            || TrySignatureCategory(
+                contract, body, target, assignment, "support", reason));
+
+    /// <summary>
+    /// One deterministic attempt per signature category. Categories follow
+    /// each signature's designed role, not its owner's current job: damage
+    /// resolves hits, control shapes space and actions, support protects and
+    /// reveals. The engagement's signatureCoordination decides which category
+    /// is tried before the basic gun; every category remains reachable so no
+    /// class's kit is dead under any policy.
+    /// </summary>
+    private static bool TrySignatureCategory(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        Position assignment,
+        string category,
+        string reason) => category switch
     {
-        if (policy.SignatureCoordination == "none")
-            return false;
-        return ArenaBasics.TryUnitSignature(contract, body, "target-paint",
-            target.ActorId, reason)
-        || ArenaBasics.TryHeadingSignature(contract, body, "tractor-hook",
-            target.Position, reason)
-        || ArenaBasics.TryHeadingSignature(contract, body, "rail-line",
-            target.Position, reason)
-        || ArenaBasics.TryPositionSignature(contract, body, "falling-star",
-            target.Position, reason)
-        || (body.Position.ChebyshevDistance(target.Position) <= 1
-            && ArenaBasics.TryParameterlessSignature(
-                contract, body, "kinetic-burst", reason))
-        || (body.Position.ChebyshevDistance(target.Position) <= 3
-            && ArenaBasics.TryParameterlessSignature(
-                contract, body, "null-field", reason))
-        || ArenaBasics.TryDirectionSignature(contract, body, "prism-wall",
-            target.Position, reason)
-        || ArenaBasics.TryPositionSignature(
-            contract, body, "hardlight-block", assignment, reason);
-    }
+        "damage" =>
+            ArenaBasics.TryHeadingSignature(contract, body, "rail-line",
+                target.Position, reason)
+            || ArenaBasics.TryPositionSignature(contract, body,
+                "falling-star", target.Position, reason)
+            || (body.Position.ChebyshevDistance(target.Position) <= 1
+                && ArenaBasics.TryParameterlessSignature(
+                    contract, body, "kinetic-burst", reason)),
+        "control" =>
+            ArenaBasics.TryUnitSignature(contract, body, "target-paint",
+                target.ActorId, reason)
+            || ArenaBasics.TryHeadingSignature(contract, body,
+                "tractor-hook", target.Position, reason)
+            || (body.Position.ChebyshevDistance(target.Position) <= 3
+                && ArenaBasics.TryParameterlessSignature(
+                    contract, body, "null-field", reason))
+            || ArenaBasics.TryPositionSignature(
+                contract, body, "hardlight-block", assignment, reason),
+        "support" =>
+            ArenaBasics.TryDirectionSignature(contract, body, "prism-wall",
+                target.Position, reason)
+            || ArenaBasics.TryPositionSignature(contract, body,
+                "survey-flare", target.Position, reason),
+        _ => false,
+    };
+
+    private static bool TryLeadSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        Position assignment,
+        TacticalPlaybookPackage.Engagement policy,
+        string reason) => policy.SignatureCoordination switch
+    {
+        // The lead category fires BEFORE the basic gun, so a wall goes up
+        // or a hook lands even when a shot is available.
+        "control-first" => TrySignatureCategory(
+            contract, body, target, assignment, "control", reason),
+        "support-first" => TrySignatureCategory(
+            contract, body, target, assignment, "support", reason),
+        _ => false,
+    };
 
     private bool TryFocusChannelWithReturn(
         GenericActorResolvedMatchContract contract,
@@ -3151,10 +3276,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         bool mayFireNow = ArenaBasics.CanFireAtPosition(
             contract, body, focus.AimPosition);
         bool acted = (mayPrepareAim || mayFireNow)
+            && TryLeadSignature(
+                contract, body, focus.Target, assignment, policy,
+                signatureReason)
+            || (mayPrepareAim || mayFireNow)
             && ArenaBasics.TryShootAtPosition(
                 contract, mind, body, focus.AimPosition,
                 $"focus {focus.Target.ActorId}")
-            || policy.SignatureCoordination == "damage-first"
+            || policy.SignatureCoordination != "none"
             && (mayPrepareAim || mayFireNow)
             && TryCombatSignature(
                 contract, mind, body, focus.Target, assignment, policy,
