@@ -49,7 +49,7 @@
     },
     "parityArtifact": {
       "path": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
-      "sha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368"
+      "sha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f"
     },
     "paritySheet": {
       "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
@@ -86,6 +86,21 @@
       "sha256": "bb11ee48fdea153f503451c2749e503ba8858febbcaaa8106535d8608afe2e46"
     }
   },
+  "preOutcomeCorrections": [
+    {
+      "failedAttempt": "attempt-01",
+      "outcomeExposure": "none: four launched cells ended at tick 0 with fault-eligibility and produced no eligible result",
+      "cause": "the tracked stock-mind-v4 WASM predated the coordination-parity source/schema commit and exited while loading that sheet",
+      "correction": "rebuilt the unchanged stock-mind-v4 control source with SDK 0.10.12 and replaced only its frozen artifact hash",
+      "oldArtifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "newArtifactSha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f",
+      "candidateChanged": false,
+      "seedsChanged": false,
+      "barsChanged": false,
+      "thresholdsChanged": false,
+      "requiredRelaunch": "all 24 cells in a new immutable attempt"
+    }
+  ],
   "seedDerivation": {
     "basis": "arc-relay-home-siege-v2-final-canonical-v1|48fe3271|1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb|5+1+1+1",
     "algorithm": "100000 + (uint32-be(first four bytes of SHA-256(basis + '|' + zero-based-index)) mod 900000)",

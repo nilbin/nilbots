@@ -4,7 +4,7 @@
   "cohortId": "home-siege-v2-5-1-1-1-final-2026-08-04",
   "preparedBeforeOutcomes": true,
   "candidateFreeze": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/candidate-freeze.json",
-  "candidateFreezeSha256": "725180a86f9caad61d3117229bfe9c60b67321e3958d2ee460a9f2d40b623a83",
+  "candidateFreezeSha256": "34b6398ba4781cf144d2aa990fc156612b2cadbe10b9ae727e7b046f383be36b",
   "runtime": "wasm",
   "loopProfile": "forward-combat",
   "engineVersion": "1.0.5",
@@ -23,7 +23,7 @@
     },
     "coordination-parity-baseline": {
       "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
-      "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "artifactSha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f",
       "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
       "sheetSha256": "56aa2cb0261b4aeff3a8d0e0b0af1e5a5153c5f7a551f6d9bc1607a6cf470cc1"
     }
