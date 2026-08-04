@@ -1,6 +1,6 @@
 {
   "schema": "arc-relay-tactical-playbook-v1",
-  "playbookId": "siege-recognizer-v1",
+  "playbookId": "breakwater-v1",
   "auditStatus": {
     "provisionalEvaluationOnly": true,
     "playerFacingProductSchema": false
@@ -16,8 +16,8 @@
     "towline"
   ],
   "layout": {
-    "path": "../layouts/counterflow-siege-recognizer-v1.json",
-    "sha256": "36d009f2240362dc973794f4b5cfa78c7750c03454b77b10924021ac4cfa169a"
+    "path": "../layouts/counterflow-breakwater-v1.json",
+    "sha256": "1a89029173b5febdeaa1858b7858e9f05c3f7faca50ed864ae22fb82dacfb206"
   },
   "perspective": "team-relative",
   "memory": {
@@ -607,7 +607,7 @@
       "lockPreemption": "urgent-carrier",
       "maximumAttackersPerTarget": 1,
       "overkillDamage": 0,
-      "chaseLeash": 4,
+      "chaseLeash": 3,
       "aimPreparation": "current-cone-only",
       "signatureCoordination": "damage-first",
       "dodgeCoverage": {
