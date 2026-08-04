@@ -1,0 +1,132 @@
+{
+  "schema": "arc-relay-tactical-candidate-freeze-v1",
+  "candidateId": "home-siege-v3-9-2-2026-08-04",
+  "preparedBeforeFinalOutcomes": true,
+  "implementationCommit": "4b07e0a0013a114ec95ba36d7cc9a9a3e32b72a2",
+  "runtime": "wasm",
+  "loopProfile": "forward-combat",
+  "reference": {
+    "freeze": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/home-siege-v2-reference-freeze.json",
+    "status": "immutable"
+  },
+  "candidateFormula": {
+    "primaryLivingBlockade": 5,
+    "rememberedCarrierInterceptor": 1,
+    "courier": 1,
+    "escort": 1,
+    "totalBodies": 8,
+    "schedulerConstraint": "minimumPrimaryBodies: 5"
+  },
+  "developmentScreenExposure": {
+    "runtime": "trusted in-process",
+    "cells": 24,
+    "result": "12 mirrored 9-1 wins and 12 mirrored 9-2 wins",
+    "purpose": "candidate selection only; none of the fresh final seeds below was screened"
+  },
+  "contract": {
+    "engineVersion": "1.0.5",
+    "rulesetId": "arc-relay-forward-combat-01",
+    "rulesFingerprint": "0acab8947506cf6224ac00029d8c3d62e9ec61cbda224e2a955db45b711b90a9",
+    "mapId": "arc-relay-threefold-depth-counterflow-01",
+    "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+    "team0TopologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+    "team0MatchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+    "team1TopologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+    "team1MatchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+  },
+  "assets": {
+    "candidateArtifact": {
+      "path": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "sha256": "f25ac91f616cb95194a60528b0f9665eb52f34188c8c16a778e7be6c53d2c300"
+    },
+    "candidatePlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json",
+      "sha256": "ca156a99501ac420e48b84bb8e93a1a8041a6915067df126daf8854599da4b5b"
+    },
+    "candidateLayout": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3.json",
+      "sha256": "89c92e7091b6c66a31bf56c09d624746c2c06aa760ca6c96c0ebe469836fb3e7"
+    },
+    "compiledPlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v3/playbook.atp",
+      "sha256": "3de7e108f85e11a6b1b6728319d91da943c1f04cc77fe1d4e65d496ce5bae4da"
+    },
+    "parityArtifact": {
+      "path": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "sha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f"
+    },
+    "paritySheet": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
+      "sha256": "56aa2cb0261b4aeff3a8d0e0b0af1e5a5153c5f7a551f6d9bc1607a6cf470cc1"
+    },
+    "eligibilityBars": {
+      "path": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+      "sha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef"
+    }
+  },
+  "runner": {
+    "cli": {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll",
+      "sha256": "9660ed6a0d90bb77e586414a6453b960c52d1d6588d5145de24d57986daf6e6a"
+    },
+    "sweep": {
+      "path": "scripts/arc-relay-sweep.py",
+      "sha256": "61fd8f474da691acff8d1928220809ad697df1b26d522cd6a566b132c4e9be2d"
+    },
+    "match": {
+      "path": "scripts/arc-relay-match.py",
+      "sha256": "655679e8f171cc28e4e943f6e64b81a12b7459d6f8bb9c4b3338803fa8d058d0"
+    },
+    "broadcast": {
+      "path": "scripts/arc-relay-broadcast.py",
+      "sha256": "7f9fdf695f71f7a5427281480694ed6bc44286664bb1235cde932080162d880b"
+    },
+    "scorecard": {
+      "path": "scripts/arc-relay-scorecard.py",
+      "sha256": "bb11ee48fdea153f503451c2749e503ba8858febbcaaa8106535d8608afe2e46"
+    }
+  },
+  "seedDerivation": {
+    "basis": "arc-relay-home-siege-v3-final-canonical-v1|4b07e0a0|ca156a99501ac420e48b84bb8e93a1a8041a6915067df126daf8854599da4b5b|5+1+1+1",
+    "algorithm": "100000 + (uint32-be(first four bytes of SHA-256(basis + '|' + zero-based-index)) mod 900000)",
+    "seeds": [
+      "506581",
+      "997493",
+      "386091",
+      "338894",
+      "929019",
+      "337690",
+      "748208",
+      "881080",
+      "802740",
+      "843065",
+      "196545",
+      "894211"
+    ]
+  },
+  "hardGate": {
+    "cells": 24,
+    "validCanonicalWasmCells": 24,
+    "requiredWinner": "home-siege-v3",
+    "requiredReason": "reactor-destroyed",
+    "maximumBaselineScoreEveryCell": 2,
+    "minimumSiegeIntegrityEveryCell": 2,
+    "unchangedBarsGreenForBothTeams": true,
+    "runtimeFaults": 0,
+    "detectorsMayBeAdjusted": false,
+    "requiredLifecycleProofs": [
+      "five-plus-one-plus-one-plus-one",
+      "stable-enemy-home-occupation",
+      "emergency-core-sanitation",
+      "lease-release-or-retask",
+      "replacement-catch-up",
+      "bounded-return-lane-cutoff",
+      "formation",
+      "focus",
+      "repair",
+      "casualty-replacement",
+      "regroup-and-rebreach",
+      "recovery"
+    ]
+  }
+}
