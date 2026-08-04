@@ -71,6 +71,17 @@ replacement. A role must belong to exactly one group, and its death policy must
 agree with that group's casualty policy; the compiler rejects ambiguous or
 contradictory ownership.
 
+Group cardinality is executable too. Role minima are filled before preferences;
+the group preferred count bounds normal growth, and its maximum caps stable
+retention, pre-emption, and overflow. If the preferred group band is wider than
+the sum of role preferences, unassigned eligible bodies fill it by lowest live
+role count, candidate rank, health, and unit ID. The compiler rejects group
+counts that cannot satisfy owned role minima/preferences or exceed their total
+capacity, and the combined group maxima must be able to own all eight bodies.
+The group minimum remains the tactical viability threshold used by cohort
+re-establishment and understrength fallback; casualties may legitimately put a
+live group below it.
+
 ### Formations
 
 A formation has a shape and orientation, named role placements, and Chebyshev

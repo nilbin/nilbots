@@ -646,6 +646,17 @@
       ],
       "resultSummary": "Retain the generic authored return semantic but reject the current Siege strategy. Both mirrors losing shows the old candidate depended materially on repeated off-plan defensive fire and must be rewritten rather than silently preserving that loophole.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-group-cardinality-bands",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Execute group preferred and maximum cardinalities across stable retention, role-minimum/preferred filling, pre-emption, and overflow; reject contradictory role/group capacity at compile time.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 357 }
+      ],
+      "resultSummary": "Retain the generic group-cardinality semantics. Home Siege already authored exact role/group bands, so the mirrors were intentionally unchanged and the current strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

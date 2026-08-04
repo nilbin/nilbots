@@ -55,7 +55,8 @@ public sealed class TacticalMembershipPrimitivesTests
         };
 
         Dictionary<int, string> assigned = TacticalMembershipPrimitives
-            .Allocate(candidates, rules, prior, phaseBoundary: false);
+            .Allocate(candidates, rules, Groups(rules), prior,
+                phaseBoundary: false);
 
         Assert.Equal("line", assigned[0]);
         Assert.Equal("runner", assigned[1]);
@@ -78,11 +79,42 @@ public sealed class TacticalMembershipPrimitivesTests
         ];
 
         Dictionary<int, string> assigned = TacticalMembershipPrimitives
-            .Allocate(candidates, rules, new Dictionary<int, string>(),
-                phaseBoundary: false);
+            .Allocate(candidates, rules, Groups(rules),
+                new Dictionary<int, string>(), phaseBoundary: false);
 
         Assert.Equal("line", assigned[0]);
         Assert.Equal("runner", assigned[1]);
+    }
+
+    [Fact]
+    public void GroupMaximumPreventsOneFlexibleRoleFromOwningEveryBody()
+    {
+        TacticalMembershipPrimitives.Candidate[] candidates =
+        [
+            new(0, "relay", 5, Respawned: false),
+            new(1, "relay", 4, Respawned: false),
+        ];
+        TacticalMembershipPrimitives.RoleRule[] rules =
+        [
+            new("vanguard", "assault", ["relay"], 0, 2, 2,
+                "rebalance", "resume", "screen", "best-fit",
+                "higher-priority", "lowest-count"),
+            new("screen", "screening", ["relay"], 0, 1, 1,
+                "rebalance", "resume", "", "best-fit",
+                "higher-priority", "lowest-count"),
+        ];
+        TacticalMembershipPrimitives.GroupRule[] groups =
+        [
+            new("assault", 0, 1, 1),
+            new("screening", 0, 1, 1),
+        ];
+
+        Dictionary<int, string> assigned = TacticalMembershipPrimitives
+            .Allocate(candidates, rules, groups,
+                new Dictionary<int, string>(), phaseBoundary: false);
+
+        Assert.Single(assigned, value => value.Value == "vanguard");
+        Assert.Single(assigned, value => value.Value == "screen");
     }
 
     [Theory]
@@ -116,7 +148,7 @@ public sealed class TacticalMembershipPrimitivesTests
             [1] = "line",
         };
         return TacticalMembershipPrimitives.Allocate(
-            candidates, rules, prior, phaseBoundary);
+            candidates, rules, Groups(rules), prior, phaseBoundary);
     }
 
     private static TacticalMembershipPrimitives.RoleRule Rule(
@@ -129,6 +161,7 @@ public sealed class TacticalMembershipPrimitivesTests
         string preemption,
         string groupOverflow) => new(
             id,
+            $"{id}-group",
             ["relay"],
             Minimum: preferred,
             Preferred: preferred,
@@ -139,4 +172,13 @@ public sealed class TacticalMembershipPrimitivesTests
             Persistence: persistence,
             Preemption: preemption,
             GroupOverflow: groupOverflow);
+
+    private static TacticalMembershipPrimitives.GroupRule[] Groups(
+        IEnumerable<TacticalMembershipPrimitives.RoleRule> rules) => rules
+        .Select(rule => new TacticalMembershipPrimitives.GroupRule(
+            rule.GroupId,
+            Minimum: 0,
+            Preferred: 1,
+            Maximum: 1))
+        .ToArray();
 }

@@ -179,6 +179,14 @@ public static class ArcRelayTacticalPlaybookCompiler
             role => role.GetProperty("roleId").GetString()!,
             role => role.GetProperty("maximum").GetInt32(),
             StringComparer.Ordinal);
+        Dictionary<string, int> roleMinimums = roles.ToDictionary(
+            role => role.GetProperty("roleId").GetString()!,
+            role => role.GetProperty("minimum").GetInt32(),
+            StringComparer.Ordinal);
+        Dictionary<string, int> rolePreferred = roles.ToDictionary(
+            role => role.GetProperty("roleId").GetString()!,
+            role => role.GetProperty("preferred").GetInt32(),
+            StringComparer.Ordinal);
         foreach (JsonElement role in roles)
             ValidateRole(role, roleIds, path);
 
@@ -230,6 +238,32 @@ public static class ArcRelayTacticalPlaybookCompiler
                     $"role '{roleId}' deathPolicy '{roleCasualty}' conflicts "
                     + $"with group casualty '{groupCasualty}'.");
             }
+        }
+        if (groups.Sum(group => group.GetProperty("maximum").GetInt32()) < 8)
+            throw Error(path,
+                "group maximum cardinalities cannot own all eight bodies.");
+        foreach (JsonElement group in groups)
+        {
+            string groupId = group.GetProperty("groupId").GetString()!;
+            string[] ownedRoles = group.GetProperty("roleIds")
+                .EnumerateArray().Select(value => value.GetString()!).ToArray();
+            int minimumRoles = ownedRoles.Sum(role => roleMinimums[role]);
+            int preferredRoles = ownedRoles.Sum(role => rolePreferred[role]);
+            int maximumRoles = ownedRoles.Sum(role => roleMaximums[role]);
+            int groupPreferred = group.GetProperty("preferred").GetInt32();
+            int groupMaximum = group.GetProperty("maximum").GetInt32();
+            if (minimumRoles > groupPreferred)
+                throw Error(path,
+                    $"group '{groupId}' preferred cardinality cannot satisfy "
+                    + "its roles' minimum cardinalities.");
+            if (preferredRoles > groupMaximum)
+                throw Error(path,
+                    $"group '{groupId}' maximum cardinality cannot satisfy "
+                    + "its roles' preferred cardinalities.");
+            if (groupPreferred > maximumRoles || groupMaximum > maximumRoles)
+                throw Error(path,
+                    $"group '{groupId}' cardinality exceeds the capacity of "
+                    + "its owned roles.");
         }
 
         JsonElement[] formations = BoundedArray(

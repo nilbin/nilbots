@@ -465,6 +465,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         role.RoleId, StringComparer.Ordinal));
                 return new TacticalMembershipPrimitives.RoleRule(
                     role.RoleId,
+                    group.GroupId,
                     role.CandidateClasses,
                     role.Minimum,
                     role.Preferred,
@@ -477,8 +478,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     group.Membership.Overflow);
             })
             .ToArray();
+        TacticalMembershipPrimitives.GroupRule[] groupRules = playbook.Groups
+            .Select(group => new TacticalMembershipPrimitives.GroupRule(
+                group.GroupId,
+                group.Minimum,
+                group.Preferred,
+                group.Maximum))
+            .ToArray();
         Dictionary<int, string> result = TacticalMembershipPrimitives.Allocate(
-            candidates, rules, _stableRoles, phaseBoundary);
+            candidates, rules, groupRules, _stableRoles, phaseBoundary);
         foreach ((int unitId, string role) in result)
             _stableRoles[unitId] = role;
         return result;

@@ -433,6 +433,56 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void GroupPreferredMustCoverOwnedRoleMinima()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject medics = source["groups"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["groupId"]!.GetValue<string>()
+                == "medic-group");
+        medics["preferred"] = 1;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "preferred cardinality cannot satisfy its roles' minimum",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void GroupMaximumCannotExceedOwnedRoleCapacity()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject runner = source["groups"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["groupId"]!.GetValue<string>()
+                == "runner-group");
+        runner["maximum"] = 2;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "cardinality exceeds the capacity of its owned roles",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void FormationMustProvideDistinctSlotsForRoleCapacity()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
