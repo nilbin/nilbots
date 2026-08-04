@@ -311,6 +311,28 @@
       ],
       "resultSummary": "Rejected for Home Siege after the mirrored assignment lost. A moving denial screen needs a dedicated subgroup; whole-line pursuit is the wrong authoring granularity even under a tight leash.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "dedicated-kestrel-interceptor-radius-six",
+      "playbookSourceSha256": "6b1120d73105c2c47474d056cc96bef5131348b0020c77ca707fe19929a06153",
+      "change": "Split the Kestrel into a stable one-body interceptor role/group, retain four line bodies and two medics on the ring, and pursue observed enemy carriers within six tiles of the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 533 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 530 }
+      ],
+      "resultSummary": "Rejected. Dedicated membership avoided the catastrophic whole-line chase but still lost both assignments; one attacker leaving the concentrated ring cost more than its pursuit denied.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "dedicated-kestrel-interceptor-radius-two",
+      "playbookSourceSha256": "3e5f77e287c5a3e239d31619a9ae63df3673abb2fac4135c022c2b340199a37f",
+      "change": "Keep the dedicated Kestrel interceptor but reduce its pursuit radius from six to two tiles around the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 588 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 377 }
+      ],
+      "resultSummary": "Rejected. The tight sentry recovered one assignment but badly failed its mirror; the retained five-body shared line remains the robust force shape.",
+      "verdict": "rejected"
     }
   ]
 }
