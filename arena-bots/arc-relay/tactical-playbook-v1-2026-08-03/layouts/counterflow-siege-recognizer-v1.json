@@ -16,6 +16,20 @@
       "transform": "rotate-180",
       "routeAliases": {},
       "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "aefd067d7226d1470affb9803887d3898ed59a313551e6a7828ccfce2e7d7f20",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "e457f1e99bf12f6694e13dcb825c8f7c373a093c782e057a53b4c7ba3a8dacac",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {},
+      "formationAliases": {}
     }
   ],
   "zones": [

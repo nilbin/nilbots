@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-siege-recognizer-v1.json",
-    "sha256": "95022aa9d144bd865898c3acffc18d7bfe6b1730aad2aba9a73e5fa9b97f51f4"
+    "sha256": "aa59a27b49ab65f13c2b0adf6735e0b1763c4635077e2108db2e6e79b15fac31"
   },
   "perspective": "team-relative",
   "memory": {
@@ -495,7 +495,7 @@
   ],
   "engagements": [
     {
-      "engagementId": "farm-watch",
+      "engagementId": "run-fight",
       "participants": [
         "runner",
         "eyes"
@@ -514,9 +514,56 @@
       "coordinationScope": "shared-policy",
       "lockTicks": 4,
       "lockPreemption": "urgent-carrier",
-      "maximumAttackersPerTarget": 1,
+      "maximumAttackersPerTarget": 2,
       "overkillDamage": 0,
-      "chaseLeash": 0,
+      "chaseLeash": 2,
+      "aimPreparation": "current-cone-only",
+      "signatureCoordination": "damage-first",
+      "dodgeCoverage": {
+        "mode": "escape-lanes",
+        "horizonTicks": 4,
+        "minimumDirectShots": 2,
+        "minimumCoveredOptions": 5,
+        "fallback": "best-coverage"
+      },
+      "release": {
+        "hiddenTicks": 1,
+        "unreachableTicks": 3,
+        "outsideLeash": true,
+        "destroyed": true
+      },
+      "selfDefense": {
+        "enabled": true,
+        "threatDistance": 3,
+        "returnToFormation": true
+      }
+    },
+    {
+      "engagementId": "front-fight",
+      "participants": [
+        "anchor",
+        "medic",
+        "hook",
+        "runner",
+        "eyes"
+      ],
+      "targetPriorities": [
+        "enemy-carrier",
+        "closest-to-anchor",
+        "lowest-health"
+      ],
+      "tieBreakers": [
+        "distance",
+        "health",
+        "unit-id",
+        "life-id"
+      ],
+      "coordinationScope": "shared-policy",
+      "lockTicks": 4,
+      "lockPreemption": "urgent-carrier",
+      "maximumAttackersPerTarget": 2,
+      "overkillDamage": 0,
+      "chaseLeash": 2,
       "aimPreparation": "current-cone-only",
       "signatureCoordination": "damage-first",
       "dodgeCoverage": {
@@ -709,7 +756,7 @@
     },
     "standingOrders": {},
     "maneuvers": {
-      "balanced-play": {
+      "contest-line": {
         "tracks": {
           "main": {
             "formationId": "farm-column",
@@ -720,29 +767,29 @@
               "pace": "free"
             },
             "assignments": {
-              "farm-all": {
+              "front-home": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
-                "chaseLeash": 0,
-                "engagementId": "farm-watch",
-                "custodyId": "farm-north",
-                "fallbackId": "continue-and-hold-invalid",
-                "assignmentProfileId": "farm-standard"
-              },
-              "home-watch": {
-                "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
-                "chaseLeash": 1,
-                "engagementId": "choke-hold",
+                "chaseLeash": 2,
+                "engagementId": "front-fight",
                 "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "home-standard"
+              },
+              "front-runners": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
+                "custodyId": "farm-north",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
               }
             }
           }
         }
       },
-      "bunker-farm": {
+      "hold-line": {
         "tracks": {
           "main": {
             "formationId": "choke-wedge",
@@ -753,7 +800,7 @@
               "pace": "slowest"
             },
             "assignments": {
-              "hold-home": {
+              "line-hold": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
                 "chaseLeash": 1,
@@ -762,11 +809,59 @@
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "home-standard"
               },
-              "farm-out": {
+              "line-runners": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
-                "chaseLeash": 0,
-                "engagementId": "farm-watch",
+                "chaseLeash": 1,
+                "engagementId": "choke-hold",
+                "custodyId": "incidental-delivery",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
+              }
+            }
+          }
+        }
+      },
+      "farm-north-run": {
+        "tracks": {
+          "main": {
+            "formationId": "run-escort",
+            "movement": {
+              "kind": "route",
+              "target": "north-out",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "north-runner": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
+                "custodyId": "farm-north",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
+              }
+            }
+          }
+        }
+      },
+      "farm-south-run": {
+        "tracks": {
+          "main": {
+            "formationId": "run-escort",
+            "movement": {
+              "kind": "route",
+              "target": "south-out",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "south-runner": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
                 "custodyId": "farm-south",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "farm-standard"
@@ -805,17 +900,115 @@
         [
           "always"
         ]
+      ],
+      "task-never-done": [
+        [
+          "no-live-friendlies"
+        ]
       ]
     }
   },
   "coordination": {
     "initialPhase": "balanced",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "farm-north-task",
+        "priority": 10,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 8,
+        "timeoutTicks": 600,
+        "cooldownTicks": 2,
+        "minimumPrimaryBodies": 3,
+        "eligiblePhases": [
+          "balanced",
+          "fortify"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "north-runner",
+            "orderId": "north-runner",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "kestrel",
+              "relay"
+            ],
+            "minimum": 1,
+            "preferred": 2,
+            "maximum": 2,
+            "carrier": "allow",
+            "distance": {
+              "kind": "anchor",
+              "target": "home-gate"
+            }
+          }
+        ],
+        "whenConditionSetId": "convert-freely",
+        "completeConditionSetId": "task-never-done",
+        "failConditionSetId": "task-never-done",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
+        "taskId": "farm-south-task",
+        "priority": 11,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 8,
+        "timeoutTicks": 600,
+        "cooldownTicks": 2,
+        "minimumPrimaryBodies": 3,
+        "eligiblePhases": [
+          "balanced",
+          "fortify"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "south-runner",
+            "orderId": "south-runner",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "kestrel",
+              "relay"
+            ],
+            "minimum": 1,
+            "preferred": 2,
+            "maximum": 2,
+            "carrier": "allow",
+            "distance": {
+              "kind": "anchor",
+              "target": "home-gate"
+            }
+          }
+        ],
+        "whenConditionSetId": "convert-freely",
+        "completeConditionSetId": "task-never-done",
+        "failConditionSetId": "task-never-done",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      }
+    ],
     "phases": [
       {
         "phaseId": "balanced",
         "minimumTicks": 12,
-        "maneuverId": "balanced-play",
+        "maneuverId": "contest-line",
         "standingOrderIds": [],
         "transitions": [
           {
@@ -831,7 +1024,7 @@
       {
         "phaseId": "fortify",
         "minimumTicks": 20,
-        "maneuverId": "bunker-farm",
+        "maneuverId": "hold-line",
         "standingOrderIds": [],
         "transitions": [
           {
