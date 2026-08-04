@@ -1,0 +1,143 @@
+{
+  "schema": "arc-relay-tactical-library-v1",
+  "libraryId": "standard-v1",
+  "parameters": {},
+  "fallbackPolicies": {
+    "continue-and-hold-invalid": {
+      "onNoPath": "reflow",
+      "onUnderstrength": "continue",
+      "onInvalidTarget": "hold",
+      "phaseId": ""
+    },
+    "continue-with-alternate": {
+      "onNoPath": "reflow",
+      "onUnderstrength": "continue",
+      "onInvalidTarget": "alternate",
+      "phaseId": ""
+    },
+    "regroup-on-failure": {
+      "onNoPath": "reflow",
+      "onUnderstrength": "regroup",
+      "onInvalidTarget": "hold",
+      "phaseId": "regroup"
+    },
+    "regroup-or-alternate": {
+      "onNoPath": "reflow",
+      "onUnderstrength": "regroup",
+      "onInvalidTarget": "alternate",
+      "phaseId": "regroup"
+    },
+    "regroup-understrength": {
+      "onNoPath": "reflow",
+      "onUnderstrength": "fallback-phase",
+      "onInvalidTarget": "alternate",
+      "phaseId": "regroup"
+    }
+  },
+  "assignmentProfiles": {},
+  "standingOrders": {},
+  "maneuvers": {},
+  "predicates": {
+    "always": {
+      "fact": "always",
+      "operator": "equals",
+      "value": 1
+    },
+    "core-outstanding": {
+      "fact": "outstanding-well-count",
+      "operator": "at-least",
+      "value": 1
+    },
+    "five-live": {
+      "fact": "live-friendlies",
+      "operator": "at-least",
+      "value": 5
+    },
+    "four-live-or-fewer": {
+      "fact": "live-friendlies",
+      "operator": "at-most",
+      "value": 4
+    },
+    "no-friendly-carrier": {
+      "fact": "friendly-carriers",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-known-enemy-carrier": {
+      "fact": "known-enemy-carriers",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-live-friendlies": {
+      "fact": "live-friendlies",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-loose-core": {
+      "fact": "visible-loose-cores",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-progress-for-60": {
+      "fact": "ticks-without-objective-progress",
+      "operator": "at-least",
+      "value": 60
+    },
+    "no-secured-core": {
+      "fact": "secured-cores",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-visible-enemy-carrier": {
+      "fact": "visible-enemy-carriers",
+      "operator": "equals",
+      "value": 0
+    },
+    "one-friendly-carrier": {
+      "fact": "friendly-carriers",
+      "operator": "at-least",
+      "value": 1
+    },
+    "reactor-critical": {
+      "fact": "reactor-integrity",
+      "operator": "at-most",
+      "value": 1
+    },
+    "recent-objective-progress": {
+      "fact": "ticks-without-objective-progress",
+      "operator": "at-most",
+      "value": 2
+    },
+    "secured-core": {
+      "fact": "secured-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "six-live": {
+      "fact": "live-friendlies",
+      "operator": "at-least",
+      "value": 6
+    },
+    "three-friendly-carriers": {
+      "fact": "friendly-carriers",
+      "operator": "at-least",
+      "value": 3
+    },
+    "three-wells-outstanding": {
+      "fact": "outstanding-well-count",
+      "operator": "at-least",
+      "value": 3
+    },
+    "two-loose-cores": {
+      "fact": "visible-loose-cores",
+      "operator": "at-least",
+      "value": 2
+    },
+    "visible-enemy-carrier": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
+      "value": 1
+    }
+  },
+  "conditionSets": {}
+}

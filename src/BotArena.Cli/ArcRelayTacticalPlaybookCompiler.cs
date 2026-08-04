@@ -150,6 +150,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (hasOrders)
             return JsonDocument.Parse(source.GetRawText());
 
+        using JsonDocument? libraryMerged = MergeAuthoringLibrary(source, path);
+        if (libraryMerged is not null)
+            source = libraryMerged.RootElement;
+
         Object(source, path,
             [
                 "schema", "playbookId", "auditStatus", "composition",
@@ -2859,6 +2863,95 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (entries.Length < minimum || entries.Length > maximum)
             throw Error(path, $"expected {minimum}..{maximum} entries.");
         return entries;
+    }
+
+    public const string LibrarySchema = "arc-relay-tactical-library-v1";
+
+    private static readonly string[] LibrarySections =
+    [
+        "parameters", "fallbackPolicies", "assignmentProfiles",
+        "standingOrders", "maneuvers", "predicates", "conditionSets",
+    ];
+
+    /// <summary>
+    /// Resolves an optional shared authoring library referenced as
+    /// authoring.library {path, sha256} — the exact binding pattern the
+    /// layout reference uses. Library catalog entries are unioned into the
+    /// playbook's own catalogs; a duplicate id across the two sources is a
+    /// hard error, never an override. Returns null when no library is
+    /// referenced; otherwise returns the merged document with the library
+    /// reference consumed, so downstream validation sees ordinary inline
+    /// authoring.
+    /// </summary>
+    private static JsonDocument? MergeAuthoringLibrary(
+        JsonElement source,
+        string path)
+    {
+        if (!source.TryGetProperty("authoring", out JsonElement authoring)
+            || authoring.ValueKind != JsonValueKind.Object
+            || !authoring.TryGetProperty("library", out JsonElement reference))
+        {
+            return null;
+        }
+
+        string referenceAt = $"{path}.authoring.library";
+        Object(reference, referenceAt, ["path", "sha256"]);
+        string relativePath = RequiredString(reference, "path", referenceAt);
+        string fullLibraryPath = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(Path.GetFullPath(path))
+                ?? throw new InvalidDataException(
+                    $"{path}: playbook has no parent directory."),
+            relativePath));
+        byte[] librarySource = File.ReadAllBytes(fullLibraryPath);
+        string librarySha256 = Sha256(librarySource);
+        string expectedSha256 = RequiredString(
+            reference, "sha256", referenceAt);
+        if (!string.Equals(expectedSha256, librarySha256,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"{path}: library hash mismatch; expected "
+                + $"{expectedSha256}, found {librarySha256}.");
+        }
+
+        using JsonDocument libraryDocument = Parse(
+            librarySource, fullLibraryPath);
+        JsonElement library = libraryDocument.RootElement;
+        string libraryAt = fullLibraryPath;
+        Object(library, libraryAt,
+            ["schema", "libraryId", .. LibrarySections]);
+        Exact(library, "schema", LibrarySchema, libraryAt);
+        RequiredString(library, "libraryId", libraryAt);
+
+        JsonObject merged = JsonNode.Parse(source.GetRawText())!.AsObject();
+        JsonObject mergedAuthoring = merged["authoring"]!.AsObject();
+        mergedAuthoring.Remove("library");
+        foreach (string section in LibrarySections)
+        {
+            if (!library.TryGetProperty(section,
+                    out JsonElement librarySection))
+                continue;
+            if (librarySection.ValueKind != JsonValueKind.Object)
+                throw Error($"{libraryAt}.{section}",
+                    "expected keyed object catalog.");
+            JsonObject target = mergedAuthoring[section] is JsonNode existing
+                ? existing.AsObject()
+                : new JsonObject();
+            foreach (JsonProperty entry in librarySection.EnumerateObject())
+            {
+                if (target.ContainsKey(entry.Name))
+                {
+                    throw Error($"{path}.authoring.{section}",
+                        $"'{entry.Name}' is defined by both the library and "
+                        + "the playbook; a playbook may add entries, never "
+                        + "override library entries.");
+                }
+                target[entry.Name] = JsonNode.Parse(
+                    entry.Value.GetRawText());
+            }
+            mergedAuthoring[section] = target;
+        }
+        return JsonDocument.Parse(merged.ToJsonString());
     }
 
     private readonly record struct CatalogEntry(string Id, JsonElement Value);

@@ -1345,6 +1345,75 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
     }
 
+    [Fact]
+    public void StandardLibraryEditionCompilesToTheFrozenNormalizedIr()
+    {
+        TacticalPlaybookCompilation frozen =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3());
+        TacticalPlaybookCompilation libraryEdition =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3Library());
+
+        // The runtime consumes only the normalized IR: identical IR means
+        // identical behavior on every seed. The linked package hash is
+        // ALLOWED to differ because it binds source-byte provenance.
+        Assert.Equal(
+            frozen.NormalizedPlaybook,
+            libraryEdition.NormalizedPlaybook);
+        Assert.Equal(
+            frozen.NormalizedLayout,
+            libraryEdition.NormalizedLayout);
+        Assert.NotEqual(
+            frozen.PlaybookSha256,
+            libraryEdition.PlaybookSha256);
+    }
+
+    [Fact]
+    public void LibraryAndPlaybookMayNotDefineTheSameEntry()
+    {
+        string root = FindRepoRoot();
+        string temporary = Directory.CreateTempSubdirectory(
+            "arc-library-collision").FullName;
+        JsonObject playbook = JsonNode.Parse(
+            File.ReadAllBytes(HomeSiegeV3Library()))!.AsObject();
+        JsonObject authoring = playbook["authoring"]!.AsObject();
+        authoring["library"]!.AsObject()["path"] = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "library",
+            "standard-v1.json");
+        playbook["layout"]!.AsObject()["path"] = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "layouts",
+            "counterflow-home-siege-v3.json");
+        // 'always' already lives in the standard library; redefining it
+        // locally must be rejected as a collision, never an override.
+        authoring["predicates"]!.AsObject()["always"] = new JsonObject
+        {
+            ["fact"] = "tick",
+            ["operator"] = "at-least",
+            ["value"] = 0,
+        };
+        string collision = Path.Combine(temporary, "collision.json");
+        File.WriteAllText(collision, playbook.ToJsonString());
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(
+            () => ArcRelayTacticalPlaybookCompiler.Compile(collision));
+        Assert.Contains("defined by both the library", error.Message);
+    }
+
+    private static string HomeSiegeV3Library() => Path.Combine(
+        FindRepoRoot(),
+        "arena-bots",
+        "arc-relay",
+        "tactical-playbook-v1-2026-08-03",
+        "playbooks",
+        "home-siege-v3-lib.json");
+
     private static string HomeSiege() => Path.Combine(
         FindRepoRoot(),
         "arena-bots",
