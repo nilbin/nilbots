@@ -53,7 +53,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Null(source["orders"]);
         Assert.Equal("maneuver-catalog",
             source["authoring"]!["kind"]!.GetValue<string>());
-        Assert.Equal(6, source["authoring"]!["maneuvers"]!.AsArray().Count);
+        Assert.Equal(6, source["authoring"]!["maneuvers"]!.AsObject().Count);
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
@@ -66,14 +66,17 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void OneBoundedParameterControlsEveryConversionThreshold()
+    public void ContextParametersResolveIndependently()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
         source["layout"]!["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
             source["layout"]!["path"]!.GetValue<string>()));
-        source["authoring"]!["parameters"]![0]!["value"] = 3;
+        source["authoring"]!["parameters"]![
+            "conversion-front-enemy-unavailable"]!["value"] = 4;
+        source["authoring"]!["parameters"]![
+            "conversion-occupied-enemy-unavailable"]!["value"] = 2;
         string temporary = TemporaryJson(source);
         try
         {
@@ -81,29 +84,20 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 ArcRelayTacticalPlaybookCompiler.Compile(temporary);
             using JsonDocument normalized = JsonDocument.Parse(
                 compilation.NormalizedPlaybook);
-            int[] values = normalized.RootElement
+            JsonElement[] phases = normalized.RootElement
+                .GetProperty("coordination").GetProperty("phases")
+                .EnumerateArray().ToArray();
+            JsonElement assault = phases.Single(phase => phase
+                .GetProperty("phaseId").GetString() == "assault");
+            JsonElement occupy = phases.Single(phase => phase
+                .GetProperty("phaseId").GetString() == "occupy");
+            Assert.Equal(4, AttritionThreshold(assault));
+            Assert.Equal(2, AttritionThreshold(occupy));
+            Assert.Equal(4, normalized.RootElement
                 .GetProperty("custodyPolicies")[0]
                 .GetProperty("safeConversionAll")[0]
-                .GetProperty("all")
-                .EnumerateArray()
-                .Where(condition => condition.GetProperty("fact").GetString()
-                    == "known-enemies-unavailable")
-                .Select(condition => condition.GetProperty("value").GetInt32())
-                .Concat(normalized.RootElement.GetProperty("coordination")
-                    .GetProperty("phases").EnumerateArray()
-                    .SelectMany(phase => phase.GetProperty("transitions")
-                        .EnumerateArray())
-                    .SelectMany(transition => transition.GetProperty("when")
-                        .EnumerateArray())
-                    .SelectMany(group => group.GetProperty("all")
-                        .EnumerateArray())
-                    .Where(condition => condition.GetProperty("fact").GetString()
-                        == "known-enemies-unavailable")
-                    .Select(condition => condition.GetProperty("value")
-                        .GetInt32()))
-                .Distinct()
-                .ToArray();
-            Assert.Equal([3], values);
+                .GetProperty("all")[0]
+                .GetProperty("value").GetInt32());
         }
         finally
         {
@@ -116,8 +110,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        JsonObject condition = source["authoring"]!["conditionSets"]![0]!
-            ["when"]![0]!["all"]![0]!.AsObject();
+        JsonObject condition = source["authoring"]!["predicates"]![
+            "front-attrition-safe"]!.AsObject();
         condition["valueParameter"] = "missing-parameter";
         string temporary = TemporaryJson(source);
         try
@@ -126,6 +120,52 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
             Assert.Contains(
                 "condition references unknown parameter 'missing-parameter'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void UnknownPredicateReferencesAreRejected()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        source["authoring"]!["conditionSets"]![
+            "conversion-window-front"]![0]![0] = "missing-predicate";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "condition set references unknown predicate "
+                + "'missing-predicate'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void UnknownAssignmentProfilesAreRejected()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        source["authoring"]!["maneuvers"]!["assault"]!["tracks"]![
+            "main"]!["assignments"]!["runner-rush"]![
+            "assignmentProfileId"] = "missing-profile";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "references unknown assignment profile 'missing-profile'",
                 failure.Message);
         }
         finally
@@ -182,8 +222,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        JsonObject condition = source["custodyPolicies"]![0]!
-            ["safeConversionAll"]![0]!["all"]![0]!.AsObject();
+        JsonObject condition = source["authoring"]!["predicates"]![
+            "front-attrition-safe"]!.AsObject();
         condition["zone"] = "enemy-home";
         string temporary = TemporaryJson(source);
         try
@@ -207,8 +247,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
             layout["path"]!.GetValue<string>()));
-        JsonObject condition = source["custodyPolicies"]![0]!
-            ["safeConversionAll"]![0]!["all"]![2]!.AsObject();
+        JsonObject condition = source["authoring"]!["predicates"]![
+            "secured-core"]!.AsObject();
         Assert.Equal("secured-cores", condition["fact"]!.GetValue<string>());
         condition["freshnessTicks"] = 12;
         string temporary = TemporaryJson(source);
@@ -236,8 +276,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        JsonObject condition = source["custodyPolicies"]![0]!
-            ["safeConversionAll"]![0]!["all"]![0]!.AsObject();
+        JsonObject condition = source["authoring"]!["predicates"]![
+            "front-attrition-safe"]!.AsObject();
         Assert.Equal(
             "known-enemies-unavailable",
             condition["fact"]!.GetValue<string>());
@@ -256,19 +296,18 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void ConditionGroupsRequireOneExplicitCombinator()
+    public void ConditionSetsRequireExplicitConjunctionRows()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        JsonObject group = source["custodyPolicies"]![0]!
-            ["safeConversionAll"]![0]!.AsObject();
-        group["any"] = new JsonArray();
+        source["authoring"]!["conditionSets"]![
+            "secured-conversion-safe"]![0] = new JsonObject();
         string temporary = TemporaryJson(source);
         try
         {
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
-            Assert.Contains("exactly one of 'all' or 'any'", failure.Message);
+            Assert.Contains("expected array", failure.Message);
         }
         finally
         {
@@ -656,8 +695,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
             layout["path"]!.GetValue<string>()));
-        JsonObject condition = source["custodyPolicies"]![0]!
-            ["safeConversionAll"]![0]!["all"]![1]!.AsObject();
+        JsonObject condition = source["authoring"]!["predicates"]![
+            "six-in-siege"]!.AsObject();
         Assert.Equal(
             "friendlies-in-zone-count",
             condition["fact"]!.GetValue<string>());
@@ -683,10 +722,9 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
         JsonObject formation = source["formations"]![0]!.AsObject();
-        JsonArray placements = formation["placements"]!.AsArray();
-        JsonObject first = placements[0]!.AsObject();
-        JsonObject second = placements[1]!.AsObject();
-        second["offset"] = JsonNode.Parse(first["offset"]!.ToJsonString());
+        JsonArray offsets = formation["placementBands"]![0]!["offsets"]!
+            .AsArray();
+        offsets[1] = JsonNode.Parse(offsets[0]!.ToJsonString());
         string temporary = TemporaryJson(source);
         try
         {
@@ -778,6 +816,16 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Equal("", package.Source.Orders.Single(value =>
             value.OrderId == "medics-rush").CustodyId);
     }
+
+    private static int AttritionThreshold(JsonElement phase) => phase
+        .GetProperty("transitions")[0]
+        .GetProperty("when")[0]
+        .GetProperty("all")
+        .EnumerateArray()
+        .Single(condition => condition.GetProperty("fact").GetString()
+            == "known-enemies-unavailable")
+        .GetProperty("value")
+        .GetInt32();
 
     private static string TemporaryJson(JsonNode source)
     {

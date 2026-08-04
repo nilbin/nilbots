@@ -138,32 +138,46 @@ The human-authored form is deliberately smaller than the exhaustive runtime
 IR. It declares a `maneuver-catalog` containing:
 
 - bounded named parameters for values that need empirical tuning;
-- named fallback policies;
+- keyed catalogs: the JSON object key is the identity, so entries do not repeat
+  `parameterId`, `predicateId`, `maneuverId`, `trackId`, and `orderId` fields;
+- named leaf predicates and condition sets composed as OR rows of predicate-ID
+  conjunctions rather than copied fact objects;
+- named fallback and group-assignment profiles;
 - named maneuvers containing one or more concurrent tracks; each track has one
   shared movement/formation intent and explicit per-group assignments;
 - standing orders reused across maneuvers, such as concurrent formation
   recovery; and
 - named condition sets referenced by phase transitions.
 
-There is no implicit inheritance. Every generated order field comes from one
-explicit track, assignment, or fallback-policy field, and every phase names
-its maneuver plus all standing orders. The compiler deterministically expands
-that catalog to the exhaustive `orders`/`orderIds` IR and then applies the same
-strict reference, coverage, and range validation as a fully expanded source.
-The runtime never parses authoring shortcuts.
+There is no implicit inheritance. An assignment explicitly names the profile
+that supplies group, local state, priority, stuck recovery, and support; its
+own entry supplies the remaining order fields. Every phase names its maneuver
+plus all standing orders. Catalog keys are validated lower-kebab identities and
+are expanded in ordinal order, independent of JSON property order. The compiler
+deterministically expands the catalog to the exhaustive `orders`/`orderIds` IR
+and then applies the same strict reference, coverage, and range validation as a
+fully expanded source. The runtime never parses authoring shortcuts.
+
+Formation sources use ordered `placementBands`: one role/sector plus one or
+more offsets. Declared band and offset order becomes explicit runtime slot
+order. This keeps a formation readable as "five line slots, two medic slots,
+one runner slot" without repeating the same role and sector on every slot.
 
 Tracks are the authoring unit for a coordinated split: for example, a delivery
 maneuver may send carriers and medics toward the bank while a line track moves
 back toward the enemy perimeter. They are concurrent orders inside one phase,
 not nested scripts or a strategy-specific runtime special case.
 
-A condition may name exactly one bounded parameter instead of copying a number.
+A predicate may name exactly one bounded parameter instead of copying a number.
 Compilation resolves it to an ordinary integer condition before hashing the
-normalized IR. Home Siege therefore expresses its conversion attrition choice
-once as `conversion-enemy-unavailable`; a development sweep can compare three,
-four, five, or another legal value without editing custody and several phase
-transitions independently. The selected value is still explicit source data,
-not a runtime default or adaptive hidden state.
+normalized IR. Home Siege separates
+`conversion-front-enemy-unavailable` from
+`conversion-occupied-enemy-unavailable`: leaving the initial assault and
+dispatching scorers from an established siege are different decisions. A
+development sweep can compare three, four, five, or another legal value by
+changing one bounded entry, without editing custody and several transitions.
+Selected values remain explicit source data, not runtime defaults or adaptive
+hidden state.
 
 ### Orders and arbitration
 

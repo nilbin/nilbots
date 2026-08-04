@@ -163,18 +163,7 @@
                 "cause": "failure",
                 "minimumPolicy": "respect",
                 "stableTicks": 3,
-                "when": [
-                  {
-                    "all": [
-                      {
-                        "fact": "group-cohesion",
-                        "operator": "at-most",
-                        "value": 60,
-                        "subject": "line-group"
-                      }
-                    ]
-                  }
-                ]
+                "conditionSetId": "line-cohesion-broken"
               }
             ]
           },
@@ -188,18 +177,7 @@
                 "cause": "recovery",
                 "minimumPolicy": "respect",
                 "stableTicks": 3,
-                "when": [
-                  {
-                    "all": [
-                      {
-                        "fact": "group-cohesion",
-                        "operator": "at-least",
-                        "value": 80,
-                        "subject": "line-group"
-                      }
-                    ]
-                  }
-                ]
+                "conditionSetId": "line-cohesion-recovered"
               }
             ]
           }
@@ -218,80 +196,6 @@
         "preferred": 1,
         "maximum": 3
       },
-      "placements": [
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 0,
-          "offset": [
-            0,
-            -2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 1,
-          "offset": [
-            0,
-            -1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 2,
-          "offset": [
-            0,
-            2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 3,
-          "offset": [
-            0,
-            3
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 4,
-          "offset": [
-            0,
-            4
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 5,
-          "offset": [
-            0,
-            0
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 6,
-          "offset": [
-            0,
-            1
-          ]
-        },
-        {
-          "roleId": "runner",
-          "sector": "rear",
-          "order": 7,
-          "offset": [
-            -1,
-            -3
-          ]
-        }
-      ],
       "cohesion": {
         "arrivalRatioPercent": 75,
         "breakRatioPercent": 50,
@@ -304,7 +208,65 @@
         "vacancy": "compress",
         "searchRadius": 3,
         "medicSeparation": 2
-      }
+      },
+      "placementBands": [
+        {
+          "roleId": "line",
+          "sector": "front",
+          "offsets": [
+            [
+              0,
+              -2
+            ],
+            [
+              0,
+              -1
+            ],
+            [
+              0,
+              2
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "centre",
+          "offsets": [
+            [
+              0,
+              3
+            ],
+            [
+              0,
+              4
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "rear",
+          "offsets": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "roleId": "runner",
+          "sector": "rear",
+          "offsets": [
+            [
+              -1,
+              -3
+            ]
+          ]
+        }
+      ]
     },
     {
       "formationId": "living-ring",
@@ -316,80 +278,6 @@
         "preferred": 1,
         "maximum": 3
       },
-      "placements": [
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 0,
-          "offset": [
-            0,
-            -3
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 1,
-          "offset": [
-            0,
-            -2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "right",
-          "order": 2,
-          "offset": [
-            0,
-            1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "right",
-          "order": 3,
-          "offset": [
-            0,
-            2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 4,
-          "offset": [
-            0,
-            3
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "left",
-          "order": 5,
-          "offset": [
-            0,
-            -1
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "right",
-          "order": 6,
-          "offset": [
-            0,
-            0
-          ]
-        },
-        {
-          "roleId": "runner",
-          "sector": "rear",
-          "order": 7,
-          "offset": [
-            -1,
-            -4
-          ]
-        }
-      ],
       "cohesion": {
         "arrivalRatioPercent": 75,
         "breakRatioPercent": 63,
@@ -402,7 +290,77 @@
         "vacancy": "rebalance-role",
         "searchRadius": 3,
         "medicSeparation": 3
-      }
+      },
+      "placementBands": [
+        {
+          "roleId": "line",
+          "sector": "front",
+          "offsets": [
+            [
+              0,
+              -3
+            ],
+            [
+              0,
+              -2
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "right",
+          "offsets": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "centre",
+          "offsets": [
+            [
+              0,
+              3
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "left",
+          "offsets": [
+            [
+              0,
+              -1
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "right",
+          "offsets": [
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "roleId": "runner",
+          "sector": "rear",
+          "offsets": [
+            [
+              -1,
+              -4
+            ]
+          ]
+        }
+      ]
     },
     {
       "formationId": "rally-wedge",
@@ -414,80 +372,6 @@
         "preferred": 1,
         "maximum": 3
       },
-      "placements": [
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 0,
-          "offset": [
-            2,
-            0
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 1,
-          "offset": [
-            1,
-            -1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 2,
-          "offset": [
-            1,
-            1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 3,
-          "offset": [
-            0,
-            -2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 4,
-          "offset": [
-            0,
-            2
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 5,
-          "offset": [
-            -1,
-            -2
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 6,
-          "offset": [
-            -1,
-            2
-          ]
-        },
-        {
-          "roleId": "runner",
-          "sector": "rear",
-          "order": 7,
-          "offset": [
-            -2,
-            0
-          ]
-        }
-      ],
       "cohesion": {
         "arrivalRatioPercent": 63,
         "breakRatioPercent": 50,
@@ -500,7 +384,65 @@
         "vacancy": "compress",
         "searchRadius": 3,
         "medicSeparation": 3
-      }
+      },
+      "placementBands": [
+        {
+          "roleId": "line",
+          "sector": "front",
+          "offsets": [
+            [
+              2,
+              0
+            ],
+            [
+              1,
+              -1
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "centre",
+          "offsets": [
+            [
+              0,
+              -2
+            ],
+            [
+              0,
+              2
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "rear",
+          "offsets": [
+            [
+              -1,
+              -2
+            ],
+            [
+              -1,
+              2
+            ]
+          ]
+        },
+        {
+          "roleId": "runner",
+          "sector": "rear",
+          "offsets": [
+            [
+              -2,
+              0
+            ]
+          ]
+        }
+      ]
     },
     {
       "formationId": "harvest-sweep",
@@ -512,80 +454,6 @@
         "preferred": 4,
         "maximum": 8
       },
-      "placements": [
-        {
-          "roleId": "line",
-          "sector": "left",
-          "order": 0,
-          "offset": [
-            0,
-            -7
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "left",
-          "order": 1,
-          "offset": [
-            0,
-            -6
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 2,
-          "offset": [
-            0,
-            0
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "right",
-          "order": 3,
-          "offset": [
-            0,
-            6
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "right",
-          "order": 4,
-          "offset": [
-            0,
-            7
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "left",
-          "order": 5,
-          "offset": [
-            1,
-            -4
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "right",
-          "order": 6,
-          "offset": [
-            1,
-            4
-          ]
-        },
-        {
-          "roleId": "runner",
-          "sector": "centre",
-          "order": 7,
-          "offset": [
-            -1,
-            0
-          ]
-        }
-      ],
       "cohesion": {
         "arrivalRatioPercent": 63,
         "breakRatioPercent": 38,
@@ -598,7 +466,77 @@
         "vacancy": "rebalance-role",
         "searchRadius": 3,
         "medicSeparation": 4
-      }
+      },
+      "placementBands": [
+        {
+          "roleId": "line",
+          "sector": "left",
+          "offsets": [
+            [
+              0,
+              -7
+            ],
+            [
+              0,
+              -6
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "centre",
+          "offsets": [
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "right",
+          "offsets": [
+            [
+              0,
+              6
+            ],
+            [
+              0,
+              7
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "left",
+          "offsets": [
+            [
+              1,
+              -4
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "right",
+          "offsets": [
+            [
+              1,
+              4
+            ]
+          ]
+        },
+        {
+          "roleId": "runner",
+          "sector": "centre",
+          "offsets": [
+            [
+              -1,
+              0
+            ]
+          ]
+        }
+      ]
     },
     {
       "formationId": "return-escort",
@@ -610,80 +548,6 @@
         "preferred": 2,
         "maximum": 4
       },
-      "placements": [
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 0,
-          "offset": [
-            2,
-            -2
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "front",
-          "order": 1,
-          "offset": [
-            2,
-            -1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "centre",
-          "order": 2,
-          "offset": [
-            2,
-            0
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "rear",
-          "order": 3,
-          "offset": [
-            2,
-            1
-          ]
-        },
-        {
-          "roleId": "line",
-          "sector": "rear",
-          "order": 4,
-          "offset": [
-            2,
-            2
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 5,
-          "offset": [
-            3,
-            -1
-          ]
-        },
-        {
-          "roleId": "medic",
-          "sector": "rear",
-          "order": 6,
-          "offset": [
-            3,
-            1
-          ]
-        },
-        {
-          "roleId": "runner",
-          "sector": "front",
-          "order": 7,
-          "offset": [
-            1,
-            0
-          ]
-        }
-      ],
       "cohesion": {
         "arrivalRatioPercent": 63,
         "breakRatioPercent": 50,
@@ -696,7 +560,71 @@
         "vacancy": "compress",
         "searchRadius": 4,
         "medicSeparation": 2
-      }
+      },
+      "placementBands": [
+        {
+          "roleId": "line",
+          "sector": "front",
+          "offsets": [
+            [
+              2,
+              -2
+            ],
+            [
+              2,
+              -1
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "centre",
+          "offsets": [
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        {
+          "roleId": "line",
+          "sector": "rear",
+          "offsets": [
+            [
+              2,
+              1
+            ],
+            [
+              2,
+              2
+            ]
+          ]
+        },
+        {
+          "roleId": "medic",
+          "sector": "rear",
+          "offsets": [
+            [
+              3,
+              -1
+            ],
+            [
+              3,
+              1
+            ]
+          ]
+        },
+        {
+          "roleId": "runner",
+          "sector": "front",
+          "offsets": [
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ]
     }
   ],
   "engagements": [
@@ -865,54 +793,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionAll": [
-        {
-          "all": [
-            {
-              "fact": "known-enemies-unavailable",
-              "operator": "at-least",
-              "valueParameter": "conversion-enemy-unavailable"
-            },
-            {
-              "fact": "friendlies-in-zone-count",
-              "operator": "at-least",
-              "value": 6,
-              "zone": "siege-leash"
-            },
-            {
-              "fact": "secured-cores",
-              "operator": "at-least",
-              "value": 1
-            }
-          ]
-        },
-        {
-          "all": [
-            {
-              "fact": "known-enemies-unavailable",
-              "operator": "at-least",
-              "valueParameter": "conversion-enemy-unavailable"
-            },
-            {
-              "fact": "ticks-without-objective-progress",
-              "operator": "at-least",
-              "value": 60
-            },
-            {
-              "fact": "friendlies-in-zone-count",
-              "operator": "at-least",
-              "value": 5,
-              "zone": "siege-leash"
-            },
-            {
-              "fact": "well-has-outstanding",
-              "operator": "at-least",
-              "value": 1,
-              "subject": "north"
-            }
-          ]
-        }
-      ]
+      "safeConversionConditionSetId": "secured-conversion-safe"
     },
     {
       "custodyId": "surge-harvest",
@@ -937,69 +818,57 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "alternate-core",
-      "safeConversionAll": [
-        {
-          "all": [
-            {
-              "fact": "always",
-              "operator": "equals",
-              "value": 1
-            }
-          ]
-        }
-      ]
+      "safeConversionConditionSetId": "surge-always"
     }
   ],
   "authoring": {
     "kind": "maneuver-catalog",
-    "parameters": [
-      {
-        "parameterId": "conversion-enemy-unavailable",
+    "parameters": {
+      "conversion-front-enemy-unavailable": {
         "value": 5,
         "minimum": 0,
         "maximum": 8
+      },
+      "conversion-occupied-enemy-unavailable": {
+        "value": 3,
+        "minimum": 0,
+        "maximum": 8
       }
-    ],
-    "fallbackPolicies": [
-      {
-        "fallbackId": "continue-with-alternate",
+    },
+    "fallbackPolicies": {
+      "continue-with-alternate": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
         "onInvalidTarget": "alternate",
         "phaseId": ""
       },
-      {
-        "fallbackId": "continue-and-hold-invalid",
+      "continue-and-hold-invalid": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
         "onInvalidTarget": "hold",
         "phaseId": ""
       },
-      {
-        "fallbackId": "regroup-understrength",
+      "regroup-understrength": {
         "onNoPath": "reflow",
         "onUnderstrength": "fallback-phase",
         "onInvalidTarget": "alternate",
         "phaseId": "regroup"
       },
-      {
-        "fallbackId": "regroup-on-failure",
+      "regroup-on-failure": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
         "onInvalidTarget": "hold",
         "phaseId": "regroup"
       },
-      {
-        "fallbackId": "regroup-or-alternate",
+      "regroup-or-alternate": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
         "onInvalidTarget": "alternate",
         "phaseId": "regroup"
       }
-    ],
-    "standingOrders": [
-      {
-        "orderId": "line-recover",
+    },
+    "standingOrders": {
+      "line-recover": {
         "groupId": "line-group",
         "priority": 25,
         "movement": {
@@ -1022,13 +891,11 @@
           "phaseId": "regroup"
         }
       }
-    ],
-    "maneuvers": [
-      {
-        "maneuverId": "assault",
-        "tracks": [
-          {
-            "trackId": "main",
+    },
+    "maneuvers": {
+      "assault": {
+        "tracks": {
+          "main": {
             "formationId": "rush-column",
             "movement": {
               "kind": "route",
@@ -1036,58 +903,41 @@
               "stuckTicks": 8,
               "pace": "slowest"
             },
-            "assignments": [
-              {
-                "orderId": "runner-rush",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-rush": {
                 "arrivalRadius": 0,
                 "completion": "leader-arrived",
-                "stuckRecovery": "repath",
                 "chaseLeash": 0,
                 "engagementId": "siege-focus",
-                "supportId": "",
                 "custodyId": "secured-conversion",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-standard"
               },
-              {
-                "orderId": "medics-rush",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+              "medics-rush": {
                 "arrivalRadius": 0,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "yield",
                 "chaseLeash": 3,
                 "engagementId": "rush-focus",
-                "supportId": "cross-repair",
                 "custodyId": "",
-                "fallbackId": "continue-and-hold-invalid"
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "medic-standard"
               },
-              {
-                "orderId": "line-rush",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-rush": {
                 "arrivalRadius": 0,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 3,
                 "engagementId": "rush-focus",
-                "supportId": "",
                 "custodyId": "",
-                "fallbackId": "continue-and-hold-invalid"
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      {
-        "maneuverId": "occupy",
-        "tracks": [
-          {
-            "trackId": "main",
+      "occupy": {
+        "tracks": {
+          "main": {
             "formationId": "living-ring",
             "movement": {
               "kind": "anchor",
@@ -1095,58 +945,41 @@
               "stuckTicks": 8,
               "pace": "free"
             },
-            "assignments": [
-              {
-                "orderId": "runner-siege",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-siege": {
                 "arrivalRadius": 1,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 0,
                 "engagementId": "siege-focus",
-                "supportId": "",
                 "custodyId": "secured-conversion",
-                "fallbackId": "regroup-understrength"
+                "fallbackId": "regroup-understrength",
+                "assignmentProfileId": "runner-standard"
               },
-              {
-                "orderId": "medics-siege",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+              "medics-siege": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "yield",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "supportId": "cross-repair",
                 "custodyId": "",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "medic-standard"
               },
-              {
-                "orderId": "line-siege",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-siege": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "supportId": "",
                 "custodyId": "",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      {
-        "maneuverId": "regroup",
-        "tracks": [
-          {
-            "trackId": "main",
+      "regroup": {
+        "tracks": {
+          "main": {
             "formationId": "rally-wedge",
             "movement": {
               "kind": "zone",
@@ -1154,58 +987,41 @@
               "stuckTicks": 8,
               "pace": "slowest"
             },
-            "assignments": [
-              {
-                "orderId": "runner-rally",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-rally": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "repath",
                 "chaseLeash": 0,
                 "engagementId": "regroup-defense",
-                "supportId": "",
                 "custodyId": "secured-conversion",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-standard"
               },
-              {
-                "orderId": "medics-rally",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+              "medics-rally": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "yield",
                 "chaseLeash": 1,
                 "engagementId": "regroup-defense",
-                "supportId": "cross-repair",
                 "custodyId": "",
-                "fallbackId": "continue-and-hold-invalid"
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "medic-standard"
               },
-              {
-                "orderId": "line-rally",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-rally": {
                 "arrivalRadius": 1,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 1,
                 "engagementId": "regroup-defense",
-                "supportId": "",
                 "custodyId": "",
-                "fallbackId": "continue-and-hold-invalid"
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      {
-        "maneuverId": "breach",
-        "tracks": [
-          {
-            "trackId": "main",
+      "breach": {
+        "tracks": {
+          "main": {
             "formationId": "rush-column",
             "movement": {
               "kind": "route",
@@ -1213,58 +1029,41 @@
               "stuckTicks": 8,
               "pace": "slowest"
             },
-            "assignments": [
-              {
-                "orderId": "runner-breach",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-breach": {
                 "arrivalRadius": 0,
                 "completion": "leader-arrived",
-                "stuckRecovery": "repath",
                 "chaseLeash": 0,
                 "engagementId": "regroup-defense",
-                "supportId": "",
                 "custodyId": "secured-conversion",
-                "fallbackId": "regroup-or-alternate"
+                "fallbackId": "regroup-or-alternate",
+                "assignmentProfileId": "runner-standard"
               },
-              {
-                "orderId": "medics-breach",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+              "medics-breach": {
                 "arrivalRadius": 0,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "yield",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "supportId": "cross-repair",
                 "custodyId": "",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "medic-standard"
               },
-              {
-                "orderId": "line-breach",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-breach": {
                 "arrivalRadius": 0,
                 "completion": "cohesion-arrived",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "supportId": "",
                 "custodyId": "",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      {
-        "maneuverId": "harvest",
-        "tracks": [
-          {
-            "trackId": "main",
+      "harvest": {
+        "tracks": {
+          "main": {
             "formationId": "harvest-sweep",
             "movement": {
               "kind": "anchor",
@@ -1272,58 +1071,41 @@
               "stuckTicks": 8,
               "pace": "free"
             },
-            "assignments": [
-              {
-                "orderId": "runner-harvest",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-harvest": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "repath",
                 "chaseLeash": 1,
                 "engagementId": "rush-focus",
-                "supportId": "",
                 "custodyId": "surge-harvest",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-standard"
               },
-              {
-                "orderId": "medics-harvest",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+              "medics-harvest": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "supportId": "cross-repair",
                 "custodyId": "surge-harvest",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "medic-reflow"
               },
-              {
-                "orderId": "line-harvest",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-harvest": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "supportId": "",
                 "custodyId": "surge-harvest",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      {
-        "maneuverId": "delivery",
-        "tracks": [
-          {
-            "trackId": "main",
+      "delivery": {
+        "tracks": {
+          "main": {
             "formationId": "return-escort",
             "movement": {
               "kind": "carrier",
@@ -1331,25 +1113,19 @@
               "stuckTicks": 8,
               "pace": "free"
             },
-            "assignments": [
-              {
-                "orderId": "runner-delivery",
-                "groupId": "runner-group",
-                "localState": "ready",
-                "priority": 10,
+            "assignments": {
+              "runner-delivery": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 16,
                 "engagementId": "rush-focus",
-                "supportId": "",
                 "custodyId": "surge-harvest",
-                "fallbackId": "continue-with-alternate"
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-reflow"
               }
-            ]
+            }
           },
-          {
-            "trackId": "forward-pressure",
+          "forward-pressure": {
             "formationId": "living-ring",
             "movement": {
               "kind": "anchor",
@@ -1357,378 +1133,333 @@
               "stuckTicks": 8,
               "pace": "free"
             },
-            "assignments": [
-              {
-                "orderId": "medics-delivery",
-                "groupId": "medic-group",
-                "localState": "ready",
-                "priority": 20,
+            "assignments": {
+              "medics-delivery": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "yield",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "supportId": "cross-repair",
                 "custodyId": "surge-harvest",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "medic-standard"
               },
-              {
-                "orderId": "line-delivery",
-                "groupId": "line-group",
-                "localState": "coherent",
-                "priority": 30,
+              "line-delivery": {
                 "arrivalRadius": 2,
                 "completion": "continuous",
-                "stuckRecovery": "reflow",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "supportId": "",
                 "custodyId": "surge-harvest",
-                "fallbackId": "regroup-on-failure"
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "line-standard"
               }
-            ]
+            }
           }
-        ]
+        }
       }
-    ],
-    "conditionSets": [
-      {
-        "conditionSetId": "conversion-window-front",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "friendlies-in-zone-count",
-                "operator": "at-least",
-                "value": 5,
-                "zone": "siege-leash"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "visible-enemy-carriers",
-                "operator": "equals",
-                "value": 0
-              },
-              {
-                "fact": "secured-cores",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 3
-              },
-              {
-                "fact": "visible-loose-cores",
-                "operator": "at-least",
-                "value": 2
-              },
-              {
-                "fact": "live-friendlies",
-                "operator": "at-least",
-                "value": 6
-              }
-            ]
-          }
+    },
+    "conditionSets": {
+      "line-cohesion-broken": [
+        [
+          "line-cohesion-low"
         ]
+      ],
+      "line-cohesion-recovered": [
+        [
+          "line-cohesion-restored"
+        ]
+      ],
+      "secured-conversion-safe": [
+        [
+          "front-attrition-safe",
+          "six-in-siege",
+          "secured-core"
+        ],
+        [
+          "front-attrition-safe",
+          "no-progress-for-60",
+          "five-in-siege",
+          "north-core-outstanding"
+        ]
+      ],
+      "surge-always": [
+        [
+          "always"
+        ]
+      ],
+      "conversion-window-front": [
+        [
+          "front-attrition-safe",
+          "core-outstanding",
+          "five-in-siege"
+        ],
+        [
+          "front-attrition-safe",
+          "no-visible-enemy-carrier",
+          "secured-core",
+          "three-wells-outstanding",
+          "two-loose-cores",
+          "six-live"
+        ]
+      ],
+      "siege-established": [
+        [
+          "six-in-siege"
+        ]
+      ],
+      "combat-force-collapse": [
+        [
+          "four-live-or-fewer"
+        ]
+      ],
+      "conversion-window-occupied": [
+        [
+          "occupied-attrition-safe",
+          "core-outstanding",
+          "six-in-siege"
+        ],
+        [
+          "occupied-attrition-safe",
+          "no-visible-enemy-carrier",
+          "secured-core",
+          "three-wells-outstanding",
+          "two-loose-cores",
+          "six-live"
+        ]
+      ],
+      "siege-formation-thinned": [
+        [
+          "five-or-fewer-in-siege"
+        ]
+      ],
+      "emergency-conversion": [
+        [
+          "reactor-critical",
+          "front-attrition-safe",
+          "core-outstanding",
+          "five-live"
+        ]
+      ],
+      "conversion-surge-from-regroup": [
+        [
+          "front-attrition-safe",
+          "no-visible-enemy-carrier",
+          "secured-core",
+          "three-wells-outstanding",
+          "two-loose-cores",
+          "six-live"
+        ]
+      ],
+      "rally-reformed": [
+        [
+          "line-three-at-rally",
+          "five-live"
+        ]
+      ],
+      "delivery-ready": [
+        [
+          "three-friendly-carriers"
+        ],
+        [
+          "harvest-ready-at-28",
+          "one-friendly-carrier"
+        ]
+      ],
+      "harvest-timeout": [
+        [
+          "harvest-stalled-at-36",
+          "no-friendly-carrier"
+        ]
+      ],
+      "harvest-again": [
+        [
+          "no-friendly-carrier",
+          "front-attrition-safe"
+        ]
+      ],
+      "return-to-breach": [
+        [
+          "no-friendly-carrier",
+          "no-loose-core"
+        ]
+      ]
+    },
+    "assignmentProfiles": {
+      "runner-standard": {
+        "groupId": "runner-group",
+        "localState": "ready",
+        "priority": 10,
+        "stuckRecovery": "repath",
+        "supportId": ""
       },
-      {
-        "conditionSetId": "siege-established",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "friendlies-in-zone-count",
-                "operator": "at-least",
-                "value": 6,
-                "zone": "siege-leash"
-              }
-            ]
-          }
-        ]
+      "runner-reflow": {
+        "groupId": "runner-group",
+        "localState": "ready",
+        "priority": 10,
+        "stuckRecovery": "reflow",
+        "supportId": ""
       },
-      {
-        "conditionSetId": "combat-force-collapse",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "live-friendlies",
-                "operator": "at-most",
-                "value": 4
-              }
-            ]
-          }
-        ]
+      "medic-standard": {
+        "groupId": "medic-group",
+        "localState": "ready",
+        "priority": 20,
+        "stuckRecovery": "yield",
+        "supportId": "cross-repair"
       },
-      {
-        "conditionSetId": "conversion-window-occupied",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "friendlies-in-zone-count",
-                "operator": "at-least",
-                "value": 6,
-                "zone": "siege-leash"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "visible-enemy-carriers",
-                "operator": "equals",
-                "value": 0
-              },
-              {
-                "fact": "secured-cores",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 3
-              },
-              {
-                "fact": "visible-loose-cores",
-                "operator": "at-least",
-                "value": 2
-              },
-              {
-                "fact": "live-friendlies",
-                "operator": "at-least",
-                "value": 6
-              }
-            ]
-          }
-        ]
+      "medic-reflow": {
+        "groupId": "medic-group",
+        "localState": "ready",
+        "priority": 20,
+        "stuckRecovery": "reflow",
+        "supportId": "cross-repair"
       },
-      {
-        "conditionSetId": "siege-formation-thinned",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "friendlies-in-zone-count",
-                "operator": "at-most",
-                "value": 5,
-                "zone": "siege-leash"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "emergency-conversion",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "reactor-integrity",
-                "operator": "at-most",
-                "value": 1
-              },
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "live-friendlies",
-                "operator": "at-least",
-                "value": 5
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "conversion-surge-from-regroup",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              },
-              {
-                "fact": "visible-enemy-carriers",
-                "operator": "equals",
-                "value": 0
-              },
-              {
-                "fact": "secured-cores",
-                "operator": "at-least",
-                "value": 1
-              },
-              {
-                "fact": "outstanding-well-count",
-                "operator": "at-least",
-                "value": 3
-              },
-              {
-                "fact": "visible-loose-cores",
-                "operator": "at-least",
-                "value": 2
-              },
-              {
-                "fact": "live-friendlies",
-                "operator": "at-least",
-                "value": 6
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "rally-reformed",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "group-in-zone-count",
-                "operator": "at-least",
-                "value": 3,
-                "subject": "line-group",
-                "zone": "forward-rally"
-              },
-              {
-                "fact": "live-friendlies",
-                "operator": "at-least",
-                "value": 5
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "delivery-ready",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "friendly-carriers",
-                "operator": "at-least",
-                "value": 3
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "fact": "phase-state-ticks",
-                "operator": "at-least",
-                "value": 28
-              },
-              {
-                "fact": "friendly-carriers",
-                "operator": "at-least",
-                "value": 1
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "harvest-timeout",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "phase-state-ticks",
-                "operator": "at-least",
-                "value": 36
-              },
-              {
-                "fact": "friendly-carriers",
-                "operator": "equals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "harvest-again",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "friendly-carriers",
-                "operator": "equals",
-                "value": 0
-              },
-              {
-                "fact": "known-enemies-unavailable",
-                "operator": "at-least",
-                "valueParameter": "conversion-enemy-unavailable"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "conditionSetId": "return-to-breach",
-        "when": [
-          {
-            "all": [
-              {
-                "fact": "friendly-carriers",
-                "operator": "equals",
-                "value": 0
-              },
-              {
-                "fact": "visible-loose-cores",
-                "operator": "equals",
-                "value": 0
-              }
-            ]
-          }
-        ]
+      "line-standard": {
+        "groupId": "line-group",
+        "localState": "coherent",
+        "priority": 30,
+        "stuckRecovery": "reflow",
+        "supportId": ""
       }
-    ]
+    },
+    "predicates": {
+      "front-attrition-safe": {
+        "fact": "known-enemies-unavailable",
+        "operator": "at-least",
+        "valueParameter": "conversion-front-enemy-unavailable"
+      },
+      "occupied-attrition-safe": {
+        "fact": "known-enemies-unavailable",
+        "operator": "at-least",
+        "valueParameter": "conversion-occupied-enemy-unavailable"
+      },
+      "core-outstanding": {
+        "fact": "outstanding-well-count",
+        "operator": "at-least",
+        "value": 1
+      },
+      "six-in-siege": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-least",
+        "value": 6,
+        "zone": "siege-leash"
+      },
+      "five-in-siege": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-least",
+        "value": 5,
+        "zone": "siege-leash"
+      },
+      "five-or-fewer-in-siege": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-most",
+        "value": 5,
+        "zone": "siege-leash"
+      },
+      "no-visible-enemy-carrier": {
+        "fact": "visible-enemy-carriers",
+        "operator": "equals",
+        "value": 0
+      },
+      "secured-core": {
+        "fact": "secured-cores",
+        "operator": "at-least",
+        "value": 1
+      },
+      "three-wells-outstanding": {
+        "fact": "outstanding-well-count",
+        "operator": "at-least",
+        "value": 3
+      },
+      "two-loose-cores": {
+        "fact": "visible-loose-cores",
+        "operator": "at-least",
+        "value": 2
+      },
+      "six-live": {
+        "fact": "live-friendlies",
+        "operator": "at-least",
+        "value": 6
+      },
+      "five-live": {
+        "fact": "live-friendlies",
+        "operator": "at-least",
+        "value": 5
+      },
+      "four-live-or-fewer": {
+        "fact": "live-friendlies",
+        "operator": "at-most",
+        "value": 4
+      },
+      "reactor-critical": {
+        "fact": "reactor-integrity",
+        "operator": "at-most",
+        "value": 1
+      },
+      "line-three-at-rally": {
+        "fact": "group-in-zone-count",
+        "operator": "at-least",
+        "value": 3,
+        "subject": "line-group",
+        "zone": "forward-rally"
+      },
+      "three-friendly-carriers": {
+        "fact": "friendly-carriers",
+        "operator": "at-least",
+        "value": 3
+      },
+      "one-friendly-carrier": {
+        "fact": "friendly-carriers",
+        "operator": "at-least",
+        "value": 1
+      },
+      "no-friendly-carrier": {
+        "fact": "friendly-carriers",
+        "operator": "equals",
+        "value": 0
+      },
+      "harvest-ready-at-28": {
+        "fact": "phase-state-ticks",
+        "operator": "at-least",
+        "value": 28
+      },
+      "harvest-stalled-at-36": {
+        "fact": "phase-state-ticks",
+        "operator": "at-least",
+        "value": 36
+      },
+      "no-loose-core": {
+        "fact": "visible-loose-cores",
+        "operator": "equals",
+        "value": 0
+      },
+      "always": {
+        "fact": "always",
+        "operator": "equals",
+        "value": 1
+      },
+      "no-progress-for-60": {
+        "fact": "ticks-without-objective-progress",
+        "operator": "at-least",
+        "value": 60
+      },
+      "north-core-outstanding": {
+        "fact": "well-has-outstanding",
+        "operator": "at-least",
+        "value": 1,
+        "subject": "north"
+      },
+      "line-cohesion-low": {
+        "fact": "group-cohesion",
+        "operator": "at-most",
+        "value": 60,
+        "subject": "line-group"
+      },
+      "line-cohesion-restored": {
+        "fact": "group-cohesion",
+        "operator": "at-least",
+        "value": 80,
+        "subject": "line-group"
+      }
+    }
   },
   "coordination": {
     "initialPhase": "assault",

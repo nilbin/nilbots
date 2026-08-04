@@ -1355,6 +1355,121 @@
       ],
       "resultSummary": "Retain the generic authoring compiler. The mirrored ticks are byte-for-behavior identical to the preceding expanded source, demonstrating that the compact catalog changes authoring ergonomics without smuggling in a strategy result. The current strategy remains rejected.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "context-specific-occupied-attrition-matrix",
+      "change": "Keep the approach, breach, regroup, and custody attrition requirement at five causally known unavailable enemies, but sweep a separate 2..5 requirement used only after stable siege occupation.",
+      "variants": [
+        {
+          "variantId": "occupied-2",
+          "occupiedThreshold": 2,
+          "playbookSourceSha256": "a9a91d8d47f2661d16b91601dbbd43f4d2d3312ae8c22b0118d6f6526f0a2403",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 351
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 461
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-3",
+          "occupiedThreshold": 3,
+          "playbookSourceSha256": "170f140c046ba15205e7373260918fb4cc47cec3cfe2648a822ed3deef35cbc6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 472
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 462
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-4",
+          "occupiedThreshold": 4,
+          "playbookSourceSha256": "660ed43dc635f3a21f6168fbb5bdfe15cd8e3ba6ba8240804b6529c184cb08b4",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 438
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-5",
+          "occupiedThreshold": 5,
+          "playbookSourceSha256": "3997a63d35e77f2f24b4293ea555963ae9eed669bdda811f9e62812829003fd9",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        }
+      ],
+      "resultSummary": "Three unavailable enemies after established occupation is the first development candidate to win both mirrored assignments. It remains below the hard gate: the canonical representatives finish at 10-7 and 9-6 bank-equivalent scores, retain only one reactor segment, and allow far more than one baseline bank after occupation. Two, four, and five lose at least one mirror. Retain the context split and value three only as the next development candidate, not a frozen or final threshold.",
+      "verdict": "retained-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "keyed-semantic-authoring-catalog",
+      "playbookSourceSha256": "adb241746b36f826ce826f78c0386162f7d45bbc13c068e75a8146d9242fcc39",
+      "change": "Replace repeated IDs, copied fact objects, per-slot formation objects, and repeated group-order fields with keyed catalogs, named predicates and condition sets, bounded context parameters, assignment profiles, and ordered formation placement bands. Compile them deterministically to exhaustive runtime IR.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 472
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 462
+        }
+      ],
+      "resultSummary": "Retain the authoring framework. The keyed source reproduces the occupied-3 development candidate exactly in both assignments while keeping approach-five and occupied-three as separate explicit hypotheses. The strategy still fails the dominance margin, reactor-integrity, and post-occupation suppression gates.",
+      "verdict": "retained-framework-change-development-candidate-gate-failed"
     }
   ]
 }

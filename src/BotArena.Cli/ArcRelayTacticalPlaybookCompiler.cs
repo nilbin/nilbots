@@ -159,98 +159,149 @@ public static class ArcRelayTacticalPlaybookCompiler
         string authoringAt = $"{path}.authoring";
         Object(authoring, authoringAt,
             [
-                "kind", "parameters", "fallbackPolicies", "standingOrders",
-                "maneuvers", "conditionSets",
+                "kind", "parameters", "fallbackPolicies",
+                "assignmentProfiles", "standingOrders", "maneuvers",
+                "predicates", "conditionSets",
             ]);
         Exact(authoring, "kind", "maneuver-catalog", authoringAt);
 
-        JsonElement[] parameters = BoundedArray(
+        CatalogEntry[] parameters = Catalog(
             authoring.GetProperty("parameters"),
             $"{authoringAt}.parameters", 1, 64);
-        UniqueIds(parameters, "parameterId", $"{authoringAt}.parameters");
         var parameterById = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (JsonElement parameter in parameters)
+        foreach (CatalogEntry parameter in parameters)
         {
-            Object(parameter, $"{authoringAt}.parameters",
-                ["parameterId", "value", "minimum", "maximum"]);
-            string parameterId = Identifier(parameter, "parameterId", path);
-            Range(parameter, "minimum", path, 0, 100000);
-            Range(parameter, "maximum", path, 0, 100000);
-            Range(parameter, "value", path, 0, 100000);
-            int minimum = parameter.GetProperty("minimum").GetInt32();
-            int maximum = parameter.GetProperty("maximum").GetInt32();
-            int selected = parameter.GetProperty("value").GetInt32();
+            Object(parameter.Value, $"{authoringAt}.parameters.{parameter.Id}",
+                ["value", "minimum", "maximum"]);
+            Range(parameter.Value, "minimum", path, 0, 100000);
+            Range(parameter.Value, "maximum", path, 0, 100000);
+            Range(parameter.Value, "value", path, 0, 100000);
+            int minimum = parameter.Value.GetProperty("minimum").GetInt32();
+            int maximum = parameter.Value.GetProperty("maximum").GetInt32();
+            int selected = parameter.Value.GetProperty("value").GetInt32();
             if (minimum > maximum || selected < minimum || selected > maximum)
             {
                 throw Error(authoringAt,
-                    $"parameter '{parameterId}' value {selected} is outside "
+                    $"parameter '{parameter.Id}' value {selected} is outside "
                     + $"its explicit [{minimum}, {maximum}] range.");
             }
-            parameterById.Add(parameterId, selected);
+            parameterById.Add(parameter.Id, selected);
         }
 
-        JsonElement[] fallbackPolicies = BoundedArray(
+        CatalogEntry[] fallbackPolicies = Catalog(
             authoring.GetProperty("fallbackPolicies"),
             $"{authoringAt}.fallbackPolicies", 1, 32);
-        UniqueIds(fallbackPolicies, "fallbackId",
-            $"{authoringAt}.fallbackPolicies");
-        foreach (JsonElement fallback in fallbackPolicies)
-            ValidateAuthoredFallback(fallback, authoringAt);
+        foreach (CatalogEntry fallback in fallbackPolicies)
+            ValidateAuthoredFallback(fallback.Id, fallback.Value, authoringAt);
 
-        JsonElement[] standingOrders = BoundedArray(
+        CatalogEntry[] assignmentProfiles = Catalog(
+            authoring.GetProperty("assignmentProfiles"),
+            $"{authoringAt}.assignmentProfiles", 1, 32);
+        foreach (CatalogEntry profile in assignmentProfiles)
+            ValidateAuthoredAssignmentProfile(
+                profile.Id, profile.Value, authoringAt);
+
+        CatalogEntry[] standingOrders = Catalog(
             authoring.GetProperty("standingOrders"),
             $"{authoringAt}.standingOrders", 0, 32);
-        UniqueIds(standingOrders, "orderId",
-            $"{authoringAt}.standingOrders");
 
-        JsonElement[] maneuvers = BoundedArray(
+        CatalogEntry[] maneuvers = Catalog(
             authoring.GetProperty("maneuvers"),
             $"{authoringAt}.maneuvers", 1, 24);
-        UniqueIds(maneuvers, "maneuverId", $"{authoringAt}.maneuvers");
-        foreach (JsonElement maneuver in maneuvers)
-            ValidateAuthoredManeuver(maneuver, authoringAt);
+        foreach (CatalogEntry maneuver in maneuvers)
+            ValidateAuthoredManeuver(
+                maneuver.Id, maneuver.Value, authoringAt);
 
-        JsonElement[] conditionSets = BoundedArray(
+        CatalogEntry[] predicates = Catalog(
+            authoring.GetProperty("predicates"),
+            $"{authoringAt}.predicates", 1, 128);
+        foreach (CatalogEntry predicate in predicates)
+            ValidateAuthoredPredicate(
+                predicate.Id, predicate.Value, authoringAt);
+
+        CatalogEntry[] conditionSets = Catalog(
             authoring.GetProperty("conditionSets"),
             $"{authoringAt}.conditionSets", 1, 64);
-        UniqueIds(conditionSets, "conditionSetId",
-            $"{authoringAt}.conditionSets");
-        foreach (JsonElement conditionSet in conditionSets)
+        foreach (CatalogEntry conditionSet in conditionSets)
         {
-            Object(conditionSet, $"{authoringAt}.conditionSets",
-                ["conditionSetId", "when"]);
-            BoundedArray(conditionSet.GetProperty("when"),
-                $"{authoringAt}.conditionSets.when", 1, 16);
+            JsonElement[] alternatives = BoundedArray(
+                conditionSet.Value,
+                $"{authoringAt}.conditionSets.{conditionSet.Id}", 1, 16);
+            foreach (JsonElement alternative in alternatives)
+            {
+                JsonElement[] allOf = BoundedArray(
+                    alternative,
+                    $"{authoringAt}.conditionSets.{conditionSet.Id}", 1, 32);
+                foreach (JsonElement predicateId in allOf)
+                    StringValue(predicateId,
+                        $"{authoringAt}.conditionSets.{conditionSet.Id}");
+            }
         }
 
         JsonElement coordination = source.GetProperty("coordination");
         ValidateAuthoredCoordination(coordination, authoringAt);
 
         var fallbackById = fallbackPolicies.ToDictionary(
-            value => value.GetProperty("fallbackId").GetString()!,
+            value => value.Id,
+            value => value.Value,
+            StringComparer.Ordinal);
+        var assignmentProfileById = assignmentProfiles.ToDictionary(
+            value => value.Id,
+            value => value.Value,
             StringComparer.Ordinal);
         var maneuverById = maneuvers.ToDictionary(
-            value => value.GetProperty("maneuverId").GetString()!,
+            value => value.Id,
+            value => value.Value,
+            StringComparer.Ordinal);
+        var predicateById = predicates.ToDictionary(
+            value => value.Id,
+            value => value.Value,
             StringComparer.Ordinal);
         var conditionSetById = conditionSets.ToDictionary(
-            value => value.GetProperty("conditionSetId").GetString()!,
+            value => value.Id,
+            value => value.Value,
+            StringComparer.Ordinal);
+        var expandedConditionSetById = conditionSetById.ToDictionary(
+            item => item.Key,
+            item => ExpandConditionSet(
+                item.Key, item.Value, predicateById, authoringAt),
             StringComparer.Ordinal);
         HashSet<string> standingOrderIds = standingOrders
-            .Select(value => value.GetProperty("orderId").GetString()!)
+            .Select(value => value.Id)
             .ToHashSet(StringComparer.Ordinal);
 
         JsonObject expanded = JsonNode.Parse(source.GetRawText())!.AsObject();
         expanded.Remove("authoring");
+        ExpandPlacementBands(expanded, authoringAt);
+        ExpandConditionReferences(
+            expanded, expandedConditionSetById, authoringAt);
         var expandedOrders = new JsonArray();
-        foreach (JsonElement standingOrder in standingOrders)
-            expandedOrders.Add(JsonNode.Parse(standingOrder.GetRawText()));
-        foreach (JsonElement maneuver in maneuvers)
-        foreach (JsonElement track in maneuver.GetProperty("tracks")
-                     .EnumerateArray())
-        foreach (JsonElement assignment in track.GetProperty("assignments")
-                     .EnumerateArray())
+        foreach (CatalogEntry standingOrder in standingOrders)
         {
-            string fallbackId = assignment.GetProperty("fallbackId")
+            JsonObject order = JsonNode.Parse(standingOrder.Value.GetRawText())!
+                .AsObject();
+            order["orderId"] = standingOrder.Id;
+            expandedOrders.Add(order);
+        }
+        foreach (CatalogEntry maneuver in maneuvers)
+        foreach (CatalogEntry track in Catalog(
+                     maneuver.Value.GetProperty("tracks"),
+                     $"{authoringAt}.maneuvers.{maneuver.Id}.tracks", 1, 8))
+        foreach (CatalogEntry assignment in Catalog(
+                     track.Value.GetProperty("assignments"),
+                     $"{authoringAt}.maneuvers.{maneuver.Id}.tracks."
+                     + $"{track.Id}.assignments", 1, 32))
+        {
+            string assignmentProfileId = assignment.Value
+                .GetProperty("assignmentProfileId").GetString()!;
+            if (!assignmentProfileById.TryGetValue(
+                    assignmentProfileId, out JsonElement assignmentProfile))
+            {
+                throw Error(authoringAt,
+                    $"maneuver assignment references unknown assignment "
+                    + $"profile '{assignmentProfileId}'.");
+            }
+            string fallbackId = assignment.Value.GetProperty("fallbackId")
                 .GetString()!;
             if (!fallbackById.TryGetValue(fallbackId, out JsonElement fallback))
             {
@@ -258,7 +309,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                     $"maneuver assignment references unknown fallback "
                     + $"'{fallbackId}'.");
             }
-            expandedOrders.Add(ExpandOrder(track, assignment, fallback));
+            expandedOrders.Add(ExpandOrder(
+                assignment.Id,
+                track.Value,
+                assignment.Value,
+                assignmentProfile,
+                fallback));
         }
         expanded["orders"] = expandedOrders;
 
@@ -267,18 +323,23 @@ public static class ArcRelayTacticalPlaybookCompiler
                      .EnumerateArray())
         {
             string maneuverId = phase.GetProperty("maneuverId").GetString()!;
-            if (!maneuverById.TryGetValue(maneuverId, out JsonElement maneuver))
+            if (!maneuverById.TryGetValue(
+                    maneuverId, out JsonElement maneuver))
             {
                 throw Error(authoringAt,
                     $"phase references unknown maneuver '{maneuverId}'.");
             }
             var orderIds = new JsonArray();
-            foreach (JsonElement track in maneuver.GetProperty("tracks")
-                         .EnumerateArray())
-            foreach (JsonElement assignment in track
-                         .GetProperty("assignments").EnumerateArray())
+            foreach (CatalogEntry track in Catalog(
+                         maneuver.GetProperty("tracks"),
+                         $"{authoringAt}.maneuvers.{maneuverId}.tracks",
+                         1, 8))
+            foreach (CatalogEntry assignment in Catalog(
+                         track.Value.GetProperty("assignments"),
+                         $"{authoringAt}.maneuvers.{maneuverId}.tracks."
+                         + $"{track.Id}.assignments", 1, 32))
             {
-                orderIds.Add(assignment.GetProperty("orderId").GetString());
+                orderIds.Add(assignment.Id);
             }
             foreach (JsonElement standingOrderId in phase
                          .GetProperty("standingOrderIds").EnumerateArray())
@@ -299,8 +360,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             {
                 string conditionSetId = transition
                     .GetProperty("conditionSetId").GetString()!;
-                if (!conditionSetById.TryGetValue(
-                        conditionSetId, out JsonElement conditionSet))
+                if (!expandedConditionSetById.TryGetValue(
+                        conditionSetId, out JsonArray? expandedConditions))
                 {
                     throw Error(authoringAt,
                         $"transition references unknown condition set "
@@ -315,8 +376,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                         .GetProperty("minimumPolicy").GetString(),
                     ["stableTicks"] = transition
                         .GetProperty("stableTicks").GetInt32(),
-                    ["when"] = JsonNode.Parse(
-                        conditionSet.GetProperty("when").GetRawText()),
+                    ["when"] = expandedConditions.DeepClone(),
                 };
                 transitions.Add(expandedTransition);
             }
@@ -338,6 +398,151 @@ public static class ArcRelayTacticalPlaybookCompiler
 
         return JsonDocument.Parse(expanded.ToJsonString(
             new JsonSerializerOptions { WriteIndented = false }));
+    }
+
+    private static JsonArray ExpandConditionSet(
+        string conditionSetId,
+        JsonElement conditionSet,
+        IReadOnlyDictionary<string, JsonElement> predicates,
+        string path)
+    {
+        var expanded = new JsonArray();
+        foreach (JsonElement alternative in conditionSet.EnumerateArray())
+        {
+            var all = new JsonArray();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (JsonElement reference in alternative.EnumerateArray())
+            {
+                string predicateId = reference.GetString()!;
+                if (!seen.Add(predicateId))
+                {
+                    throw Error(path,
+                        $"condition set '{conditionSetId}' repeats predicate "
+                        + $"'{predicateId}'.");
+                }
+                if (!predicates.TryGetValue(
+                        predicateId, out JsonElement predicate))
+                {
+                    throw Error(path,
+                        $"condition set references unknown predicate "
+                        + $"'{predicateId}'.");
+                }
+                JsonObject leaf = JsonNode.Parse(predicate.GetRawText())!
+                    .AsObject();
+                all.Add(leaf);
+            }
+            expanded.Add(new JsonObject { ["all"] = all });
+        }
+        return expanded;
+    }
+
+    private static void ExpandConditionReferences(
+        JsonObject expanded,
+        IReadOnlyDictionary<string, JsonArray> conditionSets,
+        string path)
+    {
+        foreach (JsonObject custody in expanded["custodyPolicies"]!
+                     .AsArray().Select(value => value!.AsObject()))
+        {
+            bool hasReference = custody.ContainsKey(
+                "safeConversionConditionSetId");
+            bool hasExpanded = custody.ContainsKey("safeConversionAll");
+            if (hasReference == hasExpanded)
+            {
+                throw Error(path,
+                    "authored custody policy must declare exactly one "
+                    + "'safeConversionConditionSetId'.");
+            }
+            string conditionSetId = custody[
+                "safeConversionConditionSetId"]!.GetValue<string>();
+            if (!conditionSets.TryGetValue(
+                    conditionSetId, out JsonArray? conditions))
+            {
+                throw Error(path,
+                    $"custody policy references unknown condition set "
+                    + $"'{conditionSetId}'.");
+            }
+            custody.Remove("safeConversionConditionSetId");
+            custody["safeConversionAll"] = conditions.DeepClone();
+        }
+
+        foreach (JsonObject transition in expanded["groups"]!.AsArray()
+                     .SelectMany(group => group!["localStateMachine"]![
+                         "states"]!.AsArray())
+                     .SelectMany(state => state!["transitions"]!.AsArray())
+                     .Select(value => value!.AsObject()))
+        {
+            bool hasReference = transition.ContainsKey("conditionSetId");
+            bool hasExpanded = transition.ContainsKey("when");
+            if (hasReference == hasExpanded)
+            {
+                throw Error(path,
+                    "authored group transition must declare exactly one "
+                    + "'conditionSetId'.");
+            }
+            string conditionSetId = transition["conditionSetId"]!
+                .GetValue<string>();
+            if (!conditionSets.TryGetValue(
+                    conditionSetId, out JsonArray? conditions))
+            {
+                throw Error(path,
+                    $"group transition references unknown condition set "
+                    + $"'{conditionSetId}'.");
+            }
+            transition.Remove("conditionSetId");
+            transition["when"] = conditions.DeepClone();
+        }
+    }
+
+    private static void ExpandPlacementBands(
+        JsonObject expanded,
+        string path)
+    {
+        foreach (JsonObject formation in expanded["formations"]!.AsArray()
+                     .Select(value => value!.AsObject()))
+        {
+            bool hasBands = formation.ContainsKey("placementBands");
+            bool hasPlacements = formation.ContainsKey("placements");
+            if (hasBands == hasPlacements)
+            {
+                throw Error(path,
+                    "authored formation must declare exactly one "
+                    + "'placementBands'.");
+            }
+            JsonArray bands = formation["placementBands"]!.AsArray();
+            using JsonDocument document = JsonDocument.Parse(
+                bands.ToJsonString());
+            JsonElement[] values = BoundedArray(
+                document.RootElement,
+                $"{path}.formations.placementBands", 1, 16);
+            var placements = new JsonArray();
+            int order = 0;
+            foreach (JsonElement band in values)
+            {
+                Object(band, $"{path}.formations.placementBands",
+                    ["roleId", "sector", "offsets"]);
+                string roleId = Identifier(band, "roleId", path);
+                OneOf(band, "sector", path,
+                    "front", "rear", "left", "right", "centre", "any");
+                JsonElement[] offsets = BoundedArray(
+                    band.GetProperty("offsets"),
+                    $"{path}.formations.placementBands.offsets", 1, 16);
+                foreach (JsonElement offset in offsets)
+                {
+                    Point(offset,
+                        $"{path}.formations.placementBands.offsets", -8, 8);
+                    placements.Add(new JsonObject
+                    {
+                        ["roleId"] = roleId,
+                        ["sector"] = band.GetProperty("sector").GetString(),
+                        ["order"] = order++,
+                        ["offset"] = JsonNode.Parse(offset.GetRawText()),
+                    });
+                }
+            }
+            formation.Remove("placementBands");
+            formation["placements"] = placements;
+        }
     }
 
     private static void ResolveConditionParameters(
@@ -389,8 +594,10 @@ public static class ArcRelayTacticalPlaybookCompiler
     }
 
     private static JsonObject ExpandOrder(
+        string orderId,
         JsonElement track,
         JsonElement assignment,
+        JsonElement assignmentProfile,
         JsonElement fallback)
     {
         JsonElement commonMovement = track.GetProperty("movement");
@@ -403,21 +610,22 @@ public static class ArcRelayTacticalPlaybookCompiler
             ["completion"] = assignment.GetProperty("completion").GetString(),
             ["stuckTicks"] = commonMovement.GetProperty("stuckTicks")
                 .GetInt32(),
-            ["stuckRecovery"] = assignment.GetProperty("stuckRecovery")
+            ["stuckRecovery"] = assignmentProfile.GetProperty("stuckRecovery")
                 .GetString(),
             ["chaseLeash"] = assignment.GetProperty("chaseLeash").GetInt32(),
             ["pace"] = commonMovement.GetProperty("pace").GetString(),
         };
         var expanded = new JsonObject
         {
-            ["orderId"] = assignment.GetProperty("orderId").GetString(),
-            ["groupId"] = assignment.GetProperty("groupId").GetString(),
-            ["priority"] = assignment.GetProperty("priority").GetInt32(),
+            ["orderId"] = orderId,
+            ["groupId"] = assignmentProfile.GetProperty("groupId").GetString(),
+            ["priority"] = assignmentProfile.GetProperty("priority").GetInt32(),
             ["movement"] = movement,
             ["formationId"] = track.GetProperty("formationId").GetString(),
             ["engagementId"] = assignment.GetProperty("engagementId")
                 .GetString(),
-            ["localState"] = assignment.GetProperty("localState").GetString(),
+            ["localState"] = assignmentProfile.GetProperty("localState")
+                .GetString(),
             ["fallback"] = new JsonObject
             {
                 ["onNoPath"] = fallback.GetProperty("onNoPath").GetString(),
@@ -428,7 +636,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 ["phaseId"] = fallback.GetProperty("phaseId").GetString(),
             },
         };
-        string supportId = assignment.GetProperty("supportId").GetString()!;
+        string supportId = assignmentProfile.GetProperty("supportId")
+            .GetString()!;
         string custodyId = assignment.GetProperty("custodyId").GetString()!;
         if (supportId.Length > 0)
             expanded["supportId"] = supportId;
@@ -438,15 +647,14 @@ public static class ArcRelayTacticalPlaybookCompiler
     }
 
     private static void ValidateAuthoredFallback(
+        string fallbackId,
         JsonElement fallback,
         string path)
     {
-        Object(fallback, $"{path}.fallbackPolicies",
+        Object(fallback, $"{path}.fallbackPolicies.{fallbackId}",
             [
-                "fallbackId", "onNoPath", "onUnderstrength",
-                "onInvalidTarget", "phaseId",
+                "onNoPath", "onUnderstrength", "onInvalidTarget", "phaseId",
             ]);
-        Identifier(fallback, "fallbackId", path);
         OneOf(fallback, "onNoPath", path, "reflow", "hold", "regroup");
         OneOf(fallback, "onUnderstrength", path,
             "continue", "regroup", "fallback-phase");
@@ -455,26 +663,76 @@ public static class ArcRelayTacticalPlaybookCompiler
         NonEmptyString(fallback, "phaseId", path, allowEmpty: true);
     }
 
+    private static void ValidateAuthoredAssignmentProfile(
+        string assignmentProfileId,
+        JsonElement profile,
+        string path)
+    {
+        Object(profile, $"{path}.assignmentProfiles.{assignmentProfileId}",
+            [
+                "groupId", "localState", "priority", "stuckRecovery",
+                "supportId",
+            ]);
+        Identifier(profile, "groupId", path);
+        Identifier(profile, "localState", path);
+        Range(profile, "priority", path, 0, 1000);
+        OneOf(profile, "stuckRecovery", path,
+            "repath", "yield", "reflow", "regroup", "hold");
+        NonEmptyString(profile, "supportId", path, allowEmpty: true);
+    }
+
+    private static void ValidateAuthoredPredicate(
+        string predicateId,
+        JsonElement predicate,
+        string path)
+    {
+        Object(predicate, $"{path}.predicates.{predicateId}",
+            ["fact", "operator"],
+            [
+                "value", "valueParameter", "subject", "zone",
+                "freshnessTicks",
+            ]);
+        string fact = RequiredString(predicate, "fact", path);
+        if (!ConditionFacts.Contains(fact))
+            throw Error(path, $"unknown authored condition fact '{fact}'.");
+        OneOf(predicate, "operator", path,
+            "at-least", "at-most", "equals", "less-than", "greater-than");
+        bool hasValue = predicate.TryGetProperty("value", out _);
+        bool hasParameter = predicate.TryGetProperty("valueParameter", out _);
+        if (hasValue == hasParameter)
+        {
+            throw Error(path,
+                "authored predicate must declare exactly one of 'value' or "
+                + "'valueParameter'.");
+        }
+        if (hasValue)
+            Range(predicate, "value", path, 0, 100000);
+        else
+            Identifier(predicate, "valueParameter", path);
+        if (predicate.TryGetProperty("subject", out JsonElement subject))
+            StringValue(subject, $"{path}.predicates.subject");
+        if (predicate.TryGetProperty("zone", out JsonElement zone))
+            StringValue(zone, $"{path}.predicates.zone");
+        if (predicate.TryGetProperty("freshnessTicks", out _))
+            Range(predicate, "freshnessTicks", path, 0, 1200);
+    }
+
     private static void ValidateAuthoredManeuver(
+        string maneuverId,
         JsonElement maneuver,
         string path)
     {
-        Object(maneuver, $"{path}.maneuvers",
-            ["maneuverId", "tracks"]);
-        Identifier(maneuver, "maneuverId", path);
-        JsonElement[] tracks = BoundedArray(
+        Object(maneuver, $"{path}.maneuvers.{maneuverId}", ["tracks"]);
+        CatalogEntry[] tracks = Catalog(
             maneuver.GetProperty("tracks"),
-            $"{path}.maneuvers.tracks", 1, 8);
-        UniqueIds(tracks, "trackId", $"{path}.maneuvers.tracks");
-        foreach (JsonElement track in tracks)
+            $"{path}.maneuvers.{maneuverId}.tracks", 1, 8);
+        foreach (CatalogEntry track in tracks)
         {
-            Object(track, $"{path}.maneuvers.tracks",
-                [
-                    "trackId", "formationId", "movement", "assignments",
-                ]);
-            Identifier(track, "trackId", path);
-            Identifier(track, "formationId", path);
-            JsonElement movement = track.GetProperty("movement");
+            Object(track.Value,
+                $"{path}.maneuvers.{maneuverId}.tracks.{track.Id}",
+                ["formationId", "movement", "assignments"]);
+            Identifier(track.Value, "formationId", path);
+            JsonElement movement = track.Value.GetProperty("movement");
             Object(movement, $"{path}.maneuvers.tracks.movement",
                 ["kind", "target", "stuckTicks", "pace"]);
             OneOf(movement, "kind", path,
@@ -484,37 +742,30 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(movement, "stuckTicks", path, 1, 120);
             OneOf(movement, "pace", path, "slowest", "leader", "free");
 
-            JsonElement[] assignments = BoundedArray(
-                track.GetProperty("assignments"),
-                $"{path}.maneuvers.tracks.assignments", 1, 32);
-            UniqueIds(assignments, "orderId",
-                $"{path}.maneuvers.tracks.assignments");
-            foreach (JsonElement assignment in assignments)
+            CatalogEntry[] assignments = Catalog(
+                track.Value.GetProperty("assignments"),
+                $"{path}.maneuvers.{maneuverId}.tracks.{track.Id}.assignments",
+                1, 32);
+            foreach (CatalogEntry assignment in assignments)
             {
-                Object(assignment, $"{path}.maneuvers.tracks.assignments",
+                Object(assignment.Value,
+                    $"{path}.maneuvers.{maneuverId}.tracks.{track.Id}."
+                    + $"assignments.{assignment.Id}",
                     [
-                        "orderId", "groupId", "localState", "priority",
-                        "arrivalRadius", "completion", "stuckRecovery",
-                        "chaseLeash", "engagementId", "supportId",
-                        "custodyId", "fallbackId",
+                        "assignmentProfileId", "arrivalRadius", "completion",
+                        "chaseLeash", "engagementId", "custodyId",
+                        "fallbackId",
                     ]);
-                Identifier(assignment, "orderId", path);
-                Identifier(assignment, "groupId", path);
-                Identifier(assignment, "localState", path);
-                Range(assignment, "priority", path, 0, 1000);
-                Range(assignment, "arrivalRadius", path, 0, 16);
-                OneOf(assignment, "completion", path,
+                Identifier(assignment.Value, "assignmentProfileId", path);
+                Range(assignment.Value, "arrivalRadius", path, 0, 16);
+                OneOf(assignment.Value, "completion", path,
                     "leader-arrived", "cohesion-arrived", "all-arrived",
                     "continuous");
-                OneOf(assignment, "stuckRecovery", path,
-                    "repath", "yield", "reflow", "regroup", "hold");
-                Range(assignment, "chaseLeash", path, 0, 16);
-                Identifier(assignment, "engagementId", path);
+                Range(assignment.Value, "chaseLeash", path, 0, 16);
+                Identifier(assignment.Value, "engagementId", path);
                 NonEmptyString(
-                    assignment, "supportId", path, allowEmpty: true);
-                NonEmptyString(
-                    assignment, "custodyId", path, allowEmpty: true);
-                Identifier(assignment, "fallbackId", path);
+                    assignment.Value, "custodyId", path, allowEmpty: true);
+                Identifier(assignment.Value, "fallbackId", path);
             }
         }
     }
@@ -1764,6 +2015,33 @@ public static class ArcRelayTacticalPlaybookCompiler
         return entries;
     }
 
+    private readonly record struct CatalogEntry(string Id, JsonElement Value);
+
+    private static CatalogEntry[] Catalog(
+        JsonElement value,
+        string path,
+        int minimum,
+        int maximum)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected keyed object catalog.");
+        JsonProperty[] properties = value.EnumerateObject()
+            .OrderBy(property => property.Name, StringComparer.Ordinal)
+            .ToArray();
+        if (properties.Length < minimum || properties.Length > maximum)
+            throw Error(path, $"expected {minimum}..{maximum} entries.");
+        foreach (JsonProperty property in properties)
+            IdentifierValue(property.Name, path);
+        if (properties.Select(property => property.Name)
+            .Distinct(StringComparer.Ordinal).Count() != properties.Length)
+        {
+            throw Error(path, "catalog keys must be unique.");
+        }
+        return properties
+            .Select(property => new CatalogEntry(property.Name, property.Value))
+            .ToArray();
+    }
+
     private static string[] StringArray(
         JsonElement value,
         string path,
@@ -1806,13 +2084,21 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static string Identifier(JsonElement value, string name, string path)
     {
         string result = RequiredString(value, name, path);
+        IdentifierValue(result, path, name);
+        return result;
+    }
+
+    private static void IdentifierValue(
+        string result,
+        string path,
+        string name = "catalog key")
+    {
         if (result.Length is < 1 or > 64
             || !char.IsLower(result[0])
             || result.Any(character => !char.IsLower(character)
                 && !char.IsDigit(character)
                 && character != '-'))
             throw Error(path, $"'{name}' must be a lower-kebab identifier.");
-        return result;
     }
 
     private static string RequiredString(
