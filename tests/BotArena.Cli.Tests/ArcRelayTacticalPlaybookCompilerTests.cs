@@ -483,6 +483,61 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void EveryPhaseMustCoverEveryGroupLocalStateExplicitly()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject harvest = source["coordination"]!["phases"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["phaseId"]!.GetValue<string>()
+                == "harvest");
+        harvest["orderIds"]!.AsArray().Remove(
+            harvest["orderIds"]!.AsArray()
+                .Single(value => value!.GetValue<string>()
+                    == "line-recover"));
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "must declare exactly one order for group 'line-group' "
+                + "local state 'recovering', found 0",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void OrderLocalStateMustBelongToItsGroup()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject runner = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "runner-rush");
+        runner["localState"] = "recovering";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "references unknown local state 'recovering' in group "
+                + "'runner-group'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void FormationMustProvideDistinctSlotsForRoleCapacity()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!

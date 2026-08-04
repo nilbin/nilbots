@@ -1661,9 +1661,10 @@
         "phaseId": "harvest",
         "minimumTicks": 8,
         "orderIds": [
-          "runner-harvest",
-          "medics-harvest",
-          "line-harvest"
+        "runner-harvest",
+        "medics-harvest",
+        "line-harvest",
+        "line-recover"
         ],
         "transitions": [
           {
@@ -1727,9 +1728,10 @@
         "phaseId": "delivery",
         "minimumTicks": 8,
         "orderIds": [
-          "runner-delivery",
-          "medics-delivery",
-          "line-delivery"
+        "runner-delivery",
+        "medics-delivery",
+        "line-delivery",
+        "line-recover"
         ],
         "transitions": [
           {

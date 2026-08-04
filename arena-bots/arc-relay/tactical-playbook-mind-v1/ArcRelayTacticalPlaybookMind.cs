@@ -886,13 +886,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ToArray();
         return mind.Bodies.ToDictionary(
             body => body.UnitId,
-            body => phaseOrders
-                .Where(order => order.GroupId == groups[body.UnitId])
-                .OrderBy(order => order.LocalState
-                    == machine.LocalState(groups[body.UnitId]) ? 0 : 1)
-                .ThenBy(order => order.Priority)
-                .ThenBy(order => order.OrderId, StringComparer.Ordinal)
-                .First());
+            body => phaseOrders.Single(order =>
+                order.GroupId == groups[body.UnitId]
+                && order.LocalState
+                    == machine.LocalState(groups[body.UnitId])));
     }
 
     private Position Target(

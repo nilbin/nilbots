@@ -668,6 +668,17 @@
       ],
       "resultSummary": "Retain the generic layout-corridor semantic and reject the current Siege strategy. The old candidate materially relied on a three-tile formation reflow inside routes authored at width two.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "exact-global-phase-local-state-coverage",
+      "playbookSourceSha256": "fb7805fd25076c124ab0b54bff5b76d432ecddc467a9a502da4956bbc6e16692",
+      "change": "Require every global phase to name exactly one order for every group/local-state pair; remove runtime cross-state fallback and explicitly include line recovery during harvest and delivery.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 406 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 }
+      ],
+      "resultSummary": "Retain the generic exact-coverage contract and reject the strategy candidate. The source hash changed because previously implicit harvest/delivery recovery is now explicit; both diagnostic mirrors still lost.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

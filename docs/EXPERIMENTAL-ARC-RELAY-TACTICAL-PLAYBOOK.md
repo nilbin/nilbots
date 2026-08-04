@@ -269,6 +269,13 @@ and condition groups. `minimumPolicy: respect` cannot begin its stable streak
 before minimum tenure; `minimumPolicy: interrupt` is an explicit critical
 escape hatch and may stabilize earlier.
 
+Each global phase must name exactly one order for every declared
+`(group, localState)` pair. The compiler rejects a missing pair, duplicate pair,
+or an order whose local state does not belong to its group; runtime selection
+is exact and has no cross-state fallback. This makes local recovery genuinely
+concurrent with the global phase. Order priority then controls deterministic
+body/claim arbitration across the selected orders, followed by stable unit ID.
+
 A condition group is exactly one of `all` or `any`. Facts are typed by their
 required fields:
 

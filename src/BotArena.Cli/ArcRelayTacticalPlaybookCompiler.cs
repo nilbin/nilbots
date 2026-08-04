@@ -352,6 +352,71 @@ public static class ArcRelayTacticalPlaybookCompiler
             roleIds,
             orderIds,
             path);
+        ValidatePhaseOrderCoverage(
+            root.GetProperty("coordination"), groups, orders, path);
+    }
+
+    private static void ValidatePhaseOrderCoverage(
+        JsonElement coordination,
+        IReadOnlyCollection<JsonElement> groups,
+        IReadOnlyCollection<JsonElement> orders,
+        string path)
+    {
+        Dictionary<string, JsonElement> ordersById = orders.ToDictionary(
+            order => order.GetProperty("orderId").GetString()!,
+            StringComparer.Ordinal);
+        var groupStates = new Dictionary<string, string[]>(
+            StringComparer.Ordinal);
+        foreach (JsonElement group in groups)
+        {
+            string groupId = group.GetProperty("groupId").GetString()!;
+            string[] states = group.GetProperty("localStateMachine")
+                .GetProperty("states").EnumerateArray()
+                .Select(state => state.GetProperty("stateId").GetString()!)
+                .ToArray();
+            groupStates[groupId] = states;
+        }
+        foreach (JsonElement order in orders)
+        {
+            string orderId = order.GetProperty("orderId").GetString()!;
+            string groupId = order.GetProperty("groupId").GetString()!;
+            string localState = order.GetProperty("localState").GetString()!;
+            if (!groupStates[groupId].Contains(
+                    localState, StringComparer.Ordinal))
+            {
+                throw Error(path,
+                    $"order '{orderId}' references unknown local state "
+                    + $"'{localState}' in group '{groupId}'.");
+            }
+        }
+        foreach (JsonElement phase in coordination.GetProperty("phases")
+                     .EnumerateArray())
+        {
+            string phaseId = phase.GetProperty("phaseId").GetString()!;
+            JsonElement[] phaseOrders = phase.GetProperty("orderIds")
+                .EnumerateArray()
+                .Select(value => ordersById[value.GetString()!])
+                .ToArray();
+            foreach ((string groupId, string[] states) in groupStates)
+            foreach (string state in states)
+            {
+                int matching = phaseOrders.Count(order => string.Equals(
+                        order.GetProperty("groupId").GetString(),
+                        groupId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        order.GetProperty("localState").GetString(),
+                        state,
+                        StringComparison.Ordinal));
+                if (matching != 1)
+                {
+                    throw Error(path,
+                        $"phase '{phaseId}' must declare exactly one order "
+                        + $"for group '{groupId}' local state '{state}', "
+                        + $"found {matching}.");
+                }
+            }
+        }
     }
 
     private static void ValidateEscortOrders(
