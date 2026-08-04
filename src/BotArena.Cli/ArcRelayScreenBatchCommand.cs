@@ -69,6 +69,7 @@ public static class ArcRelayScreenBatchCommand
                 receipt.Result.WinnerTeamId,
                 receipt.Result.Reason,
                 receipt.Result.EndTick,
+                receipt.Scores,
                 Path.GetRelativePath(outputRoot, receiptPath),
                 Stopwatch.GetElapsedTime(cellStart).TotalMilliseconds));
         }
@@ -234,6 +235,7 @@ public sealed record ArcRelayScreenBatchCellResult(
     int? WinnerTeamId,
     string Reason,
     int? EndTick,
+    ArcRelayScreenScoreReceipt[] Scores,
     string Receipt,
     double ElapsedMilliseconds);
 

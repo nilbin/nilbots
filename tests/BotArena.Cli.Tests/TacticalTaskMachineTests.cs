@@ -313,6 +313,97 @@ public sealed class TacticalTaskMachineTests
         Assert.Equal("active", machine.State("carry").LastReason);
     }
 
+    [Fact]
+    public void CompletionMustArmBeforeAnInitiallyTrueTerminalConditionReleases()
+    {
+        TacticalPlaybookPackage.TacticalTask task = Task(
+            "delivery",
+            Assignment("pair", "convert-order", ["kestrel"])) with
+        {
+            CompletionArmWhen = [Group("carrier-observed")],
+        };
+        TacticalTaskMachine machine = Machine(task);
+        var facts = new HashSet<string>(
+            ["trigger", "complete"], StringComparer.Ordinal);
+        TacticalTaskCandidate courier = Candidate(0, "kestrel", x: 1);
+
+        Step(machine, 0, facts, courier);
+        Step(machine, 1, facts, courier);
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+
+        facts.Remove("complete");
+        facts.Add("carrier-observed");
+        Step(machine, 2, facts, courier);
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+
+        facts.Remove("carrier-observed");
+        facts.Add("complete");
+        Step(machine, 3, facts, courier);
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("delivery").Phase);
+    }
+
+    [Fact]
+    public void AssignedCarrierLifecycleIgnoresOtherCarriersAndReleasesExactly()
+    {
+        TacticalPlaybookPackage.TacticalTask task = Task(
+            "delivery",
+            Assignment("courier", "convert-order", ["kestrel"])) with
+        {
+            CompletionArmMode = "assigned-carrier",
+            CompletionReleaseMode = "assigned-carrier-loss",
+        };
+        TacticalTaskMachine machine = Machine(task);
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "relay", x: 2, carrier: true));
+        Step(machine, 1, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "relay", x: 2, carrier: true));
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+
+        Step(machine, 2, facts,
+            Candidate(0, "kestrel", x: 1, carrier: true),
+            Candidate(1, "relay", x: 2, carrier: true));
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+
+        Step(machine, 3, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "relay", x: 2, carrier: true));
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("delivery").Phase);
+        Assert.Equal(
+            "assigned-carrier-released-primary-order",
+            machine.State("delivery").LastReason);
+    }
+
+    [Fact]
+    public void AlternateCarrierCancelsUnarmedCourierLease()
+    {
+        TacticalPlaybookPackage.TacticalTask task = Task(
+            "delivery",
+            Assignment("courier", "convert-order", ["kestrel"])) with
+        {
+            CompletionArmMode = "assigned-carrier",
+            CompletionReleaseMode = "assigned-carrier-loss",
+            CancellationMode = "alternate-carrier",
+        };
+        TacticalTaskMachine machine = Machine(task);
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "relay", x: 2));
+        Step(machine, 1, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "relay", x: 2, carrier: true));
+
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("delivery").Phase);
+        Assert.Equal(
+            "alternate-carrier-primary-order",
+            machine.State("delivery").LastReason);
+    }
+
     private static TacticalTaskMachine Machine(
         params TacticalPlaybookPackage.TacticalTask[] tasks)
     {

@@ -20,7 +20,9 @@ internal static class TacticalFormationPrimitives
         Position enemyReactor,
         Position? focusTarget)
     {
-        if (orientation is not "fixed" && focusTarget is Position focus)
+        if (orientation is not "fixed" and not "watch-own-reactor"
+            and not "watch-enemy-reactor"
+            && focusTarget is Position focus)
             return focus;
         return orientation switch
         {
@@ -29,6 +31,8 @@ internal static class TacticalFormationPrimitives
                 : movementTarget,
             "enemy-reactor" => enemyReactor,
             "own-reactor" => ownReactor,
+            "watch-own-reactor" => ownReactor,
+            "watch-enemy-reactor" => enemyReactor,
             "focus-target" or "fixed" => null,
             _ => throw new InvalidDataException(
                 $"Unknown formation orientation '{orientation}'."),

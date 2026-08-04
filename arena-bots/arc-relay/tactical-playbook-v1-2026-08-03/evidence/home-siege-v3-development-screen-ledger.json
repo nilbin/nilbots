@@ -38,6 +38,92 @@
       ],
       "resultSummary": "Rejected as a strategy candidate. Triggering the return pair for every friendly carrier disrupted the assault before the declared Siege conversion window and erased the accepted v2 margin. Retain the generic zone fact, aggregate alternative cap, catch-up primitive, and causal cutoff; replace the global return task with a lifecycle-armed completion on the declared courier-plus-escort task.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "one-step-dodge-coverage-matrix",
+      "runtime": "in-process",
+      "candidateCount": 36,
+      "matrixGenerator": "scripts/generate-home-siege-v3-focus-matrix.mjs",
+      "selectedPlaybookSha256": "248cde0d87ba7773dcfbb4a37ff0fdfe0bede3e21aeb79e85944eaf8a3c40043",
+      "change": "Swept one through four prediction ticks, one through three guaranteed direct shots, and three/five/seven covered escape options without changing combat rules or class values.",
+      "selectedSemantics": {
+        "horizonTicks": 1,
+        "minimumDirectShots": 1,
+        "minimumCoveredOptions": 5
+      },
+      "pairedScreen": {
+        "seed": "202608062",
+        "siegeTeam0": "9-4",
+        "siegeTeam1": "9-2"
+      },
+      "resultSummary": "Selected. Four-tick extrapolation spread coordinated shots beyond the carrier's immediate legal escape; one-step coverage retained dodge denial while putting a guaranteed shot on the observed carrier.",
+      "verdict": "selected-semantic"
+    },
+    {
+      "attemptId": "joining-facing-and-regroup-probes",
+      "runtime": "in-process",
+      "change": "Tested per-placement rear watch, rally reversal, route/zone joining orders, and siege-focus during regroup as isolated authoring changes.",
+      "pairedResults": [
+        { "variant": "two-rear-watch", "siegeTeam0": "9-4", "siegeTeam1": "9-8" },
+        { "variant": "one-strict-rear-watch", "siegeTeam0": "9-4", "siegeTeam1": "6-9 loss" },
+        { "variant": "rally-own-reactor", "siegeTeam0": "9-7", "siegeTeam1": "5-9 loss" },
+        { "variant": "fighting-regroup", "siegeTeam0": "9-5", "siegeTeam1": "7-7 draw" },
+        { "variant": "route-joining", "siegeTeam0": "9-7", "siegeTeam1": "3-9 loss" },
+        { "variant": "zone-joining", "siegeTeam0": "7-9 loss", "siegeTeam1": "fault/horizon rejection" }
+      ],
+      "resultSummary": "Rejected all sheet uses. The generic grammar remains available and tested, but forcing rear watch or a special catch-up route weakened causal forward fire or dragged replacements through the wrong counterflow approach.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "enemy-home-sanitation-matrices",
+      "runtime": "in-process",
+      "matrixGenerator": "scripts/generate-home-siege-v3-sanitation-matrix.mjs",
+      "change": "Tested one-body pickup-and-displace sanitation at pickup radii one through four, first over the full enemy-home zone and then only the three-by-three bank mouth.",
+      "fullZoneRange": "8-9 loss through 9-6 win for Siege team 0; 7-7 draw through 3-9 loss for Siege team 1",
+      "bankMouthRange": "9-4 through 9-7 for Siege team 0; every Siege team 1 variant lost 2-9",
+      "resultSummary": "Rejected as a sheet behavior. Even a bounded one-body displacement lease repeatedly peeled the exact body maintaining spawn control. The bank-danger zone and safe displacement grammar remain as generic tools, but no eligibility or detector threshold was changed to admit the tactic.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "counterflow-side-bound-ring-matrix",
+      "runtime": "in-process",
+      "candidateCount": 6,
+      "matrixGenerator": "scripts/generate-home-siege-v3-ring-matrix.mjs",
+      "change": "Swept current, nose, inner-three, full-line-forward, and medic-forward living rings under both exact reactor-side bindings.",
+      "keyRead": {
+        "westCurrent": "9-4 with 2 integrity",
+        "westLineForward": "9-1 with 3 integrity",
+        "eastCurrent": "9-2 with 3 integrity",
+        "eastLineForward": "7-9 loss"
+      },
+      "resultSummary": "Selected a layout-bound formation alias: the west counterflow approach uses the full line-forward ring while the east approach retains the current ring. This expresses map geometry in the exact-bound layout, analogous to its existing route aliases, rather than branching on team ID in the mind.",
+      "verdict": "selected-map-aware-semantic"
+    },
+    {
+      "attemptId": "exact-carrier-lifecycle-application",
+      "runtime": "in-process",
+      "change": "Applied the new assigned-carrier arm/release primitive, then the alternate-carrier cancellation variant, to the existing harvest task.",
+      "pairedResults": [
+        { "variant": "assigned-carrier-release", "siegeTeam0": "9-7", "siegeTeam1": "9-2" },
+        { "variant": "alternate-carrier-cancel", "siegeTeam0": "7-9 loss", "siegeTeam1": "9-8" }
+      ],
+      "resultSummary": "Rejected for this task. Home Siege deliberately allows an incidental body to secure the target while the runner/escort lease continues the declared conversion play; exact cancellation erased that coordination. The generic exact-life lifecycle is retained with unit tests for future tasks that own their carrier exclusively.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "side-bound-finalist-screen",
+      "runtime": "in-process",
+      "playbookSha256": "ca156a99501ac420e48b84bb8e93a1a8041a6915067df126daf8854599da4b5b",
+      "layoutSha256": "89c92e7091b6c66a31bf56c09d624746c2c06aa760ca6c96c0ebe469836fb3e7",
+      "compiledPlaybookSha256": "3de7e108f85e11a6b1b6728319d91da943c1f04cc77fe1d4e65d496ce5bae4da",
+      "cells": 24,
+      "seeds": ["939580", "737182", "921408", "440678", "577986", "803080", "352170", "824911", "419119", "627839", "737592", "542587"],
+      "scoresByAssignment": {
+        "siegeTeam0": "9-1 in 12/12, 3 integrity",
+        "siegeTeam1": "9-2 in 12/12, 3 integrity"
+      },
+      "resultSummary": "Selected as the only canonical finalist. Every screen cell ended in a Siege reactor win with no runtime fault and exceeded the requested 9-2 floor.",
+      "verdict": "selected-for-pre-outcome-freeze"
     }
   ]
 }

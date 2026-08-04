@@ -13,6 +13,7 @@ internal sealed class TacticalPlaybookPackage
     private readonly Dictionary<string, Route> _routes;
     private readonly Dictionary<string, Anchor> _anchors;
     private readonly IReadOnlyDictionary<string, string> _routeAliases;
+    private readonly IReadOnlyDictionary<string, string> _formationAliases;
     private readonly int _mapWidth;
     private readonly int _mapHeight;
 
@@ -24,7 +25,8 @@ internal sealed class TacticalPlaybookPackage
         LayoutTransform transform,
         int mapWidth,
         int mapHeight,
-        IReadOnlyDictionary<string, string> routeAliases)
+        IReadOnlyDictionary<string, string> routeAliases,
+        IReadOnlyDictionary<string, string> formationAliases)
     {
         Source = source;
         LayoutSource = layout;
@@ -34,6 +36,7 @@ internal sealed class TacticalPlaybookPackage
         _mapWidth = mapWidth;
         _mapHeight = mapHeight;
         _routeAliases = routeAliases;
+        _formationAliases = formationAliases;
         _zones = layout.Zones.ToDictionary(value => value.ZoneId,
             StringComparer.Ordinal);
         _routes = layout.Routes.ToDictionary(value => value.RouteId,
@@ -103,7 +106,9 @@ internal sealed class TacticalPlaybookPackage
         };
         return new TacticalPlaybookPackage(
             playbook, layout, playbookSha256, layoutSha256, transform,
-            contract.Map.Width, contract.Map.Height, binding.RouteAliases);
+            contract.Map.Width, contract.Map.Height, binding.RouteAliases,
+            binding.FormationAliases ?? new Dictionary<string, string>(
+                StringComparer.Ordinal));
     }
 
     internal bool Contains(string zoneId, Position position)
@@ -148,6 +153,14 @@ internal sealed class TacticalPlaybookPackage
             ?? throw new InvalidDataException(
                 $"Unknown tactical route '{routeId}'.");
         return route.CorridorWidth;
+    }
+
+    internal Formation ResolveFormation(Playbook playbook, string formationId)
+    {
+        string resolved = _formationAliases.GetValueOrDefault(
+            formationId, formationId);
+        return playbook.Formations.Single(value => string.Equals(
+            value.FormationId, resolved, StringComparison.Ordinal));
     }
 
     internal Position FormationPosition(Position anchor, int[] offset)
@@ -286,7 +299,8 @@ internal sealed class TacticalPlaybookPackage
         string RoleId,
         string Sector,
         int Order,
-        int[] Offset);
+        int[] Offset,
+        string? Facing = null);
 
     internal sealed record Cohesion(
         int ArrivalRatioPercent,
@@ -356,7 +370,15 @@ internal sealed class TacticalPlaybookPackage
         string AccidentalPickup,
         string DropRecovery,
         string UnreachableFallback,
-        ConditionGroup[] SafeConversionAll);
+        ConditionGroup[] SafeConversionAll,
+        string[]? EmergencyRecoveryZones = null,
+        int EmergencyPickupRadius = 0,
+        ConditionGroup[]? EmergencyRecoveryAll = null,
+        string[]? EmergencyRecoveryRoles = null,
+        string[]? EmergencyRecoverySourceWells = null,
+        string? EmergencyRecoveryDisposition = null,
+        string? EmergencyDisplacementTarget = null,
+        int EmergencyDisplacementReleaseRadius = 0);
 
     internal sealed record Order(
         string OrderId,
@@ -423,7 +445,11 @@ internal sealed class TacticalPlaybookPackage
         ConditionGroup[] FailWhen,
         Reintegration Reintegration,
         int MinimumParticipants = 0,
-        int MaximumParticipants = 0);
+        int MaximumParticipants = 0,
+        ConditionGroup[]? CompletionArmWhen = null,
+        string? CompletionArmMode = null,
+        string? CompletionReleaseMode = null,
+        string? CancellationMode = null);
 
     internal sealed record TaskAssignment(
         string AssignmentId,
@@ -436,7 +462,10 @@ internal sealed class TacticalPlaybookPackage
         string Carrier,
         SelectionDistance Distance);
 
-    internal sealed record SelectionDistance(string Kind, string Target);
+    internal sealed record SelectionDistance(
+        string Kind,
+        string Target,
+        int Maximum = 0);
 
     internal sealed record Reintegration(
         string Mode,
@@ -477,7 +506,8 @@ internal sealed class TacticalPlaybookPackage
         string MatchContractFingerprint,
         string OwnReactorSide,
         string Transform,
-        Dictionary<string, string> RouteAliases);
+        Dictionary<string, string> RouteAliases,
+        Dictionary<string, string>? FormationAliases = null);
 
     internal sealed record Zone(string ZoneId, int[] Rect);
 

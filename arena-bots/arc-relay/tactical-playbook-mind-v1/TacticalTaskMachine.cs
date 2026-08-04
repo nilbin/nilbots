@@ -97,7 +97,8 @@ internal sealed class TacticalTaskMachine
                     .Select(value => $"{value.UnitId}:{value.AssignmentId}"));
             return $"{plan.TaskId}="
                 + state.Phase.ToString().ToLowerInvariant()
-                + $"[{state.LastReason}|c={claims}]";
+                + $"[{state.LastReason}|armed="
+                + $"{(state.CompletionArmed ? 1 : 0)}|c={claims}]";
         }));
 
     internal void Update(
@@ -265,6 +266,9 @@ internal sealed class TacticalTaskMachine
         state.Assignments = selected;
         state.EdgeReady = false;
         state.TriggerStreak = 0;
+        state.CompletionArmed = state.Plan.CompletionArmWhen is not
+                { Length: > 0 }
+            && state.Plan.CompletionArmMode is null;
         Transition(tick, state, TacticalTaskPhase.Active, "triggered");
     }
 
@@ -279,7 +283,49 @@ internal sealed class TacticalTaskMachine
             TacticalTaskCandidate, int> distance)
     {
         int elapsed = tick - state.PhaseStartedTick;
-        if (elapsed >= state.Plan.MinimumTicks
+        bool assignedParticipantCarriesCore = state.Assignments.Any(value =>
+            SameLife(live, value) && live[value.UnitId].CarriesCore);
+        bool alternateParticipantCarriesCore = live.Values.Any(value =>
+            value.CarriesCore
+            && state.Assignments.All(assignment =>
+                assignment.ActorId != value.ActorId));
+        if (!state.CompletionArmed
+            && string.Equals(
+                state.Plan.CancellationMode,
+                "alternate-carrier",
+                StringComparison.Ordinal)
+            && alternateParticipantCarriesCore)
+        {
+            BeginReintegration(tick, state, "alternate-carrier");
+            return;
+        }
+        if (!state.CompletionArmed
+            && string.Equals(
+                state.Plan.CompletionArmMode,
+                "assigned-carrier",
+                StringComparison.Ordinal)
+            && assignedParticipantCarriesCore)
+        {
+            state.CompletionArmed = true;
+        }
+        if (!state.CompletionArmed
+            && state.Plan.CompletionArmWhen is { Length: > 0 } armWhen
+            && MatchesAny(armWhen, evaluate))
+        {
+            state.CompletionArmed = true;
+        }
+        if (state.CompletionArmed
+            && string.Equals(
+                state.Plan.CompletionReleaseMode,
+                "assigned-carrier-loss",
+                StringComparison.Ordinal)
+            && !assignedParticipantCarriesCore)
+        {
+            BeginReintegration(tick, state, "assigned-carrier-released");
+            return;
+        }
+        if (state.CompletionArmed
+            && elapsed >= state.Plan.MinimumTicks
             && MatchesAny(state.Plan.CompleteWhen, evaluate))
         {
             BeginReintegration(tick, state, "completed");
@@ -404,6 +450,9 @@ internal sealed class TacticalTaskMachine
                         value.UnitId,
                         out Runtime? owner)
                     || ReferenceEquals(owner, state))
+                .Where(value => assignment.Distance.Maximum <= 0
+                    || distance(assignment, value)
+                        <= assignment.Distance.Maximum)
                 .OrderBy(value => ClassRank(assignment, value))
                 .ThenBy(value => distance(assignment, value))
                 .ThenBy(value => value.UnitId)
@@ -469,6 +518,9 @@ internal sealed class TacticalTaskMachine
                 .Where(value => !claimed.Contains(value.UnitId))
                 .Where(value => Claimable(
                     claimant, value.UnitId, owners, allowPreemption))
+                .Where(value => assignment.Distance.Maximum <= 0
+                    || distance(assignment, value)
+                        <= assignment.Distance.Maximum)
                 .OrderBy(value => ClassRank(assignment, value))
                 .ThenBy(value => distance(assignment, value))
                 .ThenBy(value => value.UnitId)
@@ -657,6 +709,7 @@ internal sealed class TacticalTaskMachine
         state.PhaseStartedTick = tick;
         state.CooldownUntil = tick + state.Plan.CooldownTicks;
         state.Assignments.Clear();
+        state.CompletionArmed = false;
         state.LastReason = reason;
         _transitions.Add(new(
             tick, state.Plan.TaskId, from, state.Phase, reason, unitIds));
@@ -733,6 +786,7 @@ internal sealed class TacticalTaskMachine
         internal int PhaseStartedTick { get; set; }
         internal int CooldownUntil { get; set; }
         internal int TriggerStreak { get; set; }
+        internal bool CompletionArmed { get; set; }
         internal bool EdgeReady { get; set; } = true;
         internal string LastReason { get; set; } = "initial";
         internal List<TacticalTaskAssignment> Assignments { get; set; } = [];

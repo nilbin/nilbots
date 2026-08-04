@@ -85,6 +85,33 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void HomeSiegeV3BindsTheForwardRingOnlyToTheWestApproach()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        using JsonDocument layout = JsonDocument.Parse(
+            compilation.NormalizedLayout);
+
+        Assert.Contains(
+            playbook.RootElement.GetProperty("formations").EnumerateArray(),
+            value => value.GetProperty("formationId").GetString()
+                == "living-ring-west-forward");
+        JsonElement west = layout.RootElement.GetProperty("bindings")
+            .EnumerateArray().Single(value => value
+                .GetProperty("ownReactorSide").GetString() == "west");
+        JsonElement east = layout.RootElement.GetProperty("bindings")
+            .EnumerateArray().Single(value => value
+                .GetProperty("ownReactorSide").GetString() == "east");
+        Assert.Equal(
+            "living-ring-west-forward",
+            west.GetProperty("formationAliases")
+                .GetProperty("living-ring").GetString());
+        Assert.Empty(east.GetProperty("formationAliases").EnumerateObject());
+    }
+
+    [Fact]
     public void ManeuverCatalogExpandsToExhaustiveRuntimeOrders()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
@@ -1325,6 +1352,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         "tactical-playbook-v1-2026-08-03",
         "playbooks",
         "home-siege-v2.json");
+
+    private static string HomeSiegeV3() => Path.Combine(
+        FindRepoRoot(),
+        "arena-bots",
+        "arc-relay",
+        "tactical-playbook-v1-2026-08-03",
+        "playbooks",
+        "home-siege-v3.json");
 
     private static string[] BaselineComposition()
     {

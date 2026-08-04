@@ -24,7 +24,7 @@ public sealed class ArcRelayPlaylistDefinition : IHostedGenericMatchDefinition
     public const string HistoricalForwardStockArtifactHash =
         "195114c7bd12758dc5b55060381c48782fe4e370a26a7c79883d6eb921490a64";
     public const string ForwardStockArtifactHash =
-        "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368";
+        "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f";
 
     private ArcRelayPlaylistDefinition(
         ActorResolvedMatchDefinition representative,

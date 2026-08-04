@@ -7,7 +7,10 @@
       "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
       "ownReactorSide": "west",
       "transform": "identity",
-      "routeAliases": {}
+      "routeAliases": {},
+      "formationAliases": {
+        "living-ring": "living-ring-west-forward"
+      }
     },
     {
       "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
@@ -16,11 +19,13 @@
       "routeAliases": {
         "outer-rush": "outer-rush-opposite",
         "short-breach": "short-breach-opposite"
-      }
+      },
+      "formationAliases": {}
     }
   ],
   "zones": [
     { "zoneId": "enemy-home", "rect": [24, 7, 29, 15] },
+    { "zoneId": "enemy-bank-danger", "rect": [27, 10, 29, 12] },
     { "zoneId": "bank-seal", "rect": [24, 8, 26, 14] },
     { "zoneId": "forward-rally", "rect": [23, 8, 26, 14] },
     { "zoneId": "siege-leash", "rect": [21, 5, 29, 17] },
@@ -56,6 +61,7 @@
   "anchors": [
     { "anchorId": "enemy-perimeter", "position": [26, 11] },
     { "anchorId": "rally-centre", "position": [24, 11] },
+    { "anchorId": "sanitation-release", "position": [22, 11] },
     { "anchorId": "own-bank", "position": [2, 11] },
     { "anchorId": "well-line-centre", "position": [15, 11] }
   ]

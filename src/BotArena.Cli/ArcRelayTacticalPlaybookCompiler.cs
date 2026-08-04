@@ -411,6 +411,16 @@ public static class ArcRelayTacticalPlaybookCompiler
                 expandedConditionSetById,
                 authoringAt,
                 allowEmpty: false);
+            if (expandedTask.ContainsKey("completionArmConditionSetId"))
+            {
+                ExpandTaskCondition(
+                    expandedTask,
+                    "completionArmConditionSetId",
+                    "completionArmWhen",
+                    expandedConditionSetById,
+                    authoringAt,
+                    allowEmpty: false);
+            }
             ExpandTaskCondition(
                 expandedTask,
                 "failConditionSetId",
@@ -532,6 +542,22 @@ public static class ArcRelayTacticalPlaybookCompiler
             }
             custody.Remove("safeConversionConditionSetId");
             custody["safeConversionAll"] = conditions.DeepClone();
+            if (custody.ContainsKey("emergencyRecoveryConditionSetId"))
+            {
+                string emergencyConditionSetId = custody[
+                    "emergencyRecoveryConditionSetId"]!.GetValue<string>();
+                if (!conditionSets.TryGetValue(
+                        emergencyConditionSetId,
+                        out JsonArray? emergencyConditions))
+                {
+                    throw Error(path,
+                        "custody policy references unknown emergency recovery "
+                        + $"condition set '{emergencyConditionSetId}'.");
+                }
+                custody.Remove("emergencyRecoveryConditionSetId");
+                custody["emergencyRecoveryAll"] =
+                    emergencyConditions.DeepClone();
+            }
         }
 
         foreach (JsonObject transition in expanded["groups"]!.AsArray()
@@ -588,10 +614,21 @@ public static class ArcRelayTacticalPlaybookCompiler
             foreach (JsonElement band in values)
             {
                 Object(band, $"{path}.formations.placementBands",
-                    ["roleId", "sector", "offsets"]);
+                    ["roleId", "sector", "offsets"], ["facing"]);
                 string roleId = Identifier(band, "roleId", path);
                 OneOf(band, "sector", path,
                     "front", "rear", "left", "right", "centre", "any");
+                string? facing = band.TryGetProperty(
+                    "facing", out JsonElement facingValue)
+                        ? facingValue.GetString()
+                        : null;
+                if (facing is not null)
+                {
+                    OneOf(band, "facing", path,
+                        "route", "enemy-reactor", "own-reactor",
+                        "focus-target", "fixed", "watch-own-reactor",
+                        "watch-enemy-reactor");
+                }
                 JsonElement[] offsets = BoundedArray(
                     band.GetProperty("offsets"),
                     $"{path}.formations.placementBands.offsets", 1, 16);
@@ -599,13 +636,16 @@ public static class ArcRelayTacticalPlaybookCompiler
                 {
                     Point(offset,
                         $"{path}.formations.placementBands.offsets", -8, 8);
-                    placements.Add(new JsonObject
+                    var placement = new JsonObject
                     {
                         ["roleId"] = roleId,
                         ["sector"] = band.GetProperty("sector").GetString(),
                         ["order"] = order++,
                         ["offset"] = JsonNode.Parse(offset.GetRawText()),
-                    });
+                    };
+                    if (facing is not null)
+                        placement["facing"] = facing;
+                    placements.Add(placement);
                 }
             }
             formation.Remove("placementBands");
@@ -915,7 +955,11 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "assignments", "whenConditionSetId",
                 "completeConditionSetId", "failConditionSetId",
                 "reintegration",
-            ], ["minimumParticipants", "maximumParticipants"]);
+            ], [
+                "minimumParticipants", "maximumParticipants",
+                "completionArmConditionSetId", "completionArmMode",
+                "completionReleaseMode", "cancellationMode",
+            ]);
         Identifier(task, "taskId", at);
         Range(task, "priority", at, 0, 1000);
         OneOf(task, "activation", at, "rising-edge", "while-true");
@@ -980,13 +1024,37 @@ public static class ArcRelayTacticalPlaybookCompiler
             Cardinality(assignment, $"{at}.assignments", 0, 8);
             OneOf(assignment, "carrier", at, "forbid", "allow", "require");
             JsonElement distance = assignment.GetProperty("distance");
-            Object(distance, $"{at}.assignments.distance", ["kind", "target"]);
+            Object(distance, $"{at}.assignments.distance", ["kind", "target"],
+                ["maximum"]);
             OneOf(distance, "kind", at,
-                "none", "anchor", "own-reactor", "enemy-reactor");
+                "none", "anchor", "own-reactor", "enemy-reactor",
+                "visible-loose-core-in-zone");
             NonEmptyString(distance, "target", at, allowEmpty: true);
+            if (distance.TryGetProperty("maximum", out _))
+                Range(distance, "maximum", at, 1, 64);
         }
         NonEmptyString(task, "whenConditionSetId", at);
         NonEmptyString(task, "completeConditionSetId", at);
+        if (task.TryGetProperty("completionArmConditionSetId", out _))
+            NonEmptyString(task, "completionArmConditionSetId", at);
+        bool hasCompletionArmMode = task.TryGetProperty(
+            "completionArmMode", out _);
+        bool hasCompletionReleaseMode = task.TryGetProperty(
+            "completionReleaseMode", out _);
+        if (hasCompletionArmMode != hasCompletionReleaseMode)
+        {
+            throw Error(at,
+                "completionArmMode and completionReleaseMode must be authored "
+                + "together.");
+        }
+        if (hasCompletionArmMode)
+        {
+            OneOf(task, "completionArmMode", at, "assigned-carrier");
+            OneOf(task, "completionReleaseMode", at,
+                "assigned-carrier-loss");
+        }
+        if (task.TryGetProperty("cancellationMode", out _))
+            OneOf(task, "cancellationMode", at, "alternate-carrier");
         NonEmptyString(task, "failConditionSetId", at, allowEmpty: true);
         JsonElement reintegration = task.GetProperty("reintegration");
         Object(reintegration, $"{at}.reintegration",
@@ -1014,6 +1082,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement layout,
         string path)
     {
+        HashSet<string> formations = playbook.GetProperty("formations")
+            .EnumerateArray()
+            .Select(value => value.GetProperty("formationId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
         HashSet<string> zones = layout.GetProperty("zones").EnumerateArray()
             .Select(value => value.GetProperty("zoneId").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
@@ -1023,6 +1095,26 @@ public static class ArcRelayTacticalPlaybookCompiler
         HashSet<string> anchors = layout.GetProperty("anchors").EnumerateArray()
             .Select(value => value.GetProperty("anchorId").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
+        foreach (JsonElement binding in layout.GetProperty("bindings")
+                     .EnumerateArray())
+        {
+            if (!binding.TryGetProperty(
+                    "formationAliases", out JsonElement aliases))
+            {
+                continue;
+            }
+            foreach (JsonProperty alias in aliases.EnumerateObject())
+            {
+                string target = alias.Value.GetString()!;
+                if (!formations.Contains(alias.Name)
+                    || !formations.Contains(target))
+                {
+                    throw Error(path,
+                        $"formation alias '{alias.Name}' -> '{target}' "
+                        + "references an unknown formation.");
+                }
+            }
+        }
         foreach (JsonElement order in playbook.GetProperty("orders")
                      .EnumerateArray())
         {
@@ -1058,6 +1150,33 @@ public static class ArcRelayTacticalPlaybookCompiler
                 throw Error(path,
                     $"condition references unknown tactical zone '{zone}'.");
         }
+        foreach (JsonElement custody in playbook.GetProperty("custodyPolicies")
+                     .EnumerateArray())
+        {
+            if (!custody.TryGetProperty(
+                    "emergencyRecoveryZones", out JsonElement recoveryZones))
+                continue;
+            foreach (string zone in recoveryZones.EnumerateArray()
+                         .Select(value => value.GetString()!))
+            {
+                if (!zones.Contains(zone))
+                {
+                    throw Error(path,
+                        "custody policy references unknown emergency recovery "
+                        + $"zone '{zone}'.");
+                }
+            }
+            if (custody.TryGetProperty(
+                    "emergencyDisplacementTarget",
+                    out JsonElement displacementTarget)
+                && !anchors.Contains(displacementTarget.GetString()!))
+            {
+                throw Error(path,
+                    "custody policy references unknown emergency "
+                    + "displacement anchor "
+                    + $"'{displacementTarget.GetString()}'.");
+            }
+        }
         foreach (JsonElement task in playbook.GetProperty("coordination")
                      .GetProperty("tasks").EnumerateArray())
         foreach (JsonElement assignment in task.GetProperty("assignments")
@@ -1074,6 +1193,18 @@ public static class ArcRelayTacticalPlaybookCompiler
                 throw Error(path,
                     $"task '{task.GetProperty("taskId").GetString()}' "
                     + "references unknown selection anchor "
+                    + $"'{distance.GetProperty("target").GetString()}'.");
+            }
+            if (string.Equals(
+                    distance.GetProperty("kind").GetString(),
+                    "visible-loose-core-in-zone",
+                    StringComparison.Ordinal)
+                && !zones.Contains(
+                    distance.GetProperty("target").GetString()!))
+            {
+                throw Error(path,
+                    $"task '{task.GetProperty("taskId").GetString()}' "
+                    + "references unknown selection zone "
                     + $"'{distance.GetProperty("target").GetString()}'.");
             }
         }
@@ -1362,7 +1493,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             string orderId = order.GetProperty("orderId").GetString()!;
             string groupId = order.GetProperty("groupId").GetString()!;
             string localState = order.GetProperty("localState").GetString()!;
-            if (!groupStates[groupId].Contains(
+            if (!string.Equals(localState, "joining", StringComparison.Ordinal)
+                && !groupStates[groupId].Contains(
                     localState, StringComparer.Ordinal))
             {
                 throw Error(path,
@@ -1697,12 +1829,19 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement placement in placements)
         {
             Object(placement, $"{at}.{id}.placements",
-                ["roleId", "sector", "order", "offset"]);
+                ["roleId", "sector", "order", "offset"], ["facing"]);
             Reference(placement, "roleId", roleIds, at);
             OneOf(placement, "sector", at,
                 "front", "rear", "left", "right", "centre", "any");
             Range(placement, "order", at, 0, 15);
             Point(placement.GetProperty("offset"), $"{at}.{id}.offset", -8, 8);
+            if (placement.TryGetProperty("facing", out _))
+            {
+                OneOf(placement, "facing", at,
+                    "route", "enemy-reactor", "own-reactor",
+                    "focus-target", "fixed", "watch-own-reactor",
+                    "watch-enemy-reactor");
+            }
         }
         foreach (string roleId in roleIds)
         {
@@ -1847,6 +1986,13 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "sourceWells", "pickupReservationTicks", "transferTimeoutTicks",
                 "deliveryTimeoutTicks", "accidentalPickup", "dropRecovery",
                 "unreachableFallback", "safeConversionAll",
+            ], [
+                "emergencyRecoveryZones", "emergencyPickupRadius",
+                "emergencyRecoveryAll", "emergencyRecoveryRoles",
+                "emergencyRecoverySourceWells",
+                "emergencyRecoveryDisposition",
+                "emergencyDisplacementTarget",
+                "emergencyDisplacementReleaseRadius",
             ]);
         string id = Identifier(value, "custodyId", at);
         References(value.GetProperty("authorizedCarrierRoles"), roleIds,
@@ -1868,6 +2014,62 @@ public static class ArcRelayTacticalPlaybookCompiler
         ValidateConditionGroups(
             value.GetProperty("safeConversionAll"), groupIds, roleIds, orderIds,
             $"{at}.{id}.safeConversionAll", 1, 8);
+        bool hasEmergencyZones = value.TryGetProperty(
+            "emergencyRecoveryZones", out JsonElement emergencyZones);
+        bool hasEmergencyRadius = value.TryGetProperty(
+            "emergencyPickupRadius", out _);
+        bool hasEmergencyConditions = value.TryGetProperty(
+            "emergencyRecoveryAll", out JsonElement emergencyConditions);
+        bool hasEmergencyRoles = value.TryGetProperty(
+            "emergencyRecoveryRoles", out JsonElement emergencyRoles);
+        bool hasEmergencySourceWells = value.TryGetProperty(
+            "emergencyRecoverySourceWells",
+            out JsonElement emergencySourceWells);
+        bool hasEmergencyDisposition = value.TryGetProperty(
+            "emergencyRecoveryDisposition", out JsonElement disposition);
+        bool hasEmergencyDisplacementTarget = value.TryGetProperty(
+            "emergencyDisplacementTarget", out _);
+        bool hasEmergencyDisplacementRadius = value.TryGetProperty(
+            "emergencyDisplacementReleaseRadius", out _);
+        if (hasEmergencyZones || hasEmergencyRadius || hasEmergencyConditions
+            || hasEmergencyRoles || hasEmergencySourceWells
+            || hasEmergencyDisposition || hasEmergencyDisplacementTarget
+            || hasEmergencyDisplacementRadius)
+        {
+            if (!hasEmergencyZones || !hasEmergencyRadius
+                || !hasEmergencyConditions || !hasEmergencyRoles
+                || !hasEmergencySourceWells || !hasEmergencyDisposition)
+            {
+                throw Error(at,
+                    $"custody policy '{id}' emergency recovery needs zones, "
+                    + "pickup radius, conditions, roles, source Wells, and a "
+                    + "disposition together.");
+            }
+            StringArray(emergencyZones, $"{at}.{id}.emergencyRecoveryZones",
+                1, 8);
+            Range(value, "emergencyPickupRadius", at, 1, 4);
+            ValidateConditionGroups(
+                emergencyConditions, groupIds, roleIds, orderIds,
+                $"{at}.{id}.emergencyRecoveryAll", 1, 8);
+            References(emergencyRoles, roleIds,
+                $"{at}.{id}.emergencyRecoveryRoles", 1, 8);
+            OneOfArray(emergencySourceWells,
+                $"{at}.{id}.emergencyRecoverySourceWells", 1, 3,
+                "north", "centre", "south");
+            OneOf(value, "emergencyRecoveryDisposition", at,
+                "deliver", "displace");
+            bool displace = string.Equals(
+                disposition.GetString(), "displace", StringComparison.Ordinal);
+            if (displace != hasEmergencyDisplacementTarget
+                || displace != hasEmergencyDisplacementRadius)
+            {
+                throw Error(at,
+                    $"custody policy '{id}' displace recovery needs exactly "
+                    + "one displacement target and release radius bundle.");
+            }
+            if (displace)
+                Range(value, "emergencyDisplacementReleaseRadius", at, 0, 4);
+        }
     }
 
     private static void ValidateCoordination(
@@ -1948,7 +2150,11 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "eligiblePhases",
                     "assignments", "when", "completeWhen", "failWhen",
                     "reintegration",
-                ], ["minimumParticipants", "maximumParticipants"]);
+                ], [
+                    "minimumParticipants", "maximumParticipants",
+                    "completionArmWhen", "completionArmMode",
+                    "completionReleaseMode", "cancellationMode",
+                ]);
             string taskId = Identifier(task, "taskId", at);
             Range(task, "priority", at, 0, 1000);
             OneOf(task, "activation", at, "rising-edge", "while-true");
@@ -1984,6 +2190,31 @@ public static class ArcRelayTacticalPlaybookCompiler
             ValidateConditionGroups(
                 task.GetProperty("completeWhen"), groupIds, roleIds, orderIds,
                 $"{at}.{taskId}.completeWhen", 1, 16);
+            if (task.TryGetProperty(
+                    "completionArmWhen", out JsonElement completionArmWhen))
+            {
+                ValidateConditionGroups(
+                    completionArmWhen, groupIds, roleIds, orderIds,
+                    $"{at}.{taskId}.completionArmWhen", 1, 16);
+            }
+            bool hasCompletionArmMode = task.TryGetProperty(
+                "completionArmMode", out _);
+            bool hasCompletionReleaseMode = task.TryGetProperty(
+                "completionReleaseMode", out _);
+            if (hasCompletionArmMode != hasCompletionReleaseMode)
+            {
+                throw Error(at,
+                    $"task '{taskId}' must declare participant completion "
+                    + "arm and release modes together.");
+            }
+            if (hasCompletionArmMode)
+            {
+                OneOf(task, "completionArmMode", at, "assigned-carrier");
+                OneOf(task, "completionReleaseMode", at,
+                    "assigned-carrier-loss");
+            }
+            if (task.TryGetProperty("cancellationMode", out _))
+                OneOf(task, "cancellationMode", at, "alternate-carrier");
             ValidateConditionGroups(
                 task.GetProperty("failWhen"), groupIds, roleIds, orderIds,
                 $"{at}.{taskId}.failWhen", 0, 16);
@@ -2035,17 +2266,22 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "forbid", "allow", "require");
                 JsonElement distance = assignment.GetProperty("distance");
                 Object(distance, $"{at}.{taskId}.{assignmentId}.distance",
-                    ["kind", "target"]);
+                    ["kind", "target"], ["maximum"]);
                 string kind = RequiredString(distance, "kind", at);
                 OneOf(distance, "kind", at,
-                    "none", "anchor", "own-reactor", "enemy-reactor");
+                    "none", "anchor", "own-reactor", "enemy-reactor",
+                    "visible-loose-core-in-zone");
                 string target = RequiredString(distance, "target", at);
-                if ((kind == "anchor") != (target.Length > 0))
+                bool needsTarget = kind is "anchor"
+                    or "visible-loose-core-in-zone";
+                if (needsTarget != (target.Length > 0))
                 {
                     throw Error(at,
                         $"task '{taskId}' assignment '{assignmentId}' "
-                        + "distance target must be present only for anchor.");
+                        + "distance target does not match its kind.");
                 }
+                if (distance.TryGetProperty("maximum", out _))
+                    Range(distance, "maximum", at, 1, 64);
                 if (!string.Equals(
                         order.GetProperty("members").GetProperty("kind")
                             .GetString(),
@@ -2386,7 +2622,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(binding, $"{path}.bindings",
                 ["matchContractFingerprint", "ownReactorSide", "transform",
-                    "routeAliases"]);
+                    "routeAliases"], ["formationAliases"]);
             string fingerprint = Hash(
                 binding, "matchContractFingerprint", $"{path}.bindings");
             if (!fingerprints.Add(fingerprint))
@@ -2402,6 +2638,17 @@ public static class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(path,
                     "'routeAliases' must be an object with at most 32 string values.");
+            }
+            if (binding.TryGetProperty(
+                    "formationAliases", out JsonElement formationAliases)
+                && (formationAliases.ValueKind != JsonValueKind.Object
+                    || formationAliases.EnumerateObject().Count() > 32
+                    || formationAliases.EnumerateObject().Any(property =>
+                        property.Value.ValueKind != JsonValueKind.String)))
+            {
+                throw Error(path,
+                    "'formationAliases' must be an object with at most 32 "
+                    + "string values.");
             }
         }
         JsonElement[] zones = BoundedArray(

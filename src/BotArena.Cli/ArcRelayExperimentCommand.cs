@@ -162,6 +162,7 @@ public static class ArcRelayExperimentCommand
                     Reason(result),
                     result.EndTick,
                     result.EligibleTeamIds.ToArray()),
+                Scores: ArcRelayScores(result),
                 CanonicalReplayProduced: false);
             string screenPath = Path.Combine(output, "screen.json");
             File.WriteAllText(
@@ -267,6 +268,29 @@ public static class ArcRelayExperimentCommand
                 replay.ReplayHash,
                 Path.GetFileName(written.ReplayPath),
                 new FileInfo(written.ReplayPath).Length));
+
+    private static ArcRelayScreenScoreReceipt[] ArcRelayScores(
+        GenericActorMatchResult result)
+    {
+        if (result.Mode is not GenericActorMatchModeResult.ArcRelay arcRelay)
+            return [];
+
+        Dictionary<int, ArcRelayReactorState> reactors = arcRelay.State.Reactors
+            .ToDictionary(value => value.TeamId);
+        return reactors.Values
+            .OrderBy(value => value.TeamId)
+            .Select(value =>
+            {
+                ArcRelayReactorState opponent = reactors.Values.Single(
+                    candidate => candidate.TeamId != value.TeamId);
+                return new ArcRelayScreenScoreReceipt(
+                    value.TeamId,
+                    (3 - opponent.IntegritySegments) * 3 + value.ChargePips,
+                    value.ChargePips,
+                    value.IntegritySegments);
+            })
+            .ToArray();
+    }
 
     private static void ReportPerf(
         bool enabled,
@@ -1052,7 +1076,14 @@ public sealed record ArcRelayScreenReceipt(
     string Runtime,
     ArcRelayParticipantReceipt[] Participants,
     ArcRelayRunResultReceipt Result,
+    ArcRelayScreenScoreReceipt[] Scores,
     bool CanonicalReplayProduced);
+
+public sealed record ArcRelayScreenScoreReceipt(
+    int TeamId,
+    int Score,
+    int ChargePips,
+    int IntegritySegments);
 
 public sealed record ArcRelayParticipantReceipt(
     int ParticipantId,
