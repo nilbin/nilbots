@@ -255,6 +255,18 @@
       ],
       "resultSummary": "Rejected. A common homeward sweep abandoned the pressure advantage and let the coordinated stock control reverse the match in both assignments.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "six-combat-one-medic-wave",
+      "playbookSourceSha256": "4987897678b1bf45b7338e6dcb93c1b12a0e722ea29a4aacaa82c4bacb641712",
+      "layoutSourceSha256": "3f8c0a1036424c5a95f43e6a5dc6c9e4d25a0d773a83fe0124c0832cb33573c9",
+      "change": "Replace the second Patchbay with a second Kestrel, expand line roles and every formation to six combat bodies, and retain one medic so the wave can synchronize the fifth enemy kill more often.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 478 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 480 }
+      ],
+      "resultSummary": "Rejected after both fair-control assignments lost. The second medic is not redundant: sustain matters more than a sixth attacker in the retained ring.",
+      "verdict": "rejected"
     }
   ]
 }
