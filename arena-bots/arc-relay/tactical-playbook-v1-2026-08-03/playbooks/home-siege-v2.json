@@ -843,6 +843,25 @@
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
       "safeConversionConditionSetId": "never-convert"
+    },
+    {
+      "custodyId": "task-conversion",
+      "authorizedCarrierRoles": [
+        "line"
+      ],
+      "escortGroups": [],
+      "sourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "pickupReservationTicks": 8,
+      "transferTimeoutTicks": 8,
+      "deliveryTimeoutTicks": 120,
+      "accidentalPickup": "deliver",
+      "dropRecovery": "same-carrier",
+      "unreachableFallback": "guard",
+      "safeConversionConditionSetId": "task-conversion-safe"
     }
   ],
   "authoring": {
@@ -999,6 +1018,30 @@
                 "engagementId": "siege-focus",
                 "custodyId": "incidental-delivery",
                 "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-convert": {
+        "tracks": {
+          "courier": {
+            "formationId": "harvest-sweep",
+            "movement": {
+              "kind": "secured-core",
+              "target": "enemy-perimeter",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "line-task-convert": {
+                "arrivalRadius": 1,
+                "completion": "continuous",
+                "chaseLeash": 8,
+                "engagementId": "regroup-defense",
+                "custodyId": "task-conversion",
+                "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "line-standard"
               }
             }
@@ -1189,6 +1232,19 @@
       "never-convert": [
         [
           "no-live-friendlies"
+        ]
+      ],
+      "task-conversion-safe": [
+        [
+          "occupied-attrition-safe",
+          "six-in-siege",
+          "secured-core"
+        ]
+      ],
+      "task-conversion-complete": [
+        [
+          "no-friendly-carrier",
+          "no-secured-core"
         ]
       ],
       "line-cohesion-broken": [
@@ -1469,6 +1525,11 @@
         "operator": "equals",
         "value": 0
       },
+      "no-secured-core": {
+        "fact": "secured-cores",
+        "operator": "equals",
+        "value": 0
+      },
       "harvest-ready-at-28": {
         "fact": "phase-state-ticks",
         "operator": "at-least",
@@ -1516,6 +1577,51 @@
   },
   "coordination": {
     "initialPhase": "assault",
+    "tasks": [
+      {
+        "taskId": "convert-secured-core",
+        "priority": 20,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "abort",
+        "triggerStableTicks": 2,
+        "minimumTicks": 2,
+        "timeoutTicks": 120,
+        "cooldownTicks": 4,
+        "eligiblePhases": [
+          "occupy"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "courier",
+            "orderId": "line-task-convert",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "kestrel"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "allow",
+            "distance": {
+              "kind": "anchor",
+              "target": "enemy-perimeter"
+            }
+          }
+        ],
+        "whenConditionSetId": "task-conversion-safe",
+        "completeConditionSetId": "task-conversion-complete",
+        "failConditionSetId": "",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      }
+    ],
     "phases": [
       {
         "phaseId": "assault",
@@ -1525,14 +1631,6 @@
           "line-recover"
         ],
         "transitions": [
-          {
-            "priority": 5,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "conversion-window-front"
-          },
           {
             "priority": 10,
             "to": "occupy",
@@ -1560,14 +1658,6 @@
         ],
         "transitions": [
           {
-            "priority": 5,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "conversion-window-occupied"
-          },
-          {
             "priority": 10,
             "to": "regroup",
             "cause": "failure",
@@ -1585,22 +1675,6 @@
           "line-recover"
         ],
         "transitions": [
-          {
-            "priority": 4,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "interrupt",
-            "stableTicks": 2,
-            "conditionSetId": "emergency-conversion"
-          },
-          {
-            "priority": 5,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "conversion-surge-from-regroup"
-          },
           {
             "priority": 10,
             "to": "breach",
@@ -1620,14 +1694,6 @@
         ],
         "transitions": [
           {
-            "priority": 5,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "conversion-window-front"
-          },
-          {
             "priority": 10,
             "to": "occupy",
             "cause": "success",
@@ -1642,58 +1708,6 @@
             "minimumPolicy": "respect",
             "stableTicks": 3,
             "conditionSetId": "combat-force-collapse"
-          }
-        ]
-      },
-      {
-        "phaseId": "harvest",
-        "minimumTicks": 8,
-        "maneuverId": "harvest",
-        "standingOrderIds": [
-          "line-recover"
-        ],
-        "transitions": [
-          {
-            "priority": 10,
-            "to": "delivery",
-            "cause": "success",
-            "minimumPolicy": "respect",
-            "stableTicks": 1,
-            "conditionSetId": "delivery-ready"
-          },
-          {
-            "priority": 20,
-            "to": "regroup",
-            "cause": "failure",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "harvest-timeout"
-          }
-        ]
-      },
-      {
-        "phaseId": "delivery",
-        "minimumTicks": 8,
-        "maneuverId": "delivery",
-        "standingOrderIds": [
-          "line-recover"
-        ],
-        "transitions": [
-          {
-            "priority": 10,
-            "to": "harvest",
-            "cause": "reaction",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "harvest-again"
-          },
-          {
-            "priority": 20,
-            "to": "breach",
-            "cause": "success",
-            "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "return-to-breach"
           }
         ]
       }

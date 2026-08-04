@@ -1519,6 +1519,19 @@
       "change": "Use the generic class-aware selector to detach a Kestrel for secure-Core collection and delivery while seven bodies maintain pressure; sweep conversion thresholds two through five. Also test Kestrel plus Relay as a two-body courier unit.",
       "resultSummary": "Every one-courier mirror lost; the inspected threshold-three cell reached eight Siege banks against nine baseline banks and lost at tick 478. Two couriers weakened the blockade further: only threshold-two/team-zero reached a horizon draw and all opposite assignments lost. Reordering the stable runner role to prefer Kestrel also lost both mirrors. Capability selection works, but a phase-owned detachment cannot complete and reintegrate without disrupting the persistent campaign.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "concurrent-task-lifecycle-v1-single-courier",
+      "playbookSourceSha256": "3c857efff6c98175c545a9a76f56592d9646aa9fcbd79fc43e080f658789f5d6",
+      "change": "Replace the global harvest and delivery phases with a persistent occupy order plus one bounded Kestrel secured-Core conversion task. The task uses stable triggering, an exact-life lease, explicit participant-loss policy, timeout, cooldown, and primary-order reintegration.",
+      "cells": [
+        { "opponent": "historical-baseline-v2-diagnostic", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 326 },
+        { "opponent": "historical-baseline-v2-diagnostic", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 413 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 330 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 406 }
+      ],
+      "resultSummary": "Retain the generic task lifecycle, reject this strategy candidate. Against the fair parity control both assignments lost. Trace inspection showed no activation in team-zero because observed attrition and secured-Core facts never overlapped; team-one activated twice, but one lease was incorrectly released when the primary line entered recovery. That lifecycle bug is fixed and pinned: activation selectors choose an exact life once, while carrier and primary local-state changes do not re-elect it. The single secure-Core trigger remains too sparse to create dominant scoring pressure.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }

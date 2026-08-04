@@ -41,6 +41,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private GenericActorResolvedMatchContract? _contract;
     private TacticalPlaybookPackage? _package;
     private TacticalPlaybookMachine? _machine;
+    private TacticalTaskMachine? _tasks;
     private Position _ownReactor;
     private Position _enemyReactor;
     private string? _allocationPhaseId;
@@ -82,6 +83,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             start.EvaluationData, start.Contract, _ownReactor);
         ValidateComposition(start.Contract, start.TeamId, _package.Source);
         _machine = new TacticalPlaybookMachine(_package.Source);
+        _tasks = new TacticalTaskMachine(_package.Source);
     }
 
     public void Think(MindContext mind)
@@ -92,6 +94,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             ?? throw new InvalidOperationException("Playbook was not loaded.");
         TacticalPlaybookMachine machine = _machine
             ?? throw new InvalidOperationException("Machine was not loaded.");
+        TacticalTaskMachine tasks = _tasks
+            ?? throw new InvalidOperationException("Task machine was not loaded.");
         if (mind.Mode is not GenericActorContext.ModeObservationState.ArcRelay arc)
         {
             foreach (MindBody body in mind.Bodies)
@@ -143,8 +147,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
         UpdateCustodyProgress(mind.Tick, mind.Bodies, carried);
+        tasks.Update(
+            mind.Tick,
+            machine.PhaseId,
+            mind.Bodies.Select(body => new TacticalTaskCandidate(
+                    body.UnitId,
+                    body.ActorId,
+                    roles[body.UnitId],
+                    groups[body.UnitId],
+                    machine.LocalState(groups[body.UnitId]),
+                    body.ClassId ?? "",
+                    carried.ContainsKey(body.ActorId),
+                    body.Position))
+                .ToArray(),
+            condition => TacticalPlaybookMachine.Matches(
+                condition,
+                leaf => Evaluate(leaf, snapshot, package)),
+            (assignment, candidate) => TaskSelectionDistance(
+                package,
+                assignment,
+                candidate));
         Dictionary<int, TacticalPlaybookPackage.Order> orders = ActiveOrders(
-            mind, package.Source, machine, roles, groups);
+            mind, package.Source, machine, tasks, roles, groups);
         Dictionary<int, Position> authoredTargets = mind.Bodies.ToDictionary(
             body => body.UnitId,
             body => Target(
@@ -299,6 +323,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + $"{snapshot.VisibleLooseCores}; wells="
             + $"{snapshot.WellOutstanding.Values.Sum()}; reactor="
             + $"{snapshot.ReactorIntegrity}/{snapshot.ReactorCharge}; "
+            + tasks.TraceSummary + "; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -879,6 +904,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         TacticalPlaybookPackage.Playbook playbook,
         TacticalPlaybookMachine machine,
+        TacticalTaskMachine tasks,
         IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, string> groups)
     {
@@ -886,7 +912,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Select(id => playbook.Orders.Single(value => value.OrderId == id))
             .ToArray();
         Dictionary<string, TacticalPlaybookPackage.Order> ordersById =
-            phaseOrders.ToDictionary(
+            playbook.Orders.ToDictionary(
                 value => value.OrderId,
                 StringComparer.Ordinal);
         var result = new Dictionary<int, TacticalPlaybookPackage.Order>();
@@ -922,8 +948,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             foreach ((int unitId, string orderId) in assignments)
                 result.Add(unitId, ordersById[orderId]);
         }
+        foreach (MindBody body in mind.Bodies)
+        {
+            TacticalTaskDirective? directive = tasks.DirectiveFor(body.UnitId);
+            if (directive is not null)
+                result[body.UnitId] = ordersById[directive.OrderId];
+        }
         return result;
     }
+
+    private int TaskSelectionDistance(
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.TaskAssignment assignment,
+        TacticalTaskCandidate candidate) => assignment.Distance.Kind switch
+    {
+        "none" => 0,
+        "anchor" => candidate.Position.ChebyshevDistance(
+            package.AnchorPosition(assignment.Distance.Target)),
+        "own-reactor" => candidate.Position.ChebyshevDistance(_ownReactor),
+        "enemy-reactor" => candidate.Position.ChebyshevDistance(_enemyReactor),
+        _ => throw new InvalidDataException(
+            $"Unknown task selection distance '{assignment.Distance.Kind}'."),
+    };
 
     private Position Target(
         GenericActorResolvedMatchContract contract,

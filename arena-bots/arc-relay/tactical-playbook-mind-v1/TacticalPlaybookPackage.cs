@@ -391,13 +391,52 @@ internal sealed class TacticalPlaybookPackage
         string OnInvalidTarget,
         string PhaseId);
 
-    internal sealed record Coordination(string InitialPhase, Phase[] Phases);
+    internal sealed record Coordination(
+        string InitialPhase,
+        Phase[] Phases,
+        TacticalTask[] Tasks);
 
     internal sealed record Phase(
         string PhaseId,
         int MinimumTicks,
         string[] OrderIds,
         Transition[] Transitions);
+
+    internal sealed record TacticalTask(
+        string TaskId,
+        int Priority,
+        string Activation,
+        string Preemption,
+        string ParticipantLoss,
+        int TriggerStableTicks,
+        int MinimumTicks,
+        int TimeoutTicks,
+        int CooldownTicks,
+        string[] EligiblePhases,
+        TaskAssignment[] Assignments,
+        ConditionGroup[] When,
+        ConditionGroup[] CompleteWhen,
+        ConditionGroup[] FailWhen,
+        Reintegration Reintegration);
+
+    internal sealed record TaskAssignment(
+        string AssignmentId,
+        string OrderId,
+        string[] Roles,
+        string[] Classes,
+        int Minimum,
+        int Preferred,
+        int Maximum,
+        string Carrier,
+        SelectionDistance Distance);
+
+    internal sealed record SelectionDistance(string Kind, string Target);
+
+    internal sealed record Reintegration(
+        string Mode,
+        string[] OrderIds,
+        ConditionGroup[] CompleteWhen,
+        int TimeoutTicks);
 
     internal sealed record Transition(
         int Priority,

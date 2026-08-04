@@ -72,6 +72,30 @@ public static class ArcRelayTacticalPlaybookCommand
             });
         }
 
+        var tasks = new JsonArray();
+        foreach (JsonObject task in playbook["coordination"]!["tasks"]!
+                     .AsArray().Select(node => node!.AsObject()))
+        {
+            JsonObject expandedTask = task.DeepClone().AsObject();
+            foreach (JsonObject assignment in expandedTask["assignments"]!
+                         .AsArray().Select(node => node!.AsObject()))
+            {
+                string orderId = assignment["orderId"]!.GetValue<string>();
+                assignment["order"] = orders[orderId].DeepClone();
+            }
+
+            JsonObject reintegration = expandedTask["reintegration"]!
+                .AsObject();
+            var releaseOrders = new JsonArray();
+            foreach (string orderId in reintegration["orderIds"]!.AsArray()
+                         .Select(node => node!.GetValue<string>()))
+            {
+                releaseOrders.Add(orders[orderId].DeepClone());
+            }
+            reintegration["orders"] = releaseOrders;
+            tasks.Add(expandedTask);
+        }
+
         var explain = new JsonObject
         {
             ["schema"] = "arc-relay-tactical-playbook-explain-v1",
@@ -108,6 +132,7 @@ public static class ArcRelayTacticalPlaybookCommand
             ["custodyPolicies"] = playbook["custodyPolicies"]!.DeepClone(),
             ["arbitration"] = playbook["arbitration"]!.DeepClone(),
             ["phases"] = phases,
+            ["tasks"] = tasks,
             ["commandProvenance"] =
                 "tp:<phase>:<group>:<order>:<arbitration-channel>",
         };

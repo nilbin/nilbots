@@ -53,14 +53,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Null(source["orders"]);
         Assert.Equal("maneuver-catalog",
             source["authoring"]!["kind"]!.GetValue<string>());
-        Assert.Equal(6, source["authoring"]!["maneuvers"]!.AsObject().Count);
+        Assert.Equal(7, source["authoring"]!["maneuvers"]!.AsObject().Count);
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
         JsonObject normalized = JsonNode.Parse(compilation.NormalizedPlaybook)!
             .AsObject();
         Assert.Null(normalized["authoring"]);
-        Assert.Equal(19, normalized["orders"]!.AsArray().Count);
+        Assert.Equal(20, normalized["orders"]!.AsArray().Count);
         Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
             Assert.Equal(4, phase!["orderIds"]!.AsArray().Count));
     }
@@ -84,15 +84,13 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 ArcRelayTacticalPlaybookCompiler.Compile(temporary);
             using JsonDocument normalized = JsonDocument.Parse(
                 compilation.NormalizedPlaybook);
-            JsonElement[] phases = normalized.RootElement
-                .GetProperty("coordination").GetProperty("phases")
-                .EnumerateArray().ToArray();
-            JsonElement assault = phases.Single(phase => phase
-                .GetProperty("phaseId").GetString() == "assault");
-            JsonElement occupy = phases.Single(phase => phase
-                .GetProperty("phaseId").GetString() == "occupy");
-            Assert.Equal(4, AttritionThreshold(assault));
-            Assert.Equal(2, AttritionThreshold(occupy));
+            JsonElement task = normalized.RootElement
+                .GetProperty("coordination").GetProperty("tasks")
+                .EnumerateArray().Single(value => value
+                    .GetProperty("taskId").GetString()
+                    == "convert-secured-core");
+            Assert.Equal(2, task.GetProperty("when")[0]
+                .GetProperty("all")[0].GetProperty("value").GetInt32());
             Assert.Equal(4, normalized.RootElement
                 .GetProperty("custodyPolicies")[0]
                 .GetProperty("safeConversionAll")[0]
@@ -108,8 +106,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void UnknownAuthoringParameterReferencesAreRejected()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = AuthoredHomeSiege();
         JsonObject condition = source["authoring"]!["predicates"]![
             "front-attrition-safe"]!.AsObject();
         condition["valueParameter"] = "missing-parameter";
@@ -638,12 +635,12 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     public void EveryPhaseMustCoverEveryGroupLocalStateExplicitly()
     {
         JsonObject source = ExpandedHomeSiege();
-        JsonObject harvest = source["coordination"]!["phases"]!.AsArray()
+        JsonObject occupy = source["coordination"]!["phases"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["phaseId"]!.GetValue<string>()
-                == "harvest");
-        harvest["orderIds"]!.AsArray().Remove(
-            harvest["orderIds"]!.AsArray()
+                == "occupy");
+        occupy["orderIds"]!.AsArray().Remove(
+            occupy["orderIds"]!.AsArray()
                 .Single(value => value!.GetValue<string>()
                     == "line-recover"));
         string temporary = TemporaryJson(source);
@@ -666,14 +663,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     public void PhaseCanSplitAStableGroupIntoTakeAndRemainderOrders()
     {
         JsonObject source = ExpandedHomeSiege();
-        JsonObject harvest = source["coordination"]!["phases"]!.AsArray()
+        JsonObject occupy = source["coordination"]!["phases"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["phaseId"]!.GetValue<string>()
-                == "harvest");
+                == "occupy");
         JsonObject field = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
-                == "medics-harvest");
+                == "medics-siege");
         field["members"] = new JsonObject
         {
             ["kind"] = "take",
@@ -683,14 +680,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         };
         JsonObject collection = JsonNode.Parse(field.ToJsonString())!
             .AsObject();
-        collection["orderId"] = "medics-harvest-remainder";
+        collection["orderId"] = "medics-siege-remainder";
         collection["priority"] = 21;
         collection["members"] = new JsonObject
         {
             ["kind"] = "remainder",
         };
         source["orders"]!.AsArray().Add(collection);
-        harvest["orderIds"]!.AsArray().Add("medics-harvest-remainder");
+        occupy["orderIds"]!.AsArray().Add("medics-siege-remainder");
         string temporary = TemporaryJson(source);
         try
         {
@@ -711,7 +708,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         JsonObject field = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
-                == "medics-harvest");
+                == "medics-siege");
         field["members"] = new JsonObject
         {
             ["kind"] = "take",
@@ -732,6 +729,188 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         finally
         {
             File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void AuthoredTaskCompilesToExplicitLifecycleAndParticipantIr()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        source["coordination"]!["tasks"]!.AsArray().Add(TaskCard());
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            using JsonDocument normalized = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            JsonElement task = normalized.RootElement
+                .GetProperty("coordination")
+                .GetProperty("tasks").EnumerateArray()
+                .Single(value => value.GetProperty("taskId").GetString()
+                    == "convert-core");
+            Assert.Equal("convert-core", task.GetProperty("taskId").GetString());
+            Assert.Equal(
+                "line-siege",
+                task.GetProperty("assignments")[0]
+                    .GetProperty("orderId").GetString());
+            Assert.Equal(2, task.GetProperty("when").GetArrayLength());
+            Assert.Equal(
+                "primary-order",
+                task.GetProperty("reintegration")
+                    .GetProperty("mode").GetString());
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void ExplainExpandsTaskOrdersWithoutHidingLifecycleConditions()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+        var explainMethod = typeof(ArcRelayTacticalPlaybookCommand).GetMethod(
+            "Explain",
+            System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Static)!;
+        using JsonDocument explain = JsonDocument.Parse(
+            (byte[])explainMethod.Invoke(null, [compilation])!);
+
+        JsonElement task = Assert.Single(
+            explain.RootElement.GetProperty("tasks").EnumerateArray());
+        Assert.Equal(
+            "convert-secured-core",
+            task.GetProperty("taskId").GetString());
+        Assert.Equal(
+            "line-task-convert",
+            task.GetProperty("assignments")[0]
+                .GetProperty("order").GetProperty("orderId").GetString());
+        Assert.NotEmpty(task.GetProperty("when").EnumerateArray());
+        Assert.Equal(
+            "primary-order",
+            task.GetProperty("reintegration").GetProperty("mode").GetString());
+        Assert.Empty(task.GetProperty("reintegration")
+            .GetProperty("orders").EnumerateArray());
+    }
+
+    [Fact]
+    public void TaskRejectsImpossibleParticipantCardinality()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        JsonObject task = TaskCard();
+        task["assignments"]![0]!["minimum"] = 2;
+        source["coordination"]!["tasks"]!.AsArray().Add(task);
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("cardinality must satisfy", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void TaskRejectsUnknownOrdersAndSelectionAnchors()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        JsonObject task = TaskCard();
+        task["assignments"]![0]!["orderId"] = "missing-order";
+        source["coordination"]!["tasks"]!.AsArray().Add(task);
+        string missingOrder = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(missingOrder));
+            Assert.Contains(
+                "references unknown 'missing-order'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(missingOrder);
+        }
+
+        source = AuthoredHomeSiege();
+        task = TaskCard();
+        task["assignments"]![0]!["distance"]!["target"] = "missing-anchor";
+        source["coordination"]!["tasks"]!.AsArray().Add(task);
+        string missingAnchor = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(missingAnchor));
+            Assert.Contains("unknown selection anchor", failure.Message);
+        }
+        finally
+        {
+            File.Delete(missingAnchor);
+        }
+    }
+
+    [Fact]
+    public void PrimaryOrderReintegrationRejectsHiddenReleaseBehavior()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        JsonObject task = TaskCard();
+        task["reintegration"]!["timeoutTicks"] = 5;
+        source["coordination"]!["tasks"]!.AsArray().Add(task);
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "primary-order reintegration cannot declare",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void ReleaseOrdersMustCoverEveryPossibleGroupLocalStateExactlyOnce()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        JsonObject task = TaskCard();
+        task["reintegration"] = new JsonObject
+        {
+            ["mode"] = "release-orders",
+            ["orderIds"] = new JsonArray("line-siege", "line-recover"),
+            ["completeConditionSetId"] = "return-to-breach",
+            ["timeoutTicks"] = 20,
+        };
+        source["coordination"]!["tasks"]!.AsArray().Add(task);
+        string complete = TemporaryJson(source);
+        try
+        {
+            ArcRelayTacticalPlaybookCompiler.Compile(complete);
+        }
+        finally
+        {
+            File.Delete(complete);
+        }
+
+        task["reintegration"]!["orderIds"] = new JsonArray("line-siege");
+        string incomplete = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(incomplete));
+            Assert.Contains(
+                "local state 'recovering' exactly once; found 0",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(incomplete);
         }
     }
 
@@ -949,15 +1128,58 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         });
     }
 
-    private static int AttritionThreshold(JsonElement phase) => phase
-        .GetProperty("transitions")[0]
-        .GetProperty("when")[0]
-        .GetProperty("all")
-        .EnumerateArray()
-        .Single(condition => condition.GetProperty("fact").GetString()
-            == "known-enemies-unavailable")
-        .GetProperty("value")
-        .GetInt32();
+    private static JsonObject TaskCard() => new()
+    {
+        ["taskId"] = "convert-core",
+        ["priority"] = 20,
+        ["activation"] = "while-true",
+        ["preemption"] = "higher-priority",
+        ["participantLoss"] = "replace",
+        ["triggerStableTicks"] = 2,
+        ["minimumTicks"] = 2,
+        ["timeoutTicks"] = 90,
+        ["cooldownTicks"] = 4,
+        ["eligiblePhases"] = new JsonArray("occupy"),
+        ["assignments"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["assignmentId"] = "courier",
+                ["orderId"] = "line-siege",
+                ["roles"] = new JsonArray("line"),
+                ["classes"] = new JsonArray("kestrel", "relay"),
+                ["minimum"] = 1,
+                ["preferred"] = 1,
+                ["maximum"] = 1,
+                ["carrier"] = "forbid",
+                ["distance"] = new JsonObject
+                {
+                    ["kind"] = "anchor",
+                    ["target"] = "enemy-perimeter",
+                },
+            },
+        },
+        ["whenConditionSetId"] = "conversion-window-occupied",
+        ["completeConditionSetId"] = "return-to-breach",
+        ["failConditionSetId"] = "",
+        ["reintegration"] = new JsonObject
+        {
+            ["mode"] = "primary-order",
+            ["orderIds"] = new JsonArray(),
+            ["completeConditionSetId"] = "",
+            ["timeoutTicks"] = 0,
+        },
+    };
+
+    private static JsonObject AuthoredHomeSiege()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        source["layout"]!["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            source["layout"]!["path"]!.GetValue<string>()));
+        return source;
+    }
 
     private static string TemporaryJson(JsonNode source)
     {

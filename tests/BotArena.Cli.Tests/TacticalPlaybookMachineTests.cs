@@ -79,7 +79,8 @@ public sealed class TacticalPlaybookMachineTests
                         "start", minimumTicks, [], [transition]),
                     new TacticalPlaybookPackage.Phase(
                         "next", 0, [], []),
-                ]),
+                ],
+                []),
         };
         return new TacticalPlaybookMachine(playbook);
     }

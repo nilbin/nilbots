@@ -25,7 +25,8 @@ emits:
 - `playbook.atp`: bounded runtime envelope carrying both canonical payloads;
   and
 - `explain.json`: editor/debug view of the exhaustive orders expanded into
-  each phase.
+  each phase and conditional task, including lifecycle conditions and release
+  orders.
 
 The envelope records the SHA-256 of each source independently. A layout must
 name the exact map and bind each supported match-contract fingerprint and home
@@ -177,6 +178,53 @@ priority, authored class order, and stable unit ID. This permits a sheet to say
 "detach one Kestrel, otherwise one Relay" without naming a body or changing its
 stable role. A casualty deterministically promotes the next eligible survivor;
 the remainder continues its authored order.
+
+### Persistent intent and conditional tasks
+
+Global phases own the team's persistent intent. Their exhaustive orders keep
+running unless a declared conditional task leases particular body lives. A task
+is a bounded interruption, not another whole-team phase and not an imperative
+script. Bodies that are not leased continue their current phase orders.
+
+Each task declares:
+
+- a stable identity, ordered priority, `rising-edge` or `while-true`
+  activation, phase eligibility, trigger hysteresis, minimum tenure, timeout,
+  and cooldown;
+- one or more participant assignments with minimum/preferred/maximum counts,
+  eligible roles, ordered class preference, carrier requirement, and a
+  deterministic distance reference (`none`, a named layout anchor, or either
+  reactor);
+- an exhaustive task order for every assignment plus explicit completion and
+  failure condition groups;
+- whether a lost exact life aborts the task, lets surviving leases continue,
+  or deterministically selects a replacement; and
+- immediate return to the current primary order or an explicit bounded
+  release-order state with its own completion condition and timeout.
+
+Candidate selection is deterministic: authored class rank, declared distance,
+then stable unit ID. The selector is evaluated once when the task activates.
+The resulting lease binds the exact life, so picking up a Core or an unrelated
+primary-formation state change cannot silently replace the courier. Death is a
+participant loss and follows the authored policy. A respawn is a different life
+and may be selected only by an explicit replacement or a later activation.
+
+Disjoint tasks run concurrently. A body already leased to another task is
+unavailable unless the existing task explicitly permits higher-priority
+preemption and the claimant has the earlier priority. Equal priorities use
+task ID as a stable scheduler tie; they never manufacture shared ownership.
+Preemption, completion, failure, timeout, phase exit, participant loss, release,
+and replacement are retained as deterministic task transitions and summarized
+in the mind trace. `explain.json` embeds every assignment and release order so
+an editor or reviewer does not need to chase IDs.
+
+Task orders use `members.kind: all` because task assignments already own the
+selection. `release-orders` must cover every local state of every assigned
+group exactly once; this makes runtime dispatch total rather than relying on a
+fallback. There is deliberately no task-dependency field in v1, so dependency
+cycles are structurally unrepresentable and an attempted dependency key is an
+unknown-field compile error. Coordination between tasks is expressed through
+causal facts and priorities, not an invisible task graph.
 
 A predicate may name exactly one bounded parameter instead of copying a number.
 Compilation resolves it to an ordinary integer condition before hashing the
@@ -388,17 +436,22 @@ The reference playbook is
 Its separately hashed Counterflow layout provides the outer rush, short breach,
 forward rally, enemy perimeter, siege leash, and Well-line relationships.
 
-Its declared phases are assault, occupy, regroup, breach, harvest, and delivery.
+Its declared primary phases are assault, occupy, regroup, and breach. Scoring
+and carrier denial are bounded tasks layered on established occupation rather
+than whole-team phase replacements.
 The desired causal loop is:
 
 1. eight bodies rush one outer lane as a column;
 2. six establish a living enemy-home ring with shared fire and cross-repair;
 3. a broken ring withdraws and waits for a stable five-body rally;
 4. a rebuilt wave breaches together;
-5. the currently selected, bounded observed-attrition threshold and available
-   Cores release a coordinated harvest; and
-6. every carrier returns immediately while non-carriers support the conversion
-   according to their current order.
+5. the currently selected, bounded observed-attrition threshold and a causally
+   secured Core lease the smallest suitable courier detachment while the
+   blockade remains on its primary order;
+6. every carrier returns immediately when its declared custody policy permits,
+   then releases back into the live blockade; and
+7. a bounded carrier-denial task may lease a separate screen without owning or
+   dissolving the rest of the formation.
 
 The exact attrition and return thresholds are development hypotheses, not
 owner-locked rules. They are selected by retained mirrored trials and frozen
@@ -410,10 +463,11 @@ the detector.
 
 ## Fair benchmark controls
 
-Two stock controls remain separate:
+Two stock controls remain separate and both use their schema-compatible frozen
+interpreter/artifact pair:
 
-- the frozen historical baseline preserves the old comparison and its exact
-  WASM artifact; and
+- the frozen historical v2 baseline preserves the old comparison with
+  `stock-mind-v4` and its exact WASM artifact; and
 - `coordination-parity-baseline.json` keeps the same stock composition, routes,
   custody, gambits, and movement doctrine while enabling shared target
   selection, expected-damage budgeting, zero overkill, a five-attacker cap,
@@ -424,7 +478,8 @@ credited merely for coordinating shots against an opponent denied that same
 capability. The frozen baseline remains a regression/control row, not the sole
 claim.
 
-The primary dominance cohort must therefore use the parity control, never the
+The primary dominance cohort must therefore use the v2 parity control with
+`stock-mind-v4`, never the
 historical uncoordinated stock sheet. Both sides receive visible-target locking,
 expected-damage accounting, deterministic attacker caps, and zero-overkill
 allocation. Their target priorities and tactical reasons may differ because

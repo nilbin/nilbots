@@ -388,16 +388,81 @@ public static class ArcRelayTacticalPlaybookCompiler
                 ["transitions"] = transitions,
             });
         }
+        var expandedTasks = new JsonArray();
+        foreach (JsonElement task in coordination.GetProperty("tasks")
+                     .EnumerateArray())
+        {
+            JsonObject expandedTask = JsonNode.Parse(task.GetRawText())!
+                .AsObject();
+            ExpandTaskCondition(
+                expandedTask,
+                "whenConditionSetId",
+                "when",
+                expandedConditionSetById,
+                authoringAt,
+                allowEmpty: false);
+            ExpandTaskCondition(
+                expandedTask,
+                "completeConditionSetId",
+                "completeWhen",
+                expandedConditionSetById,
+                authoringAt,
+                allowEmpty: false);
+            ExpandTaskCondition(
+                expandedTask,
+                "failConditionSetId",
+                "failWhen",
+                expandedConditionSetById,
+                authoringAt,
+                allowEmpty: true);
+            JsonObject reintegration = expandedTask["reintegration"]!
+                .AsObject();
+            ExpandTaskCondition(
+                reintegration,
+                "completeConditionSetId",
+                "completeWhen",
+                expandedConditionSetById,
+                authoringAt,
+                allowEmpty: true);
+            expandedTasks.Add(expandedTask);
+        }
         expanded["coordination"] = new JsonObject
         {
             ["initialPhase"] = coordination.GetProperty("initialPhase")
                 .GetString(),
             ["phases"] = expandedPhases,
+            ["tasks"] = expandedTasks,
         };
         ResolveConditionParameters(expanded, parameterById, authoringAt);
 
         return JsonDocument.Parse(expanded.ToJsonString(
             new JsonSerializerOptions { WriteIndented = false }));
+    }
+
+    private static void ExpandTaskCondition(
+        JsonObject owner,
+        string referenceName,
+        string expandedName,
+        IReadOnlyDictionary<string, JsonArray> conditionSets,
+        string path,
+        bool allowEmpty)
+    {
+        string conditionSetId = owner[referenceName]!.GetValue<string>();
+        owner.Remove(referenceName);
+        if (conditionSetId.Length == 0 && allowEmpty)
+        {
+            owner[expandedName] = new JsonArray();
+            return;
+        }
+        if (!conditionSets.TryGetValue(
+                conditionSetId,
+                out JsonArray? conditions))
+        {
+            throw Error(path,
+                $"task lifecycle references unknown condition set "
+                + $"'{conditionSetId}'.");
+        }
+        owner[expandedName] = conditions.DeepClone();
     }
 
     private static JsonArray ExpandConditionSet(
@@ -778,8 +843,14 @@ public static class ArcRelayTacticalPlaybookCompiler
         string path)
     {
         Object(coordination, $"{path}.coordination",
-            ["initialPhase", "phases"]);
+            ["initialPhase", "phases", "tasks"]);
         Identifier(coordination, "initialPhase", path);
+        JsonElement[] tasks = BoundedArray(
+            coordination.GetProperty("tasks"),
+            $"{path}.coordination.tasks", 0, 32);
+        UniqueIds(tasks, "taskId", $"{path}.coordination.tasks");
+        foreach (JsonElement task in tasks)
+            ValidateAuthoredTask(task, path);
         JsonElement[] phases = BoundedArray(
             coordination.GetProperty("phases"),
             $"{path}.coordination.phases", 1, 24);
@@ -819,6 +890,90 @@ public static class ArcRelayTacticalPlaybookCompiler
                 Identifier(transition, "conditionSetId", path);
             }
         }
+    }
+
+    private static void ValidateAuthoredTask(JsonElement task, string path)
+    {
+        string at = $"{path}.coordination.tasks";
+        Object(task, at,
+            [
+                "taskId", "priority", "activation", "preemption",
+                "participantLoss", "triggerStableTicks", "minimumTicks",
+                "timeoutTicks", "cooldownTicks", "eligiblePhases",
+                "assignments", "whenConditionSetId",
+                "completeConditionSetId", "failConditionSetId",
+                "reintegration",
+            ]);
+        Identifier(task, "taskId", at);
+        Range(task, "priority", at, 0, 1000);
+        OneOf(task, "activation", at, "rising-edge", "while-true");
+        OneOf(task, "preemption", at, "never", "higher-priority");
+        OneOf(task, "participantLoss", at, "abort", "continue", "replace");
+        Range(task, "triggerStableTicks", at, 1, 120);
+        Range(task, "minimumTicks", at, 0, 1200);
+        Range(task, "timeoutTicks", at, 1, 2400);
+        Range(task, "cooldownTicks", at, 0, 1200);
+        foreach (JsonElement phase in BoundedArray(
+                     task.GetProperty("eligiblePhases"),
+                     $"{at}.eligiblePhases", 1, 24))
+        {
+            StringValue(phase, $"{at}.eligiblePhases");
+        }
+        JsonElement[] assignments = BoundedArray(
+            task.GetProperty("assignments"), $"{at}.assignments", 1, 8);
+        UniqueIds(assignments, "assignmentId", $"{at}.assignments");
+        foreach (JsonElement assignment in assignments)
+        {
+            Object(assignment, $"{at}.assignments",
+                [
+                    "assignmentId", "orderId", "roles", "classes",
+                    "minimum", "preferred", "maximum", "carrier",
+                    "distance",
+                ]);
+            Identifier(assignment, "assignmentId", at);
+            Identifier(assignment, "orderId", at);
+            foreach (JsonElement role in BoundedArray(
+                         assignment.GetProperty("roles"),
+                         $"{at}.assignments.roles", 0, 8))
+            {
+                StringValue(role, $"{at}.assignments.roles");
+            }
+            foreach (JsonElement candidateClass in BoundedArray(
+                         assignment.GetProperty("classes"),
+                         $"{at}.assignments.classes", 0, 16))
+            {
+                StringValue(candidateClass, $"{at}.assignments.classes");
+            }
+            Cardinality(assignment, $"{at}.assignments", 0, 8);
+            OneOf(assignment, "carrier", at, "forbid", "allow", "require");
+            JsonElement distance = assignment.GetProperty("distance");
+            Object(distance, $"{at}.assignments.distance", ["kind", "target"]);
+            OneOf(distance, "kind", at,
+                "none", "anchor", "own-reactor", "enemy-reactor");
+            NonEmptyString(distance, "target", at, allowEmpty: true);
+        }
+        NonEmptyString(task, "whenConditionSetId", at);
+        NonEmptyString(task, "completeConditionSetId", at);
+        NonEmptyString(task, "failConditionSetId", at, allowEmpty: true);
+        JsonElement reintegration = task.GetProperty("reintegration");
+        Object(reintegration, $"{at}.reintegration",
+            [
+                "mode", "orderIds", "completeConditionSetId",
+                "timeoutTicks",
+            ]);
+        OneOf(reintegration, "mode", at, "primary-order", "release-orders");
+        foreach (JsonElement orderId in BoundedArray(
+                     reintegration.GetProperty("orderIds"),
+                     $"{at}.reintegration.orderIds", 0, 16))
+        {
+            StringValue(orderId, $"{at}.reintegration.orderIds");
+        }
+        NonEmptyString(
+            reintegration,
+            "completeConditionSetId",
+            at,
+            allowEmpty: true);
+        Range(reintegration, "timeoutTicks", at, 0, 1200);
     }
 
     private static void ValidateLayoutReferences(
@@ -868,6 +1023,25 @@ public static class ArcRelayTacticalPlaybookCompiler
             if (!zones.Contains(zone))
                 throw Error(path,
                     $"condition references unknown tactical zone '{zone}'.");
+        }
+        foreach (JsonElement task in playbook.GetProperty("coordination")
+                     .GetProperty("tasks").EnumerateArray())
+        foreach (JsonElement assignment in task.GetProperty("assignments")
+                     .EnumerateArray())
+        {
+            JsonElement distance = assignment.GetProperty("distance");
+            if (string.Equals(
+                    distance.GetProperty("kind").GetString(),
+                    "anchor",
+                    StringComparison.Ordinal)
+                && !anchors.Contains(
+                    distance.GetProperty("target").GetString()!))
+            {
+                throw Error(path,
+                    $"task '{task.GetProperty("taskId").GetString()}' "
+                    + "references unknown selection anchor "
+                    + $"'{distance.GetProperty("target").GetString()}'.");
+            }
         }
     }
 
@@ -1116,6 +1290,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             groupIds,
             roleIds,
             orderIds,
+            groups,
+            orders,
             path);
         ValidatePhaseOrderCoverage(
             root.GetProperty("coordination"), groups, orders, path);
@@ -1658,10 +1834,12 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
         IReadOnlySet<string> orderIds,
+        IReadOnlyCollection<JsonElement> groups,
+        IReadOnlyCollection<JsonElement> orders,
         string path)
     {
         string at = $"{path}.coordination";
-        Object(value, at, ["initialPhase", "phases"]);
+        Object(value, at, ["initialPhase", "phases", "tasks"]);
         string initial = Identifier(value, "initialPhase", at);
         JsonElement[] phases = BoundedArray(
             value.GetProperty("phases"), $"{at}.phases", 1, 24);
@@ -1678,6 +1856,233 @@ public static class ArcRelayTacticalPlaybookCompiler
             ValidateTransitions(
                 phase.GetProperty("transitions"), phaseIds, groupIds,
                 roleIds, orderIds, at);
+        }
+        ValidateTasks(
+            value.GetProperty("tasks"),
+            phaseIds,
+            groupIds,
+            roleIds,
+            orderIds,
+            groups,
+            orders,
+            at);
+    }
+
+    private static void ValidateTasks(
+        JsonElement value,
+        IReadOnlySet<string> phaseIds,
+        IReadOnlySet<string> groupIds,
+        IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> orderIds,
+        IReadOnlyCollection<JsonElement> groups,
+        IReadOnlyCollection<JsonElement> orders,
+        string path)
+    {
+        JsonElement[] tasks = BoundedArray(value, $"{path}.tasks", 0, 32);
+        UniqueIds(tasks, "taskId", $"{path}.tasks");
+        Dictionary<string, JsonElement> ordersById = orders.ToDictionary(
+            order => order.GetProperty("orderId").GetString()!,
+            StringComparer.Ordinal);
+        Dictionary<string, HashSet<string>> rolesByGroup = groups.ToDictionary(
+            group => group.GetProperty("groupId").GetString()!,
+            group => group.GetProperty("roleIds").EnumerateArray()
+                .Select(role => role.GetString()!)
+                .ToHashSet(StringComparer.Ordinal),
+            StringComparer.Ordinal);
+        Dictionary<string, string[]> statesByGroup = groups.ToDictionary(
+            group => group.GetProperty("groupId").GetString()!,
+            group => group.GetProperty("localStateMachine")
+                .GetProperty("states").EnumerateArray()
+                .Select(state => state.GetProperty("stateId").GetString()!)
+                .ToArray(),
+            StringComparer.Ordinal);
+        foreach (JsonElement task in tasks)
+        {
+            string at = $"{path}.tasks";
+            Object(task, at,
+                [
+                    "taskId", "priority", "activation", "preemption",
+                    "participantLoss", "triggerStableTicks", "minimumTicks",
+                    "timeoutTicks", "cooldownTicks", "eligiblePhases",
+                    "assignments", "when", "completeWhen", "failWhen",
+                    "reintegration",
+                ]);
+            string taskId = Identifier(task, "taskId", at);
+            Range(task, "priority", at, 0, 1000);
+            OneOf(task, "activation", at, "rising-edge", "while-true");
+            OneOf(task, "preemption", at, "never", "higher-priority");
+            OneOf(task, "participantLoss", at,
+                "abort", "continue", "replace");
+            Range(task, "triggerStableTicks", at, 1, 120);
+            Range(task, "minimumTicks", at, 0, 1200);
+            Range(task, "timeoutTicks", at, 1, 2400);
+            Range(task, "cooldownTicks", at, 0, 1200);
+            References(task.GetProperty("eligiblePhases"), phaseIds,
+                $"{at}.{taskId}.eligiblePhases", 1, 24);
+            ValidateConditionGroups(
+                task.GetProperty("when"), groupIds, roleIds, orderIds,
+                $"{at}.{taskId}.when", 1, 16);
+            ValidateConditionGroups(
+                task.GetProperty("completeWhen"), groupIds, roleIds, orderIds,
+                $"{at}.{taskId}.completeWhen", 1, 16);
+            ValidateConditionGroups(
+                task.GetProperty("failWhen"), groupIds, roleIds, orderIds,
+                $"{at}.{taskId}.failWhen", 0, 16);
+
+            JsonElement[] assignments = BoundedArray(
+                task.GetProperty("assignments"),
+                $"{at}.{taskId}.assignments", 1, 8);
+            UniqueIds(assignments, "assignmentId",
+                $"{at}.{taskId}.assignments");
+            foreach (JsonElement assignment in assignments)
+            {
+                Object(assignment, $"{at}.{taskId}.assignments",
+                    [
+                        "assignmentId", "orderId", "roles", "classes",
+                        "minimum", "preferred", "maximum", "carrier",
+                        "distance",
+                    ]);
+                string assignmentId = Identifier(
+                    assignment, "assignmentId", at);
+                Reference(assignment, "orderId", orderIds, at);
+                string orderId = assignment.GetProperty("orderId").GetString()!;
+                JsonElement order = ordersById[orderId];
+                string groupId = order.GetProperty("groupId").GetString()!;
+                string[] selectedRoles = StringArray(
+                    assignment.GetProperty("roles"),
+                    $"{at}.{taskId}.{assignmentId}.roles", 0, 8);
+                if (selectedRoles.Any(role => !roleIds.Contains(role)
+                        || !rolesByGroup[groupId].Contains(role)))
+                {
+                    throw Error(at,
+                        $"task '{taskId}' assignment '{assignmentId}' "
+                        + $"selects a role outside order '{orderId}' group "
+                        + $"'{groupId}'.");
+                }
+                string[] classes = StringArray(
+                    assignment.GetProperty("classes"),
+                    $"{at}.{taskId}.{assignmentId}.classes", 0, 16);
+                if (classes.Any(value => !KnownClasses.Contains(value))
+                    || classes.Distinct(StringComparer.Ordinal).Count()
+                        != classes.Length)
+                {
+                    throw Error(at,
+                        $"task '{taskId}' assignment '{assignmentId}' has "
+                        + "invalid class preferences.");
+                }
+                Cardinality(assignment,
+                    $"{at}.{taskId}.{assignmentId}", 0, 8);
+                OneOf(assignment, "carrier", at,
+                    "forbid", "allow", "require");
+                JsonElement distance = assignment.GetProperty("distance");
+                Object(distance, $"{at}.{taskId}.{assignmentId}.distance",
+                    ["kind", "target"]);
+                string kind = RequiredString(distance, "kind", at);
+                OneOf(distance, "kind", at,
+                    "none", "anchor", "own-reactor", "enemy-reactor");
+                string target = RequiredString(distance, "target", at);
+                if ((kind == "anchor") != (target.Length > 0))
+                {
+                    throw Error(at,
+                        $"task '{taskId}' assignment '{assignmentId}' "
+                        + "distance target must be present only for anchor.");
+                }
+                if (!string.Equals(
+                        order.GetProperty("members").GetProperty("kind")
+                            .GetString(),
+                        "all",
+                        StringComparison.Ordinal))
+                {
+                    throw Error(at,
+                        $"task order '{orderId}' must use members.kind 'all'; "
+                        + "the task assignment owns participant selection.");
+                }
+            }
+
+            JsonElement reintegration = task.GetProperty("reintegration");
+            Object(reintegration, $"{at}.{taskId}.reintegration",
+                ["mode", "orderIds", "completeWhen", "timeoutTicks"]);
+            string mode = RequiredString(reintegration, "mode", at);
+            OneOf(reintegration, "mode", at,
+                "primary-order", "release-orders");
+            References(
+                reintegration.GetProperty("orderIds"), orderIds,
+                $"{at}.{taskId}.reintegration.orderIds", 0, 16);
+            string[] releaseOrders = StringArray(
+                reintegration.GetProperty("orderIds"),
+                $"{at}.{taskId}.reintegration.orderIds", 0, 16);
+            ValidateConditionGroups(
+                reintegration.GetProperty("completeWhen"),
+                groupIds,
+                roleIds,
+                orderIds,
+                $"{at}.{taskId}.reintegration.completeWhen",
+                0,
+                16);
+            Range(reintegration, "timeoutTicks", at, 0, 1200);
+            int releaseTimeout = reintegration.GetProperty("timeoutTicks")
+                .GetInt32();
+            int releaseConditionCount = reintegration
+                .GetProperty("completeWhen").GetArrayLength();
+            if (mode == "primary-order"
+                && (releaseOrders.Length != 0
+                    || releaseConditionCount != 0
+                    || releaseTimeout != 0))
+            {
+                throw Error(at,
+                    $"task '{taskId}' primary-order reintegration cannot "
+                    + "declare release orders, conditions, or timeout.");
+            }
+            if (mode == "release-orders"
+                && (releaseOrders.Length == 0
+                    || releaseConditionCount == 0
+                    || releaseTimeout == 0))
+            {
+                throw Error(at,
+                    $"task '{taskId}' release-orders reintegration requires "
+                    + "orders, a completion condition, and a timeout.");
+            }
+            if (mode == "release-orders")
+            {
+                HashSet<string> assignmentGroups = assignments
+                    .Select(assignment => ordersById[assignment
+                        .GetProperty("orderId").GetString()!]
+                        .GetProperty("groupId").GetString()!)
+                    .ToHashSet(StringComparer.Ordinal);
+                JsonElement[] releases = releaseOrders
+                    .Select(orderId => ordersById[orderId])
+                    .ToArray();
+                string? irrelevantGroup = releases
+                    .Select(order => order.GetProperty("groupId").GetString()!)
+                    .FirstOrDefault(groupId =>
+                        !assignmentGroups.Contains(groupId));
+                if (irrelevantGroup is not null)
+                {
+                    throw Error(at,
+                        $"task '{taskId}' release order targets unassigned "
+                        + $"group '{irrelevantGroup}'.");
+                }
+                foreach (string groupId in assignmentGroups)
+                foreach (string stateId in statesByGroup[groupId])
+                {
+                    int matches = releases.Count(order =>
+                        string.Equals(
+                            order.GetProperty("groupId").GetString(),
+                            groupId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            order.GetProperty("localState").GetString(),
+                            stateId,
+                            StringComparison.Ordinal));
+                    if (matches != 1)
+                    {
+                        throw Error(at,
+                            $"task '{taskId}' release orders must cover "
+                            + $"group '{groupId}' local state '{stateId}' "
+                            + $"exactly once; found {matches}.");
+                    }
+                }
+            }
         }
     }
 
@@ -2015,7 +2420,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 value.Add("any", new JsonArray());
             if (value.ContainsKey("any") && !value.ContainsKey("all"))
                 value.Add("all", new JsonArray());
-            if (value.ContainsKey("orderId"))
+            if (value.ContainsKey("orderId") && value.ContainsKey("movement"))
             {
                 value.TryAdd("supportId", "");
                 value.TryAdd("custodyId", "");
