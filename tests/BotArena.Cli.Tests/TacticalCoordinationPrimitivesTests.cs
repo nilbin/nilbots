@@ -119,6 +119,39 @@ public sealed class TacticalCoordinationPrimitivesTests
             new Position(8, 5), assigned, minimumSeparation: 3));
     }
 
+    [Fact]
+    public void EnemyCarrierInterceptSelectsMostImmediateBoundedThreat()
+    {
+        var fallback = new Position(24, 11);
+        var enemyReactor = new Position(29, 11);
+        TacticalCoordinationPrimitives.EnemyCarrierCandidate[] candidates =
+        [
+            new(new ActorIdentity(1, 7, 2), new Position(23, 8)),
+            new(new ActorIdentity(1, 3, 4), new Position(27, 14)),
+            new(new ActorIdentity(1, 1, 6), new Position(28, 19)),
+        ];
+
+        TacticalCoordinationPrimitives.EnemyCarrierCandidate? selected =
+            TacticalCoordinationPrimitives.SelectEnemyCarrier(
+                candidates, fallback, enemyReactor, pursuitRadius: 6);
+
+        Assert.NotNull(selected);
+        Assert.Equal(new ActorIdentity(1, 3, 4), selected.Value.ActorId);
+    }
+
+    [Fact]
+    public void EnemyCarrierInterceptFallsBackWhenThreatIsOutsideItsLeash()
+    {
+        TacticalCoordinationPrimitives.EnemyCarrierCandidate? selected =
+            TacticalCoordinationPrimitives.SelectEnemyCarrier(
+                [new(new ActorIdentity(1, 1, 0), new Position(12, 2))],
+                fallbackAnchor: new Position(24, 11),
+                enemyReactor: new Position(29, 11),
+                pursuitRadius: 4);
+
+        Assert.Null(selected);
+    }
+
     [Theory]
     [InlineData("evade")]
     [InlineData("regroup")]

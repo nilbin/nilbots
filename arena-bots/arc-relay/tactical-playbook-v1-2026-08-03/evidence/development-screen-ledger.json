@@ -289,6 +289,28 @@
       ],
       "resultSummary": "Rejected. It lost both assignments faster than the one-carrier variant; the retained three-carrier wave is materially more coherent.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "whole-line-enemy-carrier-intercept-radius-six",
+      "playbookSourceSha256": "f06e25eb612dc4bdfc090bf383a688db8ca341bbad6f860bcf6cb04f463b5481",
+      "change": "Give all five line bodies a generic observed-enemy-carrier movement order bounded to six tiles around the enemy-perimeter fallback anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 379 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected for Home Siege. The generic primitive selected legal current observations deterministically, but moving the entire line dissolved the living ring.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "whole-line-enemy-carrier-intercept-radius-two",
+      "playbookSourceSha256": "373c66b341b4999fe2376b9c7346c5a59ab725374f6a0c4f30c1bcd2c1b69a59",
+      "change": "Bound the same whole-line carrier interception order to two tiles around the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 511 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 461 }
+      ],
+      "resultSummary": "Rejected for Home Siege after the mirrored assignment lost. A moving denial screen needs a dedicated subgroup; whole-line pursuit is the wrong authoring granularity even under a tight leash.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }

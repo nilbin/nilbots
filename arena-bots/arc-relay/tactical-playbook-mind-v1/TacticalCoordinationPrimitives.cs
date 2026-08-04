@@ -12,6 +12,10 @@ internal static class TacticalCoordinationPrimitives
         ActorIdentity Target,
         string SignatureId);
 
+    internal readonly record struct EnemyCarrierCandidate(
+        ActorIdentity ActorId,
+        Position Position);
+
     internal static HashSet<int> SelectSignatureControllers(
         IEnumerable<SignatureCandidate> candidates) => candidates
         .OrderBy(value => value.Target.TeamId)
@@ -67,6 +71,23 @@ internal static class TacticalCoordinationPrimitives
         int minimumSeparation) => providersAlreadyAssignedToTarget.All(
             assigned => provider.ChebyshevDistance(assigned)
                 >= minimumSeparation);
+
+    internal static EnemyCarrierCandidate? SelectEnemyCarrier(
+        IEnumerable<EnemyCarrierCandidate> candidates,
+        Position fallbackAnchor,
+        Position enemyReactor,
+        int pursuitRadius) => candidates
+        .Where(candidate => candidate.Position.ChebyshevDistance(
+            fallbackAnchor) <= pursuitRadius)
+        .OrderBy(candidate => candidate.Position.ChebyshevDistance(
+            enemyReactor))
+        .ThenBy(candidate => candidate.Position.ChebyshevDistance(
+            fallbackAnchor))
+        .ThenBy(candidate => candidate.ActorId.TeamId)
+        .ThenBy(candidate => candidate.ActorId.UnitId)
+        .ThenBy(candidate => candidate.ActorId.LifeId)
+        .Cast<EnemyCarrierCandidate?>()
+        .FirstOrDefault();
 
     internal static string SurvivalDirective(string fallback) => fallback switch
     {

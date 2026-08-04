@@ -810,6 +810,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ? _ownReactor : _enemyReactor,
             "carrier" => CarrierTarget(
                 mind, package.Source, groups, orders, carried, order, body),
+            "enemy-carrier" => EnemyCarrierTarget(
+                package, carried, order),
             "hold" => body.Position,
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
@@ -842,6 +844,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _ = contract;
         _ = machine;
         return package.FormationPosition(anchor, placement.Offset);
+    }
+
+    private Position EnemyCarrierTarget(
+        TacticalPlaybookPackage package,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried,
+        TacticalPlaybookPackage.Order order)
+    {
+        Position fallback = package.AnchorPosition(order.Movement.Target);
+        TacticalCoordinationPrimitives.EnemyCarrierCandidate? selected =
+            TacticalCoordinationPrimitives.SelectEnemyCarrier(
+                carried
+                    .Where(value => value.Key.TeamId != _teamId)
+                    .Select(value =>
+                        new TacticalCoordinationPrimitives
+                            .EnemyCarrierCandidate(
+                                value.Key, value.Value.Position))
+                    .DistinctBy(value => value.ActorId),
+                fallback,
+                _enemyReactor,
+                order.Movement.ChaseLeash);
+        return selected?.Position ?? fallback;
     }
 
     private Position CarrierTarget(

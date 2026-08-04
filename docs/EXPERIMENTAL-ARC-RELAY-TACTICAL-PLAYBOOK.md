@@ -76,8 +76,8 @@ changing authoritative simulation truth.
 
 An order binds one group to:
 
-- a typed movement target (`route`, `zone`, `anchor`, `reactor`, `carrier`, or
-  `hold`);
+- a typed movement target (`route`, `zone`, `anchor`, `reactor`, friendly
+  `carrier`, observed `enemy-carrier`, or `hold`);
 - arrival/completion, stuck recovery, leash, and pace;
 - one formation and engagement;
 - optional support and Core-custody policies;
@@ -95,6 +95,15 @@ The first legal action wins. Every submitted command explains itself as
 `tp:<phase>:<group>:<order>:<channel>`; focus and custody commands add their
 target or recovery reason. This is presentation/debug provenance only and does
 not alter the canonical rules.
+
+`enemy-carrier` is a bounded interception order, not omniscient pursuit. Its
+`target` names the fallback layout anchor and its movement `chaseLeash` is the
+maximum Chebyshev radius around that anchor. It considers only currently
+observed carried Cores, selects the carrier nearest its own reactor, then uses
+anchor distance and stable actor identity as ties. When no legal candidate is
+inside the leash, the group reforms on the fallback anchor. This lets an editor
+express a moving screen without encoding a unit ID, a guessed fog position, or
+absolute coordinates in the playbook.
 
 ### Engagement and coordinated attacks
 

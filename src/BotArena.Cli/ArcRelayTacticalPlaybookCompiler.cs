@@ -664,7 +664,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "stuckTicks", "stuckRecovery", "chaseLeash", "pace",
             ]);
         OneOf(value, "kind", path,
-            "route", "zone", "anchor", "reactor", "carrier", "hold");
+            "route", "zone", "anchor", "reactor", "carrier",
+            "enemy-carrier", "hold");
         NonEmptyString(value, "target", path, allowEmpty: true);
         Range(value, "arrivalRadius", path, 0, 16);
         OneOf(value, "completion", path,

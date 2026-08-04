@@ -233,6 +233,35 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void EnemyCarrierMovementIsASeparateBoundedMovementVariant()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject layout = source["layout"]!.AsObject();
+        layout["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            layout["path"]!.GetValue<string>()));
+        JsonObject lineOrder = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "line-siege");
+        lineOrder["movement"]!["kind"] = "enemy-carrier";
+        lineOrder["movement"]!["target"] = "enemy-perimeter";
+        lineOrder["movement"]!["chaseLeash"] = 6;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            Assert.NotEmpty(compilation.LinkedData);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =
