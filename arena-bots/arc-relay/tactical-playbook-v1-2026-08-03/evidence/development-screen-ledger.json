@@ -450,6 +450,71 @@
       ],
       "resultSummary": "Rejected. Blocking all visible loose-Core tiles made the ring route around contested objectives and lost both assignments; objective custody needs a coordinated ownership policy rather than terrain-like avoidance.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "occupy-regroup-at-four",
+      "playbookSourceSha256": "74ff138c5f8d05d80e838dd620b75d6de5051c7911bf36fa408f87999c2b50d2",
+      "change": "Keep five bodies in enemy-home occupation and trigger the regroup transition only after the sixth occupant is lost.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 358 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 423 }
+      ],
+      "resultSummary": "Rejected. Five occupants could not maintain the living perimeter; delaying regroup lost both assignments faster than the retained six-occupant threshold.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "two-towline-control-line",
+      "playbookSourceSha256": "fe5d41956fd0789514f481e4e0dc75ff15227fbdbaf05b3543b734cca09e619d",
+      "layoutSha256": "86193c590bf02cf8f88218c986e28b44f9aea6cbc780d76bdf02be38f26321c0",
+      "change": "Replace the two Repulsors with two Towlines and bind the unchanged geometry to the resulting exact composition contracts so hooks can pull returning carriers off the bank approach.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 332 }
+      ],
+      "resultSummary": "Rejected. Control signatures did not replace the retained Repulsors' durability and close pressure; both exact-bound assignments lost.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "executable-formation-facing",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "retainedPlaybookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Execute formation orientation as a low-priority facing fallback, first directly, then behind current shared-focus facing, then only in a genuinely enemy-free observation.",
+      "cells": [
+        { "variant": "direct enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 328 },
+        { "variant": "direct enemy-reactor", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 421 },
+        { "variant": "focus-first enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 512 },
+        { "variant": "focus-first enemy-reactor", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 529 },
+        { "variant": "enemy-free enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 428 },
+        { "variant": "enemy-free enemy-reactor", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 },
+        { "variant": "focus-target ring", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 563 },
+        { "variant": "focus-target ring", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 404 },
+        { "variant": "fixed ring", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 587 },
+        { "variant": "fixed ring", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 566 }
+      ],
+      "resultSummary": "Retained the generic focus-first orientation fallback and authored Home Siege's crossfire ring as fixed. Reactor-facing and focus-facing ring variants were assignment-sensitive; fixed preserves both two-cell wins but does not approach the dominance gate.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "dedicated-reactor-watcher",
+      "playbookSourceSha256": "32f6cd26d6d050b81d5b15c5bbea357c7ec4212f56af56699b93df99e636e217",
+      "change": "Put the runner alone in a reactor-facing observer formation with no combat participation while the five-body line retains fixed crossfire, using immediate team-union vision to expose bank-bound carriers.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 514 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 }
+      ],
+      "resultSummary": "Rejected. The dedicated watcher supplied vision but removing the runner's gun from shared pressure cost both assignments; awareness was not the sole denial bottleneck.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "carrier-bank-lane-coverage",
+      "playbookSourceSha256": "d54a1b309bacc3dc3a37bef6ebded2fd860e090b5fcba4b074f30bbc811f5c5e",
+      "change": "After budgeting lethal current-tile damage, use spare siege shooters on legal one-tick carrier moves that strictly reduce public static-map distance to the carrier's bank.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 486 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 434 }
+      ],
+      "resultSummary": "Rejected. The public inference was causal, but spending scarce shots on likely bank lanes lost both assignments. It was removed rather than entering a claim unavailable to the parity control.",
+      "verdict": "rejected"
     }
   ]
 }

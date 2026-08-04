@@ -309,7 +309,7 @@
     {
       "formationId": "living-ring",
       "shape": "ring",
-      "orientation": "enemy-reactor",
+      "orientation": "fixed",
       "spacing": {
         "metric": "chebyshev",
         "minimum": 1,

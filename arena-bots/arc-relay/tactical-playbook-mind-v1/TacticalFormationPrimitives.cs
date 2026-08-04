@@ -2,6 +2,29 @@ using BotArena.Sdk;
 
 internal static class TacticalFormationPrimitives
 {
+    internal static Position? FacingTarget(
+        string orientation,
+        Position bodyPosition,
+        Position movementTarget,
+        Position ownReactor,
+        Position enemyReactor,
+        Position? focusTarget)
+    {
+        if (orientation is not "fixed" && focusTarget is Position focus)
+            return focus;
+        return orientation switch
+        {
+            "route" => movementTarget == bodyPosition
+                ? null
+                : movementTarget,
+            "enemy-reactor" => enemyReactor,
+            "own-reactor" => ownReactor,
+            "focus-target" or "fixed" => null,
+            _ => throw new InvalidDataException(
+                $"Unknown formation orientation '{orientation}'."),
+        };
+    }
+
     internal static int FormationOrdinal(
         int unitId,
         string roleId,

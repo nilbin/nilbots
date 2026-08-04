@@ -5,6 +5,46 @@ namespace BotArena.Cli.Tests;
 public sealed class TacticalFormationPrimitivesTests
 {
     [Fact]
+    public void FormationOrientationSelectsAnExecutableFacingTarget()
+    {
+        var body = new Position(5, 5);
+        var movement = new Position(7, 5);
+        var own = new Position(1, 5);
+        var enemy = new Position(9, 5);
+        var focus = new Position(6, 3);
+
+        Assert.Equal(movement, TacticalFormationPrimitives.FacingTarget(
+            "route", body, movement, own, enemy, null));
+        Assert.Equal(enemy, TacticalFormationPrimitives.FacingTarget(
+            "enemy-reactor", body, movement, own, enemy, null));
+        Assert.Equal(own, TacticalFormationPrimitives.FacingTarget(
+            "own-reactor", body, movement, own, enemy, null));
+        Assert.Equal(focus, TacticalFormationPrimitives.FacingTarget(
+            "focus-target", body, movement, own, enemy, focus));
+        Assert.Equal(focus, TacticalFormationPrimitives.FacingTarget(
+            "enemy-reactor", body, movement, own, enemy, focus));
+        Assert.Null(TacticalFormationPrimitives.FacingTarget(
+            "fixed", body, movement, own, enemy, focus));
+        Assert.Null(TacticalFormationPrimitives.FacingTarget(
+            "route", body, body, own, enemy, null));
+        Assert.Null(TacticalFormationPrimitives.FacingTarget(
+            "focus-target", body, movement, own, enemy, null));
+    }
+
+    [Fact]
+    public void UnknownFormationOrientationFailsClosed()
+    {
+        Assert.Throws<InvalidDataException>(() =>
+            TacticalFormationPrimitives.FacingTarget(
+                "mystery",
+                new Position(0, 0),
+                new Position(1, 0),
+                new Position(0, 0),
+                new Position(2, 0),
+                null));
+    }
+
+    [Fact]
     public void PreserveVacancyKeepsTheDestroyedStableSlotOpen()
     {
         IReadOnlyDictionary<int, string> stable = new Dictionary<int, string>

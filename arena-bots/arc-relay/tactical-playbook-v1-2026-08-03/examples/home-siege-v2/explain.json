@@ -3,8 +3,8 @@
   "playbook": {
     "id": "home-siege-v2",
     "sourcePath": "/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder/arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json",
-    "sourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
-    "normalizedBytes": 26012
+    "sourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+    "normalizedBytes": 26004
   },
   "layout": {
     "id": "counterflow-home-siege",
@@ -270,8 +270,8 @@
     ]
   },
   "runtimePackage": {
-    "sha256": "bd5dc63f63dfefffe7db614da00335e349a88d2ff50e3b2e7f8bf816b9d5ef75",
-    "bytes": 27686,
+    "sha256": "c2d950b3ce53edcb00462ac556696c798aac189e5a284f691aa5fb430d688dbf",
+    "bytes": 27678,
     "envelope": "ATP1"
   },
   "composition": [
@@ -565,7 +565,7 @@
         "reformTicks": 4
       },
       "formationId": "living-ring",
-      "orientation": "enemy-reactor",
+      "orientation": "fixed",
       "placements": [
         {
           "offset": [

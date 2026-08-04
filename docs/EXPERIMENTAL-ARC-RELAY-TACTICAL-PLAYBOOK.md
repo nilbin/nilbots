@@ -72,6 +72,15 @@ until their final approach, then apply role-relative placements. Runtime motion
 claims, legal-path checks, and bounded reflow arbitrate collisions without
 changing authoritative simulation truth.
 
+Orientation is executable. A current shared focus assignment owns facing so a
+cooldown tick does not turn a shooter away from its next shot. Otherwise,
+`enemy-reactor` and `own-reactor` restore the formation's look direction,
+`route` looks toward the current movement target, and `focus-target` or `fixed`
+preserves the last legal facing. Authors can put a dedicated observer in its
+own formation instead of forcing a whole firing line onto one bearing. Combat,
+repair, custody, and movement still win through the declared arbitration
+order, so orientation never manufactures an observation or cancels an action.
+
 ### Orders and arbitration
 
 An order binds one group to:

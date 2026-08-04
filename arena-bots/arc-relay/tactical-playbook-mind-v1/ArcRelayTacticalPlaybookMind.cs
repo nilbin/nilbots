@@ -164,7 +164,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalPlaybookPackage.Engagement engagement = package.Source
                 .Engagements.Single(value => value.EngagementId
                     == order.EngagementId);
+            TacticalPlaybookPackage.Formation formation = package.Source
+                .Formations.Single(value => value.FormationId
+                    == order.FormationId);
             Position target = targets[body.UnitId];
+            Position? facingTarget = TacticalFormationPrimitives.FacingTarget(
+                formation.Orientation,
+                body.Position,
+                target,
+                _ownReactor,
+                _enemyReactor,
+                focus.GetValueOrDefault(body.UnitId)?.Target.Position);
             body.SetRole(RoleTag(machine.PhaseId, group, role, order.OrderId));
 
             if (!carried.ContainsKey(body.ActorId)
@@ -213,8 +223,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "movement" => TryMovement(
                         contract, mind, arc, package, machine, snapshot, body,
                         role, group, order, target, pickupAssignments, claims),
-                    "facing" => TryFaceTarget(
-                        contract, body, target,
+                    "facing" => facingTarget is Position lookAt
+                        && TryFaceTarget(
+                        contract, body, lookAt,
                         Provenance(machine, group, order, "facing")),
                     "hold" => Hold(body,
                         Provenance(machine, group, order, "hold")),

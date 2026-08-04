@@ -1111,7 +1111,7 @@
         "reformTicks": 4
       },
       "formationId": "living-ring",
-      "orientation": "enemy-reactor",
+      "orientation": "fixed",
       "placements": [
         {
           "offset": [
