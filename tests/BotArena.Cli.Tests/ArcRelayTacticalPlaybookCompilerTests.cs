@@ -46,6 +46,95 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ManeuverCatalogExpandsToExhaustiveRuntimeOrders()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        Assert.Null(source["orders"]);
+        Assert.Equal("maneuver-catalog",
+            source["authoring"]!["kind"]!.GetValue<string>());
+        Assert.Equal(6, source["authoring"]!["maneuvers"]!.AsArray().Count);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+        JsonObject normalized = JsonNode.Parse(compilation.NormalizedPlaybook)!
+            .AsObject();
+        Assert.Null(normalized["authoring"]);
+        Assert.Equal(19, normalized["orders"]!.AsArray().Count);
+        Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
+            Assert.Equal(4, phase!["orderIds"]!.AsArray().Count));
+    }
+
+    [Fact]
+    public void OneBoundedParameterControlsEveryConversionThreshold()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        source["layout"]!["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            source["layout"]!["path"]!.GetValue<string>()));
+        source["authoring"]!["parameters"]![0]!["value"] = 3;
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            using JsonDocument normalized = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            int[] values = normalized.RootElement
+                .GetProperty("custodyPolicies")[0]
+                .GetProperty("safeConversionAll")[0]
+                .GetProperty("all")
+                .EnumerateArray()
+                .Where(condition => condition.GetProperty("fact").GetString()
+                    == "known-enemies-unavailable")
+                .Select(condition => condition.GetProperty("value").GetInt32())
+                .Concat(normalized.RootElement.GetProperty("coordination")
+                    .GetProperty("phases").EnumerateArray()
+                    .SelectMany(phase => phase.GetProperty("transitions")
+                        .EnumerateArray())
+                    .SelectMany(transition => transition.GetProperty("when")
+                        .EnumerateArray())
+                    .SelectMany(group => group.GetProperty("all")
+                        .EnumerateArray())
+                    .Where(condition => condition.GetProperty("fact").GetString()
+                        == "known-enemies-unavailable")
+                    .Select(condition => condition.GetProperty("value")
+                        .GetInt32()))
+                .Distinct()
+                .ToArray();
+            Assert.Equal([3], values);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void UnknownAuthoringParameterReferencesAreRejected()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject condition = source["authoring"]!["conditionSets"]![0]!
+            ["when"]![0]!["all"]![0]!.AsObject();
+        condition["valueParameter"] = "missing-parameter";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "condition references unknown parameter 'missing-parameter'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void UnknownFieldsAreRejectedInsteadOfSilentlyIgnored()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
@@ -211,8 +300,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void CarrierEscortOrdersRequireCustodyGroupAuthorization()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject runnerOrder = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
@@ -235,8 +323,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void EnemyCarrierMovementIsASeparateBoundedMovementVariant()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject layout = source["layout"]!.AsObject();
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
@@ -264,8 +351,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void SecuredCoreGuardRequiresAnExplicitCustodyPolicy()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject layout = source["layout"]!.AsObject();
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
@@ -292,8 +378,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void MovementCompletionFactsReferenceDeclaredOrders()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject layout = source["layout"]!.AsObject();
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
@@ -337,8 +422,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void MovementAndFormationPaceCannotContradict()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject order = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .First();
@@ -485,8 +569,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void EveryPhaseMustCoverEveryGroupLocalStateExplicitly()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject harvest = source["coordination"]!["phases"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["phaseId"]!.GetValue<string>()
@@ -514,8 +597,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void OrderLocalStateMustBelongToItsGroup()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject runner = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
@@ -540,8 +622,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void MovementTargetMustResolveInTheBoundLayoutByKind()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject layout = source["layout"]!.AsObject();
         layout["path"] = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(HomeSiege())!,
@@ -622,8 +703,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void PhaseFallbackMustNameAnExistingPhase()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject order = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
@@ -647,8 +727,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [Fact]
     public void UnusedFallbackPhaseIsRejectedAsIrrelevant()
     {
-        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
-            .AsObject();
+        JsonObject source = ExpandedHomeSiege();
         JsonObject order = source["orders"]!.AsArray()
             .Select(value => value!.AsObject())
             .Single(value => value["orderId"]!.GetValue<string>()
@@ -709,6 +788,58 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             WriteIndented = true,
         }));
         return path;
+    }
+
+    private static JsonObject ExpandedHomeSiege()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+        JsonObject expanded = JsonNode.Parse(compilation.NormalizedPlaybook)!
+            .AsObject();
+        DenormalizeSource(expanded);
+        expanded["layout"]!["path"] = compilation.LayoutPath;
+        return expanded;
+    }
+
+    private static void DenormalizeSource(JsonNode node)
+    {
+        if (node is JsonObject value)
+        {
+            if (value.ContainsKey("fact"))
+            {
+                if (value["subject"]?.GetValue<string>() == "")
+                    value.Remove("subject");
+                if (value["zone"]?.GetValue<string>() == "")
+                    value.Remove("zone");
+                if (value["freshnessTicks"]?.GetValue<int>() == 0)
+                    value.Remove("freshnessTicks");
+            }
+            if (value["all"] is JsonArray all && all.Count == 0)
+                value.Remove("all");
+            if (value["any"] is JsonArray any && any.Count == 0)
+                value.Remove("any");
+            if (value.ContainsKey("orderId"))
+            {
+                if (value["supportId"]?.GetValue<string>() == "")
+                    value.Remove("supportId");
+                if (value["custodyId"]?.GetValue<string>() == "")
+                    value.Remove("custodyId");
+            }
+            foreach (JsonNode? child in value.Select(item => item.Value)
+                         .ToArray())
+            {
+                if (child is not null)
+                    DenormalizeSource(child);
+            }
+            return;
+        }
+        if (node is not JsonArray array)
+            return;
+        foreach (JsonNode? child in array)
+        {
+            if (child is not null)
+                DenormalizeSource(child);
+        }
     }
 
     private static string HomeSiege() => Path.Combine(

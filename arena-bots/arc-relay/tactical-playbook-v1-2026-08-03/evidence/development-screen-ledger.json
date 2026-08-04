@@ -690,6 +690,671 @@
       ],
       "resultSummary": "Retain the generic linker and movement-leash semantics and reject the current Siege strategy. Runner zero-leash and bounded group reflow now mean what the source says; the old candidate still loses both mirrors.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "whole-team-return-escort-before-harvest-rewrite",
+      "playbookSourceSha256": "ed56f65321065d6721d3c48d5cdbe7d56544a7626f8d97430e4e8f8385ec0779",
+      "change": "Add an own-bank-oriented return escort and make all three groups follow a committed carrier during delivery, while leaving the earlier harvest trigger and collection formation unchanged.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 334
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 382
+        }
+      ],
+      "resultSummary": "The new delivery orders never executed in this mirror pair: the team oscillated among occupy, regroup, and breach without entering harvest. Retain the generic carrier-relative movement and reject this strategy attempt as behaviorally inert.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "five-unavailable-harvest-sweep-and-return-escort",
+      "playbookSourceSha256": "f338681dbaefc578c3a2d4431f89033678c569f5890aee8bef0b5d9c723afcda",
+      "change": "Require five causally known unavailable enemies, sweep all three Wells in a wide whole-team formation, let every authorized carrier return immediately, and send the remaining groups home in a carrier-relative escort.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 354
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 435
+        }
+      ],
+      "resultSummary": "The rewrite did execute: the longer mirror entered harvest at tick 110, entered delivery at tick 118, and banked one Pulse. It then spent about 66 ticks withdrawing the whole force, ceded enemy-home pressure, and lost 3-1. Retain the executable sweep/escort vocabulary, reject five-plus-full-return as the selected strategy, and sweep the attrition threshold and return force instead of treating either number as fixed.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "parameterized-attrition-return-policy-matrix",
+      "change": "Sweep the centrally authored conversion enemy-unavailable threshold across 3/4/5 and compare full escort, medic escort with line pressure, carrier-only forward pressure, and carrier-only rebreach in both assignments.",
+      "variants": [
+        {
+          "variantId": "t3-full-escort",
+          "threshold": 3,
+          "policy": "full-escort",
+          "playbookSourceSha256": "1790f772bfa065fea203981200226a0383068473eb22d8bf1c2dc9970e42ca5a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 330
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 478
+            }
+          ]
+        },
+        {
+          "variantId": "t3-medic-escort-line-pressure",
+          "threshold": 3,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "84dfe750f3ddab0b825d4854b1b0158e4ab3525cb143d3498b85796451a70952",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 353
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 357
+            }
+          ]
+        },
+        {
+          "variantId": "t3-carrier-only-forward-pressure",
+          "threshold": 3,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "46eeb897d70a5b64f6dabc92e59b65838978ce8566f852216d6accc50541ea9c",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 468
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 326
+            }
+          ]
+        },
+        {
+          "variantId": "t3-carrier-only-rebreach",
+          "threshold": 3,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "f1fb23b6e295553093dfcfc1b1b7fdb3baa0d3f86981831713afbd92c0b75e00",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 479
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 353
+            }
+          ]
+        },
+        {
+          "variantId": "t4-full-escort",
+          "threshold": 4,
+          "policy": "full-escort",
+          "playbookSourceSha256": "e43d137890f25b06f0d1e9b5cd0de56ebe0120775766b8bd073cb60b9eb6a903",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 404
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 427
+            }
+          ]
+        },
+        {
+          "variantId": "t4-medic-escort-line-pressure",
+          "threshold": 4,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "0f6c6e3e7a40da2daaca161f89c29b56762fed8a49735f329af7b2ff557b6e2d",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 458
+            }
+          ]
+        },
+        {
+          "variantId": "t4-carrier-only-forward-pressure",
+          "threshold": 4,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "fee341e71381609c52175606644dac20dd127061675502fde115aeeb515b4a62",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 356
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 438
+            }
+          ]
+        },
+        {
+          "variantId": "t4-carrier-only-rebreach",
+          "threshold": 4,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "a6db4c4fdf213c994537000c08f3aecb1412e3a323282041cef5a604cf1f2422",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 403
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 417
+            }
+          ]
+        },
+        {
+          "variantId": "t5-full-escort",
+          "threshold": 5,
+          "policy": "full-escort",
+          "playbookSourceSha256": "0a1047a65117f0af17cafdc16829e0579c813e5dd79ef3930896bd3e3d1b5f9c",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 354
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            }
+          ]
+        },
+        {
+          "variantId": "t5-medic-escort-line-pressure",
+          "threshold": 5,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "1972520cde7e5b38c0bb532eb70817415333bca3bb2b06aa13d8da3824d12f8a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 433
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            }
+          ]
+        },
+        {
+          "variantId": "t5-carrier-only-forward-pressure",
+          "threshold": 5,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "6dff695420210702e6dfafa441bcd8f55a8c7992e80a27572b59f91668345200",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "t5-carrier-only-rebreach",
+          "threshold": 5,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "e23a6060749695af93b8a2753963cfa87b3415b5ef7e41b8f23f3400147dba52",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the twelve variants won both mirrors. Three-plus-rebreach won only team 0; five-plus-forward-pressure won only team 1 by horizon. Threshold and return shape interact with assignment, so neither is retained as a selected strategy.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "conversion-continuation-hysteresis-matrix",
+      "change": "Hold initial conversion entry at five unavailable enemies, then sweep a separate 0..4 unavailable-enemy continuation threshold for forward-pressure and rebreach delivery policies.",
+      "variants": [
+        {
+          "variantId": "c0-pressure",
+          "continuation": 0,
+          "policy": "pressure",
+          "playbookSourceSha256": "1de4c12b283ab3628e0b771aa3fb0bf0fa00d648657e9bfc2e8724b599f24ac0",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 378
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 465
+            }
+          ]
+        },
+        {
+          "variantId": "c1-pressure",
+          "continuation": 1,
+          "policy": "pressure",
+          "playbookSourceSha256": "016362cfd4d6c8a729521d190ea948e88e3cb392ad1fc4a914b747d5047c6fec",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 507
+            }
+          ]
+        },
+        {
+          "variantId": "c2-pressure",
+          "continuation": 2,
+          "policy": "pressure",
+          "playbookSourceSha256": "3ef3990fea13a0aa85d69b0584d0c1c8b34f79b2948cbe2a87fd6775595e6ccc",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c3-pressure",
+          "continuation": 3,
+          "policy": "pressure",
+          "playbookSourceSha256": "6d5d3cb6f26b2b717891ec141a5acdf257df5495af7a5da625ef0378d3c83afc",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c4-pressure",
+          "continuation": 4,
+          "policy": "pressure",
+          "playbookSourceSha256": "b602e43e83c8fc2f7388f9f44b18928dc73d6c01f0b6d6614239d526bb7c0cfa",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c0-rebreach",
+          "continuation": 0,
+          "policy": "rebreach",
+          "playbookSourceSha256": "4c97936840576108991696201e4c7ec6247ae54ec764d999b088f0e1d5c825ec",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 351
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 457
+            }
+          ]
+        },
+        {
+          "variantId": "c1-rebreach",
+          "continuation": 1,
+          "policy": "rebreach",
+          "playbookSourceSha256": "6dba3cbc3282de4afe9c88d12fcc61f58f984a4dd62716689bd7d9a4b2f980e6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 457
+            }
+          ]
+        },
+        {
+          "variantId": "c2-rebreach",
+          "continuation": 2,
+          "policy": "rebreach",
+          "playbookSourceSha256": "c6f1271c8740fc7da251f644a8c425dcbcc8d527b38459776e3efcbaa764dcea",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        },
+        {
+          "variantId": "c3-rebreach",
+          "continuation": 3,
+          "policy": "rebreach",
+          "playbookSourceSha256": "b989c291760234f3f9de603c1f0ac51cc04a90b3903572414818ea9903452eb6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        },
+        {
+          "variantId": "c4-rebreach",
+          "continuation": 4,
+          "policy": "rebreach",
+          "playbookSourceSha256": "08465a047c1f344aa3e5e460f07cf59c71535ccf25e5ef5dfc8e5f01a4b92fab",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the ten variants won both mirrors. Zero caused premature repeated whole-team harvest; one improved team 1 to a reactor win under forward pressure but team 0 remained a 3-1 loss. Simple threshold hysteresis does not solve the conversion campaign.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "post-surge-resupply-track-matrix",
+      "change": "After the first full-team surge, add a concurrent resupply phase that sends either the runner or runner-plus-medics back to the Wells while the remaining groups maintain enemy-home pressure; compare one- and two-carrier batches.",
+      "variants": [
+        {
+          "variantId": "runner-batch1",
+          "collectors": "runner",
+          "batch": 1,
+          "playbookSourceSha256": "4c10d066292517f7084f2f2d9d85b5509c9b87635a073f93d1380aaa442d040a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 523
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 415
+            }
+          ]
+        },
+        {
+          "variantId": "runner-batch2",
+          "collectors": "runner",
+          "batch": 2,
+          "playbookSourceSha256": "3e4e8a17c0d69ae2ef5ec84d216e94c68d389303a3a6f7297d9b50fb3d9991b3",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 453
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 415
+            }
+          ]
+        },
+        {
+          "variantId": "runner-medics-batch1",
+          "collectors": "runner-medics",
+          "batch": 1,
+          "playbookSourceSha256": "585e830664449c8155de84e59ac3a8e0dfcfe6549b665eeb9cac108170349e56",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 498
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 536
+            }
+          ]
+        },
+        {
+          "variantId": "runner-medics-batch2",
+          "collectors": "runner-medics",
+          "batch": 2,
+          "playbookSourceSha256": "38fc8c929e47e9b240aae8878ba5f77b1ca4624c05b220ac07d525babdc9c093",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 478
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 504
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the four variants won both mirrors. Runner-plus-medics with a one-carrier batch won team 0 at tick 498 but lost team 1 at tick 536. The concurrent-track grammar works, but this resupply allocation is not retained as a dominance strategy.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "deterministic-maneuver-catalog-authoring",
+      "playbookSourceSha256": "0db68350dae728d39dcb553ee7342d203fd354d330407d61576a78f9067427e9",
+      "change": "Replace repetitive expanded authoring orders and copied transition conditions with bounded parameters, named fallbacks, named condition sets, standing orders, and multi-track maneuvers that deterministically compile to the exhaustive runtime IR.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 354
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 435
+        }
+      ],
+      "resultSummary": "Retain the generic authoring compiler. The mirrored ticks are byte-for-behavior identical to the preceding expanded source, demonstrating that the compact catalog changes authoring ergonomics without smuggling in a strategy result. The current strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

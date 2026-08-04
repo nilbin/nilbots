@@ -69,8 +69,10 @@ public static class ArcRelayTacticalPlaybookCompiler
     {
         string fullPlaybookPath = Path.GetFullPath(playbookPath);
         byte[] playbookSource = File.ReadAllBytes(fullPlaybookPath);
-        using JsonDocument playbookDocument = Parse(
+        using JsonDocument sourceDocument = Parse(
             playbookSource, fullPlaybookPath);
+        using JsonDocument playbookDocument = ExpandAuthoring(
+            sourceDocument.RootElement, fullPlaybookPath);
         JsonElement playbook = playbookDocument.RootElement;
         ValidatePlaybook(playbook, fullPlaybookPath);
 
@@ -122,6 +124,447 @@ public static class ArcRelayTacticalPlaybookCompiler
             canonicalPlaybook,
             canonicalLayout,
             linked);
+    }
+
+    /// <summary>
+    /// The runtime IR deliberately remains exhaustive, while the authoring
+    /// shape may name reusable maneuvers, fallback policies, and condition
+    /// sets. Expansion is strict and deterministic: every value in an order
+    /// is supplied by one named source field, never by an implicit default.
+    /// </summary>
+    private static JsonDocument ExpandAuthoring(
+        JsonElement source,
+        string path)
+    {
+        bool hasOrders = source.TryGetProperty("orders", out _);
+        bool hasAuthoring = source.TryGetProperty("authoring", out _);
+        if (hasOrders == hasAuthoring)
+        {
+            throw Error(path,
+                "playbook must declare exactly one of 'orders' or "
+                + "'authoring'.");
+        }
+        if (hasOrders)
+            return JsonDocument.Parse(source.GetRawText());
+
+        Object(source, path,
+            [
+                "schema", "playbookId", "auditStatus", "composition",
+                "layout", "perspective", "memory", "arbitration", "roles",
+                "groups", "formations", "engagements", "supportPolicies",
+                "custodyPolicies", "authoring", "coordination",
+            ]);
+
+        JsonElement authoring = source.GetProperty("authoring");
+        string authoringAt = $"{path}.authoring";
+        Object(authoring, authoringAt,
+            [
+                "kind", "parameters", "fallbackPolicies", "standingOrders",
+                "maneuvers", "conditionSets",
+            ]);
+        Exact(authoring, "kind", "maneuver-catalog", authoringAt);
+
+        JsonElement[] parameters = BoundedArray(
+            authoring.GetProperty("parameters"),
+            $"{authoringAt}.parameters", 1, 64);
+        UniqueIds(parameters, "parameterId", $"{authoringAt}.parameters");
+        var parameterById = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (JsonElement parameter in parameters)
+        {
+            Object(parameter, $"{authoringAt}.parameters",
+                ["parameterId", "value", "minimum", "maximum"]);
+            string parameterId = Identifier(parameter, "parameterId", path);
+            Range(parameter, "minimum", path, 0, 100000);
+            Range(parameter, "maximum", path, 0, 100000);
+            Range(parameter, "value", path, 0, 100000);
+            int minimum = parameter.GetProperty("minimum").GetInt32();
+            int maximum = parameter.GetProperty("maximum").GetInt32();
+            int selected = parameter.GetProperty("value").GetInt32();
+            if (minimum > maximum || selected < minimum || selected > maximum)
+            {
+                throw Error(authoringAt,
+                    $"parameter '{parameterId}' value {selected} is outside "
+                    + $"its explicit [{minimum}, {maximum}] range.");
+            }
+            parameterById.Add(parameterId, selected);
+        }
+
+        JsonElement[] fallbackPolicies = BoundedArray(
+            authoring.GetProperty("fallbackPolicies"),
+            $"{authoringAt}.fallbackPolicies", 1, 32);
+        UniqueIds(fallbackPolicies, "fallbackId",
+            $"{authoringAt}.fallbackPolicies");
+        foreach (JsonElement fallback in fallbackPolicies)
+            ValidateAuthoredFallback(fallback, authoringAt);
+
+        JsonElement[] standingOrders = BoundedArray(
+            authoring.GetProperty("standingOrders"),
+            $"{authoringAt}.standingOrders", 0, 32);
+        UniqueIds(standingOrders, "orderId",
+            $"{authoringAt}.standingOrders");
+
+        JsonElement[] maneuvers = BoundedArray(
+            authoring.GetProperty("maneuvers"),
+            $"{authoringAt}.maneuvers", 1, 24);
+        UniqueIds(maneuvers, "maneuverId", $"{authoringAt}.maneuvers");
+        foreach (JsonElement maneuver in maneuvers)
+            ValidateAuthoredManeuver(maneuver, authoringAt);
+
+        JsonElement[] conditionSets = BoundedArray(
+            authoring.GetProperty("conditionSets"),
+            $"{authoringAt}.conditionSets", 1, 64);
+        UniqueIds(conditionSets, "conditionSetId",
+            $"{authoringAt}.conditionSets");
+        foreach (JsonElement conditionSet in conditionSets)
+        {
+            Object(conditionSet, $"{authoringAt}.conditionSets",
+                ["conditionSetId", "when"]);
+            BoundedArray(conditionSet.GetProperty("when"),
+                $"{authoringAt}.conditionSets.when", 1, 16);
+        }
+
+        JsonElement coordination = source.GetProperty("coordination");
+        ValidateAuthoredCoordination(coordination, authoringAt);
+
+        var fallbackById = fallbackPolicies.ToDictionary(
+            value => value.GetProperty("fallbackId").GetString()!,
+            StringComparer.Ordinal);
+        var maneuverById = maneuvers.ToDictionary(
+            value => value.GetProperty("maneuverId").GetString()!,
+            StringComparer.Ordinal);
+        var conditionSetById = conditionSets.ToDictionary(
+            value => value.GetProperty("conditionSetId").GetString()!,
+            StringComparer.Ordinal);
+        HashSet<string> standingOrderIds = standingOrders
+            .Select(value => value.GetProperty("orderId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        JsonObject expanded = JsonNode.Parse(source.GetRawText())!.AsObject();
+        expanded.Remove("authoring");
+        var expandedOrders = new JsonArray();
+        foreach (JsonElement standingOrder in standingOrders)
+            expandedOrders.Add(JsonNode.Parse(standingOrder.GetRawText()));
+        foreach (JsonElement maneuver in maneuvers)
+        foreach (JsonElement track in maneuver.GetProperty("tracks")
+                     .EnumerateArray())
+        foreach (JsonElement assignment in track.GetProperty("assignments")
+                     .EnumerateArray())
+        {
+            string fallbackId = assignment.GetProperty("fallbackId")
+                .GetString()!;
+            if (!fallbackById.TryGetValue(fallbackId, out JsonElement fallback))
+            {
+                throw Error(authoringAt,
+                    $"maneuver assignment references unknown fallback "
+                    + $"'{fallbackId}'.");
+            }
+            expandedOrders.Add(ExpandOrder(track, assignment, fallback));
+        }
+        expanded["orders"] = expandedOrders;
+
+        var expandedPhases = new JsonArray();
+        foreach (JsonElement phase in coordination.GetProperty("phases")
+                     .EnumerateArray())
+        {
+            string maneuverId = phase.GetProperty("maneuverId").GetString()!;
+            if (!maneuverById.TryGetValue(maneuverId, out JsonElement maneuver))
+            {
+                throw Error(authoringAt,
+                    $"phase references unknown maneuver '{maneuverId}'.");
+            }
+            var orderIds = new JsonArray();
+            foreach (JsonElement track in maneuver.GetProperty("tracks")
+                         .EnumerateArray())
+            foreach (JsonElement assignment in track
+                         .GetProperty("assignments").EnumerateArray())
+            {
+                orderIds.Add(assignment.GetProperty("orderId").GetString());
+            }
+            foreach (JsonElement standingOrderId in phase
+                         .GetProperty("standingOrderIds").EnumerateArray())
+            {
+                string orderId = standingOrderId.GetString()!;
+                if (!standingOrderIds.Contains(orderId))
+                {
+                    throw Error(authoringAt,
+                        $"phase references unknown standing order "
+                        + $"'{orderId}'.");
+                }
+                orderIds.Add(orderId);
+            }
+
+            var transitions = new JsonArray();
+            foreach (JsonElement transition in phase
+                         .GetProperty("transitions").EnumerateArray())
+            {
+                string conditionSetId = transition
+                    .GetProperty("conditionSetId").GetString()!;
+                if (!conditionSetById.TryGetValue(
+                        conditionSetId, out JsonElement conditionSet))
+                {
+                    throw Error(authoringAt,
+                        $"transition references unknown condition set "
+                        + $"'{conditionSetId}'.");
+                }
+                var expandedTransition = new JsonObject
+                {
+                    ["priority"] = transition.GetProperty("priority").GetInt32(),
+                    ["to"] = transition.GetProperty("to").GetString(),
+                    ["cause"] = transition.GetProperty("cause").GetString(),
+                    ["minimumPolicy"] = transition
+                        .GetProperty("minimumPolicy").GetString(),
+                    ["stableTicks"] = transition
+                        .GetProperty("stableTicks").GetInt32(),
+                    ["when"] = JsonNode.Parse(
+                        conditionSet.GetProperty("when").GetRawText()),
+                };
+                transitions.Add(expandedTransition);
+            }
+            expandedPhases.Add(new JsonObject
+            {
+                ["phaseId"] = phase.GetProperty("phaseId").GetString(),
+                ["minimumTicks"] = phase.GetProperty("minimumTicks").GetInt32(),
+                ["orderIds"] = orderIds,
+                ["transitions"] = transitions,
+            });
+        }
+        expanded["coordination"] = new JsonObject
+        {
+            ["initialPhase"] = coordination.GetProperty("initialPhase")
+                .GetString(),
+            ["phases"] = expandedPhases,
+        };
+        ResolveConditionParameters(expanded, parameterById, authoringAt);
+
+        return JsonDocument.Parse(expanded.ToJsonString(
+            new JsonSerializerOptions { WriteIndented = false }));
+    }
+
+    private static void ResolveConditionParameters(
+        JsonNode node,
+        IReadOnlyDictionary<string, int> parameters,
+        string path)
+    {
+        if (node is JsonObject value)
+        {
+            if (value.ContainsKey("fact"))
+            {
+                bool hasValue = value.ContainsKey("value");
+                bool hasParameter = value.ContainsKey("valueParameter");
+                if (hasValue == hasParameter)
+                {
+                    throw Error(path,
+                        "authored condition must declare exactly one of "
+                        + "'value' or 'valueParameter'.");
+                }
+                if (hasParameter)
+                {
+                    string parameterId = value["valueParameter"]?
+                        .GetValue<string>() ?? "";
+                    if (!parameters.TryGetValue(parameterId, out int selected))
+                    {
+                        throw Error(path,
+                            $"condition references unknown parameter "
+                            + $"'{parameterId}'.");
+                    }
+                    value.Remove("valueParameter");
+                    value["value"] = selected;
+                }
+            }
+            foreach (JsonNode? child in value.Select(item => item.Value)
+                         .ToArray())
+            {
+                if (child is not null)
+                    ResolveConditionParameters(child, parameters, path);
+            }
+            return;
+        }
+        if (node is not JsonArray array)
+            return;
+        foreach (JsonNode? child in array)
+        {
+            if (child is not null)
+                ResolveConditionParameters(child, parameters, path);
+        }
+    }
+
+    private static JsonObject ExpandOrder(
+        JsonElement track,
+        JsonElement assignment,
+        JsonElement fallback)
+    {
+        JsonElement commonMovement = track.GetProperty("movement");
+        var movement = new JsonObject
+        {
+            ["kind"] = commonMovement.GetProperty("kind").GetString(),
+            ["target"] = commonMovement.GetProperty("target").GetString(),
+            ["arrivalRadius"] = assignment.GetProperty("arrivalRadius")
+                .GetInt32(),
+            ["completion"] = assignment.GetProperty("completion").GetString(),
+            ["stuckTicks"] = commonMovement.GetProperty("stuckTicks")
+                .GetInt32(),
+            ["stuckRecovery"] = assignment.GetProperty("stuckRecovery")
+                .GetString(),
+            ["chaseLeash"] = assignment.GetProperty("chaseLeash").GetInt32(),
+            ["pace"] = commonMovement.GetProperty("pace").GetString(),
+        };
+        var expanded = new JsonObject
+        {
+            ["orderId"] = assignment.GetProperty("orderId").GetString(),
+            ["groupId"] = assignment.GetProperty("groupId").GetString(),
+            ["priority"] = assignment.GetProperty("priority").GetInt32(),
+            ["movement"] = movement,
+            ["formationId"] = track.GetProperty("formationId").GetString(),
+            ["engagementId"] = assignment.GetProperty("engagementId")
+                .GetString(),
+            ["localState"] = assignment.GetProperty("localState").GetString(),
+            ["fallback"] = new JsonObject
+            {
+                ["onNoPath"] = fallback.GetProperty("onNoPath").GetString(),
+                ["onUnderstrength"] = fallback
+                    .GetProperty("onUnderstrength").GetString(),
+                ["onInvalidTarget"] = fallback
+                    .GetProperty("onInvalidTarget").GetString(),
+                ["phaseId"] = fallback.GetProperty("phaseId").GetString(),
+            },
+        };
+        string supportId = assignment.GetProperty("supportId").GetString()!;
+        string custodyId = assignment.GetProperty("custodyId").GetString()!;
+        if (supportId.Length > 0)
+            expanded["supportId"] = supportId;
+        if (custodyId.Length > 0)
+            expanded["custodyId"] = custodyId;
+        return expanded;
+    }
+
+    private static void ValidateAuthoredFallback(
+        JsonElement fallback,
+        string path)
+    {
+        Object(fallback, $"{path}.fallbackPolicies",
+            [
+                "fallbackId", "onNoPath", "onUnderstrength",
+                "onInvalidTarget", "phaseId",
+            ]);
+        Identifier(fallback, "fallbackId", path);
+        OneOf(fallback, "onNoPath", path, "reflow", "hold", "regroup");
+        OneOf(fallback, "onUnderstrength", path,
+            "continue", "regroup", "fallback-phase");
+        OneOf(fallback, "onInvalidTarget", path,
+            "hold", "alternate", "fallback-phase");
+        NonEmptyString(fallback, "phaseId", path, allowEmpty: true);
+    }
+
+    private static void ValidateAuthoredManeuver(
+        JsonElement maneuver,
+        string path)
+    {
+        Object(maneuver, $"{path}.maneuvers",
+            ["maneuverId", "tracks"]);
+        Identifier(maneuver, "maneuverId", path);
+        JsonElement[] tracks = BoundedArray(
+            maneuver.GetProperty("tracks"),
+            $"{path}.maneuvers.tracks", 1, 8);
+        UniqueIds(tracks, "trackId", $"{path}.maneuvers.tracks");
+        foreach (JsonElement track in tracks)
+        {
+            Object(track, $"{path}.maneuvers.tracks",
+                [
+                    "trackId", "formationId", "movement", "assignments",
+                ]);
+            Identifier(track, "trackId", path);
+            Identifier(track, "formationId", path);
+            JsonElement movement = track.GetProperty("movement");
+            Object(movement, $"{path}.maneuvers.tracks.movement",
+                ["kind", "target", "stuckTicks", "pace"]);
+            OneOf(movement, "kind", path,
+                "route", "zone", "anchor", "reactor", "carrier",
+                "enemy-carrier", "secured-core", "hold");
+            NonEmptyString(movement, "target", path, allowEmpty: true);
+            Range(movement, "stuckTicks", path, 1, 120);
+            OneOf(movement, "pace", path, "slowest", "leader", "free");
+
+            JsonElement[] assignments = BoundedArray(
+                track.GetProperty("assignments"),
+                $"{path}.maneuvers.tracks.assignments", 1, 32);
+            UniqueIds(assignments, "orderId",
+                $"{path}.maneuvers.tracks.assignments");
+            foreach (JsonElement assignment in assignments)
+            {
+                Object(assignment, $"{path}.maneuvers.tracks.assignments",
+                    [
+                        "orderId", "groupId", "localState", "priority",
+                        "arrivalRadius", "completion", "stuckRecovery",
+                        "chaseLeash", "engagementId", "supportId",
+                        "custodyId", "fallbackId",
+                    ]);
+                Identifier(assignment, "orderId", path);
+                Identifier(assignment, "groupId", path);
+                Identifier(assignment, "localState", path);
+                Range(assignment, "priority", path, 0, 1000);
+                Range(assignment, "arrivalRadius", path, 0, 16);
+                OneOf(assignment, "completion", path,
+                    "leader-arrived", "cohesion-arrived", "all-arrived",
+                    "continuous");
+                OneOf(assignment, "stuckRecovery", path,
+                    "repath", "yield", "reflow", "regroup", "hold");
+                Range(assignment, "chaseLeash", path, 0, 16);
+                Identifier(assignment, "engagementId", path);
+                NonEmptyString(
+                    assignment, "supportId", path, allowEmpty: true);
+                NonEmptyString(
+                    assignment, "custodyId", path, allowEmpty: true);
+                Identifier(assignment, "fallbackId", path);
+            }
+        }
+    }
+
+    private static void ValidateAuthoredCoordination(
+        JsonElement coordination,
+        string path)
+    {
+        Object(coordination, $"{path}.coordination",
+            ["initialPhase", "phases"]);
+        Identifier(coordination, "initialPhase", path);
+        JsonElement[] phases = BoundedArray(
+            coordination.GetProperty("phases"),
+            $"{path}.coordination.phases", 1, 24);
+        UniqueIds(phases, "phaseId", $"{path}.coordination.phases");
+        foreach (JsonElement phase in phases)
+        {
+            Object(phase, $"{path}.coordination.phases",
+                [
+                    "phaseId", "minimumTicks", "maneuverId",
+                    "standingOrderIds", "transitions",
+                ]);
+            Identifier(phase, "phaseId", path);
+            Range(phase, "minimumTicks", path, 0, 1200);
+            Identifier(phase, "maneuverId", path);
+            JsonElement[] standingOrderIds = BoundedArray(
+                phase.GetProperty("standingOrderIds"),
+                $"{path}.coordination.standingOrderIds", 0, 32);
+            foreach (JsonElement orderId in standingOrderIds)
+                StringValue(orderId, $"{path}.coordination.standingOrderIds");
+            JsonElement[] transitions = BoundedArray(
+                phase.GetProperty("transitions"),
+                $"{path}.coordination.transitions", 0, 32);
+            foreach (JsonElement transition in transitions)
+            {
+                Object(transition, $"{path}.coordination.transitions",
+                    [
+                        "priority", "to", "cause", "minimumPolicy",
+                        "stableTicks", "conditionSetId",
+                    ]);
+                Range(transition, "priority", path, 0, 1000);
+                Identifier(transition, "to", path);
+                OneOf(transition, "cause", path,
+                    "success", "failure", "recovery", "reaction");
+                OneOf(transition, "minimumPolicy", path,
+                    "respect", "interrupt");
+                Range(transition, "stableTicks", path, 1, 120);
+                Identifier(transition, "conditionSetId", path);
+            }
+        }
     }
 
     private static void ValidateLayoutReferences(

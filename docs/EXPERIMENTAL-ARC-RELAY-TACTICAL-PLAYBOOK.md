@@ -24,8 +24,8 @@ emits:
 - `normalized-layout.json`: separately canonicalized absolute geometry;
 - `playbook.atp`: bounded runtime envelope carrying both canonical payloads;
   and
-- `explain.json`: editor/debug view with reusable orders expanded into each
-  phase.
+- `explain.json`: editor/debug view of the exhaustive orders expanded into
+  each phase.
 
 The envelope records the SHA-256 of each source independently. A layout must
 name the exact map and bind each supported match-contract fingerprint and home
@@ -131,6 +131,39 @@ preserves the last legal facing. Authors can put a dedicated observer in its
 own formation instead of forcing a whole firing line onto one bearing. Combat,
 repair, custody, and movement still win through the declared arbitration
 order, so orientation never manufactures an observation or cancels an action.
+
+### Maneuver catalog and tuning parameters
+
+The human-authored form is deliberately smaller than the exhaustive runtime
+IR. It declares a `maneuver-catalog` containing:
+
+- bounded named parameters for values that need empirical tuning;
+- named fallback policies;
+- named maneuvers containing one or more concurrent tracks; each track has one
+  shared movement/formation intent and explicit per-group assignments;
+- standing orders reused across maneuvers, such as concurrent formation
+  recovery; and
+- named condition sets referenced by phase transitions.
+
+There is no implicit inheritance. Every generated order field comes from one
+explicit track, assignment, or fallback-policy field, and every phase names
+its maneuver plus all standing orders. The compiler deterministically expands
+that catalog to the exhaustive `orders`/`orderIds` IR and then applies the same
+strict reference, coverage, and range validation as a fully expanded source.
+The runtime never parses authoring shortcuts.
+
+Tracks are the authoring unit for a coordinated split: for example, a delivery
+maneuver may send carriers and medics toward the bank while a line track moves
+back toward the enemy perimeter. They are concurrent orders inside one phase,
+not nested scripts or a strategy-specific runtime special case.
+
+A condition may name exactly one bounded parameter instead of copying a number.
+Compilation resolves it to an ordinary integer condition before hashing the
+normalized IR. Home Siege therefore expresses its conversion attrition choice
+once as `conversion-enemy-unavailable`; a development sweep can compare three,
+four, five, or another legal value without editing custody and several phase
+transitions independently. The selected value is still explicit source data,
+not a runtime default or adaptive hidden state.
 
 ### Orders and arbitration
 
@@ -323,12 +356,15 @@ The desired causal loop is:
 2. six establish a living enemy-home ring with shared fire and cross-repair;
 3. a broken ring withdraws and waits for a stable five-body rally;
 4. a rebuilt wave breaches together;
-5. sufficient observed attrition and available Cores release a coordinated
-   harvest; and
+5. the currently selected, bounded observed-attrition threshold and available
+   Cores release a coordinated harvest; and
 6. every carrier returns immediately while non-carriers support the conversion
    according to their current order.
 
-This is deliberately a hard strategy proof. The v4 felt-degeneracy bars are
+The exact attrition and return thresholds are development hypotheses, not
+owner-locked rules. They are selected by retained mirrored trials and frozen
+only before the final cohort is read. This is deliberately a hard strategy
+proof. The v4 felt-degeneracy bars are
 frozen: a formation freeze, passivity, handoff loop, stationary carrier, home
 non-progress, or pickup/drop cycle is a failed tactic, never a reason to loosen
 the detector.
