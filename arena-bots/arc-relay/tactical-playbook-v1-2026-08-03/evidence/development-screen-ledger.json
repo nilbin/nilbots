@@ -515,6 +515,29 @@
       ],
       "resultSummary": "Rejected. The public inference was causal, but spending scarce shots on likely bank lanes lost both assignments. It was removed rather than entering a claim unavailable to the parity control.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "reactor-goalkeeper-offsets",
+      "change": "Move one durable-line slot from the retained ring to a dedicated goalkeeper position between returning carriers and the enemy reactor, testing offsets [3,0] and [1,0].",
+      "cells": [
+        { "variant": "offset-[3,0]", "playbookSourceSha256": "07627b6e81bbaec2f36a825ddb272fa3d8af39e1acc59ee95aeccde2fb154e2c", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 478 },
+        { "variant": "offset-[3,0]", "playbookSourceSha256": "07627b6e81bbaec2f36a825ddb272fa3d8af39e1acc59ee95aeccde2fb154e2c", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 },
+        { "variant": "offset-[1,0]", "playbookSourceSha256": "18440c4df84946c73d17018cc178d5e671715a663762ab8bf032e1d80d8b088f", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 476 },
+        { "variant": "offset-[1,0]", "playbookSourceSha256": "18440c4df84946c73d17018cc178d5e671715a663762ab8bf032e1d80d8b088f", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 426 }
+      ],
+      "resultSummary": "Rejected. Both goalkeeper depths lost both mirrors: concentrating one body at the bank weakened the surrounding crossfire and sustain more than it improved return denial.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "blanket-repair-channel-maintenance",
+      "playbookSourceSha256": "9de78d03e140e9422a5671b2e2b157a579eff48ee1809464e34b42ca4daac775",
+      "change": "Insert a generic arbitration channel after self-preservation that holds both endpoints of every visible friendly Repair Beam channel until it completes or a higher-priority emergency breaks it.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 }
+      ],
+      "resultSummary": "Rejected. Repair channels were being interrupted, but blindly pinning wounded targets lost both mirrors. Maintenance must be an authored risk-aware support policy rather than a universal lock, so the implementation was fully removed.",
+      "verdict": "rejected"
     }
   ]
 }
