@@ -10,6 +10,45 @@ namespace BotArena.Cli.Tests;
 public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     [Fact]
+    public void HomeSiegeV2ReferenceFreezePinsAcceptedBytes()
+    {
+        string root = FindRepoRoot();
+        string freezePath = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "evidence",
+            "home-siege-v2-reference-freeze.json");
+        using JsonDocument document = JsonDocument.Parse(
+            File.ReadAllBytes(freezePath));
+        JsonElement reference = document.RootElement.GetProperty("reference");
+
+        foreach (string name in new[]
+                 {
+                     "playbook", "layout", "compiledPlaybook",
+                     "finalRun", "finalResults",
+                 })
+        {
+            JsonElement artifact = reference.GetProperty(name);
+            string path = Path.Combine(
+                root,
+                artifact.GetProperty("path").GetString()!);
+            byte[] bytes = File.ReadAllBytes(path);
+            Assert.Equal(
+                artifact.GetProperty("bytes").GetInt64(),
+                bytes.LongLength);
+            Assert.Equal(
+                artifact.GetProperty("sha256").GetString(),
+                Sha256(bytes));
+        }
+
+        Assert.Equal(
+            "11c3309b9b0567790e28f253648f89bdb55930ae",
+            document.RootElement.GetProperty("frozenAtCommit").GetString());
+    }
+
+    [Fact]
     public void HomeSiegeCompilesWithIndependentHashesAndCanonicalPayload()
     {
         string playbook = HomeSiege();

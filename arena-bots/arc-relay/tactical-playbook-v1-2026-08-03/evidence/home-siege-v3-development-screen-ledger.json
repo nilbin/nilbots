@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-home-siege-v3-development-ledger-v1",
+  "referenceFreeze": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/home-siege-v2-reference-freeze.json",
+  "attempts": [
+    {
+      "attemptId": "v3-source-fork",
+      "runtime": "none",
+      "change": "Created distinct v3 playbook and layout identities from the byte-frozen accepted v2 source before tactical edits.",
+      "playbookSha256": "a7a4974478c8574a25537a459ececf1b9ef810e2c5008ce2c2148cad82e09774",
+      "layoutSha256": "8c10332a9d8b93c093a0952312216069ce191ef7bcdc9d33b415972dce3f1286",
+      "compiledPlaybookSha256": "00d3402540f90c58185c81864219fadeee4cff8bca99e7a0b3f6d2e63a2fe5d6",
+      "verdict": "development-baseline"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "arc-relay-home-siege-reference-freeze-v1",
+  "frozenAtCommit": "11c3309b9b0567790e28f253648f89bdb55930ae",
+  "policy": "The named v2 files and evidence are immutable controls. All further tactical changes use home-siege-v3 identities.",
+  "reference": {
+    "playbook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json",
+      "sha256": "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb",
+      "bytes": 49566
+    },
+    "layout": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege.json",
+      "sha256": "2a2b6961b652499ed3cbbb5ef18e7e4b6df3af5f241408b0b19133af93ba4e66",
+      "bytes": 2045
+    },
+    "compiledPlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v2/playbook.atp",
+      "sha256": "d9f3b82a569833e4f6590b7de9a77c49ba3c68479858f2ebdd1084c44be66511",
+      "bytes": 31008
+    },
+    "tacticalWasm": {
+      "path": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "sha256": "3c349dea01f8bc3d27dd978941a349fba0bcc86bd3131024169bc4ef6bb1a816",
+      "bytes": 6819317
+    },
+    "finalRun": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/home-siege-v2-reference-run.json",
+      "sha256": "049025274c7fe53fd4ae4e7a026ec3b3556e412fc8eba32d9d0e7769980db1c0",
+      "bytes": 2732
+    },
+    "finalResults": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/home-siege-v2-reference-results.json",
+      "sha256": "283a0bda8c5fb49173d4e76a89f6ad8b220923a1533017a1020c77a076a83ee9",
+      "bytes": 25478
+    }
+  },
+  "acceptedRead": {
+    "runtime": "wasm",
+    "cells": 24,
+    "canonicalReplaysVerified": 24,
+    "eligibleCells": 24,
+    "scoresByAssignment": {
+      "siege-team-0": "9-4",
+      "siege-team-1": "9-3"
+    },
+    "allocation": {
+      "livingBlockade": 5,
+      "rememberedCarrierInterceptor": 1,
+      "courier": 1,
+      "escort": 1
+    }
+  },
+  "derivedCandidate": {
+    "playbook": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json",
+    "layout": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3.json",
+    "initialFork": {
+      "playbookSha256": "a7a4974478c8574a25537a459ececf1b9ef810e2c5008ce2c2148cad82e09774",
+      "layoutSha256": "8c10332a9d8b93c093a0952312216069ce191ef7bcdc9d33b415972dce3f1286",
+      "compiledPlaybookSha256": "00d3402540f90c58185c81864219fadeee4cff8bca99e7a0b3f6d2e63a2fe5d6"
+    }
+  }
+}
