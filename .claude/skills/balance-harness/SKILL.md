@@ -91,6 +91,27 @@ verification, and the registered felt-degeneracy scorecard before it enters a
 balance read or gallery. Keep both runtime labels in the report and prove a
 same-cell result-parity sample for every screening sweep.
 
+Between the screen and the WASM audit sits a third lane for doctrine
+debugging: run `nilbots experiment arc-relay` with `--runtime in-process`
+and WITHOUT `--screen` (same `--bot/--opponent/--sheet0/--sheet1/--seed/
+--loop-profile/--out` flags the batch uses) to get a FULL canonical replay
+in ~8 s/game, including per-tick `mindTurns` (observation, commands,
+resolutions, intents) for phase/role tracing. Its canonical hash differs
+from WASM by runtime provenance — it is analysis material, never evidence.
+Summarize any replay or sweep cell with
+`python3 scripts/arc-relay-replay-analyze.py <replay.json[.gz] | cell-dir>`.
+
+Results field map (saves the scavenger hunt):
+- sweep summary: `attempt-01/results.json` — `allExpectedCanonicalHashesMatched`,
+  `eligibleCells`, `verifiedCanonicalReplays`;
+- per-cell scorecard: `scoring.deliveriesByTeam`, `outcome.completionReason`,
+  `outcome.endTick`, `feltDegeneracy.*.tripped`;
+- screen receipt (`screen.json`): PascalCase — `WinnerTeamId`, `EndTick`,
+  `ScreenOnly`, rules/map fingerprints;
+- canonical replay: `result.standings.winnerTeamId`, per-tick
+  `ticks[].events[].kind` (`score-changed` fires for deliveries AND Pulses;
+  Core detail is under kind `arc-relay`), `ticks[].mindTurns[]`.
+
 Use a deliberate two-speed loop for Arc Relay sheet/doctrine iteration:
 
 1. **Discovery loop:** run in-process batch screening, targeted tests, current
