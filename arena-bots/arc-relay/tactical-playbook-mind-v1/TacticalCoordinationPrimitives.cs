@@ -136,6 +136,71 @@ internal static class TacticalCoordinationPrimitives
         return -1;
     }
 
+    internal static Position[] OrderCarrierAimOptions(
+        Position current,
+        Position? previous,
+        IEnumerable<Position> legalOptions,
+        Func<Position, int?> bankDistance)
+    {
+        Position[] options = legalOptions.Distinct().ToArray();
+        Position? continuation = previous is Position prior
+            ? new Position(
+                current.X + Math.Sign(current.X - prior.X),
+                current.Y + Math.Sign(current.Y - prior.Y))
+            : null;
+        if (continuation is Position projected
+            && (projected == current || !options.Contains(projected)))
+        {
+            continuation = null;
+        }
+        int bestBankward = options
+            .Where(position => position != current)
+            .Select(position => bankDistance(position) ?? int.MaxValue)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        return options
+            .OrderBy(position => continuation == position
+                ? 0
+                : position != current
+                    && bankDistance(position) == bestBankward
+                        ? 1
+                        : position == current ? 2 : 3)
+            .ThenBy(position => bankDistance(position) ?? int.MaxValue)
+            .ThenBy(position => position.Y)
+            .ThenBy(position => position.X)
+            .ToArray();
+    }
+
+    internal static int CarrierMovementStepsBeforeProjectileContact(
+        int distance,
+        bool instantRay,
+        int launchTiles,
+        int tilesPerAdvance,
+        int ticksPerAdvance,
+        bool advancesOnLaunchTick)
+    {
+        if (distance < 1)
+            throw new ArgumentOutOfRangeException(nameof(distance));
+        if (instantRay)
+            return 1;
+        if (launchTiles < 0)
+            throw new ArgumentOutOfRangeException(nameof(launchTiles));
+        if (tilesPerAdvance < 1)
+            throw new ArgumentOutOfRangeException(nameof(tilesPerAdvance));
+        if (ticksPerAdvance < 1)
+            throw new ArgumentOutOfRangeException(nameof(ticksPerAdvance));
+
+        int launchReach = launchTiles
+            + (advancesOnLaunchTick ? tilesPerAdvance : 0);
+        int remaining = Math.Max(0, distance - launchReach);
+        int advances = (remaining + tilesPerAdvance - 1)
+            / tilesPerAdvance;
+        // The target gets its current-tick movement before a freshly launched
+        // projectile can contact it. Each later projectile advance gives the
+        // target the corresponding number of additional movement ticks.
+        return 1 + advances * ticksPerAdvance;
+    }
+
     internal static EnemyCarrierCandidate? SelectEnemyCarrier(
         IEnumerable<EnemyCarrierCandidate> candidates,
         Position fallbackAnchor,

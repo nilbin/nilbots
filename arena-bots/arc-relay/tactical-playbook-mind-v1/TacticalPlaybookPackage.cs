@@ -312,6 +312,7 @@ internal sealed class TacticalPlaybookPackage
         int MaximumAttackersPerTarget,
         int OverkillDamage,
         int ChaseLeash,
+        string AimPreparation,
         string SignatureCoordination,
         DodgeCoverage DodgeCoverage,
         ReleasePolicy Release,
@@ -320,6 +321,7 @@ internal sealed class TacticalPlaybookPackage
     internal sealed record DodgeCoverage(
         string Mode,
         int HorizonTicks,
+        int MinimumDirectShots,
         int MinimumCoveredOptions,
         string Fallback);
 
@@ -412,6 +414,7 @@ internal sealed class TacticalPlaybookPackage
         int MinimumTicks,
         int TimeoutTicks,
         int CooldownTicks,
+        int MinimumPrimaryBodies,
         string[] EligiblePhases,
         TaskAssignment[] Assignments,
         ConditionGroup[] When,

@@ -276,12 +276,14 @@ formation lifecycle to global and local transitions.
 
 `enemy-carrier` is a bounded interception order, not omniscient pursuit. Its
 `target` names the fallback layout anchor and its movement `chaseLeash` is the
-maximum Chebyshev radius around that anchor. It considers only currently
-observed carried Cores, selects the carrier nearest its own reactor, then uses
-anchor distance and stable actor identity as ties. When no legal candidate is
-inside the leash, the group reforms on the fallback anchor. This lets an editor
-express a moving screen without encoding a unit ID, a guessed fog position, or
-absolute coordinates in the playbook.
+maximum Chebyshev radius around that anchor. It first considers currently
+observed carried Cores, then an exact last-seen carrier life remembered only
+until a causal pickup, handoff, drop, bank, death, or memory expiry says
+otherwise. It selects the carrier nearest its own reactor, then uses anchor
+distance and stable actor identity as ties. When no legal candidate is inside
+the leash, the group reforms on the fallback anchor. This lets an editor
+express a bounded intercept without encoding a unit ID, inventing a position
+through fog, or putting absolute coordinates in the playbook.
 
 Fallbacks are explicit and phase-safe. Each order declares what no-path,
 understrength, and invalid-target mean. `continue`, `hold`, `alternate`, and
@@ -446,16 +448,25 @@ than whole-team phase replacements.
 The desired causal loop is:
 
 1. eight bodies rush one outer lane as a column;
-2. six establish a living enemy-home ring with shared fire and cross-repair;
+2. five establish a living enemy-home ring with shared fire and cross-repair;
 3. a broken ring withdraws and waits for a stable five-body rally;
 4. a rebuilt wave breaches together;
 5. the currently selected, bounded observed-attrition threshold and a causally
-   secured Core lease the smallest suitable courier detachment while the
+   outstanding Core lease one courier and one escort while the five-body
    blockade remains on its primary order;
 6. every carrier returns immediately when its declared custody policy permits,
    then releases back into the live blockade; and
-7. a bounded carrier-denial task may lease a separate screen without owning or
-   dissolving the rest of the formation.
+7. one bounded remembered-carrier interceptor may coexist with that conversion
+   pair without owning or dissolving the rest of the formation.
+
+The frozen candidate allocation is **5 + 1 + 1 + 1**: five primary blockade
+bodies, one remembered-carrier interceptor, one courier, and one escort. The
+task scheduler enforces this through `minimumPrimaryBodies: 5`; it is not a
+runtime heuristic and it is not a game rule. A six-body reserve prevented the
+conversion pair from functioning, while leasing two interceptors broke the
+blockade in both mirrored representative assignments. The exact formula is
+therefore part of this candidate's hashed evaluation identity. A future sheet
+may author a different legal allocation, but it must earn its own evidence.
 
 The exact attrition and return thresholds are development hypotheses, not
 owner-locked rules. They are selected by retained mirrored trials and frozen

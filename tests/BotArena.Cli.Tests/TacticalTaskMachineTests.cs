@@ -67,6 +67,74 @@ public sealed class TacticalTaskMachineTests
     }
 
     [Fact]
+    public void PrimaryForceReserveKeepsMinimumsBeforePreferredExtras()
+    {
+        TacticalTaskMachine machine = Machine(
+            Task("deny", Assignment(
+                    "interceptor", "deny-order", ["repulsor"]),
+                priority: 10),
+            Task(
+                "harvest",
+                [
+                    Assignment("courier", "convert-order", ["kestrel"]),
+                    Assignment(
+                        "raiders",
+                        "convert-order",
+                        ["sunder"],
+                        minimum: 1,
+                        preferred: 2),
+                ],
+                priority: 20,
+                minimumPrimaryBodies: 5));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "repulsor", x: 0),
+            Candidate(1, "kestrel", x: 1),
+            Candidate(2, "sunder", x: 2),
+            Candidate(3, "sunder", x: 3),
+            Candidate(4, "relay", x: 4),
+            Candidate(5, "relay", x: 5),
+            Candidate(6, "relay", x: 6),
+            Candidate(7, "relay", x: 7));
+
+        Assert.Equal(3, machine.LeasedUnitIds.Count);
+        Assert.Equal(2, machine.State("harvest").Assignments.Count);
+        Assert.Single(machine.State("harvest").Assignments, value =>
+            value.AssignmentId == "raiders");
+    }
+
+    [Fact]
+    public void PrimaryCasualtyReleasesOptionalTaskBodyToKeepReserve()
+    {
+        TacticalTaskMachine machine = Machine(Task(
+            "harvest",
+            Assignment(
+                "raiders",
+                "convert-order",
+                ["sunder"],
+                minimum: 1,
+                preferred: 3),
+            participantLoss: "replace",
+            minimumPrimaryBodies: 5));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        TacticalTaskCandidate[] eight = Enumerable.Range(0, 8)
+            .Select(unitId => Candidate(unitId, "sunder", x: unitId))
+            .ToArray();
+        Step(machine, 0, facts, eight);
+        Assert.Equal(3, machine.LeasedUnitIds.Count);
+
+        Step(machine, 1, facts, eight.Where(value => value.UnitId != 7)
+            .ToArray());
+
+        Assert.Equal(2, machine.LeasedUnitIds.Count);
+        Assert.Equal(
+            TacticalTaskPhase.Active,
+            machine.State("harvest").Phase);
+    }
+
+    [Fact]
     public void HigherPriorityTaskPreemptsOnlyAnExplicitlyPreemptibleLease()
     {
         TacticalTaskMachine machine = Machine(
@@ -240,7 +308,24 @@ public sealed class TacticalTaskMachineTests
         int priority = 10,
         string triggerFact = "trigger",
         string preemption = "higher-priority",
-        string participantLoss = "continue") => new(
+        string participantLoss = "continue",
+        int minimumPrimaryBodies = 0) => Task(
+        id,
+        [assignment],
+        priority,
+        triggerFact,
+        preemption,
+        participantLoss,
+        minimumPrimaryBodies);
+
+    private static TacticalPlaybookPackage.TacticalTask Task(
+        string id,
+        TacticalPlaybookPackage.TaskAssignment[] assignments,
+        int priority = 10,
+        string triggerFact = "trigger",
+        string preemption = "higher-priority",
+        string participantLoss = "continue",
+        int minimumPrimaryBodies = 0) => new(
         id,
         priority,
         "while-true",
@@ -250,8 +335,9 @@ public sealed class TacticalTaskMachineTests
         0,
         20,
         0,
+        minimumPrimaryBodies,
         ["occupy"],
-        [assignment],
+        assignments,
         [Group(triggerFact)],
         [Group("complete")],
         [],
@@ -261,14 +347,15 @@ public sealed class TacticalTaskMachineTests
         string id,
         string orderId,
         string[] classes,
-        int minimum = 1) => new(
+        int minimum = 1,
+        int? preferred = null) => new(
         id,
         orderId,
         ["line"],
         classes,
         minimum,
-        minimum,
-        minimum,
+        preferred ?? minimum,
+        preferred ?? minimum,
         "forbid",
         new("anchor", "target"));
 

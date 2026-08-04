@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { withCanonicalTeamVision } from '../arc-relay-team-vision.mjs';
 
 const repository = path.resolve(
@@ -34,6 +34,7 @@ if (!existsSync(path.join(outputDirectory, 'index.html')))
   throw new Error(
     `Review build ${outputDirectory} does not exist; build the intended candidate first.`,
   );
+for (const entry of manifest.entries) validateEntry(entry);
 rmSync(path.join(outputDirectory, 'replays'), { recursive: true, force: true });
 rmSync(archiveDirectory, { recursive: true, force: true });
 mkdirSync(path.join(outputDirectory, 'replays'), { recursive: true });
@@ -42,7 +43,6 @@ mkdirSync(archiveDirectory, { recursive: true });
 const choices = [];
 const evidence = [];
 for (const entry of manifest.entries) {
-  validateEntry(entry);
   if (entry.broadcastOnly) {
     const broadcastPath = path.resolve(repository, entry.broadcastOnly);
     const broadcastGzip = readFileSync(broadcastPath);
@@ -63,7 +63,7 @@ for (const entry of manifest.entries) {
       broadcastPath,
       path.join(archiveDirectory, archiveFilename),
     );
-    writeFileSync(
+    writeRuntimeJson(
       path.join(outputDirectory, 'replays', runtimeFilename),
       broadcastJson,
     );
@@ -149,7 +149,7 @@ for (const entry of manifest.entries) {
   const archiveFilename = `${entry.id}.json.gz`;
   const runtimeFilename = `${entry.id}.json`;
   copyFileSync(replayPath, path.join(archiveDirectory, archiveFilename));
-  writeFileSync(
+  writeRuntimeJson(
     path.join(outputDirectory, 'replays', runtimeFilename),
     runtimeJson,
   );
@@ -184,13 +184,17 @@ for (const entry of manifest.entries) {
   });
 }
 
-writeFileSync(
+writeRuntimeJson(
   path.join(outputDirectory, 'replays.json'),
   `${JSON.stringify(choices, null, 2)}\n`,
 );
 copyFileSync(
   path.join(outputDirectory, 'replays', `${choices[0].id}.json`),
   path.join(outputDirectory, 'replay.json'),
+);
+copyFileSync(
+  path.join(outputDirectory, 'replays', `${choices[0].id}.json.gz`),
+  path.join(outputDirectory, 'replay.json.gz'),
 );
 writeFileSync(
   path.join(archiveDirectory, 'manifest.json'),
@@ -201,6 +205,7 @@ console.log(
 );
 
 function validateEntry(entry) {
+  const canonicalEntry = entry?.broadcastOnly === undefined;
   if (
     typeof entry?.id !== 'string' ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.id) ||
@@ -208,13 +213,26 @@ function validateEntry(entry) {
     (entry.broadcastOnly === undefined && typeof entry.replay !== 'string') ||
     (entry.broadcastOnly !== undefined && typeof entry.broadcastOnly !== 'string') ||
     (entry.transport !== undefined && typeof entry.transport !== 'string') ||
+    (canonicalEntry && typeof entry.transport !== 'string') ||
     !Array.isArray(entry.displayBots) ||
     entry.displayBots.length !== 2 ||
     entry.displayBots.some((value) => typeof value !== 'string')
   )
-    throw new Error('Every replay gallery entry needs an ID, run, replay, and two labels.');
+    throw new Error(
+      'Every replay gallery entry needs an ID, two labels, and either '
+        + 'broadcastOnly or run + replay + compact transport. Canonical Arc '
+        + 'Relay replays are audit inputs, never phone-gallery payloads.',
+    );
 }
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function writeRuntimeJson(file, content) {
+  writeFileSync(file, content);
+  writeFileSync(
+    `${file}.gz`,
+    gzipSync(Buffer.from(content), { level: 9, mtime: 0 }),
+  );
 }

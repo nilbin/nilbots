@@ -4,6 +4,29 @@ namespace BotArena.Cli.Tests;
 
 public sealed class TacticalCoordinationPrimitivesTests
 {
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    [InlineData(3, 2)]
+    [InlineData(4, 3)]
+    [InlineData(5, 3)]
+    [InlineData(6, 4)]
+    public void CarrierLeadAccountsForProjectileTravelTime(
+        int distance,
+        int expectedMovementSteps)
+    {
+        int actual = TacticalCoordinationPrimitives
+            .CarrierMovementStepsBeforeProjectileContact(
+                distance,
+                instantRay: false,
+                launchTiles: 1,
+                tilesPerAdvance: 2,
+                ticksPerAdvance: 1,
+                advancesOnLaunchTick: false);
+
+        Assert.Equal(expectedMovementSteps, actual);
+    }
+
     [Fact]
     public void OneControllerPerSignatureAndTargetWinsDeterministically()
     {
@@ -242,4 +265,49 @@ public sealed class TacticalCoordinationPrimitivesTests
             expected,
             TacticalCoordinationPrimitives.CoverageFallbackIndex(
                 fallback, [first, second]));
+
+    [Fact]
+    public void CarrierAimLeadsTheObservedMotionBeforeCoveringTheCurrentTile()
+    {
+        var current = new Position(10, 10);
+        Position[] ordered = TacticalCoordinationPrimitives
+            .OrderCarrierAimOptions(
+                current,
+                previous: new Position(9, 9),
+                legalOptions:
+                [
+                    current,
+                    new Position(11, 11),
+                    new Position(11, 10),
+                    new Position(10, 11),
+                    new Position(9, 10),
+                ],
+                position => position.ChebyshevDistance(
+                    new Position(20, 20)));
+
+        Assert.Equal(new Position(11, 11), ordered[0]);
+        Assert.Equal(current, ordered[1]);
+    }
+
+    [Fact]
+    public void CarrierAimUsesTheBankwardStepWhenMotionHasNotResolved()
+    {
+        var current = new Position(10, 10);
+        Position[] ordered = TacticalCoordinationPrimitives
+            .OrderCarrierAimOptions(
+                current,
+                previous: current,
+                legalOptions:
+                [
+                    current,
+                    new Position(11, 10),
+                    new Position(10, 11),
+                    new Position(9, 10),
+                ],
+                position => position.ChebyshevDistance(
+                    new Position(20, 10)));
+
+        Assert.Equal(new Position(11, 10), ordered[0]);
+        Assert.Equal(current, ordered[1]);
+    }
 }

@@ -74,6 +74,15 @@ cloudflared tunnel --url http://127.0.0.1:8931
 Plain `python3 -m http.server` still works but sends everything
 uncompressed, and replay JSON compresses ~30x.
 
+For a targeted Arc Relay gallery that reuses `web/dist-review`, project every
+canonical replay through `scripts/arc-relay-broadcast.py` and give
+`scripts/class-models/install-local-replay-gallery.mjs` the resulting
+`transport`. The installer deliberately rejects canonical entries without a
+compact transport. Preserve the canonical replay only for hash verification
+and team-vision backfill; never serve it directly. Browser-smoke the exact
+public URL at phone size and verify the replay UI appears without console or
+page errors before sharing it.
+
 A hosted gallery carries the whole of `web/dist`, and **the soundtrack is a
 directory, not a bundled asset**: the score is fetched at runtime from
 `soundtracks/index.json`, alongside `/assets`, both by absolute path. So serve

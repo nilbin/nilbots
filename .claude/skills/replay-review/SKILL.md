@@ -27,6 +27,19 @@ and publish the permanent gallery only for a frozen promotion candidate or a
 change to viewer code/assets. Do not turn every replay refresh into a release
 gauntlet.
 
+For Arc Relay, a canonical replay is an audit input, never a runtime gallery
+payload. Project it first with `scripts/arc-relay-broadcast.py` (300 KiB gzip
+ceiling), then install it as `transport` alongside the hash-matched replay so
+the installer can retain team vision. Never omit `transport`: a canonical
+diagnostic replay can exceed 100 MB after decompression and strand a phone on
+“Loading replay.” Keep the generated `.json.gz` sibling beside every runtime
+JSON.
+
+Before handing over any public URL, load that exact URL in a phone-sized real
+browser, wait for the replay UI (not merely HTTP 200), and fail on console or
+page errors. Confirm the chosen replay list and one replay payload both arrive
+gzip-encoded. A `curl` response alone does not prove that the viewer booted.
+
 **The review build cannot be opened from disk.** It is deliberately not self-contained —
 separate hashed atlases, audio and JavaScript, so a phone streams them instead of parsing
 one ~15 MiB inline document — and `file://` blocks ES modules. Double-clicking

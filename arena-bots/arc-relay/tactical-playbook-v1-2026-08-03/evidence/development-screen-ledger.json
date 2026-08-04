@@ -1544,6 +1544,87 @@
       ],
       "resultSummary": "Reject the strategy candidate and retain the runtime correction. Denial and conversion activate concurrently on disjoint bodies, but both assignments still lose. Trace inspection exposed that task-owned bodies were still counted in primary formation cohesion and pace, causing false line recovery. Exact-life task leases are now scoped out of primary cohesion, stuck, membership-rejoin, and pace cohorts until release. This materially extended the team-zero cell but is not sufficient: one long-return courier cannot generate or suppress enough banks.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "harvest-sweep-with-primary-force-reserve-v3",
+      "playbookSourceSha256": "846e8366f16d46d44afafa4708ede2237fefcc85c9772db6a481221c091bf016",
+      "change": "Replace secure-Core-only conversion with a courier plus one-or-two raider harvest task over any outstanding Core. Add an explicit minimumPrimaryBodies task constraint: assignment minimums are selected before preferred extras, at least five bodies remain on the primary order across concurrent leases, and optional task bodies release after casualties before the reserve is breached.",
+      "cells": [
+        { "variant": "unbounded-three-body-harvest", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 402 },
+        { "variant": "unbounded-three-body-harvest", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 },
+        { "variant": "five-body-primary-reserve", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 505 },
+        { "variant": "five-body-primary-reserve", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 415 }
+      ],
+      "resultSummary": "Retain the generic primary-force reserve; reject this strategy candidate. The scheduler proves deterministic minimum-before-preferred allocation and casualty-driven optional release, and both representative matches last materially longer, but neither assignment wins. Force preservation is necessary but ordinary centre-line harvesting remains too slow to dictate the match.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "review-custody-lock-and-near-bank-regroup",
+      "change": "Correct two replay-observed lifecycle defects: a carrying body now remains exclusively committed to delivery on movement-cooldown ticks and may take only non-increasing-distance homeward steps; collapse regroups beside the enemy bank instead of withdrawing to the old northwest rally. A wider layered blockade was screened separately and rejected.",
+      "variants": [
+        { "variantId": "layered-approach-shoulders", "siegeTeam": 0, "scorecard": "5-9", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 410 },
+        { "variantId": "layered-approach-shoulders", "siegeTeam": 1, "scorecard": "7-8", "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "variantId": "tight-ring-near-regroup", "siegeTeam": 0, "scorecard": "9-6", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 463 },
+        { "variantId": "tight-ring-near-regroup", "siegeTeam": 1, "scorecard": "2-3", "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 }
+      ],
+      "resultSummary": "Retain the custody and near-regroup corrections; reject the wider ring. The retained review replay contains zero primary-formation commands while carrying and replaces a 118-tick northwest withdrawal with bounded 11-14 tick recovery beside the enemy bank. The strategy still fails its mirror and margin gate.",
+      "verdict": "retained-runtime-and-strategy-correction-gate-failed"
+    },
+    {
+      "attemptId": "remembered-carrier-denial-persistence-matrix",
+      "change": "Make enemy-carrier memory a causal typed fact. Visible pickup/handoff marks the exact carrier life, bank/drop/death clears it, and an enemy-carrier task may follow the last confirmed position. Denial completes only when the carrier is causally resolved; otherwise it searches until its authored timeout. Screen one versus two interceptors and 12 versus 24 ticks.",
+      "variants": [
+        {
+          "variantId": "one-interceptor-24",
+          "playbookSourceSha256": "159bfd2e89ec4683fad3e59067305e5763e6be159686c97c7d1eb86a716495a0",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "7-7", "winnerTeam": null, "reason": "max-ticks", "endTick": 599 },
+            { "siegeTeam": 1, "scorecard": "9-7", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 552 }
+          ]
+        },
+        {
+          "variantId": "two-interceptors-24",
+          "playbookSourceSha256": "dd802a0c0885556f709b2318e407ea7f391f0cb139eabf1561e937b09c084016",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "7-9", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 483 },
+            { "siegeTeam": 1, "scorecard": "3-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 340 }
+          ]
+        },
+        {
+          "variantId": "one-interceptor-12",
+          "playbookSourceSha256": "4ba03c0a2658791b9d18a97a92c68cb340405b393631ae39fc89a97b0f65a944",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-8", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 592 },
+            { "siegeTeam": 1, "scorecard": "8-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 573 }
+          ]
+        }
+      ],
+      "resultSummary": "Retain causal remembered-carrier semantics and one 24-tick interceptor. Two bodies dissolve too much blockade fire; twelve ticks abandons the mirror carrier too early. The retained lifecycle improves the former losing mirror to 9-7, but its paired 7-7 draw still fails the screen gate.",
+      "verdict": "retained-framework-and-denial-lifecycle-strategy-gate-failed"
+    },
+    {
+      "attemptId": "paired-courier-escort-primary-reserve-screen",
+      "change": "Give the conversion task an explicit line escort order that follows the friendly carrier inside a 16-tile bank leash. Compare a six-body reserve, which forbids conversion while denial owns one body, with a five-body reserve that permits one interceptor plus courier plus escort while the remainder keeps the living blockade.",
+      "variants": [
+        {
+          "variantId": "six-body-primary-reserve",
+          "playbookSourceSha256": "4e1ff11c1882096ab12a9d8a43933b98cd84dede40fe8f77cfab4c8b39c3d513",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-6", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 570 },
+            { "siegeTeam": 1, "scorecard": "5-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 497 }
+          ]
+        },
+        {
+          "variantId": "five-body-primary-reserve",
+          "playbookSourceSha256": "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-4", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 448, "siegeIntegrity": 2 },
+            { "siegeTeam": 1, "scorecard": "9-3", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 488, "siegeIntegrity": 2 }
+          ]
+        }
+      ],
+      "resultSummary": "Retain the five-body reserve as the first candidate to clear both representative assignments at the exact hard margins. The mirrored cell proves twelve ticks of concurrent denial and courier-plus-escort leases while five primary bodies remain. This is only the two-speed screen gate: artifacts and the 24-cell WASM cohort are not yet frozen or run.",
+      "verdict": "retained-development-candidate-screen-gate-cleared"
     }
   ]
 }

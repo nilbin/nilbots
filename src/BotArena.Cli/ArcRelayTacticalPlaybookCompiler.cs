@@ -35,6 +35,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         "group-in-zone-count", "group-cohesion", "group-stuck-ticks",
         "known-enemies-unavailable", "visible-enemies-in-zone",
         "remembered-enemies-in-zone", "visible-enemy-carriers",
+        "known-enemy-carriers",
         "friendly-carriers", "secured-cores", "visible-loose-cores",
         "well-has-outstanding", "outstanding-well-count",
         "ticks-without-objective-progress",
@@ -899,7 +900,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             [
                 "taskId", "priority", "activation", "preemption",
                 "participantLoss", "triggerStableTicks", "minimumTicks",
-                "timeoutTicks", "cooldownTicks", "eligiblePhases",
+                "timeoutTicks", "cooldownTicks", "minimumPrimaryBodies",
+                "eligiblePhases",
                 "assignments", "whenConditionSetId",
                 "completeConditionSetId", "failConditionSetId",
                 "reintegration",
@@ -913,6 +915,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         Range(task, "minimumTicks", at, 0, 1200);
         Range(task, "timeoutTicks", at, 1, 2400);
         Range(task, "cooldownTicks", at, 0, 1200);
+        Range(task, "minimumPrimaryBodies", at, 0, 8);
         foreach (JsonElement phase in BoundedArray(
                      task.GetProperty("eligiblePhases"),
                      $"{at}.eligiblePhases", 1, 24))
@@ -1722,7 +1725,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "tieBreakers", "coordinationScope", "lockTicks",
                 "lockPreemption",
                 "maximumAttackersPerTarget",
-                "overkillDamage", "chaseLeash", "signatureCoordination",
+                "overkillDamage", "chaseLeash", "aimPreparation",
+                "signatureCoordination",
                 "dodgeCoverage", "release", "selfDefense",
             ]);
         string id = Identifier(value, "engagementId", at);
@@ -1742,13 +1746,19 @@ public static class ArcRelayTacticalPlaybookCompiler
         Range(value, "maximumAttackersPerTarget", at, 1, 8);
         Range(value, "overkillDamage", at, 0, 1000);
         Range(value, "chaseLeash", at, 0, 16);
+        OneOf(value, "aimPreparation", at,
+            "current-cone-only", "rotate-to-engage");
         OneOf(value, "signatureCoordination", at,
             "none", "control-first", "damage-first", "support-first");
         JsonElement dodge = value.GetProperty("dodgeCoverage");
         Object(dodge, $"{at}.{id}.dodgeCoverage",
-            ["mode", "horizonTicks", "minimumCoveredOptions", "fallback"]);
+            [
+                "mode", "horizonTicks", "minimumDirectShots",
+                "minimumCoveredOptions", "fallback",
+            ]);
         OneOf(dodge, "mode", at, "current-position", "escape-lanes");
-        Range(dodge, "horizonTicks", at, 0, 1);
+        Range(dodge, "horizonTicks", at, 0, 8);
+        Range(dodge, "minimumDirectShots", at, 0, 8);
         Range(dodge, "minimumCoveredOptions", at, 1, 9);
         OneOf(dodge, "fallback", at,
             "current-position", "best-coverage");
@@ -1903,7 +1913,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 [
                     "taskId", "priority", "activation", "preemption",
                     "participantLoss", "triggerStableTicks", "minimumTicks",
-                    "timeoutTicks", "cooldownTicks", "eligiblePhases",
+                    "timeoutTicks", "cooldownTicks", "minimumPrimaryBodies",
+                    "eligiblePhases",
                     "assignments", "when", "completeWhen", "failWhen",
                     "reintegration",
                 ]);
@@ -1917,6 +1928,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(task, "minimumTicks", at, 0, 1200);
             Range(task, "timeoutTicks", at, 1, 2400);
             Range(task, "cooldownTicks", at, 0, 1200);
+            Range(task, "minimumPrimaryBodies", at, 0, 8);
             References(task.GetProperty("eligiblePhases"), phaseIds,
                 $"{at}.{taskId}.eligiblePhases", 1, 24);
             ValidateConditionGroups(
@@ -1997,6 +2009,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                         $"task order '{orderId}' must use members.kind 'all'; "
                         + "the task assignment owns participant selection.");
                 }
+            }
+
+            int minimumParticipants = assignments.Sum(assignment =>
+                assignment.GetProperty("minimum").GetInt32());
+            int minimumPrimaryBodies = task
+                .GetProperty("minimumPrimaryBodies").GetInt32();
+            if (minimumParticipants + minimumPrimaryBodies > 8)
+            {
+                throw Error(at,
+                    $"task '{taskId}' participant minimums plus its primary "
+                    + "force reserve exceed the eight-body composition.");
             }
 
             JsonElement reintegration = task.GetProperty("reintegration");

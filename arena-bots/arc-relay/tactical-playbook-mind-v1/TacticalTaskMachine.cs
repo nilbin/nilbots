@@ -250,9 +250,10 @@ internal sealed class TacticalTaskMachine
                 distance,
                 allowPreemption: true,
                 out List<TacticalTaskAssignment> selected,
-                out HashSet<Runtime> preempted))
+                out HashSet<Runtime> preempted,
+                out string selectionFailure))
         {
-            state.LastReason = "participants-unavailable";
+            state.LastReason = selectionFailure;
             return;
         }
         foreach (Runtime victim in preempted
@@ -318,6 +319,12 @@ internal sealed class TacticalTaskMachine
             return;
         }
 
+        if (!RetainPrimaryForce(state, live, owners, distance))
+        {
+            BeginReintegration(tick, state, "primary-force-reserve");
+            return;
+        }
+
         if (string.Equals(
                 state.Plan.ParticipantLoss,
                 "replace",
@@ -370,6 +377,14 @@ internal sealed class TacticalTaskMachine
     {
         var selected = state.Assignments.ToList();
         var claimed = selected.Select(value => value.UnitId).ToHashSet();
+        int otherLeases = owners.Count(value =>
+            !ReferenceEquals(value.Value, state));
+        int capacity = Math.Max(
+            0,
+            live.Count
+                - otherLeases
+                - selected.Count
+                - state.Plan.MinimumPrimaryBodies);
         foreach (TacticalPlaybookPackage.TaskAssignment assignment
                  in state.Plan.Assignments)
         {
@@ -390,7 +405,7 @@ internal sealed class TacticalTaskMachine
                 .OrderBy(value => ClassRank(assignment, value))
                 .ThenBy(value => distance(assignment, value))
                 .ThenBy(value => value.UnitId)
-                .Take(assignment.Preferred - current)
+                .Take(Math.Min(assignment.Preferred - current, capacity))
                 .ToArray();
             foreach (TacticalTaskCandidate actor in candidates)
             {
@@ -400,6 +415,7 @@ internal sealed class TacticalTaskMachine
                     assignment.OrderId,
                     actor.UnitId,
                     actor.ActorId));
+                capacity--;
             }
         }
         state.Assignments = selected;
@@ -414,14 +430,34 @@ internal sealed class TacticalTaskMachine
             TacticalTaskCandidate, int> distance,
         bool allowPreemption,
         out List<TacticalTaskAssignment> selected,
-        out HashSet<Runtime> preempted)
+        out HashSet<Runtime> preempted,
+        out string failureReason)
     {
         selected = [];
         preempted = [];
+        failureReason = "participants-unavailable";
         var claimed = new HashSet<int>();
+        int capacity = Math.Max(
+            0,
+            live.Count - owners.Count - claimant.Plan.MinimumPrimaryBodies);
+        bool reserveBlocked = false;
+
+        // Minimums are allocated for every assignment before any assignment
+        // receives its preferred extras. This prevents an early editor row
+        // from consuming the primary-force reserve needed by a later row.
+        foreach (bool fillPreferred in new[] { false, true })
         foreach (TacticalPlaybookPackage.TaskAssignment assignment
                  in claimant.Plan.Assignments)
         {
+            int target = fillPreferred
+                ? assignment.Preferred
+                : assignment.Minimum;
+            int current = selected.Count(value => string.Equals(
+                value.AssignmentId,
+                assignment.AssignmentId,
+                StringComparison.Ordinal));
+            if (current >= target)
+                continue;
             TacticalPlaybookPackage.Order order = _orders[assignment.OrderId];
             TacticalTaskCandidate[] candidates = Candidates(
                     assignment, order, live.Values)
@@ -431,28 +467,83 @@ internal sealed class TacticalTaskMachine
                 .OrderBy(value => ClassRank(assignment, value))
                 .ThenBy(value => distance(assignment, value))
                 .ThenBy(value => value.UnitId)
-                .Take(assignment.Preferred)
                 .ToArray();
-            if (candidates.Length < assignment.Minimum)
-            {
-                selected = [];
-                preempted = [];
-                return false;
-            }
             foreach (TacticalTaskCandidate actor in candidates)
             {
+                if (current >= target)
+                    break;
+                bool alreadyLeased = owners.ContainsKey(actor.UnitId);
+                if (!alreadyLeased && capacity == 0)
+                {
+                    reserveBlocked = true;
+                    continue;
+                }
                 claimed.Add(actor.UnitId);
                 selected.Add(new(
                     assignment.AssignmentId,
                     assignment.OrderId,
                     actor.UnitId,
                     actor.ActorId));
+                current++;
+                if (!alreadyLeased)
+                    capacity--;
                 if (owners.TryGetValue(actor.UnitId, out Runtime? owner)
                     && !ReferenceEquals(owner, claimant))
                 {
                     preempted.Add(owner);
                 }
             }
+            if (!fillPreferred && current < assignment.Minimum)
+            {
+                selected = [];
+                preempted = [];
+                failureReason = reserveBlocked
+                    ? "primary-force-reserve"
+                    : "participants-unavailable";
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private bool RetainPrimaryForce(
+        Runtime state,
+        IReadOnlyDictionary<int, TacticalTaskCandidate> live,
+        IReadOnlyDictionary<int, Runtime> owners,
+        Func<TacticalPlaybookPackage.TaskAssignment,
+            TacticalTaskCandidate, int> distance)
+    {
+        int otherLeases = owners.Count(value =>
+            !ReferenceEquals(value.Value, state));
+        int allowed = Math.Max(
+            0,
+            live.Count - otherLeases - state.Plan.MinimumPrimaryBodies);
+        while (state.Assignments.Count > allowed)
+        {
+            TacticalTaskAssignment? released = null;
+            foreach (TacticalPlaybookPackage.TaskAssignment plan
+                     in state.Plan.Assignments.Reverse())
+            {
+                TacticalTaskAssignment[] held = state.Assignments
+                    .Where(value => string.Equals(
+                        value.AssignmentId,
+                        plan.AssignmentId,
+                        StringComparison.Ordinal))
+                    .ToArray();
+                if (held.Length <= plan.Minimum)
+                    continue;
+                released = held
+                    .Select(value => (Lease: value, Actor: live[value.UnitId]))
+                    .OrderByDescending(value => ClassRank(plan, value.Actor))
+                    .ThenByDescending(value => distance(plan, value.Actor))
+                    .ThenByDescending(value => value.Lease.UnitId)
+                    .Select(value => value.Lease)
+                    .First();
+                break;
+            }
+            if (released is null)
+                return false;
+            state.Assignments.Remove(released);
         }
         return true;
     }

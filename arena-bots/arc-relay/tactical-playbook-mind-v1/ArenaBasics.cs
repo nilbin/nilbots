@@ -789,21 +789,6 @@ internal static class ArenaBasics
         {
             return false;
         }
-        GenericActorRulesContract.MovementProfile? movement =
-            form?.MovementProfileId is string movementId
-                ? contract.Rules.MovementProfiles.FirstOrDefault(candidate =>
-                    candidate.Id == movementId)
-                : null;
-        GenericActorRulesContract.ActionKind? previousKind =
-            PreviousActionKind(contract, body);
-        if (previousKind == GenericActorRulesContract.ActionKind.Rotation
-            || (previousKind == GenericActorRulesContract.ActionKind.Movement
-                && movement?.FacingCoupling
-                    != GenericActorRulesContract.MovementFacingCoupling
-                        .FacingLocked))
-        {
-            return false;
-        }
         return TryRotate(
             contract, body, FacingForCone(body.Facing, heading),
             $"prepare {reason}; cover {target}");

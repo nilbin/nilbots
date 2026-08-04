@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-home-siege.json",
-    "sha256": "92aef0ea17f8bd53c4e4112e808603dbea17ec7368c64f2efc70ac026405717c"
+    "sha256": "2a2b6961b652499ed3cbbb5ef18e7e4b6df3af5f241408b0b19133af93ba4e66"
   },
   "perspective": "team-relative",
   "memory": {
@@ -262,7 +262,7 @@
           "offsets": [
             [
               -1,
-              -3
+              -2
             ]
           ]
         }
@@ -298,11 +298,11 @@
           "offsets": [
             [
               0,
-              -3
+              -2
             ],
             [
               0,
-              -2
+              -1
             ]
           ]
         },
@@ -326,7 +326,7 @@
           "offsets": [
             [
               0,
-              3
+              0
             ]
           ]
         },
@@ -335,7 +335,7 @@
           "sector": "left",
           "offsets": [
             [
-              0,
+              -1,
               -1
             ]
           ]
@@ -345,8 +345,8 @@
           "sector": "right",
           "offsets": [
             [
-              0,
-              0
+              -1,
+              1
             ]
           ]
         },
@@ -356,7 +356,7 @@
           "offsets": [
             [
               -1,
-              -4
+              0
             ]
           ]
         }
@@ -648,16 +648,18 @@
       ],
       "coordinationScope": "shared-policy",
       "lockTicks": 4,
-      "lockPreemption": "never",
-      "maximumAttackersPerTarget": 4,
+      "lockPreemption": "urgent-carrier",
+      "maximumAttackersPerTarget": 1,
       "overkillDamage": 0,
       "chaseLeash": 3,
+      "aimPreparation": "current-cone-only",
       "signatureCoordination": "damage-first",
       "dodgeCoverage": {
-        "mode": "current-position",
-        "horizonTicks": 0,
-        "minimumCoveredOptions": 1,
-        "fallback": "current-position"
+        "mode": "escape-lanes",
+        "horizonTicks": 4,
+        "minimumDirectShots": 2,
+        "minimumCoveredOptions": 5,
+        "fallback": "best-coverage"
       },
       "release": {
         "hiddenTicks": 1,
@@ -692,16 +694,18 @@
       ],
       "coordinationScope": "shared-policy",
       "lockTicks": 6,
-      "lockPreemption": "never",
-      "maximumAttackersPerTarget": 5,
+      "lockPreemption": "urgent-carrier",
+      "maximumAttackersPerTarget": 8,
       "overkillDamage": 0,
       "chaseLeash": 2,
+      "aimPreparation": "rotate-to-engage",
       "signatureCoordination": "damage-first",
       "dodgeCoverage": {
-        "mode": "current-position",
-        "horizonTicks": 0,
-        "minimumCoveredOptions": 1,
-        "fallback": "current-position"
+        "mode": "escape-lanes",
+        "horizonTicks": 4,
+        "minimumDirectShots": 2,
+        "minimumCoveredOptions": 5,
+        "fallback": "best-coverage"
       },
       "release": {
         "hiddenTicks": 1,
@@ -738,10 +742,12 @@
       "maximumAttackersPerTarget": 2,
       "overkillDamage": 0,
       "chaseLeash": 1,
+      "aimPreparation": "rotate-to-engage",
       "signatureCoordination": "support-first",
       "dodgeCoverage": {
         "mode": "current-position",
         "horizonTicks": 0,
+        "minimumDirectShots": 1,
         "minimumCoveredOptions": 1,
         "fallback": "current-position"
       },
@@ -843,25 +849,6 @@
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
       "safeConversionConditionSetId": "never-convert"
-    },
-    {
-      "custodyId": "task-conversion",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
-      "escortGroups": [],
-      "sourceWells": [
-        "north",
-        "centre",
-        "south"
-      ],
-      "pickupReservationTicks": 8,
-      "transferTimeoutTicks": 8,
-      "deliveryTimeoutTicks": 120,
-      "accidentalPickup": "deliver",
-      "dropRecovery": "same-carrier",
-      "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "task-conversion-safe"
     }
   ],
   "authoring": {
@@ -955,7 +942,7 @@
                 "arrivalRadius": 0,
                 "completion": "leader-arrived",
                 "chaseLeash": 0,
-                "engagementId": "siege-focus",
+                "engagementId": "rush-focus",
                 "custodyId": "secured-conversion",
                 "fallbackId": "continue-with-alternate",
                 "assignmentProfileId": "runner-standard"
@@ -1024,30 +1011,6 @@
           }
         }
       },
-      "task-convert": {
-        "tracks": {
-          "courier": {
-            "formationId": "harvest-sweep",
-            "movement": {
-              "kind": "secured-core",
-              "target": "enemy-perimeter",
-              "stuckTicks": 8,
-              "pace": "free"
-            },
-            "assignments": {
-              "runner-task-convert": {
-                "arrivalRadius": 1,
-                "completion": "continuous",
-                "chaseLeash": 8,
-                "engagementId": "regroup-defense",
-                "custodyId": "task-conversion",
-                "fallbackId": "continue-and-hold-invalid",
-                "assignmentProfileId": "runner-standard"
-              }
-            }
-          }
-        }
-      },
       "task-deny": {
         "tracks": {
           "interceptor": {
@@ -1063,6 +1026,54 @@
                 "arrivalRadius": 1,
                 "completion": "continuous",
                 "chaseLeash": 6,
+                "engagementId": "siege-focus",
+                "custodyId": "incidental-delivery",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-conversion-escort": {
+        "tracks": {
+          "escort": {
+            "formationId": "return-escort",
+            "movement": {
+              "kind": "carrier",
+              "target": "own-bank",
+              "stuckTicks": 6,
+              "pace": "free"
+            },
+            "assignments": {
+              "line-task-conversion-escort": {
+                "arrivalRadius": 2,
+                "completion": "continuous",
+                "chaseLeash": 16,
+                "engagementId": "rush-focus",
+                "custodyId": "surge-harvest",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-advance-fire": {
+        "tracks": {
+          "fire-element": {
+            "formationId": "rush-column",
+            "movement": {
+              "kind": "route",
+              "target": "outer-rush",
+              "stuckTicks": 8,
+              "pace": "slowest"
+            },
+            "assignments": {
+              "line-task-advance-fire": {
+                "arrivalRadius": 0,
+                "completion": "continuous",
+                "chaseLeash": 3,
                 "engagementId": "siege-focus",
                 "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
@@ -1258,29 +1269,53 @@
           "no-live-friendlies"
         ]
       ],
-      "task-conversion-safe": [
+      "task-harvest-window": [
         [
           "occupied-attrition-safe",
-          "five-in-siege",
-          "secured-core"
+          "five-at-bank-seal",
+          "core-outstanding"
         ]
       ],
-      "task-conversion-complete": [
+      "task-bank-drop-visible": [
+        [
+          "secured-core",
+          "five-at-bank-seal",
+          "no-friendly-carrier"
+        ]
+      ],
+      "task-bank-drop-captured": [
+        [
+          "one-friendly-carrier"
+        ]
+      ],
+      "task-bank-drop-lost": [
+        [
+          "no-secured-core"
+        ]
+      ],
+      "task-harvest-scored": [
         [
           "no-friendly-carrier",
-          "no-secured-core"
+          "no-loose-core",
+          "recent-objective-progress"
+        ]
+      ],
+      "task-harvest-reintegrated": [
+        [
+          "runner-at-rally",
+          "line-two-at-rally"
         ]
       ],
       "task-denial-visible": [
         [
           "visible-enemy-carrier",
-          "five-in-siege"
+          "five-at-bank-seal"
         ]
       ],
-      "task-denial-complete": [
-        [
-          "no-visible-enemy-carrier"
-        ]
+    "task-denial-complete": [
+      [
+        "no-known-enemy-carrier"
+      ]
       ],
       "line-cohesion-broken": [
         [
@@ -1352,7 +1387,7 @@
       ],
       "siege-formation-thinned": [
         [
-          "five-or-fewer-in-siege"
+          "three-or-fewer-at-bank-seal"
         ]
       ],
       "emergency-conversion": [
@@ -1373,11 +1408,11 @@
           "six-live"
         ]
       ],
-      "rally-reformed": [
-        [
-          "line-three-at-rally",
-          "five-live"
-        ]
+    "rally-reformed": [
+      [
+        "line-two-at-rally",
+        "five-live"
+      ]
       ],
       "delivery-ready": [
         [
@@ -1486,6 +1521,24 @@
         "value": 6,
         "zone": "siege-leash"
       },
+      "six-at-bank-seal": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-least",
+        "value": 6,
+        "zone": "bank-seal"
+      },
+      "five-at-bank-seal": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-least",
+        "value": 5,
+        "zone": "bank-seal"
+      },
+      "three-or-fewer-at-bank-seal": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-most",
+        "value": 3,
+        "zone": "bank-seal"
+      },
       "five-in-siege": {
         "fact": "friendlies-in-zone-count",
         "operator": "at-least",
@@ -1498,11 +1551,22 @@
         "value": 5,
         "zone": "siege-leash"
       },
-      "no-visible-enemy-carrier": {
-        "fact": "visible-enemy-carriers",
-        "operator": "equals",
-        "value": 0
+      "four-or-fewer-in-siege": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-most",
+        "value": 4,
+        "zone": "siege-leash"
       },
+    "no-visible-enemy-carrier": {
+      "fact": "visible-enemy-carriers",
+      "operator": "equals",
+      "value": 0
+    },
+    "no-known-enemy-carrier": {
+      "fact": "known-enemy-carriers",
+      "operator": "equals",
+      "value": 0
+    },
       "visible-enemy-carrier": {
         "fact": "visible-enemy-carriers",
         "operator": "at-least",
@@ -1547,6 +1611,20 @@
         "fact": "group-in-zone-count",
         "operator": "at-least",
         "value": 3,
+        "subject": "line-group",
+        "zone": "forward-rally"
+      },
+      "runner-at-rally": {
+        "fact": "group-in-zone-count",
+        "operator": "at-least",
+        "value": 1,
+        "subject": "runner-group",
+        "zone": "forward-rally"
+      },
+      "line-two-at-rally": {
+        "fact": "group-in-zone-count",
+        "operator": "at-least",
+        "value": 2,
         "subject": "line-group",
         "zone": "forward-rally"
       },
@@ -1595,6 +1673,11 @@
         "operator": "at-least",
         "value": 60
       },
+      "recent-objective-progress": {
+        "fact": "ticks-without-objective-progress",
+        "operator": "at-most",
+        "value": 2
+      },
       "north-core-outstanding": {
         "fact": "well-has-outstanding",
         "operator": "at-least",
@@ -1619,6 +1702,52 @@
     "initialPhase": "assault",
     "tasks": [
       {
+        "taskId": "advance-fire-element",
+        "priority": 15,
+        "activation": "while-true",
+        "preemption": "never",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 0,
+        "timeoutTicks": 240,
+        "cooldownTicks": 0,
+        "minimumPrimaryBodies": 7,
+        "eligiblePhases": [
+          "assault",
+          "breach"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "fire-element",
+            "orderId": "line-task-advance-fire",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "sunder",
+              "repulsor"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "enemy-reactor",
+              "target": ""
+            }
+          }
+        ],
+        "whenConditionSetId": "never-convert",
+        "completeConditionSetId": "never-convert",
+        "failConditionSetId": "",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
         "taskId": "deny-visible-carrier",
         "priority": 10,
         "activation": "while-true",
@@ -1628,6 +1757,7 @@
         "minimumTicks": 2,
         "timeoutTicks": 24,
         "cooldownTicks": 1,
+        "minimumPrimaryBodies": 5,
         "eligiblePhases": [
           "occupy"
         ],
@@ -1663,22 +1793,70 @@
         }
       },
       {
-        "taskId": "convert-secured-core",
-        "priority": 20,
+        "taskId": "secure-bank-drop",
+        "priority": 5,
         "activation": "while-true",
         "preemption": "higher-priority",
         "participantLoss": "replace",
         "triggerStableTicks": 1,
-        "minimumTicks": 2,
-        "timeoutTicks": 120,
-        "cooldownTicks": 4,
+        "minimumTicks": 0,
+        "timeoutTicks": 16,
+        "cooldownTicks": 1,
+        "minimumPrimaryBodies": 7,
         "eligiblePhases": [
           "occupy"
         ],
         "assignments": [
           {
+            "assignmentId": "drop-courier",
+            "orderId": "runner-harvest",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "relay",
+              "kestrel"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "anchor",
+              "target": "enemy-perimeter"
+            }
+          }
+        ],
+        "whenConditionSetId": "task-bank-drop-visible",
+        "completeConditionSetId": "task-bank-drop-captured",
+        "failConditionSetId": "task-bank-drop-lost",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
+        "taskId": "harvest-core-window",
+        "priority": 20,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 2,
+        "minimumTicks": 20,
+        "timeoutTicks": 80,
+        "cooldownTicks": 4,
+        "minimumPrimaryBodies": 5,
+        "eligiblePhases": [
+          "occupy",
+          "regroup",
+          "breach"
+        ],
+        "assignments": [
+          {
             "assignmentId": "courier",
-            "orderId": "runner-task-convert",
+            "orderId": "runner-harvest",
             "roles": [
               "runner"
             ],
@@ -1694,10 +1872,29 @@
               "kind": "anchor",
               "target": "enemy-perimeter"
             }
+          },
+          {
+            "assignmentId": "escort",
+            "orderId": "line-task-conversion-escort",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "repulsor",
+              "sunder"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "none",
+              "target": ""
+            }
           }
         ],
-        "whenConditionSetId": "task-conversion-safe",
-        "completeConditionSetId": "task-conversion-complete",
+        "whenConditionSetId": "task-harvest-window",
+        "completeConditionSetId": "task-harvest-scored",
         "failConditionSetId": "",
         "reintegration": {
           "mode": "primary-order",

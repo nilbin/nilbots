@@ -53,16 +53,47 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Null(source["orders"]);
         Assert.Equal("maneuver-catalog",
             source["authoring"]!["kind"]!.GetValue<string>());
-        Assert.Equal(8, source["authoring"]!["maneuvers"]!.AsObject().Count);
+        Assert.Equal(9, source["authoring"]!["maneuvers"]!.AsObject().Count);
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
         JsonObject normalized = JsonNode.Parse(compilation.NormalizedPlaybook)!
             .AsObject();
         Assert.Null(normalized["authoring"]);
-        Assert.Equal(21, normalized["orders"]!.AsArray().Count);
+        Assert.Equal(22, normalized["orders"]!.AsArray().Count);
+        Assert.Contains(normalized["orders"]!.AsArray(), order =>
+            order!["orderId"]!.GetValue<string>()
+                == "line-task-conversion-escort"
+            && order["movement"]!["kind"]!.GetValue<string>() == "carrier");
         Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
             Assert.Equal(4, phase!["orderIds"]!.AsArray().Count));
+
+        JsonObject denial = normalized["coordination"]!["tasks"]!.AsArray()
+            .Select(task => task!.AsObject())
+            .Single(task => task["taskId"]!.GetValue<string>()
+                == "deny-visible-carrier");
+        Assert.Equal(5, denial["minimumPrimaryBodies"]!.GetValue<int>());
+        Assert.Single(denial["assignments"]!.AsArray());
+        Assert.Contains(
+            denial["completeWhen"]![0]!["all"]!.AsArray(),
+            condition => condition!["fact"]!.GetValue<string>()
+                    == "known-enemy-carriers"
+                && condition["operator"]!.GetValue<string>() == "equals"
+                && condition["value"]!.GetValue<int>() == 0);
+
+        JsonObject conversion = normalized["coordination"]!["tasks"]!
+            .AsArray().Select(task => task!.AsObject())
+            .Single(task => task["taskId"]!.GetValue<string>()
+                == "harvest-core-window");
+        Assert.Equal(5, conversion["minimumPrimaryBodies"]!.GetValue<int>());
+        Assert.Collection(
+            conversion["assignments"]!.AsArray(),
+            courier => Assert.Equal(
+                "courier",
+                courier!["assignmentId"]!.GetValue<string>()),
+            escort => Assert.Equal(
+                "escort",
+                escort!["assignmentId"]!.GetValue<string>()));
     }
 
     [Fact]
@@ -88,7 +119,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 .GetProperty("coordination").GetProperty("tasks")
                 .EnumerateArray().Single(value => value
                     .GetProperty("taskId").GetString()
-                    == "convert-secured-core");
+                    == "harvest-core-window");
             Assert.Equal(2, task.GetProperty("when")[0]
                 .GetProperty("all")[0].GetProperty("value").GetInt32());
             Assert.Equal(4, normalized.RootElement
@@ -754,6 +785,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 "line-siege",
                 task.GetProperty("assignments")[0]
                     .GetProperty("orderId").GetString());
+            Assert.Equal(5,
+                task.GetProperty("minimumPrimaryBodies").GetInt32());
             Assert.Equal(2, task.GetProperty("when").GetArrayLength());
             Assert.Equal(
                 "primary-order",
@@ -780,20 +813,20 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 
         JsonElement task = explain.RootElement.GetProperty("tasks")
             .EnumerateArray().Single(value => value.GetProperty("taskId")
-                .GetString() == "convert-secured-core");
+                .GetString() == "harvest-core-window");
         Assert.Equal(
-            "convert-secured-core",
+            "harvest-core-window",
             task.GetProperty("taskId").GetString());
         Assert.Equal(
-            "runner-task-convert",
+            "runner-harvest",
             task.GetProperty("assignments")[0]
                 .GetProperty("order").GetProperty("orderId").GetString());
         Assert.NotEmpty(task.GetProperty("when").EnumerateArray());
         Assert.Equal(
             "primary-order",
             task.GetProperty("reintegration").GetProperty("mode").GetString());
-        Assert.Empty(task.GetProperty("reintegration")
-            .GetProperty("orders").EnumerateArray());
+        Assert.Equal(0, task.GetProperty("reintegration")
+            .GetProperty("orders").GetArrayLength());
     }
 
     [Fact]
@@ -1087,7 +1120,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 
         Assert.Equal(compilation.PlaybookSha256, package.PlaybookSha256);
         Assert.Equal(compilation.LayoutSha256, package.LayoutSha256);
-        Assert.Equal(new BotArena.Sdk.Position(24, 11),
+        Assert.Equal(new BotArena.Sdk.Position(26, 11),
             package.AnchorPosition("enemy-perimeter"));
         Assert.Equal(2, package.RouteCorridorWidth("outer-rush"));
         TacticalPlaybookPackage.Condition condition = package.Source
@@ -1140,6 +1173,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         ["minimumTicks"] = 2,
         ["timeoutTicks"] = 90,
         ["cooldownTicks"] = 4,
+        ["minimumPrimaryBodies"] = 5,
         ["eligiblePhases"] = new JsonArray("occupy"),
         ["assignments"] = new JsonArray
         {

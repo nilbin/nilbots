@@ -21,29 +21,30 @@
   ],
   "zones": [
     { "zoneId": "enemy-home", "rect": [24, 7, 29, 15] },
-    { "zoneId": "forward-rally", "rect": [20, 5, 24, 9] },
+    { "zoneId": "bank-seal", "rect": [24, 8, 26, 14] },
+    { "zoneId": "forward-rally", "rect": [23, 8, 26, 14] },
     { "zoneId": "siege-leash", "rect": [21, 5, 29, 17] },
     { "zoneId": "well-line", "rect": [12, 2, 18, 20] }
   ],
   "routes": [
     {
       "routeId": "outer-rush",
-      "waypoints": [[4, 8], [7, 6], [10, 6], [13, 5], [16, 5], [19, 6], [22, 6], [24, 8], [24, 10]],
+      "waypoints": [[4, 8], [7, 6], [10, 6], [13, 5], [16, 5], [19, 6], [22, 6], [24, 8], [25, 10], [26, 11]],
       "corridorWidth": 2
     },
     {
       "routeId": "short-breach",
-      "waypoints": [[21, 6], [22, 7], [23, 8], [24, 10]],
+      "waypoints": [[24, 9], [25, 10], [26, 11]],
       "corridorWidth": 2
     },
     {
       "routeId": "outer-rush-opposite",
-      "waypoints": [[4, 14], [7, 16], [10, 16], [13, 17], [16, 17], [19, 16], [22, 16], [24, 14], [24, 12]],
+      "waypoints": [[4, 14], [7, 16], [10, 16], [13, 17], [16, 17], [19, 16], [22, 16], [24, 14], [25, 12], [26, 11]],
       "corridorWidth": 2
     },
     {
       "routeId": "short-breach-opposite",
-      "waypoints": [[21, 16], [22, 15], [23, 14], [24, 12]],
+      "waypoints": [[24, 13], [25, 12], [26, 11]],
       "corridorWidth": 2
     },
     {
@@ -53,8 +54,8 @@
     }
   ],
   "anchors": [
-    { "anchorId": "enemy-perimeter", "position": [24, 11] },
-    { "anchorId": "rally-centre", "position": [22, 7] },
+    { "anchorId": "enemy-perimeter", "position": [26, 11] },
+    { "anchorId": "rally-centre", "position": [24, 11] },
     { "anchorId": "own-bank", "position": [2, 11] },
     { "anchorId": "well-line-centre", "position": [15, 11] }
   ]
