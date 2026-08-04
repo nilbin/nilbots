@@ -225,6 +225,36 @@
       ],
       "resultSummary": "Rejected after both fair-control assignments collapsed; spreading the shared damage group traded away the central concentration that produced the camp kills.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "early-four-unavailable-harvest-trigger",
+      "change": "Lower the assault, occupy, and breach transition into harvest from five known unavailable enemies to four while leaving safe-conversion custody at five.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 511, "scorecard": "9-7" },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 521, "scorecard": "9-8" }
+      ],
+      "resultSummary": "Rejected. Harvest began materially earlier (ticks 126 and 86), but the fair-control margin remained far below the 9-4 hard gate and the tactic no longer expressed the owner's explicit five-unavailable conversion trigger.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "explicit-delivery-carrier-escort",
+      "change": "During delivery, order the runner, both medics, and the line group to escort the current carrier through the explicit custody-aware carrier movement primitive.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 579 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 452 }
+      ],
+      "resultSummary": "Rejected. Pulling the whole formation behind whichever body held a Core dissolved enemy-home control and lost both assignments.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "coordinated-delivery-home-sweep",
+      "change": "During delivery, sweep all groups toward their own reactor as a coordinated return rather than using the authored short breach and route orders.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 401 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 426 }
+      ],
+      "resultSummary": "Rejected. A common homeward sweep abandoned the pressure advantage and let the coordinated stock control reverse the match in both assignments.",
+      "verdict": "rejected"
     }
   ]
 }
