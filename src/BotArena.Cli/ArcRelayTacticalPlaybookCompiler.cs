@@ -1049,9 +1049,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         }
         if (hasCompletionArmMode)
         {
-            OneOf(task, "completionArmMode", at, "assigned-carrier");
+            OneOf(task, "completionArmMode", at,
+                "assigned-carrier", "any-friendly-carrier");
             OneOf(task, "completionReleaseMode", at,
-                "assigned-carrier-loss");
+                "assigned-carrier-loss", "armed-carrier-loss",
+                "armed-carrier-retarget-or-loss");
         }
         if (task.TryGetProperty("cancellationMode", out _))
             OneOf(task, "cancellationMode", at, "alternate-carrier");
@@ -2209,9 +2211,11 @@ public static class ArcRelayTacticalPlaybookCompiler
             }
             if (hasCompletionArmMode)
             {
-                OneOf(task, "completionArmMode", at, "assigned-carrier");
+                OneOf(task, "completionArmMode", at,
+                    "assigned-carrier", "any-friendly-carrier");
                 OneOf(task, "completionReleaseMode", at,
-                    "assigned-carrier-loss");
+                    "assigned-carrier-loss", "armed-carrier-loss",
+                    "armed-carrier-retarget-or-loss");
             }
             if (task.TryGetProperty("cancellationMode", out _))
                 OneOf(task, "cancellationMode", at, "alternate-carrier");

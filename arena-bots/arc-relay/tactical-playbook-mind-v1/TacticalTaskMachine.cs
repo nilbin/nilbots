@@ -289,6 +289,13 @@ internal sealed class TacticalTaskMachine
             value.CarriesCore
             && state.Assignments.All(assignment =>
                 assignment.ActorId != value.ActorId));
+        TacticalTaskCandidate? firstFriendlyCarrier = live.Values
+            .Where(value => value.CarriesCore)
+            .OrderBy(value => value.ActorId.TeamId)
+            .ThenBy(value => value.ActorId.UnitId)
+            .ThenBy(value => value.ActorId.LifeId)
+            .FirstOrDefault();
+        bool retargetedCarrier = false;
         if (!state.CompletionArmed
             && string.Equals(
                 state.Plan.CancellationMode,
@@ -307,6 +314,24 @@ internal sealed class TacticalTaskMachine
             && assignedParticipantCarriesCore)
         {
             state.CompletionArmed = true;
+            state.ArmedCarrier = state.Assignments
+                .Where(value => SameLife(live, value)
+                    && live[value.UnitId].CarriesCore)
+                .OrderBy(value => value.ActorId.TeamId)
+                .ThenBy(value => value.ActorId.UnitId)
+                .ThenBy(value => value.ActorId.LifeId)
+                .Select(value => (ActorIdentity?)value.ActorId)
+                .FirstOrDefault();
+        }
+        if (!state.CompletionArmed
+            && string.Equals(
+                state.Plan.CompletionArmMode,
+                "any-friendly-carrier",
+                StringComparison.Ordinal)
+            && firstFriendlyCarrier is not null)
+        {
+            state.CompletionArmed = true;
+            state.ArmedCarrier = firstFriendlyCarrier.ActorId;
         }
         if (!state.CompletionArmed
             && state.Plan.CompletionArmWhen is { Length: > 0 } armWhen
@@ -314,14 +339,34 @@ internal sealed class TacticalTaskMachine
         {
             state.CompletionArmed = true;
         }
+        bool armedCarrierStillCarries = state.ArmedCarrier is { } armedCarrier
+            && live.Values.Any(value => value.ActorId == armedCarrier
+                && value.CarriesCore);
         if (state.CompletionArmed
             && string.Equals(
                 state.Plan.CompletionReleaseMode,
-                "assigned-carrier-loss",
+                "armed-carrier-retarget-or-loss",
                 StringComparison.Ordinal)
-            && !assignedParticipantCarriesCore)
+            && !armedCarrierStillCarries
+            && firstFriendlyCarrier is not null)
         {
-            BeginReintegration(tick, state, "assigned-carrier-released");
+            state.ArmedCarrier = firstFriendlyCarrier.ActorId;
+            retargetedCarrier = true;
+            armedCarrierStillCarries = true;
+        }
+        if (state.CompletionArmed
+            && state.Plan.CompletionReleaseMode is
+                "assigned-carrier-loss" or "armed-carrier-loss"
+                    or "armed-carrier-retarget-or-loss"
+            && !armedCarrierStillCarries)
+        {
+            BeginReintegration(
+                tick,
+                state,
+                state.Plan.CompletionReleaseMode
+                    == "assigned-carrier-loss"
+                        ? "assigned-carrier-released"
+                        : "armed-carrier-released");
             return;
         }
         if (state.CompletionArmed
@@ -387,9 +432,11 @@ internal sealed class TacticalTaskMachine
             BeginReintegration(tick, state, "participant-minimum");
             return;
         }
-        state.LastReason = lostParticipant
-            ? "continued-after-loss"
-            : "active";
+        state.LastReason = retargetedCarrier
+            ? "armed-carrier-retargeted"
+            : lostParticipant
+                ? "continued-after-loss"
+                : "active";
     }
 
     private void AdvanceReintegration(
@@ -710,6 +757,7 @@ internal sealed class TacticalTaskMachine
         state.CooldownUntil = tick + state.Plan.CooldownTicks;
         state.Assignments.Clear();
         state.CompletionArmed = false;
+        state.ArmedCarrier = null;
         state.LastReason = reason;
         _transitions.Add(new(
             tick, state.Plan.TaskId, from, state.Phase, reason, unitIds));
@@ -787,6 +835,7 @@ internal sealed class TacticalTaskMachine
         internal int CooldownUntil { get; set; }
         internal int TriggerStreak { get; set; }
         internal bool CompletionArmed { get; set; }
+        internal ActorIdentity? ArmedCarrier { get; set; }
         internal bool EdgeReady { get; set; } = true;
         internal string LastReason { get; set; } = "initial";
         internal List<TacticalTaskAssignment> Assignments { get; set; } = [];

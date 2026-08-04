@@ -378,6 +378,57 @@ public sealed class TacticalTaskMachineTests
     }
 
     [Fact]
+    public void AnyFriendlyCarrierLifecycleRetargetsThenReleasesExactly()
+    {
+        TacticalPlaybookPackage.TacticalTask task = Task(
+            "delivery",
+            [
+                Assignment("courier", "convert-order", ["kestrel"]),
+                Assignment("escort", "convert-order", ["sunder"]),
+            ]) with
+        {
+            CompletionArmMode = "any-friendly-carrier",
+            CompletionReleaseMode = "armed-carrier-retarget-or-loss",
+        };
+        TacticalTaskMachine machine = Machine(task);
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "sunder", x: 2),
+            Candidate(2, "relay", x: 3));
+        Step(machine, 1, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "sunder", x: 2),
+            Candidate(2, "relay", x: 3, carrier: true));
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+
+        // The exact completed trip retargets immediately to the next live
+        // carrier instead of keeping a stale carrier identity.
+        Step(machine, 2, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "sunder", x: 2),
+            Candidate(2, "relay", x: 3),
+            Candidate(3, "relay", x: 4, carrier: true));
+        Assert.Equal(TacticalTaskPhase.Active, machine.State("delivery").Phase);
+        Assert.Equal(
+            "armed-carrier-retargeted",
+            machine.State("delivery").LastReason);
+
+        Step(machine, 3, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "sunder", x: 2),
+            Candidate(2, "relay", x: 3),
+            Candidate(3, "relay", x: 4));
+
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("delivery").Phase);
+        Assert.Equal(
+            "armed-carrier-released-primary-order",
+            machine.State("delivery").LastReason);
+        Assert.Empty(machine.LeasedUnitIds);
+    }
+
+    [Fact]
     public void AlternateCarrierCancelsUnarmedCourierLease()
     {
         TacticalPlaybookPackage.TacticalTask task = Task(

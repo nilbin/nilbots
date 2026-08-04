@@ -921,7 +921,23 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "alternate-core",
-      "safeConversionConditionSetId": "surge-always"
+      "safeConversionConditionSetId": "surge-always",
+      "emergencyRecoveryConditionSetId": "local-enemy-home-sanitation",
+      "emergencyRecoveryZones": [
+        "enemy-bank-danger"
+      ],
+      "emergencyPickupRadius": 2,
+      "emergencyRecoveryRoles": [
+        "runner"
+      ],
+      "emergencyRecoverySourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "emergencyRecoveryDisposition": "displace",
+      "emergencyDisplacementTarget": "sanitation-release",
+      "emergencyDisplacementReleaseRadius": 1
     },
     {
       "custodyId": "incidental-delivery",
@@ -1110,10 +1126,11 @@
           "interceptor": {
             "formationId": "rally-wedge",
             "movement": {
-              "kind": "enemy-carrier",
+              "kind": "enemy-carrier-cutoff",
               "target": "enemy-perimeter",
               "stuckTicks": 6,
-              "pace": "slowest"
+              "pace": "slowest",
+              "leadTiles": 1
             },
             "assignments": {
               "line-task-deny": {
@@ -1438,7 +1455,8 @@
       ],
       "local-enemy-home-sanitation": [
         [
-          "six-in-siege"
+          "five-in-siege",
+          "secured-core"
         ]
       ],
       "task-harvest-scored": [
@@ -2052,7 +2070,8 @@
           }
         ],
         "whenConditionSetId": "task-harvest-window",
-        "completionArmConditionSetId": "task-harvest-acquired",
+        "completionArmMode": "any-friendly-carrier",
+        "completionReleaseMode": "armed-carrier-retarget-or-loss",
         "completeConditionSetId": "task-harvest-scored",
         "failConditionSetId": "",
         "reintegration": {
@@ -2068,8 +2087,8 @@
         "phaseId": "assault",
         "minimumTicks": 20,
         "maneuverId": "assault",
-        "standingOrderIds": [
-          "line-recover"
+      "standingOrderIds": [
+        "line-recover"
         ],
         "transitions": [
           {
@@ -2094,8 +2113,8 @@
         "phaseId": "occupy",
         "minimumTicks": 8,
         "maneuverId": "occupy",
-        "standingOrderIds": [
-          "line-recover"
+      "standingOrderIds": [
+        "line-recover"
         ],
         "transitions": [
           {
@@ -2112,8 +2131,8 @@
         "phaseId": "regroup",
         "minimumTicks": 8,
         "maneuverId": "regroup",
-        "standingOrderIds": [
-          "line-recover"
+      "standingOrderIds": [
+        "line-recover"
         ],
         "transitions": [
           {
@@ -2130,8 +2149,8 @@
         "phaseId": "breach",
         "minimumTicks": 6,
         "maneuverId": "breach",
-        "standingOrderIds": [
-          "line-recover"
+      "standingOrderIds": [
+        "line-recover"
         ],
         "transitions": [
           {

@@ -3,8 +3,8 @@
   "playbook": {
     "id": "home-siege-v3",
     "sourcePath": "/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder/arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json",
-    "sourceSha256": "ca156a99501ac420e48b84bb8e93a1a8041a6915067df126daf8854599da4b5b",
-    "normalizedBytes": 31092
+    "sourceSha256": "3829ce7cacb30a13543d3f4846b731c6a63cec4c22ddd5c994313fbe9b4e78e1",
+    "normalizedBytes": 31632
   },
   "layout": {
     "id": "counterflow-home-siege-v3",
@@ -299,8 +299,8 @@
     ]
   },
   "runtimePackage": {
-    "sha256": "3de7e108f85e11a6b1b6728319d91da943c1f04cc77fe1d4e65d496ce5bae4da",
-    "bytes": 33005,
+    "sha256": "ef75a4a6c072e0d97aae490d8526ceea2be4129f7952fc32e671504286ecc425",
+    "bytes": 33545,
     "envelope": "ATP1"
   },
   "composition": [
@@ -1330,6 +1330,44 @@
       "custodyId": "surge-harvest",
       "deliveryTimeoutTicks": 120,
       "dropRecovery": "nearest-authorized",
+      "emergencyDisplacementReleaseRadius": 1,
+      "emergencyDisplacementTarget": "sanitation-release",
+      "emergencyPickupRadius": 2,
+      "emergencyRecoveryAll": [
+        {
+          "all": [
+            {
+              "fact": "friendlies-in-zone-count",
+              "freshnessTicks": 0,
+              "operator": "at-least",
+              "subject": "",
+              "value": 5,
+              "zone": "siege-leash"
+            },
+            {
+              "fact": "secured-cores",
+              "freshnessTicks": 0,
+              "operator": "at-least",
+              "subject": "",
+              "value": 1,
+              "zone": ""
+            }
+          ],
+          "any": []
+        }
+      ],
+      "emergencyRecoveryDisposition": "displace",
+      "emergencyRecoveryRoles": [
+        "runner"
+      ],
+      "emergencyRecoverySourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "emergencyRecoveryZones": [
+        "enemy-bank-danger"
+      ],
       "escortGroups": [
         "runner-group",
         "medic-group",
@@ -2191,7 +2229,8 @@
               "arrivalRadius": 1,
               "chaseLeash": 6,
               "completion": "continuous",
-              "kind": "enemy-carrier",
+              "kind": "enemy-carrier-cutoff",
+              "leadTiles": 1,
               "pace": "slowest",
               "stuckRecovery": "reflow",
               "stuckTicks": 6,
@@ -2510,21 +2549,8 @@
           "any": []
         }
       ],
-      "completionArmWhen": [
-        {
-          "all": [
-            {
-              "fact": "friendly-carriers",
-              "freshnessTicks": 0,
-              "operator": "at-least",
-              "subject": "",
-              "value": 1,
-              "zone": ""
-            }
-          ],
-          "any": []
-        }
-      ],
+      "completionArmMode": "any-friendly-carrier",
+      "completionReleaseMode": "armed-carrier-retarget-or-loss",
       "cooldownTicks": 4,
       "eligiblePhases": [
         "occupy",

@@ -534,21 +534,8 @@
             "any": []
           }
         ],
-        "completionArmWhen": [
-          {
-            "all": [
-              {
-                "fact": "friendly-carriers",
-                "freshnessTicks": 0,
-                "operator": "at-least",
-                "subject": "",
-                "value": 1,
-                "zone": ""
-              }
-            ],
-            "any": []
-          }
-        ],
+        "completionArmMode": "any-friendly-carrier",
+        "completionReleaseMode": "armed-carrier-retarget-or-loss",
         "cooldownTicks": 4,
         "eligiblePhases": [
           "occupy",
@@ -702,6 +689,44 @@
       "custodyId": "surge-harvest",
       "deliveryTimeoutTicks": 120,
       "dropRecovery": "nearest-authorized",
+      "emergencyDisplacementReleaseRadius": 1,
+      "emergencyDisplacementTarget": "sanitation-release",
+      "emergencyPickupRadius": 2,
+      "emergencyRecoveryAll": [
+        {
+          "all": [
+            {
+              "fact": "friendlies-in-zone-count",
+              "freshnessTicks": 0,
+              "operator": "at-least",
+              "subject": "",
+              "value": 5,
+              "zone": "siege-leash"
+            },
+            {
+              "fact": "secured-cores",
+              "freshnessTicks": 0,
+              "operator": "at-least",
+              "subject": "",
+              "value": 1,
+              "zone": ""
+            }
+          ],
+          "any": []
+        }
+      ],
+      "emergencyRecoveryDisposition": "displace",
+      "emergencyRecoveryRoles": [
+        "runner"
+      ],
+      "emergencyRecoverySourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "emergencyRecoveryZones": [
+        "enemy-bank-danger"
+      ],
       "escortGroups": [
         "runner-group",
         "medic-group",
@@ -2320,7 +2345,8 @@
         "arrivalRadius": 1,
         "chaseLeash": 6,
         "completion": "continuous",
-        "kind": "enemy-carrier",
+        "kind": "enemy-carrier-cutoff",
+        "leadTiles": 1,
         "pace": "slowest",
         "stuckRecovery": "reflow",
         "stuckTicks": 6,

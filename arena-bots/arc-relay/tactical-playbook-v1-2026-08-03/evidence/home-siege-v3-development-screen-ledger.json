@@ -155,6 +155,64 @@
       ],
       "resultSummary": "Rejected all. A true pickup response is possible, but every tested respondent opens enough of the living seal to miss the 9-2 gate; the exact 5+1+1+1 schedule has no idle body. The numerical candidate was restored byte-for-byte after the probes.",
       "verdict": "rejected-honest-tradeoff-disclosed"
+    },
+    {
+      "attemptId": "protected-pad-sanitation-diagnosis",
+      "runtime": "canonical replay inspection plus in-process",
+      "change": "Made emergency recovery Core-specific and tried reservation-stable pickup routing for the active harvest runner.",
+      "keyResults": [
+        { "variant": "dynamic emergency pickup", "siegeTeam0": "9-1", "siegeTeam1": "9-2", "defect": "runner oscillated around a spawn reservation" },
+        { "variant": "static reservation avoidance with impossible hold", "siegeTeam0": "9-1", "siegeTeam1": "9-4", "defect": "runner waited on an unreachable target" }
+      ],
+      "resultSummary": "The retained south Core at (2,12) is inside the opponent's protected three-column home-pad region. Siege cannot legally enter it, so the frozen candidate did not violate the conditional legal-recovery gate. The selected generic correction attempts a reachable emergency immediately but falls through to the authored combat order when protected terrain or current traffic makes pickup illegal; it never creates a standing impossible lease.",
+      "verdict": "selected-reachable-only-emergency"
+    },
+    {
+      "attemptId": "interceptor-cutoff-reachability",
+      "runtime": "in-process",
+      "change": "Replaced blind fixed-lead pursuit with a causal return-lane prediction that commits only when the interceptor can reach the predicted tile no later than the carrier; a committed cutoff is a point target and receives no extra formation offset.",
+      "pairedResults": [
+        { "variant": "blind lead one", "siegeTeam0": "6-9 loss", "siegeTeam1": "5-8 loss" },
+        { "variant": "route-relative but not time-reachable", "siegeTeam0": "9-3", "siegeTeam1": "7-9 loss" },
+        { "variant": "reachable point cutoff", "siegeTeam0": "9-1", "siegeTeam1": "9-2" }
+      ],
+      "resultSummary": "Selected the reachable point cutoff. It retains direct pressure when an interception cannot be won and uses one bounded, last-seen-capable interceptor only.",
+      "verdict": "selected"
+    },
+    {
+      "attemptId": "replacement-catch-up-audit",
+      "runtime": "in-process plus candidate-01 canonical traces",
+      "change": "Compared the existing joining cohort against explicit free-pace direct-rally and free-pace outer-route joining orders.",
+      "pairedResults": [
+        { "variant": "direct forward-rally joining orders", "siegeTeam0": "9-6", "siegeTeam1": "9-6" },
+        { "variant": "free-pace outer-route joining orders", "siegeTeam0": "8-7 timeout", "siegeTeam1": "5-8 loss" },
+        { "variant": "existing independent slowest catch-up", "siegeTeam0": "9-1", "siegeTeam1": "9-2" }
+      ],
+      "resultSummary": "Retained the existing generic joining design. A farthest replacement is the slowest-paced member and therefore advances while established bodies wait; it is excluded from cohesion and cannot join the established cohort until it reaches the authored maximum-spacing threshold. Candidate-01 traces record 492 deaths with later respawns and all 492 replacements rejoining strategy, with no sustained own-home hold.",
+      "verdict": "existing-correction-proven-no-source-rewrite"
+    },
+    {
+      "attemptId": "exact-carrier-retarget-lifecycle",
+      "runtime": "in-process",
+      "change": "Pinned the first observed friendly carrier life for the harvest lease. A terminal bank, drop, death, or invalidation now retargets immediately to the next deterministic live carrier, or releases courier and escort immediately when none remains.",
+      "pairedResults": [
+        { "variant": "release first exact carrier unconditionally", "siegeTeam0": "8-7 timeout", "siegeTeam1": "9-4" },
+        { "variant": "exact carrier retarget-or-release", "siegeTeam0": "9-1", "siegeTeam1": "9-2" }
+      ],
+      "resultSummary": "Selected retarget-or-release. It preserves overlapping legitimate trips without leaving the lease attached to a completed carrier and has a pure scheduler regression test.",
+      "verdict": "selected"
+    },
+    {
+      "attemptId": "strict-candidate-02-screen",
+      "runtime": "in-process",
+      "cells": 24,
+      "seeds": ["506581", "997493", "386091", "338894", "929019", "337690", "748208", "881080", "802740", "843065", "196545", "894211"],
+      "scoresByAssignment": {
+        "siegeTeam0": "9-1 in 12/12, 3 integrity, tick 560",
+        "siegeTeam1": "9-2 in 12/12, 3 integrity, tick 524"
+      },
+      "resultSummary": "Selected for a distinct candidate-02 pre-outcome freeze and a new fresh canonical WASM cohort. This is screen evidence only.",
+      "verdict": "selected-for-pre-outcome-freeze"
     }
   ]
 }

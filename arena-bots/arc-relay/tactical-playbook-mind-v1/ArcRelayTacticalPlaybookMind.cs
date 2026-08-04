@@ -279,7 +279,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 {
                     "custody-emergency" => TryCustodyEmergency(
                         contract, mind, arc, package, body, role, order,
-                        carried, claims),
+                        carried, pickupAssignments, claims),
                     "self-preservation" => TrySelfPreservation(
                         contract, mind, package.Source, body, order, claims),
                     "repair" => repairs.TryGetValue(
@@ -1117,7 +1117,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "enemy-carrier" => EnemyCarrierTarget(
                 package, carried, order),
             "enemy-carrier-cutoff" => EnemyCarrierCutoffTarget(
-                contract, package, carried, order),
+                contract, package, carried, order, body),
             "secured-core" => SecuredCoreTarget(
                 package, order),
             "hold" => body.Position,
@@ -1132,6 +1132,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // engage only on its final approach; applying rear offsets to the
             // first waypoint can legitimately point a rear body back through
             // its own spawn instead of keeping the column together.
+            return anchor;
+        }
+        if (order.Movement.Kind == "enemy-carrier-cutoff"
+            && anchor != EnemyCarrierTarget(package, carried, order))
+        {
+            // The interceptor can reach this predicted lane tile no later
+            // than the carrier. It is already a complete point target; a
+            // formation offset would move the body past the interception.
             return anchor;
         }
         TacticalPlaybookPackage.Formation formation = package.ResolveFormation(
@@ -1195,7 +1203,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage package,
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried,
-        TacticalPlaybookPackage.Order order)
+        TacticalPlaybookPackage.Order order,
+        MindBody interceptor)
     {
         Position fallback = package.AnchorPosition(order.Movement.Target);
         TacticalCoordinationPrimitives.EnemyCarrierCandidate? selected =
@@ -1206,7 +1215,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 order.Movement.ChaseLeash);
         if (selected is not { } carrier)
             return fallback;
-        return TacticalCoordinationPrimitives.PredictReturnLaneCutoff(
+        Position cutoff = TacticalCoordinationPrimitives
+            .PredictReturnLaneCutoff(
             carrier.Position,
             carrier.PreviousPosition,
             order.Movement.LeadTiles,
@@ -1215,6 +1225,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             (from, to) => to.ChebyshevDistance(fallback)
                     <= order.Movement.ChaseLeash
                 && ArenaBasics.IsLegalTerrainStep(contract.Map, from, to));
+        int? cutoffDistance = ArenaBasics.StaticDistance(
+            contract.Map, interceptor.Position, cutoff);
+        return cutoff != carrier.Position
+            && cutoffDistance is not null
+            && cutoffDistance <= order.Movement.LeadTiles
+                ? cutoff
+                : carrier.Position;
     }
 
     private IEnumerable<TacticalCoordinationPrimitives.EnemyCarrierCandidate>
@@ -2206,10 +2223,30 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Order order,
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried,
+        IReadOnlyDictionary<int,
+            GenericActorContext.ArcRelayCoreState> pickupAssignments,
         ArenaBasics.Claims claims)
     {
         if (!carried.ContainsKey(body.ActorId))
+        {
+            if (pickupAssignments.TryGetValue(
+                    body.UnitId,
+                    out GenericActorContext.ArcRelayCoreState? assignedCore)
+                && _emergencyRecoveries.TryGetValue(
+                    CoreKey(assignedCore.CoreId),
+                    out EmergencyRecovery? visibleRecovery)
+                && visibleRecovery.ActorId == body.ActorId)
+            {
+                // A visible emergency may still sit inside a protected home
+                // pad or behind current traffic. Do not turn an impossible
+                // pickup into a standing lease: fall through so the body can
+                // keep fighting/holding the authored seal until a legal path
+                // exists.
+                return TryCollectEmergencyCore(
+                    contract, mind, body, assignedCore, claims);
+            }
             return false;
+        }
         TacticalPlaybookPackage.CustodyPolicy custody = package.Source
             .CustodyPolicies.Single(value =>
                 value.CustodyId == order.CustodyId);
@@ -2810,6 +2847,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "custody:authorized-pickup");
     }
 
+    private bool TryCollectEmergencyCore(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        GenericActorContext.ArcRelayCoreState core,
+        ArenaBasics.Claims claims)
+    {
+        Position destination = core.Position;
+        if (TryAdvanceSignature(contract, body, destination))
+            return true;
+        Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
+            contract, mind, body, destination);
+        return step is Position committed
+            && ArenaBasics.TryMoveDirect(
+                contract,
+                mind,
+                body,
+                committed,
+                claims,
+                "custody:emergency-pickup")
+            || ArenaBasics.TryMoveHomeward(
+                contract,
+                mind,
+                body,
+                destination,
+                claims,
+                "custody:emergency-pickup-fallback");
+    }
+
     private Dictionary<int, GenericActorContext.ArcRelayCoreState>
         AllocateCorePickups(
             MindContext mind,
@@ -2959,8 +3025,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 selected.Value.Body.ActorId,
                 mind.Tick + selected.Value.Policy.PickupReservationTicks,
                 selected.Value.Policy.CustodyId);
-            if (selected.Value.EmergencyRecovery
-                && !selected.Value.SafeConversion)
+            if (IsEmergencyCore(
+                    package,
+                    core,
+                    selected.Value.Body,
+                    selected.Value.Policy,
+                    selected.Value.EmergencyRecovery))
             {
                 _emergencyRecoveries[CoreKey(core.CoreId)] =
                     new EmergencyRecovery(
@@ -2978,7 +3048,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.CustodyPolicy policy,
         bool safeConversion,
         bool emergencyRecovery) => safeConversion
-        || emergencyRecovery
+        || IsEmergencyCore(
+            package, core, body, policy, emergencyRecovery);
+
+    private static bool IsEmergencyCore(
+        TacticalPlaybookPackage package,
+        GenericActorContext.ArcRelayCoreState core,
+        MindBody body,
+        TacticalPlaybookPackage.CustodyPolicy policy,
+        bool emergencyRecovery) => emergencyRecovery
         && policy.EmergencyRecoveryZones is { Length: > 0 } zones
         && zones.Any(zone => package.Contains(zone, core.Position))
         && body.Position.ChebyshevDistance(core.Position)
