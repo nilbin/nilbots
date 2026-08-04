@@ -183,6 +183,16 @@ recovery is also executable: `yield` gives peers a tick and resets its counter,
 `repath` drops route progress, `reflow` searches bounded legal slots, `hold`
 stays put, and `regroup` queues the explicit fallback phase.
 
+Movement target types link against the separately hashed layout at compile
+time: routes name routes, zones name zones, static and dynamic fallback targets
+name anchors, reactors are exactly `own`/`enemy`, and hold uses an empty target.
+Condition zones are linked in the same pass. A movement `chaseLeash` is the
+maximum bounded reflow away from that resolved target; route motion additionally
+obeys the narrower route corridor. `carrier`, `enemy-carrier`, and
+`secured-core` treat the named anchor as their fallback and consider a dynamic
+target only inside that leash. Formation search radius remains the outer
+generic reflow capability, so all three bounds have distinct jobs.
+
 ### Engagement and coordinated attacks
 
 An engagement declares participants, target priorities, deterministic

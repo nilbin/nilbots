@@ -913,7 +913,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "reactor" => order.Movement.Target == "own"
                 ? _ownReactor : _enemyReactor,
             "carrier" => CarrierTarget(
-                mind, package.Source, groups, orders, carried, order, body),
+                mind, package, groups, orders, carried, order, body),
             "enemy-carrier" => EnemyCarrierTarget(
                 package, carried, order),
             "secured-core" => SecuredCoreTarget(
@@ -997,7 +997,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .Formations.Single(value => value.FormationId
                         == orders[body.UnitId].FormationId);
                 TacticalPlaybookPackage.Order order = orders[body.UnitId];
-                int searchRadius = formation.Reflow.SearchRadius;
+                int searchRadius = Math.Min(
+                    formation.Reflow.SearchRadius,
+                    order.Movement.ChaseLeash);
                 if (string.Equals(
                         order.Movement.Kind, "route", StringComparison.Ordinal)
                     && _routes.GetValueOrDefault(body.UnitId) is
@@ -1056,7 +1058,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private Position CarrierTarget(
         MindContext mind,
-        TacticalPlaybookPackage.Playbook playbook,
+        TacticalPlaybookPackage package,
         IReadOnlyDictionary<int, string> groups,
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
         IReadOnlyDictionary<ActorIdentity,
@@ -1067,7 +1069,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.CustodyPolicy? policy =
             string.IsNullOrEmpty(order.CustodyId)
                 ? null
-                : playbook.CustodyPolicies.Single(value =>
+                : package.Source.CustodyPolicies.Single(value =>
                     value.CustodyId == order.CustodyId);
         if (policy is not null
             && !policy.EscortGroups.Contains(
@@ -1076,17 +1078,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return body.Position;
         }
 
+        Position fallback = package.AnchorPosition(order.Movement.Target);
         (ActorIdentity ActorId, Position Position)[] candidates = mind.Bodies
             .Where(candidate => carried.ContainsKey(candidate.ActorId)
                 && candidate.UnitId != body.UnitId
                 && (policy is null || string.Equals(
                         orders[candidate.UnitId].CustodyId,
                         order.CustodyId,
-                        StringComparison.Ordinal)))
+                        StringComparison.Ordinal))
+                && candidate.Position.ChebyshevDistance(fallback)
+                    <= order.Movement.ChaseLeash)
             .Select(candidate => (candidate.ActorId, candidate.Position))
             .ToArray();
         if (candidates.Length == 0)
-            return _ownReactor;
+            return fallback;
         Array.Sort(candidates, (left, right) =>
             TacticalCustodyPrimitives.CompareEscortCandidate(
                 body.Position, left, right));

@@ -679,6 +679,17 @@
       ],
       "resultSummary": "Retain the generic exact-coverage contract and reject the strategy candidate. The source hash changed because previously implicit harvest/delivery recovery is now explicit; both diagnostic mirrors still lost.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "linked-movement-targets-and-executable-leashes",
+      "playbookSourceSha256": "fb7805fd25076c124ab0b54bff5b76d432ecddc467a9a502da4956bbc6e16692",
+      "change": "Link every movement/condition target against the bound layout and execute movement chaseLeash as the maximum target-relative reflow, with route-corridor and formation-search bounds composed deterministically.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 334 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 382 }
+      ],
+      "resultSummary": "Retain the generic linker and movement-leash semantics and reject the current Siege strategy. Runner zero-leash and bounded group reflow now mean what the source says; the old candidate still loses both mirrors.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

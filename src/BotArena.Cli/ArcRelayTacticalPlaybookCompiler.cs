@@ -99,6 +99,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         using JsonDocument layoutDocument = Parse(layoutSource, fullLayoutPath);
         JsonElement layout = layoutDocument.RootElement;
         ValidateLayout(layout, fullLayoutPath);
+        ValidateLayoutReferences(playbook, layout, fullPlaybookPath);
 
         byte[] canonicalPlaybook = NormalizePlaybook(playbook);
         byte[] canonicalLayout = Canonicalize(layout);
@@ -121,6 +122,73 @@ public static class ArcRelayTacticalPlaybookCompiler
             canonicalPlaybook,
             canonicalLayout,
             linked);
+    }
+
+    private static void ValidateLayoutReferences(
+        JsonElement playbook,
+        JsonElement layout,
+        string path)
+    {
+        HashSet<string> zones = layout.GetProperty("zones").EnumerateArray()
+            .Select(value => value.GetProperty("zoneId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> routes = layout.GetProperty("routes").EnumerateArray()
+            .Select(value => value.GetProperty("routeId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> anchors = layout.GetProperty("anchors").EnumerateArray()
+            .Select(value => value.GetProperty("anchorId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (JsonElement order in playbook.GetProperty("orders")
+                     .EnumerateArray())
+        {
+            string orderId = order.GetProperty("orderId").GetString()!;
+            JsonElement movement = order.GetProperty("movement");
+            string kind = movement.GetProperty("kind").GetString()!;
+            string target = movement.GetProperty("target").GetString()!;
+            bool valid = kind switch
+            {
+                "route" => routes.Contains(target),
+                "zone" => zones.Contains(target),
+                "anchor" or "carrier" or "enemy-carrier"
+                    or "secured-core" => anchors.Contains(target),
+                "reactor" => target is "own" or "enemy",
+                "hold" => target.Length == 0,
+                _ => false,
+            };
+            if (!valid)
+                throw Error(path,
+                    $"order '{orderId}' has invalid {kind} movement target "
+                    + $"'{target}'.");
+        }
+        foreach (JsonElement condition in Descendants(playbook)
+                     .Where(value => value.ValueKind == JsonValueKind.Object
+                         && value.TryGetProperty("fact", out _)
+                         && value.TryGetProperty("zone", out JsonElement zone)
+                         && zone.ValueKind == JsonValueKind.String
+                         && zone.GetString()!.Length > 0))
+        {
+            string zone = condition.GetProperty("zone").GetString()!;
+            if (!zones.Contains(zone))
+                throw Error(path,
+                    $"condition references unknown tactical zone '{zone}'.");
+        }
+    }
+
+    private static IEnumerable<JsonElement> Descendants(JsonElement value)
+    {
+        yield return value;
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (JsonProperty property in value.EnumerateObject())
+            foreach (JsonElement descendant in Descendants(property.Value))
+                yield return descendant;
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement item in value.EnumerateArray())
+            foreach (JsonElement descendant in Descendants(item))
+                yield return descendant;
+        }
     }
 
     private static byte[] Encode(
