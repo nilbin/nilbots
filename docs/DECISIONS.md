@@ -4505,6 +4505,69 @@ from public match history at that boundary. Reset and play selection must be
 preregistered and tested independently before combination; neither gives the
 trailing side power or changes combat stats.
 
+## 202. Home Siege Stage 1 passes as grammar proof and trips the camping alarm
+
+Owner-directed catch-up ruling (2026-08-04) on the Stage 1 report. The 10–0
+Home Siege result against the frozen static baseline is accepted for exactly
+two simultaneous claims: the evaluation-grade sheet grammar can execute a
+long-horizon, casualty-tolerant team strategy, and the registered **Home
+camping dominates** alarm fired. The latter is not erased by the former and
+the former is not a whole-game balance or fun approval. The unchanged v4 felt-
+degeneracy bars remain an admission condition; a siege that trips them fails,
+and the detectors are never adjusted to admit the tactic.
+
+The intended first answer to the alarm is a separately authored, evidence-
+based recognizer/counter sheet. Pending that test, Stage 1 authorizes no map,
+spawn-safety, rules, class, or balance reaction. If a competent counter cannot
+answer the frozen siege, geometry becomes a later owner-gated design question.
+
+## 203. Home Siege v3's strict 9–2 correction is accepted
+
+The corrected v3 becomes the canonical Home Siege subject for the next stage.
+Against the unchanged stock-v4 coordination-parity control, all 24 fresh,
+mirrored, sandboxed-WASM cells ended in a Siege reactor win: 12 at 9–1 and 12
+at 9–2, every cell retaining all three integrity segments, reproducing its
+canonical hash, passing the unchanged bars, and recording no runtime fault.
+The strict lifecycle audit also closes the live 5+1+1+1 schedule, replacement
+rejoin, exact-carrier release/retarget, bounded causal interception, and
+reachable-Core sanitation requirements.
+
+Acceptance is narrow: v3 is the frozen strategy/opponent identity for the
+recognizer goal, not proof that camping is healthy or unbeatable. V2 and all
+failed attempts remain immutable evidence; v3 does not rewrite them.
+
+## 204. One strategic archetype is authored per owner-gated goal
+
+Each strategy-ladder goal authors, measures, freezes, reports, and then stops
+on **one new archetype**. Home Siege, the recognizer/counter, and the later
+adaptive answer are sequential goals; they may not be co-authored or tuned
+against one another in one run. Variants within the current archetype are
+allowed as declared robustness probes, but they do not smuggle the next
+archetype into the same goal.
+
+This sequencing is evidence control as well as worktree hygiene: the accepted
+subject is immutable before its answer is written, and the answer is immutable
+before adaptation begins. Unseen Home Siege lane and threshold/composition
+variants may be hashed before recognizer authoring, but their outcomes may not
+be used to write that recognizer.
+
+## 205. Strategy acceptance uses a canonical parity baseline and a decisive margin
+
+A strategy does not pass because it edges a weak or obsolete opponent, wins a
+coin-flip set, or merely executes its phase labels. Its final gate freezes a
+canonical baseline before outcomes, gives that baseline the same applicable
+generic coordination machinery as the candidate, mirrors team assignments,
+uses fresh sandboxed-WASM cells and unchanged eligibility bars, and
+pre-registers a decisive score/integrity margin in addition to wins.
+
+For accepted Home Siege v3 the baseline is the exact stock-v4 coordination-
+parity artifact/sheet, and the hard margin is a reactor win in every one of 24
+cells, baseline score at most two, Siege integrity at least two, zero faults,
+and both sides eligible. Future archetypes must register their own meaningful
+decisive margin before their final block; they do not inherit 9–2 as a universal
+balance number. Historical static-baseline results remain useful context but
+cannot substitute for the canonical parity-control gate.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

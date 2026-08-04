@@ -1,0 +1,82 @@
+{
+  "schema": "arc-relay-home-siege-recognizer-prefreeze-v1",
+  "freezeId": "home-siege-v3-recognizer-generalization-2026-08-04",
+  "preparedBeforeRecognizerAuthoring": true,
+  "screenedBeforeFreeze": false,
+  "outcomesObservedBeforeFreeze": false,
+  "purpose": "Freeze unseen Home Siege variants before Stage 2 so later recognizer generalization cannot be tuned to their outcomes.",
+  "acceptedSource": {
+    "playbook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json",
+      "sha256": "3829ce7cacb30a13543d3f4846b731c6a63cec4c22ddd5c994313fbe9b4e78e1"
+    },
+    "layout": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3.json",
+      "sha256": "89c92e7091b6c66a31bf56c09d624746c2c06aa760ca6c96c0ebe469836fb3e7"
+    },
+    "compiledPlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v3/playbook.atp",
+      "sha256": "ef75a4a6c072e0d97aae490d8526ceea2be4129f7952fc32e671504286ecc425"
+    },
+    "interpreterArtifact": {
+      "path": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "sha256": "3f330f6c95b279d44e3741e05cc8d5a13e51a9ca5f481f7a80d4668166eec6c3"
+    }
+  },
+  "variants": [
+    {
+      "variantId": "home-siege-v3-south-mirror",
+      "changeClass": "lane-mirror",
+      "changeSummary": "Uses the south outer lane and south Well for the secured-conversion branch, including mirrored breach and return-route bindings for both team assignments.",
+      "sheet": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3-south-mirror.json",
+        "sha256": "a4f473a88a453979e5e45983390ea1f1c8cf1cab9e6973f90aa5c13f9949d328",
+        "bytes": 53984
+      },
+      "layout": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3-south.json",
+        "sha256": "f1e2923807029c2957b9c23a36b0f83eb0254dad4a912acc1f6b2a56cca6313a",
+        "bytes": 4793
+      },
+      "compiledArtifact": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v3-south-mirror/playbook.atp",
+        "sha256": "d7d5b7512d1b8bc2952508af1c662973c6d34c139977fd5e81bb81abce8d5c69",
+        "bytes": 33746,
+        "envelope": "ATP1"
+      }
+    },
+    {
+      "variantId": "home-siege-v3-four-down-double-relay",
+      "changeClass": "threshold-and-composition",
+      "changeSummary": "Lowers only the approach conversion threshold from five to four confirmed unavailable enemies and replaces Kestrel with a second Relay; all other v3 strategy data and the accepted layout remain unchanged.",
+      "sheet": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3-four-down-double-relay.json",
+        "sha256": "2c1392e66fceed9ae3e5e32b9697057b9ca79d3bc7bf892e214490ad5004dbdd",
+        "bytes": 53986
+      },
+      "layout": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3.json",
+        "sha256": "89c92e7091b6c66a31bf56c09d624746c2c06aa760ca6c96c0ebe469836fb3e7",
+        "bytes": 4199
+      },
+      "compiledArtifact": {
+        "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v3-four-down-double-relay/playbook.atp",
+        "sha256": "794c6ad5b6d6f889dd4b9792b1a3fa5acd495b1af03b32f682d16181d316b918",
+        "bytes": 33566,
+        "envelope": "ATP1"
+      }
+    }
+  ],
+  "freezeRules": {
+    "variantsAreEvaluationGrade": true,
+    "variantsAreNotAcceptedStrategies": true,
+    "noOutcomeOrEligibilityClaim": true,
+    "recognizerMayNotBeAuthoredFromVariantOutcomes": true,
+    "mutationRequiresNewVariantIdentityAndFreeze": true
+  },
+  "generator": {
+    "path": "scripts/generate-home-siege-v3-prefreeze-variants.mjs",
+    "basePlaybookSha256": "3829ce7cacb30a13543d3f4846b731c6a63cec4c22ddd5c994313fbe9b4e78e1",
+    "baseLayoutSha256": "89c92e7091b6c66a31bf56c09d624746c2c06aa760ca6c96c0ebe469836fb3e7"
+  }
+}
