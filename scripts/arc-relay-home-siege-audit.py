@@ -30,13 +30,13 @@ def phase_from_role(role: Any) -> str | None:
     return phase if phase in {"assault", "occupy", "regroup", "breach"} else None
 
 
-def analyze(cell: Path) -> dict[str, Any]:
+def analyze(cell: Path, entrant_id: str) -> dict[str, Any]:
     record = read_json(cell / "match-record.json")
     broadcast = read_json(cell / "broadcast.json.gz")
     scorecard = read_json(cell / "scorecard.json")
     subject = next(
         item for item in record["participants"]
-        if item["entrantId"] == "home-siege"
+        if item["entrantId"] == entrant_id
     )
     subject_team = int(subject["teamId"])
     opponent_team = 1 - subject_team
@@ -313,13 +313,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sweep-attempt", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--entrant-id", default="home-siege")
     args = parser.parse_args()
     cell_attempts = sorted(
         args.sweep_attempt.glob("cells/*/attempt-*/match-record.json")
     )
     if not cell_attempts:
         raise FileNotFoundError("no final sweep cells found")
-    cells = [analyze(path.parent) for path in cell_attempts]
+    cells = [analyze(path.parent, args.entrant_id) for path in cell_attempts]
     result = {
         "schema": "arc-relay-home-siege-audit-v1",
         "sourceSweep": str(args.sweep_attempt),

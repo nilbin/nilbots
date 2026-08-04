@@ -124,6 +124,37 @@
       },
       "resultSummary": "Selected as the only canonical finalist. Every screen cell ended in a Siege reactor win with no runtime fault and exceeded the requested 9-2 floor.",
       "verdict": "selected-for-pre-outcome-freeze"
+    },
+    {
+      "attemptId": "candidate-01-fresh-canonical-cohort",
+      "runtime": "wasm",
+      "candidateFreeze": "home-siege-v3-candidate-freeze.json",
+      "cells": 24,
+      "freshSeeds": 12,
+      "scoresByAssignment": {
+        "siegeTeam0": "9-1 in 12/12, 3 integrity, tick 577",
+        "siegeTeam1": "9-2 in 12/12, 3 integrity, tick 524"
+      },
+      "canonicalVerification": "24/24",
+      "eligibility": "24/24",
+      "resultSummary": "The numerical 9-2 gate reproduced on the frozen sandboxed-WASM cohort. Replay inspection then found a south Core dropped at (2,12) on tick 413 and still loose at match end, so this candidate is retained as the numerical reference but does not close the stricter enemy-home sanitation clause.",
+      "verdict": "retained-numerical-reference-semantic-gate-open"
+    },
+    {
+      "attemptId": "post-freeze-bank-mouth-sanitation-probes",
+      "runtime": "in-process plus one canonical diagnostic",
+      "change": "Tested visible-Core priority before combat for the existing runner, medic, and line roles; deliver and displacement dispositions; one- and two-medic forward placements; remembered-drop pursuit; 36 focus matrices; six ring variants; and bounded direct/cutoff interceptor variants. The frozen bars, opponent, composition, rules, map, and five-body reserve were unchanged.",
+      "keyResults": [
+        { "variant": "runner visible priority", "siegeTeam0": "9-1", "siegeTeam1": "9-3" },
+        { "variant": "medic visible priority", "siegeTeam0": "9-3", "siegeTeam1": "9-2" },
+        { "variant": "line visible priority", "siegeTeam0": "9-1", "siegeTeam1": "9-4" },
+        { "variant": "remembered medic pursuit", "siegeTeam0": "9-1", "siegeTeam1": "9-5" },
+        { "variant": "runner priority on active harvest lease", "siegeTeam0": "9-7", "siegeTeam1": "9-7" },
+        { "variant": "focus matrix", "result": "no candidate cleared reactor win, baseline score <=2, and Siege integrity >=2 in both assignments" },
+        { "variant": "formation and cutoff probes", "result": "no candidate recovered the 9-2 paired gate" }
+      ],
+      "resultSummary": "Rejected all. A true pickup response is possible, but every tested respondent opens enough of the living seal to miss the 9-2 gate; the exact 5+1+1+1 schedule has no idle body. The numerical candidate was restored byte-for-byte after the probes.",
+      "verdict": "rejected-honest-tradeoff-disclosed"
     }
   ]
 }
