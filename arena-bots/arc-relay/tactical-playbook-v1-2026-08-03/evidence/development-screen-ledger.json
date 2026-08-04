@@ -354,6 +354,26 @@
       ],
       "resultSummary": "Rejected. It reproduced the same asymmetric failure as zero lock; the original six-tick tenure is retained.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "bounded-focus-pursuit-all-orders",
+      "change": "After a focus shot and signature are unavailable, take one step toward the assigned visible target if the resulting tile remains within the engagement leash of the formation slot.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 559 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected. Allowing route and formation orders to pursue destabilized one mirrored assignment.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "bounded-focus-pursuit-continuous-orders",
+      "change": "Restrict bounded focus pursuit to continuous orders and use the movement-order leash, leaving routes, completion-bound orders, and the zero-leash runner fixed.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 543 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 565 }
+      ],
+      "resultSummary": "Rejected. The failure flipped assignments rather than disappearing; disciplined fixed slots remain more robust than local pursuit for Home Siege.",
+      "verdict": "rejected"
     }
   ]
 }
