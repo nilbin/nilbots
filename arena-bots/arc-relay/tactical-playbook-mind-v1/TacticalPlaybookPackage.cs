@@ -141,6 +141,15 @@ internal sealed class TacticalPlaybookPackage
             .ToArray();
     }
 
+    internal int RouteCorridorWidth(string routeId)
+    {
+        string resolved = _routeAliases.GetValueOrDefault(routeId, routeId);
+        Route route = _routes.GetValueOrDefault(resolved)
+            ?? throw new InvalidDataException(
+                $"Unknown tactical route '{routeId}'.");
+        return route.CorridorWidth;
+    }
+
     internal Position FormationPosition(Position anchor, int[] offset)
     {
         int dx = _transform is LayoutTransform.MirrorX

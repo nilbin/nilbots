@@ -153,7 +153,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, Position> targets = ResolveFormationTargets(
             contract,
             mind,
-            package.Source,
+            package,
             roles,
             orders,
             authoredTargets);
@@ -978,10 +978,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return selected?.Position ?? fallback;
     }
 
-    private static Dictionary<int, Position> ResolveFormationTargets(
+    private Dictionary<int, Position> ResolveFormationTargets(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        TacticalPlaybookPackage.Playbook playbook,
+        TacticalPlaybookPackage package,
         IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
         IReadOnlyDictionary<int, Position> authoredTargets)
@@ -996,9 +996,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 TacticalFormationPrimitives.AssignedTarget>();
             foreach (MindBody body in group)
             {
-                TacticalPlaybookPackage.Formation formation = playbook
+                TacticalPlaybookPackage.Formation formation = package.Source
                     .Formations.Single(value => value.FormationId
                         == orders[body.UnitId].FormationId);
+                TacticalPlaybookPackage.Order order = orders[body.UnitId];
+                int searchRadius = formation.Reflow.SearchRadius;
+                if (string.Equals(
+                        order.Movement.Kind, "route", StringComparison.Ordinal)
+                    && _routes.GetValueOrDefault(body.UnitId) is
+                        RouteProgress progress
+                    && progress.Index
+                        < package.RoutePoints(order.Movement.Target).Length - 1)
+                {
+                    searchRadius = Math.Min(
+                        searchRadius,
+                        package.RouteCorridorWidth(order.Movement.Target));
+                }
                 Position authored = authoredTargets[body.UnitId];
                 string role = roles[body.UnitId];
                 Position selected = TacticalFormationPrimitives
@@ -1011,7 +1024,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         formation.Spacing.Minimum,
                         formation.Spacing.Preferred,
                         formation.Spacing.Maximum,
-                        formation.Reflow.SearchRadius,
+                        searchRadius,
                         formation.Reflow.BlockedSlot,
                         formation.Reflow.MedicSeparation,
                         assigned);

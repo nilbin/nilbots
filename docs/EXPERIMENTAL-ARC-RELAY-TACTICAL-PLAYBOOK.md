@@ -95,6 +95,13 @@ until their final approach, then apply role-relative placements. Runtime motion
 claims, legal-path checks, and bounded reflow arbitrate collisions without
 changing authoritative simulation truth.
 
+The separately hashed layout's `corridorWidth` bounds that intermediate-spine
+reflow: the runtime uses the smaller of route width and formation search radius.
+At the final waypoint the route hands control to the authored relative
+formation, whose offsets and own reflow policy may deliberately be wider. Thus
+map-specific travel geometry stays in the layout and cannot become a decorative
+editor field or a duplicated playbook coordinate.
+
 Every role receives enough distinct authored slots for its maximum cardinality;
 the compiler rejects missing or overlapping slots. `preserve` leaves a dead
 body's slot open, `compress` closes ordinal gaps, and `rebalance-role` spreads

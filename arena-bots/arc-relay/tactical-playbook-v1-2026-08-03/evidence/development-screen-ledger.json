@@ -657,6 +657,17 @@
       ],
       "resultSummary": "Retain the generic group-cardinality semantics. Home Siege already authored exact role/group bands, so the mirrors were intentionally unchanged and the current strategy remains rejected.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-layout-route-corridors",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bound intermediate route-spine reflow by the separately hashed layout corridorWidth while preserving relative formation offsets at the final waypoint.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 404 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 399 }
+      ],
+      "resultSummary": "Retain the generic layout-corridor semantic and reject the current Siege strategy. The old candidate materially relied on a three-tile formation reflow inside routes authored at width two.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

@@ -576,6 +576,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Equal(compilation.LayoutSha256, package.LayoutSha256);
         Assert.Equal(new BotArena.Sdk.Position(24, 11),
             package.AnchorPosition("enemy-perimeter"));
+        Assert.Equal(2, package.RouteCorridorWidth("outer-rush"));
         TacticalPlaybookPackage.Condition condition = package.Source
             .CustodyPolicies[0].SafeConversionAll[0].All[0];
         Assert.Equal("", condition.Subject);
