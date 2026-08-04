@@ -224,6 +224,21 @@ public sealed class TacticalCoordinationPrimitivesTests
     }
 
     [Fact]
+    public void ReturnLaneCutoffUsesObservedContinuationOnEqualRoutes()
+    {
+        Position cutoff = TacticalCoordinationPrimitives
+            .PredictReturnLaneCutoff(
+                current: new Position(4, 4),
+                previous: new Position(3, 3),
+                leadTiles: 2,
+                distanceToBank: value => new Position(8, 8)
+                    .ChebyshevDistance(value),
+                legalStep: (_, value) => value.X <= 6 && value.Y <= 6);
+
+        Assert.Equal(new Position(6, 6), cutoff);
+    }
+
+    [Fact]
     public void SecuredCoreGuardUsesAllowedSourceAndStableNearestTie()
     {
         TacticalCoordinationPrimitives.SecuredCoreCandidate? selected =

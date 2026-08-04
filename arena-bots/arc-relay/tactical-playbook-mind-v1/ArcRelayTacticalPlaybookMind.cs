@@ -818,6 +818,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 zone => _lastSeenEnemies.Count(enemy =>
                     package.Contains(zone.ZoneId, enemy.Value.Position)),
                 StringComparer.Ordinal);
+        Dictionary<string, int> visibleLooseCoresByZone =
+            package.LayoutSource.Zones.ToDictionary(
+                zone => zone.ZoneId,
+                zone => arc.VisibleCores.Count(core =>
+                    core.Disposition
+                        == GenericActorContext.ArcRelayCoreDisposition.Loose
+                    && package.Contains(zone.ZoneId, core.Position)),
+                StringComparer.Ordinal);
         int carriers = arc.VisibleCores.Count(core =>
             core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Carried
             && core.CarrierActorId?.TeamId == _teamId);
@@ -853,6 +861,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             groupZones,
             visibleEnemiesByZone,
             rememberedEnemiesByZone,
+            visibleLooseCoresByZone,
             arc.Wells.ToDictionary(
                 well => well.WellId,
                 well => well.OutstandingCoreId is null ? 0 : 1,
@@ -951,6 +960,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     snapshot.Tick - core.Value.LastConfirmedTick
                         <= condition.FreshnessTicks),
             "visible-loose-cores" => snapshot.VisibleLooseCores,
+            "visible-loose-cores-in-zone" => snapshot.VisibleLooseCoresByZone
+                .GetValueOrDefault(condition.Zone),
             "well-has-outstanding" => snapshot.WellOutstanding
                 .GetValueOrDefault(condition.Subject),
             "outstanding-well-count" => snapshot.WellOutstanding.Values.Sum(),
@@ -1081,6 +1092,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 mind, package, groups, orders, carried, order, body),
             "enemy-carrier" => EnemyCarrierTarget(
                 package, carried, order),
+            "enemy-carrier-cutoff" => EnemyCarrierCutoffTarget(
+                contract, package, carried, order),
             "secured-core" => SecuredCoreTarget(
                 package, order),
             "hold" => body.Position,
@@ -1144,6 +1157,58 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 order.Movement.ChaseLeash);
         return selected?.Position ?? fallback;
     }
+
+    private Position EnemyCarrierCutoffTarget(
+        GenericActorResolvedMatchContract contract,
+        TacticalPlaybookPackage package,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried,
+        TacticalPlaybookPackage.Order order)
+    {
+        Position fallback = package.AnchorPosition(order.Movement.Target);
+        TacticalCoordinationPrimitives.EnemyCarrierCandidate? selected =
+            TacticalCoordinationPrimitives.SelectEnemyCarrier(
+                EnemyCarrierCandidates(carried),
+                fallback,
+                _enemyReactor,
+                order.Movement.ChaseLeash);
+        if (selected is not { } carrier)
+            return fallback;
+        return TacticalCoordinationPrimitives.PredictReturnLaneCutoff(
+            carrier.Position,
+            carrier.PreviousPosition,
+            order.Movement.LeadTiles,
+            position => ArenaBasics.StaticDistance(
+                contract.Map, position, _enemyReactor),
+            (from, to) => to.ChebyshevDistance(fallback)
+                    <= order.Movement.ChaseLeash
+                && ArenaBasics.IsLegalTerrainStep(contract.Map, from, to));
+    }
+
+    private IEnumerable<TacticalCoordinationPrimitives.EnemyCarrierCandidate>
+        EnemyCarrierCandidates(
+            IReadOnlyDictionary<ActorIdentity,
+                GenericActorContext.ArcRelayCoreState> carried) => carried
+        .Where(value => value.Key.TeamId != _teamId)
+        .Select(value =>
+        {
+            LastSeenEnemy? remembered = _lastSeenEnemies.GetValueOrDefault(
+                value.Key.UnitId);
+            return new TacticalCoordinationPrimitives.EnemyCarrierCandidate(
+                value.Key,
+                value.Value.Position,
+                remembered?.ActorId == value.Key
+                    ? remembered.PreviousPosition
+                    : null);
+        })
+        .Concat(_lastSeenEnemies.Values
+            .Where(value => value.IsCarrier)
+            .Select(value => new TacticalCoordinationPrimitives
+                .EnemyCarrierCandidate(
+                    value.ActorId,
+                    value.Position,
+                    value.PreviousPosition)))
+        .DistinctBy(value => value.ActorId);
 
     private Dictionary<int, Position> ResolveFormationTargets(
         GenericActorResolvedMatchContract contract,
@@ -2506,7 +2571,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && core.CarrierActorId is { } carrier
             && carrier.TeamId == _teamId
             && carrier != body.ActorId),
-        "enemy-carrier" => arc.VisibleCores.Any(core => core.Disposition
+        "enemy-carrier" or "enemy-carrier-cutoff" =>
+            arc.VisibleCores.Any(core => core.Disposition
                     == GenericActorContext.ArcRelayCoreDisposition.Carried
                 && core.CarrierActorId is { } carrier
                 && carrier.TeamId != _teamId
@@ -3002,6 +3068,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, Dictionary<string, int>> GroupZones,
         IReadOnlyDictionary<string, int> VisibleEnemiesByZone,
         IReadOnlyDictionary<string, int> RememberedEnemiesByZone,
+        IReadOnlyDictionary<string, int> VisibleLooseCoresByZone,
         IReadOnlyDictionary<string, int> WellOutstanding,
         IReadOnlyDictionary<string, int> FormationStableTicks,
         IReadOnlyDictionary<string, int> FormationBroken);

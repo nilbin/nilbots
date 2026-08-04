@@ -135,6 +135,49 @@ public sealed class TacticalTaskMachineTests
     }
 
     [Fact]
+    public void AggregateCapSelectsExactlyOneAvailableAlternative()
+    {
+        TacticalTaskMachine machine = Machine(Task(
+            "sanitize",
+            [
+                Assignment(
+                    "runner", "convert-order", ["kestrel"],
+                    minimum: 0, preferred: 1),
+                Assignment(
+                    "flex", "convert-order", ["repulsor"],
+                    minimum: 0, preferred: 1),
+            ],
+            minimumParticipants: 1,
+            maximumParticipants: 1));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 3),
+            Candidate(1, "repulsor", x: 1));
+
+        Assert.Single(machine.LeasedUnitIds);
+        Assert.NotNull(machine.DirectiveFor(0));
+        Assert.Null(machine.DirectiveFor(1));
+
+        TacticalTaskMachine fallback = Machine(Task(
+            "sanitize",
+            [
+                Assignment(
+                    "runner", "convert-order", ["kestrel"],
+                    minimum: 0, preferred: 1),
+                Assignment(
+                    "flex", "convert-order", ["repulsor"],
+                    minimum: 0, preferred: 1),
+            ],
+            minimumParticipants: 1,
+            maximumParticipants: 1));
+        Step(fallback, 0, facts, Candidate(1, "repulsor", x: 1));
+
+        Assert.Single(fallback.LeasedUnitIds);
+        Assert.NotNull(fallback.DirectiveFor(1));
+    }
+
+    [Fact]
     public void HigherPriorityTaskPreemptsOnlyAnExplicitlyPreemptibleLease()
     {
         TacticalTaskMachine machine = Machine(
@@ -309,14 +352,18 @@ public sealed class TacticalTaskMachineTests
         string triggerFact = "trigger",
         string preemption = "higher-priority",
         string participantLoss = "continue",
-        int minimumPrimaryBodies = 0) => Task(
+        int minimumPrimaryBodies = 0,
+        int minimumParticipants = 0,
+        int maximumParticipants = 0) => Task(
         id,
         [assignment],
         priority,
         triggerFact,
         preemption,
         participantLoss,
-        minimumPrimaryBodies);
+        minimumPrimaryBodies,
+        minimumParticipants,
+        maximumParticipants);
 
     private static TacticalPlaybookPackage.TacticalTask Task(
         string id,
@@ -325,7 +372,9 @@ public sealed class TacticalTaskMachineTests
         string triggerFact = "trigger",
         string preemption = "higher-priority",
         string participantLoss = "continue",
-        int minimumPrimaryBodies = 0) => new(
+        int minimumPrimaryBodies = 0,
+        int minimumParticipants = 0,
+        int maximumParticipants = 0) => new(
         id,
         priority,
         "while-true",
@@ -341,7 +390,9 @@ public sealed class TacticalTaskMachineTests
         [Group(triggerFact)],
         [Group("complete")],
         [],
-        new("primary-order", [], [], 0));
+        new("primary-order", [], [], 0),
+        minimumParticipants,
+        maximumParticipants);
 
     private static TacticalPlaybookPackage.TaskAssignment Assignment(
         string id,

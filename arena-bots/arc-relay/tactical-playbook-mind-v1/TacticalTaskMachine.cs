@@ -379,12 +379,14 @@ internal sealed class TacticalTaskMachine
         var claimed = selected.Select(value => value.UnitId).ToHashSet();
         int otherLeases = owners.Count(value =>
             !ReferenceEquals(value.Value, state));
-        int capacity = Math.Max(
-            0,
-            live.Count
-                - otherLeases
-                - selected.Count
-                - state.Plan.MinimumPrimaryBodies);
+        int capacity = Math.Min(
+            Math.Max(0, EffectiveMaximum(state.Plan) - selected.Count),
+            Math.Max(
+                0,
+                live.Count
+                    - otherLeases
+                    - selected.Count
+                    - state.Plan.MinimumPrimaryBodies));
         foreach (TacticalPlaybookPackage.TaskAssignment assignment
                  in state.Plan.Assignments)
         {
@@ -437,9 +439,12 @@ internal sealed class TacticalTaskMachine
         preempted = [];
         failureReason = "participants-unavailable";
         var claimed = new HashSet<int>();
-        int capacity = Math.Max(
-            0,
-            live.Count - owners.Count - claimant.Plan.MinimumPrimaryBodies);
+        int capacity = Math.Min(
+            EffectiveMaximum(claimant.Plan),
+            Math.Max(
+                0,
+                live.Count - owners.Count
+                    - claimant.Plan.MinimumPrimaryBodies));
         bool reserveBlocked = false;
 
         // Minimums are allocated for every assignment before any assignment
@@ -503,6 +508,15 @@ internal sealed class TacticalTaskMachine
                 return false;
             }
         }
+        if (selected.Count < EffectiveMinimum(claimant.Plan))
+        {
+            selected = [];
+            preempted = [];
+            failureReason = reserveBlocked
+                ? "primary-force-reserve"
+                : "participants-unavailable";
+            return false;
+        }
         return true;
     }
 
@@ -518,6 +532,7 @@ internal sealed class TacticalTaskMachine
         int allowed = Math.Max(
             0,
             live.Count - otherLeases - state.Plan.MinimumPrimaryBodies);
+        allowed = Math.Min(allowed, EffectiveMaximum(state.Plan));
         while (state.Assignments.Count > allowed)
         {
             TacticalTaskAssignment? released = null;
@@ -596,11 +611,24 @@ internal sealed class TacticalTaskMachine
         ? 0
         : Array.IndexOf(assignment.Classes, candidate.ClassId);
 
-    private bool MinimumsHold(Runtime state) => state.Plan.Assignments.All(
-        assignment => state.Assignments.Count(value => string.Equals(
-            value.AssignmentId,
-            assignment.AssignmentId,
-            StringComparison.Ordinal)) >= assignment.Minimum);
+    private bool MinimumsHold(Runtime state) =>
+        state.Assignments.Count >= EffectiveMinimum(state.Plan)
+        && state.Assignments.Count <= EffectiveMaximum(state.Plan)
+        && state.Plan.Assignments.All(
+            assignment => state.Assignments.Count(value => string.Equals(
+                value.AssignmentId,
+                assignment.AssignmentId,
+                StringComparison.Ordinal)) >= assignment.Minimum);
+
+    private static int EffectiveMinimum(
+        TacticalPlaybookPackage.TacticalTask plan) => Math.Max(
+        plan.MinimumParticipants,
+        plan.Assignments.Sum(value => value.Minimum));
+
+    private static int EffectiveMaximum(
+        TacticalPlaybookPackage.TacticalTask plan) => plan.MaximumParticipants > 0
+        ? plan.MaximumParticipants
+        : plan.Assignments.Sum(value => value.Maximum);
 
     private void BeginReintegration(
         int tick,

@@ -37,6 +37,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         "remembered-enemies-in-zone", "visible-enemy-carriers",
         "known-enemy-carriers",
         "friendly-carriers", "secured-cores", "visible-loose-cores",
+        "visible-loose-cores-in-zone",
         "well-has-outstanding", "outstanding-well-count",
         "ticks-without-objective-progress",
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
@@ -59,6 +60,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     [
         "friendlies-in-zone-count", "group-in-zone-count",
         "visible-enemies-in-zone", "remembered-enemies-in-zone",
+        "visible-loose-cores-in-zone",
     ];
 
     private static readonly HashSet<string> FreshnessFacts =
@@ -681,6 +683,11 @@ public static class ArcRelayTacticalPlaybookCompiler
             ["chaseLeash"] = assignment.GetProperty("chaseLeash").GetInt32(),
             ["pace"] = commonMovement.GetProperty("pace").GetString(),
         };
+        if (commonMovement.TryGetProperty(
+                "leadTiles", out JsonElement leadTiles))
+        {
+            movement["leadTiles"] = leadTiles.GetInt32();
+        }
         var expanded = new JsonObject
         {
             ["orderId"] = orderId,
@@ -803,13 +810,16 @@ public static class ArcRelayTacticalPlaybookCompiler
             Identifier(track.Value, "formationId", path);
             JsonElement movement = track.Value.GetProperty("movement");
             Object(movement, $"{path}.maneuvers.tracks.movement",
-                ["kind", "target", "stuckTicks", "pace"]);
+                ["kind", "target", "stuckTicks", "pace"], ["leadTiles"]);
             OneOf(movement, "kind", path,
                 "route", "zone", "anchor", "reactor", "carrier",
-                "enemy-carrier", "secured-core", "hold");
+                "enemy-carrier", "enemy-carrier-cutoff", "secured-core",
+                "hold");
             NonEmptyString(movement, "target", path, allowEmpty: true);
             Range(movement, "stuckTicks", path, 1, 120);
             OneOf(movement, "pace", path, "slowest", "leader", "free");
+            if (movement.TryGetProperty("leadTiles", out _))
+                Range(movement, "leadTiles", path, 0, 8);
 
             CatalogEntry[] assignments = Catalog(
                 track.Value.GetProperty("assignments"),
@@ -905,7 +915,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "assignments", "whenConditionSetId",
                 "completeConditionSetId", "failConditionSetId",
                 "reintegration",
-            ]);
+            ], ["minimumParticipants", "maximumParticipants"]);
         Identifier(task, "taskId", at);
         Range(task, "priority", at, 0, 1000);
         OneOf(task, "activation", at, "rising-edge", "while-true");
@@ -916,6 +926,26 @@ public static class ArcRelayTacticalPlaybookCompiler
         Range(task, "timeoutTicks", at, 1, 2400);
         Range(task, "cooldownTicks", at, 0, 1200);
         Range(task, "minimumPrimaryBodies", at, 0, 8);
+        int minimumParticipants = task.TryGetProperty(
+            "minimumParticipants", out _)
+            ? RequiredInt(task, "minimumParticipants", at)
+            : 0;
+        int maximumParticipants = task.TryGetProperty(
+            "maximumParticipants", out _)
+            ? RequiredInt(task, "maximumParticipants", at)
+            : 0;
+        if (minimumParticipants is < 0 or > 8
+            || maximumParticipants is < 0 or > 8)
+        {
+            throw Error(at,
+                "minimumParticipants and maximumParticipants must be 0..8.");
+        }
+        if (maximumParticipants > 0
+            && minimumParticipants > maximumParticipants)
+        {
+            throw Error(at,
+                "minimumParticipants cannot exceed maximumParticipants.");
+        }
         foreach (JsonElement phase in BoundedArray(
                      task.GetProperty("eligiblePhases"),
                      $"{at}.eligiblePhases", 1, 24))
@@ -1005,7 +1035,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "route" => routes.Contains(target),
                 "zone" => zones.Contains(target),
                 "anchor" or "carrier" or "enemy-carrier"
-                    or "secured-core" => anchors.Contains(target),
+                    or "enemy-carrier-cutoff" or "secured-core" =>
+                        anchors.Contains(target),
                 "reactor" => target is "own" or "enemy",
                 "hold" => target.Length == 0,
                 _ => false,
@@ -1917,7 +1948,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "eligiblePhases",
                     "assignments", "when", "completeWhen", "failWhen",
                     "reintegration",
-                ]);
+                ], ["minimumParticipants", "maximumParticipants"]);
             string taskId = Identifier(task, "taskId", at);
             Range(task, "priority", at, 0, 1000);
             OneOf(task, "activation", at, "rising-edge", "while-true");
@@ -1929,6 +1960,22 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(task, "timeoutTicks", at, 1, 2400);
             Range(task, "cooldownTicks", at, 0, 1200);
             Range(task, "minimumPrimaryBodies", at, 0, 8);
+            int aggregateMinimum = task.TryGetProperty(
+                "minimumParticipants", out _)
+                ? RequiredInt(task, "minimumParticipants", at)
+                : 0;
+            int aggregateMaximum = task.TryGetProperty(
+                "maximumParticipants", out _)
+                ? RequiredInt(task, "maximumParticipants", at)
+                : 0;
+            if (aggregateMinimum is < 0 or > 8
+                || aggregateMaximum is < 0 or > 8
+                || aggregateMaximum > 0
+                && aggregateMinimum > aggregateMaximum)
+            {
+                throw Error(at,
+                    $"task '{taskId}' has invalid aggregate participant bounds.");
+            }
             References(task.GetProperty("eligiblePhases"), phaseIds,
                 $"{at}.{taskId}.eligiblePhases", 1, 24);
             ValidateConditionGroups(
@@ -2011,8 +2058,21 @@ public static class ArcRelayTacticalPlaybookCompiler
                 }
             }
 
-            int minimumParticipants = assignments.Sum(assignment =>
+            int assignmentMinimum = assignments.Sum(assignment =>
                 assignment.GetProperty("minimum").GetInt32());
+            int assignmentMaximum = assignments.Sum(assignment =>
+                assignment.GetProperty("maximum").GetInt32());
+            if (aggregateMaximum > 0
+                && (aggregateMaximum < assignmentMinimum
+                    || aggregateMaximum > assignmentMaximum)
+                || aggregateMinimum > assignmentMaximum)
+            {
+                throw Error(at,
+                    $"task '{taskId}' aggregate participant bounds conflict "
+                    + "with its assignment cardinalities.");
+            }
+            int minimumParticipants = Math.Max(
+                assignmentMinimum, aggregateMinimum);
             int minimumPrimaryBodies = task
                 .GetProperty("minimumPrimaryBodies").GetInt32();
             if (minimumParticipants + minimumPrimaryBodies > 8)
@@ -2200,10 +2260,10 @@ public static class ArcRelayTacticalPlaybookCompiler
             [
                 "kind", "target", "arrivalRadius", "completion",
                 "stuckTicks", "stuckRecovery", "chaseLeash", "pace",
-            ]);
+            ], ["leadTiles"]);
         OneOf(value, "kind", path,
             "route", "zone", "anchor", "reactor", "carrier",
-            "enemy-carrier", "secured-core", "hold");
+            "enemy-carrier", "enemy-carrier-cutoff", "secured-core", "hold");
         NonEmptyString(value, "target", path, allowEmpty: true);
         Range(value, "arrivalRadius", path, 0, 16);
         OneOf(value, "completion", path,
@@ -2213,6 +2273,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             "repath", "yield", "reflow", "regroup", "hold");
         Range(value, "chaseLeash", path, 0, 16);
         OneOf(value, "pace", path, "slowest", "leader", "free");
+        if (value.TryGetProperty("leadTiles", out _))
+            Range(value, "leadTiles", path, 0, 8);
     }
 
     private static void ValidateTransitions(

@@ -10,6 +10,34 @@
       "layoutSha256": "8c10332a9d8b93c093a0952312216069ce191ef7bcdc9d33b415972dce3f1286",
       "compiledPlaybookSha256": "00d3402540f90c58185c81864219fadeee4cff8bca99e7a0b3f6d2e63a2fe5d6",
       "verdict": "development-baseline"
+    },
+    {
+      "attemptId": "split-acquisition-global-return-and-cutoff-v1",
+      "runtime": "in-process",
+      "playbookSha256": "213c9daebf631e3c699213139b4dcf760ebf38e665b8c16280edb90da7cdc588",
+      "change": "Added zone-aware one-body enemy-home sanitation, split acquisition from a globally triggered carrier-plus-escort return task, free catch-up, and a three-tile causal return-lane cutoff.",
+      "cells": [
+        {
+          "seed": "202608041",
+          "siegeTeam": 0,
+          "scorecard": "8-9",
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 501,
+          "canonicalReplaySha256": "ce0cfa37428726212650a18254a7badb3ca652e1cc5f0abe5f96ba60e637c132"
+        },
+        {
+          "seed": "202608041",
+          "siegeTeam": 1,
+          "scorecard": "8-9",
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 560,
+          "canonicalReplaySha256": "70eb162c58038c3149f99352a22bb97b5ae7f2219bddcafc47934c64493d3388"
+        }
+      ],
+      "resultSummary": "Rejected as a strategy candidate. Triggering the return pair for every friendly carrier disrupted the assault before the declared Siege conversion window and erased the accepted v2 margin. Retain the generic zone fact, aggregate alternative cap, catch-up primitive, and causal cutoff; replace the global return task with a lifecycle-armed completion on the declared courier-plus-escort task.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }

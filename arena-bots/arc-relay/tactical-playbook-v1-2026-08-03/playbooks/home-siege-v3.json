@@ -912,9 +912,9 @@
           "stuckTicks": 8,
           "stuckRecovery": "reflow",
           "chaseLeash": 1,
-          "pace": "slowest"
+          "pace": "free"
         },
-        "formationId": "rally-wedge",
+        "formationId": "living-ring",
         "engagementId": "regroup-defense",
         "custodyId": "incidental-delivery",
         "localState": "recovering",
@@ -1014,12 +1014,13 @@
       "task-deny": {
         "tracks": {
           "interceptor": {
-            "formationId": "rally-wedge",
+            "formationId": "living-ring",
             "movement": {
-              "kind": "enemy-carrier",
+              "kind": "enemy-carrier-cutoff",
               "target": "enemy-perimeter",
               "stuckTicks": 6,
-              "pace": "slowest"
+              "pace": "free",
+              "leadTiles": 3
             },
             "assignments": {
               "line-task-deny": {
@@ -1029,6 +1030,94 @@
                 "engagementId": "siege-focus",
                 "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-core-sanitize": {
+        "tracks": {
+          "runner": {
+            "formationId": "harvest-sweep",
+            "movement": {
+              "kind": "secured-core",
+              "target": "enemy-perimeter",
+              "stuckTicks": 4,
+              "pace": "free"
+            },
+            "assignments": {
+              "runner-task-core-sanitize": {
+                "arrivalRadius": 0,
+                "completion": "continuous",
+                "chaseLeash": 6,
+                "engagementId": "rush-focus",
+                "custodyId": "surge-harvest",
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-standard"
+              }
+            }
+          },
+          "line-flex": {
+            "formationId": "harvest-sweep",
+            "movement": {
+              "kind": "secured-core",
+              "target": "enemy-perimeter",
+              "stuckTicks": 4,
+              "pace": "free"
+            },
+            "assignments": {
+              "line-task-core-sanitize": {
+                "arrivalRadius": 0,
+                "completion": "continuous",
+                "chaseLeash": 6,
+                "engagementId": "siege-focus",
+                "custodyId": "surge-harvest",
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-carrier-return": {
+        "tracks": {
+          "runner": {
+            "formationId": "return-escort",
+            "movement": {
+              "kind": "reactor",
+              "target": "own",
+              "stuckTicks": 6,
+              "pace": "free"
+            },
+            "assignments": {
+              "runner-task-carrier-return": {
+                "arrivalRadius": 0,
+                "completion": "continuous",
+                "chaseLeash": 16,
+                "engagementId": "rush-focus",
+                "custodyId": "surge-harvest",
+                "fallbackId": "continue-with-alternate",
+                "assignmentProfileId": "runner-standard"
+              }
+            }
+          },
+          "line-flex": {
+            "formationId": "return-escort",
+            "movement": {
+              "kind": "reactor",
+              "target": "own",
+              "stuckTicks": 6,
+              "pace": "free"
+            },
+            "assignments": {
+              "line-task-carrier-return": {
+                "arrivalRadius": 0,
+                "completion": "continuous",
+                "chaseLeash": 16,
+                "engagementId": "siege-focus",
+                "custodyId": "surge-harvest",
+                "fallbackId": "continue-with-alternate",
                 "assignmentProfileId": "line-standard"
               }
             }
@@ -1278,19 +1367,33 @@
       ],
       "task-bank-drop-visible": [
         [
-          "secured-core",
-          "five-at-bank-seal",
-          "no-friendly-carrier"
+          "enemy-home-loose-core",
+          "five-in-siege"
         ]
       ],
       "task-bank-drop-captured": [
         [
-          "one-friendly-carrier"
+          "no-enemy-home-loose-core"
         ]
       ],
       "task-bank-drop-lost": [
         [
-          "no-secured-core"
+          "four-or-fewer-in-siege"
+        ]
+      ],
+      "task-carrier-return-active": [
+        [
+          "one-friendly-carrier"
+        ]
+      ],
+      "task-carrier-return-complete": [
+        [
+          "no-friendly-carrier"
+        ]
+      ],
+      "task-harvest-acquired": [
+        [
+          "one-friendly-carrier"
         ]
       ],
       "task-harvest-scored": [
@@ -1663,6 +1766,18 @@
         "operator": "equals",
         "value": 0
       },
+      "enemy-home-loose-core": {
+        "fact": "visible-loose-cores-in-zone",
+        "operator": "at-least",
+        "value": 1,
+        "zone": "enemy-home"
+      },
+      "no-enemy-home-loose-core": {
+        "fact": "visible-loose-cores-in-zone",
+        "operator": "equals",
+        "value": 0,
+        "zone": "enemy-home"
+      },
       "always": {
         "fact": "always",
         "operator": "equals",
@@ -1794,7 +1909,7 @@
       },
       {
         "taskId": "secure-bank-drop",
-        "priority": 5,
+        "priority": 3,
         "activation": "while-true",
         "preemption": "higher-priority",
         "participantLoss": "replace",
@@ -1802,14 +1917,19 @@
         "minimumTicks": 0,
         "timeoutTicks": 16,
         "cooldownTicks": 1,
-        "minimumPrimaryBodies": 7,
+        "minimumPrimaryBodies": 5,
+        "minimumParticipants": 1,
+        "maximumParticipants": 1,
         "eligiblePhases": [
-          "occupy"
+          "assault",
+          "occupy",
+          "regroup",
+          "breach"
         ],
         "assignments": [
           {
-            "assignmentId": "drop-courier",
-            "orderId": "runner-harvest",
+            "assignmentId": "runner-sanitizer",
+            "orderId": "runner-task-core-sanitize",
             "roles": [
               "runner"
             ],
@@ -1817,7 +1937,26 @@
               "relay",
               "kestrel"
             ],
-            "minimum": 1,
+            "minimum": 0,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "anchor",
+              "target": "enemy-perimeter"
+            }
+          },
+          {
+            "assignmentId": "line-sanitizer",
+            "orderId": "line-task-core-sanitize",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "repulsor",
+              "sunder"
+            ],
+            "minimum": 0,
             "preferred": 1,
             "maximum": 1,
             "carrier": "forbid",
@@ -1838,13 +1977,101 @@
         }
       },
       {
+        "taskId": "return-live-carrier",
+        "priority": 4,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 0,
+        "timeoutTicks": 80,
+        "cooldownTicks": 1,
+        "minimumPrimaryBodies": 5,
+        "minimumParticipants": 2,
+        "maximumParticipants": 2,
+        "eligiblePhases": [
+          "assault",
+          "occupy",
+          "regroup",
+          "breach"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "runner-carrier",
+            "orderId": "runner-task-carrier-return",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "relay",
+              "kestrel"
+            ],
+            "minimum": 0,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "require",
+            "distance": {
+              "kind": "own-reactor",
+              "target": ""
+            }
+          },
+          {
+            "assignmentId": "line-carrier",
+            "orderId": "line-task-carrier-return",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "repulsor",
+              "sunder"
+            ],
+            "minimum": 0,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "require",
+            "distance": {
+              "kind": "own-reactor",
+              "target": ""
+            }
+          },
+          {
+            "assignmentId": "escort",
+            "orderId": "line-task-conversion-escort",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "repulsor",
+              "sunder"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "own-reactor",
+              "target": ""
+            }
+          }
+        ],
+        "whenConditionSetId": "task-carrier-return-active",
+        "completeConditionSetId": "task-carrier-return-complete",
+        "failConditionSetId": "",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
         "taskId": "harvest-core-window",
         "priority": 20,
         "activation": "while-true",
         "preemption": "higher-priority",
         "participantLoss": "replace",
         "triggerStableTicks": 2,
-        "minimumTicks": 20,
+        "minimumTicks": 0,
         "timeoutTicks": 80,
         "cooldownTicks": 4,
         "minimumPrimaryBodies": 5,
@@ -1867,7 +2094,7 @@
             "minimum": 1,
             "preferred": 1,
             "maximum": 1,
-            "carrier": "allow",
+            "carrier": "forbid",
             "distance": {
               "kind": "anchor",
               "target": "enemy-perimeter"
@@ -1894,7 +2121,7 @@
           }
         ],
         "whenConditionSetId": "task-harvest-window",
-        "completeConditionSetId": "task-harvest-scored",
+        "completeConditionSetId": "task-harvest-acquired",
         "failConditionSetId": "",
         "reintegration": {
           "mode": "primary-order",

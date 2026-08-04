@@ -14,7 +14,8 @@ internal static class TacticalCoordinationPrimitives
 
     internal readonly record struct EnemyCarrierCandidate(
         ActorIdentity ActorId,
-        Position Position);
+        Position Position,
+        Position? PreviousPosition = null);
 
     internal readonly record struct SecuredCoreCandidate(
         string CoreKey,
@@ -217,6 +218,53 @@ internal static class TacticalCoordinationPrimitives
         .ThenBy(candidate => candidate.ActorId.LifeId)
         .Cast<EnemyCarrierCandidate?>()
         .FirstOrDefault();
+
+    /// <summary>
+    /// Advances a causal carrier track along a deterministic shortest return
+    /// lane. The prior observation breaks equal-route ties in favour of
+    /// continuing the observed motion; callers bound legal steps to the
+    /// authored pursuit leash.
+    /// </summary>
+    internal static Position PredictReturnLaneCutoff(
+        Position current,
+        Position? previous,
+        int leadTiles,
+        Func<Position, int?> distanceToBank,
+        Func<Position, Position, bool> legalStep)
+    {
+        Position cursor = current;
+        Position? prior = previous;
+        for (int step = 0; step < leadTiles; step++)
+        {
+            int? currentDistance = distanceToBank(cursor);
+            if (currentDistance is null or 0)
+                break;
+            Position? continuation = prior is Position observed
+                ? new Position(
+                    cursor.X + Math.Sign(cursor.X - observed.X),
+                    cursor.Y + Math.Sign(cursor.Y - observed.Y))
+                : null;
+            Position[] candidates = Enumerable.Range(-1, 3)
+                .SelectMany(dy => Enumerable.Range(-1, 3)
+                    .Select(dx => new Position(cursor.X + dx, cursor.Y + dy)))
+                .Where(value => value != cursor)
+                .Where(value => legalStep(cursor, value))
+                .Select(value => (Position: value, Distance: distanceToBank(value)))
+                .Where(value => value.Distance is not null
+                    && value.Distance < currentDistance)
+                .OrderBy(value => value.Position == continuation ? 0 : 1)
+                .ThenBy(value => value.Distance)
+                .ThenBy(value => value.Position.Y)
+                .ThenBy(value => value.Position.X)
+                .Select(value => value.Position)
+                .ToArray();
+            if (candidates.Length == 0)
+                break;
+            prior = cursor;
+            cursor = candidates[0];
+        }
+        return cursor;
+    }
 
     internal static SecuredCoreCandidate? SelectSecuredCore(
         IEnumerable<SecuredCoreCandidate> candidates,

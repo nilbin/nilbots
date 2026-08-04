@@ -385,7 +385,8 @@ internal sealed class TacticalPlaybookPackage
         int StuckTicks,
         string StuckRecovery,
         int ChaseLeash,
-        string Pace);
+        string Pace,
+        int LeadTiles = 0);
 
     internal sealed record Fallback(
         string OnNoPath,
@@ -420,7 +421,9 @@ internal sealed class TacticalPlaybookPackage
         ConditionGroup[] When,
         ConditionGroup[] CompleteWhen,
         ConditionGroup[] FailWhen,
-        Reintegration Reintegration);
+        Reintegration Reintegration,
+        int MinimumParticipants = 0,
+        int MaximumParticipants = 0);
 
     internal sealed record TaskAssignment(
         string AssignmentId,
