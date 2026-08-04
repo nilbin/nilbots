@@ -60,9 +60,11 @@ public sealed class TacticalFormationPrimitivesTests
         };
 
         Assert.Equal(2, TacticalFormationPrimitives.FormationOrdinal(
-            7, "line", live, stable, "preserve"));
+            7, "line", live, stable, "preserve", placementCount: 3));
         Assert.Equal(1, TacticalFormationPrimitives.FormationOrdinal(
-            7, "line", live, stable, "compress"));
+            7, "line", live, stable, "compress", placementCount: 3));
+        Assert.Equal(2, TacticalFormationPrimitives.FormationOrdinal(
+            7, "line", live, stable, "rebalance-role", placementCount: 3));
     }
 
     [Fact]
@@ -109,6 +111,69 @@ public sealed class TacticalFormationPrimitivesTests
             [target],
             TacticalFormationPrimitives.ReflowGoals(
                 3, 3, rows, target, 2, "hold"));
+    }
+
+    [Fact]
+    public void RotateShapeUsesAClockwiseReflowOrder()
+    {
+        string[] rows = [".....", ".....", ".....", ".....", "....."];
+        Position target = new(2, 2);
+
+        Position[] goals = TacticalFormationPrimitives.ReflowGoals(
+            5, 5, rows, target, 1, "rotate-shape");
+
+        Assert.Equal(target, goals[0]);
+        Assert.Equal(new Position(2, 1), goals[1]);
+        Assert.Equal(new Position(3, 1), goals[2]);
+        Assert.Equal(new Position(3, 2), goals[3]);
+        Assert.Equal(new Position(3, 3), goals[4]);
+    }
+
+    [Fact]
+    public void FormationTargetHonorsMinimumPreferredAndMaximumSpacing()
+    {
+        string[] rows = Enumerable.Repeat(".......", 7).ToArray();
+        TacticalFormationPrimitives.AssignedTarget[] assigned =
+        [new("line", new Position(2, 2))];
+
+        Position selected = TacticalFormationPrimitives
+            .SelectFormationTarget(
+                7, 7, rows,
+                authored: new Position(4, 2),
+                roleId: "line",
+                minimumSpacing: 1,
+                preferredSpacing: 2,
+                maximumSpacing: 3,
+                searchRadius: 2,
+                blockedSlotPolicy: "nearest-legal",
+                medicSeparation: 0,
+                assigned);
+
+        Assert.Equal(new Position(4, 2), selected);
+        Assert.InRange(selected.ChebyshevDistance(assigned[0].Position), 1, 3);
+    }
+
+    [Fact]
+    public void ReflowKeepsAuthoredMedicSeparation()
+    {
+        string[] rows = Enumerable.Repeat(".......", 7).ToArray();
+        TacticalFormationPrimitives.AssignedTarget[] assigned =
+        [new("medic", new Position(3, 3))];
+
+        Position selected = TacticalFormationPrimitives
+            .SelectFormationTarget(
+                7, 7, rows,
+                authored: new Position(4, 3),
+                roleId: "medic",
+                minimumSpacing: 1,
+                preferredSpacing: 1,
+                maximumSpacing: 3,
+                searchRadius: 3,
+                blockedSlotPolicy: "nearest-legal",
+                medicSeparation: 3,
+                assigned);
+
+        Assert.Equal(3, selected.ChebyshevDistance(assigned[0].Position));
     }
 
     [Fact]

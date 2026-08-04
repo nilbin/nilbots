@@ -70,12 +70,53 @@ internal static class TacticalCoordinationPrimitives
         && bodyPosition.ChebyshevDistance(enemyPosition)
             <= selfDefenseThreatDistance;
 
+    internal static bool IsSelfDefenseExcursion(
+        Position bodyPosition,
+        Position assignment,
+        Position enemyPosition,
+        int chaseLeash,
+        bool selfDefenseEnabled,
+        int selfDefenseThreatDistance) => selfDefenseEnabled
+        && bodyPosition.ChebyshevDistance(assignment) > chaseLeash
+        && bodyPosition.ChebyshevDistance(enemyPosition)
+            <= selfDefenseThreatDistance;
+
+    internal static bool HasReturnedToFormation(
+        Position bodyPosition,
+        Position assignment,
+        int arrivalRadius) => bodyPosition.ChebyshevDistance(assignment)
+            <= arrivalRadius;
+
     internal static bool HonorsProviderSeparation(
         Position provider,
         IEnumerable<Position> providersAlreadyAssignedToTarget,
         int minimumSeparation) => providersAlreadyAssignedToTarget.All(
             assigned => provider.ChebyshevDistance(assigned)
                 >= minimumSeparation);
+
+    internal static int CoverageFallbackIndex(
+        string fallback,
+        IReadOnlyList<int> newlyCoveredOptions)
+    {
+        if (newlyCoveredOptions.Count == 0)
+            return -1;
+        int best = newlyCoveredOptions.Max();
+        bool choose = fallback switch
+        {
+            "current-position" => best > 0,
+            "best-coverage" => true,
+            _ => throw new InvalidDataException(
+                $"Unknown dodge-coverage fallback '{fallback}'."),
+        };
+        if (!choose)
+            return -1;
+        for (int index = 0; index < newlyCoveredOptions.Count; index++)
+        {
+            if (newlyCoveredOptions[index] == best)
+                return index;
+        }
+        return -1;
+    }
 
     internal static EnemyCarrierCandidate? SelectEnemyCarrier(
         IEnumerable<EnemyCarrierCandidate> candidates,

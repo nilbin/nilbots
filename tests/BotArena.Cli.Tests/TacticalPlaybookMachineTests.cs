@@ -28,6 +28,22 @@ public sealed class TacticalPlaybookMachineTests
         Assert.Equal("next", machine.PhaseId);
     }
 
+    [Fact]
+    public void ExplicitFallbackPhaseResetsTenureAndTransitionStreaks()
+    {
+        TacticalPlaybookMachine machine = Machine(
+            minimumTicks: 8,
+            transition: Transition("interrupt", stableTicks: 2));
+        Assert.False(machine.AdvanceGlobal(1, _ => true));
+
+        machine.ForcePhase("next", tick: 2);
+
+        Assert.Equal("next", machine.PhaseId);
+        Assert.Equal(2, machine.PhaseEnteredTick);
+        Assert.Throws<InvalidDataException>(() =>
+            machine.ForcePhase("missing", tick: 3));
+    }
+
     private static TacticalPlaybookMachine Machine(
         int minimumTicks,
         TacticalPlaybookPackage.Transition transition)

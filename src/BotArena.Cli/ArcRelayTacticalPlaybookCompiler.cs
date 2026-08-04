@@ -175,6 +175,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement[] roles = BoundedArray(
             root.GetProperty("roles"), $"{path}.roles", 1, 16);
         HashSet<string> roleIds = UniqueIds(roles, "roleId", $"{path}.roles");
+        Dictionary<string, int> roleMaximums = roles.ToDictionary(
+            role => role.GetProperty("roleId").GetString()!,
+            role => role.GetProperty("maximum").GetInt32(),
+            StringComparer.Ordinal);
         foreach (JsonElement role in roles)
             ValidateRole(role, roleIds, path);
 
@@ -182,6 +186,12 @@ public static class ArcRelayTacticalPlaybookCompiler
             root.GetProperty("orders"), $"{path}.orders", 1, 64);
         HashSet<string> orderIds = UniqueIds(
             orders, "orderId", $"{path}.orders");
+        HashSet<string> phaseIds = UniqueIds(
+            BoundedArray(
+                root.GetProperty("coordination").GetProperty("phases"),
+                $"{path}.coordination.phases", 1, 24),
+            "phaseId",
+            $"{path}.coordination.phases");
 
         JsonElement[] groups = BoundedArray(
             root.GetProperty("groups"), $"{path}.groups", 1, 8);
@@ -227,7 +237,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         HashSet<string> formationIds = UniqueIds(
             formations, "formationId", $"{path}.formations");
         foreach (JsonElement formation in formations)
-            ValidateFormation(formation, roleIds, path);
+            ValidateFormation(
+                formation, roleIds, roleMaximums, path);
 
         JsonElement[] engagements = BoundedArray(
             root.GetProperty("engagements"), $"{path}.engagements", 1, 24);
@@ -280,7 +291,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement order in orders)
         {
             ValidateOrder(order, groupIds, formationIds, engagementIds,
-                supportIds, custodyIds, path);
+                supportIds, custodyIds, phaseIds, path);
             string formationId = order.GetProperty("formationId").GetString()!;
             string formationPace = formations.Single(formation =>
                     string.Equals(
@@ -524,6 +535,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static void ValidateFormation(
         JsonElement value,
         IReadOnlySet<string> roleIds,
+        IReadOnlyDictionary<string, int> roleMaximums,
         string path)
     {
         string at = $"{path}.formations";
@@ -555,6 +567,27 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(placement, "order", at, 0, 15);
             Point(placement.GetProperty("offset"), $"{at}.{id}.offset", -8, 8);
         }
+        foreach (string roleId in roleIds)
+        {
+            int count = placements.Count(placement => string.Equals(
+                placement.GetProperty("roleId").GetString(),
+                roleId,
+                StringComparison.Ordinal));
+            if (count < roleMaximums[roleId])
+            {
+                throw Error(at,
+                    $"formation '{id}' needs {roleMaximums[roleId]} "
+                    + $"placement slots for role '{roleId}', found {count}.");
+            }
+        }
+        int distinctOffsets = placements
+            .Select(placement => string.Join(
+                ",", placement.GetProperty("offset").EnumerateArray()
+                    .Select(coordinate => coordinate.GetInt32())))
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        if (distinctOffsets != placements.Length)
+            throw Error(at, $"formation '{id}' has overlapping slots.");
         JsonElement cohesion = value.GetProperty("cohesion");
         Object(cohesion, $"{at}.{id}.cohesion",
             ["arrivalRatioPercent", "breakRatioPercent", "breakTicks", "reformTicks", "pace"]);
@@ -724,6 +757,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> engagementIds,
         IReadOnlySet<string> supportIds,
         IReadOnlySet<string> custodyIds,
+        IReadOnlySet<string> phaseIds,
         string path)
     {
         string at = $"{path}.coordination.orders";
@@ -746,12 +780,24 @@ public static class ArcRelayTacticalPlaybookCompiler
         ValidateMovement(value.GetProperty("movement"), at);
         JsonElement fallback = value.GetProperty("fallback");
         Object(fallback, $"{at}.fallback",
-            ["onNoPath", "onUnderstrength", "onInvalidTarget"]);
+            ["onNoPath", "onUnderstrength", "onInvalidTarget", "phaseId"]);
         OneOf(fallback, "onNoPath", at, "reflow", "hold", "regroup");
         OneOf(fallback, "onUnderstrength", at,
             "continue", "regroup", "fallback-phase");
         OneOf(fallback, "onInvalidTarget", at,
             "hold", "alternate", "fallback-phase");
+        string phaseId = RequiredString(fallback, "phaseId", at);
+        bool needsPhase = fallback.GetProperty("onNoPath").GetString()
+                == "regroup"
+            || fallback.GetProperty("onUnderstrength").GetString()
+                is "regroup" or "fallback-phase"
+            || fallback.GetProperty("onInvalidTarget").GetString()
+                == "fallback-phase";
+        if (needsPhase && !phaseIds.Contains(phaseId))
+            throw Error(at, $"fallback references unknown phase '{phaseId}'.");
+        if (!needsPhase && phaseId.Length > 0)
+            throw Error(at,
+                $"fallback phase '{phaseId}' is irrelevant to its actions.");
     }
 
     private static void ValidateMovement(JsonElement value, string path)

@@ -2,6 +2,10 @@ using BotArena.Sdk;
 
 internal static class TacticalFormationPrimitives
 {
+    internal readonly record struct AssignedTarget(
+        string RoleId,
+        Position Position);
+
     internal readonly record struct Lifecycle(
         bool Armed,
         bool Broken,
@@ -36,7 +40,8 @@ internal static class TacticalFormationPrimitives
         string roleId,
         IReadOnlyDictionary<int, string> liveRoles,
         IReadOnlyDictionary<int, string> stableRoles,
-        string vacancyPolicy)
+        string vacancyPolicy,
+        int placementCount)
     {
         IReadOnlyDictionary<int, string> source =
             string.Equals(vacancyPolicy, "preserve", StringComparison.Ordinal)
@@ -54,7 +59,15 @@ internal static class TacticalFormationPrimitives
             throw new InvalidDataException(
                 $"Unit {unitId} has no '{roleId}' formation ordinal.");
         }
-        return ordinal;
+        return vacancyPolicy switch
+        {
+            "preserve" or "compress" => ordinal,
+            "rebalance-role" when members.Length <= 1 => 0,
+            "rebalance-role" => ordinal * (placementCount - 1)
+                / (members.Length - 1),
+            _ => throw new InvalidDataException(
+                $"Unknown formation vacancy policy '{vacancyPolicy}'."),
+        };
     }
 
     internal static Lifecycle AdvanceLifecycle(
@@ -156,12 +169,87 @@ internal static class TacticalFormationPrimitives
                 candidates.Add(target.Offset(dx, dy));
             }
         }
-        Position[] legal = candidates
+        IEnumerable<Position> ordered = string.Equals(
+                blockedSlotPolicy, "rotate-shape", StringComparison.Ordinal)
+            ? candidates
+                .OrderBy(position => target.ChebyshevDistance(position))
+                .ThenBy(position => ClockwiseRank(target, position))
+                .ThenBy(position => position.Y)
+                .ThenBy(position => position.X)
+            : candidates
+                .OrderBy(position => target.ChebyshevDistance(position))
+                .ThenBy(position => position.Y)
+                .ThenBy(position => position.X);
+        Position[] legal = ordered
             .Where(position => IsEnterable(
                 width, height, tileRows, position))
             .Distinct()
             .ToArray();
         return legal.Length == 0 ? [target] : legal;
+    }
+
+    internal static Position SelectFormationTarget(
+        int width,
+        int height,
+        IReadOnlyList<string> tileRows,
+        Position authored,
+        string roleId,
+        int minimumSpacing,
+        int preferredSpacing,
+        int maximumSpacing,
+        int searchRadius,
+        string blockedSlotPolicy,
+        int medicSeparation,
+        IReadOnlyCollection<AssignedTarget> assigned)
+    {
+        Position[] candidates = ReflowGoals(
+                width,
+                height,
+                tileRows,
+                authored,
+                searchRadius,
+                blockedSlotPolicy)
+            .Where(candidate => IsEnterable(
+                width, height, tileRows, candidate))
+            .Where(candidate => assigned.All(other =>
+                candidate.ChebyshevDistance(other.Position)
+                    >= minimumSpacing))
+            .Where(candidate => !string.Equals(
+                    roleId, "medic", StringComparison.Ordinal)
+                || assigned.Where(other => string.Equals(
+                        other.RoleId, "medic", StringComparison.Ordinal))
+                    .All(other => candidate.ChebyshevDistance(other.Position)
+                        >= medicSeparation))
+            .Where(candidate => assigned.Count == 0
+                || assigned.Any(other => candidate.ChebyshevDistance(
+                        other.Position)
+                    <= maximumSpacing))
+            .OrderBy(candidate => assigned.Count == 0
+                ? 0
+                : assigned.Min(other => Math.Abs(
+                    candidate.ChebyshevDistance(other.Position)
+                    - preferredSpacing)))
+            .ThenBy(candidate => candidate.ChebyshevDistance(authored))
+            .ThenBy(candidate => candidate.Y)
+            .ThenBy(candidate => candidate.X)
+            .ToArray();
+        return candidates.FirstOrDefault(authored);
+    }
+
+    private static int ClockwiseRank(Position target, Position position)
+    {
+        int dx = position.X - target.X;
+        int dy = position.Y - target.Y;
+        if (dx == 0 && dy == 0)
+            return 0;
+        // Clockwise from north, expressed without floating point.
+        if (dy < 0 && dx >= 0)
+            return dx == 0 ? 1 : 2;
+        if (dx > 0 && dy >= 0)
+            return dy == 0 ? 3 : 4;
+        if (dy > 0 && dx <= 0)
+            return dx == 0 ? 5 : 6;
+        return dy == 0 ? 7 : 8;
     }
 
     internal static bool IsEnterable(

@@ -771,7 +771,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -795,7 +796,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     },
     {
@@ -818,7 +820,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     },
     {
@@ -842,7 +845,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "fallback-phase",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": "regroup"
       }
     },
     {
@@ -866,7 +870,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": "regroup"
       }
     },
     {
@@ -889,7 +894,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": "regroup"
       }
     },
     {
@@ -912,7 +918,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": "regroup"
       }
     },
     {
@@ -936,7 +943,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -960,7 +968,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     },
     {
@@ -983,7 +992,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     },
     {
@@ -1007,7 +1017,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": "regroup"
       }
     },
     {
@@ -1031,7 +1042,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": "regroup"
       }
     },
     {
@@ -1054,7 +1066,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "regroup",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": "regroup"
       }
     },
     {
@@ -1078,7 +1091,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -1103,7 +1117,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -1127,7 +1142,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -1151,7 +1167,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "alternate"
+        "onInvalidTarget": "alternate",
+        "phaseId": ""
       }
     },
     {
@@ -1176,7 +1193,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     },
     {
@@ -1200,7 +1218,8 @@
       "fallback": {
         "onNoPath": "reflow",
         "onUnderstrength": "continue",
-        "onInvalidTarget": "hold"
+        "onInvalidTarget": "hold",
+        "phaseId": ""
       }
     }
   ],

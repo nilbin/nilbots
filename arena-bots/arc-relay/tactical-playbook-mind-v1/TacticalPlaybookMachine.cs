@@ -34,6 +34,21 @@ internal sealed class TacticalPlaybookMachine
         _locals.GetValueOrDefault(groupId)?.StateId
         ?? throw new InvalidDataException($"Unknown tactical group '{groupId}'.");
 
+    internal void ForcePhase(string phaseId, int tick)
+    {
+        if (!_playbook.Coordination.Phases.Any(value => string.Equals(
+                value.PhaseId, phaseId, StringComparison.Ordinal)))
+        {
+            throw new InvalidDataException(
+                $"Unknown tactical fallback phase '{phaseId}'.");
+        }
+        if (string.Equals(_phaseId, phaseId, StringComparison.Ordinal))
+            return;
+        _phaseId = phaseId;
+        _phaseEnteredTick = tick;
+        _globalStreaks.Clear();
+    }
+
     internal bool AdvanceGlobal(
         int tick,
         Func<TacticalPlaybookPackage.Condition, bool> evaluate)

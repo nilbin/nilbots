@@ -37,12 +37,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new(StringComparer.Ordinal);
     private readonly Dictionary<int, ActorIdentity> _friendlyLives = [];
     private readonly HashSet<int> _joiningUnits = [];
+    private readonly Dictionary<int, ActorIdentity> _returningToFormation = [];
     private GenericActorResolvedMatchContract? _contract;
     private TacticalPlaybookPackage? _package;
     private TacticalPlaybookMachine? _machine;
     private Position _ownReactor;
     private Position _enemyReactor;
     private string? _allocationPhaseId;
+    private string? _queuedFallbackPhase;
     private int _teamId;
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
@@ -97,6 +99,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return;
         }
 
+        if (_queuedFallbackPhase is string fallbackPhase)
+        {
+            machine.ForcePhase(fallbackPhase, mind.Tick);
+            _queuedFallbackPhase = null;
+        }
+
         UpdateMemory(mind, arc, package.Source.Memory);
         Dictionary<int, string> roles = AllocateRoles(
             mind,
@@ -137,20 +145,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         UpdateCustodyProgress(mind.Tick, mind.Bodies, carried);
         Dictionary<int, TacticalPlaybookPackage.Order> orders = ActiveOrders(
             mind, package.Source, machine, groups);
-        Dictionary<int, Position> targets = mind.Bodies.ToDictionary(
+        Dictionary<int, Position> authoredTargets = mind.Bodies.ToDictionary(
             body => body.UnitId,
             body => Target(
                 contract, mind, package, machine, roles, groups, orders,
                 carried, orders[body.UnitId], body));
+        Dictionary<int, Position> targets = ResolveFormationTargets(
+            contract,
+            mind,
+            package.Source,
+            roles,
+            orders,
+            authoredTargets);
+        RefreshSelfDefenseReturns(mind, orders, targets);
         UpdateOrderCompletion(
             mind, package.Source, orders, targets);
+        HashSet<int> carrierUnitIds = mind.Bodies
+            .Where(body => carried.ContainsKey(body.ActorId))
+            .Select(body => body.UnitId)
+            .ToHashSet();
+        HashSet<int> focusParticipants = mind.Bodies
+            .Where(body => !carrierUnitIds.Contains(body.UnitId))
+            .Where(body => !_returningToFormation.ContainsKey(body.UnitId))
+            .Where(body => package.Source.Engagements.Single(value =>
+                    value.EngagementId
+                        == orders[body.UnitId].EngagementId)
+                .Participants.Contains(
+                    roles[body.UnitId], StringComparer.Ordinal))
+            .Select(body => body.UnitId)
+            .ToHashSet();
         Dictionary<int, MindBody> repairs = AllocateRepairs(
             contract, mind, package.Source, roles, orders,
-            carried.Keys.ToHashSet(), new HashSet<int>());
+            carried.Keys.ToHashSet(), focusParticipants);
         HashSet<int> unavailableAttackers = repairs.Keys.ToHashSet();
-        unavailableAttackers.UnionWith(mind.Bodies
-            .Where(body => carried.ContainsKey(body.ActorId))
-            .Select(body => body.UnitId));
+        unavailableAttackers.UnionWith(carrierUnitIds);
         Dictionary<int, FocusAssignment> focus =
             AllocateFocus(contract, mind, arc, package.Source, roles, orders,
                 targets, unavailableAttackers);
@@ -230,16 +258,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 signatureTarget)
                         && engagement.SignatureCoordination != "damage-first"
                         && signatureTarget.UseSignature
-                        && TryCombatSignature(
+                        && TryCombatSignatureWithReturn(
                             contract, mind, body, signatureTarget.Target, target,
-                            engagement,
+                            signatureTarget, engagement,
                             Provenance(machine, group, order, "signature")),
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
                         && WithinEngagementLeash(
                             body, target, shotTarget.Target, engagement)
-                        && TryFocusChannel(
+                        && TryFocusChannelWithReturn(
                             contract, mind, body, shotTarget, target,
                             engagement,
                             Provenance(machine, group, order, "signature")),
@@ -631,7 +659,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _formationStableTicks[group.GroupId] =
                     groupCohesion[group.GroupId]
                         >= formation.Cohesion.ArrivalRatioPercent
-                        ? prior + 1
+                        ? Math.Min(
+                            prior + 1,
+                            package.Source.Memory.FormationStableTicks)
                         : 0;
                 _formationLifecycles[group.GroupId] =
                     TacticalFormationPrimitives.AdvanceLifecycle(
@@ -689,7 +719,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 == GenericActorContext.ArcRelayCoreDisposition.Loose),
             carriers,
             enemyCarriers,
-            Math.Max(0, mind.Tick - _lastObjectiveProgressTick),
+            Math.Min(
+                Math.Max(0, mind.Tick - _lastObjectiveProgressTick),
+                package.Source.Memory.ObjectiveProgressTicks),
             own.IntegritySegments,
             own.ChargePips,
             roles.Values.GroupBy(value => value, StringComparer.Ordinal)
@@ -813,7 +845,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Subject),
             "movement-complete" => _orderCompletion
                 .GetValueOrDefault(condition.Subject),
-            "custody-state-ticks" => snapshot.TicksWithoutObjectiveProgress,
+            "custody-state-ticks" => _custodyProgress.Count == 0
+                ? 0
+                : _custodyProgress.Values.Max(value =>
+                    snapshot.Tick - value.StartedTick),
             "role-live-count" => snapshot.RoleLive
                 .GetValueOrDefault(condition.Subject),
             _ => throw new InvalidDataException(
@@ -896,15 +931,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             package.Source.Formations.Single(value =>
                 value.FormationId == order.FormationId);
         string role = roles[body.UnitId];
+        TacticalPlaybookPackage.Placement[] placements = formation.Placements
+            .Where(value => value.RoleId == role)
+            .OrderBy(value => value.Order).ToArray();
         int ordinal = TacticalFormationPrimitives.FormationOrdinal(
             body.UnitId,
             role,
             roles,
             _stableRoles,
-            formation.Reflow.Vacancy);
-        TacticalPlaybookPackage.Placement[] placements = formation.Placements
-            .Where(value => value.RoleId == role)
-            .OrderBy(value => value.Order).ToArray();
+            formation.Reflow.Vacancy,
+            placements.Length);
         TacticalPlaybookPackage.Placement placement = placements[
             Math.Min(ordinal, placements.Length - 1)];
         _ = contract;
@@ -932,6 +968,51 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _enemyReactor,
                 order.Movement.ChaseLeash);
         return selected?.Position ?? fallback;
+    }
+
+    private static Dictionary<int, Position> ResolveFormationTargets(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage.Playbook playbook,
+        IReadOnlyDictionary<int, string> roles,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        IReadOnlyDictionary<int, Position> authoredTargets)
+    {
+        var result = new Dictionary<int, Position>();
+        foreach (IGrouping<string, MindBody> group in mind.Bodies
+                     .OrderBy(body => body.UnitId)
+                     .GroupBy(body => orders[body.UnitId].FormationId,
+                         StringComparer.Ordinal))
+        {
+            var assigned = new List<
+                TacticalFormationPrimitives.AssignedTarget>();
+            foreach (MindBody body in group)
+            {
+                TacticalPlaybookPackage.Formation formation = playbook
+                    .Formations.Single(value => value.FormationId
+                        == orders[body.UnitId].FormationId);
+                Position authored = authoredTargets[body.UnitId];
+                string role = roles[body.UnitId];
+                Position selected = TacticalFormationPrimitives
+                    .SelectFormationTarget(
+                        contract.Map.Width,
+                        contract.Map.Height,
+                        contract.Map.TileRows,
+                        authored,
+                        role,
+                        formation.Spacing.Minimum,
+                        formation.Spacing.Preferred,
+                        formation.Spacing.Maximum,
+                        formation.Reflow.SearchRadius,
+                        formation.Reflow.BlockedSlot,
+                        formation.Reflow.MedicSeparation,
+                        assigned);
+                result[body.UnitId] = selected;
+                assigned.Add(new TacticalFormationPrimitives.AssignedTarget(
+                    role, selected));
+            }
+        }
+        return result;
     }
 
     private Position SecuredCoreTarget(
@@ -1054,6 +1135,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .Select(value => mind.Bodies.Single(body =>
                         body.UnitId == value.Key))
                     .Where(body => !unavailableParticipants.Contains(body.UnitId)
+                        && !_returningToFormation.ContainsKey(body.UnitId)
                         && policy.Participants.Contains(
                             roles[body.UnitId], StringComparer.Ordinal))
                     .OrderBy(body => body.UnitId).ToArray();
@@ -1192,7 +1274,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         directDamageNeeded: committedDamage.GetValueOrDefault(
                             selected.ActorId) < selected.Health);
                     allocations[body.UnitId] = new FocusAssignment(
-                        selected, aim, UseSignature: false);
+                        selected,
+                        aim,
+                        UseSignature: false,
+                        SelfDefenseExcursion: TacticalCoordinationPrimitives
+                            .IsSelfDefenseExcursion(
+                                body.Position,
+                                targets[body.UnitId],
+                                selected.Position,
+                                policy.ChaseLeash,
+                                policy.SelfDefense.Enabled,
+                                policy.SelfDefense.ThreatDistance));
                     attackerCounts[selected.ActorId] = attackerCounts
                         .GetValueOrDefault(selected.ActorId) + 1;
                     HashSet<Position> coverage = coveredOptions
@@ -1314,8 +1406,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ThenBy(position => position.Y)
             .ThenBy(position => position.X)
             .ToArray();
-        if (candidates.Length > 0)
-            return candidates[0];
+        int index = TacticalCoordinationPrimitives.CoverageFallbackIndex(
+            policy.DodgeCoverage.Fallback,
+            candidates.Select(position => options.Count(option =>
+                    !alreadyCovered.Contains(option)
+                    && SameShotLane(body.Position, position, option)))
+                .ToArray());
+        if (index >= 0)
+            return candidates[index];
         return target.Position;
     }
 
@@ -1471,6 +1569,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             policy.ChaseLeash,
             policy.SelfDefense.Enabled,
             policy.SelfDefense.ThreatDistance);
+
+    private void RefreshSelfDefenseReturns(
+        MindContext mind,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        IReadOnlyDictionary<int, Position> targets)
+    {
+        foreach (int unitId in _returningToFormation.Keys.ToArray())
+        {
+            MindBody? body = mind.Bodies.FirstOrDefault(value =>
+                value.UnitId == unitId);
+            if (body is null
+                || body.ActorId != _returningToFormation[unitId]
+                || TacticalCoordinationPrimitives.HasReturnedToFormation(
+                    body.Position,
+                    targets[unitId],
+                    Math.Max(1, orders[unitId].Movement.ArrivalRadius)))
+            {
+                _returningToFormation.Remove(unitId);
+            }
+        }
+    }
 
     private static Dictionary<int, MindBody> AllocateRepairs(
         GenericActorResolvedMatchContract contract,
@@ -1776,6 +1895,48 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
         ArenaBasics.Claims claims)
     {
+        TacticalPlaybookPackage.Group groupPolicy = package.Source.Groups
+            .Single(value => value.GroupId == group);
+        int liveGroupMembers = groups.Count(value => value.Value == group);
+        if (liveGroupMembers < groupPolicy.Minimum)
+        {
+            switch (order.Fallback.OnUnderstrength)
+            {
+                case "continue":
+                    break;
+                case "regroup":
+                case "fallback-phase":
+                    QueueFallbackPhase(order);
+                    return Hold(body, Provenance(
+                        machine, group, order, "understrength-fallback"));
+                default:
+                    throw new InvalidDataException(
+                        $"Unknown understrength fallback "
+                        + $"'{order.Fallback.OnUnderstrength}'.");
+            }
+        }
+
+        if (!DynamicTargetAvailable(
+                mind, arc, package, order, body))
+        {
+            switch (order.Fallback.OnInvalidTarget)
+            {
+                case "alternate":
+                    break;
+                case "hold":
+                    return Hold(body, Provenance(
+                        machine, group, order, "invalid-target-hold"));
+                case "fallback-phase":
+                    QueueFallbackPhase(order);
+                    return Hold(body, Provenance(
+                        machine, group, order, "invalid-target-fallback"));
+                default:
+                    throw new InvalidDataException(
+                        $"Unknown invalid-target fallback "
+                        + $"'{order.Fallback.OnInvalidTarget}'.");
+            }
+        }
+
         if (!string.IsNullOrEmpty(order.CustodyId))
         {
             TacticalPlaybookPackage.CustodyPolicy policy =
@@ -1815,6 +1976,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : 0;
         _motion[body.UnitId] = new MotionProgress(
             body.ActorId, order.OrderId, body.Position, stuck);
+        if (stuck >= order.Movement.StuckTicks)
+        {
+            switch (order.Movement.StuckRecovery)
+            {
+                case "yield":
+                    _motion[body.UnitId] = new MotionProgress(
+                        body.ActorId, order.OrderId, body.Position, 0);
+                    return Hold(body, Provenance(
+                        machine, group, order, "stuck-yield"));
+                case "hold":
+                    return Hold(body, Provenance(
+                        machine, group, order, "stuck-hold"));
+                case "regroup":
+                    QueueFallbackPhase(order);
+                    return Hold(body, Provenance(
+                        machine, group, order, "stuck-fallback"));
+                case "repath":
+                    _routes.Remove(body.UnitId);
+                    break;
+                case "reflow":
+                    break;
+                default:
+                    throw new InvalidDataException(
+                        $"Unknown stuck recovery "
+                        + $"'{order.Movement.StuckRecovery}'.");
+            }
+        }
         TacticalPlaybookPackage.Formation formation =
             package.Source.Formations.Single(value =>
                 value.FormationId == order.FormationId);
@@ -1855,12 +2043,84 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             formation.Reflow.BlockedSlot);
         if (TryAdvanceSignature(contract, body, target))
             return true;
-        return ArenaBasics.TryMoveToward(
+        if (ArenaBasics.TryMoveToward(
             contract, mind, body, goals, claims,
             Provenance(machine, group, order,
                 stuck >= order.Movement.StuckTicks
                     ? $"{order.Movement.StuckRecovery}-reflow"
-                    : "formation-move"));
+                    : "formation-move")))
+        {
+            return true;
+        }
+        return order.Fallback.OnNoPath switch
+        {
+            "reflow" => false,
+            "hold" => Hold(body, Provenance(
+                machine, group, order, "no-path-hold")),
+            "regroup" => QueueFallbackPhaseAndHold(
+                body, machine, group, order, "no-path-fallback"),
+            _ => throw new InvalidDataException(
+                $"Unknown no-path fallback '{order.Fallback.OnNoPath}'."),
+        };
+    }
+
+    private bool DynamicTargetAvailable(
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order,
+        MindBody body) => order.Movement.Kind switch
+    {
+        "carrier" => arc.VisibleCores.Any(core => core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId is { } carrier
+            && carrier.TeamId == _teamId
+            && carrier != body.ActorId),
+        "enemy-carrier" => arc.VisibleCores.Any(core => core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried
+            && core.CarrierActorId is { } carrier
+            && carrier.TeamId != _teamId
+            && core.Position.ChebyshevDistance(
+                    package.AnchorPosition(order.Movement.Target))
+                <= order.Movement.ChaseLeash),
+        "secured-core" => SecuredCoreAvailable(package, order),
+        _ => true,
+    };
+
+    private bool SecuredCoreAvailable(
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order)
+    {
+        TacticalPlaybookPackage.CustodyPolicy policy = package.Source
+            .CustodyPolicies.Single(value => value.CustodyId
+                == order.CustodyId);
+        Position fallback = package.AnchorPosition(order.Movement.Target);
+        return _securedCores.Any(value => policy.SourceWells.Contains(
+                value.Value.SourceWellId, StringComparer.Ordinal)
+            && value.Value.Position.ChebyshevDistance(fallback)
+                <= order.Movement.ChaseLeash);
+    }
+
+    private void QueueFallbackPhase(
+        TacticalPlaybookPackage.Order order)
+    {
+        if (string.IsNullOrEmpty(order.Fallback.PhaseId))
+        {
+            throw new InvalidDataException(
+                $"Order '{order.OrderId}' has no fallback phase.");
+        }
+        _queuedFallbackPhase ??= order.Fallback.PhaseId;
+    }
+
+    private bool QueueFallbackPhaseAndHold(
+        MindBody body,
+        TacticalPlaybookMachine machine,
+        string group,
+        TacticalPlaybookPackage.Order order,
+        string channel)
+    {
+        QueueFallbackPhase(order);
+        return Hold(body, Provenance(machine, group, order, channel));
     }
 
     private void UpdateOrderCompletion(
@@ -2080,6 +2340,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             dropped.SourceCarrier,
             safeConversion);
 
+    private bool TryCombatSignatureWithReturn(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        Position assignment,
+        FocusAssignment focus,
+        TacticalPlaybookPackage.Engagement policy,
+        string reason)
+    {
+        bool acted = TryCombatSignature(
+            contract, mind, body, target, assignment, policy, reason);
+        if (acted)
+            TrackSelfDefenseReturn(body, focus, policy);
+        return acted;
+    }
+
     private static bool TryCombatSignature(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -2111,7 +2388,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract, body, "hardlight-block", assignment, reason);
     }
 
-    private static bool TryFocusChannel(
+    private bool TryFocusChannelWithReturn(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
@@ -2120,14 +2397,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Engagement policy,
         string signatureReason)
     {
-        if (ArenaBasics.TryShootAtPosition(
+        bool acted = ArenaBasics.TryShootAtPosition(
                 contract, mind, body, focus.AimPosition,
-                $"focus {focus.Target.ActorId}"))
-            return true;
-        return policy.SignatureCoordination == "damage-first"
+                $"focus {focus.Target.ActorId}")
+            || policy.SignatureCoordination == "damage-first"
             && TryCombatSignature(
                 contract, mind, body, focus.Target, assignment, policy,
                 signatureReason);
+        if (acted)
+            TrackSelfDefenseReturn(body, focus, policy);
+        return acted;
+    }
+
+    private void TrackSelfDefenseReturn(
+        MindBody body,
+        FocusAssignment focus,
+        TacticalPlaybookPackage.Engagement policy)
+    {
+        if (focus.SelfDefenseExcursion
+            && policy.SelfDefense.ReturnToFormation)
+        {
+            _returningToFormation[body.UnitId] = body.ActorId;
+        }
     }
 
     private static bool TryAdvanceSignature(
@@ -2224,7 +2515,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private sealed record FocusAssignment(
         GenericActorContext.ObservedEnemyState Target,
         Position AimPosition,
-        bool UseSignature);
+        bool UseSignature,
+        bool SelfDefenseExcursion);
 
     private sealed record CoreReservation(
         ActorIdentity ActorId,

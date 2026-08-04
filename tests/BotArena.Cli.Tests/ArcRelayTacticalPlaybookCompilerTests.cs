@@ -433,6 +433,77 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void FormationMustProvideDistinctSlotsForRoleCapacity()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject formation = source["formations"]![0]!.AsObject();
+        JsonArray placements = formation["placements"]!.AsArray();
+        JsonObject first = placements[0]!.AsObject();
+        JsonObject second = placements[1]!.AsObject();
+        second["offset"] = JsonNode.Parse(first["offset"]!.ToJsonString());
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("overlapping slots", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void PhaseFallbackMustNameAnExistingPhase()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject order = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "runner-siege");
+        order["fallback"]!["phaseId"] = "missing";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "fallback references unknown phase 'missing'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void UnusedFallbackPhaseIsRejectedAsIrrelevant()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject order = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "runner-rush");
+        order["fallback"]!["phaseId"] = "regroup";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("is irrelevant to its actions", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =

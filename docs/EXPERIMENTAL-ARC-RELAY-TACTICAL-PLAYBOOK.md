@@ -84,6 +84,17 @@ until their final approach, then apply role-relative placements. Runtime motion
 claims, legal-path checks, and bounded reflow arbitrate collisions without
 changing authoritative simulation truth.
 
+Every role receives enough distinct authored slots for its maximum cardinality;
+the compiler rejects missing or overlapping slots. `preserve` leaves a dead
+body's slot open, `compress` closes ordinal gaps, and `rebalance-role` spreads
+the surviving role members across the full authored slot band. When terrain or
+another resolved slot forces reflow, candidate tiles are selected
+deterministically by minimum spacing, medic separation, maximum connectivity,
+distance from preferred spacing, and finally tile order. `rotate-shape` uses a
+clockwise ring order, distinct from `nearest-legal`. Thus minimum, preferred,
+maximum, vacancy, blocked-slot, and medic-separation controls all affect either
+authoring validity or runtime placement.
+
 Break/reform is an explicit lifecycle rather than a startup shortcut. A
 formation first arms only after its arrival ratio holds for `reformTicks`. Once
 armed, cohesion at or below `breakRatioPercent` for `breakTicks` marks it
@@ -145,6 +156,15 @@ inside the leash, the group reforms on the fallback anchor. This lets an editor
 express a moving screen without encoding a unit ID, a guessed fog position, or
 absolute coordinates in the playbook.
 
+Fallbacks are explicit and phase-safe. Each order declares what no-path,
+understrength, and invalid-target mean. `continue`, `hold`, `alternate`, and
+`reflow` stay local; `regroup`/`fallback-phase` require a declared `phaseId`
+that the compiler resolves. A phase fallback is queued for the next tick so a
+mid-tick failure cannot make half the team execute a different phase. Stuck
+recovery is also executable: `yield` gives peers a tick and resets its counter,
+`repath` drops route progress, `reflow` searches bounded legal slots, `hold`
+stays put, and `regroup` queues the explicit fallback phase.
+
 ### Engagement and coordinated attacks
 
 An engagement declares participants, target priorities, deterministic
@@ -160,6 +180,16 @@ health plus the declared overkill allowance. A requested escape-lane policy may
 then reserve additional shooters for distinct legal one-tick lanes without
 relaxing the direct-damage budget. Coordinated signatures choose at most one
 controller per `(target life, signature)` deterministically.
+
+The dodge fallback is executable rather than decorative. `best-coverage`
+selects the best legal aim even when it adds no new covered lane;
+`current-position` uses a dodge aim only when it adds coverage and otherwise
+returns to direct aim. Self-defense is similarly bounded. A body outside its
+formation leash may answer a threat inside `threatDistance`; when
+`returnToFormation` is true, a successful defensive shot or signature starts a
+return excursion. The body is withheld from coordinated focus until it reaches
+the current order's arrival radius again. Respawned lives never inherit that
+excursion.
 
 This does not promise that a projectile hits an enemy who chooses an uncovered
 legal move. It provides the grammar needed to budget current-position damage
@@ -235,6 +265,14 @@ from it. Fog disappearance never becomes a death or proof of an empty theater.
 Confirmed enemy destruction expires no later than the configured return
 window. Last-seen enemies and secured Cores expire globally and may be narrowed
 again by a condition-specific freshness window.
+
+The playbook's memory horizons also bound formation-stability and
+objective-progress counters. `custody-state-ticks` measures the longest current
+custody state's causal tenure; it is not an alias for general objective
+stagnation. Repair priority `focus-participant` means a non-carrier body whose
+active engagement includes its role, computed before repair allocation without
+mutating the focus-lock state. The final coordinated-fire allocation then
+excludes the chosen repair providers.
 
 ## Home Siege v2
 

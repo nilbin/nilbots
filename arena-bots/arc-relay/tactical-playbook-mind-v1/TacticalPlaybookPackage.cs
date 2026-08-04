@@ -371,7 +371,8 @@ internal sealed class TacticalPlaybookPackage
     internal sealed record Fallback(
         string OnNoPath,
         string OnUnderstrength,
-        string OnInvalidTarget);
+        string OnInvalidTarget,
+        string PhaseId);
 
     internal sealed record Coordination(string InitialPhase, Phase[] Phases);
 

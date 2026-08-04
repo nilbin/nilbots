@@ -602,6 +602,50 @@
       ],
       "resultSummary": "Retain the generic membership semantics and reject the current Home Siege strategy. Both matches remained valid, but neither assignment beat the fully coordinated parity stock mind.",
       "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-spacing-vacancy-and-reflow",
+      "playbookSourceSha256": "b79896340cb321f36b092ddd6cd2c58c4a7fc98bb49ced529ab8c9e8b426e74b",
+      "change": "Execute distinct preserve/compress/rebalance-role vacancy layouts, minimum/preferred/maximum target spacing, medic separation, and clockwise rotate-shape reflow; reject overlapping or undersupplied formation slots.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 510 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 332 }
+      ],
+      "resultSummary": "Retain the generic placement semantics and reject the current strategy candidate. Making authored separation real changed pathing and sustain but did not win either mirror.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "explicit-phase-fallbacks-and-stuck-recovery",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bind regroup/fallback-phase actions to an explicit validated phaseId; execute understrength, invalid-target, no-path, yield, repath, reflow, hold, and regroup recovery without hardcoded phase names.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 586 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 304 }
+      ],
+      "resultSummary": "Retain the generic fallback semantics. The candidate recovered one assignment but still lost the mirror decisively, so it remains rejected for Home Siege dominance.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "bounded-memory-repair-priority-and-dodge-fallback",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bound formation/objective memory by the authored horizons, make custody-state-ticks measure custody rather than objective stagnation, execute focus-participant repair priority without mutating focus locks twice, and distinguish current-position from best-coverage dodge fallback.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 586 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 304 }
+      ],
+      "resultSummary": "Retain the generic memory, repair-priority, and dodge-fallback semantics. The unchanged mirrored result proves this slice did not cure assignment asymmetry; the current Home Siege strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "bounded-self-defense-return-excursion",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Execute selfDefense.returnToFormation as a one-response excursion: after an off-leash defensive attack, withhold the same life from coordinated fire until it returns to the active order's arrival radius.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 357 }
+      ],
+      "resultSummary": "Retain the generic authored return semantic but reject the current Siege strategy. Both mirrors losing shows the old candidate depended materially on repeated off-plan defensive fire and must be rewritten rather than silently preserving that loophole.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

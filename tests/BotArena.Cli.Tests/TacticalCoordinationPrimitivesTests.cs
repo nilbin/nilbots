@@ -109,6 +109,20 @@ public sealed class TacticalCoordinationPrimitivesTests
     }
 
     [Fact]
+    public void SelfDefenseExcursionReturnsBeforeRejoiningFocus()
+    {
+        var assignment = new Position(10, 10);
+        Assert.True(TacticalCoordinationPrimitives.IsSelfDefenseExcursion(
+            new Position(16, 10), assignment, new Position(15, 10),
+            chaseLeash: 4, selfDefenseEnabled: true,
+            selfDefenseThreatDistance: 2));
+        Assert.False(TacticalCoordinationPrimitives.HasReturnedToFormation(
+            new Position(13, 10), assignment, arrivalRadius: 1));
+        Assert.True(TacticalCoordinationPrimitives.HasReturnedToFormation(
+            new Position(11, 10), assignment, arrivalRadius: 1));
+    }
+
+    [Fact]
     public void RepairProvidersHonorAuthoredSeparation()
     {
         Position[] assigned = [new Position(5, 5), new Position(10, 10)];
@@ -180,4 +194,18 @@ public sealed class TacticalCoordinationPrimitivesTests
         Assert.Equal(fallback,
             TacticalCoordinationPrimitives.SurvivalDirective(fallback));
     }
+
+    [Theory]
+    [InlineData("current-position", 0, 0, -1)]
+    [InlineData("current-position", 0, 2, 1)]
+    [InlineData("best-coverage", 0, 0, 0)]
+    [InlineData("best-coverage", 1, 3, 1)]
+    public void DodgeFallbackControlsWhetherZeroValueCoverageIsAttempted(
+        string fallback,
+        int first,
+        int second,
+        int expected) => Assert.Equal(
+            expected,
+            TacticalCoordinationPrimitives.CoverageFallbackIndex(
+                fallback, [first, second]));
 }
