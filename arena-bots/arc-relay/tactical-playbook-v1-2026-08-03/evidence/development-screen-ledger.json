@@ -267,6 +267,28 @@
       ],
       "resultSummary": "Rejected after both fair-control assignments lost. The second medic is not redundant: sustain matters more than a sixth attacker in the retained ring.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "single-carrier-harvest-exit",
+      "playbookSourceSha256": "1c67e59196d8d223c9c0b06ae5a5bbb61473c41ed86b2b429b75aaf07e277e6e",
+      "change": "End harvest as soon as one friendly carrier exists instead of waiting for three carriers or the bounded 28-tick single-carrier fallback.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 553 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 473 }
+      ],
+      "resultSummary": "Rejected. Immediate departure prevented the collection phase from stabilizing and failed the mirrored assignment.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "two-carrier-harvest-exit",
+      "playbookSourceSha256": "3bcdacaf45d97e2c31abdc8610ae1059b4774cc096f658f67a84f052df994ae8",
+      "change": "End harvest once two friendly carriers exist, the only integer midpoint between immediate single-carrier departure and the retained three-carrier wave.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 437 }
+      ],
+      "resultSummary": "Rejected. It lost both assignments faster than the one-carrier variant; the retained three-carrier wave is materially more coherent.",
+      "verdict": "rejected"
     }
   ]
 }
