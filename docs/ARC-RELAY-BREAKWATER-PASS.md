@@ -1,6 +1,13 @@
 # Breakwater — Stage 2 finals report
 
-## DECISION NEEDED
+## RESOLVED — owner accepted 7/8 (option 1, 2026-08-05)
+
+The bar was re-ruled post-outcome to "all registered pairings plus at least
+one of two holdouts" (DECISIONS #206). Breakwater ships as the Stage 2
+deliverable; the double-relay weakness is the next strategy target; the
+consumed holdout becomes an open development opponent.
+
+## Original decision framing (pre-ruling)
 
 The pre-outcome freeze (`evidence/breakwater-finals-freeze.md`, commit
 `a2d4202f`) registered eight WASM cells. **Seven passed at or above their

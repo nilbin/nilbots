@@ -4568,6 +4568,24 @@ decisive margin before their final block; they do not inherit 9–2 as a univers
 balance number. Historical static-baseline results remain useful context but
 cannot substitute for the canonical parity-control gate.
 
+## 206. Breakwater is accepted at 7/8 and ships as the Stage 2 deliverable
+
+The Breakwater finals (freeze `a2d4202f`, results `e596dbe3`) passed every
+registered pairing at its exact bar — frozen siege 3-2 west / 3-1 east,
+parity control 3-1 both ways, all by elimination, WASM tick-identical to the
+in-process screens, zero faults, zero false-positive fortify latches — and
+split the two unseen holdouts: south-mirror fell both ways, while
+four-down-double-relay beat Breakwater's east orientation 2-3. The owner
+re-ruled the bar post-outcome to "all registered pairings plus at least one
+of two holdouts" and accepted the 7/8 result (2026-08-05, in-session).
+Consequences: Breakwater (`breakwater-v1`, nestk-r212hl, sheet
+`4496dd39…`, executor artifact `f97792b9…`) is the Stage 2 strategy-ladder
+deliverable; the double-relay courier rotation is logged as the next
+strategy target; the consumed holdout may be used openly as a development
+opponent from here on; and the west/east detection-sensitivity asymmetry
+(west margin fixed at 3-2 across the searched space) stands as the concrete
+motivation for side-keyed parameter overrides in the format.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
