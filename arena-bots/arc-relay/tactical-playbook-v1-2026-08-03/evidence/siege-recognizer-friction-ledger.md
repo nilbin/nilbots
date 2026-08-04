@@ -41,6 +41,18 @@ never patched mid-goal). Author: the coordinator, running the Stage 2 goal.
     that already compiles, which itself requires format-valid binding
     hashes: authoring bootstraps through placeholder hashes. Workable,
     but nothing documents the dance.
+11. The executor's signature layer hardcodes signature ids, and a
+    signature it does not know about simply never casts — no error, no
+    telemetry, just a class playing gun-only. Writing a match-start
+    coverage assertion (every rules-contract signature must be
+    categorized, role-handled, or explicitly listed unwired)
+    immediately surfaced four ALREADY-dead kits: trip-node (minesmith),
+    sentinel-seed (nest), exchange (switchback), smoke-canister (veil).
+    Silent kit death is the default failure mode of any hand-maintained
+    executor; the assertion converts it to a first-screen-game loud
+    failure. The deeper fix is engine-level: signature metadata in the
+    rules contract (category, argument kind) so executors can dispatch
+    generically instead of maintaining tables per class generation.
 
 ## Positives worth keeping
 

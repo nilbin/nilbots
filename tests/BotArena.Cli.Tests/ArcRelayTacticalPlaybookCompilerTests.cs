@@ -312,6 +312,102 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ClassPriorityTermsCompile()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        source["engagements"]![0]!["targetPriorities"] =
+            new JsonArray("class:kestrel", "enemy-carrier", "lowest-health");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            using JsonDocument normalized = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            Assert.Equal(
+                "class:kestrel",
+                normalized.RootElement.GetProperty("engagements")[0]
+                    .GetProperty("targetPriorities")[0].GetString());
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void EmptyClassPriorityTermsAreRejected()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        source["engagements"]![0]!["targetPriorities"] =
+            new JsonArray("class:", "enemy-carrier");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("invalid priority term 'class:'", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void AnyCompositionWildcardBindingsCompile()
+    {
+        (string playbook, string layout) = TemporaryLayoutVariant(source =>
+        {
+            JsonArray bindings = source["bindings"]!.AsArray();
+            JsonObject wildcard = JsonNode.Parse(
+                bindings[0]!.ToJsonString())!.AsObject();
+            wildcard["matchContractFingerprint"] = "any-composition";
+            bindings.Add(wildcard);
+        });
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(playbook);
+            Assert.NotNull(compilation.NormalizedPlaybook);
+        }
+        finally
+        {
+            File.Delete(playbook);
+            File.Delete(layout);
+        }
+    }
+
+    [Fact]
+    public void DuplicateWildcardBindingsAreRejected()
+    {
+        (string playbook, string layout) = TemporaryLayoutVariant(source =>
+        {
+            JsonArray bindings = source["bindings"]!.AsArray();
+            string side = bindings[0]!["ownReactorSide"]!.GetValue<string>();
+            for (int copy = 0; copy < 2; copy++)
+            {
+                JsonObject wildcard = JsonNode.Parse(
+                    bindings[0]!.ToJsonString())!.AsObject();
+                wildcard["matchContractFingerprint"] = "any-composition";
+                wildcard["ownReactorSide"] = side;
+                bindings.Add(wildcard);
+            }
+        });
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(playbook));
+            Assert.Contains("duplicate layout binding", failure.Message);
+        }
+        finally
+        {
+            File.Delete(playbook);
+            File.Delete(layout);
+        }
+    }
+
+    [Fact]
     public void FactVariantsRejectIrrelevantFields()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
@@ -1291,6 +1387,24 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             WriteIndented = true,
         }));
         return path;
+    }
+
+    private static (string Playbook, string Layout) TemporaryLayoutVariant(
+        Action<JsonObject> mutate)
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        string realLayout = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            source["layout"]!["path"]!.GetValue<string>()));
+        JsonObject layout = JsonNode.Parse(File.ReadAllText(realLayout))!
+            .AsObject();
+        mutate(layout);
+        string layoutPath = TemporaryJson(layout);
+        source["layout"]!["path"] = layoutPath;
+        source["layout"]!["sha256"] = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(layoutPath))).ToLowerInvariant();
+        return (TemporaryJson(source), layoutPath);
     }
 
     private static JsonObject ExpandedHomeSiege()

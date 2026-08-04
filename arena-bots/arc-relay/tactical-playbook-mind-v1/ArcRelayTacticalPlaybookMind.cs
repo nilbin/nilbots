@@ -84,6 +84,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _package = TacticalPlaybookPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
         ValidateComposition(start.Contract, start.TeamId, _package.Source);
+        AssertSignatureCoverage(start.Contract, start.TeamId);
         _machine = new TacticalPlaybookMachine(_package.Source);
         _tasks = new TacticalTaskMachine(_package.Source);
     }
@@ -367,6 +368,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (!actual.SequenceEqual(playbook.Composition, StringComparer.Ordinal))
             throw new InvalidDataException(
                 "Tactical playbook composition does not match the resolved team.");
+    }
+
+    /// <summary>
+    /// Every signature in the rules contract must be known to this executor:
+    /// categorized in <see cref="SignaturePlays"/>, owned by dedicated role
+    /// logic, or explicitly listed as unwired. An unknown signature (a newly
+    /// added class) fails here in the first screening game instead of
+    /// silently never casting, and a composition that fields a class with an
+    /// unwired kit is refused outright.
+    /// </summary>
+    private static void AssertSignatureCoverage(
+        GenericActorResolvedMatchContract contract,
+        int teamId)
+    {
+        HashSet<string> ownClasses = contract.Topology.UnitSlots
+            .Where(slot => slot.TeamId == teamId)
+            .Select(slot => slot.ClassId ?? "")
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (GenericActorRulesContract.ArcRelaySignature signature in
+            ArenaBasics.ArcRules(contract)?.Signatures ?? [])
+        {
+            bool categorized = SignaturePlays.Any(play => string.Equals(
+                play.Kind, signature.Kind, StringComparison.Ordinal));
+            if (!categorized
+                && !RoleHandledSignatures.Contains(signature.Kind)
+                && !UnwiredSignatures.Contains(signature.Kind))
+                throw new InvalidDataException(
+                    $"Signature '{signature.Kind}' (class "
+                    + $"'{signature.ClassId}') is unknown to this executor. "
+                    + "Add it to SignaturePlays, RoleHandledSignatures, or "
+                    + "UnwiredSignatures.");
+            if (UnwiredSignatures.Contains(signature.Kind)
+                && ownClasses.Contains(signature.ClassId))
+                throw new InvalidDataException(
+                    $"Composition fields class '{signature.ClassId}' but "
+                    + $"this executor cannot cast '{signature.Kind}' yet. "
+                    + "Wire the signature before fielding the class.");
+        }
     }
 
     private void UpdateMemory(
@@ -3202,46 +3241,83 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, body, target, assignment, "support", reason));
 
     /// <summary>
-    /// One deterministic attempt per signature category. Categories follow
-    /// each signature's designed role, not its owner's current job: damage
-    /// resolves hits, control shapes space and actions, support protects and
-    /// reveals. The engagement's signatureCoordination decides which category
-    /// is tried before the basic gun; every category remains reachable so no
-    /// class's kit is dead under any policy.
+    /// One combat-category entry per signature: its category and how to cast
+    /// it at a focus target. Categories follow each signature's designed
+    /// role, not its owner's current job: damage resolves hits, control
+    /// shapes space and actions, support protects and reveals. Array order
+    /// is the deterministic attempt order within a category.
+    /// This table, <see cref="RoleHandledSignatures"/>, and
+    /// <see cref="UnwiredSignatures"/> must jointly cover every signature in
+    /// the rules contract — <see cref="AssertSignatureCoverage"/> enforces
+    /// that at match start, so a newly added class fails loudly here instead
+    /// of silently never casting.
     /// </summary>
+    private sealed record SignaturePlay(
+        string Kind,
+        string Category,
+        Func<GenericActorResolvedMatchContract, MindBody,
+            GenericActorContext.ObservedEnemyState, Position, string, string,
+            bool> Cast);
+
+    private static readonly SignaturePlay[] SignaturePlays =
+    [
+        new("rail-line", "damage", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryHeadingSignature(c, b, kind, t.Position, r)),
+        new("falling-star", "damage", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryPositionSignature(c, b, kind, t.Position, r)),
+        new("kinetic-burst", "damage", static (c, b, t, _, kind, r) =>
+            b.Position.ChebyshevDistance(t.Position) <= 1
+            && ArenaBasics.TryParameterlessSignature(c, b, kind, r)),
+        new("target-paint", "control", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryUnitSignature(c, b, kind, t.ActorId, r)),
+        new("tractor-hook", "control", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryHeadingSignature(c, b, kind, t.Position, r)),
+        new("null-field", "control", static (c, b, t, _, kind, r) =>
+            b.Position.ChebyshevDistance(t.Position) <= 3
+            && ArenaBasics.TryParameterlessSignature(c, b, kind, r)),
+        new("hardlight-block", "control", static (c, b, _, assignment, kind, r) =>
+            ArenaBasics.TryPositionSignature(c, b, kind, assignment, r)),
+        new("prism-wall", "support", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryDirectionSignature(c, b, kind, t.Position, r)),
+        new("survey-flare", "support", static (c, b, t, _, kind, r) =>
+            ArenaBasics.TryPositionSignature(c, b, kind, t.Position, r)),
+    ];
+
+    /// <summary>
+    /// Signatures deliberately owned by dedicated logic instead of the
+    /// combat-category table: movement (vector-dash), custody (arc-toss),
+    /// and the medic channel (repair-beam).
+    /// </summary>
+    private static readonly HashSet<string> RoleHandledSignatures = new(
+        StringComparer.Ordinal)
+        { "vector-dash", "arc-toss", "repair-beam" };
+
+    /// <summary>
+    /// Signatures this executor cannot cast yet. Fielding a class whose kit
+    /// lives here is refused at match start rather than silently played
+    /// without its signature.
+    /// </summary>
+    private static readonly HashSet<string> UnwiredSignatures = new(
+        StringComparer.Ordinal)
+        { "trip-node", "sentinel-seed", "exchange", "smoke-canister" };
+
     private static bool TrySignatureCategory(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         GenericActorContext.ObservedEnemyState target,
         Position assignment,
         string category,
-        string reason) => category switch
+        string reason)
     {
-        "damage" =>
-            ArenaBasics.TryHeadingSignature(contract, body, "rail-line",
-                target.Position, reason)
-            || ArenaBasics.TryPositionSignature(contract, body,
-                "falling-star", target.Position, reason)
-            || (body.Position.ChebyshevDistance(target.Position) <= 1
-                && ArenaBasics.TryParameterlessSignature(
-                    contract, body, "kinetic-burst", reason)),
-        "control" =>
-            ArenaBasics.TryUnitSignature(contract, body, "target-paint",
-                target.ActorId, reason)
-            || ArenaBasics.TryHeadingSignature(contract, body,
-                "tractor-hook", target.Position, reason)
-            || (body.Position.ChebyshevDistance(target.Position) <= 3
-                && ArenaBasics.TryParameterlessSignature(
-                    contract, body, "null-field", reason))
-            || ArenaBasics.TryPositionSignature(
-                contract, body, "hardlight-block", assignment, reason),
-        "support" =>
-            ArenaBasics.TryDirectionSignature(contract, body, "prism-wall",
-                target.Position, reason)
-            || ArenaBasics.TryPositionSignature(contract, body,
-                "survey-flare", target.Position, reason),
-        _ => false,
-    };
+        foreach (SignaturePlay play in SignaturePlays)
+        {
+            if (string.Equals(play.Category, category, StringComparison.Ordinal)
+                && play.Cast(contract, body, target, assignment, play.Kind,
+                    reason))
+                return true;
+        }
+        return false;
+    }
 
     private static bool TryLeadSignature(
         GenericActorResolvedMatchContract contract,
