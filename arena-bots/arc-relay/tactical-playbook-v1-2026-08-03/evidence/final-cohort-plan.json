@@ -1,0 +1,225 @@
+{
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "home-siege-v2-5-1-1-1-final",
+  "cohortId": "home-siege-v2-5-1-1-1-final-2026-08-04",
+  "preparedBeforeOutcomes": true,
+  "candidateFreeze": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/candidate-freeze.json",
+  "candidateFreezeSha256": "725180a86f9caad61d3117229bfe9c60b67321e3958d2ee460a9f2d40b623a83",
+  "runtime": "wasm",
+  "loopProfile": "forward-combat",
+  "engineVersion": "1.0.5",
+  "rulesetId": "arc-relay-forward-combat-01",
+  "rulesFingerprint": "0acab8947506cf6224ac00029d8c3d62e9ec61cbda224e2a955db45b711b90a9",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "eligibilityBarsSha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef",
+  "entrants": {
+    "home-siege-v2": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "artifactSha256": "3c349dea01f8bc3d27dd978941a349fba0bcc86bd3131024169bc4ef6bb1a816",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json",
+      "sheetSha256": "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb"
+    },
+    "coordination-parity-baseline": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
+      "sheetSha256": "56aa2cb0261b4aeff3a8d0e0b0af1e5a5153c5f7a551f6d9bc1607a6cf470cc1"
+    }
+  },
+  "cells": [
+    {
+      "cellId": "home-siege-v2--parity--s939580--a0",
+      "seed": "939580",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s939580--a1",
+      "seed": "939580",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s737182--a0",
+      "seed": "737182",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s737182--a1",
+      "seed": "737182",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s921408--a0",
+      "seed": "921408",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s921408--a1",
+      "seed": "921408",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s440678--a0",
+      "seed": "440678",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s440678--a1",
+      "seed": "440678",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s577986--a0",
+      "seed": "577986",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s577986--a1",
+      "seed": "577986",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s803080--a0",
+      "seed": "803080",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s803080--a1",
+      "seed": "803080",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s352170--a0",
+      "seed": "352170",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s352170--a1",
+      "seed": "352170",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s824911--a0",
+      "seed": "824911",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s824911--a1",
+      "seed": "824911",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s419119--a0",
+      "seed": "419119",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s419119--a1",
+      "seed": "419119",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s627839--a0",
+      "seed": "627839",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s627839--a1",
+      "seed": "627839",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s737592--a0",
+      "seed": "737592",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s737592--a1",
+      "seed": "737592",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s542587--a0",
+      "seed": "542587",
+      "team0": "home-siege-v2",
+      "team1": "coordination-parity-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d"
+    },
+    {
+      "cellId": "home-siege-v2--parity--s542587--a1",
+      "seed": "542587",
+      "team0": "coordination-parity-baseline",
+      "team1": "home-siege-v2",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+    }
+  ]
+}
