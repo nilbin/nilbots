@@ -152,6 +152,24 @@ public sealed class TacticalCoordinationPrimitivesTests
         Assert.Null(selected);
     }
 
+    [Fact]
+    public void SecuredCoreGuardUsesAllowedSourceAndStableNearestTie()
+    {
+        TacticalCoordinationPrimitives.SecuredCoreCandidate? selected =
+            TacticalCoordinationPrimitives.SelectSecuredCore(
+                [
+                    new("south:1", "south", new Position(25, 10)),
+                    new("north:2", "north", new Position(25, 12)),
+                    new("north:1", "north", new Position(25, 10)),
+                ],
+                new HashSet<string>(["north"], StringComparer.Ordinal),
+                fallbackAnchor: new Position(23, 11),
+                guardRadius: 4);
+
+        Assert.NotNull(selected);
+        Assert.Equal("north:1", selected.Value.CoreKey);
+    }
+
     [Theory]
     [InlineData("evade")]
     [InlineData("regroup")]

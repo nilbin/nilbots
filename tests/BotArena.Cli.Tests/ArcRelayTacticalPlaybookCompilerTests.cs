@@ -262,6 +262,34 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void SecuredCoreGuardRequiresAnExplicitCustodyPolicy()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject layout = source["layout"]!.AsObject();
+        layout["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            layout["path"]!.GetValue<string>()));
+        JsonObject runnerOrder = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "runner-siege");
+        runnerOrder["movement"]!["kind"] = "secured-core";
+        runnerOrder.Remove("custodyId");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("needs custodyId", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =

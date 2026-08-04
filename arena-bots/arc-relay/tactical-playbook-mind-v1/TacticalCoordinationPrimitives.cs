@@ -16,6 +16,11 @@ internal static class TacticalCoordinationPrimitives
         ActorIdentity ActorId,
         Position Position);
 
+    internal readonly record struct SecuredCoreCandidate(
+        string CoreKey,
+        string SourceWellId,
+        Position Position);
+
     internal static HashSet<int> SelectSignatureControllers(
         IEnumerable<SignatureCandidate> candidates) => candidates
         .OrderBy(value => value.Target.TeamId)
@@ -87,6 +92,22 @@ internal static class TacticalCoordinationPrimitives
         .ThenBy(candidate => candidate.ActorId.UnitId)
         .ThenBy(candidate => candidate.ActorId.LifeId)
         .Cast<EnemyCarrierCandidate?>()
+        .FirstOrDefault();
+
+    internal static SecuredCoreCandidate? SelectSecuredCore(
+        IEnumerable<SecuredCoreCandidate> candidates,
+        IReadOnlySet<string> allowedSourceWells,
+        Position fallbackAnchor,
+        int guardRadius) => candidates
+        .Where(candidate => allowedSourceWells.Contains(
+                candidate.SourceWellId)
+            && candidate.Position.ChebyshevDistance(fallbackAnchor)
+                <= guardRadius)
+        .OrderBy(candidate => candidate.Position.ChebyshevDistance(
+            fallbackAnchor))
+        .ThenBy(candidate => candidate.SourceWellId, StringComparer.Ordinal)
+        .ThenBy(candidate => candidate.CoreKey, StringComparer.Ordinal)
+        .Cast<SecuredCoreCandidate?>()
         .FirstOrDefault();
 
     internal static string SurvivalDirective(string fallback) => fallback switch

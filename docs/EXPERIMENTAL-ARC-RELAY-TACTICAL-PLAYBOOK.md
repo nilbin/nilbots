@@ -159,6 +159,13 @@ an authorized `movement.kind: carrier` order follows the nearest carrier on the
 same custody policy, with stable actor-identity ties. Merely listing an escort
 group never overrides that group's current authored order.
 
+An explicit `secured-core` movement order follows only causally observed enemy
+drops from its custody policy's allowed, perspective-resolved Wells. Its target
+is a fallback layout anchor and its movement leash bounds how far the guard may
+shift. A relative formation offset keeps the body adjacent without forcing an
+unsafe pickup; ordinary custody allocation may step onto the Core only after
+the declared safe-conversion conditions pass.
+
 ### Global and local state machines
 
 The global coordinator and every group local machine use named states,

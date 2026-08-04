@@ -264,6 +264,20 @@ public static class ArcRelayTacticalPlaybookCompiler
                     + $"is not authorized by custody '{custodyId}'.");
             }
         }
+        foreach (JsonElement order in orders.Where(value => string.Equals(
+                     value.GetProperty("movement").GetProperty("kind")
+                         .GetString(),
+                     "secured-core",
+                     StringComparison.Ordinal)))
+        {
+            string orderId = order.GetProperty("orderId").GetString()!;
+            if (!order.TryGetProperty("custodyId", out JsonElement custody)
+                || string.IsNullOrEmpty(custody.GetString()))
+            {
+                throw Error(path,
+                    $"secured-core guard order '{orderId}' needs custodyId.");
+            }
+        }
     }
 
     private static void ValidateAuditStatus(JsonElement value, string path)
@@ -665,7 +679,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             ]);
         OneOf(value, "kind", path,
             "route", "zone", "anchor", "reactor", "carrier",
-            "enemy-carrier", "hold");
+            "enemy-carrier", "secured-core", "hold");
         NonEmptyString(value, "target", path, allowEmpty: true);
         Range(value, "arrivalRadius", path, 0, 16);
         OneOf(value, "completion", path,

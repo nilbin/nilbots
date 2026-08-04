@@ -289,7 +289,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     if (drop.SourceActorId.TeamId != _teamId)
                     {
                         _securedCores[CoreKey(drop.CoreId)] = new SecuredCore(
-                            drop.Position, observed.SourceTick);
+                            drop.CoreId.SourceWellId,
+                            drop.Position,
+                            observed.SourceTick);
                     }
                     else
                     {
@@ -812,6 +814,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 mind, package.Source, groups, orders, carried, order, body),
             "enemy-carrier" => EnemyCarrierTarget(
                 package, carried, order),
+            "secured-core" => SecuredCoreTarget(
+                package, order),
             "hold" => body.Position,
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
@@ -864,6 +868,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .DistinctBy(value => value.ActorId),
                 fallback,
                 _enemyReactor,
+                order.Movement.ChaseLeash);
+        return selected?.Position ?? fallback;
+    }
+
+    private Position SecuredCoreTarget(
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order)
+    {
+        Position fallback = package.AnchorPosition(order.Movement.Target);
+        TacticalPlaybookPackage.CustodyPolicy policy = package.Source
+            .CustodyPolicies.Single(value => value.CustodyId
+                == order.CustodyId);
+        TacticalCoordinationPrimitives.SecuredCoreCandidate? selected =
+            TacticalCoordinationPrimitives.SelectSecuredCore(
+                _securedCores.Select(value =>
+                    new TacticalCoordinationPrimitives.SecuredCoreCandidate(
+                        value.Key,
+                        value.Value.SourceWellId,
+                        value.Value.Position)),
+                policy.SourceWells.ToHashSet(StringComparer.Ordinal),
+                fallback,
                 order.Movement.ChaseLeash);
         return selected?.Position ?? fallback;
     }
@@ -2047,7 +2072,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position Position,
         int LastConfirmedTick);
 
-    private sealed record SecuredCore(Position Position, int LastConfirmedTick);
+    private sealed record SecuredCore(
+        string SourceWellId,
+        Position Position,
+        int LastConfirmedTick);
 
     private sealed record RouteProgress(
         ActorIdentity ActorId,

@@ -395,6 +395,50 @@
       ],
       "resultSummary": "Rejected. The clean assignment lost quickly and the mirror was invalid because the control faulted; an invalid opponent result is never counted as a tactical win.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-all-wells",
+      "playbookSourceSha256": "b8ef23478e01069f35c3dc310d17fd42398d619998e27af772f78482aaa0e31f",
+      "change": "Give the runner a causal secured-core guard order for drops from all three Wells, holding adjacent until the unchanged five-unavailable safe-conversion gate allows pickup.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 400 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 440 }
+      ],
+      "resultSummary": "Rejected for Home Siege. The causal guard materially accelerated one assignment but lost the mirror; the generic order remains as framework capability.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "well-name-rotation-alias",
+      "playbookSourceSha256": "8d586c823cc8794b31f3afbaf70da1b16c0158df2f672401d6cf2d49c5301a3b",
+      "change": "Experimentally map authored north to world south under rotate-180, first with the all-Well guard and then with the original fixed-ring runner order.",
+      "cells": [
+        { "variant": "all-Well guard", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 400 },
+        { "variant": "all-Well guard", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 440 },
+        { "variant": "original fixed ring", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "variant": "original fixed ring", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 439 }
+      ],
+      "resultSummary": "Rejected. Public Well IDs are absolute contract identities in the current grammar; rotating their names silently changed the authored doctrine and destroyed the previously winning mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-authored-north-midfield-side",
+      "change": "Restrict the secured-core guard to the authored north Well and hold the runner one tile toward midfield from the observed drop.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 444 }
+      ],
+      "resultSummary": "Rejected. It preserved only the already favorable assignment and lost the mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-authored-north-reactor-side",
+      "change": "Flip the same north-Well guard to the reactor side of the observed drop, between the Core and the enemy bank.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected. Changing the side of the drop did not rescue the mirrored assignment.",
+      "verdict": "rejected"
     }
   ]
 }
