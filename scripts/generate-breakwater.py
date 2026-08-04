@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Generate breakwater-v1 playbook + layout (v0 draft)."""
+"""Generate the breakwater-v1 playbook + layout (nestk-r212hl)."""
 import json, hashlib, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASE = ROOT / 'arena-bots/arc-relay/tactical-playbook-v1-2026-08-03'
-T = json.load(open('/tmp/anatomy.json'))
+T = json.load(open(BASE / 'playbooks/home-siege-v3.json'))
 
 # ---------------- layout ----------------
 layout = {
@@ -12,15 +12,9 @@ layout = {
   "layoutId": "counterflow-breakwater-v1",
   "mapId": "arc-relay-threefold-depth-counterflow-01",
   "bindings": [
-    {"matchContractFingerprint": "cdd0b3053662f92b0a1bb7f7511facb842f42eb1b99e812ea3a1ae2719e641ce", "ownReactorSide": "west",
+    {"matchContractFingerprint": "any-composition", "ownReactorSide": "west",
      "transform": "identity", "routeAliases": {}, "formationAliases": {}},
-    {"matchContractFingerprint": "87611871f189f8a5dceb316409c4eb3e8fb25aae2f94409da42c55a79ad1c3bf", "ownReactorSide": "east",
-     "transform": "rotate-180",
-     "routeAliases": {"north-out": "south-out", "south-out": "north-out"},
-     "formationAliases": {}},
-    {"matchContractFingerprint": "aefd067d7226d1470affb9803887d3898ed59a313551e6a7828ccfce2e7d7f20", "ownReactorSide": "west",
-     "transform": "identity", "routeAliases": {}, "formationAliases": {}},
-    {"matchContractFingerprint": "e457f1e99bf12f6694e13dcb825c8f7c373a093c782e057a53b4c7ba3a8dacac", "ownReactorSide": "east",
+    {"matchContractFingerprint": "any-composition", "ownReactorSide": "east",
      "transform": "rotate-180",
      "routeAliases": {"north-out": "south-out", "south-out": "north-out"},
      "formationAliases": {}},
@@ -105,7 +99,6 @@ def custody(src_id, new_id, wells, carriers, escorts):
     c['authorizedCarrierRoles'] = carriers
     c['escortGroups'] = escorts
     c['safeConversionConditionSetId'] = 'convert-freely'
-    c['forwardPass'] = 'relay-catcher'  # opt-in: sheet-gated executor pass
     return c
 
 incidental = clone(next(x for x in T['custodyPolicies'] if 'incidental' in x['custodyId']))
@@ -142,7 +135,7 @@ playbook = {
   "playbookId": "breakwater-v1",
   "auditStatus": {"provisionalEvaluationOnly": True, "playerFacingProductSchema": False},
   "composition": ["palisade", "palisade", "patchbay", "lantern",
-                   "kestrel", "kestrel", "relay", "towline"],
+                   "nest", "kestrel", "relay", "towline"],
   "layout": {"path": "../layouts/counterflow-breakwater-v1.json",
              "sha256": "FILLED-BELOW"},
   "perspective": "team-relative",
@@ -166,7 +159,7 @@ playbook = {
      "deathPolicy": "hold-vacancy", "respawnPolicy": "rejoin",
      "overflowRoleId": "runner"},
     {"roleId": "runner", "candidateClasses": ["kestrel", "relay", "palisade",
-     "patchbay", "lantern", "towline"], "minimum": 1, "preferred": 3,
+     "patchbay", "lantern", "towline", "nest"], "minimum": 1, "preferred": 3,
      "maximum": 8, "carrierPreference": "prefer",
      "deathPolicy": "promote-best", "respawnPolicy": "replace",
      "overflowRoleId": "runner"},
@@ -195,6 +188,7 @@ playbook = {
     "parameters": {
       "detect-mass": {"value": 5, "minimum": 3, "maximum": 8},
       "release-mass": {"value": 2, "minimum": 0, "maximum": 4},
+      "linger-mass": {"value": 3, "minimum": 2, "maximum": 6},
     },
     "assignmentProfiles": {
       "home-standard": {"groupId": "home-group", "localState": "holding", "priority": 20, "members": {"kind": "all"}, "stuckRecovery": "repath", "supportId": "home-repair"},
@@ -240,6 +234,10 @@ playbook = {
       "approach-clear": {"fact": "remembered-enemies-in-zone",
                           "operator": "at-most",
                           "valueParameter": "release-mass", "zone": "own-approach"},
+      "approach-lingering": {"fact": "remembered-enemies-in-zone",
+                              "operator": "at-least",
+                              "valueParameter": "linger-mass",
+                              "zone": "own-approach"},
     },
     "conditionSets": {
       "siege-detected": [["approach-mass"]],
@@ -247,6 +245,7 @@ playbook = {
       "convert-freely": [["always"]],
       "task-never-done": [["no-live-friendlies"]],
       "courier-visible": [["visible-enemy-carrier"]],
+      "courier-lingering": [["visible-enemy-carrier", "approach-lingering"]],
       "courier-gone": [["no-known-enemy-carrier"]],
     },
   },
@@ -280,6 +279,22 @@ playbook = {
           "distance": {"kind": "anchor", "target": "home-gate"}}],
        "whenConditionSetId": "convert-freely",
        "completeConditionSetId": "task-never-done",
+       "failConditionSetId": "task-never-done",
+       "reintegration": {"mode": "primary-order", "orderIds": [],
+                          "completeConditionSetId": "", "timeoutTicks": 0}},
+      {"taskId": "counter-courier-linger", "priority": 6,
+       "activation": "while-true",
+       "preemption": "higher-priority", "participantLoss": "replace",
+       "triggerStableTicks": 1, "minimumTicks": 4, "timeoutTicks": 60,
+       "cooldownTicks": 4, "minimumPrimaryBodies": 2,
+       "eligiblePhases": ["balanced"],
+       "assignments": [
+         {"assignmentId": "courier-hunter", "orderId": "courier-hunter",
+          "roles": ["runner"], "classes": ["kestrel", "relay"],
+          "minimum": 1, "preferred": 2, "maximum": 2, "carrier": "forbid",
+          "distance": {"kind": "anchor", "target": "home-gate"}}],
+       "whenConditionSetId": "courier-lingering",
+       "completeConditionSetId": "courier-gone",
        "failConditionSetId": "task-never-done",
        "reintegration": {"mode": "primary-order", "orderIds": [],
                           "completeConditionSetId": "", "timeoutTicks": 0}},

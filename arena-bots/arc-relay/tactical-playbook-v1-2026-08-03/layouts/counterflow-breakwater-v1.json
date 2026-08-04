@@ -4,21 +4,21 @@
   "mapId": "arc-relay-threefold-depth-counterflow-01",
   "bindings": [
     {
-      "matchContractFingerprint": "cdd0b3053662f92b0a1bb7f7511facb842f42eb1b99e812ea3a1ae2719e641ce",
+      "matchContractFingerprint": "43f067af5dd5563dce8ff3d896972d19f7c74e5aa7c675927aeb7c206065edae",
       "ownReactorSide": "west",
       "transform": "identity",
       "routeAliases": {},
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "aefd067d7226d1470affb9803887d3898ed59a313551e6a7828ccfce2e7d7f20",
+      "matchContractFingerprint": "0cda3913811aa7bcc5ec7d1327eac88f99b377edf5de1b2283c784f40b2fa1be",
       "ownReactorSide": "west",
       "transform": "identity",
       "routeAliases": {},
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "87611871f189f8a5dceb316409c4eb3e8fb25aae2f94409da42c55a79ad1c3bf",
+      "matchContractFingerprint": "9b74e780a5c117a31143d6aeba41410a64f2f928b6f60d492c44408b8ed96c9b",
       "ownReactorSide": "east",
       "transform": "rotate-180",
       "routeAliases": {
@@ -28,7 +28,24 @@
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "e457f1e99bf12f6694e13dcb825c8f7c373a093c782e057a53b4c7ba3a8dacac",
+      "matchContractFingerprint": "50010900f8c696a493c95be6dd1e9c5ee0e017804c02815faf5811133b1f6276",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
       "ownReactorSide": "east",
       "transform": "rotate-180",
       "routeAliases": {

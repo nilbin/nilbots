@@ -10,14 +10,14 @@
     "palisade",
     "patchbay",
     "lantern",
-    "kestrel",
+    "nest",
     "kestrel",
     "relay",
     "towline"
   ],
   "layout": {
     "path": "../layouts/counterflow-breakwater-v1.json",
-    "sha256": "f18f76a77e14d6a2ebe793ec6650dd28abcd163e0c545520605ed0c9e718417c"
+    "sha256": "a5b9b272c8af6b5ed613662c8bb79a8a8870ebbdcda71062bbd7cc56326e01ef"
   },
   "perspective": "team-relative",
   "memory": {
@@ -101,7 +101,8 @@
         "palisade",
         "patchbay",
         "lantern",
-        "towline"
+        "towline",
+        "nest"
       ],
       "minimum": 1,
       "preferred": 3,
@@ -711,8 +712,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely",
-      "forwardPass": "relay-catcher"
+      "safeConversionConditionSetId": "convert-freely"
     },
     {
       "custodyId": "farm-south",
@@ -731,8 +731,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely",
-      "forwardPass": "relay-catcher"
+      "safeConversionConditionSetId": "convert-freely"
     },
     {
       "custodyId": "incidental-delivery",
@@ -776,6 +775,11 @@
         "value": 2,
         "minimum": 0,
         "maximum": 4
+      },
+      "linger-mass": {
+        "value": 3,
+        "minimum": 2,
+        "maximum": 6
       }
     },
     "assignmentProfiles": {
@@ -981,6 +985,12 @@
         "operator": "at-most",
         "valueParameter": "release-mass",
         "zone": "own-approach"
+      },
+      "approach-lingering": {
+        "fact": "remembered-enemies-in-zone",
+        "operator": "at-least",
+        "valueParameter": "linger-mass",
+        "zone": "own-approach"
       }
     },
     "conditionSets": {
@@ -1007,6 +1017,12 @@
       "courier-visible": [
         [
           "visible-enemy-carrier"
+        ]
+      ],
+      "courier-lingering": [
+        [
+          "visible-enemy-carrier",
+          "approach-lingering"
         ]
       ],
       "courier-gone": [
@@ -1105,6 +1121,51 @@
         ],
         "whenConditionSetId": "convert-freely",
         "completeConditionSetId": "task-never-done",
+        "failConditionSetId": "task-never-done",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
+        "taskId": "counter-courier-linger",
+        "priority": 6,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 4,
+        "timeoutTicks": 60,
+        "cooldownTicks": 4,
+        "minimumPrimaryBodies": 2,
+        "eligiblePhases": [
+          "balanced"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "courier-hunter",
+            "orderId": "courier-hunter",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "kestrel",
+              "relay"
+            ],
+            "minimum": 1,
+            "preferred": 2,
+            "maximum": 2,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "anchor",
+              "target": "home-gate"
+            }
+          }
+        ],
+        "whenConditionSetId": "courier-lingering",
+        "completeConditionSetId": "courier-gone",
         "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",

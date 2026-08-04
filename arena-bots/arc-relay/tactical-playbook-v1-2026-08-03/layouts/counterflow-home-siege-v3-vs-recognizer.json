@@ -23,7 +23,7 @@
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "cdd0b3053662f92b0a1bb7f7511facb842f42eb1b99e812ea3a1ae2719e641ce",
+      "matchContractFingerprint": "43f067af5dd5563dce8ff3d896972d19f7c74e5aa7c675927aeb7c206065edae",
       "ownReactorSide": "east",
       "transform": "rotate-180",
       "routeAliases": {
@@ -33,7 +33,7 @@
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "87611871f189f8a5dceb316409c4eb3e8fb25aae2f94409da42c55a79ad1c3bf",
+      "matchContractFingerprint": "9b74e780a5c117a31143d6aeba41410a64f2f928b6f60d492c44408b8ed96c9b",
       "ownReactorSide": "west",
       "transform": "identity",
       "routeAliases": {},

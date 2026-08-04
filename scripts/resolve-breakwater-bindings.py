@@ -29,12 +29,18 @@ lp = BASE / 'layouts/counterflow-breakwater-v1.json'
 lay = json.loads(lp.read_text())
 west = next(b for b in lay['bindings'] if b['ownReactorSide'] == 'west')
 east = next(b for b in lay['bindings'] if b['ownReactorSide'] == 'east')
+# exact fingerprints first, then the side-keyed wildcards as fallback for
+# pairings this sheet has never seen (exact always wins at match time)
 lay['bindings'] = []
 for f in (fp_s0, fp_p0):
     b = copy.deepcopy(west); b['matchContractFingerprint'] = f
     lay['bindings'].append(b)
 for f in (fp_s1, fp_p1):
     b = copy.deepcopy(east); b['matchContractFingerprint'] = f
+    lay['bindings'].append(b)
+for side_binding in (west, east):
+    b = copy.deepcopy(side_binding)
+    b['matchContractFingerprint'] = 'any-composition'
     lay['bindings'].append(b)
 lp.write_text(json.dumps(lay, indent=2) + "\n")
 sha = hashlib.sha256(lp.read_bytes()).hexdigest()
