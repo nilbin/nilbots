@@ -290,6 +290,76 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void MovementCompletionFactsReferenceDeclaredOrders()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject layout = source["layout"]!.AsObject();
+        layout["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            layout["path"]!.GetValue<string>()));
+        JsonObject transition = source["coordination"]!["phases"]![0]!
+            ["transitions"]![0]!.AsObject();
+        JsonArray conditions = transition["when"]![0]!["all"]!.AsArray();
+        conditions.Add(new JsonObject
+        {
+            ["fact"] = "movement-complete",
+            ["subject"] = "line-rush",
+            ["operator"] = "equals",
+            ["value"] = 1,
+        });
+        string valid = TemporaryJson(source);
+        try
+        {
+            Assert.NotEmpty(ArcRelayTacticalPlaybookCompiler
+                .Compile(valid).LinkedData);
+            conditions[^1]!["subject"] = "missing-order";
+            string invalid = TemporaryJson(source);
+            try
+            {
+                InvalidDataException failure =
+                    Assert.Throws<InvalidDataException>(() =>
+                        ArcRelayTacticalPlaybookCompiler.Compile(invalid));
+                Assert.Contains(
+                    "unknown order 'missing-order'", failure.Message);
+            }
+            finally
+            {
+                File.Delete(invalid);
+            }
+        }
+        finally
+        {
+            File.Delete(valid);
+        }
+    }
+
+    [Fact]
+    public void MovementAndFormationPaceCannotContradict()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject order = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .First();
+        string original = order["movement"]!["pace"]!.GetValue<string>();
+        order["movement"]!["pace"] = original == "free"
+            ? "slowest"
+            : "free";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("conflicts with formation", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =

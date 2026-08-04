@@ -39,7 +39,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         "well-has-outstanding", "outstanding-well-count",
         "ticks-without-objective-progress",
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
-        "custody-state-ticks", "role-live-count",
+        "group-formation-broken", "movement-complete", "custody-state-ticks",
+        "role-live-count",
     ];
 
     private static readonly HashSet<string> GroupSubjectFacts =
@@ -47,7 +48,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         "group-live-count", "group-joining-count", "group-in-zone-count",
         "group-cohesion",
         "group-stuck-ticks", "formation-established-ticks",
+        "group-formation-broken",
     ];
+
+    private static readonly HashSet<string> OrderSubjectFacts =
+    ["movement-complete"];
 
     private static readonly HashSet<string> ZoneFacts =
     [
@@ -173,12 +178,17 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement role in roles)
             ValidateRole(role, roleIds, path);
 
+        JsonElement[] orders = BoundedArray(
+            root.GetProperty("orders"), $"{path}.orders", 1, 64);
+        HashSet<string> orderIds = UniqueIds(
+            orders, "orderId", $"{path}.orders");
+
         JsonElement[] groups = BoundedArray(
             root.GetProperty("groups"), $"{path}.groups", 1, 8);
         HashSet<string> groupIds = UniqueIds(
             groups, "groupId", $"{path}.groups");
         foreach (JsonElement group in groups)
-            ValidateGroup(group, roleIds, groupIds, path);
+            ValidateGroup(group, roleIds, groupIds, orderIds, path);
 
         JsonElement[] formations = BoundedArray(
             root.GetProperty("formations"), $"{path}.formations", 1, 24);
@@ -208,16 +218,28 @@ public static class ArcRelayTacticalPlaybookCompiler
         HashSet<string> custodyIds = UniqueIds(
             custody, "custodyId", $"{path}.custodyPolicies");
         foreach (JsonElement policy in custody)
-            ValidateCustody(policy, roleIds, groupIds, path);
-
-        JsonElement[] orders = BoundedArray(
-            root.GetProperty("orders"), $"{path}.orders", 1, 64);
-        HashSet<string> orderIds = UniqueIds(
-            orders, "orderId", $"{path}.orders");
+            ValidateCustody(policy, roleIds, groupIds, orderIds, path);
         foreach (JsonElement order in orders)
         {
             ValidateOrder(order, groupIds, formationIds, engagementIds,
                 supportIds, custodyIds, path);
+            string formationId = order.GetProperty("formationId").GetString()!;
+            string formationPace = formations.Single(formation =>
+                    string.Equals(
+                        formation.GetProperty("formationId").GetString(),
+                        formationId,
+                        StringComparison.Ordinal))
+                .GetProperty("cohesion").GetProperty("pace").GetString()!;
+            string movementPace = order.GetProperty("movement")
+                .GetProperty("pace").GetString()!;
+            if (!string.Equals(
+                    formationPace, movementPace, StringComparison.Ordinal))
+            {
+                throw Error(path,
+                    $"order '{order.GetProperty("orderId").GetString()}' "
+                    + $"pace '{movementPace}' conflicts with formation "
+                    + $"'{formationId}' pace '{formationPace}'.");
+            }
         }
         ValidateEscortOrders(orders, custody, path);
 
@@ -384,6 +406,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         IReadOnlySet<string> roleIds,
         IReadOnlySet<string> groupIds,
+        IReadOnlySet<string> orderIds,
         string path)
     {
         string at = $"{path}.groups";
@@ -407,13 +430,15 @@ public static class ArcRelayTacticalPlaybookCompiler
         OneOf(membership, "overflow", at,
             "unassigned", "lowest-count", "declared-role");
         ValidateLocalStateMachine(
-            value.GetProperty("localStateMachine"), groupIds, roleIds, at);
+            value.GetProperty("localStateMachine"), groupIds, roleIds,
+            orderIds, at);
     }
 
     private static void ValidateLocalStateMachine(
         JsonElement value,
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> orderIds,
         string path)
     {
         Object(value, $"{path}.localStateMachine",
@@ -434,7 +459,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(state, "minimumTicks", path, 0, 1200);
             ValidateTransitions(
                 state.GetProperty("transitions"), ids, groupIds, roleIds,
-                path);
+                orderIds, path);
         }
     }
 
@@ -573,6 +598,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         IReadOnlySet<string> roleIds,
         IReadOnlySet<string> groupIds,
+        IReadOnlySet<string> orderIds,
         string path)
     {
         string at = $"{path}.custodyPolicies";
@@ -601,7 +627,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         OneOf(value, "unreachableFallback", at,
             "hold", "guard", "alternate-core", "regroup");
         ValidateConditionGroups(
-            value.GetProperty("safeConversionAll"), groupIds, roleIds,
+            value.GetProperty("safeConversionAll"), groupIds, roleIds, orderIds,
             $"{at}.{id}.safeConversionAll", 1, 8);
     }
 
@@ -629,7 +655,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 $"{at}.orderIds", 1, 32);
             ValidateTransitions(
                 phase.GetProperty("transitions"), phaseIds, groupIds,
-                roleIds, at);
+                roleIds, orderIds, at);
         }
     }
 
@@ -696,6 +722,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> stateIds,
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> orderIds,
         string path)
     {
         JsonElement[] transitions = BoundedArray(value, path, 0, 32);
@@ -711,7 +738,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "respect", "interrupt");
             Range(transition, "stableTicks", path, 1, 120);
             ValidateConditionGroups(
-                transition.GetProperty("when"), groupIds, roleIds, path,
+                transition.GetProperty("when"), groupIds, roleIds, orderIds,
+                path,
                 1, 16);
         }
     }
@@ -720,6 +748,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> orderIds,
         string path,
         int minimum,
         int maximum)
@@ -737,7 +766,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 hasAll ? allValue : anyValue,
                 $"{path}.{(hasAll ? "all" : "any")}", 1, 16);
             foreach (JsonElement condition in conditions)
-                ValidateCondition(condition, groupIds, roleIds, path);
+                ValidateCondition(
+                    condition, groupIds, roleIds, orderIds, path);
         }
     }
 
@@ -745,6 +775,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> orderIds,
         string path)
     {
         string fact = RequiredString(value, "fact", path);
@@ -753,6 +784,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         var variantFields = new List<string>();
         if (GroupSubjectFacts.Contains(fact)
             || fact is "role-live-count" or "well-has-outstanding")
+            variantFields.Add("subject");
+        if (OrderSubjectFacts.Contains(fact))
             variantFields.Add("subject");
         if (ZoneFacts.Contains(fact))
             variantFields.Add("zone");
@@ -772,6 +805,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             throw Error(path, $"condition references unknown group '{subject}'.");
         if (fact == "role-live-count" && !roleIds.Contains(subject))
             throw Error(path, $"condition references unknown role '{subject}'.");
+        if (OrderSubjectFacts.Contains(fact) && !orderIds.Contains(subject))
+            throw Error(path, $"condition references unknown order '{subject}'.");
     }
 
     private static void ValidateLayout(JsonElement root, string path)

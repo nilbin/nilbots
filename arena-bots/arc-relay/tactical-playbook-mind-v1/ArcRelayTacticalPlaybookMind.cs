@@ -29,6 +29,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _friendlyDroppedCores = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _formationStableTicks =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, TacticalFormationPrimitives.Lifecycle>
+        _formationLifecycles = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _activeFormationIds =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _orderCompletion =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<int, ActorIdentity> _friendlyLives = [];
     private readonly HashSet<int> _joiningUnits = [];
     private GenericActorResolvedMatchContract? _contract;
@@ -121,6 +127,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body => Target(
                 contract, mind, package, machine, roles, groups, orders,
                 carried, orders[body.UnitId], body));
+        UpdateOrderCompletion(
+            mind, package.Source, orders, targets);
         Dictionary<int, MindBody> repairs = AllocateRepairs(
             contract, mind, package.Source, roles, orders,
             carried.Keys.ToHashSet(), new HashSet<int>());
@@ -222,7 +230,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             Provenance(machine, group, order, "signature")),
                     "movement" => TryMovement(
                         contract, mind, arc, package, machine, snapshot, body,
-                        role, group, order, target, pickupAssignments, claims),
+                        role, group, order, target, targets, groups,
+                        pickupAssignments, claims),
                     "facing" => facingTarget is Position lookAt
                         && TryFaceTarget(
                         contract, body, lookAt,
@@ -592,12 +601,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 TacticalPlaybookPackage.Formation formation = ActiveFormation(
                     package.Source, machine, group.GroupId);
+                if (!string.Equals(
+                        _activeFormationIds.GetValueOrDefault(group.GroupId),
+                        formation.FormationId,
+                        StringComparison.Ordinal))
+                {
+                    _activeFormationIds[group.GroupId] = formation.FormationId;
+                    _formationLifecycles[group.GroupId] = default;
+                }
                 int prior = _formationStableTicks.GetValueOrDefault(group.GroupId);
                 _formationStableTicks[group.GroupId] =
                     groupCohesion[group.GroupId]
                         >= formation.Cohesion.ArrivalRatioPercent
                         ? prior + 1
                         : 0;
+                _formationLifecycles[group.GroupId] =
+                    TacticalFormationPrimitives.AdvanceLifecycle(
+                        _formationLifecycles.GetValueOrDefault(group.GroupId),
+                        groupCohesion[group.GroupId],
+                        formation.Cohesion.BreakRatioPercent,
+                        formation.Cohesion.BreakTicks,
+                        formation.Cohesion.ArrivalRatioPercent,
+                        formation.Cohesion.ReformTicks);
             }
         }
         Dictionary<string, Dictionary<string, int>> groupZones =
@@ -664,7 +689,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 well => well.WellId,
                 well => well.OutstandingCoreId is null ? 0 : 1,
                 StringComparer.Ordinal),
-            _formationStableTicks.ToDictionary(StringComparer.Ordinal));
+            _formationStableTicks.ToDictionary(StringComparer.Ordinal),
+            _formationLifecycles.ToDictionary(
+                value => value.Key,
+                value => value.Value.Broken ? 1 : 0,
+                StringComparer.Ordinal));
     }
 
     private static int CohesionPercent(Position[] positions, int maximumSpacing)
@@ -761,6 +790,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             "reactor-integrity" => snapshot.ReactorIntegrity,
             "reactor-charge" => snapshot.ReactorCharge,
             "formation-established-ticks" => snapshot.FormationStableTicks
+                .GetValueOrDefault(condition.Subject),
+            "group-formation-broken" => snapshot.FormationBroken
+                .GetValueOrDefault(condition.Subject),
+            "movement-complete" => _orderCompletion
                 .GetValueOrDefault(condition.Subject),
             "custody-state-ticks" => snapshot.TicksWithoutObjectiveProgress,
             "role-live-count" => snapshot.RoleLive
@@ -1719,6 +1752,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string group,
         TacticalPlaybookPackage.Order order,
         Position target,
+        IReadOnlyDictionary<int, Position> targets,
+        IReadOnlyDictionary<int, string> groups,
         IReadOnlyDictionary<int,
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
         ArenaBasics.Claims claims)
@@ -1765,6 +1800,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Formation formation =
             package.Source.Formations.Single(value =>
                 value.FormationId == order.FormationId);
+        MindBody[] paceMembers = mind.Bodies
+            .Where(candidate => groups[candidate.UnitId] == group)
+            .OrderBy(candidate => candidate.UnitId)
+            .ToArray();
+        int leaderUnitId = paceMembers[0].UnitId;
+        int leaderDistance = paceMembers[0].Position.ChebyshevDistance(
+            targets[leaderUnitId]);
+        int furthestDistance = paceMembers.Max(candidate =>
+            candidate.Position.ChebyshevDistance(targets[candidate.UnitId]));
+        if (snapshot.FormationBroken.GetValueOrDefault(group) != 0
+            && !TacticalFormationPrimitives.CanAdvanceAtPace(
+                order.Movement.Pace,
+                body.UnitId,
+                leaderUnitId,
+                body.Position.ChebyshevDistance(target),
+                leaderDistance,
+                furthestDistance))
+        {
+            return Hold(body, Provenance(
+                machine, group, order, "formation-pace"));
+        }
         bool targetBlocked = !TacticalFormationPrimitives.IsEnterable(
             contract.Map.Width,
             contract.Map.Height,
@@ -1787,6 +1843,38 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 stuck >= order.Movement.StuckTicks
                     ? $"{order.Movement.StuckRecovery}-reflow"
                     : "formation-move"));
+    }
+
+    private void UpdateOrderCompletion(
+        MindContext mind,
+        TacticalPlaybookPackage.Playbook playbook,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        IReadOnlyDictionary<int, Position> targets)
+    {
+        _orderCompletion.Clear();
+        foreach (IGrouping<string, MindBody> members in mind.Bodies
+                     .GroupBy(body => orders[body.UnitId].OrderId,
+                         StringComparer.Ordinal))
+        {
+            MindBody[] ordered = members.OrderBy(body => body.UnitId).ToArray();
+            TacticalPlaybookPackage.Order order = orders[ordered[0].UnitId];
+            TacticalPlaybookPackage.Formation formation = playbook.Formations
+                .Single(value => value.FormationId == order.FormationId);
+            int arrived = ordered.Count(body => body.Position
+                .ChebyshevDistance(targets[body.UnitId])
+                <= order.Movement.ArrivalRadius);
+            bool complete = ordered.Any(body =>
+                TacticalFormationPrimitives.OrderComplete(
+                    order.Movement.Completion,
+                    body.UnitId,
+                    ordered[0].UnitId,
+                    body.Position.ChebyshevDistance(targets[body.UnitId])
+                        <= order.Movement.ArrivalRadius,
+                    arrived,
+                    ordered.Length,
+                    formation.Cohesion.ArrivalRatioPercent));
+            _orderCompletion[order.OrderId] = complete ? 1 : 0;
+        }
     }
 
     private bool TryReachAccidentalCarrier(
@@ -2149,5 +2237,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> VisibleEnemiesByZone,
         IReadOnlyDictionary<string, int> RememberedEnemiesByZone,
         IReadOnlyDictionary<string, int> WellOutstanding,
-        IReadOnlyDictionary<string, int> FormationStableTicks);
+        IReadOnlyDictionary<string, int> FormationStableTicks,
+        IReadOnlyDictionary<string, int> FormationBroken);
 }

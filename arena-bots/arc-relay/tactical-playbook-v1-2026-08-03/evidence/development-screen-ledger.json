@@ -538,6 +538,48 @@
       ],
       "resultSummary": "Rejected. Repair channels were being interrupted, but blindly pinning wounded targets lost both mirrors. Maintenance must be an authored risk-aware support policy rather than a universal lock, so the implementation was fully removed.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "activate-formation-pace-and-movement-completion",
+      "playbookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Make the already-authored slowest pace, completion modes, and formation break/reform windows executable instead of validation-only fields.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 351 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 }
+      ],
+      "resultSummary": "Rejected as implemented. Enforcing slowest pace during the initial scattered deployment serialized the rush and lost both mirrors; authored lifecycle semantics must distinguish formation establishment from recovery.",
+      "verdict": "rejected-framework-implementation"
+    },
+    {
+      "attemptId": "semantic-ablation-free-pace-authored-completion",
+      "change": "Ablate the pace gate by changing every formation/order pace to free while leaving authored completion modes active. This changed the sheet hash and therefore entrant random stream, so it is diagnostic only rather than a clean causal match comparison.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 508 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 459 }
+      ],
+      "resultSummary": "Rejected. Free pace alone did not restore the two-mirror screen; because the source hash moved, this result is retained only as implementation diagnostics.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "semantic-ablation-free-pace-continuous-completion",
+      "change": "Set every pace to free and every movement completion to continuous. This also changed the sheet hash and entrant random stream, so it is diagnostic only.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 434 }
+      ],
+      "resultSummary": "Rejected. Removing both controls in the source still lost both mirrors and cannot isolate behavior because the source hash moved.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "armed-formation-lifecycle-recovery-pace",
+      "playbookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Arm break/reform behavior only after the formation first satisfies its arrival window, then apply the authored slowest pace only while that established formation is broken. Movement completion remains an executable transition fact rather than an implicit hold.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 360 }
+      ],
+      "resultSummary": "Retain the generic lifecycle semantics but reject this Home Siege candidate. The sheet source stayed byte-identical and still lost both mirrors, proving the newly executable recovery pace materially changes later play and must be accounted for in the v2 rewrite.",
+      "verdict": "retained-framework-change-rejected-strategy"
     }
   ]
 }

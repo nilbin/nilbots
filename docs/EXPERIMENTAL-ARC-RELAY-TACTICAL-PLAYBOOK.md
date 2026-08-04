@@ -72,6 +72,16 @@ until their final approach, then apply role-relative placements. Runtime motion
 claims, legal-path checks, and bounded reflow arbitrate collisions without
 changing authoritative simulation truth.
 
+Break/reform is an explicit lifecycle rather than a startup shortcut. A
+formation first arms only after its arrival ratio holds for `reformTicks`. Once
+armed, cohesion at or below `breakRatioPercent` for `breakTicks` marks it
+broken; cohesion at or above `arrivalRatioPercent` for `reformTicks` repairs
+it. `free` pace never gates movement. While an established formation is
+broken, `slowest` lets the tail catch up before bodies farther ahead advance,
+and `leader` lets followers catch but not overtake the stable lowest-unit-ID
+leader. The compiler requires an order's movement pace to match its formation's
+cohesion pace so two editor controls cannot silently contradict each other.
+
 Orientation is executable. A current shared focus assignment owns facing so a
 cooldown tick does not turn a shooter away from its next shot. Otherwise,
 `enemy-reactor` and `own-reactor` restore the formation's look direction,
@@ -104,6 +114,15 @@ The first legal action wins. Every submitted command explains itself as
 `tp:<phase>:<group>:<order>:<channel>`; focus and custody commands add their
 target or recovery reason. This is presentation/debug provenance only and does
 not alter the canonical rules.
+
+Movement completion is observable state, not an implicit movement cancel.
+`continuous` never completes; `leader-arrived`, `all-arrived`, and
+`cohesion-arrived` become true from the order's declared arrival radius and the
+formation's arrival ratio. A transition may consume that state through the
+typed `movement-complete` fact whose `subject` must be a declared order ID.
+This keeps the author—not an invisible executor default—in charge of what the
+team does after arrival. `group-formation-broken` similarly exposes the
+formation lifecycle to global and local transitions.
 
 `enemy-carrier` is a bounded interception order, not omniscient pursuit. Its
 `target` names the fallback layout anchor and its movement `chaseLeash` is the
@@ -237,6 +256,13 @@ The parity control is the fair tactical benchmark. It ensures Home Siege is not
 credited merely for coordinating shots against an opponent denied that same
 capability. The frozen baseline remains a regression/control row, not the sole
 claim.
+
+The primary dominance cohort must therefore use the parity control, never the
+historical uncoordinated stock sheet. Both sides receive visible-target locking,
+expected-damage accounting, deterministic attacker caps, and zero-overkill
+allocation. Their target priorities and tactical reasons may differ because
+those are authored strategy; the low-level ability to coordinate attacks does
+not.
 
 ## Scope boundary
 

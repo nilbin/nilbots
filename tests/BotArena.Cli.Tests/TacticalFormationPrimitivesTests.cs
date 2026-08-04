@@ -110,4 +110,85 @@ public sealed class TacticalFormationPrimitivesTests
             TacticalFormationPrimitives.ReflowGoals(
                 3, 3, rows, target, 2, "hold"));
     }
+
+    [Fact]
+    public void FormationBreakAndReformUseIndependentStableWindows()
+    {
+        TacticalFormationPrimitives.Lifecycle state = default;
+
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 80, 50, breakTicks: 2, reformRatioPercent: 75,
+            reformTicks: 2);
+        Assert.False(state.Armed);
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 80, 50, 2, 75, 2);
+        Assert.True(state.Armed);
+        Assert.False(state.Broken);
+
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 49, 50, breakTicks: 2, reformRatioPercent: 75,
+            reformTicks: 3);
+        Assert.False(state.Broken);
+        Assert.Equal(1, state.BreakStreak);
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 50, 50, 2, 75, 3);
+        Assert.True(state.Broken);
+
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 75, 50, 2, 75, 3);
+        state = TacticalFormationPrimitives.AdvanceLifecycle(
+            state, 74, 50, 2, 75, 3);
+        Assert.True(state.Broken);
+        Assert.Equal(0, state.ReformStreak);
+        for (int index = 0; index < 3; index++)
+        {
+            state = TacticalFormationPrimitives.AdvanceLifecycle(
+                state, 80, 50, 2, 75, 3);
+        }
+        Assert.False(state.Broken);
+    }
+
+    [Theory]
+    [InlineData("continuous", 2, 2, true, 3, 3, 75, false)]
+    [InlineData("leader-arrived", 2, 2, true, 1, 3, 75, true)]
+    [InlineData("leader-arrived", 3, 2, true, 1, 3, 75, false)]
+    [InlineData("all-arrived", 3, 2, true, 3, 3, 75, true)]
+    [InlineData("all-arrived", 3, 2, true, 2, 3, 75, false)]
+    [InlineData("cohesion-arrived", 3, 2, false, 3, 4, 75, true)]
+    [InlineData("cohesion-arrived", 3, 2, true, 2, 4, 75, false)]
+    public void EveryMovementCompletionModeHasExactSemantics(
+        string completion,
+        int unitId,
+        int leaderUnitId,
+        bool unitArrived,
+        int arrived,
+        int members,
+        int ratio,
+        bool expected)
+    {
+        Assert.Equal(expected, TacticalFormationPrimitives.OrderComplete(
+            completion, unitId, leaderUnitId, unitArrived, arrived, members,
+            ratio));
+    }
+
+    [Theory]
+    [InlineData("free", 3, 2, 2, 4, 5, true)]
+    [InlineData("slowest", 3, 2, 4, 4, 5, true)]
+    [InlineData("slowest", 3, 2, 3, 4, 5, false)]
+    [InlineData("leader", 2, 2, 2, 2, 5, true)]
+    [InlineData("leader", 3, 2, 2, 3, 5, false)]
+    [InlineData("leader", 3, 2, 3, 3, 5, true)]
+    public void FormationPacePreventsAuthoredOvertaking(
+        string pace,
+        int unitId,
+        int leaderUnitId,
+        int distance,
+        int leaderDistance,
+        int furthestDistance,
+        bool expected)
+    {
+        Assert.Equal(expected, TacticalFormationPrimitives.CanAdvanceAtPace(
+            pace, unitId, leaderUnitId, distance, leaderDistance,
+            furthestDistance));
+    }
 }
