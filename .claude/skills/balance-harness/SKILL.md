@@ -101,6 +101,14 @@ from WASM by runtime provenance — it is analysis material, never evidence.
 Summarize any replay or sweep cell with
 `python3 scripts/arc-relay-replay-analyze.py <replay.json[.gz] | cell-dir>`.
 
+Compile a tactical playbook to its deterministic runtime package with
+`nilbots experiment arc-relay-playbook --playbook <json> --out <dir>` — it
+emits `playbook.atp` (the hashed runtime artifact), normalized
+playbook/layout JSON, and `explain.json`, and prints the playbook, layout,
+and package SHA-256 values that manifests must bind. Control artifacts are
+bound by SHA-256 via `balance/arc-relay-baseline-registry.json` — never by
+path or the "stock-v4" nickname, which has named two different byte sets.
+
 Results field map (saves the scavenger hunt):
 - sweep summary: `attempt-01/results.json` — `allExpectedCanonicalHashesMatched`,
   `eligibleCells`, `verifiedCanonicalReplays`;
