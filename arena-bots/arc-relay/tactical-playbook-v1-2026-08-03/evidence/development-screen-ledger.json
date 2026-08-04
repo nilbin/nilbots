@@ -374,6 +374,27 @@
       ],
       "resultSummary": "Rejected. The failure flipped assignments rather than disappearing; disciplined fixed slots remain more robust than local pursuit for Home Siege.",
       "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-one-damage-redundancy",
+      "change": "Keep the five-attacker siege cap but allow one point of expected overkill so the fifth shot can insure a four-hull carrier against movement misses.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 583 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": null, "reason": "max-ticks", "endTick": 599 }
+      ],
+      "resultSummary": "Rejected. It improved the losing mirror to a draw but did not satisfy even the two-cell win screen.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-six-attackers-two-damage-redundancy",
+      "playbookSourceSha256": "f790d1558bba41b240ca53c6ac93bd556acf566b408a62dc84c950e97bfc6f7c",
+      "change": "Raise the siege cap to six attackers and budget two points of expected overkill.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 402 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "fault-eligibility", "endTick": 178, "valid": false }
+      ],
+      "resultSummary": "Rejected. The clean assignment lost quickly and the mirror was invalid because the control faulted; an invalid opponent result is never counted as a tactical win.",
+      "verdict": "rejected"
     }
   ]
 }
