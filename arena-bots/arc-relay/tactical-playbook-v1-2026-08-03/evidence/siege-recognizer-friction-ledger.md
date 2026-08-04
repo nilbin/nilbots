@@ -65,6 +65,18 @@ never patched mid-goal). Author: the coordinator, running the Stage 2 goal.
     sheets get the new play. Re-baselining every frozen champion after
     ANY executor edit is not optional — the executor is part of the
     strategy artifact even though it lives outside the sheet.
+13. The four dead kits are wired (owner directive 2026-08-05): trip-node
+    and sentinel-seed as clamped placements toward the focus target,
+    smoke-canister on the threat, exchange as a guarded escape swap with
+    a healthier, safer teammate; the idle support path now also lays
+    deployables. Single-swap probe games confirm every kit fires
+    (trip-node x24, sentinel x12, smoke x14, exchange x5) — and three
+    of four swaps BEAT the parity control where current Breakwater
+    loses, so the new classes are live tuning material. Sheet-design
+    fact learned: deployables cannot be placed on protected pads (the
+    engine forbids tagged tiles), so a minesmith anchored inside a pad
+    shelter casts nothing — deploy classes belong on approaches, not
+    on the pads themselves.
 
 ## Positives worth keeping
 
