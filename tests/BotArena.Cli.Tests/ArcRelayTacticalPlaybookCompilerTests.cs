@@ -408,6 +408,29 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ForwardPassOptInCompilesAndRejectsUnknownModes()
+    {
+        JsonObject source = AuthoredHomeSiege();
+        source["custodyPolicies"]![0]!["forwardPass"] = "relay-catcher";
+        string accepted = TemporaryJson(source);
+        source["custodyPolicies"]![0]!["forwardPass"] = "yeet";
+        string rejected = TemporaryJson(source);
+        try
+        {
+            Assert.NotNull(ArcRelayTacticalPlaybookCompiler
+                .Compile(accepted).NormalizedPlaybook);
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(rejected));
+            Assert.Contains("forwardPass", failure.Message);
+        }
+        finally
+        {
+            File.Delete(accepted);
+            File.Delete(rejected);
+        }
+    }
+
+    [Fact]
     public void FactVariantsRejectIrrelevantFields()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!

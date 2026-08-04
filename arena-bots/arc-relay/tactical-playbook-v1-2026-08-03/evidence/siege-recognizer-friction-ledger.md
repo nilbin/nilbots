@@ -53,6 +53,18 @@ never patched mid-goal). Author: the coordinator, running the Stage 2 goal.
     failure. The deeper fix is engine-level: signature metadata in the
     rules contract (category, argument kind) so executors can dispatch
     generically instead of maintaining tables per class generation.
+12. An unconditional executor behavior change silently rewrote a frozen
+    champion's game: the v2 relay forward-pass flipped Home Siege v3's
+    east-orientation parity game from a tick-524 win to a tick-599 loss
+    (west it merely sped the win, 560→448 — same change, opposite
+    signs by orientation). The A/B that caught it: archived pre-v2 mind
+    source run as a sandbox bot against the same seed. Lesson now
+    encoded as a pattern: executor behavior ADDITIONS ship sheet-gated
+    (custody `forwardPass: relay-catcher` opt-in); frozen sheets that
+    never declared the field replay byte-faithfully, and only opting
+    sheets get the new play. Re-baselining every frozen champion after
+    ANY executor edit is not optional — the executor is part of the
+    strategy artifact even though it lives outside the sheet.
 
 ## Positives worth keeping
 

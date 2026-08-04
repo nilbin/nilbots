@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Generate siege-recognizer-v1 playbook + layout (v0 draft)."""
+"""Generate breakwater-v1 playbook + layout (v0 draft)."""
 import json, hashlib, pathlib
 
-ROOT = pathlib.Path('/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder')
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASE = ROOT / 'arena-bots/arc-relay/tactical-playbook-v1-2026-08-03'
 T = json.load(open('/tmp/anatomy.json'))
 
 # ---------------- layout ----------------
 layout = {
   "schema": "arc-relay-tactical-layout-v1",
-  "layoutId": "counterflow-siege-recognizer-v1",
+  "layoutId": "counterflow-breakwater-v1",
   "mapId": "arc-relay-threefold-depth-counterflow-01",
   "bindings": [
     {"matchContractFingerprint": "cdd0b3053662f92b0a1bb7f7511facb842f42eb1b99e812ea3a1ae2719e641ce", "ownReactorSide": "west",
@@ -105,6 +105,7 @@ def custody(src_id, new_id, wells, carriers, escorts):
     c['authorizedCarrierRoles'] = carriers
     c['escortGroups'] = escorts
     c['safeConversionConditionSetId'] = 'convert-freely'
+    c['forwardPass'] = 'relay-catcher'  # opt-in: sheet-gated executor pass
     return c
 
 incidental = clone(next(x for x in T['custodyPolicies'] if 'incidental' in x['custodyId']))
@@ -138,11 +139,11 @@ def order(engagement_id, custody_id, profile_id, leash=0):
 
 playbook = {
   "schema": "arc-relay-tactical-playbook-v1",
-  "playbookId": "siege-recognizer-v1",
+  "playbookId": "breakwater-v1",
   "auditStatus": {"provisionalEvaluationOnly": True, "playerFacingProductSchema": False},
   "composition": ["palisade", "palisade", "patchbay", "lantern",
                    "kestrel", "kestrel", "relay", "towline"],
-  "layout": {"path": "../layouts/counterflow-siege-recognizer-v1.json",
+  "layout": {"path": "../layouts/counterflow-breakwater-v1.json",
              "sha256": "FILLED-BELOW"},
   "perspective": "team-relative",
   "memory": clone(T['memory']),
@@ -192,7 +193,7 @@ playbook = {
     "kind": "maneuver-catalog",
     "library": {"path": "../library/standard-v1.json", "sha256": "FILLED-BELOW"},
     "parameters": {
-      "detect-mass": {"value": 4, "minimum": 3, "maximum": 8},
+      "detect-mass": {"value": 5, "minimum": 3, "maximum": 8},
       "release-mass": {"value": 2, "minimum": 0, "maximum": 4},
     },
     "assignmentProfiles": {
@@ -303,7 +304,7 @@ playbook = {
        "standingOrderIds": [],
        "transitions": [
          {"priority": 10, "to": "fortify", "cause": "success",
-          "minimumPolicy": "respect", "stableTicks": 4,
+          "minimumPolicy": "respect", "stableTicks": 2,
           "conditionSetId": "siege-detected"}]},
       {"phaseId": "fortify", "minimumTicks": 20, "maneuverId": "hold-line",
        "standingOrderIds": [],
@@ -315,11 +316,11 @@ playbook = {
   },
 }
 
-lay_path = BASE / 'layouts/counterflow-siege-recognizer-v1.json'
+lay_path = BASE / 'layouts/counterflow-breakwater-v1.json'
 lay_path.write_text(json.dumps(layout, indent=2) + "\n")
 playbook['layout']['sha256'] = hashlib.sha256(lay_path.read_bytes()).hexdigest()
 lib_path = BASE / 'library/standard-v1.json'
 playbook['authoring']['library']['sha256'] = hashlib.sha256(lib_path.read_bytes()).hexdigest()
-pb_path = BASE / 'playbooks/siege-recognizer-v1.json'
+pb_path = BASE / 'playbooks/breakwater-v1.json'
 pb_path.write_text(json.dumps(playbook, indent=2) + "\n")
 print("wrote", lay_path.name, pb_path.name)

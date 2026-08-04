@@ -2339,7 +2339,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     custody.DeliveryTimeoutTicks)
                 ? ActUnreachableCustodyFallback(
                     contract, mind, body, custody, claims)
-                : ActCarrier(contract, mind, body, claims);
+                : ActCarrier(contract, mind, body, custody, claims);
             // Carrying is an exclusive tactical state. On movement-cooldown
             // ticks ActCarrier may have no legal action; falling through
             // would let the prior formation rotate or steer the carrier away
@@ -2355,7 +2355,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     custody.DeliveryTimeoutTicks)
                 ? ActUnreachableCustodyFallback(
                     contract, mind, body, custody, claims)
-                : ActCarrier(contract, mind, body, claims);
+                : ActCarrier(contract, mind, body, custody, claims);
             return acted || Hold(body, "custody:committed-delivery-wait");
         }
 
@@ -2369,7 +2369,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     custody.TransferTimeoutTicks)
                 ? ArenaBasics.TryEvade(contract, mind, body, claims)
                     || Hold(body, "custody:await-safe-drop")
-                : ActCarrier(contract, mind, body, claims);
+                : ActCarrier(contract, mind, body, custody, claims);
         }
 
         GenericActorActionLegality? handoff = body.Action("handoff-core");
@@ -2408,7 +2408,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         // Expiry deliberately becomes delivery, not a voluntary drop/re-pickup
         // loop. A temporarily unavailable runner must not strand the Core.
-        return ActCarrier(contract, mind, body, claims)
+        return ActCarrier(contract, mind, body, custody, claims)
             || Hold(body, "custody:committed-delivery-wait");
     }
 
@@ -2424,7 +2424,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             || Hold(body, "custody:delivery-timeout-guard"),
         "alternate-core" => IsSafeToDrop(mind, body) && TryDropCore(body)
             || Hold(body, "custody:delivery-timeout-alternate-core"),
-        "regroup" => ActCarrier(contract, mind, body, claims),
+        "regroup" => ActCarrier(contract, mind, body, custody, claims),
         _ => throw new InvalidDataException(
             $"Unknown custody fallback '{custody.UnreachableFallback}'."),
     };
@@ -2498,12 +2498,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
+        TacticalPlaybookPackage.CustodyPolicy custody,
         ArenaBasics.Claims claims)
     {
         // A Relay carrier with a teammate meaningfully closer to the bank
         // throws instead of walking: the pass is the designed answer to a
         // contested return, and the catcher inherits ordinary custody.
-        if (TryTossToForwardCatcher(contract, mind, body))
+        // Sheet-gated: an unconditional pass changed frozen champions'
+        // games, so only sheets that opt in ever volunteer it.
+        if (string.Equals(custody.ForwardPass, "relay-catcher",
+                StringComparison.Ordinal)
+            && TryTossToForwardCatcher(contract, mind, body))
             return true;
         Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
             contract, mind, body, _ownReactor);

@@ -2,11 +2,11 @@
 """Re-resolve pairing fingerprints and rewrite recognizer + siege-edition bindings."""
 import json, hashlib, pathlib, subprocess, copy, sys
 
-ROOT = pathlib.Path('/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder')
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASE = ROOT / 'arena-bots/arc-relay/tactical-playbook-v1-2026-08-03'
 TAC = 'arena-bots/arc-relay/tactical-playbook-mind-v1'
 STK = 'arena-bots/arc-relay/stock-mind-v4'
-REC = str(BASE / 'playbooks/siege-recognizer-v1.json')
+REC = str(BASE / 'playbooks/breakwater-v1.json')
 PAR = str(BASE / 'controls/coordination-parity-baseline.json')
 SIE_FROZEN = str(BASE / 'playbooks/home-siege-v3.json')
 
@@ -25,7 +25,7 @@ fp_p1 = fp(STK, TAC, PAR, REC)          # parity west, recognizer east
 print('fps:', fp_s0[:12], fp_s1[:12], fp_p0[:12], fp_p1[:12])
 
 # recognizer layout: west bindings for s0/p0, east (aliased) for s1/p1
-lp = BASE / 'layouts/counterflow-siege-recognizer-v1.json'
+lp = BASE / 'layouts/counterflow-breakwater-v1.json'
 lay = json.loads(lp.read_text())
 west = next(b for b in lay['bindings'] if b['ownReactorSide'] == 'west')
 east = next(b for b in lay['bindings'] if b['ownReactorSide'] == 'east')
@@ -38,7 +38,7 @@ for f in (fp_s1, fp_p1):
     lay['bindings'].append(b)
 lp.write_text(json.dumps(lay, indent=2) + "\n")
 sha = hashlib.sha256(lp.read_bytes()).hexdigest()
-pp = BASE / 'playbooks/siege-recognizer-v1.json'
+pp = BASE / 'playbooks/breakwater-v1.json'
 pb = json.loads(pp.read_text()); pb['layout']['sha256'] = sha
 pp.write_text(json.dumps(pb, indent=2) + "\n")
 

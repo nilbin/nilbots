@@ -389,3 +389,21 @@ Winner: add `GameRules.V0_X`, point `GameRules.Current` +
 template README, add the DECISIONS entry with the numbers table, and paste the
 outcomes/dynamics/replay-review evidence into GAME-DESIGN. Loser: DECISIONS
 entry with the evidence, exact failure mode, and population needed to re-test.
+
+## 8. Executor edits are strategy edits
+
+The tactical-playbook executor (`arena-bots/arc-relay/tactical-playbook-mind-v1/`)
+is part of every sheet's behavior. After ANY executor change:
+
+- Re-baseline every frozen champion vs its parity control, BOTH orientations
+  (a change can help west and lose east — observed: forward-pass, 2026-08).
+- A/B against the archived executor when numbers move:
+  `git archive <old-sha> arena-bots/arc-relay/tactical-playbook-mind-v1 | tar -x
+  --strip-components=3 -C sandbox/ab/old-mind`, fix the csproj's relative SDK
+  path depth, and pass `--bot sandbox/ab/old-mind`. First command-divergence
+  tick (compare `mindTurns` per team) names the culprit feature.
+- New executor behaviors ship SHEET-GATED (opt-in field, e.g. custody
+  `forwardPass`), so frozen sheets replay byte-faithfully by default.
+- Instant utility signatures (walls, flares, hooks, paint) emit NO facts in
+  replays — count accepted `mindTurns` commands, never tell-phase facts, or
+  the casts are invisible and you will chase a phantom bug.

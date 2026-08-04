@@ -386,7 +386,8 @@ internal sealed class TacticalPlaybookPackage
         string[]? EmergencyRecoverySourceWells = null,
         string? EmergencyRecoveryDisposition = null,
         string? EmergencyDisplacementTarget = null,
-        int EmergencyDisplacementReleaseRadius = 0);
+        int EmergencyDisplacementReleaseRadius = 0,
+        string ForwardPass = "none");
 
     internal sealed record Order(
         string OrderId,

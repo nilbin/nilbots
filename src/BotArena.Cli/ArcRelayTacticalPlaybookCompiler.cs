@@ -1999,7 +1999,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "emergencyRecoveryDisposition",
                 "emergencyDisplacementTarget",
                 "emergencyDisplacementReleaseRadius",
+                "forwardPass",
             ]);
+        // forwardPass is opt-in so frozen sheets keep their exact executor
+        // behavior: absent means the carrier never volunteers a pass.
+        if (value.TryGetProperty("forwardPass", out _))
+            OneOf(value, "forwardPass", at, "none", "relay-catcher");
         string id = Identifier(value, "custodyId", at);
         References(value.GetProperty("authorizedCarrierRoles"), roleIds,
             $"{at}.{id}.authorizedCarrierRoles", 1, 8);

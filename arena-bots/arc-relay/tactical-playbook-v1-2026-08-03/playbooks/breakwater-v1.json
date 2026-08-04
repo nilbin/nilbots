@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-breakwater-v1.json",
-    "sha256": "1a89029173b5febdeaa1858b7858e9f05c3f7faca50ed864ae22fb82dacfb206"
+    "sha256": "f18f76a77e14d6a2ebe793ec6650dd28abcd163e0c545520605ed0c9e718417c"
   },
   "perspective": "team-relative",
   "memory": {
@@ -607,7 +607,7 @@
       "lockPreemption": "urgent-carrier",
       "maximumAttackersPerTarget": 1,
       "overkillDamage": 0,
-      "chaseLeash": 3,
+      "chaseLeash": 4,
       "aimPreparation": "current-cone-only",
       "signatureCoordination": "damage-first",
       "dodgeCoverage": {
@@ -711,7 +711,8 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversionConditionSetId": "convert-freely",
+      "forwardPass": "relay-catcher"
     },
     {
       "custodyId": "farm-south",
@@ -730,7 +731,8 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversionConditionSetId": "convert-freely",
+      "forwardPass": "relay-catcher"
     },
     {
       "custodyId": "incidental-delivery",
