@@ -648,6 +648,7 @@
       ],
       "coordinationScope": "shared-policy",
       "lockTicks": 4,
+      "lockPreemption": "never",
       "maximumAttackersPerTarget": 4,
       "overkillDamage": 0,
       "chaseLeash": 3,
@@ -691,6 +692,7 @@
       ],
       "coordinationScope": "shared-policy",
       "lockTicks": 6,
+      "lockPreemption": "never",
       "maximumAttackersPerTarget": 5,
       "overkillDamage": 0,
       "chaseLeash": 2,
@@ -732,6 +734,7 @@
       ],
       "coordinationScope": "shared-policy",
       "lockTicks": 2,
+      "lockPreemption": "never",
       "maximumAttackersPerTarget": 2,
       "overkillDamage": 0,
       "chaseLeash": 1,
@@ -819,6 +822,27 @@
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "alternate-core",
       "safeConversionConditionSetId": "surge-always"
+    },
+    {
+      "custodyId": "incidental-delivery",
+      "authorizedCarrierRoles": [
+        "runner",
+        "medic",
+        "line"
+      ],
+      "escortGroups": [],
+      "sourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "pickupReservationTicks": 8,
+      "transferTimeoutTicks": 8,
+      "deliveryTimeoutTicks": 120,
+      "accidentalPickup": "deliver",
+      "dropRecovery": "nearest-authorized",
+      "unreachableFallback": "guard",
+      "safeConversionConditionSetId": "never-convert"
     }
   ],
   "authoring": {
@@ -871,6 +895,9 @@
       "line-recover": {
         "groupId": "line-group",
         "priority": 25,
+        "members": {
+          "kind": "all"
+        },
         "movement": {
           "kind": "zone",
           "target": "forward-rally",
@@ -883,6 +910,7 @@
         },
         "formationId": "rally-wedge",
         "engagementId": "regroup-defense",
+        "custodyId": "incidental-delivery",
         "localState": "recovering",
         "fallback": {
           "onNoPath": "reflow",
@@ -918,7 +946,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 3,
                 "engagementId": "rush-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "medic-standard"
               },
@@ -927,7 +955,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 3,
                 "engagementId": "rush-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "line-standard"
               }
@@ -960,7 +988,7 @@
                 "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "regroup-on-failure",
                 "assignmentProfileId": "medic-standard"
               },
@@ -969,7 +997,7 @@
                 "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "siege-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "regroup-on-failure",
                 "assignmentProfileId": "line-standard"
               }
@@ -1002,7 +1030,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 1,
                 "engagementId": "regroup-defense",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "medic-standard"
               },
@@ -1011,7 +1039,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 1,
                 "engagementId": "regroup-defense",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "line-standard"
               }
@@ -1044,7 +1072,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "regroup-on-failure",
                 "assignmentProfileId": "medic-standard"
               },
@@ -1053,7 +1081,7 @@
                 "completion": "cohesion-arrived",
                 "chaseLeash": 2,
                 "engagementId": "rush-focus",
-                "custodyId": "",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "regroup-on-failure",
                 "assignmentProfileId": "line-standard"
               }
@@ -1158,6 +1186,11 @@
       }
     },
     "conditionSets": {
+      "never-convert": [
+        [
+          "no-live-friendlies"
+        ]
+      ],
       "line-cohesion-broken": [
         [
           "line-cohesion-low"
@@ -1288,6 +1321,9 @@
         "groupId": "runner-group",
         "localState": "ready",
         "priority": 10,
+        "members": {
+          "kind": "all"
+        },
         "stuckRecovery": "repath",
         "supportId": ""
       },
@@ -1295,6 +1331,9 @@
         "groupId": "runner-group",
         "localState": "ready",
         "priority": 10,
+        "members": {
+          "kind": "all"
+        },
         "stuckRecovery": "reflow",
         "supportId": ""
       },
@@ -1302,6 +1341,9 @@
         "groupId": "medic-group",
         "localState": "ready",
         "priority": 20,
+        "members": {
+          "kind": "all"
+        },
         "stuckRecovery": "yield",
         "supportId": "cross-repair"
       },
@@ -1309,6 +1351,9 @@
         "groupId": "medic-group",
         "localState": "ready",
         "priority": 20,
+        "members": {
+          "kind": "all"
+        },
         "stuckRecovery": "reflow",
         "supportId": "cross-repair"
       },
@@ -1316,11 +1361,19 @@
         "groupId": "line-group",
         "localState": "coherent",
         "priority": 30,
+        "members": {
+          "kind": "all"
+        },
         "stuckRecovery": "reflow",
         "supportId": ""
       }
     },
     "predicates": {
+      "no-live-friendlies": {
+        "fact": "live-friendlies",
+        "operator": "equals",
+        "value": 0
+      },
       "front-attrition-safe": {
         "fact": "known-enemies-unavailable",
         "operator": "at-least",

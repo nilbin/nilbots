@@ -168,6 +168,16 @@ maneuver may send carriers and medics toward the bank while a line track moves
 back toward the enemy perimeter. They are concurrent orders inside one phase,
 not nested scripts or a strategy-specific runtime special case.
 
+An assignment profile also declares which members of its stable group receive
+the order. `all` preserves whole-group behavior. A split uses one or more
+`take` selections followed by exactly one `remainder`; the compiler rejects a
+split that can silently leave a body unassigned. A `take` names eligible roles,
+an ordered class preference, and a bounded count. Selection follows assignment
+priority, authored class order, and stable unit ID. This permits a sheet to say
+"detach one Kestrel, otherwise one Relay" without naming a body or changing its
+stable role. A casualty deterministically promotes the next eligible survivor;
+the remainder continues its authored order.
+
 A predicate may name exactly one bounded parameter instead of copying a number.
 Compilation resolves it to an ordinary integer condition before hashing the
 normalized IR. Home Siege separates
@@ -187,7 +197,7 @@ An order binds one group to:
   `carrier`, observed `enemy-carrier`, or `hold`);
 - arrival/completion, stuck recovery, leash, and pace;
 - one formation and engagement;
-- optional support and Core-custody policies;
+- optional support and one required, explicit Core-custody policy;
 - a required local group state; and
 - explicit no-path, understrength, and invalid-target fallbacks.
 
@@ -240,6 +250,12 @@ obeys the narrower route corridor. `carrier`, `enemy-carrier`, and
 target only inside that leash. Formation search radius remains the outer
 generic reflow capability, so all three bounds have distinct jobs.
 
+Every order names a custody policy even when deliberate collection is not part
+of its purpose. An explicit incidental policy can authorize delivery after an
+accidental pickup while using an unsatisfiable safe-conversion condition to
+forbid deliberate collection. The runtime never substitutes the first custody
+policy or another implicit default.
+
 ### Engagement and coordinated attacks
 
 An engagement declares participants, target priorities, deterministic
@@ -255,6 +271,12 @@ health plus the declared overkill allowance. A requested escape-lane policy may
 then reserve additional shooters for distinct legal one-tick lanes without
 relaxing the direct-damage budget. Coordinated signatures choose at most one
 controller per `(target life, signature)` deterministically.
+
+Focus locks declare their preemption policy. `never` holds the current legal
+lock for its tenure, `higher-priority` permits a target from an earlier target
+priority, and `urgent-carrier` permits a carrier closer to its bank to replace
+a less urgent lock. Tie breakers may compare distance to either reactor before
+stable actor identity. These are authored policies, not executor heuristics.
 
 The dodge fallback is executable rather than decorative. `best-coverage`
 selects the best legal aim even when it adds no new covered lane;
@@ -326,12 +348,15 @@ and condition groups. `minimumPolicy: respect` cannot begin its stable streak
 before minimum tenure; `minimumPolicy: interrupt` is an explicit critical
 escape hatch and may stabilize earlier.
 
-Each global phase must name exactly one order for every declared
-`(group, localState)` pair. The compiler rejects a missing pair, duplicate pair,
-or an order whose local state does not belong to its group; runtime selection
-is exact and has no cross-state fallback. This makes local recovery genuinely
-concurrent with the global phase. Order priority then controls deterministic
-body/claim arbitration across the selected orders, followed by stable unit ID.
+Each global phase must cover every declared `(group, localState)` pair. Coverage
+is either one `all` order or a deterministic split consisting of one or more
+`take` orders and exactly one final `remainder` order. The compiler rejects a
+missing pair, mixed `all`/split coverage, duplicate priorities, a non-final
+remainder, or an order whose local state does not belong to its group. Runtime
+selection is exact and has no cross-state fallback. This makes local recovery
+and explicit detachments genuinely concurrent with the global phase. Order
+priority controls member and claim arbitration, followed by authored class
+preference and stable unit ID.
 
 A condition group is exactly one of `all` or `any`. Facts are typed by their
 required fields:

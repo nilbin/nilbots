@@ -144,7 +144,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .ToDictionary(core => core.CarrierActorId!, core => core);
         UpdateCustodyProgress(mind.Tick, mind.Bodies, carried);
         Dictionary<int, TacticalPlaybookPackage.Order> orders = ActiveOrders(
-            mind, package.Source, machine, groups);
+            mind, package.Source, machine, roles, groups);
         Dictionary<int, Position> authoredTargets = mind.Bodies.ToDictionary(
             body => body.UnitId,
             body => Target(
@@ -879,17 +879,50 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         TacticalPlaybookPackage.Playbook playbook,
         TacticalPlaybookMachine machine,
+        IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, string> groups)
     {
         TacticalPlaybookPackage.Order[] phaseOrders = machine.Phase.OrderIds
             .Select(id => playbook.Orders.Single(value => value.OrderId == id))
             .ToArray();
-        return mind.Bodies.ToDictionary(
-            body => body.UnitId,
-            body => phaseOrders.Single(order =>
-                order.GroupId == groups[body.UnitId]
-                && order.LocalState
-                    == machine.LocalState(groups[body.UnitId])));
+        Dictionary<string, TacticalPlaybookPackage.Order> ordersById =
+            phaseOrders.ToDictionary(
+                value => value.OrderId,
+                StringComparer.Ordinal);
+        var result = new Dictionary<int, TacticalPlaybookPackage.Order>();
+        foreach (IGrouping<string, MindBody> group in mind.Bodies
+                     .OrderBy(body => body.UnitId)
+                     .GroupBy(body => groups[body.UnitId],
+                         StringComparer.Ordinal))
+        {
+            string localState = machine.LocalState(group.Key);
+            TacticalPlaybookPackage.Order[] candidates = phaseOrders
+                .Where(order => string.Equals(
+                        order.GroupId, group.Key, StringComparison.Ordinal)
+                    && string.Equals(
+                        order.LocalState,
+                        localState,
+                        StringComparison.Ordinal))
+                .ToArray();
+            IReadOnlyDictionary<int, string> assignments =
+                TacticalDetachmentPrimitives.Assign(
+                    group.Select(body =>
+                        new TacticalDetachmentPrimitives.Member(
+                            body.UnitId,
+                            roles[body.UnitId],
+                            body.ClassId ?? "")),
+                    candidates.Select(order =>
+                        new TacticalDetachmentPrimitives.Selection(
+                            order.OrderId,
+                            order.Priority,
+                            order.Members.Kind,
+                            order.Members.Roles ?? [],
+                            order.Members.Classes ?? [],
+                            order.Members.Count ?? 0)));
+            foreach ((int unitId, string orderId) in assignments)
+                result.Add(unitId, ordersById[orderId]);
+        }
+        return result;
     }
 
     private Position Target(
@@ -1219,14 +1252,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         }
                         else
                         {
+                            bool preempt = TacticalCoordinationPrimitives
+                                .ShouldPreemptFocus(
+                                    policy.LockPreemption,
+                                    PriorityRank(
+                                        policy.TargetPriorities,
+                                        primary,
+                                        carriers,
+                                        mind.Tick),
+                                    PriorityRank(
+                                        policy.TargetPriorities,
+                                        locked,
+                                        carriers,
+                                        mind.Tick),
+                                    carriers.Contains(primary.ActorId),
+                                    carriers.Contains(locked.ActorId),
+                                    primary.Position.ChebyshevDistance(
+                                        _enemyReactor),
+                                    locked.Position.ChebyshevDistance(
+                                        _enemyReactor));
                             _focusLocks[scopeId] = prior with
                             {
                                 LastVisibleTick = mind.Tick,
                                 UnreachableTicks = unreachableTicks,
                             };
-                            if (mind.Tick - prior.LockedTick
+                            if (!preempt
+                                && (mind.Tick - prior.LockedTick
                                     < policy.LockTicks
                                 || primary.ActorId == locked.ActorId)
+                               )
                             {
                                 primary = locked;
                                 selectedExistingLock = true;
@@ -1518,6 +1572,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         body.Position.ChebyshevDistance(left.Position))
                     .CompareTo(participants.Min(body =>
                         body.Position.ChebyshevDistance(right.Position))),
+                "enemy-reactor-distance" => left.Position
+                    .ChebyshevDistance(_enemyReactor)
+                    .CompareTo(right.Position.ChebyshevDistance(
+                        _enemyReactor)),
+                "own-reactor-distance" => left.Position
+                    .ChebyshevDistance(_ownReactor)
+                    .CompareTo(right.Position.ChebyshevDistance(
+                        _ownReactor)),
                 "unit-id" => left.ActorId.UnitId.CompareTo(
                     right.ActorId.UnitId),
                 "life-id" => left.ActorId.LifeId.CompareTo(
@@ -1718,13 +1780,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         if (!carried.ContainsKey(body.ActorId))
             return false;
-        TacticalPlaybookPackage.CustodyPolicy? custody =
-            string.IsNullOrEmpty(order.CustodyId)
-                ? package.Source.CustodyPolicies.FirstOrDefault()
-                : package.Source.CustodyPolicies.Single(value =>
-                    value.CustodyId == order.CustodyId);
-        if (custody is null)
-            return false;
+        TacticalPlaybookPackage.CustodyPolicy custody = package.Source
+            .CustodyPolicies.Single(value =>
+                value.CustodyId == order.CustodyId);
         CustodyProgress progress = _custodyProgress.GetValueOrDefault(
                 body.ActorId)
             ?? new CustodyProgress(

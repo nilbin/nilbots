@@ -620,6 +620,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             ["orderId"] = orderId,
             ["groupId"] = assignmentProfile.GetProperty("groupId").GetString(),
             ["priority"] = assignmentProfile.GetProperty("priority").GetInt32(),
+            ["members"] = JsonNode.Parse(
+                assignmentProfile.GetProperty("members").GetRawText()),
             ["movement"] = movement,
             ["formationId"] = track.GetProperty("formationId").GetString(),
             ["engagementId"] = assignment.GetProperty("engagementId")
@@ -671,7 +673,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         Object(profile, $"{path}.assignmentProfiles.{assignmentProfileId}",
             [
                 "groupId", "localState", "priority", "stuckRecovery",
-                "supportId",
+                "supportId", "members",
             ]);
         Identifier(profile, "groupId", path);
         Identifier(profile, "localState", path);
@@ -679,6 +681,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         OneOf(profile, "stuckRecovery", path,
             "repath", "yield", "reflow", "regroup", "hold");
         NonEmptyString(profile, "supportId", path, allowEmpty: true);
+        ValidateMemberSelection(profile.GetProperty("members"), path);
     }
 
     private static void ValidateAuthoredPredicate(
@@ -1129,6 +1132,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             StringComparer.Ordinal);
         var groupStates = new Dictionary<string, string[]>(
             StringComparer.Ordinal);
+        var groupRoles = new Dictionary<string, HashSet<string>>(
+            StringComparer.Ordinal);
         foreach (JsonElement group in groups)
         {
             string groupId = group.GetProperty("groupId").GetString()!;
@@ -1137,6 +1142,10 @@ public static class ArcRelayTacticalPlaybookCompiler
                 .Select(state => state.GetProperty("stateId").GetString()!)
                 .ToArray();
             groupStates[groupId] = states;
+            groupRoles[groupId] = group.GetProperty("roleIds")
+                .EnumerateArray()
+                .Select(role => role.GetString()!)
+                .ToHashSet(StringComparer.Ordinal);
         }
         foreach (JsonElement order in orders)
         {
@@ -1150,6 +1159,25 @@ public static class ArcRelayTacticalPlaybookCompiler
                     $"order '{orderId}' references unknown local state "
                     + $"'{localState}' in group '{groupId}'.");
             }
+            JsonElement members = order.GetProperty("members");
+            if (string.Equals(
+                    members.GetProperty("kind").GetString(),
+                    "take",
+                    StringComparison.Ordinal))
+            {
+                string[] unknownRoles = members.GetProperty("roles")
+                    .EnumerateArray()
+                    .Select(role => role.GetString()!)
+                    .Where(role => !groupRoles[groupId].Contains(role))
+                    .ToArray();
+                if (unknownRoles.Length > 0)
+                {
+                    throw Error(path,
+                        $"order '{orderId}' selects roles not owned by "
+                        + $"group '{groupId}': "
+                        + string.Join(",", unknownRoles));
+                }
+            }
         }
         foreach (JsonElement phase in coordination.GetProperty("phases")
                      .EnumerateArray())
@@ -1162,20 +1190,58 @@ public static class ArcRelayTacticalPlaybookCompiler
             foreach ((string groupId, string[] states) in groupStates)
             foreach (string state in states)
             {
-                int matching = phaseOrders.Count(order => string.Equals(
+                JsonElement[] matching = phaseOrders.Where(order => string.Equals(
                         order.GetProperty("groupId").GetString(),
                         groupId,
                         StringComparison.Ordinal)
                     && string.Equals(
                         order.GetProperty("localState").GetString(),
                         state,
-                        StringComparison.Ordinal));
-                if (matching != 1)
+                        StringComparison.Ordinal)).ToArray();
+                if (matching.Length == 0)
                 {
                     throw Error(path,
-                        $"phase '{phaseId}' must declare exactly one order "
-                        + $"for group '{groupId}' local state '{state}', "
-                        + $"found {matching}.");
+                        $"phase '{phaseId}' has no order for group "
+                        + $"'{groupId}' local state '{state}'.");
+                }
+                string[] kinds = matching.Select(order => order
+                        .GetProperty("members").GetProperty("kind")
+                        .GetString()!)
+                    .ToArray();
+                if (matching.Length == 1
+                    && string.Equals(kinds[0], "all", StringComparison.Ordinal))
+                    continue;
+                if (kinds.Contains("all", StringComparer.Ordinal)
+                    || kinds.Count(kind => string.Equals(
+                        kind, "remainder", StringComparison.Ordinal)) != 1)
+                {
+                    throw Error(path,
+                        $"phase '{phaseId}' split orders for group "
+                        + $"'{groupId}' local state '{state}' require one or "
+                        + "more take selections followed by exactly one "
+                        + "remainder selection.");
+                }
+                int[] priorities = matching.Select(order => order
+                    .GetProperty("priority").GetInt32()).ToArray();
+                if (priorities.Distinct().Count() != priorities.Length)
+                {
+                    throw Error(path,
+                        $"phase '{phaseId}' split orders for group "
+                        + $"'{groupId}' local state '{state}' require unique "
+                        + "selection priorities.");
+                }
+                JsonElement remainder = matching.Single(order => string.Equals(
+                    order.GetProperty("members").GetProperty("kind")
+                        .GetString(),
+                    "remainder",
+                    StringComparison.Ordinal));
+                if (remainder.GetProperty("priority").GetInt32()
+                    != priorities.Max())
+                {
+                    throw Error(path,
+                        $"phase '{phaseId}' split orders for group "
+                        + $"'{groupId}' local state '{state}' must put the "
+                        + "remainder selection last by priority.");
                 }
             }
         }
@@ -1478,6 +1544,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             [
                 "engagementId", "participants", "targetPriorities",
                 "tieBreakers", "coordinationScope", "lockTicks",
+                "lockPreemption",
                 "maximumAttackersPerTarget",
                 "overkillDamage", "chaseLeash", "signatureCoordination",
                 "dodgeCoverage", "release", "selfDefense",
@@ -1489,10 +1556,13 @@ public static class ArcRelayTacticalPlaybookCompiler
             "enemy-carrier", "lowest-health", "closest-to-anchor",
             "closest-to-reactor", "highest-threat", "fresh-respawn");
         OneOfArray(value.GetProperty("tieBreakers"), at, 1, 8,
-            "health", "distance", "unit-id", "life-id", "position");
+            "health", "distance", "enemy-reactor-distance",
+            "own-reactor-distance", "unit-id", "life-id", "position");
         OneOf(value, "coordinationScope", at,
             "order-group", "shared-policy");
         Range(value, "lockTicks", at, 0, 120);
+        OneOf(value, "lockPreemption", at,
+            "never", "higher-priority", "urgent-carrier");
         Range(value, "maximumAttackersPerTarget", at, 1, 8);
         Range(value, "overkillDamage", at, 0, 1000);
         Range(value, "chaseLeash", at, 0, 16);
@@ -1624,19 +1694,20 @@ public static class ArcRelayTacticalPlaybookCompiler
         string at = $"{path}.coordination.orders";
         Object(value, at,
             [
-                "orderId", "groupId", "priority", "movement", "formationId",
-                "engagementId", "localState", "fallback",
+                "orderId", "groupId", "priority", "members", "movement",
+                "formationId", "engagementId", "custodyId", "localState",
+                "fallback",
             ],
-            ["supportId", "custodyId"]);
+            ["supportId"]);
         Identifier(value, "orderId", at);
         Reference(value, "groupId", groupIds, at);
         Range(value, "priority", at, 0, 1000);
+        ValidateMemberSelection(value.GetProperty("members"), at);
         Reference(value, "formationId", formationIds, at);
         Reference(value, "engagementId", engagementIds, at);
         if (value.TryGetProperty("supportId", out _))
             Reference(value, "supportId", supportIds, at, allowEmpty: false);
-        if (value.TryGetProperty("custodyId", out _))
-            Reference(value, "custodyId", custodyIds, at, allowEmpty: false);
+        Reference(value, "custodyId", custodyIds, at, allowEmpty: false);
         Identifier(value, "localState", at);
         ValidateMovement(value.GetProperty("movement"), at);
         JsonElement fallback = value.GetProperty("fallback");
@@ -1659,6 +1730,40 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (!needsPhase && phaseId.Length > 0)
             throw Error(at,
                 $"fallback phase '{phaseId}' is irrelevant to its actions.");
+    }
+
+    private static void ValidateMemberSelection(
+        JsonElement value,
+        string path)
+    {
+        string kind = RequiredString(value, "kind", path);
+        switch (kind)
+        {
+            case "all":
+            case "remainder":
+                Object(value, $"{path}.members", ["kind"]);
+                break;
+            case "take":
+                Object(value, $"{path}.members",
+                    ["kind", "roles", "classes", "count"]);
+                foreach (JsonElement role in BoundedArray(
+                             value.GetProperty("roles"),
+                             $"{path}.members.roles", 1, 8))
+                {
+                    StringValue(role, $"{path}.members.roles");
+                }
+                foreach (JsonElement candidateClass in BoundedArray(
+                             value.GetProperty("classes"),
+                             $"{path}.members.classes", 1, 16))
+                {
+                    StringValue(candidateClass, $"{path}.members.classes");
+                }
+                Range(value, "count", $"{path}.members", 1, 8);
+                break;
+            default:
+                throw Error(path,
+                    $"unknown member selection kind '{kind}'.");
+        }
     }
 
     private static void ValidateMovement(JsonElement value, string path)

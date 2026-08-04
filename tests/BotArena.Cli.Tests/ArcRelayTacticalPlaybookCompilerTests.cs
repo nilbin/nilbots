@@ -388,6 +388,33 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void EngagementCanPrioritizeTheCarrierClosestToItsBank()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject layout = source["layout"]!.AsObject();
+        layout["path"] = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(HomeSiege())!,
+            layout["path"]!.GetValue<string>()));
+        JsonObject siege = source["engagements"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["engagementId"]!.GetValue<string>()
+                == "siege-focus");
+        siege["tieBreakers"] = new JsonArray(
+            "enemy-reactor-distance", "health", "unit-id");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            Assert.NotEmpty(ArcRelayTacticalPlaybookCompiler
+                .Compile(temporary).LinkedData);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void SecuredCoreGuardRequiresAnExplicitCustodyPolicy()
     {
         JsonObject source = ExpandedHomeSiege();
@@ -406,7 +433,9 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
-            Assert.Contains("needs custodyId", failure.Message);
+            Assert.Contains(
+                "missing required field 'custodyId'",
+                failure.Message);
         }
         finally
         {
@@ -623,8 +652,81 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
             Assert.Contains(
-                "must declare exactly one order for group 'line-group' "
-                + "local state 'recovering', found 0",
+                "has no order for group 'line-group' local state "
+                + "'recovering'",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void PhaseCanSplitAStableGroupIntoTakeAndRemainderOrders()
+    {
+        JsonObject source = ExpandedHomeSiege();
+        JsonObject harvest = source["coordination"]!["phases"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["phaseId"]!.GetValue<string>()
+                == "harvest");
+        JsonObject field = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "medics-harvest");
+        field["members"] = new JsonObject
+        {
+            ["kind"] = "take",
+            ["roles"] = new JsonArray("medic"),
+            ["classes"] = new JsonArray("patchbay"),
+            ["count"] = 1,
+        };
+        JsonObject collection = JsonNode.Parse(field.ToJsonString())!
+            .AsObject();
+        collection["orderId"] = "medics-harvest-remainder";
+        collection["priority"] = 21;
+        collection["members"] = new JsonObject
+        {
+            ["kind"] = "remainder",
+        };
+        source["orders"]!.AsArray().Add(collection);
+        harvest["orderIds"]!.AsArray().Add("medics-harvest-remainder");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            Assert.NotEmpty(compilation.LinkedData);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void SplitGroupCannotOmitItsRemainderOrder()
+    {
+        JsonObject source = ExpandedHomeSiege();
+        JsonObject field = source["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["orderId"]!.GetValue<string>()
+                == "medics-harvest");
+        field["members"] = new JsonObject
+        {
+            ["kind"] = "take",
+            ["roles"] = new JsonArray("medic"),
+            ["classes"] = new JsonArray("patchbay"),
+            ["count"] = 1,
+        };
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "require one or more take selections followed by exactly one "
+                + "remainder selection",
                 failure.Message);
         }
         finally
@@ -813,8 +915,38 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Equal("", condition.Subject);
         Assert.Equal("", condition.Zone);
         Assert.Equal(0, condition.FreshnessTicks);
-        Assert.Equal("", package.Source.Orders.Single(value =>
-            value.OrderId == "medics-rush").CustodyId);
+        Assert.Equal(
+            "incidental-delivery",
+            package.Source.Orders.Single(value =>
+                value.OrderId == "medics-rush").CustodyId);
+    }
+
+    [Fact]
+    public void CompiledHomeSiegeStartsInTheActualTacticalMind()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            compilation.Composition,
+            BaselineComposition(),
+            loopProfile: ArcRelayLoopProfile.Current);
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(
+                ActorContractManifestSerializer.ToCanonicalJson(definition));
+        var mind = new ArcRelayTacticalPlaybookMind();
+
+        mind.StartMatch(new MindStart
+        {
+            SchemaVersion = 1,
+            RuntimeContractVersion = 1,
+            ParticipantId = 0,
+            TeamId = 0,
+            AlliedParticipantIds = [],
+            MindRandomSeed = 1,
+            TeamRandomSeed = 2,
+            Contract = contract,
+            EvaluationData = compilation.LinkedData.ToImmutableArray(),
+        });
     }
 
     private static int AttritionThreshold(JsonElement phase) => phase

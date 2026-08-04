@@ -308,6 +308,7 @@ internal sealed class TacticalPlaybookPackage
         string[] TieBreakers,
         string CoordinationScope,
         int LockTicks,
+        string LockPreemption,
         int MaximumAttackersPerTarget,
         int OverkillDamage,
         int ChaseLeash,
@@ -359,6 +360,7 @@ internal sealed class TacticalPlaybookPackage
         string OrderId,
         string GroupId,
         int Priority,
+        MemberSelection Members,
         Movement Movement,
         string FormationId,
         string EngagementId,
@@ -366,6 +368,12 @@ internal sealed class TacticalPlaybookPackage
         string CustodyId,
         string LocalState,
         Fallback Fallback);
+
+    internal sealed record MemberSelection(
+        string Kind,
+        string[]? Roles,
+        string[]? Classes,
+        int? Count);
 
     internal sealed record Movement(
         string Kind,

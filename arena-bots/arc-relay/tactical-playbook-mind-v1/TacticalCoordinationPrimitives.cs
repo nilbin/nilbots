@@ -58,6 +58,24 @@ internal static class TacticalCoordinationPrimitives
         && releaseAfterUnreachableTicks > 0
         && unreachableTicks >= releaseAfterUnreachableTicks;
 
+    internal static bool ShouldPreemptFocus(
+        string mode,
+        int candidatePriorityRank,
+        int lockedPriorityRank,
+        bool candidateIsCarrier,
+        bool lockedIsCarrier,
+        int candidateBankDistance,
+        int lockedBankDistance) => mode switch
+    {
+        "never" => false,
+        "higher-priority" => candidatePriorityRank < lockedPriorityRank,
+        "urgent-carrier" => candidateIsCarrier
+            && (!lockedIsCarrier
+                || candidateBankDistance < lockedBankDistance),
+        _ => throw new InvalidDataException(
+            $"Unknown focus-lock preemption mode '{mode}'."),
+    };
+
     internal static bool IsWithinEngagementLeash(
         Position assignment,
         Position enemyPosition,

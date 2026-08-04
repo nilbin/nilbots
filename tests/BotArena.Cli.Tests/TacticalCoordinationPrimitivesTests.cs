@@ -80,6 +80,40 @@ public sealed class TacticalCoordinationPrimitivesTests
     }
 
     [Fact]
+    public void UrgentCarrierMayPreemptAHeldButSaferCarrier()
+    {
+        Assert.True(TacticalCoordinationPrimitives.ShouldPreemptFocus(
+            "urgent-carrier",
+            candidatePriorityRank: 0,
+            lockedPriorityRank: 0,
+            candidateIsCarrier: true,
+            lockedIsCarrier: true,
+            candidateBankDistance: 1,
+            lockedBankDistance: 5));
+        Assert.False(TacticalCoordinationPrimitives.ShouldPreemptFocus(
+            "urgent-carrier",
+            candidatePriorityRank: 0,
+            lockedPriorityRank: 0,
+            candidateIsCarrier: true,
+            lockedIsCarrier: true,
+            candidateBankDistance: 5,
+            lockedBankDistance: 1));
+    }
+
+    [Fact]
+    public void NeverPreemptionPreservesTheExistingLockContract()
+    {
+        Assert.False(TacticalCoordinationPrimitives.ShouldPreemptFocus(
+            "never",
+            candidatePriorityRank: 0,
+            lockedPriorityRank: 4,
+            candidateIsCarrier: true,
+            lockedIsCarrier: false,
+            candidateBankDistance: 0,
+            lockedBankDistance: 9));
+    }
+
+    [Fact]
     public void EngagementLeashRequiresFormationAdherenceOrSelfDefense()
     {
         var assignment = new Position(10, 10);

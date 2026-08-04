@@ -1470,6 +1470,55 @@
       ],
       "resultSummary": "Retain the authoring framework. The keyed source reproduces the occupied-3 development candidate exactly in both assignments while keeping approach-five and occupied-three as separate explicit hypotheses. The strategy still fails the dominance margin, reactor-integrity, and post-occupation suppression gates.",
       "verdict": "retained-framework-change-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "deterministic-detachment-and-capability-selection",
+      "change": "Permit a phase to split a stable group through ordered take selections plus one exhaustive remainder. A take declares eligible roles, ordered class preferences, and count; assignment is deterministic by priority, authored class order, then unit ID, and promotes the next eligible survivor after a casualty.",
+      "resultSummary": "Retained as generic framework capability. Fixtures prove whole-group compatibility, deterministic class-aware selection, casualty promotion, and rejection of an unassigned remainder. Strategy experiments using it are recorded separately and do not count as proof of dominance.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "explicit-order-custody-no-silent-fallback",
+      "playbookSourceSha256": "b196df25081ab8b48711eb25f387e17fc17e693a92271a9a180f10e761d68bd5",
+      "change": "Require every order to name its Core-custody policy. Add an explicit incidental-delivery policy for orders that may deliver an accidental pickup but must never deliberately collect; remove runtime fallback to the first policy.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 472 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 462 }
+      ],
+      "resultSummary": "Retained. Both representative outcomes are unchanged from the keyed occupied-three candidate, proving the change removes an implicit default without changing current behavior.",
+      "verdict": "retained-framework-change-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "steal-before-collect-timeout-matrix",
+      "change": "Require the siege to steal an enemy-carried Core before beginning ordinary collection, sweeping secure-state timeouts 36, 48, and 60 ticks.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 477 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 525 }
+      ],
+      "resultSummary": "All timeout values reproduced the same two losses. Full replay inspection confirmed a legal carrier kill, north-Core steal, and bank, but the siege banked only five while baseline banked nine. The mechanic works; global force-allocation phases do not preserve pressure while converting it.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "dynamic-carrier-denial-detachment",
+      "change": "When a visible enemy carrier entered the home approach, split two interceptors from the line while the remainder maintained pressure.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 404 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 516 }
+      ],
+      "resultSummary": "Rejected. The local-state split repeatedly destabilized the formation and committed too much force. It motivated task-scoped lifecycle and reintegration instead of more local-state tuning.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "blockade-shuttle-and-composition-screen",
+      "change": "Keep occupation while a runner retrieves dropped Cores at thresholds three, four, or five; separately screen artillery, rail-designator, hook-rail, shell-burst, and paint-shell compositions in both assignments.",
+      "resultSummary": "Every shuttle threshold and all ten composition cells lost. One shuttle did bank a stolen Core but too slowly. The retained Relay/Kestrel/two-Patchbay/two-Sunder/two-Repulsor composition is materially better for this tactic; composition churn does not solve the orchestration limit.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "class-aware-scorer-matrix",
+      "change": "Use the generic class-aware selector to detach a Kestrel for secure-Core collection and delivery while seven bodies maintain pressure; sweep conversion thresholds two through five. Also test Kestrel plus Relay as a two-body courier unit.",
+      "resultSummary": "Every one-courier mirror lost; the inspected threshold-three cell reached eight Siege banks against nine baseline banks and lost at tick 478. Two couriers weakened the blockade further: only threshold-two/team-zero reached a horizon draw and all opposite assignments lost. Reordering the stable runner role to prefer Kestrel also lost both mirrors. Capability selection works, but a phase-owned detachment cannot complete and reintegrate without disrupting the persistent campaign.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }
