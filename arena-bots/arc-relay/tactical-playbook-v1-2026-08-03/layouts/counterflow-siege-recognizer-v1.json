@@ -14,7 +14,10 @@
       "matchContractFingerprint": "87611871f189f8a5dceb316409c4eb3e8fb25aae2f94409da42c55a79ad1c3bf",
       "ownReactorSide": "east",
       "transform": "rotate-180",
-      "routeAliases": {},
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
       "formationAliases": {}
     },
     {
@@ -28,7 +31,10 @@
       "matchContractFingerprint": "e457f1e99bf12f6694e13dcb825c8f7c373a093c782e057a53b4c7ba3a8dacac",
       "ownReactorSide": "east",
       "transform": "rotate-180",
-      "routeAliases": {},
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
       "formationAliases": {}
     }
   ],

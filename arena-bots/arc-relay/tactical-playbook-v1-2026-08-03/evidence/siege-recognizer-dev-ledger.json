@@ -1,0 +1,126 @@
+{
+ "schema": "siege-recognizer-dev-ledger-v1",
+ "note": "In-process development screens only; dev seeds 424242/511171; never evidence. Config names are generator iterations.",
+ "iterations": [
+  {
+   "id": "v0",
+   "change": "initial two-phase sheet, blob movement, leash-0",
+   "screen": {
+    "siege-a0": "WIN max-ticks 8-7 deliveries",
+    "parity": "LOSS 1-3 both"
+   }
+  },
+  {
+   "id": "v1",
+   "change": "fighting engagements, detached farm tasks",
+   "screen": {
+    "parity-a0": "WIN 3-2",
+    "parity-a1": "LOSS 1-3",
+    "siege": "LOSS both"
+   }
+  },
+  {
+   "id": "v2",
+   "change": "east route aliases (absolute-well identity fix)",
+   "screen": {
+    "parity-a0": "WIN 3-2",
+    "parity-a1": "LOSS 2-3",
+    "siege": "LOSS 2-3/1-3"
+   }
+  },
+  {
+   "id": "v3",
+   "change": "home standing order + fast detect",
+   "screen": {
+    "all": "LOSS - permanent home anchor gutted throughput"
+   }
+  },
+  {
+   "id": "v4",
+   "change": "revert standing order, keep fast detect",
+   "screen": {
+    "parity-a0": "WIN",
+    "parity-a1": "LOSS 2-3",
+    "siege": "LOSS 1-3 both"
+   }
+  },
+  {
+   "id": "v5",
+   "change": "fortify shelters on protected pad; wider farm classes",
+   "screen": {
+    "parity": "WIN 3-2/3-1/3-1",
+    "siege": "LOSS 1-3 both"
+   }
+  },
+  {
+   "id": "v6",
+   "change": "counter-courier hunt task (fortify)",
+   "screen": {
+    "parity": "WIN both",
+    "siege-a1": "WIN 3-2",
+    "siege-a0": "LOSS 2-3 c2"
+   }
+  },
+  {
+   "id": "v7",
+   "change": "hunt in balanced too + south farm pref 2",
+   "screen": {
+    "siege-a0": "WIN 3-1 twice",
+    "siege-a1": "LOSS",
+    "parity-a1": "LOSS - hunt chases ordinary carriers"
+   }
+  },
+  {
+   "id": "v8",
+   "change": "hunt fortify-only + south pref 2 (BEST)",
+   "screen": {
+    "parity": "WIN 3-2/3-1 x2 seeds",
+    "siege-a1": "WIN 3-2 x2",
+    "siege-a0": "LOSS 2-3 c2 x2"
+   }
+  },
+  {
+   "id": "v9",
+   "change": "towline joins hunt",
+   "screen": {
+    "siege": "LOSS all - home defense weakened"
+   }
+  },
+  {
+   "id": "v10",
+   "change": "single hunter + sticky fortify",
+   "screen": {
+    "siege": "worse"
+   }
+  },
+  {
+   "id": "v11",
+   "change": "near-instant detection",
+   "screen": {
+    "siege-a0": "max-ticks 2-2 tiebreak LOSS",
+    "siege-a1": "regressed"
+   }
+  },
+  {
+   "id": "v12",
+   "change": "mortar+repulsor breaker composition",
+   "screen": {
+    "siege": "no improvement - suspect signatures never fire from passive posture",
+    "note": "composition change invalidated all pairing fingerprints; resolver script added"
+   }
+  },
+  {
+   "id": "v8-restore",
+   "change": "reverted to v8 exactly",
+   "screen": {
+    "verified": "5/6 elimination wins; siege-a0 open"
+   }
+  }
+ ],
+ "openProblem": "siege-a0 (recognizer west): 206-tick delivery drought t150-350 while the siege ring stands; consistently 8 deliveries vs 9. a1 wins with same sheet - geometric asymmetry unexplained.",
+ "nextHypotheses": [
+  "signature usage audit: do palisade/patchbay/towline ever cast under current engagement policies?",
+  "a0-vs-a1 comparative trace: find the mechanism that wins east and port it west",
+  "delivery routing: second return angle / south-gate preference during fortify"
+ ]
+}
