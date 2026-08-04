@@ -118,10 +118,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 machine.PhaseId,
                 StringComparison.Ordinal));
         Dictionary<int, string> groups = GroupMembership(roles, package.Source);
+        IReadOnlySet<int> priorTaskLeases = tasks.LeasedUnitIds;
         UpdateFriendlyMembership(
-            mind, package.Source, machine, roles, groups);
+            mind, package.Source, machine, roles, groups, priorTaskLeases);
         TacticalSnapshot snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
+            priorTaskLeases,
             updateFormationState: false);
         foreach (TacticalPlaybookPackage.Group group in package.Source.Groups)
         {
@@ -137,9 +139,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             groups = GroupMembership(roles, package.Source);
         }
         _allocationPhaseId = machine.PhaseId;
-        snapshot = Snapshot(mind, arc, package, machine, roles, groups,
-            updateFormationState: true);
-
         Dictionary<ActorIdentity, GenericActorContext.ArcRelayCoreState> carried =
             arc.VisibleCores
                 .Where(core => core.Disposition
@@ -147,6 +146,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
         UpdateCustodyProgress(mind.Tick, mind.Bodies, carried);
+        snapshot = Snapshot(
+            mind, arc, package, machine, roles, groups,
+            priorTaskLeases,
+            updateFormationState: false);
         tasks.Update(
             mind.Tick,
             machine.PhaseId,
@@ -167,6 +170,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 package,
                 assignment,
                 candidate));
+        snapshot = Snapshot(
+            mind, arc, package, machine, roles, groups,
+            tasks.LeasedUnitIds,
+            updateFormationState: true);
         Dictionary<int, TacticalPlaybookPackage.Order> orders = ActiveOrders(
             mind, package.Source, machine, tasks, roles, groups);
         Dictionary<int, Position> authoredTargets = mind.Bodies.ToDictionary(
@@ -298,6 +305,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "movement" => TryMovement(
                         contract, mind, arc, package, machine, snapshot, body,
                         role, group, order, target, targets, groups,
+                        orders,
                         pickupAssignments, claims),
                     "facing" => facingTarget is Position lookAt
                         && TryFaceTarget(
@@ -567,7 +575,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Playbook playbook,
         TacticalPlaybookMachine machine,
         IReadOnlyDictionary<int, string> roles,
-        IReadOnlyDictionary<int, string> groups)
+        IReadOnlyDictionary<int, string> groups,
+        IReadOnlySet<int> taskLeases)
     {
         bool initialObservation = _friendlyLives.Count == 0;
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
@@ -596,6 +605,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 playbook, machine, group.GroupId);
             MindBody[] members = mind.Bodies
                 .Where(body => groups[body.UnitId] == group.GroupId)
+                .Where(body => !taskLeases.Contains(body.UnitId))
                 .OrderBy(body => body.UnitId)
                 .ToArray();
             var established = members
@@ -644,6 +654,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookMachine machine,
         IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, string> groups,
+        IReadOnlySet<int> taskLeases,
         bool updateFormationState)
     {
         var groupLive = package.Source.Groups.ToDictionary(
@@ -659,7 +670,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             group => group.GroupId,
             group => CohesionPercent(
                 mind.Bodies.Where(body => groups[body.UnitId] == group.GroupId
-                        && !_joiningUnits.Contains(body.UnitId))
+                        && !_joiningUnits.Contains(body.UnitId)
+                        && !taskLeases.Contains(body.UnitId))
                     .Select(body => body.Position).ToArray(),
                 ActiveFormation(package.Source, machine, group.GroupId)
                     .Spacing.Maximum),
@@ -668,6 +680,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             group => group.GroupId,
             group => mind.Bodies
                 .Where(body => groups[body.UnitId] == group.GroupId)
+                .Where(body => !taskLeases.Contains(body.UnitId))
                 .Select(body => _motion.GetValueOrDefault(body.UnitId))
                 .Where(progress => progress is not null)
                 .Select(progress => progress!.StuckTicks)
@@ -2018,6 +2031,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position target,
         IReadOnlyDictionary<int, Position> targets,
         IReadOnlyDictionary<int, string> groups,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
         IReadOnlyDictionary<int,
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
         ArenaBasics.Claims claims)
@@ -2135,6 +2149,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 value.FormationId == order.FormationId);
         MindBody[] paceMembers = mind.Bodies
             .Where(candidate => groups[candidate.UnitId] == group)
+            .Where(candidate => string.Equals(
+                orders[candidate.UnitId].FormationId,
+                order.FormationId,
+                StringComparison.Ordinal))
             .OrderBy(candidate => candidate.UnitId)
             .ToArray();
         int leaderUnitId = paceMembers[0].UnitId;

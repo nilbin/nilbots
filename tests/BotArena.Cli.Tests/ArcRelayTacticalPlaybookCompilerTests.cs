@@ -53,14 +53,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Null(source["orders"]);
         Assert.Equal("maneuver-catalog",
             source["authoring"]!["kind"]!.GetValue<string>());
-        Assert.Equal(7, source["authoring"]!["maneuvers"]!.AsObject().Count);
+        Assert.Equal(8, source["authoring"]!["maneuvers"]!.AsObject().Count);
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
         JsonObject normalized = JsonNode.Parse(compilation.NormalizedPlaybook)!
             .AsObject();
         Assert.Null(normalized["authoring"]);
-        Assert.Equal(20, normalized["orders"]!.AsArray().Count);
+        Assert.Equal(21, normalized["orders"]!.AsArray().Count);
         Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
             Assert.Equal(4, phase!["orderIds"]!.AsArray().Count));
     }
@@ -778,13 +778,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         using JsonDocument explain = JsonDocument.Parse(
             (byte[])explainMethod.Invoke(null, [compilation])!);
 
-        JsonElement task = Assert.Single(
-            explain.RootElement.GetProperty("tasks").EnumerateArray());
+        JsonElement task = explain.RootElement.GetProperty("tasks")
+            .EnumerateArray().Single(value => value.GetProperty("taskId")
+                .GetString() == "convert-secured-core");
         Assert.Equal(
             "convert-secured-core",
             task.GetProperty("taskId").GetString());
         Assert.Equal(
-            "line-task-convert",
+            "runner-task-convert",
             task.GetProperty("assignments")[0]
                 .GetProperty("order").GetProperty("orderId").GetString());
         Assert.NotEmpty(task.GetProperty("when").EnumerateArray());

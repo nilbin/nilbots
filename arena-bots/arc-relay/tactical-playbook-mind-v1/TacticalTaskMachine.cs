@@ -74,6 +74,12 @@ internal sealed class TacticalTaskMachine
 
     internal IReadOnlyList<TacticalTaskTrace> Transitions => _transitions;
 
+    internal IReadOnlySet<int> LeasedUnitIds => _states.Values
+        .Where(value => value.Phase != TacticalTaskPhase.Dormant)
+        .SelectMany(value => value.Assignments)
+        .Select(value => value.UnitId)
+        .ToHashSet();
+
     internal TacticalTaskDirective? DirectiveFor(int unitId) =>
         _directives.GetValueOrDefault(unitId);
 

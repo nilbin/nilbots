@@ -18,6 +18,7 @@ public sealed class TacticalTaskMachineTests
 
         Assert.Null(machine.DirectiveFor(0));
         Assert.Equal("convert-order", machine.DirectiveFor(1)!.OrderId);
+        Assert.Equal([1], machine.LeasedUnitIds.Order().ToArray());
 
         facts.Add("complete");
         Step(machine, 1, facts,
@@ -28,6 +29,7 @@ public sealed class TacticalTaskMachineTests
         Assert.Equal(
             TacticalTaskPhase.Dormant,
             machine.State("convert").Phase);
+        Assert.Empty(machine.LeasedUnitIds);
     }
 
     [Fact]

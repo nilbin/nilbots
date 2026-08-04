@@ -1532,6 +1532,18 @@
       ],
       "resultSummary": "Retain the generic task lifecycle, reject this strategy candidate. Against the fair parity control both assignments lost. Trace inspection showed no activation in team-zero because observed attrition and secured-Core facts never overlapped; team-one activated twice, but one lease was incorrectly released when the primary line entered recovery. That lifecycle bug is fixed and pinned: activation selectors choose an exact life once, while carrier and primary local-state changes do not re-elect it. The single secure-Core trigger remains too sparse to create dominant scoring pressure.",
       "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "concurrent-carrier-denial-and-runner-conversion-v2",
+      "change": "Run disjoint tasks during occupation: the stable Relay runner converts secured Cores at observed attrition two while one nearest Repulsor/Sunder pursues a visible carrier inside a six-tile enemy-bank leash. The remainder stays on the blockade order.",
+      "cells": [
+        { "variant": "leases-counted-in-primary-formation", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 371 },
+        { "variant": "leases-counted-in-primary-formation", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 458 },
+        { "variant": "leases-scoped-out-of-primary-formation", "playbookSourceSha256": "de9fb7be5682862976656499bca4469022336b1f83a5120c7735880c4be94529", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 482 },
+        { "variant": "leases-scoped-out-of-primary-formation", "playbookSourceSha256": "de9fb7be5682862976656499bca4469022336b1f83a5120c7735880c4be94529", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 422 }
+      ],
+      "resultSummary": "Reject the strategy candidate and retain the runtime correction. Denial and conversion activate concurrently on disjoint bodies, but both assignments still lose. Trace inspection exposed that task-owned bodies were still counted in primary formation cohesion and pace, causing false line recovery. Exact-life task leases are now scoped out of primary cohesion, stuck, membership-rejoin, and pace cohorts until release. This materially extended the team-zero cell but is not sufficient: one long-return courier cannot generate or suppress enough banks.",
+      "verdict": "rejected-strategy-retained-framework"
     }
   ]
 }

@@ -847,7 +847,7 @@
     {
       "custodyId": "task-conversion",
       "authorizedCarrierRoles": [
-        "line"
+        "runner"
       ],
       "escortGroups": [],
       "sourceWells": [
@@ -873,7 +873,7 @@
         "maximum": 8
       },
       "conversion-occupied-enemy-unavailable": {
-        "value": 3,
+        "value": 2,
         "minimum": 0,
         "maximum": 8
       }
@@ -1035,12 +1035,36 @@
               "pace": "free"
             },
             "assignments": {
-              "line-task-convert": {
+              "runner-task-convert": {
                 "arrivalRadius": 1,
                 "completion": "continuous",
                 "chaseLeash": 8,
                 "engagementId": "regroup-defense",
                 "custodyId": "task-conversion",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "runner-standard"
+              }
+            }
+          }
+        }
+      },
+      "task-deny": {
+        "tracks": {
+          "interceptor": {
+            "formationId": "rally-wedge",
+            "movement": {
+              "kind": "enemy-carrier",
+              "target": "enemy-perimeter",
+              "stuckTicks": 6,
+              "pace": "slowest"
+            },
+            "assignments": {
+              "line-task-deny": {
+                "arrivalRadius": 1,
+                "completion": "continuous",
+                "chaseLeash": 6,
+                "engagementId": "siege-focus",
+                "custodyId": "incidental-delivery",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "line-standard"
               }
@@ -1237,7 +1261,7 @@
       "task-conversion-safe": [
         [
           "occupied-attrition-safe",
-          "six-in-siege",
+          "five-in-siege",
           "secured-core"
         ]
       ],
@@ -1245,6 +1269,17 @@
         [
           "no-friendly-carrier",
           "no-secured-core"
+        ]
+      ],
+      "task-denial-visible": [
+        [
+          "visible-enemy-carrier",
+          "five-in-siege"
+        ]
+      ],
+      "task-denial-complete": [
+        [
+          "no-visible-enemy-carrier"
         ]
       ],
       "line-cohesion-broken": [
@@ -1468,6 +1503,11 @@
         "operator": "equals",
         "value": 0
       },
+      "visible-enemy-carrier": {
+        "fact": "visible-enemy-carriers",
+        "operator": "at-least",
+        "value": 1
+      },
       "secured-core": {
         "fact": "secured-cores",
         "operator": "at-least",
@@ -1579,12 +1619,56 @@
     "initialPhase": "assault",
     "tasks": [
       {
+        "taskId": "deny-visible-carrier",
+        "priority": 10,
+        "activation": "while-true",
+        "preemption": "never",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 2,
+        "timeoutTicks": 24,
+        "cooldownTicks": 1,
+        "eligiblePhases": [
+          "occupy"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "interceptor",
+            "orderId": "line-task-deny",
+            "roles": [
+              "line"
+            ],
+            "classes": [
+              "repulsor",
+              "sunder"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "enemy-reactor",
+              "target": ""
+            }
+          }
+        ],
+        "whenConditionSetId": "task-denial-visible",
+        "completeConditionSetId": "task-denial-complete",
+        "failConditionSetId": "",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
         "taskId": "convert-secured-core",
         "priority": 20,
         "activation": "while-true",
         "preemption": "higher-priority",
-        "participantLoss": "abort",
-        "triggerStableTicks": 2,
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
         "minimumTicks": 2,
         "timeoutTicks": 120,
         "cooldownTicks": 4,
@@ -1594,11 +1678,12 @@
         "assignments": [
           {
             "assignmentId": "courier",
-            "orderId": "line-task-convert",
+            "orderId": "runner-task-convert",
             "roles": [
-              "line"
+              "runner"
             ],
             "classes": [
+              "relay",
               "kestrel"
             ],
             "minimum": 1,

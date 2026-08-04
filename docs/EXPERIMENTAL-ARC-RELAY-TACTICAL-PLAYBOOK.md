@@ -208,6 +208,10 @@ The resulting lease binds the exact life, so picking up a Core or an unrelated
 primary-formation state change cannot silently replace the courier. Death is a
 participant loss and follows the authored policy. A respawn is a different life
 and may be selected only by an explicit replacement or a later activation.
+While leased, that life is excluded from the primary group's cohesion, stuck,
+rejoin, and pace cohort; otherwise a correctly authored detachment would make
+the remainder falsely declare its own formation broken. The task order still
+owns the leased body's complete formation and movement behavior.
 
 Disjoint tasks run concurrently. A body already leased to another task is
 unavailable unless the existing task explicitly permits higher-priority
