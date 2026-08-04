@@ -518,7 +518,7 @@
       "overkillDamage": 0,
       "chaseLeash": 2,
       "aimPreparation": "current-cone-only",
-      "signatureCoordination": "damage-first",
+      "signatureCoordination": "control-first",
       "dodgeCoverage": {
         "mode": "escape-lanes",
         "horizonTicks": 4,
