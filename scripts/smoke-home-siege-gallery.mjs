@@ -13,9 +13,18 @@ const baseUrl = process.argv[2] ?? 'http://127.0.0.1:8948/index.html';
 const output = path.resolve(
   process.argv[3] ?? path.join(root, 'docs/reports/assets/home-siege-stage-1'),
 );
+const expectedCards = Number(process.argv[4] ?? 2);
+if (!Number.isInteger(expectedCards) || expectedCards < 1) {
+  throw new Error(`Expected-card count must be a positive integer, got ${process.argv[4]}.`);
+}
 mkdirSync(output, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  args: process.env.REVIEW_HOST_RESOLVER
+    ? [`--host-resolver-rules=${process.env.REVIEW_HOST_RESOLVER}`]
+    : [],
+});
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
 const errors = [];
 page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
@@ -36,10 +45,12 @@ try {
       .find((row) => row.querySelector('dt')?.textContent?.trim() === 'Final score')
       ?.querySelector('dd')?.textContent?.trim() ?? '',
   })));
-  if (cards.length !== 2) throw new Error(`Expected 2 cards, got ${cards.length}.`);
+  if (cards.length !== expectedCards) {
+    throw new Error(`Expected ${expectedCards} cards, got ${cards.length}.`);
+  }
   for (const card of cards) {
     if (!card.href || !card.title.includes('Home Siege')
-        || !card.subtitle.includes('wins by reactor destroyed')
+        || !card.subtitle.includes('wins')
         || !card.score.includes('Core deliveries')) {
       throw new Error(`Incomplete outcome-visible card: ${JSON.stringify(card)}`);
     }

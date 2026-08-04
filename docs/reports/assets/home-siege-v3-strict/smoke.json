@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "baseUrl": "https://ballot-automotive-fits-dolls.trycloudflare.com/index.html",
+  "cards": [
+    {
+      "href": "sample-02.html",
+      "title": "Home Siege v3 — Blue",
+      "subtitle": "Blue v3 vs coordination-parity stock-v4 · Blue wins 9–1 at t560 with 3 integrity",
+      "score": "Blue 9–1 Orange Core deliveries; Blue destroys the reactor at t560 and retains all 3 integrity segments. All twelve fresh Blue-assignment cells reproduce this score and tick."
+    },
+    {
+      "href": "sample-03.html",
+      "title": "Home Siege v3 — Orange",
+      "subtitle": "Orange v3 vs coordination-parity stock-v4 · Orange wins 9–2 at t524 with 3 integrity",
+      "score": "Orange 9–2 Blue Core deliveries; Orange destroys the reactor at t524 and retains all 3 integrity segments. All twelve fresh Orange-assignment cells reproduce this score and tick."
+    },
+    {
+      "href": "sample-01.html",
+      "title": "Home Siege v2 — retained visual reference",
+      "subtitle": "Historical Orange v2 vs older static baseline · Orange wins 9–8 at t557",
+      "score": "Orange v2 wins 9–8 Core deliveries at t557 with 1 integrity in this historical replay. The frozen v2 parity cohort's accepted aggregate is 9–4 and 9–3, not this card's older-opponent score."
+    }
+  ],
+  "samples": [
+    {
+      "href": "sample-02.html",
+      "renderer": "webgl",
+      "scoreBug": true,
+      "tickBefore": 0,
+      "tickAfter": 2.21875,
+      "screenshotSha256": "b6e3deccde78b29ef02839511962456c657100838710c416c0ed3a3f31e90484"
+    },
+    {
+      "href": "sample-03.html",
+      "renderer": "webgl",
+      "scoreBug": true,
+      "tickBefore": 0,
+      "tickAfter": 2.09375,
+      "screenshotSha256": "e0a9be46df00ea07b4f13eac0f37d5e753aa62e1dd5e00509e3e44410d646906"
+    },
+    {
+      "href": "sample-01.html",
+      "renderer": "webgl",
+      "scoreBug": true,
+      "tickBefore": 0,
+      "tickAfter": 2.0835000000000004,
+      "screenshotSha256": "961f6f13c63440a591eaf1eb0f4876c1ef0552d3ca44352f0ac9bc1a84d1f85d"
+    }
+  ],
+  "indexScreenshotSha256": "ee9959a3d2f7fa2030cb70de97254a6169797c78b7cbea2d48a9832d389504af",
+  "errors": []
+}

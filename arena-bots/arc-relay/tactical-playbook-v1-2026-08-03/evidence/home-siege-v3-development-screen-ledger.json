@@ -213,6 +213,35 @@
       },
       "resultSummary": "Selected for a distinct candidate-02 pre-outcome freeze and a new fresh canonical WASM cohort. This is screen evidence only.",
       "verdict": "selected-for-pre-outcome-freeze"
+    },
+    {
+      "attemptId": "strict-candidate-02-fresh-canonical-cohort",
+      "runtime": "wasm",
+      "candidateFreeze": "home-siege-v3-candidate-02-freeze.json",
+      "audit": "home-siege-v3-final-audit-02.json",
+      "cells": 24,
+      "freshSeeds": 12,
+      "scoresByAssignment": {
+        "siegeTeam0": "9-1 in 12/12, 3 integrity, tick 560",
+        "siegeTeam1": "9-2 in 12/12, 3 integrity, tick 524"
+      },
+      "canonicalVerification": "24/24 byte-exact reruns",
+      "eligibility": "24/24 with unchanged v4 bars",
+      "runtimeFaults": 0,
+      "traceProof": "312 exact 5+1+1+1 ticks; 36 exact-carrier retarget ticks; 2,808 bounded-cutoff ticks including 276 causal last-seen ticks; 24 emergency pickup-fallback commands at the unenterable enemy pad; zero completed-trip own-home hold ticks; every one of 492 observed replacement lives rejoined strategy and the maximum consecutive own-home wait was one tick.",
+      "resultSummary": "The frozen strict candidate reproduced the 9-2 floor in every fresh canonical cell and closed every conditional lifecycle gate without changing rules, map, opponent, bars, or the five-body blockade.",
+      "verdict": "accepted-strict-final"
+    },
+    {
+      "attemptId": "post-freeze-protected-pad-exclusion-control",
+      "runtime": "in-process",
+      "change": "After the strict cohort, tested suppressing all pursuit of a loose Core inside the opponent's protected home pad rather than issuing the selected two-step fallback pressure.",
+      "pairedResults": [
+        { "siegeTeam0": "8-3 timeout" },
+        { "siegeTeam1": "7-3 timeout" }
+      ],
+      "resultSummary": "Rejected and restored byte-for-byte. The brief fallback movement is strategically useful bank-mouth pressure, not an impossible standing lease; fully ignoring the protected Core destroyed conversion tempo. This post-freeze control did not alter the accepted candidate or its canonical evidence.",
+      "verdict": "rejected-post-freeze-control"
     }
   ]
 }
