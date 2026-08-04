@@ -189,6 +189,38 @@ public static class ArcRelayTacticalPlaybookCompiler
             groups, "groupId", $"{path}.groups");
         foreach (JsonElement group in groups)
             ValidateGroup(group, roleIds, groupIds, orderIds, path);
+        foreach (JsonElement role in roles)
+        {
+            string roleId = role.GetProperty("roleId").GetString()!;
+            JsonElement[] owners = groups.Where(group => group
+                    .GetProperty("roleIds").EnumerateArray()
+                    .Any(value => string.Equals(
+                        value.GetString(), roleId, StringComparison.Ordinal)))
+                .ToArray();
+            if (owners.Length != 1)
+            {
+                throw Error(path,
+                    $"role '{roleId}' must belong to exactly one group.");
+            }
+            string roleCasualty = role.GetProperty("deathPolicy").GetString()!;
+            string groupCasualty = owners[0].GetProperty("membership")
+                .GetProperty("casualty").GetString()!;
+            string expected = roleCasualty switch
+            {
+                "hold-vacancy" => "hold-vacancy",
+                "promote-best" => "promote-role",
+                "rebalance" => "rebalance",
+                _ => throw Error(path,
+                    $"role '{roleId}' has unknown casualty policy."),
+            };
+            if (!string.Equals(
+                    groupCasualty, expected, StringComparison.Ordinal))
+            {
+                throw Error(path,
+                    $"role '{roleId}' deathPolicy '{roleCasualty}' conflicts "
+                    + $"with group casualty '{groupCasualty}'.");
+            }
+        }
 
         JsonElement[] formations = BoundedArray(
             root.GetProperty("formations"), $"{path}.formations", 1, 24);
@@ -219,6 +251,32 @@ public static class ArcRelayTacticalPlaybookCompiler
             custody, "custodyId", $"{path}.custodyPolicies");
         foreach (JsonElement policy in custody)
             ValidateCustody(policy, roleIds, groupIds, orderIds, path);
+        HashSet<string> custodyCarrierRoles = custody
+            .SelectMany(policy => policy
+                .GetProperty("authorizedCarrierRoles")
+                .EnumerateArray())
+            .Select(value => value.GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (JsonElement role in roles)
+        {
+            string roleId = role.GetProperty("roleId").GetString()!;
+            string preference = role.GetProperty("carrierPreference")
+                .GetString()!;
+            if (string.Equals(preference, "forbid", StringComparison.Ordinal)
+                && custodyCarrierRoles.Contains(roleId))
+            {
+                throw Error(path,
+                    $"role '{roleId}' forbids Core custody but is an "
+                    + "authorized carrier.");
+            }
+            if (string.Equals(preference, "require", StringComparison.Ordinal)
+                && !custodyCarrierRoles.Contains(roleId))
+            {
+                throw Error(path,
+                    $"role '{roleId}' requires Core custody but no custody "
+                    + "policy authorizes it.");
+            }
+        }
         foreach (JsonElement order in orders)
         {
             ValidateOrder(order, groupIds, formationIds, engagementIds,

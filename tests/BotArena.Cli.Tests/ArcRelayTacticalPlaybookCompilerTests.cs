@@ -360,6 +360,79 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void CustodyCannotAuthorizeARoleThatForbidsCarrying()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject runner = source["roles"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["roleId"]!.GetValue<string>()
+                == "runner");
+        runner["carrierPreference"] = "forbid";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "forbids Core custody but is an authorized carrier",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void RoleOwnershipAcrossGroupsMustBeUnambiguous()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject line = source["groups"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["groupId"]!.GetValue<string>()
+                == "line-group");
+        line["roleIds"]!.AsArray().Add("runner");
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains(
+                "role 'runner' must belong to exactly one group",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
+    public void RoleAndGroupCasualtyPoliciesCannotContradict()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
+            .AsObject();
+        JsonObject runner = source["groups"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(value => value["groupId"]!.GetValue<string>()
+                == "runner-group");
+        runner["membership"]!["casualty"] = "hold-vacancy";
+        string temporary = TemporaryJson(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
+            Assert.Contains("conflicts with group casualty", failure.Message);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    [Fact]
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =

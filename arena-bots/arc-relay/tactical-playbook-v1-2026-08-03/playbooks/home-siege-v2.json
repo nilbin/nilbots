@@ -63,7 +63,7 @@
       "minimum": 2,
       "preferred": 2,
       "maximum": 2,
-      "carrierPreference": "forbid",
+      "carrierPreference": "allow",
       "deathPolicy": "hold-vacancy",
       "respawnPolicy": "rejoin",
       "overflowRoleId": "line"
@@ -79,7 +79,7 @@
       "minimum": 3,
       "preferred": 5,
       "maximum": 5,
-      "carrierPreference": "forbid",
+      "carrierPreference": "allow",
       "deathPolicy": "rebalance",
       "respawnPolicy": "rejoin",
       "overflowRoleId": ""

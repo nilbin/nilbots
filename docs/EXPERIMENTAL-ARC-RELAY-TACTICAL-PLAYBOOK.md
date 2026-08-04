@@ -59,6 +59,18 @@ life remains a joining replacement until it physically reaches the surviving
 cohort; a complete wipe may establish a new cohort once the group's minimum is
 present and coherent.
 
+Those policies execute rather than merely label the data. `hold-vacancy`
+counts a destroyed stable slot and will not steal a living body from another
+role; `promote-best` fills the opening by declared candidate order; and
+`rebalance` recomputes best fit. `stable-slot` retains eligible assignments,
+while `best-fit` deliberately recomputes them. Pre-emption may be forbidden,
+limited to an earlier role, or limited to a global phase boundary. `resume`
+returns directly to the cohort; `rejoin`, `rally`, and `replace` mark the new
+life as joining, while `replace` does not displace a living promoted
+replacement. A role must belong to exactly one group, and its death policy must
+agree with that group's casualty policy; the compiler rejects ambiguous or
+contradictory ownership.
+
 ### Formations
 
 A formation has a shape and orientation, named role placements, and Chebyshev
@@ -186,6 +198,13 @@ causal source life and apply `same-carrier`, `nearest-authorized`, or
 an authorized `movement.kind: carrier` order follows the nearest carrier on the
 same custody policy, with stable actor-identity ties. Merely listing an escort
 group never overrides that group's current authored order.
+
+Role carrier preference participates in allocation before distance:
+`require`, then `prefer`, then `allow`; `forbid` is ineligible. The compiler
+rejects a custody policy that authorizes a forbidden role, or a `require` role
+that no custody policy authorizes. Home Siege's safe surge explicitly marks
+medic and line roles `allow`, because its authored whole-group sweep permits
+any surviving body to pick up and immediately return a Core.
 
 An explicit `secured-core` movement order follows only causally observed enemy
 drops from its custody policy's allowed, perspective-resolved Wells. Its target

@@ -42,6 +42,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private TacticalPlaybookMachine? _machine;
     private Position _ownReactor;
     private Position _enemyReactor;
+    private string? _allocationPhaseId;
     private int _teamId;
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
@@ -97,9 +98,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
 
         UpdateMemory(mind, arc, package.Source.Memory);
-        Dictionary<int, string> roles = AllocateRoles(mind, package.Source);
+        Dictionary<int, string> roles = AllocateRoles(
+            mind,
+            package.Source,
+            phaseBoundary: !string.Equals(
+                _allocationPhaseId,
+                machine.PhaseId,
+                StringComparison.Ordinal));
         Dictionary<int, string> groups = GroupMembership(roles, package.Source);
-        UpdateFriendlyMembership(mind, package.Source, machine, groups);
+        UpdateFriendlyMembership(
+            mind, package.Source, machine, roles, groups);
         TacticalSnapshot snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
             updateFormationState: false);
@@ -108,8 +116,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             machine.AdvanceLocal(group, mind.Tick,
                 condition => Evaluate(condition, snapshot, package));
         }
-        machine.AdvanceGlobal(mind.Tick,
+        bool phaseChanged = machine.AdvanceGlobal(mind.Tick,
             condition => Evaluate(condition, snapshot, package));
+        if (phaseChanged)
+        {
+            roles = AllocateRoles(
+                mind, package.Source, phaseBoundary: true);
+            groups = GroupMembership(roles, package.Source);
+        }
+        _allocationPhaseId = machine.PhaseId;
         snapshot = Snapshot(mind, arc, package, machine, roles, groups,
             updateFormationState: true);
 
@@ -402,44 +417,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private Dictionary<int, string> AllocateRoles(
         MindContext mind,
-        TacticalPlaybookPackage.Playbook playbook)
+        TacticalPlaybookPackage.Playbook playbook,
+        bool phaseBoundary)
     {
-        var result = new Dictionary<int, string>();
-        var available = mind.Bodies.ToDictionary(body => body.UnitId);
-        foreach (TacticalPlaybookPackage.Role role in playbook.Roles)
-        {
-            MindBody[] retained = available.Values
-                .Where(body => _stableRoles.GetValueOrDefault(body.UnitId)
-                        == role.RoleId
-                    && role.CandidateClasses.Contains(
-                        body.ClassId, StringComparer.Ordinal))
-                .OrderBy(body => body.UnitId)
-                .Take(role.Maximum)
-                .ToArray();
-            foreach (MindBody body in retained)
+        TacticalMembershipPrimitives.Candidate[] candidates = mind.Bodies
+            .Select(body => new TacticalMembershipPrimitives.Candidate(
+                body.UnitId,
+                body.ClassId ?? "",
+                body.Health,
+                _friendlyLives.TryGetValue(
+                    body.UnitId, out ActorIdentity? priorLife)
+                && priorLife != body.ActorId))
+            .ToArray();
+        TacticalMembershipPrimitives.RoleRule[] rules = playbook.Roles
+            .Select(role =>
             {
-                result[body.UnitId] = role.RoleId;
-                available.Remove(body.UnitId);
-            }
-            int needed = Math.Max(0, role.Preferred - retained.Length);
-            MindBody[] promoted = available.Values
-                .Where(body => role.CandidateClasses.Contains(
-                    body.ClassId, StringComparer.Ordinal))
-                .OrderBy(body => Array.IndexOf(
-                    role.CandidateClasses, body.ClassId))
-                .ThenByDescending(body => body.Health)
-                .ThenBy(body => body.UnitId)
-                .Take(needed)
-                .ToArray();
-            foreach (MindBody body in promoted)
-            {
-                result[body.UnitId] = role.RoleId;
-                available.Remove(body.UnitId);
-            }
-        }
-        TacticalPlaybookPackage.Role fallback = playbook.Roles.Last();
-        foreach (MindBody body in available.Values.OrderBy(body => body.UnitId))
-            result[body.UnitId] = fallback.RoleId;
+                TacticalPlaybookPackage.Group group = playbook.Groups.Single(
+                    value => value.RoleIds.Contains(
+                        role.RoleId, StringComparer.Ordinal));
+                return new TacticalMembershipPrimitives.RoleRule(
+                    role.RoleId,
+                    role.CandidateClasses,
+                    role.Minimum,
+                    role.Preferred,
+                    role.Maximum,
+                    role.DeathPolicy,
+                    role.RespawnPolicy,
+                    role.OverflowRoleId,
+                    group.Membership.Persistence,
+                    group.Membership.Preemption,
+                    group.Membership.Overflow);
+            })
+            .ToArray();
+        Dictionary<int, string> result = TacticalMembershipPrimitives.Allocate(
+            candidates, rules, _stableRoles, phaseBoundary);
         foreach ((int unitId, string role) in result)
             _stableRoles[unitId] = role;
         return result;
@@ -494,6 +505,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         TacticalPlaybookPackage.Playbook playbook,
         TacticalPlaybookMachine machine,
+        IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, string> groups)
     {
         bool initialObservation = _friendlyLives.Count == 0;
@@ -502,7 +514,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (_friendlyLives.TryGetValue(body.UnitId, out ActorIdentity? prior)
                 && prior != body.ActorId)
             {
-                _joiningUnits.Add(body.UnitId);
+                TacticalPlaybookPackage.Role role = playbook.Roles.Single(
+                    value => value.RoleId == roles[body.UnitId]);
+                if (TacticalMembershipPrimitives.JoinsCohort(
+                        role.RespawnPolicy))
+                    _joiningUnits.Add(body.UnitId);
+                else
+                    _joiningUnits.Remove(body.UnitId);
             }
             else if (!initialObservation && prior is null)
             {
@@ -1959,11 +1977,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
 
         var eligible = new Dictionary<int,
-            (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>();
+            (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy,
+                int CarrierRank)>();
         foreach (MindBody body in mind.Bodies.OrderBy(body => body.UnitId))
         {
             TacticalPlaybookPackage.Order order = orders[body.UnitId];
             if (string.IsNullOrEmpty(order.CustodyId))
+                continue;
+            TacticalPlaybookPackage.Role role = package.Source.Roles.Single(
+                value => value.RoleId == roles[body.UnitId]);
+            int carrierRank = TacticalCustodyPrimitives
+                .CarrierPreferenceRank(role.CarrierPreference);
+            if (carrierRank == int.MaxValue)
                 continue;
             TacticalPlaybookPackage.CustodyPolicy policy = package.Source
                 .CustodyPolicies.Single(value => value.CustodyId
@@ -1977,7 +2002,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 continue;
             }
-            eligible[body.UnitId] = (body, policy);
+            eligible[body.UnitId] = (body, policy, carrierRank);
         }
 
         var allocations = new Dictionary<int,
@@ -1989,7 +2014,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     key, out CoreReservation? reservation))
                 continue;
             KeyValuePair<int,
-                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>
+                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy,
+                    int CarrierRank)>
                 retained = eligible.FirstOrDefault(value =>
                     value.Value.Body.ActorId == reservation.ActorId
                     && string.Equals(value.Value.Policy.CustodyId,
@@ -2015,7 +2041,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                          CoreKey(core.CoreId))))
         {
             KeyValuePair<int,
-                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy)>
+                (MindBody Body, TacticalPlaybookPackage.CustodyPolicy Policy,
+                    int CarrierRank)>
                 selected = eligible
                     .Where(value => !allocations.ContainsKey(value.Key)
                         && value.Value.Policy.SourceWells.Contains(
@@ -2025,7 +2052,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             value.Value.Policy,
                             value.Value.Body.ActorId,
                             safeConversion: true))
-                    .OrderBy(value => value.Value.Body.Position
+                    .OrderBy(value => value.Value.CarrierRank)
+                    .ThenBy(value => value.Value.Body.Position
                         .ChebyshevDistance(core.Position))
                     .ThenBy(value => value.Key)
                     .FirstOrDefault();

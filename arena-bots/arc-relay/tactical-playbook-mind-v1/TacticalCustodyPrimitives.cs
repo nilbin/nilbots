@@ -7,6 +7,17 @@ using BotArena.Sdk;
 /// </summary>
 internal static class TacticalCustodyPrimitives
 {
+    internal static int CarrierPreferenceRank(string preference) =>
+        preference switch
+        {
+            "require" => 0,
+            "prefer" => 1,
+            "allow" => 2,
+            "forbid" => int.MaxValue,
+            _ => throw new InvalidDataException(
+                $"Unknown carrier preference '{preference}'."),
+        };
+
     internal static bool MayRecoverDrop(
         string recoveryPolicy,
         ActorIdentity candidate,

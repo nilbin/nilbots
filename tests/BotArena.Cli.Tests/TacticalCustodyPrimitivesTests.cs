@@ -5,6 +5,17 @@ namespace BotArena.Cli.Tests;
 public sealed class TacticalCustodyPrimitivesTests
 {
     [Theory]
+    [InlineData("require", 0)]
+    [InlineData("prefer", 1)]
+    [InlineData("allow", 2)]
+    [InlineData("forbid", int.MaxValue)]
+    public void CarrierPreferenceIsAnExecutableAllocationOrder(
+        string preference,
+        int expected) => Assert.Equal(
+            expected,
+            TacticalCustodyPrimitives.CarrierPreferenceRank(preference));
+
+    [Theory]
     [InlineData("same-carrier", true, true, true)]
     [InlineData("same-carrier", false, true, false)]
     [InlineData("nearest-authorized", false, false, true)]
