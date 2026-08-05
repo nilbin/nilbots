@@ -46,7 +46,15 @@ public sealed class InProcessGenericMindRuntime(
         Sdk.MindStart sdkStart = GenericMindSdkModelMapper.ToSdk(start);
         _waitAction = GenericMindSdkModelMapper.WaitActionOf(
             sdkStart.Contract);
-        _mind.StartMatch(sdkStart);
+        try
+        {
+            _mind.StartMatch(sdkStart);
+        }
+        catch (Exception exception)
+        {
+            ReportMindException("StartMatch", exception);
+            throw;
+        }
     }
 
     public GenericMindRuntimeDecisions ExecuteTick(
@@ -71,7 +79,15 @@ public sealed class InProcessGenericMindRuntime(
                 TeamRandom = new SdkTeamRandom(_teamRandom),
                 Debug = debug,
             };
-        _mind.Think(context);
+        try
+        {
+            _mind.Think(context);
+        }
+        catch (Exception exception)
+        {
+            ReportMindException($"Think tick {observation.Tick}", exception);
+            throw;
+        }
 
         // `with` copies the array reference, not the bodies, so the commands
         // written inside Think are on the very objects harvested here.
@@ -91,6 +107,18 @@ public sealed class InProcessGenericMindRuntime(
         _ended = true;
         _mind.EndMatch(new Sdk.MindEnd("match-ended"));
     }
+
+    /// <summary>
+    /// The coordinator converts mind exceptions into canonical fault records
+    /// that deliberately carry no message (replay bytes must stay
+    /// deterministic). This runtime is the diagnostic lane, so before the
+    /// exception reaches that conversion, say what actually broke — an
+    /// unexplained tick-0 fault has cost real debugging time.
+    /// </summary>
+    private void ReportMindException(string stage, Exception exception) =>
+        Console.Error.WriteLine(
+            $"[in-process mind fault] {_mind?.GetType().Name ?? "mind"} "
+            + $"threw during {stage}:\n{exception}");
 
     private static string? TruncateUtf8(string? value, int maxBytes)
     {
