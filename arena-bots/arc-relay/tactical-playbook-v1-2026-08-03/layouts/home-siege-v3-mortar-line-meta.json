@@ -1,6 +1,6 @@
 {
   "schema": "arc-relay-tactical-layout-v1",
-  "layoutId": "counterflow-home-siege-v3-vs-recognizer",
+  "layoutId": "counterflow-home-siege-v3-mortar-line-vs-sz-meta",
   "mapId": "arc-relay-threefold-depth-counterflow-01",
   "bindings": [
     {
@@ -23,7 +23,7 @@
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "43f067af5dd5563dce8ff3d896972d19f7c74e5aa7c675927aeb7c206065edae",
+      "matchContractFingerprint": "3c996bfa6c34b879799ad23b4034afb87a4ba4d927b1a5f46cbb10c5fc4b7610",
       "ownReactorSide": "east",
       "transform": "rotate-180",
       "routeAliases": {
@@ -33,7 +33,16 @@
       "formationAliases": {}
     },
     {
-      "matchContractFingerprint": "9b74e780a5c117a31143d6aeba41410a64f2f928b6f60d492c44408b8ed96c9b",
+      "matchContractFingerprint": "4b5710ef63d2e9aba5b2c9c5da5bb4d260494f551f082b5e73b07241a219f0e9",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {
+        "living-ring": "living-ring-west-forward"
+      }
+    },
+    {
+      "matchContractFingerprint": "any-composition",
       "ownReactorSide": "west",
       "transform": "identity",
       "routeAliases": {},
@@ -50,15 +59,6 @@
         "short-breach": "short-breach-opposite"
       },
       "formationAliases": {}
-    },
-    {
-      "matchContractFingerprint": "any-composition",
-      "ownReactorSide": "west",
-      "transform": "identity",
-      "routeAliases": {},
-      "formationAliases": {
-        "living-ring": "living-ring-west-forward"
-      }
     }
   ],
   "zones": [
@@ -322,7 +322,7 @@
       "anchorId": "well-line-centre",
       "position": [
         15,
-        4
+        11
       ]
     }
   ]

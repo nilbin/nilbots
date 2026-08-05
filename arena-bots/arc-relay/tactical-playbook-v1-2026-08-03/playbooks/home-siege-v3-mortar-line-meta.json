@@ -1,6 +1,6 @@
 {
   "schema": "arc-relay-tactical-playbook-v1",
-  "playbookId": "home-siege-v3",
+  "playbookId": "home-siege-v3-mortar-line-meta",
   "auditStatus": {
     "provisionalEvaluationOnly": true,
     "playerFacingProductSchema": false
@@ -10,14 +10,14 @@
     "kestrel",
     "patchbay",
     "patchbay",
-    "nest",
     "sunder",
-    "repulsor",
-    "repulsor"
+    "sunder",
+    "mortar",
+    "mortar"
   ],
   "layout": {
-    "path": "../layouts/counterflow-home-siege-v3-vs-recognizer.json",
-    "sha256": "325e58b9c2bf12f47b47a672abb53da0db9d2878f1b7ef77297dc75d262af557"
+    "path": "../layouts/home-siege-v3-mortar-line-meta.json",
+    "sha256": "b5c2a8b3053798bae4cc474120b882a0c0e18b42196fb192837274efee5a0efc"
   },
   "perspective": "team-relative",
   "memory": {
@@ -75,7 +75,7 @@
         "repulsor",
         "kestrel",
         "relay",
-        "nest"
+        "mortar"
       ],
       "minimum": 3,
       "preferred": 5,
@@ -1950,8 +1950,8 @@
               "sunder"
             ],
             "minimum": 1,
-            "preferred": 2,
-            "maximum": 2,
+            "preferred": 1,
+            "maximum": 1,
             "carrier": "forbid",
             "distance": {
               "kind": "enemy-reactor",
