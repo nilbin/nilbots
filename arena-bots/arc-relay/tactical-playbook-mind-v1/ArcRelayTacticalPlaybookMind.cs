@@ -389,6 +389,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         foreach (GenericActorRulesContract.ArcRelaySignature signature in
             ArenaBasics.ArcRules(contract)?.Signatures ?? [])
         {
+            // A grammar-2 signature carries its own designed-role metadata,
+            // which IS the coverage: the generic dispatcher plays it.
+            if (signature.Category is not null)
+                continue;
             bool categorized = SignaturePlays.Any(play => string.Equals(
                 play.Kind, signature.Kind, StringComparison.Ordinal));
             if (!categorized
@@ -3385,6 +3389,32 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string category,
         string reason)
     {
+        // Grammar-2 contracts carry designed-role metadata: dispatch from
+        // the contract itself, so a class this executor has never heard of
+        // plays correctly. The hand table remains for grammar-1 contracts
+        // and for judgment plays metadata cannot express (the Switchback
+        // escape swap).
+        GenericActorRulesContract.ArcRelaySignature[] annotated =
+            (ArenaBasics.ArcRules(contract)?.Signatures
+                ?? Enumerable.Empty<
+                    GenericActorRulesContract.ArcRelaySignature>())
+            .Where(signature => signature.Category is not null)
+            .ToArray();
+        if (annotated.Length > 0)
+        {
+            foreach (GenericActorRulesContract.ArcRelaySignature signature in
+                annotated)
+            {
+                if (!string.Equals(
+                        signature.Category, category, StringComparison.Ordinal))
+                    continue;
+                if (TryMetadataCast(
+                        contract, mind, body, target, assignment, signature,
+                        reason))
+                    return true;
+            }
+            return false;
+        }
         foreach (SignaturePlay play in SignaturePlays)
         {
             if (string.Equals(play.Category, category, StringComparison.Ordinal)
@@ -3393,6 +3423,43 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return true;
         }
         return false;
+    }
+
+    private static bool TryMetadataCast(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        Position assignment,
+        GenericActorRulesContract.ArcRelaySignature signature,
+        string reason)
+    {
+        if (string.Equals(signature.Kind, "exchange", StringComparison.Ordinal))
+            return TryExchangeOut(
+                contract, mind, body, target, assignment, signature.Kind,
+                reason);
+        int range = signature.EngagementRange ?? int.MaxValue;
+        if (body.Position.ChebyshevDistance(target.Position) > range)
+            return false;
+        return signature.ArgumentKind switch
+        {
+            "heading" => ArenaBasics.TryHeadingSignature(
+                contract, body, signature.Kind, target.Position, reason),
+            "position" => ArenaBasics.TryPositionSignature(
+                contract, body, signature.Kind,
+                string.Equals(
+                    signature.Kind, "hardlight-block", StringComparison.Ordinal)
+                    ? assignment
+                    : target.Position,
+                reason),
+            "unit" => ArenaBasics.TryUnitSignature(
+                contract, body, signature.Kind, target.ActorId, reason),
+            "direction" => ArenaBasics.TryDirectionSignature(
+                contract, body, signature.Kind, target.Position, reason),
+            "parameterless" => ArenaBasics.TryParameterlessSignature(
+                contract, body, signature.Kind, reason),
+            _ => false,
+        };
     }
 
     private static bool TryLeadSignature(
