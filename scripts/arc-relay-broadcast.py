@@ -216,6 +216,7 @@ def project(replay: dict) -> dict:
     events_by_tick = []
     traversals_by_tick = []
     births_by_tick = []
+    vision_by_tick = []
     previous_actor_ids = {
         tuple(actor(item["actorId"]))
         for item in replay["initialFrame"]["state"]["activeLives"]
@@ -249,6 +250,26 @@ def project(replay: dict) -> dict:
             tuple(actor(item["actorId"]))
             for item in tick["postState"]["activeLives"]
         }
+        # Per-team visible-tile unions, straight from the recorded
+        # observations, so the viewer's fog of war stays replay-honest.
+        # Broadcasts drop the private turns; this compact union is all the
+        # fog needs.
+        team_tiles: dict[int, set] = {}
+        for turn in tick.get("mindTurns") or tick.get("actorTurns") or []:
+            observation = turn.get("observation") or {}
+            team_id = observation.get("teamId", turn.get("teamId"))
+            if team_id is None:
+                continue
+            tiles = team_tiles.setdefault(team_id, set())
+            for visible in observation.get("visibleTiles") or []:
+                position = visible.get("position", visible)
+                tiles.add((position["x"], position["y"]))
+        vision_by_tick.append(
+            [
+                [team_id, [[x, y] for (x, y) in sorted(tiles)]]
+                for team_id, tiles in sorted(team_tiles.items())
+            ]
+        )
     return {
         "broadcastVersion": 1,
         "canonicalReplayHash": replay_hash,
@@ -260,6 +281,7 @@ def project(replay: dict) -> dict:
         "events": events_by_tick,
         "traversals": traversals_by_tick,
         "births": births_by_tick,
+        "vision": vision_by_tick,
         "result": replay["result"],
     }
 

@@ -84,6 +84,65 @@ internal static class ArenaBasics
     }
 
     /// <summary>
+    /// Nearest standable tile from which a shot at the target enters its
+    /// blind rear quadrant: tiles along the three rear-approach rays out to
+    /// the shooter's projectile range, wall-checked including the firing
+    /// ray. Null when the target's back is to a wall or the shooter has no
+    /// ranged attack.
+    /// </summary>
+    public static Position? NearestRearFiringTile(
+        GenericActorResolvedMatchContract contract,
+        MindBody shooter,
+        GenericActorContext.ObservedEnemyState target)
+    {
+        GenericActorRulesContract.AttackProfile? attack = contract.Rules.Forms
+            .FirstOrDefault(form => string.Equals(
+                form.Id, shooter.FormId, StringComparison.Ordinal))
+            ?.AttackProfileId is string attackId
+            ? contract.Rules.AttackProfiles.FirstOrDefault(value =>
+                string.Equals(value.Id, attackId, StringComparison.Ordinal))
+            : null;
+        if (attack is null)
+            return null;
+        (int fx, int fy) = target.Facing switch
+        {
+            Direction.North => (0, -1),
+            Direction.South => (0, 1),
+            Direction.East => (1, 0),
+            Direction.West => (-1, 0),
+            _ => (0, 0),
+        };
+        (int Hx, int Hy)[] rearHeadings = fx != 0
+            ? [(fx, 0), (fx, -1), (fx, 1)]
+            : [(0, fy), (-1, fy), (1, fy)];
+        Position? best = null;
+        int bestScore = int.MaxValue;
+        foreach ((int hx, int hy) in rearHeadings)
+        {
+            for (int k = 1; k <= attack.Projectile.MaxTravelTiles; k++)
+            {
+                var tile = new Position(
+                    target.Position.X - hx * k,
+                    target.Position.Y - hy * k);
+                if (!CanEnter(contract.Map, tile)
+                    || !ClearRay(
+                        contract.Map, tile, target.Position,
+                        attack.Projectile.DiagonalCornersMustBeClear))
+                {
+                    continue;
+                }
+                int score = shooter.Position.ChebyshevDistance(tile) * 8 + k;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = tile;
+                }
+            }
+        }
+        return best;
+    }
+
+    /// <summary>
     /// 0 when the nearest shooter's 8-way heading toward the target lands in
     /// the target's blind rear quadrant (a backstab under predation rules),
     /// 1 otherwise — an ascending late tie-break for target choice.

@@ -388,7 +388,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         contract, mind, arc, package, machine, snapshot, body,
                         role, group, order, target, targets, groups,
                         orders,
-                        pickupAssignments, claims),
+                        pickupAssignments, focus, claims),
                     "facing" => facingTarget is Position lookAt
                         && TryFaceTarget(
                         contract, body, lookAt,
@@ -2950,6 +2950,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
         IReadOnlyDictionary<int,
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
+        IReadOnlyDictionary<int, FocusAssignment> focus,
         ArenaBasics.Claims claims)
     {
         TacticalPlaybookPackage.Group groupPolicy = package.Source.Groups
@@ -2970,6 +2971,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     throw new InvalidDataException(
                         $"Unknown understrength fallback "
                         + $"'{order.Fallback.OnUnderstrength}'.");
+            }
+        }
+
+        // Flank doctrine under predation rules: a focused shooter that
+        // cannot hit its target's blind rear from here steps toward the
+        // nearest rear firing tile instead of holding a frontal slot,
+        // staying inside its engagement leash. Ambushers keep concealment
+        // instead; everything else about the order stays authored.
+        if (_rearArcDamageMultiplier > 1
+            && !string.Equals(order.Stance, "ambush", StringComparison.Ordinal)
+            && focus.TryGetValue(body.UnitId, out FocusAssignment? hunt)
+            && ArenaBasics.RearExposedRank([body], hunt.Target) == 1
+            && body.Position.ChebyshevDistance(hunt.Target.Position) <= 7)
+        {
+            if (ArenaBasics.NearestRearFiringTile(contract, body, hunt.Target)
+                    is Position firing
+                && firing != body.Position
+                && firing.ChebyshevDistance(target)
+                    <= Math.Max(order.Movement.ChaseLeash, 1)
+                        + order.Movement.ArrivalRadius + 2
+                && ArenaBasics.StaticFirstStepAvoidingReservations(
+                    contract, mind, body, firing) is Position flankStep
+                && ArenaBasics.TryMoveDirect(
+                    contract, mind, body, flankStep, claims,
+                    Provenance(machine, group, order, "flank-approach")))
+            {
+                return true;
             }
         }
 
