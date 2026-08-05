@@ -41,6 +41,14 @@ internal sealed class CoordinatedAttackAllocator
             .Where(body => !ownCarriers.Contains(body.ActorId))
             .OrderBy(body => body.UnitId)
             .ToArray();
+        if (participants.Length == 0)
+        {
+            // Every live body is a carrier (a near-wipe under costly
+            // respawns): there is nobody to coordinate, and the distance
+            // tie-breaker would throw on the empty set.
+            return new Dictionary<int,
+                GenericActorContext.ObservedEnemyState>();
+        }
         bool preferRearExposed = contract.Rules.GameMode
             is GenericActorRulesContract.ArcRelayGameMode
                 { RearArcDamageMultiplier: > 1 };
