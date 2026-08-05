@@ -44,7 +44,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         "ticks-without-objective-progress",
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
         "group-formation-broken", "movement-complete", "custody-state-ticks",
-        "role-live-count",
+        "role-live-count", "group-max-level",
         // Threefold sockets (subject = the contract's absolute well id).
         "own-socket-filled", "enemy-socket-filled",
         "own-filled-sockets", "enemy-filled-sockets",
@@ -56,7 +56,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         "group-live-count", "group-joining-count", "group-in-zone-count",
         "group-cohesion",
         "group-stuck-ticks", "formation-established-ticks",
-        "group-formation-broken",
+        "group-formation-broken", "group-max-level",
     ];
 
     private static readonly HashSet<string> OrderSubjectFacts =
@@ -1780,8 +1780,21 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "roleId", "candidateClasses", "minimum", "preferred",
                 "maximum", "carrierPreference", "deathPolicy",
                 "respawnPolicy", "overflowRoleId",
-            ]);
+            ],
+            ["build"]);
         string roleId = Identifier(value, "roleId", at);
+        // Veterancy build order (owner direction 2026-08-06): the playbook
+        // owns skill-point selection per role. Optional; a role without one
+        // keeps the mind's default. Points past the list repeat its last
+        // entry.
+        if (value.TryGetProperty("build", out JsonElement build))
+        {
+            string[] tracks = StringArray(
+                build, $"{at}.{roleId}.build", 1, 8);
+            string[] known = ["damage", "vision", "reach", "vitality"];
+            if (tracks.Any(track => !known.Contains(track)))
+                throw Error(at, $"role '{roleId}' has unknown build tracks.");
+        }
         string[] candidates = StringArray(
             value.GetProperty("candidateClasses"),
             $"{at}.{roleId}.candidateClasses", 1, 16);

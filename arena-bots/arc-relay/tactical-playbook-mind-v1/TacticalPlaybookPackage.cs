@@ -315,7 +315,8 @@ internal sealed class TacticalPlaybookPackage
         string CarrierPreference,
         string DeathPolicy,
         string RespawnPolicy,
-        string OverflowRoleId);
+        string OverflowRoleId,
+        string[]? Build = null);
 
     internal sealed record Group(
         string GroupId,

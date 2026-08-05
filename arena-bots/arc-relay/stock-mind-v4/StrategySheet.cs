@@ -94,7 +94,9 @@ internal sealed class StrategySheet
                 Positions(reader),
                 PositionIntent.BaseAssignment,
                 "normal",
-                "normal"))
+                "normal",
+                Enumerable.Range(0, ReadCount(reader))
+                    .Select(_ => reader.ReadString()).ToArray()))
             .ToArray();
 
         var zones = new Dictionary<string, Zone>(StringComparer.Ordinal);
@@ -476,7 +478,8 @@ internal sealed record UnitPlan(
     Position[] ReturnPath,
     PositionIntent DefaultPosition,
     string DefaultEngagementIntent,
-    string DefaultSignatureIntent);
+    string DefaultSignatureIntent,
+    string[] Build);
 
 internal readonly record struct Zone(int MinX, int MinY, int MaxX, int MaxY)
 {

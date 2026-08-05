@@ -476,6 +476,18 @@ public static class ArcRelayExperimentCommand
             writer.Write(slot.GetProperty("partnerUnitId").GetInt32());
             WritePositions(writer, slot.GetProperty("outboundPath"));
             WritePositions(writer, slot.GetProperty("returnPath"));
+            // Veterancy build order (owner direction 2026-08-06): the sheet
+            // owns skill-point selection. Optional and empty for older
+            // sheets, whose bodies keep the mind's class defaults; entries
+            // beyond the list repeat its last track.
+            JsonElement[] build = slot.TryGetProperty(
+                    "build",
+                    out JsonElement buildValue)
+                ? buildValue.EnumerateArray().ToArray()
+                : [];
+            writer.Write(build.Length);
+            foreach (JsonElement track in build)
+                writer.Write(track.GetString() ?? throw SheetError("build"));
         }
 
         JsonProperty[] zones = root.GetProperty("zones").EnumerateObject()

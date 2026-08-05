@@ -380,6 +380,30 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void ApexArmRaisesTheVeterancyCeilingBesideTheWellLeadArm()
+    {
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren8)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren9)));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren8).Map),
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren9).Map));
+        string json = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren9));
+        Assert.Contains("\"veterancyMaxLevel\":5", json);
+        Assert.Contains("\"seedPhasedWellLead\":true", json);
+    }
+
+    [Fact]
     public void ResolutionPhaseDerivationIsPinned()
     {
         // Golden values: changing these changes which seeds flip the

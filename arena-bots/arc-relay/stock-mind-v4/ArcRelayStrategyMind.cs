@@ -10,6 +10,7 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
     private readonly Dictionary<int, CarrierMotion> _carrierMotion = [];
     private readonly CoordinatedAttackAllocator _attackAllocator = new();
     private readonly Dictionary<int, int> _pendingInvest = [];
+    private readonly Dictionary<int, (int LifeId, int Spent)> _investSpent = [];
     private readonly HashSet<string> _seenLevelEvents =
         new(StringComparer.Ordinal);
     private Position[] _healTiles = [];
@@ -260,12 +261,25 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     is { Available: true } investAction)
             {
                 _pendingInvest[body.UnitId]--;
+                // The sheet owns the build when it declares one: the Nth
+                // point of a life buys the Nth listed track, repeating the
+                // last entry past the end. A death resets the count with
+                // the life, matching the rules' progression reset.
+                (int spendLife, int spent) = _investSpent.GetValueOrDefault(
+                    body.UnitId,
+                    (body.ActorId.LifeId, 0));
+                if (spendLife != body.ActorId.LifeId) spent = 0;
+                string track = basePlan.Build.Length > 0
+                    ? basePlan.Build[
+                        Math.Min(spent, basePlan.Build.Length - 1)]
+                    : ArenaBasics.DefaultBuildTrack(body.FormId);
+                _investSpent[body.UnitId] = (body.ActorId.LifeId, spent + 1);
                 body.Command(
                     investAction.ActionId,
                     investAction.ActionCode,
                     [
                         new GenericActorActionArgument.UpgradeTrackArgument(
-                            ArenaBasics.DefaultBuildTrack(body.FormId)),
+                            track),
                     ],
                     "veterancy: spending a skill point");
                 continue;

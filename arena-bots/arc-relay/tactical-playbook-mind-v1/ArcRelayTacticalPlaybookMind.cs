@@ -30,6 +30,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new(StringComparer.Ordinal);
     /// <summary>Unspent veterancy points queued per own unit.</summary>
     private readonly Dictionary<int, int> _pendingInvest = [];
+    private readonly Dictionary<int, (int LifeId, int Spent)> _investSpent = [];
+    private readonly Dictionary<int, (int LifeId, int Level)> _unitLevel = [];
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -58,11 +60,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _teamId;
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
+    private Position[] _healTiles = [];
 
     public void StartMatch(MindStart start)
     {
         _contract = start.Contract;
         _teamId = start.TeamId;
+        _healTiles = start.Contract.Map.Regions
+            .Where(region => region.RegionId.StartsWith(
+                "heal-", StringComparison.Ordinal))
+            .SelectMany(region => region.Tiles)
+            .ToArray();
         if (start.Contract.ModeMapBinding is not
             GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding)
         {
@@ -349,15 +357,76 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 && body.Action("invest") is { Available: true } investAction)
             {
                 _pendingInvest[body.UnitId]--;
+                // The playbook owns the build when its role declares one:
+                // the Nth point of a life buys the Nth listed track,
+                // repeating the last entry past the end. A death resets
+                // the count with the life, matching the rules' reset.
+                TacticalPlaybookPackage.Role investRole = package.Source
+                    .Roles.Single(value =>
+                        value.RoleId == roles[body.UnitId]);
+                (int spendLife, int spent) = _investSpent.GetValueOrDefault(
+                    body.UnitId,
+                    (body.ActorId.LifeId, 0));
+                if (spendLife != body.ActorId.LifeId) spent = 0;
+                string track = investRole.Build is { Length: > 0 } build
+                    ? build[Math.Min(spent, build.Length - 1)]
+                    : DefaultBuildTrack(roles[body.UnitId]);
+                _investSpent[body.UnitId] = (body.ActorId.LifeId, spent + 1);
                 body.Command(
                     investAction.ActionId,
                     investAction.ActionCode,
                     [
                         new GenericActorActionArgument.UpgradeTrackArgument(
-                            DefaultBuildTrack(roles[body.UnitId])),
+                            track),
                     ],
                     Provenance(machine, group, order, "veterancy-invest"));
                 continue;
+            }
+
+            // Heal discipline (owner direction 2026-08-06): a levelled body
+            // is carried progression, so the more levels it holds the more
+            // eagerly it detours to a heal zone. Level 1 heals at 2 HP like
+            // any pragmatist; each level raises the trigger by one. Only
+            // when quiet - no enemy inside 6 - because the heal tiles are
+            // deliberately contested ground and channelling is stationary.
+            if (_healTiles.Length > 0
+                && !carried.ContainsKey(body.ActorId))
+            {
+                int bodyLevel = _unitLevel.TryGetValue(
+                        body.UnitId,
+                        out (int LifeId, int Level) levelEntry)
+                    && levelEntry.LifeId == body.ActorId.LifeId
+                        ? levelEntry.Level
+                        : 1;
+                if (body.Health <= 1 + bodyLevel
+                    && mind.Enemies.All(enemy =>
+                        enemy.Position.ChebyshevDistance(body.Position) > 6))
+                {
+                    Position healTile = _healTiles
+                        .OrderBy(tile =>
+                            tile.ChebyshevDistance(body.Position))
+                        .ThenBy(tile => tile.Y)
+                        .ThenBy(tile => tile.X)
+                        .First();
+                    if (body.Position == healTile)
+                    {
+                        body.Hold(Provenance(
+                            machine, group, order, "heal-channel"));
+                        continue;
+                    }
+                    if (body.Position.ChebyshevDistance(healTile) <= 8
+                        && ArenaBasics.TryMoveToward(
+                            contract,
+                            mind,
+                            body,
+                            [healTile],
+                            claims,
+                            Provenance(
+                                machine, group, order, "heal-detour")))
+                    {
+                        continue;
+                    }
+                }
             }
 
             bool acted = false;
@@ -552,6 +621,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     _pendingInvest[level.ActorId.UnitId] =
                         _pendingInvest.GetValueOrDefault(
                             level.ActorId.UnitId) + 1;
+                    _unitLevel[level.ActorId.UnitId] =
+                        (level.ActorId.LifeId, level.Level);
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreDropped drop:
                     _emergencyRecoveries.Remove(CoreKey(drop.CoreId));
@@ -1063,6 +1134,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 well => well.NextScheduledBirthTick is int birth
                     ? Math.Max(0, birth - mind.Tick)
                     : 9999,
+                StringComparer.Ordinal),
+            // Highest current level among a group's LIVE bodies: level is a
+            // per-life fact, so a body whose recorded level belongs to an
+            // earlier life reads as 1, and an empty group reads as 0 - an
+            // apex phase entered on "at-least N" therefore releases when
+            // the apex dies.
+            package.Source.Groups.ToDictionary(
+                group => group.GroupId,
+                group => mind.Bodies
+                    .Where(body => groups[body.UnitId] == group.GroupId)
+                    .Select(body =>
+                        _unitLevel.TryGetValue(
+                            body.UnitId,
+                            out (int LifeId, int Level) entry)
+                        && entry.LifeId == body.ActorId.LifeId
+                            ? entry.Level
+                            : 1)
+                    .DefaultIfEmpty(0)
+                    .Max(),
                 StringComparer.Ordinal));
     }
 
@@ -1176,6 +1266,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : _custodyProgress.Values.Max(value =>
                     snapshot.Tick - value.StartedTick),
             "role-live-count" => snapshot.RoleLive
+                .GetValueOrDefault(condition.Subject),
+            "group-max-level" => snapshot.GroupMaxLevel
                 .GetValueOrDefault(condition.Subject),
             // Threefold sockets: subjects are the contract's absolute well
             // ids, exactly like custody sourceWells.
@@ -4099,5 +4191,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> FormationBroken,
         IReadOnlyDictionary<string, int> OwnSocketFilled,
         IReadOnlyDictionary<string, int> EnemySocketFilled,
-        IReadOnlyDictionary<string, int> WellBirthIn);
+        IReadOnlyDictionary<string, int> WellBirthIn,
+        IReadOnlyDictionary<string, int> GroupMaxLevel);
 }

@@ -523,6 +523,36 @@ public sealed record ArcRelayLoopProfile
         seedPhasedWellLead: true);
 
     /// <summary>
+    /// The apex arm (owner direction 2026-08-06): the -08 fairness stack
+    /// with the veterancy ceiling raised to 5 so a dedicated hunter can
+    /// out-level the field. The damage track stays capped at +3 by the
+    /// invest rules, so levels beyond 4 buy vision, reach, or vitality;
+    /// vitality headroom follows the ceiling automatically. Experimental
+    /// only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren9 { get; } = new(
+        "ambush-warren-9",
+        "arc-relay-ambush-09",
+        "arc-relay-ambush-warren-05",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        seedPhasedWellLead: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -592,6 +622,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren6,
         AmbushWarren7,
         AmbushWarren8,
+        AmbushWarren9,
         Return16,
         Return24,
         Hot60,
