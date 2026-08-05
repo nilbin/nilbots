@@ -739,6 +739,10 @@ public static class ActorCanonicalContractReader
             "alternatingResolutionOrder", out _);
         bool hasThreefold = element.TryGetProperty(
             "threefoldSockets", out _);
+        bool hasBaseValue = element.TryGetProperty(
+            "coreBaseValue", out _);
+        bool hasRipening = element.TryGetProperty(
+            "ripenIntervalTicks", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -756,6 +760,16 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasThreefold
                 ? new[] { "threefoldSockets" }
+                : System.Array.Empty<string>(),
+            .. hasBaseValue
+                ? new[] { "coreBaseValue" }
+                : System.Array.Empty<string>(),
+            .. hasRipening
+                ? new[]
+                {
+                    "ripenIntervalTicks", "ripenMaxValue",
+                    "ripenResumeTicks",
+                }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -790,6 +804,18 @@ public static class ActorCanonicalContractReader
                 && Bool(element, "alternatingResolutionOrder"),
             ThreefoldSockets = hasThreefold
                 && Bool(element, "threefoldSockets"),
+            CoreBaseValue = hasBaseValue
+                ? Int(element, "coreBaseValue")
+                : 1,
+            RipenIntervalTicks = hasRipening
+                ? Int(element, "ripenIntervalTicks")
+                : 0,
+            RipenMaxValue = hasRipening
+                ? Int(element, "ripenMaxValue")
+                : 0,
+            RipenResumeTicks = hasRipening
+                ? Int(element, "ripenResumeTicks")
+                : 0,
         };
     }
 

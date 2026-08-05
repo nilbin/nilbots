@@ -1152,7 +1152,11 @@ internal sealed record ReplayV3(
         ActorId? CarrierActorId,
         int NextRelocationTick,
         PositionValue? FlightTarget,
-        int? FlightCompletesAtTick);
+        int? FlightCompletesAtTick)
+    {
+        /// <summary>Charge this Core banks for; 1 outside charge-value rulesets.</summary>
+        public int ChargeValue { get; init; } = 1;
+    }
 
     internal sealed record ArcSignature(
         string OperationId,

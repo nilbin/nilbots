@@ -508,7 +508,10 @@ internal static class GenericActorSdkModelMapper
             ToSdkOptional(value.CarrierActorId),
             value.NextRelocationTick,
             value.FlightTarget is { } target ? ToSdk(target) : null,
-            value.FlightCompletesAtTick);
+            value.FlightCompletesAtTick)
+        {
+            ChargeValue = value.ChargeValue,
+        };
 
     internal static Sdk.GenericActorContext.ArcRelaySignatureState ToSdk(
         ArcRelaySignatureState value) =>

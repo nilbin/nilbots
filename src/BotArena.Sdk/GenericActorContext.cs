@@ -2785,7 +2785,14 @@ public sealed record GenericActorContext
         ActorIdentity? CarrierActorId,
         int NextRelocationTick,
         Position? FlightTarget,
-        int? FlightCompletesAtTick);
+        int? FlightCompletesAtTick)
+    {
+        /// <summary>
+        /// Charge this Core banks for (1 historically; base 2 under the
+        /// charge-value primitive, up to the ripening cap).
+        /// </summary>
+        public int ChargeValue { get; init; } = 1;
+    }
 
     /// <summary>One visible signature tell/effect/construct.</summary>
     public sealed record ArcRelaySignatureState(

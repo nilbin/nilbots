@@ -385,7 +385,7 @@ public static class ArcRelayH0Definition
             ],
             pendingRearmTicks: 10,
             coreRelocationIntervalTicks: 2,
-            coresPerPulse: 3,
+            coresPerPulse: loopProfile.CoresPerPulse,
             fieldedSlotsPerTeam: 8,
             maxCopiesPerClass: 2,
             respawnDelayTicks: loopProfile.RespawnDelayTicks,
@@ -395,7 +395,11 @@ public static class ArcRelayH0Definition
             wellBirthJitterTicks: loopProfile.WellBirthJitterTicks,
             alternatingResolutionOrder:
                 loopProfile.AlternatingResolutionOrder,
-            threefoldSockets: loopProfile.ThreefoldSockets);
+            threefoldSockets: loopProfile.ThreefoldSockets,
+            coreBaseValue: loopProfile.CoreBaseValue,
+            ripenIntervalTicks: loopProfile.RipenIntervalTicks,
+            ripenMaxValue: loopProfile.RipenMaxValue,
+            ripenResumeTicks: loopProfile.RipenResumeTicks);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

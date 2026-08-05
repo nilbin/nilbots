@@ -7,6 +7,12 @@ namespace BotArena.Engine;
 /// </summary>
 public sealed record ArcRelayCoreState
 {
+    /// <summary>
+    /// Charge this Core banks for (1 historically; base 2 under the
+    /// charge-value primitive, up to the ripening cap).
+    /// </summary>
+    public int ChargeValue { get; init; } = 1;
+
     public ArcRelayCoreState(
         ArcRelayCoreId coreId,
         Position position,

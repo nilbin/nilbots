@@ -1166,6 +1166,10 @@ internal static class GenericActorWireObservationCodec
             writer,
             7,
             value.FlightCompletesAtTick);
+        // Tagged and emitted only when not 1 (charge-value rulesets), so
+        // historical observation bytes are untouched.
+        if (value.ChargeValue != 1)
+            writer.Field(8, ActorWireValue.Int32(value.ChargeValue));
         return writer.ToArray();
     }
 
@@ -1191,7 +1195,11 @@ internal static class GenericActorWireObservationCodec
                 ? null
                 : GenericActorWireCodecValues.DecodePosition(
                     target, depth + 1),
-            GenericActorWireCodecValues.OptionalInt32(reader, 7));
+            GenericActorWireCodecValues.OptionalInt32(reader, 7))
+        {
+            ChargeValue =
+                GenericActorWireCodecValues.OptionalInt32(reader, 8) ?? 1,
+        };
     }
 
     private static byte[] EncodeArcSignature(

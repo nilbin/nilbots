@@ -22,7 +22,11 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int signatureGrammarVersion = 1,
         int wellBirthJitterTicks = 0,
         bool alternatingResolutionOrder = false,
-        bool threefoldSockets = false)
+        bool threefoldSockets = false,
+        int coreBaseValue = 1,
+        int ripenIntervalTicks = 0,
+        int ripenMaxValue = 0,
+        int ripenResumeTicks = 0)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -35,6 +39,22 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         WellBirthJitterTicks = wellBirthJitterTicks;
         _alternatingResolutionOrder = alternatingResolutionOrder;
         ThreefoldSockets = threefoldSockets;
+        if (coreBaseValue < 1)
+            throw new ArgumentOutOfRangeException(nameof(coreBaseValue));
+        if (ripenIntervalTicks < 0 || ripenResumeTicks < 0)
+            throw new ArgumentOutOfRangeException(nameof(ripenIntervalTicks));
+        if (ripenIntervalTicks > 0
+            && (ripenMaxValue < coreBaseValue || threefoldSockets))
+        {
+            throw new ArgumentException(
+                "Ripening needs a max value at or above the base and is "
+                + "never combined with threefold sockets.",
+                nameof(ripenMaxValue));
+        }
+        CoreBaseValue = coreBaseValue;
+        RipenIntervalTicks = ripenIntervalTicks;
+        RipenMaxValue = ripenMaxValue;
+        RipenResumeTicks = ripenResumeTicks;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -156,6 +176,25 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// Canonically written only when true.
     /// </summary>
     public bool ThreefoldSockets { get; }
+
+    /// <summary>
+    /// Charge a freshly born Core is worth (1 historically; 2 under the
+    /// charge-value primitive so three base Cores still make a Pulse at
+    /// six). Canonically written only when not 1.
+    /// </summary>
+    public int CoreBaseValue { get; }
+
+    /// <summary>
+    /// Ripening (owner direction 2026-08-05, depth memo #1): a loose Core
+    /// gains +1 value per this many uninterrupted loose ticks, up to
+    /// <see cref="RipenMaxValue"/>; first pickup freezes the value; after a
+    /// drop, ripening resumes only after <see cref="RipenResumeTicks"/>
+    /// loose ticks. Zero disables ripening; fields are canonically written
+    /// only when active.
+    /// </summary>
+    public int RipenIntervalTicks { get; }
+    public int RipenMaxValue { get; }
+    public int RipenResumeTicks { get; }
 
     public override bool AlternatingResolutionOrder =>
         _alternatingResolutionOrder;

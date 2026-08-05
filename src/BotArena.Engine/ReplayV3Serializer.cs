@@ -2640,6 +2640,10 @@ internal static class ReplayV3Serializer
             writer,
             "flightCompletesAtTick",
             value.FlightCompletesAtTick);
+        // Written only under charge-value rulesets so historical replay
+        // bytes are untouched.
+        if (value.ChargeValue != 1)
+            writer.WriteNumber("chargeValue", value.ChargeValue);
         writer.WriteEndObject();
     }
 

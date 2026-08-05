@@ -276,6 +276,16 @@ internal static class ActorRulesCanonicalWriter
         {
             writer.WriteBoolean("threefoldSockets", mode.ThreefoldSockets);
         }
+        // Written only when not 1 so historical rules bytes are untouched.
+        if (mode.CoreBaseValue != 1)
+            writer.WriteNumber("coreBaseValue", mode.CoreBaseValue);
+        // Written only when ripening is active.
+        if (mode.RipenIntervalTicks != 0)
+        {
+            writer.WriteNumber("ripenIntervalTicks", mode.RipenIntervalTicks);
+            writer.WriteNumber("ripenMaxValue", mode.RipenMaxValue);
+            writer.WriteNumber("ripenResumeTicks", mode.RipenResumeTicks);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

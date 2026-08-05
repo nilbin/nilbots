@@ -1439,7 +1439,10 @@ internal static class ReplayV3Projection
                     : null,
                 core.NextRelocationTick,
                 core.FlightTarget is { } target ? Position(target) : null,
-                core.FlightCompletesAtTick))],
+                core.FlightCompletesAtTick)
+            {
+                ChargeValue = core.ChargeValue,
+            })],
             [.. value.VisibleSignatures.Select(signature =>
                 new ReplayV3.ArcSignature(
                     signature.OperationId,

@@ -20,12 +20,22 @@ public sealed record ArcRelayLoopProfile
         int signatureGrammarVersion = 1,
         int wellBirthJitterTicks = 0,
         bool alternatingResolutionOrder = false,
-        bool threefoldSockets = false)
+        bool threefoldSockets = false,
+        int coresPerPulse = 3,
+        int coreBaseValue = 1,
+        int ripenIntervalTicks = 0,
+        int ripenMaxValue = 0,
+        int ripenResumeTicks = 0)
     {
         SignatureGrammarVersion = signatureGrammarVersion;
         WellBirthJitterTicks = wellBirthJitterTicks;
         AlternatingResolutionOrder = alternatingResolutionOrder;
         ThreefoldSockets = threefoldSockets;
+        CoresPerPulse = coresPerPulse;
+        CoreBaseValue = coreBaseValue;
+        RipenIntervalTicks = ripenIntervalTicks;
+        RipenMaxValue = ripenMaxValue;
+        RipenResumeTicks = ripenResumeTicks;
         Id = id;
         RulesetId = rulesetId;
         MapId = mapId;
@@ -50,6 +60,11 @@ public sealed record ArcRelayLoopProfile
     internal int WellBirthJitterTicks { get; }
     internal bool AlternatingResolutionOrder { get; }
     internal bool ThreefoldSockets { get; }
+    internal int CoresPerPulse { get; }
+    internal int CoreBaseValue { get; }
+    internal int RipenIntervalTicks { get; }
+    internal int RipenMaxValue { get; }
+    internal int RipenResumeTicks { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -208,6 +223,52 @@ public sealed record ArcRelayLoopProfile
         threefoldSockets: true);
 
     /// <summary>
+    /// Charge-value control arm (owner direction 2026-08-05): the -03
+    /// foundations with Cores worth 2 and a Pulse at 6 — three base Cores
+    /// per Pulse, so the primitive alone must be behaviorally inert.
+    /// </summary>
+    public static ArcRelayLoopProfile ChargeValueControl { get; } = new(
+        "charge-value-control",
+        "arc-relay-charge-value-01",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        coresPerPulse: 6,
+        coreBaseValue: 2);
+
+    /// <summary>
+    /// Ripening Cores depth prototype (owner direction 2026-08-05, depth
+    /// memo #1, docs/briefs/RIPENING-CORES-PROTOTYPE-BRIEF.md): the
+    /// charge-value primitive plus +1 value per 45 loose ticks, cap 4,
+    /// freeze on pickup, 20-tick resumption after drops. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile RipeningCores { get; } = new(
+        "ripening-cores",
+        "arc-relay-ripening-01",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        coresPerPulse: 6,
+        coreBaseValue: 2,
+        ripenIntervalTicks: 45,
+        ripenMaxValue: 4,
+        ripenResumeTicks: 20);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -266,6 +327,8 @@ public sealed record ArcRelayLoopProfile
         ForwardCombat2,
         ForwardCombat3,
         ThreefoldPulse,
+        ChargeValueControl,
+        RipeningCores,
         Return16,
         Return24,
         Hot60,

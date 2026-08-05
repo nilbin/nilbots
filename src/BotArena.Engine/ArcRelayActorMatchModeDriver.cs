@@ -114,6 +114,8 @@ internal sealed class ArcRelayActorMatchModeDriver
         if (core is null || tick < core.NextRelocationTick)
             return [];
         core.CarrierActorId = null;
+        core.LooseTicks = 0;
+        core.ResumeDebt = _gameMode.RipenResumeTicks;
         core.FlightTarget = target;
         core.FlightCompletesAtTick = completesAtTick;
         return
@@ -197,6 +199,30 @@ internal sealed class ArcRelayActorMatchModeDriver
             ProjectState();
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
 
+        if (_gameMode.RipenIntervalTicks > 0)
+        {
+            foreach (CoreRuntime core in _cores.Values)
+            {
+                if (core.CarrierActorId is not null
+                    || core.FlightTarget is not null)
+                {
+                    continue;
+                }
+                if (core.ResumeDebt > 0)
+                {
+                    core.ResumeDebt--;
+                    continue;
+                }
+                if (core.Value >= _gameMode.RipenMaxValue)
+                    continue;
+                core.LooseTicks++;
+                if (core.LooseTicks >= _gameMode.RipenIntervalTicks)
+                {
+                    core.Value++;
+                    core.LooseTicks = 0;
+                }
+            }
+        }
         foreach (WellRuntime well in _wells)
         {
             if (well.RearmCompletesAtTick == tick)
@@ -327,6 +353,8 @@ internal sealed class ArcRelayActorMatchModeDriver
             return false;
         }
         core.CarrierActorId = null;
+        core.LooseTicks = 0;
+        core.ResumeDebt = _gameMode.RipenResumeTicks;
         modeEvent = Spatial(
             new ArcRelayEvent.CoreDropped(
                 core.CoreId,
@@ -351,6 +379,8 @@ internal sealed class ArcRelayActorMatchModeDriver
             if (core is null)
                 continue;
             core.CarrierActorId = null;
+        core.LooseTicks = 0;
+        core.ResumeDebt = _gameMode.RipenResumeTicks;
             core.Position = destruction.Position;
             events.Add(Spatial(
                 new ArcRelayEvent.CoreDropped(
@@ -378,6 +408,8 @@ internal sealed class ArcRelayActorMatchModeDriver
             return false;
         }
         core.CarrierActorId = null;
+        core.LooseTicks = 0;
+        core.ResumeDebt = _gameMode.RipenResumeTicks;
         modeEvent = Spatial(
             new ArcRelayEvent.CoreDropped(
                 core.CoreId,
@@ -547,7 +579,10 @@ internal sealed class ArcRelayActorMatchModeDriver
         var coreId = new ArcRelayCoreId(
             well.Schedule.WellId,
             well.NextSourceOrdinal++);
-        var core = new CoreRuntime(coreId, well.Position);
+        var core = new CoreRuntime(coreId, well.Position)
+        {
+            Value = _gameMode.CoreBaseValue,
+        };
         _cores.Add(coreId, core);
         well.OutstandingCoreId = coreId;
         events.Add(Spatial(
@@ -591,6 +626,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         if (picker is null)
             return;
         core.CarrierActorId = picker.ActorId;
+        core.LooseTicks = 0;
         core.NextRelocationTick = checked(
             tick + _gameMode.CoreRelocationIntervalTicks);
         events.Add(Spatial(
@@ -644,7 +680,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         }
         else
         {
-            reactor.Charge++;
+            reactor.Charge += core.Value;
         }
         events.Add(Public(new ArcRelayEvent.CoreBanked(
             core.CoreId,
@@ -672,7 +708,12 @@ internal sealed class ArcRelayActorMatchModeDriver
             return;
         }
         reactor.FilledSockets.Clear();
-        reactor.Charge = 0;
+        // Subtracting the threshold carries ripened remainder charge; for
+        // unit-value rulesets the charge only ever lands exactly on the
+        // threshold, so the bytes are unchanged.
+        reactor.Charge = _gameMode.ThreefoldSockets
+            ? 0
+            : reactor.Charge - _gameMode.CoresPerPulse;
         reactor.Pulses++;
         ReactorRuntime opposing = _reactors.Values.Single(
             value => value.TeamId != reactor.TeamId);
@@ -726,7 +767,10 @@ internal sealed class ArcRelayActorMatchModeDriver
                     value.CarrierActorId,
                     value.NextRelocationTick,
                     value.FlightTarget,
-                    value.FlightCompletesAtTick))
+                    value.FlightCompletesAtTick)
+                {
+                    ChargeValue = value.Value,
+                })
                 .ToImmutableArray(),
             _signatures.Project(_currentTick),
             _latestPulseTeamId,
@@ -931,6 +975,15 @@ internal sealed class ArcRelayActorMatchModeDriver
         public int NextRelocationTick { get; set; }
         public Position? FlightTarget { get; set; }
         public int? FlightCompletesAtTick { get; set; }
+
+        /// <summary>Charge this Core banks for (the base value historically).</summary>
+        public int Value { get; set; } = 1;
+
+        /// <summary>Uninterrupted loose ticks accrued toward the next ripen step.</summary>
+        public int LooseTicks { get; set; }
+
+        /// <summary>Ticks of resumption delay still owed after a drop.</summary>
+        public int ResumeDebt { get; set; }
     }
 
     private sealed class ReactorRuntime

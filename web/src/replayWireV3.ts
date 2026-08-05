@@ -765,6 +765,8 @@ export interface ReplayV3ArcCore {
   nextRelocationTick: number;
   flightTarget: ReplayV3Position | null;
   flightCompletesAtTick: number | null;
+  /** Charge this Core banks for; present only under charge-value rulesets. */
+  chargeValue?: number;
 }
 
 export interface ReplayV3ArcSignature {

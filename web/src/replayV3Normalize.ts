@@ -2498,6 +2498,10 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
     array(item.visibleCores, `${path}.visibleCores`, fail).forEach(
       (entry, index) => {
         const corePath = `${path}.visibleCores[${index}]`;
+        const hasChargeValue =
+          typeof entry === 'object'
+          && entry !== null
+          && own(entry, 'chargeValue');
         const core = exact(
           entry,
           corePath,
@@ -2509,6 +2513,8 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
             'nextRelocationTick',
             'flightTarget',
             'flightCompletesAtTick',
+            // Charge-value rulesets only.
+            ...(hasChargeValue ? ['chargeValue'] : []),
           ],
           fail,
         );
@@ -2527,6 +2533,8 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
           integer,
           fail,
         );
+        if (hasChargeValue)
+          integer(core.chargeValue, `${corePath}.chargeValue`, fail);
       },
     );
     array(

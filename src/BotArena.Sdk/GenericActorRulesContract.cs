@@ -319,6 +319,19 @@ public sealed class GenericActorRulesContract
         /// consumed while their socket is filled.
         /// </summary>
         public bool ThreefoldSockets { get; init; }
+
+        /// <summary>Charge a freshly born Core is worth (1 historically).</summary>
+        public int CoreBaseValue { get; init; } = 1;
+
+        /// <summary>
+        /// Ripening: +1 Core value per this many uninterrupted loose ticks
+        /// (0 disables), capped at <see cref="RipenMaxValue"/>; pickup
+        /// freezes the value; drops resume after
+        /// <see cref="RipenResumeTicks"/> loose ticks.
+        /// </summary>
+        public int RipenIntervalTicks { get; init; }
+        public int RipenMaxValue { get; init; }
+        public int RipenResumeTicks { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>
