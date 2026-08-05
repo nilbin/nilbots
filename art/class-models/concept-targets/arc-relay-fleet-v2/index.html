@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Arc Relay fleet v2 concept review</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #091019;
+        color: #e8edf4;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 1180px;
+        padding: 20px;
+      }
+      h1 { margin: 0 0 6px; font-size: clamp(22px, 5vw, 38px); }
+      h2 { margin: 30px 0 10px; font-size: 20px; }
+      p { color: #aeb9c8; line-height: 1.5; }
+      .tag {
+        display: inline-block;
+        margin: 8px 4px 0 0;
+        padding: 6px 9px;
+        border: 1px solid #34455a;
+        border-radius: 999px;
+        color: #d9e4f2;
+        background: #111c29;
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .card {
+        border: 1px solid #26364a;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0d1722;
+      }
+      .card h3 { margin: 0; padding: 10px 12px; font-size: 15px; }
+      .card img { display: block; width: 100%; height: auto; background: #d9d9d7; }
+      .full { width: 100%; border-radius: 12px; display: block; }
+      .gameplay {
+        width: 256px;
+        max-width: 100%;
+        image-rendering: auto;
+        border-radius: 8px;
+        display: block;
+      }
+      .payload {
+        aspect-ratio: 1;
+        background-repeat: no-repeat;
+        background-size: 400% 400%;
+      }
+      .old-minesmith { background-image: url('reference-v1-review.png'); background-position: 66.6667% 33.3333%; }
+      .new-minesmith { background-image: url('concept-sheet.png'); background-position: 66.6667% 33.3333%; }
+      .old-nest { background-image: url('reference-v1-review.png'); background-position: 100% 100%; }
+      .new-nest { background-image: url('concept-sheet.png'); background-position: 100% 100%; }
+      .note {
+        margin-top: 18px;
+        padding: 13px 15px;
+        border-left: 3px solid #f0bd55;
+        background: #111c29;
+      }
+      @media (max-width: 700px) {
+        body { padding: 14px; }
+        .grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .card h3 { font-size: 12px; padding: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Arc Relay fleet — conceptual 3D v2</h1>
+    <p>Brighter hull values, fewer panels, one dominant signature shape per class, and no model-owned team color.</p>
+    <span class="tag">concept only</span>
+    <span class="tag">no Meshy calls</span>
+    <span class="tag">exact 4×4 class order</span>
+
+    <h2>New roster</h2>
+    <img class="full" src="concept-sheet.png" alt="Sixteen brighter simplified Arc Relay bot concepts">
+
+    <h2>Real-size silhouette check</h2>
+    <p>Each bot is approximately 63×63 pixels here. This is the important legibility check, not browser zoom.</p>
+    <img class="gameplay" src="gameplay-scale-sheet.png" alt="The v2 concepts downsampled to gameplay scale">
+
+    <h2>Payload ambiguity fixed</h2>
+    <div class="grid">
+      <section class="card"><h3>Old Minesmith — spheres</h3><div class="payload old-minesmith"></div></section>
+      <section class="card"><h3>V2 Minesmith — mine discs</h3><div class="payload new-minesmith"></div></section>
+      <section class="card"><h3>Old Nest — spheres</h3><div class="payload old-nest"></div></section>
+      <section class="card"><h3>V2 Nest — folded turrets</h3><div class="payload new-nest"></div></section>
+    </div>
+
+    <p class="note">The soft studio contact shadows are review-only. Approval starts a separate per-bot isolation pass; only clean shadowless 1040+ px squares would be eligible for Meshy.</p>
+  </body>
+</html>
