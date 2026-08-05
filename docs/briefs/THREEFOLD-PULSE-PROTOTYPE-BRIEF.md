@@ -149,3 +149,15 @@ Do not claim the game is deeper or more fun merely because more bodies moved.
 The evidence must show meaningful choices, viable opposing strategies,
 readable counterplay, and direct objective contribution from substantially
 more of the team. Post the report and stop for owner review.
+
+## Owner amendment (2026-08-05, in-session)
+
+The eight pre-specified strategy families are demoted from an authoring
+queue to a coverage checklist. Strategies are authored clean-slate, one at
+a time, each against a margin bar; the first sheet's goal is solely to
+beat the competent Threefold stock baseline by a decisive margin. The
+3-3-2 solved-allocation test runs organically: the best fixed-allocation
+sheet is built first, and subsequent challengers try to beat it — if none
+can, that is the verdict. The final report audits the checklist: which of
+the eight concepts emerged, which proved irrelevant to real Threefold
+dynamics, and which the grammar could not express.
