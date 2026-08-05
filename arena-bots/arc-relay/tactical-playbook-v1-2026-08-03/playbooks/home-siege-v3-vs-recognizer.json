@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-home-siege-v3-vs-recognizer.json",
-    "sha256": "325e58b9c2bf12f47b47a672abb53da0db9d2878f1b7ef77297dc75d262af557"
+    "sha256": "771daa5a592c5e1e466da8e2cf943664ebff9d5bf70f54b4842aaa5df06d2965"
   },
   "perspective": "team-relative",
   "memory": {
@@ -974,6 +974,16 @@
         "value": 2,
         "minimum": 0,
         "maximum": 8
+      },
+      "east-commit": {
+        "value": 2,
+        "minimum": 1,
+        "maximum": 2
+      },
+      "west-commit": {
+        "value": 1,
+        "minimum": 1,
+        "maximum": 2
       }
     },
     "fallbackPolicies": {
@@ -1417,6 +1427,48 @@
             }
           }
         }
+      },
+      "occupy-gate": {
+        "tracks": {
+          "main": {
+            "formationId": "living-ring",
+            "movement": {
+              "kind": "zone",
+              "target": "outer-gate",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "runner-siege-gate": {
+                "arrivalRadius": 1,
+                "completion": "continuous",
+                "chaseLeash": 0,
+                "engagementId": "siege-focus",
+                "custodyId": "secured-conversion",
+                "fallbackId": "regroup-understrength",
+                "assignmentProfileId": "runner-standard"
+              },
+              "medics-siege-gate": {
+                "arrivalRadius": 2,
+                "completion": "continuous",
+                "chaseLeash": 2,
+                "engagementId": "siege-focus",
+                "custodyId": "incidental-delivery",
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "medic-standard"
+              },
+              "line-siege-gate": {
+                "arrivalRadius": 2,
+                "completion": "continuous",
+                "chaseLeash": 2,
+                "engagementId": "siege-focus",
+                "custodyId": "incidental-delivery",
+                "fallbackId": "regroup-on-failure",
+                "assignmentProfileId": "line-standard"
+              }
+            }
+          }
+        }
       }
     },
     "conditionSets": {
@@ -1604,6 +1656,33 @@
         [
           "no-friendly-carrier",
           "no-loose-core"
+        ]
+      ],
+      "siege-established-east": [
+        [
+          "six-in-siege",
+          "east-board"
+        ]
+      ],
+      "siege-established-west": [
+        [
+          "six-in-siege",
+          "west-board"
+        ]
+      ],
+      "task-harvest-window-east": [
+        [
+          "five-at-gate",
+          "core-outstanding",
+          "east-board"
+        ]
+      ],
+      "task-bank-drop-visible-east": [
+        [
+          "secured-core",
+          "five-at-bank-seal",
+          "no-friendly-carrier",
+          "east-board"
         ]
       ]
     },
@@ -1872,6 +1951,22 @@
         "operator": "at-least",
         "value": 80,
         "subject": "line-group"
+      },
+      "east-board": {
+        "fact": "always",
+        "operator": "at-least",
+        "valueParameter": "east-commit"
+      },
+      "west-board": {
+        "fact": "always",
+        "operator": "at-least",
+        "valueParameter": "west-commit"
+      },
+      "five-at-gate": {
+        "fact": "friendlies-in-zone-count",
+        "operator": "at-least",
+        "value": 5,
+        "zone": "outer-gate"
       }
     }
   },
@@ -2081,6 +2176,100 @@
           "completeConditionSetId": "",
           "timeoutTicks": 0
         }
+      },
+      {
+        "taskId": "harvest-core-window-east",
+        "priority": 20,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 2,
+        "minimumTicks": 0,
+        "timeoutTicks": 80,
+        "cooldownTicks": 4,
+        "minimumPrimaryBodies": 5,
+        "eligiblePhases": [
+          "occupy-gate",
+          "regroup",
+          "breach"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "courier-e",
+            "orderId": "runner-harvest",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "relay",
+              "kestrel"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "anchor",
+              "target": "enemy-perimeter"
+            }
+          }
+        ],
+        "whenConditionSetId": "task-harvest-window-east",
+        "completionArmMode": "any-friendly-carrier",
+        "completionReleaseMode": "armed-carrier-retarget-or-loss",
+        "completeConditionSetId": "task-harvest-scored",
+        "failConditionSetId": "",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
+      },
+      {
+        "taskId": "secure-bank-drop-east",
+        "priority": 5,
+        "activation": "while-true",
+        "preemption": "higher-priority",
+        "participantLoss": "replace",
+        "triggerStableTicks": 1,
+        "minimumTicks": 0,
+        "timeoutTicks": 16,
+        "cooldownTicks": 1,
+        "minimumPrimaryBodies": 7,
+        "eligiblePhases": [
+          "occupy-gate"
+        ],
+        "assignments": [
+          {
+            "assignmentId": "drop-courier-e",
+            "orderId": "runner-harvest",
+            "roles": [
+              "runner"
+            ],
+            "classes": [
+              "relay",
+              "kestrel"
+            ],
+            "minimum": 1,
+            "preferred": 1,
+            "maximum": 1,
+            "carrier": "forbid",
+            "distance": {
+              "kind": "anchor",
+              "target": "enemy-perimeter"
+            }
+          }
+        ],
+        "whenConditionSetId": "task-bank-drop-visible-east",
+        "completeConditionSetId": "task-bank-drop-captured",
+        "failConditionSetId": "task-bank-drop-lost",
+        "reintegration": {
+          "mode": "primary-order",
+          "orderIds": [],
+          "completeConditionSetId": "",
+          "timeoutTicks": 0
+        }
       }
     ],
     "phases": [
@@ -2093,12 +2282,20 @@
         ],
         "transitions": [
           {
+            "priority": 8,
+            "to": "occupy-gate",
+            "cause": "success",
+            "minimumPolicy": "respect",
+            "stableTicks": 3,
+            "conditionSetId": "siege-established-east"
+          },
+          {
             "priority": 10,
             "to": "occupy",
             "cause": "success",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "siege-established"
+            "conditionSetId": "siege-established-west"
           },
           {
             "priority": 20,
@@ -2155,12 +2352,20 @@
         ],
         "transitions": [
           {
+            "priority": 8,
+            "to": "occupy-gate",
+            "cause": "success",
+            "minimumPolicy": "respect",
+            "stableTicks": 3,
+            "conditionSetId": "siege-established-east"
+          },
+          {
             "priority": 10,
             "to": "occupy",
             "cause": "success",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "siege-established"
+            "conditionSetId": "siege-established-west"
           },
           {
             "priority": 20,
@@ -2169,6 +2374,24 @@
             "minimumPolicy": "respect",
             "stableTicks": 3,
             "conditionSetId": "combat-force-collapse"
+          }
+        ]
+      },
+      {
+        "phaseId": "occupy-gate",
+        "minimumTicks": 8,
+        "maneuverId": "occupy-gate",
+        "standingOrderIds": [
+          "line-recover"
+        ],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "regroup",
+            "cause": "failure",
+            "minimumPolicy": "respect",
+            "stableTicks": 3,
+            "conditionSetId": "siege-formation-thinned"
           }
         ]
       }

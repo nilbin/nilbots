@@ -20,7 +20,11 @@
         "outer-rush": "outer-rush-opposite",
         "short-breach": "short-breach-opposite"
       },
-      "formationAliases": {}
+      "formationAliases": {},
+      "parameterOverrides": {
+        "east-commit": 1,
+        "west-commit": 2
+      }
     },
     {
       "matchContractFingerprint": "43f067af5dd5563dce8ff3d896972d19f7c74e5aa7c675927aeb7c206065edae",
@@ -30,7 +34,11 @@
         "outer-rush": "outer-rush-opposite",
         "short-breach": "short-breach-opposite"
       },
-      "formationAliases": {}
+      "formationAliases": {},
+      "parameterOverrides": {
+        "east-commit": 1,
+        "west-commit": 2
+      }
     },
     {
       "matchContractFingerprint": "9b74e780a5c117a31143d6aeba41410a64f2f928b6f60d492c44408b8ed96c9b",
@@ -49,7 +57,11 @@
         "outer-rush": "outer-rush-opposite",
         "short-breach": "short-breach-opposite"
       },
-      "formationAliases": {}
+      "formationAliases": {},
+      "parameterOverrides": {
+        "east-commit": 1,
+        "west-commit": 2
+      }
     },
     {
       "matchContractFingerprint": "any-composition",
@@ -114,6 +126,15 @@
         2,
         18,
         20
+      ]
+    },
+    {
+      "zoneId": "outer-gate",
+      "rect": [
+        21,
+        8,
+        25,
+        14
       ]
     }
   ],
