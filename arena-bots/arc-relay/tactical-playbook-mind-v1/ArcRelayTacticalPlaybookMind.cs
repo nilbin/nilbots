@@ -49,6 +49,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private TacticalTaskMachine? _tasks;
     private Position _ownReactor;
     private bool _mirrored;
+    private int _rearArcDamageMultiplier = 1;
     private Position _enemyReactor;
     private string? _allocationPhaseId;
     private string? _queuedFallbackPhase;
@@ -86,6 +87,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Select(value => value.Tiles[0])
             .First();
         _mirrored = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
+        _rearArcDamageMultiplier = start.Contract.Rules.GameMode
+            is GenericActorRulesContract.ArcRelayGameMode arcMode
+            ? arcMode.RearArcDamageMultiplier
+            : 1;
         _package = TacticalPlaybookPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
         ValidateComposition(start.Contract, start.TeamId, _package.Source);
@@ -2208,6 +2213,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             PriorityRank(policy.TargetPriorities, right, carriers, tick));
         if (comparison != 0)
             return comparison;
+        if (_rearArcDamageMultiplier > 1)
+        {
+            // Backstab rulesets: at equal priority, prefer the target our
+            // nearest shooter would hit in its blind rear arc — the shot is
+            // worth double there.
+            comparison = ArenaBasics.RearExposedRank(participants, left)
+                .CompareTo(ArenaBasics.RearExposedRank(participants, right));
+            if (comparison != 0)
+                return comparison;
+        }
         foreach (string tieBreaker in policy.TieBreakers)
         {
             comparison = tieBreaker switch

@@ -41,11 +41,15 @@ internal sealed class CoordinatedAttackAllocator
             .Where(body => !ownCarriers.Contains(body.ActorId))
             .OrderBy(body => body.UnitId)
             .ToArray();
+        bool preferRearExposed = contract.Rules.GameMode
+            is GenericActorRulesContract.ArcRelayGameMode
+                { RearArcDamageMultiplier: > 1 };
         GenericActorContext.ObservedEnemyState[] enemies = mind.Enemies
             .OrderBy(enemy => enemy,
                 Comparer<GenericActorContext.ObservedEnemyState>.Create(
                     (left, right) => CompareTargets(
-                        policy, left, right, carriers, participants)))
+                        policy, left, right, carriers, participants,
+                        preferRearExposed)))
             .ToArray();
 
         GenericActorContext.ObservedEnemyState primary = enemies[0];
@@ -126,7 +130,8 @@ internal sealed class CoordinatedAttackAllocator
         GenericActorContext.ObservedEnemyState left,
         GenericActorContext.ObservedEnemyState right,
         IReadOnlySet<ActorIdentity> carriers,
-        IReadOnlyCollection<MindBody> participants)
+        IReadOnlyCollection<MindBody> participants,
+        bool preferRearExposed)
     {
         int comparison = PriorityRank(
                 policy.TargetPriorities, left, carriers, participants)
@@ -134,6 +139,15 @@ internal sealed class CoordinatedAttackAllocator
                 policy.TargetPriorities, right, carriers, participants));
         if (comparison != 0)
             return comparison;
+        if (preferRearExposed)
+        {
+            // Backstab rulesets: at equal priority, prefer the target our
+            // nearest shooter would hit in its blind rear arc.
+            comparison = ArenaBasics.RearExposedRank(participants, left)
+                .CompareTo(ArenaBasics.RearExposedRank(participants, right));
+            if (comparison != 0)
+                return comparison;
+        }
         foreach (string tieBreaker in policy.TieBreakers)
         {
             comparison = tieBreaker switch

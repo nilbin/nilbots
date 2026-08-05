@@ -83,6 +83,34 @@ internal static class ArenaBasics
         return false;
     }
 
+    /// <summary>
+    /// 0 when the nearest shooter's 8-way heading toward the target lands in
+    /// the target's blind rear quadrant (a backstab under predation rules),
+    /// 1 otherwise — an ascending late tie-break for target choice.
+    /// </summary>
+    public static int RearExposedRank(
+        IReadOnlyCollection<MindBody> shooters,
+        GenericActorContext.ObservedEnemyState target)
+    {
+        MindBody? nearest = shooters
+            .OrderBy(body => body.Position.ChebyshevDistance(target.Position))
+            .ThenBy(body => body.UnitId)
+            .FirstOrDefault();
+        if (nearest is null)
+            return 1;
+        int dx = Math.Sign(target.Position.X - nearest.Position.X);
+        int dy = Math.Sign(target.Position.Y - nearest.Position.Y);
+        (int forward, int lateral) = target.Facing switch
+        {
+            Direction.North => (-dy, dx),
+            Direction.South => (dy, dx),
+            Direction.East => (dx, dy),
+            Direction.West => (-dx, dy),
+            _ => (-1, 0),
+        };
+        return forward >= 0 && Math.Abs(lateral) <= forward ? 0 : 1;
+    }
+
     public static Position? Reactor(
         MindContext mind,
         int teamId) =>
