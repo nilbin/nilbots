@@ -316,6 +316,70 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void SeedPhasedWellLeadMintsBesideTheRotationalArm()
+    {
+        // -08 is a rules-only mint on the -07 map: the flag alone changes
+        // the canonical rules, and the driver swaps the rotationally paired
+        // flank schedules when the seed coin says so.
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren7)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren8)));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren7).Map),
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren8).Map));
+        Assert.Contains(
+            "\"seedPhasedWellLead\":true",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren8)));
+        Assert.DoesNotContain(
+            "seedPhasedWellLead",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren7)));
+
+        // Golden coin values: changing these reorients which seeds swap.
+        Assert.Equal(0, SeedDerivation.DeriveWellLeadSwap(0));
+        Assert.Equal(1, SeedDerivation.DeriveWellLeadSwap(1));
+        Assert.Equal(1, SeedDerivation.DeriveWellLeadSwap(2001));
+        Assert.Equal(0, SeedDerivation.DeriveWellLeadSwap(3012));
+
+        static (int? North, int? South) FirstBirths(
+            ArcRelayLoopProfile profile,
+            ulong matchSeed)
+        {
+            var driver = new ArcRelayActorMatchModeDriver(
+                ArcRelayH0Definition.Create(loopProfile: profile),
+                matchSeed);
+            var arc = Assert.IsType<GenericActorModeState.ArcRelay>(
+                driver.State).State;
+            return (
+                arc.Wells.Single(w => w.WellId == "north")
+                    .NextScheduledBirthTick,
+                arc.Wells.Single(w => w.WellId == "south")
+                    .NextScheduledBirthTick);
+        }
+
+        (int? north, int? south) = FirstBirths(
+            ArcRelayLoopProfile.AmbushWarren8, matchSeed: 0);
+        Assert.True(north < south, "coin 0 keeps the north lead");
+        (north, south) = FirstBirths(
+            ArcRelayLoopProfile.AmbushWarren8, matchSeed: 1);
+        Assert.True(south < north, "coin 1 hands the lead to the south");
+        (north, south) = FirstBirths(
+            ArcRelayLoopProfile.AmbushWarren7, matchSeed: 1);
+        Assert.True(north < south, "-07 never swaps");
+    }
+
+    [Fact]
     public void ResolutionPhaseDerivationIsPinned()
     {
         // Golden values: changing these changes which seeds flip the

@@ -431,7 +431,8 @@ public static class ArcRelayH0Definition
             veterancyMaxLevel: loopProfile.VeterancyMaxLevel,
             healZoneTicksPerHp: loopProfile.HealZoneTicksPerHp,
             seedPhasedResolutionOrder:
-                loopProfile.SeedPhasedResolutionOrder);
+                loopProfile.SeedPhasedResolutionOrder,
+            seedPhasedWellLead: loopProfile.SeedPhasedWellLead);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

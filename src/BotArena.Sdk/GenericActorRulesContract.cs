@@ -360,6 +360,13 @@ public sealed class GenericActorRulesContract
         /// contests at a fixed tick split evenly across seeds.
         /// </summary>
         public bool SeedPhasedResolutionOrder { get; init; }
+
+        /// <summary>
+        /// Seed-swaps the birth schedules of rotationally paired wells, so
+        /// a staggered flank cadence favors neither side across seeds.
+        /// The observed per-well schedules already reflect the swap.
+        /// </summary>
+        public bool SeedPhasedWellLead { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

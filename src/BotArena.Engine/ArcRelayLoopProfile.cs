@@ -32,9 +32,11 @@ public sealed record ArcRelayLoopProfile
         int veterancyMaxLevel = 0,
         int healZoneTicksPerHp = 0,
         bool seedPhasedResolutionOrder = false,
-        bool rotationalSpawnAssignment = false)
+        bool rotationalSpawnAssignment = false,
+        bool seedPhasedWellLead = false)
     {
         RotationalSpawnAssignment = rotationalSpawnAssignment;
+        SeedPhasedWellLead = seedPhasedWellLead;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
@@ -86,6 +88,7 @@ public sealed record ArcRelayLoopProfile
     internal int HealZoneTicksPerHp { get; }
     internal bool SeedPhasedResolutionOrder { get; }
     internal bool RotationalSpawnAssignment { get; }
+    internal bool SeedPhasedWellLead { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -489,6 +492,37 @@ public sealed record ArcRelayLoopProfile
         rotationalSpawnAssignment: true);
 
     /// <summary>
+    /// Fair well lead (west-residual hunt round 4): the -07 stack plus a
+    /// seed-derived swap of the north/south well schedules. The flank
+    /// stagger (north births 25 ticks before south) otherwise hands the
+    /// same canonical sheet different value by side on the chiral map -
+    /// the wing that meets the first-born well converts tempo - which the
+    /// wing-symmetric attribution probe isolated as the last structural
+    /// residual. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren8 { get; } = new(
+        "ambush-warren-8",
+        "arc-relay-ambush-08",
+        "arc-relay-ambush-warren-05",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 3,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        seedPhasedWellLead: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -557,6 +591,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren5,
         AmbushWarren6,
         AmbushWarren7,
+        AmbushWarren8,
         Return16,
         Return24,
         Hot60,

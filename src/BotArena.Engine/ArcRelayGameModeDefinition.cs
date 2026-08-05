@@ -31,7 +31,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int veterancyXpPerLevel = 0,
         int veterancyMaxLevel = 0,
         int healZoneTicksPerHp = 0,
-        bool seedPhasedResolutionOrder = false)
+        bool seedPhasedResolutionOrder = false,
+        bool seedPhasedWellLead = false)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -83,6 +84,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
                 nameof(seedPhasedResolutionOrder));
         }
         _seedPhasedResolutionOrder = seedPhasedResolutionOrder;
+        SeedPhasedWellLead = seedPhasedWellLead;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -260,6 +262,17 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
 
     public override bool SeedPhasedResolutionOrder =>
         _seedPhasedResolutionOrder;
+
+    /// <summary>
+    /// When true, the driver swaps the birth schedules of each pair of
+    /// wells whose positions are mutual 180-degree rotations on a
+    /// seed-derived coin. A staggered schedule (one flank well leading the
+    /// other) otherwise gives the same canonical strategy different value
+    /// by side on a rotationally chiral map: the side whose fast wing meets
+    /// the first-born well converts tempo every seed. Canonically written
+    /// only when set.
+    /// </summary>
+    public bool SeedPhasedWellLead { get; }
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
         SignatureGrammarVersion >= 2

@@ -193,6 +193,10 @@ public static class SeedDerivation
         (int)(DeterministicRandom.Mix(
             matchSeed ^ Fnv1a64("arc-resolution-phase")) & 1UL);
 
+    public static int DeriveWellLeadSwap(ulong matchSeed) =>
+        (int)(DeterministicRandom.Mix(
+            matchSeed ^ Fnv1a64("arc-well-lead")) & 1UL);
+
     public static ulong DeriveWellBirthDraw(
         ulong matchSeed, string wellId, int round)
     {

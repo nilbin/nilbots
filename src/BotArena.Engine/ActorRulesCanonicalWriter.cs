@@ -304,6 +304,12 @@ internal static class ActorRulesCanonicalWriter
                 "seedPhasedResolutionOrder",
                 mode.SeedPhasedResolutionOrder);
         }
+        if (mode.SeedPhasedWellLead)
+        {
+            writer.WriteBoolean(
+                "seedPhasedWellLead",
+                mode.SeedPhasedWellLead);
+        }
         if (mode.HealZoneTicksPerHp != 0)
         {
             writer.WriteNumber(

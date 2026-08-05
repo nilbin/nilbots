@@ -749,6 +749,8 @@ public static class ActorCanonicalContractReader
             "veterancyXpPerLevel", out _);
         bool hasSeedPhase = element.TryGetProperty(
             "seedPhasedResolutionOrder", out _);
+        bool hasWellLead = element.TryGetProperty(
+            "seedPhasedWellLead", out _);
         bool hasHealZones = element.TryGetProperty(
             "healZoneTicksPerHp", out _);
         string[] modeFields =
@@ -787,6 +789,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasSeedPhase
                 ? new[] { "seedPhasedResolutionOrder" }
+                : System.Array.Empty<string>(),
+            .. hasWellLead
+                ? new[] { "seedPhasedWellLead" }
                 : System.Array.Empty<string>(),
             .. hasHealZones
                 ? new[] { "healZoneTicksPerHp" }
@@ -850,6 +855,8 @@ public static class ActorCanonicalContractReader
                 : 0,
             SeedPhasedResolutionOrder = hasSeedPhase
                 && Bool(element, "seedPhasedResolutionOrder"),
+            SeedPhasedWellLead = hasWellLead
+                && Bool(element, "seedPhasedWellLead"),
         };
     }
 

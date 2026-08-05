@@ -67,10 +67,47 @@ internal sealed class ArcRelayActorMatchModeDriver
         _signatures = new ArcRelaySignatureRuntime(definition, _gameMode);
         Dictionary<string, ActorMapRegionDefinition> regions = definition.Map
             .Regions.ToDictionary(value => value.RegionId, StringComparer.Ordinal);
-        _wells = _gameMode.Wells.Select((schedule, index) =>
-                new WellRuntime(
-                    schedule,
-                    regions[binding.OrderedWellRegionIds[index]].Tiles.Single()))
+        ArcRelayWellScheduleDefinition[] schedules = [.. _gameMode.Wells];
+        Position[] wellPositions = [.. _gameMode.Wells.Select(
+            (schedule, index) =>
+                regions[binding.OrderedWellRegionIds[index]].Tiles.Single())];
+        if (_gameMode.SeedPhasedWellLead
+            && SeedDerivation.DeriveWellLeadSwap(matchSeed) == 1)
+        {
+            // Swap the timing of each pair of wells whose positions are
+            // mutual 180-degree rotations: which flank lane leads becomes a
+            // fair seed coin instead of a fixed orientation. Identities and
+            // positions stay put, so custody, regions, and observations are
+            // untouched; the jitter stream follows the swapped timing via
+            // the schedule it belongs to.
+            int maxX = definition.Map.Width - 1;
+            int maxY = definition.Map.Height - 1;
+            for (int first = 0; first < schedules.Length; first++)
+            {
+                for (int second = first + 1; second < schedules.Length;
+                     second++)
+                {
+                    Position rotated = new(
+                        maxX - wellPositions[second].X,
+                        maxY - wellPositions[second].Y);
+                    if (wellPositions[first] != rotated)
+                        continue;
+                    (schedules[first], schedules[second]) = (
+                        new ArcRelayWellScheduleDefinition(
+                            schedules[first].WellId,
+                            schedules[second].FirstBirthTick,
+                            schedules[second].CadenceTicks,
+                            schedules[second].FinalBirthTick),
+                        new ArcRelayWellScheduleDefinition(
+                            schedules[second].WellId,
+                            schedules[first].FirstBirthTick,
+                            schedules[first].CadenceTicks,
+                            schedules[first].FinalBirthTick));
+                }
+            }
+        }
+        _wells = schedules.Select((schedule, index) =>
+                new WellRuntime(schedule, wellPositions[index]))
             .ToImmutableArray();
         _wellsById = _wells.ToDictionary(
             value => value.Schedule.WellId,
