@@ -149,6 +149,7 @@ internal static class TacticalFormationPrimitives
     };
 
     internal static Position[] ReflowGoals(
+        bool mirrored,
         int width,
         int height,
         IReadOnlyList<string> tileRows,
@@ -178,12 +179,12 @@ internal static class TacticalFormationPrimitives
             ? candidates
                 .OrderBy(position => target.ChebyshevDistance(position))
                 .ThenBy(position => ClockwiseRank(target, position))
-                .ThenBy(position => position.Y)
-                .ThenBy(position => position.X)
+                .ThenBy(position => mirrored ? -position.Y : position.Y)
+                .ThenBy(position => mirrored ? -position.X : position.X)
             : candidates
                 .OrderBy(position => target.ChebyshevDistance(position))
-                .ThenBy(position => position.Y)
-                .ThenBy(position => position.X);
+                .ThenBy(position => mirrored ? -position.Y : position.Y)
+                .ThenBy(position => mirrored ? -position.X : position.X);
         Position[] legal = ordered
             .Where(position => IsEnterable(
                 width, height, tileRows, position))
@@ -193,6 +194,7 @@ internal static class TacticalFormationPrimitives
     }
 
     internal static Position SelectFormationTarget(
+        bool mirrored,
         int width,
         int height,
         IReadOnlyList<string> tileRows,
@@ -207,6 +209,7 @@ internal static class TacticalFormationPrimitives
         IReadOnlyCollection<AssignedTarget> assigned)
     {
         Position[] candidates = ReflowGoals(
+            mirrored,
                 width,
                 height,
                 tileRows,
@@ -234,8 +237,8 @@ internal static class TacticalFormationPrimitives
                     candidate.ChebyshevDistance(other.Position)
                     - preferredSpacing)))
             .ThenBy(candidate => candidate.ChebyshevDistance(authored))
-            .ThenBy(candidate => candidate.Y)
-            .ThenBy(candidate => candidate.X)
+            .ThenBy(candidate => mirrored ? -candidate.Y : candidate.Y)
+            .ThenBy(candidate => mirrored ? -candidate.X : candidate.X)
             .ToArray();
         return candidates.FirstOrDefault(authored);
     }

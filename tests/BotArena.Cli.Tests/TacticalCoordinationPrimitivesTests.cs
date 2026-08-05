@@ -228,6 +228,7 @@ public sealed class TacticalCoordinationPrimitivesTests
     {
         Position cutoff = TacticalCoordinationPrimitives
             .PredictReturnLaneCutoff(
+                false,
                 current: new Position(4, 4),
                 previous: new Position(3, 3),
                 leadTiles: 2,
@@ -287,6 +288,7 @@ public sealed class TacticalCoordinationPrimitivesTests
         var current = new Position(10, 10);
         Position[] ordered = TacticalCoordinationPrimitives
             .OrderCarrierAimOptions(
+                false,
                 current,
                 previous: new Position(9, 9),
                 legalOptions:
@@ -310,6 +312,7 @@ public sealed class TacticalCoordinationPrimitivesTests
         var current = new Position(10, 10);
         Position[] ordered = TacticalCoordinationPrimitives
             .OrderCarrierAimOptions(
+                false,
                 current,
                 previous: current,
                 legalOptions:

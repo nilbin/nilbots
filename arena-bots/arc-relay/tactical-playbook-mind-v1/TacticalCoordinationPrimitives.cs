@@ -138,6 +138,7 @@ internal static class TacticalCoordinationPrimitives
     }
 
     internal static Position[] OrderCarrierAimOptions(
+        bool mirrored,
         Position current,
         Position? previous,
         IEnumerable<Position> legalOptions,
@@ -167,8 +168,8 @@ internal static class TacticalCoordinationPrimitives
                         ? 1
                         : position == current ? 2 : 3)
             .ThenBy(position => bankDistance(position) ?? int.MaxValue)
-            .ThenBy(position => position.Y)
-            .ThenBy(position => position.X)
+            .ThenBy(position => mirrored ? -position.Y : position.Y)
+            .ThenBy(position => mirrored ? -position.X : position.X)
             .ToArray();
     }
 
@@ -226,6 +227,7 @@ internal static class TacticalCoordinationPrimitives
     /// authored pursuit leash.
     /// </summary>
     internal static Position PredictReturnLaneCutoff(
+        bool mirrored,
         Position current,
         Position? previous,
         int leadTiles,
@@ -254,8 +256,8 @@ internal static class TacticalCoordinationPrimitives
                     && value.Distance < currentDistance)
                 .OrderBy(value => value.Position == continuation ? 0 : 1)
                 .ThenBy(value => value.Distance)
-                .ThenBy(value => value.Position.Y)
-                .ThenBy(value => value.Position.X)
+                .ThenBy(value => mirrored ? -value.Position.Y : value.Position.Y)
+                .ThenBy(value => mirrored ? -value.Position.X : value.Position.X)
                 .Select(value => value.Position)
                 .ToArray();
             if (candidates.Length == 0)

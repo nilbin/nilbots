@@ -20,6 +20,22 @@ internal sealed class ArcRelaySignatureRuntime
     private readonly Dictionary<ActorIdentity, int> _readyAtTick = [];
     private long _nextOperationOrdinal;
 
+    private readonly bool _sideFairTargeting;
+    private readonly ImmutableDictionary<int, Position> _ownReactorByTeam;
+
+    /// <summary>
+    /// Equal-distance target ties break toward the shooter's own reactor
+    /// under -03 side-fair targeting: a raw ActorId tie-break always prefers
+    /// the enemy's lowest slots, which spawn on the same world side for both
+    /// teams and so pick opposite relative targets on a rotationally bound
+    /// map. Historical rulesets keep the ActorId order byte-for-byte.
+    /// </summary>
+    private long TargetTieKey(int ownerTeamId, Life candidate) =>
+        _sideFairTargeting
+            && _ownReactorByTeam.TryGetValue(ownerTeamId, out Position own)
+            ? candidate.Position.ChebyshevDistance(own)
+            : 0;
+
     public ArcRelaySignatureRuntime(
         ActorResolvedMatchDefinition definition,
         ArcRelayGameModeDefinition mode)
@@ -27,6 +43,31 @@ internal sealed class ArcRelaySignatureRuntime
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(mode);
         _map = definition.Map;
+        _sideFairTargeting = mode.AlternatingResolutionOrder;
+        if (definition.ModeMapBinding is
+                ArcRelayActorModeMapBindingDefinition reactorBinding)
+        {
+            Dictionary<int, int> participantTeam = definition.Topology
+                .Participants.ToDictionary(
+                    value => value.ParticipantId,
+                    value => value.TeamId);
+            Dictionary<string, ActorMapRegionDefinition> regions =
+                definition.Map.Regions.ToDictionary(
+                    value => value.RegionId,
+                    StringComparer.Ordinal);
+            _ownReactorByTeam = definition.ParticipantRegionAssignments
+                .Where(value => string.Equals(
+                    value.RegionRoleId,
+                    reactorBinding.ReactorRegionRoleId,
+                    StringComparison.Ordinal))
+                .ToImmutableDictionary(
+                    value => participantTeam[value.ParticipantId],
+                    value => regions[value.MapRegionId].Tiles.Single());
+        }
+        else
+        {
+            _ownReactorByTeam = ImmutableDictionary<int, Position>.Empty;
+        }
         _byAction = mode.Signatures.ToImmutableDictionary(
             value => value.ActionId,
             StringComparer.Ordinal);
@@ -812,6 +853,8 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.OwnerActorId.TeamId,
                         tick))
                 .OrderBy(value => muzzle.ChebyshevDistance(value.Position))
+                .ThenBy(value => TargetTieKey(
+                    operation.OwnerActorId.TeamId, value))
                 .ThenBy(value => value.ActorId)
                 .FirstOrDefault();
             if (aligned is not null)
@@ -848,6 +891,8 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.OwnerActorId.TeamId,
                         tick))
                 .OrderBy(value => origin.ChebyshevDistance(value.Position))
+                .ThenBy(value => TargetTieKey(
+                    operation.OwnerActorId.TeamId, value))
                 .ThenBy(value => value.ActorId)
                 .FirstOrDefault();
             if (target is not null)

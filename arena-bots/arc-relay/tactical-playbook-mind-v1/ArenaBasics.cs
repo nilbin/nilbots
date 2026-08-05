@@ -892,7 +892,8 @@ internal static class ArenaBasics
         MindBody body,
         string signatureKind,
         Position target,
-        string reason)
+        string reason,
+        bool mirrored = false)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -911,7 +912,9 @@ internal static class ArenaBasics
                 (int dx, int dy) = direction.Vector();
                 return body.Position.Offset(dx, dy).ChebyshevDistance(target);
             })
-            .ThenBy(direction => (int)direction)
+            .ThenBy(direction => mirrored
+                ? ((int)direction + 2) % 4
+                : (int)direction)
             .Select(direction => (Direction?)direction)
             .FirstOrDefault();
         if (action is not { Available: true } || selected is not Direction value)
@@ -931,7 +934,8 @@ internal static class ArenaBasics
         string signatureKind,
         Position target,
         string reason,
-        Func<Position, bool>? extraFilter = null)
+        Func<Position, bool>? extraFilter = null,
+        bool mirrored = false)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -947,8 +951,8 @@ internal static class ArenaBasics
         Position? selected = targets?.AllowedValues
             .Where(position => extraFilter?.Invoke(position) ?? true)
             .OrderBy(position => position.ChebyshevDistance(target))
-            .ThenBy(position => position.Y)
-            .ThenBy(position => position.X)
+            .ThenBy(position => FrameY(position, mirrored))
+            .ThenBy(position => FrameX(position, mirrored))
             .Select(position => (Position?)position)
             .FirstOrDefault();
         if (action is not { Available: true } || selected is not Position position)
@@ -1252,6 +1256,17 @@ internal static class ArenaBasics
                 : (int)heading)
             .ToArray();
     }
+
+    /// <summary>
+    /// Tie-break keys expressed in the team's canonical frame: absolute
+    /// lowest-Y/lowest-X preferences pick opposite relative tiles for the
+    /// two sides of a rotationally bound map.
+    /// </summary>
+    public static int FrameY(Position position, bool mirrored) =>
+        mirrored ? -position.Y : position.Y;
+
+    public static int FrameX(Position position, bool mirrored) =>
+        mirrored ? -position.X : position.X;
 
     /// <summary>
     /// True when this mind's canonical frame is the 180-degree rotation of

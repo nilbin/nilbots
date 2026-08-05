@@ -45,6 +45,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private TacticalPlaybookMachine? _machine;
     private TacticalTaskMachine? _tasks;
     private Position _ownReactor;
+    private bool _mirrored;
     private Position _enemyReactor;
     private string? _allocationPhaseId;
     private string? _queuedFallbackPhase;
@@ -81,6 +82,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .OrderBy(value => value.RegionId, StringComparer.Ordinal)
             .Select(value => value.Tiles[0])
             .First();
+        _mirrored = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
         _package = TacticalPlaybookPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
         ValidateComposition(start.Contract, start.TeamId, _package.Source);
@@ -1266,6 +1268,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return fallback;
         Position cutoff = TacticalCoordinationPrimitives
             .PredictReturnLaneCutoff(
+                _mirrored,
             carrier.Position,
             carrier.PreviousPosition,
             order.Movement.LeadTiles,
@@ -1347,6 +1350,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 string role = roles[body.UnitId];
                 Position selected = TacticalFormationPrimitives
                     .SelectFormationTarget(
+                        _mirrored,
                         contract.Map.Width,
                         contract.Map.Height,
                         contract.Map.TileRows,
@@ -1763,7 +1767,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         .FirstOrDefault(action => action is { Available: true })
         ?.ActionId;
 
-    private static bool CanContributeToTarget(
+    private bool CanContributeToTarget(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         GenericActorContext.ObservedEnemyState target,
@@ -1810,6 +1814,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     : null;
             Position[] oneStep = TacticalCoordinationPrimitives
                 .OrderCarrierAimOptions(
+                    _mirrored,
                     target.Position,
                     previous,
                     options,
@@ -1838,8 +1843,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     candidate.ContactStep!.Value - candidate.Step))
                 .ThenByDescending(candidate => candidate.NewlyCovered)
                 .ThenBy(candidate => candidate.Step)
-                .ThenBy(candidate => candidate.Position.Y)
-                .ThenBy(candidate => candidate.Position.X)
+                .ThenBy(candidate =>
+                    ArenaBasics.FrameY(candidate.Position, _mirrored))
+                .ThenBy(candidate =>
+                    ArenaBasics.FrameX(candidate.Position, _mirrored))
                 .Select(candidate => candidate.Position)
                 .Concat(oneStep)
                 .Distinct()
@@ -1880,8 +1887,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ThenByDescending(position => options.Count(option =>
                 SameShotLane(body.Position, position, option)))
             .ThenBy(position => position == target.Position ? 0 : 1)
-            .ThenBy(position => position.Y)
-            .ThenBy(position => position.X)
+            .ThenBy(position => ArenaBasics.FrameY(position, _mirrored))
+            .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))
             .ToArray();
         int index = TacticalCoordinationPrimitives.CoverageFallbackIndex(
             policy.DodgeCoverage.Fallback,
@@ -1949,8 +1956,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .OrderBy(position => ArenaBasics.StaticDistance(
                         contract.Map, position, _enemyReactor)
                     ?? int.MaxValue)
-                .ThenBy(position => position.Y)
-                .ThenBy(position => position.X)
+                .ThenBy(position => ArenaBasics.FrameY(position, _mirrored))
+                .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))
                 .First();
             result.Add(selected);
             continuation = (
@@ -1990,7 +1997,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 attack.Projectile.AdvancesOnLaunchTick);
     }
 
-    private static Position[] EscapeOptions(
+    private Position[] EscapeOptions(
         GenericActorResolvedMatchContract contract,
         GenericActorContext.ObservedEnemyState target,
         TacticalPlaybookPackage.Engagement policy)
@@ -2021,8 +2028,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Where(position => ArenaBasics.IsLegalTerrainStep(
                 contract.Map, target.Position, position))
             .Distinct()
-            .OrderBy(position => position.Y)
-            .ThenBy(position => position.X)];
+            .OrderBy(position => ArenaBasics.FrameY(position, _mirrored))
+            .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))];
     }
 
     private static bool SameShotLane(
@@ -2586,11 +2593,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // Bodies without these signatures fall straight through.
         if (nearestThreat is Position threat
             && (ArenaBasics.TryDirectionSignature(
-                    contract, body, "prism-wall", threat, reason)
+                    contract, body, "prism-wall", threat, reason,
+                    mirrored: _mirrored)
                 || ArenaBasics.TryPositionSignature(
-                    contract, body, "sentinel-seed", threat, reason)
+                    contract, body, "sentinel-seed", threat, reason,
+                    mirrored: _mirrored)
                 || ArenaBasics.TryPositionSignature(
-                    contract, body, "trip-node", threat, reason)))
+                    contract, body, "trip-node", threat, reason,
+                    mirrored: _mirrored)))
             return true;
         LastSeenEnemy? stalest = _lastSeenEnemies.Values
             .Where(seen => seen.LastConfirmedTick < mind.Tick - 4
@@ -2600,7 +2610,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .FirstOrDefault();
         return stalest is not null
             && ArenaBasics.TryPositionSignature(
-                contract, body, "survey-flare", stalest.Position, reason);
+                contract, body, "survey-flare", stalest.Position, reason,
+                mirrored: _mirrored);
     }
 
     private bool TrySelfPreservation(
@@ -2800,6 +2811,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract.Map.TileRows,
             target);
         Position[] goals = TacticalFormationPrimitives.ReflowGoals(
+            _mirrored,
             contract.Map.Width,
             contract.Map.Height,
             contract.Map.TileRows,
@@ -3451,11 +3463,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     signature.Kind, "hardlight-block", StringComparison.Ordinal)
                     ? assignment
                     : target.Position,
-                reason),
+                reason,
+                mirrored: ArenaBasics.MirroredFrame(contract, mind)),
             "unit" => ArenaBasics.TryUnitSignature(
                 contract, body, signature.Kind, target.ActorId, reason),
             "direction" => ArenaBasics.TryDirectionSignature(
-                contract, body, signature.Kind, target.Position, reason),
+                contract, body, signature.Kind, target.Position, reason,
+                mirrored: ArenaBasics.MirroredFrame(contract, mind)),
             "parameterless" => ArenaBasics.TryParameterlessSignature(
                 contract, body, signature.Kind, reason),
             _ => false,

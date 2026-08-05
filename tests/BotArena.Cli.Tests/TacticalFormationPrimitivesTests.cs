@@ -80,6 +80,7 @@ public sealed class TacticalFormationPrimitivesTests
         ];
 
         Position[] goals = TacticalFormationPrimitives.ReflowGoals(
+            false,
             width: 5,
             height: 5,
             rows,
@@ -110,6 +111,7 @@ public sealed class TacticalFormationPrimitivesTests
         Assert.Equal(
             [target],
             TacticalFormationPrimitives.ReflowGoals(
+            false,
                 3, 3, rows, target, 2, "hold"));
     }
 
@@ -120,6 +122,7 @@ public sealed class TacticalFormationPrimitivesTests
         Position target = new(2, 2);
 
         Position[] goals = TacticalFormationPrimitives.ReflowGoals(
+            false,
             5, 5, rows, target, 1, "rotate-shape");
 
         Assert.Equal(target, goals[0]);
@@ -138,6 +141,7 @@ public sealed class TacticalFormationPrimitivesTests
 
         Position selected = TacticalFormationPrimitives
             .SelectFormationTarget(
+                false,
                 7, 7, rows,
                 authored: new Position(4, 2),
                 roleId: "line",
@@ -162,6 +166,7 @@ public sealed class TacticalFormationPrimitivesTests
 
         Position selected = TacticalFormationPrimitives
             .SelectFormationTarget(
+                false,
                 7, 7, rows,
                 authored: new Position(4, 3),
                 roleId: "medic",
