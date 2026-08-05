@@ -184,6 +184,15 @@ public static class SeedDerivation
     /// and round index give every scheduled birth its own deterministic
     /// value for the same match seed.
     /// </summary>
+    /// <summary>
+    /// One seed-derived parity bit phasing the alternating resolution
+    /// order, so a symmetric contest at a fixed tick splits evenly across
+    /// seeds while every match stays deterministic.
+    /// </summary>
+    public static int DeriveResolutionPhase(ulong matchSeed) =>
+        (int)(DeterministicRandom.Mix(
+            matchSeed ^ Fnv1a64("arc-resolution-phase")) & 1UL);
+
     public static ulong DeriveWellBirthDraw(
         ulong matchSeed, string wellId, int round)
     {

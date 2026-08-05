@@ -271,6 +271,12 @@ internal static class ActorRulesCanonicalWriter
                 "alternatingResolutionOrder",
                 mode.AlternatingResolutionOrder);
         }
+        if (mode.SeedPhasedResolutionOrder)
+        {
+            writer.WriteBoolean(
+                "seedPhasedResolutionOrder",
+                mode.SeedPhasedResolutionOrder);
+        }
         // Written only when true so historical rules bytes are untouched.
         if (mode.ThreefoldSockets)
         {

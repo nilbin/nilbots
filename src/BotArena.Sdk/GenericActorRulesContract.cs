@@ -354,6 +354,12 @@ public sealed class GenericActorRulesContract
         /// this many consecutive ticks (0 disables).
         /// </summary>
         public int HealZoneTicksPerHp { get; init; }
+
+        /// <summary>
+        /// Seed-phases the alternating resolution parity so symmetric
+        /// contests at a fixed tick split evenly across seeds.
+        /// </summary>
+        public bool SeedPhasedResolutionOrder { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

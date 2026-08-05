@@ -24,6 +24,13 @@ public abstract record GameModeDefinition
     /// </summary>
     public virtual bool AlternatingResolutionOrder => false;
 
+    /// <summary>
+    /// When alternating resolution is on, phase the tick-parity alternation
+    /// by a seed-derived bit so a symmetric contest at a fixed tick splits
+    /// evenly ACROSS seeds instead of resolving identically in every match.
+    /// </summary>
+    public virtual bool SeedPhasedResolutionOrder => false;
+
     internal GameModeDefinition(
         string modeId,
         VictoryDefinition victory,

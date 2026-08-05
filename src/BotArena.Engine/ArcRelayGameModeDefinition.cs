@@ -30,7 +30,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int rearArcDamageMultiplier = 1,
         int veterancyXpPerLevel = 0,
         int veterancyMaxLevel = 0,
-        int healZoneTicksPerHp = 0)
+        int healZoneTicksPerHp = 0,
+        bool seedPhasedResolutionOrder = false)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -75,6 +76,13 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         VeterancyXpPerLevel = veterancyXpPerLevel;
         VeterancyMaxLevel = veterancyMaxLevel;
         HealZoneTicksPerHp = healZoneTicksPerHp;
+        if (seedPhasedResolutionOrder && !alternatingResolutionOrder)
+        {
+            throw new ArgumentException(
+                "Seed-phased resolution needs alternating resolution.",
+                nameof(seedPhasedResolutionOrder));
+        }
+        _seedPhasedResolutionOrder = seedPhasedResolutionOrder;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -247,6 +255,11 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
 
     public override bool AlternatingResolutionOrder =>
         _alternatingResolutionOrder;
+
+    private readonly bool _seedPhasedResolutionOrder;
+
+    public override bool SeedPhasedResolutionOrder =>
+        _seedPhasedResolutionOrder;
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
         SignatureGrammarVersion >= 2

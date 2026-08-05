@@ -244,6 +244,34 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void FairAlternationMintsBesideTheVeterancyArm()
+    {
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren5)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren6)));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren5).Map),
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren6).Map));
+        string json = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren6));
+        Assert.Contains("\"seedPhasedResolutionOrder\":true", json);
+        Assert.DoesNotContain(
+            "seedPhasedResolutionOrder",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren5)));
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(

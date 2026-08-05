@@ -747,6 +747,8 @@ public static class ActorCanonicalContractReader
             "rearArcDamageMultiplier", out _);
         bool hasVeterancy = element.TryGetProperty(
             "veterancyXpPerLevel", out _);
+        bool hasSeedPhase = element.TryGetProperty(
+            "seedPhasedResolutionOrder", out _);
         bool hasHealZones = element.TryGetProperty(
             "healZoneTicksPerHp", out _);
         string[] modeFields =
@@ -782,6 +784,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasVeterancy
                 ? new[] { "veterancyXpPerLevel", "veterancyMaxLevel" }
+                : System.Array.Empty<string>(),
+            .. hasSeedPhase
+                ? new[] { "seedPhasedResolutionOrder" }
                 : System.Array.Empty<string>(),
             .. hasHealZones
                 ? new[] { "healZoneTicksPerHp" }
@@ -843,6 +848,8 @@ public static class ActorCanonicalContractReader
             HealZoneTicksPerHp = hasHealZones
                 ? Int(element, "healZoneTicksPerHp")
                 : 0,
+            SeedPhasedResolutionOrder = hasSeedPhase
+                && Bool(element, "seedPhasedResolutionOrder"),
         };
     }
 

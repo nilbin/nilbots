@@ -418,7 +418,9 @@ public static class ArcRelayH0Definition
             rearArcDamageMultiplier: loopProfile.RearArcDamageMultiplier,
             veterancyXpPerLevel: loopProfile.VeterancyXpPerLevel,
             veterancyMaxLevel: loopProfile.VeterancyMaxLevel,
-            healZoneTicksPerHp: loopProfile.HealZoneTicksPerHp);
+            healZoneTicksPerHp: loopProfile.HealZoneTicksPerHp,
+            seedPhasedResolutionOrder:
+                loopProfile.SeedPhasedResolutionOrder);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

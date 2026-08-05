@@ -124,6 +124,7 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly HashSet<ActorIdentity> _arcSignatureDamagedThisTick = [];
     private readonly Dictionary<ActorIdentity, int> _arcHealChannel = [];
     private ImmutableHashSet<Position>? _arcHealTiles;
+    private readonly int _resolutionPhase;
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
     private ImmutableDictionary<ActorIdentity, Position>
@@ -158,6 +159,9 @@ public sealed class GenericActorMatchSession : IDisposable
         ArgumentNullException.ThrowIfNull(participants);
         IGenericActorMatchModeDriver mode =
             GenericActorMatchModeDriverFactory.Create(definition, matchSeed);
+        _resolutionPhase = definition.Rules.GameMode.SeedPhasedResolutionOrder
+            ? SeedDerivation.DeriveResolutionPhase(matchSeed)
+            : 0;
         ValidateWorldCapabilities(definition);
 
         _definition = definition;
@@ -1527,7 +1531,7 @@ public sealed class GenericActorMatchSession : IDisposable
         // the direction by tick parity (foundations -03 fairness).
         bool descendingResolution =
             _definition.Rules.GameMode.AlternatingResolutionOrder
-            && Tick % 2 == 1;
+            && (Tick + _resolutionPhase) % 2 == 1;
         IEnumerable<ActionState> movementOrder = descendingResolution
             ? resolutions.Values.OrderByDescending(value => value.ActorId)
             : resolutions.Values.OrderBy(value => value.ActorId);
@@ -2150,7 +2154,7 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         IEnumerable<PendingHookPull> pullOrder =
             _definition.Rules.GameMode.AlternatingResolutionOrder
-            && Tick % 2 == 1
+            && (Tick + _resolutionPhase) % 2 == 1
                 ? Enumerable.Reverse(_pendingHookPulls)
                 : _pendingHookPulls;
         foreach (PendingHookPull pull in pullOrder)
@@ -2920,7 +2924,7 @@ public sealed class GenericActorMatchSession : IDisposable
         // the final word, so -03 fairness alternates it by tick parity.
         bool descendingAdvance =
             _definition.Rules.GameMode.AlternatingResolutionOrder
-            && Tick % 2 == 1;
+            && (Tick + _resolutionPhase) % 2 == 1;
         foreach (ProjectileState projectile in (descendingAdvance
                      ? _projectiles.OrderByDescending(
                          projectile => projectile.Id)

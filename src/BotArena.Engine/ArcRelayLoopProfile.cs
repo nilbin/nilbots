@@ -30,8 +30,10 @@ public sealed record ArcRelayLoopProfile
         int omniProximityRange = 1,
         int veterancyXpPerLevel = 0,
         int veterancyMaxLevel = 0,
-        int healZoneTicksPerHp = 0)
+        int healZoneTicksPerHp = 0,
+        bool seedPhasedResolutionOrder = false)
     {
+        SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
         VeterancyXpPerLevel = veterancyXpPerLevel;
@@ -80,6 +82,7 @@ public sealed record ArcRelayLoopProfile
     internal int VeterancyXpPerLevel { get; }
     internal int VeterancyMaxLevel { get; }
     internal int HealZoneTicksPerHp { get; }
+    internal bool SeedPhasedResolutionOrder { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -425,6 +428,32 @@ public sealed record ArcRelayLoopProfile
         healZoneTicksPerHp: 3);
 
     /// <summary>
+    /// Fair-alternation veterancy world (west-residual hunt round 2): the
+    /// -05 stack plus seed-phased resolution parity, so the scripted
+    /// opening collision - and every other symmetric contest at a fixed
+    /// tick - splits evenly across seeds instead of always resolving west.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren6 { get; } = new(
+        "ambush-warren-6",
+        "arc-relay-ambush-06",
+        "arc-relay-ambush-warren-04",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 3,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -491,6 +520,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren3,
         AmbushWarren4,
         AmbushWarren5,
+        AmbushWarren6,
         Return16,
         Return24,
         Hot60,
