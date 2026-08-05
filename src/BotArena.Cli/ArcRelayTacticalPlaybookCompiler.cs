@@ -75,7 +75,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         using JsonDocument sourceDocument = Parse(
             playbookSource, fullPlaybookPath);
         using JsonDocument playbookDocument = ExpandAuthoring(
-            sourceDocument.RootElement, fullPlaybookPath);
+            sourceDocument.RootElement,
+            fullPlaybookPath,
+            out Dictionary<string, (int Minimum, int Maximum)>
+                parameterRanges);
         JsonElement playbook = playbookDocument.RootElement;
         ValidatePlaybook(playbook, fullPlaybookPath);
 
@@ -103,7 +106,7 @@ public static class ArcRelayTacticalPlaybookCompiler
 
         using JsonDocument layoutDocument = Parse(layoutSource, fullLayoutPath);
         JsonElement layout = layoutDocument.RootElement;
-        ValidateLayout(layout, fullLayoutPath);
+        ValidateLayout(layout, fullLayoutPath, parameterRanges);
         ValidateLayoutReferences(playbook, layout, fullPlaybookPath);
 
         byte[] canonicalPlaybook = NormalizePlaybook(playbook);
@@ -137,8 +140,11 @@ public static class ArcRelayTacticalPlaybookCompiler
     /// </summary>
     private static JsonDocument ExpandAuthoring(
         JsonElement source,
-        string path)
+        string path,
+        out Dictionary<string, (int Minimum, int Maximum)> parameterRanges)
     {
+        parameterRanges = new Dictionary<string, (int, int)>(
+            StringComparer.Ordinal);
         bool hasOrders = source.TryGetProperty("orders", out _);
         bool hasAuthoring = source.TryGetProperty("authoring", out _);
         if (hasOrders == hasAuthoring)
@@ -193,6 +199,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                     + $"its explicit [{minimum}, {maximum}] range.");
             }
             parameterById.Add(parameter.Id, selected);
+            parameterRanges.Add(parameter.Id, (minimum, maximum));
         }
 
         CatalogEntry[] fallbackPolicies = Catalog(
@@ -684,7 +691,10 @@ public static class ArcRelayTacticalPlaybookCompiler
                             $"condition references unknown parameter "
                             + $"'{parameterId}'.");
                     }
-                    value.Remove("valueParameter");
+                    // The parameter name stays beside the baked value so a
+                    // side-keyed binding can re-bake it at load time
+                    // (parameterOverrides). Consumers that do not override
+                    // simply ignore the provenance field.
                     value["value"] = selected;
                 }
             }
@@ -2600,9 +2610,16 @@ public static class ArcRelayTacticalPlaybookCompiler
             variantFields.Add("zone");
         Object(value, path,
             ["fact", "operator", "value", .. variantFields],
-            FreshnessFacts.Contains(fact) ? ["freshnessTicks"] : []);
+            FreshnessFacts.Contains(fact)
+                ? ["freshnessTicks", "valueParameter"]
+                : ["valueParameter"]);
         OneOf(value, "operator", path, [.. ConditionOperators]);
         Range(value, "value", path, 0, 100000);
+        // Optional provenance written by authoring expansion: the parameter
+        // this value was baked from, kept so side-keyed binding overrides
+        // can re-bake it at load time.
+        if (value.TryGetProperty("valueParameter", out _))
+            Identifier(value, "valueParameter", path);
         string subject = variantFields.Contains("subject", StringComparer.Ordinal)
             ? NonEmptyString(value, "subject", path)
             : "";
@@ -2618,7 +2635,10 @@ public static class ArcRelayTacticalPlaybookCompiler
             throw Error(path, $"condition references unknown order '{subject}'.");
     }
 
-    private static void ValidateLayout(JsonElement root, string path)
+    private static void ValidateLayout(
+        JsonElement root,
+        string path,
+        Dictionary<string, (int Minimum, int Maximum)> parameterRanges)
     {
         Object(root, path,
             [
@@ -2635,7 +2655,44 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(binding, $"{path}.bindings",
                 ["matchContractFingerprint", "ownReactorSide", "transform",
-                    "routeAliases"], ["formationAliases"]);
+                    "routeAliases"],
+                ["formationAliases", "parameterOverrides"]);
+            // Side-keyed overrides: a binding may re-value declared authoring
+            // parameters within their explicit ranges, so the two
+            // orientations of a map can run different sensitivities without
+            // forking the sheet.
+            if (binding.TryGetProperty(
+                    "parameterOverrides", out JsonElement overrides))
+            {
+                if (overrides.ValueKind != JsonValueKind.Object
+                    || overrides.EnumerateObject().Count() > 16)
+                {
+                    throw Error(path,
+                        "'parameterOverrides' must be an object with at most "
+                        + "16 integer values.");
+                }
+                foreach (JsonProperty overridden in overrides.EnumerateObject())
+                {
+                    if (!parameterRanges.TryGetValue(
+                            overridden.Name,
+                            out (int Minimum, int Maximum) range))
+                    {
+                        throw Error(path,
+                            "'parameterOverrides' names unknown parameter "
+                            + $"'{overridden.Name}'.");
+                    }
+                    if (overridden.Value.ValueKind != JsonValueKind.Number
+                        || !overridden.Value.TryGetInt32(out int selected)
+                        || selected < range.Minimum
+                        || selected > range.Maximum)
+                    {
+                        throw Error(path,
+                            $"'parameterOverrides.{overridden.Name}' must be "
+                            + $"an integer in [{range.Minimum}, "
+                            + $"{range.Maximum}].");
+                    }
+                }
+            }
             // "any-composition" is the side-keyed wildcard: a sheet may meet
             // opponents whose composition pair it has never seen. Exact
             // fingerprints still take precedence at match time.

@@ -408,6 +408,60 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void BindingParameterOverridesCompileWithinDeclaredRanges()
+    {
+        (string playbook, string layout) = TemporaryLayoutVariant(source =>
+        {
+            JsonObject binding = source["bindings"]![0]!.AsObject();
+            binding["parameterOverrides"] = new JsonObject
+            {
+                ["conversion-front-enemy-unavailable"] = 4,
+            };
+        });
+        try
+        {
+            Assert.NotNull(ArcRelayTacticalPlaybookCompiler
+                .Compile(playbook).NormalizedPlaybook);
+        }
+        finally
+        {
+            File.Delete(playbook);
+            File.Delete(layout);
+        }
+    }
+
+    [Fact]
+    public void BindingParameterOverridesRejectUnknownNamesAndRangeBreaks()
+    {
+        foreach ((JsonNode value, string expected) in new (JsonNode, string)[]
+        {
+            (new JsonObject { ["no-such-parameter"] = 3 },
+                "unknown parameter 'no-such-parameter'"),
+            (new JsonObject { ["conversion-front-enemy-unavailable"] = 99999 },
+                "must be an integer in"),
+        })
+        {
+            (string playbook, string layout) = TemporaryLayoutVariant(source =>
+            {
+                source["bindings"]![0]!.AsObject()["parameterOverrides"] =
+                    value.DeepClone();
+            });
+            try
+            {
+                InvalidDataException failure =
+                    Assert.Throws<InvalidDataException>(() =>
+                        ArcRelayTacticalPlaybookCompiler.Compile(playbook));
+                Assert.Contains(expected, failure.Message);
+            }
+            finally
+            {
+                File.Delete(playbook);
+                File.Delete(layout);
+            }
+        }
+    }
+
+    [Fact]
     public void ForwardPassOptInCompilesAndRejectsUnknownModes()
     {
         JsonObject source = AuthoredHomeSiege();

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.Sdk;
 
 internal sealed class TacticalPlaybookPackage
@@ -71,22 +72,16 @@ internal sealed class TacticalPlaybookPackage
         if (reader.BaseStream.Position != reader.BaseStream.Length)
             throw new InvalidDataException("Trailing tactical playbook data.");
 
-        Playbook playbook = JsonSerializer.Deserialize<Playbook>(
-            playbookJson, TacticalPlaybookJsonContext.Default.Playbook)
-            ?? throw new InvalidDataException("Tactical playbook is empty.");
         Layout layout = JsonSerializer.Deserialize<Layout>(
             layoutJson, TacticalPlaybookJsonContext.Default.Layout)
             ?? throw new InvalidDataException("Tactical layout is empty.");
-        if (!string.Equals(playbook.Schema, PlaybookSchema,
-                StringComparison.Ordinal)
-            || !string.Equals(layout.Schema, LayoutSchema,
+        if (!string.Equals(layout.Schema, LayoutSchema,
                 StringComparison.Ordinal)
             || !string.Equals(layout.MapId, contract.Map.MapId,
-                StringComparison.Ordinal)
-            || playbook.Composition.Length != 8)
+                StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                "Tactical playbook schema, map, or composition is invalid.");
+                "Tactical layout schema or map is invalid.");
         }
         string side = ownReactor.X < contract.Map.Width / 2 ? "west" : "east";
         // Exact contract bindings win; a side may also declare one
@@ -112,11 +107,67 @@ internal sealed class TacticalPlaybookPackage
             _ => throw new InvalidDataException(
                 $"Unknown tactical layout transform '{binding.Transform}'."),
         };
+        // Side-keyed parameter overrides: the selected binding may re-value
+        // authored parameters (the two orientations of a map can genuinely
+        // want different sensitivities). The compiler keeps each condition's
+        // 'valueParameter' provenance beside its baked 'value', so the
+        // override is a plain re-bake before deserialization.
+        if (binding.ParameterOverrides is { Count: > 0 } overrides)
+            playbookJson = ApplyParameterOverrides(playbookJson, overrides);
+        Playbook playbook = JsonSerializer.Deserialize<Playbook>(
+            playbookJson, TacticalPlaybookJsonContext.Default.Playbook)
+            ?? throw new InvalidDataException("Tactical playbook is empty.");
+        if (!string.Equals(playbook.Schema, PlaybookSchema,
+                StringComparison.Ordinal)
+            || playbook.Composition.Length != 8)
+        {
+            throw new InvalidDataException(
+                "Tactical playbook schema or composition is invalid.");
+        }
         return new TacticalPlaybookPackage(
             playbook, layout, playbookSha256, layoutSha256, transform,
             contract.Map.Width, contract.Map.Height, binding.RouteAliases,
             binding.FormationAliases ?? new Dictionary<string, string>(
                 StringComparer.Ordinal));
+    }
+
+    private static byte[] ApplyParameterOverrides(
+        byte[] playbookJson,
+        Dictionary<string, int> overrides)
+    {
+        JsonNode root = JsonNode.Parse(playbookJson)
+            ?? throw new InvalidDataException("Tactical playbook is empty.");
+        RebakeParameters(root, overrides);
+        return System.Text.Encoding.UTF8.GetBytes(root.ToJsonString());
+    }
+
+    private static void RebakeParameters(
+        JsonNode node,
+        Dictionary<string, int> overrides)
+    {
+        if (node is JsonObject value)
+        {
+            if (value["valueParameter"] is JsonValue parameter
+                && parameter.TryGetValue(out string? parameterId)
+                && parameterId is not null
+                && overrides.TryGetValue(parameterId, out int selected))
+            {
+                value["value"] = selected;
+            }
+            foreach (KeyValuePair<string, JsonNode?> child in value.ToArray())
+            {
+                if (child.Value is not null)
+                    RebakeParameters(child.Value, overrides);
+            }
+            return;
+        }
+        if (node is not JsonArray array)
+            return;
+        foreach (JsonNode? child in array)
+        {
+            if (child is not null)
+                RebakeParameters(child, overrides);
+        }
     }
 
     internal bool Contains(string zoneId, Position position)
@@ -498,7 +549,8 @@ internal sealed class TacticalPlaybookPackage
         int Value,
         string Subject,
         string Zone,
-        int FreshnessTicks);
+        int FreshnessTicks,
+        string ValueParameter = "");
 
     internal sealed record Layout
     {
@@ -516,7 +568,8 @@ internal sealed class TacticalPlaybookPackage
         string OwnReactorSide,
         string Transform,
         Dictionary<string, string> RouteAliases,
-        Dictionary<string, string>? FormationAliases = null);
+        Dictionary<string, string>? FormationAliases = null,
+        Dictionary<string, int>? ParameterOverrides = null);
 
     internal sealed record Zone(string ZoneId, int[] Rect);
 
