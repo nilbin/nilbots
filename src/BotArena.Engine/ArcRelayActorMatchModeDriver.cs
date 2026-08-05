@@ -600,6 +600,28 @@ internal sealed class ArcRelayActorMatchModeDriver
                 core.Position,
                 core.NextRelocationTick),
             core.Position));
+        // Threefold: possession settles the Well, not the bank. A duplicate
+        // held as denial would otherwise freeze its Well for the rest of the
+        // match and strangle the whole supply (measured 443-477 blocked
+        // ticks of 600 in the first prototype smoke).
+        if (_gameMode.ThreefoldSockets)
+        {
+            WellRuntime well = _wellsById[core.CoreId.SourceWellId];
+            if (well.OutstandingCoreId == core.CoreId)
+            {
+                well.OutstandingCoreId = null;
+                if (well.PendingCharge)
+                {
+                    well.RearmCompletesAtTick = checked(
+                        tick + 1 + _gameMode.PendingRearmTicks);
+                }
+                events.Add(Public(new ArcRelayEvent.WellChanged(
+                    well.Schedule.WellId,
+                    well.PendingCharge,
+                    well.RearmCompletesAtTick,
+                    null)));
+            }
+        }
     }
 
     private void Bank(
@@ -611,7 +633,10 @@ internal sealed class ArcRelayActorMatchModeDriver
     {
         _cores.Remove(core.CoreId);
         WellRuntime well = _wellsById[core.CoreId.SourceWellId];
-        well.OutstandingCoreId = null;
+        // Under threefold the pickup already settled the Well; repeating the
+        // bookkeeping here would extend a rearm that pickup started.
+        if (!_gameMode.ThreefoldSockets)
+            well.OutstandingCoreId = null;
         if (_gameMode.ThreefoldSockets)
         {
             reactor.FilledSockets.Add(core.CoreId.SourceWellId);
@@ -627,16 +652,19 @@ internal sealed class ArcRelayActorMatchModeDriver
             reactor.TeamId,
             reactor.Position,
             reactor.Charge)));
-        if (well.PendingCharge)
+        if (!_gameMode.ThreefoldSockets && well.PendingCharge)
         {
             well.RearmCompletesAtTick = checked(
                 tick + 1 + _gameMode.PendingRearmTicks);
         }
-        events.Add(Public(new ArcRelayEvent.WellChanged(
-            well.Schedule.WellId,
-            well.PendingCharge,
-            well.RearmCompletesAtTick,
-            null)));
+        if (!_gameMode.ThreefoldSockets)
+        {
+            events.Add(Public(new ArcRelayEvent.WellChanged(
+                well.Schedule.WellId,
+                well.PendingCharge,
+                well.RearmCompletesAtTick,
+                null)));
+        }
         if (_gameMode.ThreefoldSockets
                 ? reactor.FilledSockets.Count < _wells.Length
                 : reactor.Charge < _gameMode.CoresPerPulse)
