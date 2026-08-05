@@ -31,8 +31,10 @@ public sealed record ArcRelayLoopProfile
         int veterancyXpPerLevel = 0,
         int veterancyMaxLevel = 0,
         int healZoneTicksPerHp = 0,
-        bool seedPhasedResolutionOrder = false)
+        bool seedPhasedResolutionOrder = false,
+        bool rotationalSpawnAssignment = false)
     {
+        RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
@@ -83,6 +85,7 @@ public sealed record ArcRelayLoopProfile
     internal int VeterancyMaxLevel { get; }
     internal int HealZoneTicksPerHp { get; }
     internal bool SeedPhasedResolutionOrder { get; }
+    internal bool RotationalSpawnAssignment { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -454,6 +457,38 @@ public sealed record ArcRelayLoopProfile
         seedPhasedResolutionOrder: true);
 
     /// <summary>
+    /// Rotationally fair deployment (west-residual hunt round 3): the -06
+    /// stack on a re-anchored serpentine map. The warren maps are 180-degree
+    /// chiral, but team 1 spawns were still assigned by X-flip, so each
+    /// eastern class stood in terrain inequivalent to its western
+    /// counterpart's and no mind-side mirroring could ever be exact. Team 1
+    /// unit N now spawns at the 180-degree rotation of team 0 unit N's
+    /// anchor (the anchor tile set is unchanged - only eastern unit
+    /// indexing moves), so identical minds mirroring by rotation play truly
+    /// symmetric openings. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren7 { get; } = new(
+        "ambush-warren-7",
+        "arc-relay-ambush-07",
+        "arc-relay-ambush-warren-05",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 3,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -521,6 +556,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren4,
         AmbushWarren5,
         AmbushWarren6,
+        AmbushWarren7,
         Return16,
         Return24,
         Hot60,

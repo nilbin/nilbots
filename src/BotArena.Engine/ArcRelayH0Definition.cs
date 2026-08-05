@@ -131,13 +131,24 @@ public static class ArcRelayH0Definition
                 new(1, 8), new(2, 8), new(3, 9), new(1, 10),
                 new(1, 12), new(3, 13), new(1, 14), new(2, 14),
             ];
+        // Eastern anchors historically X-flip the western tiles, which is
+        // fair only on left-right symmetric maps. The warren maps are
+        // 180-degree chiral, so profiles opting into rotational assignment
+        // spawn team 1 unit N at the full rotation of team 0 unit N's tile
+        // instead; the western tile column is Y-symmetric, so the eastern
+        // tile set is identical either way and only unit indexing changes.
+        int maximumY = rows.Length - 1;
         for (int unitId = 0; unitId < west.Length; unitId++)
         {
             anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
             anchors.Add(Anchor(
                 1,
                 unitId,
-                new Position(maximumX - west[unitId].X, west[unitId].Y),
+                loopProfile.RotationalSpawnAssignment
+                    ? new Position(
+                        maximumX - west[unitId].X,
+                        maximumY - west[unitId].Y)
+                    : new Position(maximumX - west[unitId].X, west[unitId].Y),
                 Direction.West));
         }
 

@@ -272,6 +272,61 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void RotationalSpawnsMintBesideTheFairAlternationArm()
+    {
+        // -07 is a map-only mint: the rules stack is byte-identical to -06
+        // (rotational assignment is anchor data, not a rules field), while
+        // the map re-derives with team 1 unit N anchored at the 180-degree
+        // rotation of team 0 unit N instead of its X-flip.
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren6)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren7)));
+        ActorMapDefinition legacy = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren6).Map;
+        ActorMapDefinition rotated = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren7).Map;
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMap(legacy),
+            ActorContractFingerprint.ComputeMap(rotated));
+        Assert.True(legacy.TileRows.SequenceEqual(rotated.TileRows));
+
+        static Position AnchorOf(ActorMapDefinition map, int team, int unit)
+            => map.SpawnAnchors.Single(anchor => anchor.Spawn.SpawnId
+                    == $"team-{team}-unit-{unit}")
+                .Spawn.Position;
+        int maxX = legacy.Width - 1;
+        int maxY = legacy.Height - 1;
+        for (int unit = 0; unit < 8; unit++)
+        {
+            Position west = AnchorOf(legacy, 0, unit);
+            Assert.Equal(west, AnchorOf(rotated, 0, unit));
+            // The legacy assignment stays X-flipped forever; the rotated
+            // arm pairs unit N with the full rotation of its own anchor.
+            Assert.Equal(
+                new Position(maxX - west.X, west.Y),
+                AnchorOf(legacy, 1, unit));
+            Assert.Equal(
+                new Position(maxX - west.X, maxY - west.Y),
+                AnchorOf(rotated, 1, unit));
+        }
+    }
+
+    [Fact]
+    public void ResolutionPhaseDerivationIsPinned()
+    {
+        // Golden values: changing these changes which seeds flip the
+        // alternation parity, which is a gameplay change, not a test update.
+        Assert.Equal(1, SeedDerivation.DeriveResolutionPhase(2001));
+        Assert.Equal(1, SeedDerivation.DeriveResolutionPhase(2002));
+        Assert.Equal(0, SeedDerivation.DeriveResolutionPhase(2004));
+        Assert.Equal(0, SeedDerivation.DeriveResolutionPhase(3012));
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(
