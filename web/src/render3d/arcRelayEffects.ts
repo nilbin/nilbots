@@ -98,6 +98,8 @@ interface SignaturePropSlot {
   group: THREE.Group;
   model: THREE.Group | null;
   emissives: { material: THREE.MeshStandardMaterial; base: number }[];
+  /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
+  pips: THREE.Mesh[];
   ready: boolean;
   disposed: boolean;
 }
@@ -138,10 +140,22 @@ export function buildArcRelayEffects(
     propGroup.userData.operationId = signature.operationId;
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
+    const pipGeometry = new THREE.SphereGeometry(0.09, 8, 8);
+    const pips = [0, 1].map((index) => {
+      const pip = new THREE.Mesh(
+        pipGeometry,
+        new THREE.MeshBasicMaterial({ color: '#f8fafc' }),
+      );
+      pip.position.set(index === 0 ? -0.16 : 0.16, 1.18, 0);
+      pip.visible = false;
+      propGroup.add(pip);
+      return pip;
+    });
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
       emissives: [],
+      pips,
       ready: false,
       disposed: false,
     };
@@ -150,6 +164,8 @@ export function buildArcRelayEffects(
       dispose: () => {
         slot.disposed = true;
         if (slot.model) disposeModelMaterials(slot.model);
+        pipGeometry.dispose();
+        for (const pip of pips) (pip.material as THREE.Material).dispose();
       },
     });
     void signatureModel(signature.signatureId).then((model) => {
@@ -371,6 +387,8 @@ export function buildArcRelayEffects(
               ) ?? 0
             : 0;
         paintSignaturePropBody(slot.emissives, signature.suppressed, time);
+        for (const [pipIndex, pip] of slot.pips.entries())
+          pip.visible = pipIndex < signature.remainingCapacity;
         persistentPropReady = slot.ready;
       }
       paintSignature(

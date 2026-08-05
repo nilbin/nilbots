@@ -129,11 +129,11 @@ Project boundaries that must not be violated:
   Canvas2D renderer share those derivations. **3D is the shipped Frontline web
   viewer**, with no mode to choose: Canvas2D is retained as the floor for the
   self-contained CLI viewer, which excludes Three.js, and for a device that
-  gives no WebGL context. Arc Relay H0 deliberately reverses the delivery
-  priority while its renderer grammar is proved: its Wells, Cores, reactors,
-  Pulse, signatures, cooldown reads, and class sprites ship in Canvas2D; the
-  parked WebGL renderer only has to keep compiling and consume its normal
-  version-neutral fallback. The mobile WebView is still Canvas2D. Manual
+  gives no WebGL context. Arc Relay H0 proved its renderer grammar in
+  Canvas2D (Wells, Cores, reactors, Pulse, signatures, cooldown reads, class
+  sprites); since 2026-08 the 3D renderer is the active focus (owner ruling)
+  — hosted/site Arc Relay review happens in WebGL, so presentation work
+  lands there first, with Canvas2D kept in step as the CLI viewer floor. The mobile WebView is still Canvas2D. Manual
   GPU/mobile QA remains required. Package 8 now exposes Frontline only through
   the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
