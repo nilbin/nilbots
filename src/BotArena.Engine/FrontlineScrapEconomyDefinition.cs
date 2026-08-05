@@ -366,11 +366,16 @@ public sealed record FrontlineScrapEconomyDefinition
         {
             FrontlineGameModeDefinition { ScrapEconomy: { } economy } =>
                 economy.Headroom(effect),
-            // Arc Relay veterancy: every skill point may go into vitality,
-            // and heal zones make the raised maximum reachable mid-life, so
-            // every health validator grants the same headroom.
+            // Arc Relay veterancy: every skill point may go into vitality
+            // (heal zones make the raised maximum reachable mid-life) or
+            // into reach (each point lengthens the traced shot), so the
+            // health and travel validators grant the same headroom. Reach
+            // stayed latent until the first sheet actually bought the track
+            // (hunter-v1): the snapshot validator then rejected every shot
+            // a reach-invested body fired.
             ArcRelayGameModeDefinition { VeterancyXpPerLevel: > 0 } veterancy
-                when effect == UpgradeEffectKind.SpawnMaxHealthDelta =>
+                when effect is UpgradeEffectKind.SpawnMaxHealthDelta
+                    or UpgradeEffectKind.MobileAttackTravelTilesDelta =>
                 veterancy.VeterancyMaxLevel - 1,
             _ => 0,
         };
