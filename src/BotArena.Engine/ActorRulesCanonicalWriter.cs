@@ -271,12 +271,6 @@ internal static class ActorRulesCanonicalWriter
                 "alternatingResolutionOrder",
                 mode.AlternatingResolutionOrder);
         }
-        if (mode.SeedPhasedResolutionOrder)
-        {
-            writer.WriteBoolean(
-                "seedPhasedResolutionOrder",
-                mode.SeedPhasedResolutionOrder);
-        }
         // Written only when true so historical rules bytes are untouched.
         if (mode.ThreefoldSockets)
         {
@@ -303,6 +297,12 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber(
                 "veterancyXpPerLevel", mode.VeterancyXpPerLevel);
             writer.WriteNumber("veterancyMaxLevel", mode.VeterancyMaxLevel);
+        }
+        if (mode.SeedPhasedResolutionOrder)
+        {
+            writer.WriteBoolean(
+                "seedPhasedResolutionOrder",
+                mode.SeedPhasedResolutionOrder);
         }
         if (mode.HealZoneTicksPerHp != 0)
         {
