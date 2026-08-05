@@ -1,6 +1,6 @@
 {
   "schema": "arc-relay-tactical-layout-v1",
-  "layoutId": "counterflow-draft-sentinel-zone-v0",
+  "layoutId": "counterflow-sentinel-zone-v1",
   "mapId": "arc-relay-threefold-depth-counterflow-01",
   "bindings": [
     {

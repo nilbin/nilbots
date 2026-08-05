@@ -1,6 +1,6 @@
 {
   "schema": "arc-relay-tactical-playbook-v1",
-  "playbookId": "draft-sentinel-zone-v0",
+  "playbookId": "sentinel-zone-v1",
   "auditStatus": {
     "provisionalEvaluationOnly": true,
     "playerFacingProductSchema": false
@@ -16,8 +16,8 @@
     "towline"
   ],
   "layout": {
-    "path": "../layouts/counterflow-draft-sentinel-zone-v0.json",
-    "sha256": "326ac170b86f9b3e88d2d219f8b716c71001292d4f61fdd09317400e4068a47d"
+    "path": "../layouts/counterflow-sentinel-zone-v1.json",
+    "sha256": "739cd5359cfe78a55706f9df0911c91cca4b8b8e1a5c43509116ef400830767d"
   },
   "perspective": "team-relative",
   "memory": {
