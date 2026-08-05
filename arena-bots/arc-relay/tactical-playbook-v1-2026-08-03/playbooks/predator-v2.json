@@ -46,8 +46,8 @@
       "candidateClasses": [
         "palisade"
       ],
-      "minimum": 1,
-      "preferred": 1,
+      "minimum": 0,
+      "preferred": 0,
       "maximum": 1,
       "carrierPreference": "allow",
       "deathPolicy": "hold-vacancy",
@@ -86,7 +86,7 @@
         "veil"
       ],
       "minimum": 0,
-      "preferred": 1,
+      "preferred": 0,
       "maximum": 1,
       "carrierPreference": "allow",
       "deathPolicy": "hold-vacancy",
@@ -97,10 +97,12 @@
       "roleId": "runner",
       "candidateClasses": [
         "kestrel",
-        "relay"
+        "relay",
+        "veil",
+        "palisade"
       ],
       "minimum": 1,
-      "preferred": 4,
+      "preferred": 6,
       "maximum": 8,
       "carrierPreference": "prefer",
       "deathPolicy": "promote-best",
@@ -118,8 +120,8 @@
         "eyes"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 4,
+      "preferred": 2,
+      "maximum": 2,
       "membership": {
         "persistence": "stable-slot",
         "casualty": "hold-vacancy",
@@ -143,7 +145,7 @@
         "runner"
       ],
       "minimum": 1,
-      "preferred": 4,
+      "preferred": 6,
       "maximum": 8,
       "membership": {
         "persistence": "stable-slot",
