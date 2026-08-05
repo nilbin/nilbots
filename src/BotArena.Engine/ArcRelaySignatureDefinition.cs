@@ -341,6 +341,89 @@ public abstract record ArcRelaySignatureDefinition
         public int DurationTicks { get; }
     }
 
+    /// <summary>
+    /// Grammar-2 sentinel (owner ruling 2026-08-05): the turret launches a
+    /// real bolt along an eight-way ray — dodgeable off-axis, blockable by
+    /// constructs — and fires faster to compensate. The grammar-1 record
+    /// stays untouched so historical rules bytes never move.
+    /// </summary>
+    public sealed record SentinelSeed2 : ArcRelaySignatureDefinition
+    {
+        public SentinelSeed2(string signatureId, string classId,
+            string actionId, int hull, int range, int damage,
+            int fireCooldownTicks, int durationTicks,
+            int boltTilesPerAdvance, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(hull, nameof(hull));
+            RequirePositive(range, nameof(range));
+            RequirePositive(damage, nameof(damage));
+            RequirePositive(fireCooldownTicks, nameof(fireCooldownTicks));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            RequirePositive(boltTilesPerAdvance, nameof(boltTilesPerAdvance));
+            Hull = hull;
+            Range = range;
+            Damage = damage;
+            FireCooldownTicks = fireCooldownTicks;
+            DurationTicks = durationTicks;
+            BoltTilesPerAdvance = boltTilesPerAdvance;
+        }
+        public override SignatureKind Kind => SignatureKind.SentinelSeed2;
+        public int Hull { get; }
+        public int Range { get; }
+        public int Damage { get; }
+        public int FireCooldownTicks { get; }
+        public int DurationTicks { get; }
+        public int BoltTilesPerAdvance { get; }
+    }
+
+    /// <summary>
+    /// Grammar-2 hook: a grapple bolt that travels its ray and pulls on
+    /// contact — dodgeable, and a wall eats it.
+    /// </summary>
+    public sealed record TractorHook2 : ArcRelaySignatureDefinition
+    {
+        public TractorHook2(string signatureId, string classId,
+            string actionId, int range, int maxPullTiles,
+            int boltTilesPerAdvance, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(range, nameof(range));
+            RequirePositive(maxPullTiles, nameof(maxPullTiles));
+            RequirePositive(boltTilesPerAdvance, nameof(boltTilesPerAdvance));
+            Range = range;
+            MaxPullTiles = maxPullTiles;
+            BoltTilesPerAdvance = boltTilesPerAdvance;
+        }
+        public override SignatureKind Kind => SignatureKind.TractorHook2;
+        public int Range { get; }
+        public int MaxPullTiles { get; }
+        public int BoltTilesPerAdvance { get; }
+    }
+
+    /// <summary>
+    /// Grammar-2 null-field: one tick of visible charge before the
+    /// suppression lands, so proximity to a Hush can be answered.
+    /// </summary>
+    public sealed record NullField2 : ArcRelaySignatureDefinition
+    {
+        public NullField2(string signatureId, string classId, string actionId,
+            int radius, int durationTicks, int tellTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(radius, nameof(radius));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            RequirePositive(tellTicks, nameof(tellTicks));
+            Radius = radius;
+            DurationTicks = durationTicks;
+            TellTicks = tellTicks;
+        }
+        public override SignatureKind Kind => SignatureKind.NullField2;
+        public int Radius { get; }
+        public int DurationTicks { get; }
+        public int TellTicks { get; }
+    }
+
     private static void RequirePositive(int value, string parameterName)
     {
         if (value <= 0)
@@ -365,5 +448,57 @@ public abstract record ArcRelaySignatureDefinition
         KineticBurst = 13,
         SmokeCanister = 14,
         SentinelSeed = 15,
+        SentinelSeed2 = 16,
+        TractorHook2 = 17,
+        NullField2 = 18,
     }
+
+    /// <summary>
+    /// Designed-role metadata, projected into grammar-2 contracts so
+    /// executors can dispatch generically (category order, argument shape,
+    /// sensible engagement distance) instead of hand-maintaining tables.
+    /// Grammar-1 contracts never carry it, so their bytes never move.
+    /// </summary>
+    public readonly record struct SignatureMetadata(
+        string Category,
+        string ArgumentKind,
+        int EngagementRange);
+
+    public static SignatureMetadata MetadataFor(SignatureKind kind) =>
+        kind switch
+        {
+            SignatureKind.RailLine =>
+                new SignatureMetadata("damage", "heading", 12),
+            SignatureKind.FallingStar =>
+                new SignatureMetadata("damage", "position", 8),
+            SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2 =>
+                new SignatureMetadata("damage", "position", 6),
+            SignatureKind.KineticBurst =>
+                new SignatureMetadata("damage", "parameterless", 1),
+            SignatureKind.TargetPaint =>
+                new SignatureMetadata("control", "unit", 7),
+            SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
+                new SignatureMetadata("control", "heading", 6),
+            SignatureKind.NullField or SignatureKind.NullField2 =>
+                new SignatureMetadata("control", "parameterless", 3),
+            SignatureKind.TripNode =>
+                new SignatureMetadata("control", "position", 4),
+            SignatureKind.HardlightBlock =>
+                new SignatureMetadata("control", "position", 12),
+            SignatureKind.PrismWall =>
+                new SignatureMetadata("support", "direction", 6),
+            SignatureKind.SmokeCanister =>
+                new SignatureMetadata("support", "position", 6),
+            SignatureKind.SurveyFlare =>
+                new SignatureMetadata("support", "position", 8),
+            SignatureKind.Exchange =>
+                new SignatureMetadata("support", "unit", 6),
+            SignatureKind.RepairBeam =>
+                new SignatureMetadata("support", "unit", 4),
+            SignatureKind.VectorDash =>
+                new SignatureMetadata("movement", "heading", 4),
+            SignatureKind.ArcToss =>
+                new SignatureMetadata("custody", "position", 5),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
 }

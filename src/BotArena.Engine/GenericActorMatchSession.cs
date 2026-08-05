@@ -53,6 +53,8 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
+    private readonly List<PendingHookPull> _pendingHookPulls = [];
+    private readonly List<PendingSignatureBolt> _pendingSignatureBolts = [];
     private readonly List<BoundedChildFabricationProvisionalReservation>
         _fabricationReservations = [];
     private readonly List<SplitReplicationReservation> _splitReservations = [];
@@ -638,6 +640,12 @@ public sealed class GenericActorMatchSession : IDisposable
         }
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
+        LaunchPendingSignatureBolts(
+            contacts,
+            ref contactOrdinal,
+            deflections,
+            events,
+            projectileTransitions);
         AdvanceExistingProjectiles(
             contacts,
             ref contactOrdinal,
@@ -1573,7 +1581,17 @@ public sealed class GenericActorMatchSession : IDisposable
                         .MovementContact(
                             life.ActorId,
                             contact.Damages)));
-                if (contact.Damages)
+                if (contact.Damages
+                    && projectile.SignatureBoltHook is not null)
+                {
+                    _pendingHookPulls.Add(new PendingHookPull(
+                        projectile.SignatureBoltOperationId!,
+                        projectile.OwnerActorId,
+                        life.ActorId,
+                        projectile.SignatureBoltHook.PullOrigin,
+                        projectile.SignatureBoltHook.MaxPullTiles));
+                }
+                else if (contact.Damages)
                 {
                     contacts.Add(new PendingDamageContact(
                         life.ActorId,
@@ -1822,6 +1840,10 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         var relocated = ImmutableArray.CreateBuilder<ActorIdentity>();
+        // A hook bolt that connected last tick reels its catch in now, in
+        // the same forced-movement phase every other signature relocation
+        // uses.
+        ApplyPendingHookPulls(mode, relocated, events);
         foreach (ArcRelaySignatureRuntime.Effect effect in effects)
         {
             switch (effect)
@@ -1831,6 +1853,26 @@ public sealed class GenericActorMatchSession : IDisposable
                     break;
                 case ArcRelaySignatureRuntime.Effect.TractorHook hook:
                     ApplyTractorHook(mode, hook, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.SentinelBolt bolt:
+                    _pendingSignatureBolts.Add(new PendingSignatureBolt(
+                        bolt.Id,
+                        bolt.Actor,
+                        bolt.Origin,
+                        bolt.Heading,
+                        "sentinel-bolt",
+                        HookPull: null));
+                    break;
+                case ArcRelaySignatureRuntime.Effect.HookBolt grapple:
+                    _pendingSignatureBolts.Add(new PendingSignatureBolt(
+                        grapple.Id,
+                        grapple.Actor,
+                        grapple.Origin,
+                        grapple.Heading,
+                        "hook-bolt",
+                        new SignatureBoltHook(
+                            grapple.Origin,
+                            grapple.MaxPullTiles)));
                     break;
                 case ArcRelaySignatureRuntime.Effect.Repair repair:
                     ApplySignatureRepair(mode, repair, events);
@@ -1942,6 +1984,129 @@ public sealed class GenericActorMatchSession : IDisposable
             destination,
             relocated,
             events);
+    }
+
+    private sealed record SignatureBoltHook(
+        Position PullOrigin,
+        int MaxPullTiles);
+
+    private sealed record PendingSignatureBolt(
+        string OperationId,
+        ActorIdentity Owner,
+        Position Origin,
+        ProjectileHeading Heading,
+        string ProfileId,
+        SignatureBoltHook? HookPull);
+
+    private sealed record PendingHookPull(
+        string OperationId,
+        ActorIdentity Owner,
+        ActorIdentity Target,
+        Position PullOrigin,
+        int MaxPullTiles);
+
+    /// <summary>
+    /// Grammar-2 signature bolts ride the ordinary projectile machinery:
+    /// traced, traversal-recorded, wall- and construct-blockable, and
+    /// dodged by leaving the ray. A sentinel bolt damages through the
+    /// standard contact pipeline; a hook bolt records a pending pull that
+    /// the next signature phase reels in.
+    /// </summary>
+    private void LaunchPendingSignatureBolts(
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        foreach (PendingSignatureBolt pending in _pendingSignatureBolts)
+        {
+            int participantId = _definition.Topology.UnitSlots
+                .First(slot => slot.TeamId == pending.Owner.TeamId
+                    && slot.UnitId == pending.Owner.UnitId)
+                .ControllerParticipantId;
+            ActorAttackProfileDefinition profile = _definition.Rules
+                .AttackProfiles.Single(candidate => string.Equals(
+                    candidate.Id, pending.ProfileId, StringComparison.Ordinal));
+            ImmutableArray<Position> path = TraceProjectilePath(
+                pending.Origin,
+                pending.Heading,
+                profile,
+                program: null,
+                extraTravelTiles: 0);
+            long projectileId = _nextProjectileId;
+            _nextProjectileId = checked(_nextProjectileId + 1);
+            var projectile = new ProjectileState(
+                projectileId,
+                participantId,
+                pending.Owner.TeamId,
+                pending.Owner,
+                Tick,
+                pending.Origin,
+                pending.Heading,
+                shotProgram: null,
+                profile,
+                path)
+            {
+                SignatureBoltOperationId = pending.OperationId,
+                SignatureBoltHook = pending.HookPull,
+            };
+            TraverseProjectile(
+                projectile,
+                profile.Projectile.LaunchTiles,
+                contacts,
+                ref contactOrdinal,
+                deflections,
+                events,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .AttackLaunch);
+            if (!projectile.Consumed && projectile.RemainingTiles > 0)
+                _projectiles.Add(projectile);
+        }
+        _pendingSignatureBolts.Clear();
+    }
+
+    private void ApplyPendingHookPulls(
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (PendingHookPull pull in _pendingHookPulls)
+        {
+            if (!_lives.TryGetValue(pull.Target, out LifeState? target))
+                continue;
+            Position destination = target.Position;
+            for (int step = 0; step < pull.MaxPullTiles; step++)
+            {
+                int dx = Math.Sign(pull.PullOrigin.X - destination.X);
+                int dy = Math.Sign(pull.PullOrigin.Y - destination.Y);
+                if (dx == 0 && dy == 0)
+                    break;
+                Position next = destination.Offset(dx, dy);
+                if (next == pull.PullOrigin
+                    || _definition.Map.IsWall(next)
+                    || _lives.Values.Any(value =>
+                        value.ActorId != target.ActorId
+                        && value.Position == next))
+                {
+                    break;
+                }
+                destination = next;
+            }
+            if (destination != target.Position)
+            {
+                RelocateBySignature(
+                    mode,
+                    pull.OperationId,
+                    pull.Owner,
+                    target,
+                    destination,
+                    relocated,
+                    events);
+            }
+        }
+        _pendingHookPulls.Clear();
     }
 
     private void ApplyTractorHook(
@@ -2890,12 +3055,23 @@ public sealed class GenericActorMatchSession : IDisposable
                 continue;
             projectile.Consumed = true;
             _projectiles.Remove(projectile);
+            bool hooked = contact.Damages
+                && projectile.SignatureBoltHook is not null;
             terminal =
                 new GenericActorProjectileTraversal.TerminalDisposition
                     .ActorContact(
                         target.ActorId,
-                        contact.Damages);
-            if (contact.Damages)
+                        contact.Damages && !hooked);
+            if (hooked)
+            {
+                _pendingHookPulls.Add(new PendingHookPull(
+                    projectile.SignatureBoltOperationId!,
+                    projectile.OwnerActorId,
+                    target.ActorId,
+                    projectile.SignatureBoltHook!.PullOrigin,
+                    projectile.SignatureBoltHook.MaxPullTiles));
+            }
+            else if (contact.Damages)
             {
                 contacts.Add(new PendingDamageContact(
                     target.ActorId,
@@ -6701,6 +6877,14 @@ public sealed class GenericActorMatchSession : IDisposable
         public int RemainingTiles { get; set; }
         public int TicksUntilAdvance { get; set; }
         public bool Consumed { get; set; }
+
+        /// <summary>
+        /// Set on grammar-2 signature bolts: the operation that fired them,
+        /// and — for hook bolts — the pull applied on contact instead of
+        /// the profile's nominal damage.
+        /// </summary>
+        public string? SignatureBoltOperationId { get; init; }
+        public SignatureBoltHook? SignatureBoltHook { get; init; }
 
         /// <summary>
         /// Set only on a bolt a projectile guard returned, to the tick it was

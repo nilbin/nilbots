@@ -511,6 +511,7 @@ public sealed record GenericActorMatchChronology
                 attacks,
                 lives,
                 frame,
+                definition.Rules.GameMode.ModeOwnedAttackProfileIds,
                 parameterName);
         }
         ValidateRouteCooldownEvidence(definition, ticks, parameterName);
@@ -1054,6 +1055,7 @@ public sealed record GenericActorMatchChronology
             ActorIdentity,
             GenericActorWorldSnapshot.LifeSnapshot> lives,
         GenericActorMatchTickFrame frame,
+        ImmutableArray<string> modeOwnedAttackProfileIds,
         string parameterName)
     {
         HashSet<long> damaged = frame.Events
@@ -1177,6 +1179,16 @@ public sealed record GenericActorMatchChronology
                 ((GenericActorRuntimeObservation.EventPayload.Attack)
                     item.Payload).ProjectileId)
             .Concat(deflections.Select(item => item.DeflectedProjectileId))
+            // Mode-owned bolts (grammar-2 signature fire) are evidenced by
+            // their launch traversal under a mode-declared profile rather
+            // than by an actor's attack action.
+            .Concat(frame.Traversals
+                .Where(item => item.Trigger
+                        == GenericActorProjectileTraversal.TraversalTrigger
+                            .AttackLaunch
+                    && modeOwnedAttackProfileIds.Contains(
+                        item.AttackProfileId))
+                .Select(item => item.ProjectileId))
             .ToHashSet();
         if (survivors.Keys.Any(id =>
                 !carried.Contains(id) && !launched.Contains(id)))

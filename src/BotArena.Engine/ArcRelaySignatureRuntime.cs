@@ -97,7 +97,8 @@ internal sealed class ArcRelaySignatureRuntime
             ArcRelaySignatureDefinition.SmokeCanister value =>
                 candidates.Where(target =>
                     source.ChebyshevDistance(target) <= value.Range),
-            ArcRelaySignatureDefinition.SentinelSeed =>
+            ArcRelaySignatureDefinition.SentinelSeed
+                or ArcRelaySignatureDefinition.SentinelSeed2 =>
                 PlacementTargets(source, lives, forbidTaggedTile: true),
             _ => [],
         };
@@ -206,13 +207,26 @@ internal sealed class ArcRelaySignatureRuntime
                 heading!.Value));
             Complete(operation, tick, "completed", events);
         }
+        else if (definition is ArcRelaySignatureDefinition.TractorHook2 hook2)
+        {
+            effects.Add(new Effect.HookBolt(
+                operationId,
+                actor,
+                source,
+                heading!.Value,
+                hook2.Range,
+                hook2.MaxPullTiles,
+                hook2.BoltTilesPerAdvance));
+            Complete(operation, tick, "launched", events);
+        }
         else if (definition is ArcRelaySignatureDefinition.PrismWall
                  or ArcRelaySignatureDefinition.TripNode
                  or ArcRelaySignatureDefinition.NullField
                  or ArcRelaySignatureDefinition.HardlightBlock
                  or ArcRelaySignatureDefinition.TargetPaint
                  or ArcRelaySignatureDefinition.SmokeCanister
-                 or ArcRelaySignatureDefinition.SentinelSeed)
+                 or ArcRelaySignatureDefinition.SentinelSeed
+                 or ArcRelaySignatureDefinition.SentinelSeed2)
         {
             operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
         }
@@ -306,6 +320,16 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.OwnerActorId,
                         operation.Heading!.Value));
                     Complete(operation, tick, "completed", events);
+                    break;
+                case ArcRelaySignatureDefinition.NullField2 field
+                    when operation.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell:
+                    operation.Phase = ArcRelaySignatureState.SignaturePhase
+                        .Active;
+                    operation.CompletesAtTick = null;
+                    operation.EndsAtTick = checked(
+                        tick + field.DurationTicks);
+                    events.Add(SignatureEvent(operation, "activated"));
                     break;
                 case ArcRelaySignatureDefinition.KineticBurst:
                     effects.Add(new Effect.KineticBurst(
@@ -535,7 +559,8 @@ internal sealed class ArcRelaySignatureRuntime
                 && value.Definition is ArcRelaySignatureDefinition.PrismWall
                     or ArcRelaySignatureDefinition.TripNode
                     or ArcRelaySignatureDefinition.HardlightBlock
-                    or ArcRelaySignatureDefinition.SentinelSeed)
+                    or ArcRelaySignatureDefinition.SentinelSeed
+                    or ArcRelaySignatureDefinition.SentinelSeed2)
             .OrderBy(value => value.OperationId, StringComparer.Ordinal)
             .FirstOrDefault();
         if (construct is null)
@@ -615,6 +640,10 @@ internal sealed class ArcRelaySignatureRuntime
                 phase = ArcRelaySignatureState.SignaturePhase.Active;
                 positions = Ray(source, heading!.Value, value.Range);
                 break;
+            case ArcRelaySignatureDefinition.TractorHook2 value:
+                phase = ArcRelaySignatureState.SignaturePhase.Active;
+                positions = Ray(source, heading!.Value, value.Range);
+                break;
             case ArcRelaySignatureDefinition.RepairBeam:
                 phase = ArcRelaySignatureState.SignaturePhase.Channel;
                 positions = Endpoints(source, targetPosition!.Value);
@@ -641,6 +670,11 @@ internal sealed class ArcRelaySignatureRuntime
             case ArcRelaySignatureDefinition.NullField value:
                 phase = ArcRelaySignatureState.SignaturePhase.Active;
                 ends = checked(tick + value.DurationTicks);
+                positions = Radius(source, value.Radius);
+                break;
+            case ArcRelaySignatureDefinition.NullField2 value:
+                phase = ArcRelaySignatureState.SignaturePhase.Tell;
+                completes = checked(tick + value.TellTicks);
                 positions = Radius(source, value.Radius);
                 break;
             case ArcRelaySignatureDefinition.ArcToss value:
@@ -681,6 +715,12 @@ internal sealed class ArcRelaySignatureRuntime
                 positions = Radius(targetPosition!.Value, value.Radius);
                 break;
             case ArcRelaySignatureDefinition.SentinelSeed value:
+                phase = ArcRelaySignatureState.SignaturePhase.Active;
+                ends = checked(tick + value.DurationTicks);
+                capacity = value.Hull;
+                positions = [targetPosition!.Value];
+                break;
+            case ArcRelaySignatureDefinition.SentinelSeed2 value:
                 phase = ArcRelaySignatureState.SignaturePhase.Active;
                 ends = checked(tick + value.DurationTicks);
                 capacity = value.Hull;
@@ -748,6 +788,47 @@ internal sealed class ArcRelaySignatureRuntime
             }
         }
         else if (operation.Definition
+                     is ArcRelaySignatureDefinition.SentinelSeed2 turret
+                 && operation.Phase
+                    == ArcRelaySignatureState.SignaturePhase.Active
+                 && !operation.Suppressed
+                 && (tick - operation.StartedTick)
+                    % turret.FireCooldownTicks == 0)
+        {
+            // Grammar 2: the turret launches a bolt along an eight-way ray.
+            // Only ray-aligned enemies can be engaged, and the bolt itself
+            // is dodgeable and construct-blockable like any projectile.
+            Position muzzle = operation.Positions[0];
+            Life? aligned = lives.Values.Where(candidate =>
+                    candidate.ActorId.TeamId
+                        != operation.OwnerActorId.TeamId
+                    && muzzle.ChebyshevDistance(candidate.Position)
+                        is > 0 and var boltDistance
+                    && boltDistance <= turret.Range
+                    && IsStraight(muzzle, candidate.Position)
+                    && HasUnoccludedLine(
+                        muzzle,
+                        candidate.Position,
+                        operation.OwnerActorId.TeamId,
+                        tick))
+                .OrderBy(value => muzzle.ChebyshevDistance(value.Position))
+                .ThenBy(value => value.ActorId)
+                .FirstOrDefault();
+            if (aligned is not null)
+            {
+                effects.Add(new Effect.SentinelBolt(
+                    operation.OperationId,
+                    operation.OwnerActorId,
+                    muzzle,
+                    ProjectileHeadingExtensions.Between(
+                        muzzle,
+                        aligned.Position),
+                    turret.Range,
+                    turret.Damage,
+                    turret.BoltTilesPerAdvance));
+            }
+        }
+        else if (operation.Definition
                      is ArcRelaySignatureDefinition.SentinelSeed sentinel
                  && operation.Phase
                     == ArcRelaySignatureState.SignaturePhase.Active
@@ -788,7 +869,8 @@ internal sealed class ArcRelaySignatureRuntime
                 ArcRelaySignatureDefinition.PrismWall
                 or ArcRelaySignatureDefinition.TripNode
                 or ArcRelaySignatureDefinition.HardlightBlock
-                or ArcRelaySignatureDefinition.SentinelSeed))
+                or ArcRelaySignatureDefinition.SentinelSeed
+                or ArcRelaySignatureDefinition.SentinelSeed2))
         {
             return;
         }
@@ -836,14 +918,17 @@ internal sealed class ArcRelaySignatureRuntime
         ArcRelaySignatureDefinition definition) =>
         definition is ArcRelaySignatureDefinition.PrismWall
             or ArcRelaySignatureDefinition.TractorHook
+            or ArcRelaySignatureDefinition.TractorHook2
             or ArcRelaySignatureDefinition.SurveyFlare
             or ArcRelaySignatureDefinition.FallingStar
             or ArcRelaySignatureDefinition.TripNode
             or ArcRelaySignatureDefinition.NullField
+            or ArcRelaySignatureDefinition.NullField2
             or ArcRelaySignatureDefinition.HardlightBlock
             or ArcRelaySignatureDefinition.TargetPaint
             or ArcRelaySignatureDefinition.SmokeCanister
-            or ArcRelaySignatureDefinition.SentinelSeed;
+            or ArcRelaySignatureDefinition.SentinelSeed
+            or ArcRelaySignatureDefinition.SentinelSeed2;
 
     private GenericActorModeEvent SignatureEvent(
         Operation operation,
@@ -870,6 +955,7 @@ internal sealed class ArcRelaySignatureRuntime
                 StringComparison.Ordinal)
             &&
             value.Definition is ArcRelaySignatureDefinition.NullField
+                or ArcRelaySignatureDefinition.NullField2
             && value.OwnerActorId.TeamId != teamId
             && value.EndsAtTick > tick
             && value.Positions.Contains(position));
@@ -1081,6 +1167,22 @@ internal sealed class ArcRelaySignatureRuntime
             ActorIdentity Actor,
             Position Origin,
             ActorIdentity Target) : Effect(Id, Actor);
+        internal sealed record SentinelBolt(
+            string Id,
+            ActorIdentity Actor,
+            Position Origin,
+            ProjectileHeading Heading,
+            int Range,
+            int Damage,
+            int TilesPerAdvance) : Effect(Id, Actor);
+        internal sealed record HookBolt(
+            string Id,
+            ActorIdentity Actor,
+            Position Origin,
+            ProjectileHeading Heading,
+            int Range,
+            int MaxPullTiles,
+            int TilesPerAdvance) : Effect(Id, Actor);
     }
 
     private sealed class Operation

@@ -8,6 +8,13 @@ namespace BotArena.Engine;
 /// </summary>
 public abstract record GameModeDefinition
 {
+    /// <summary>
+    /// Attack profiles the MODE itself launches (signature bolts and the
+    /// like), as opposed to a form's gun. The rules validator counts these
+    /// as used; sessions resolve them by id when the mode fires.
+    /// </summary>
+    public virtual ImmutableArray<string> ModeOwnedAttackProfileIds => [];
+
     internal GameModeDefinition(
         string modeId,
         VictoryDefinition victory,

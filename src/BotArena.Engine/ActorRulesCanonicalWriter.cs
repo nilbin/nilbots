@@ -249,6 +249,14 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteNumber("fieldedSlotsPerTeam", mode.FieldedSlotsPerTeam);
         writer.WriteNumber("maxCopiesPerClass", mode.MaxCopiesPerClass);
         writer.WriteNumber("respawnDelayTicks", mode.RespawnDelayTicks);
+        // Written only when not 1 so historical grammar-1 rules bytes are
+        // untouched by this field's existence.
+        if (mode.SignatureGrammarVersion != 1)
+        {
+            writer.WriteNumber(
+                "signatureGrammarVersion",
+                mode.SignatureGrammarVersion);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)
@@ -264,13 +272,17 @@ internal static class ActorRulesCanonicalWriter
         writer.WritePropertyName("signatures");
         writer.WriteStartArray();
         foreach (ArcRelaySignatureDefinition signature in mode.Signatures)
-            WriteArcRelaySignature(writer, signature);
+            WriteArcRelaySignature(
+                writer,
+                signature,
+                includeMetadata: mode.SignatureGrammarVersion >= 2);
         writer.WriteEndArray();
     }
 
     private static void WriteArcRelaySignature(
         Utf8JsonWriter writer,
-        ArcRelaySignatureDefinition signature)
+        ArcRelaySignatureDefinition signature,
+        bool includeMetadata)
     {
         writer.WriteStartObject();
         writer.WriteString("kind", Id(signature.Kind));
@@ -372,8 +384,40 @@ internal static class ActorRulesCanonicalWriter
                     value.FireCooldownTicks);
                 writer.WriteNumber("durationTicks", value.DurationTicks);
                 break;
+            case ArcRelaySignatureDefinition.SentinelSeed2 value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "fireCooldownTicks",
+                    value.FireCooldownTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "boltTilesPerAdvance",
+                    value.BoltTilesPerAdvance);
+                break;
+            case ArcRelaySignatureDefinition.TractorHook2 value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
+                writer.WriteNumber(
+                    "boltTilesPerAdvance",
+                    value.BoltTilesPerAdvance);
+                break;
+            case ArcRelaySignatureDefinition.NullField2 value:
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                break;
             default:
                 throw Unsupported(signature);
+        }
+        if (includeMetadata)
+        {
+            ArcRelaySignatureDefinition.SignatureMetadata metadata =
+                ArcRelaySignatureDefinition.MetadataFor(signature.Kind);
+            writer.WriteString("category", metadata.Category);
+            writer.WriteString("argumentKind", metadata.ArgumentKind);
+            writer.WriteNumber("engagementRange", metadata.EngagementRange);
         }
         writer.WriteEndObject();
     }

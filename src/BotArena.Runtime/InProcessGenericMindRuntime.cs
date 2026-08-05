@@ -68,17 +68,17 @@ public sealed class InProcessGenericMindRuntime(
 
         _teamRandom.BeginTick(observation.Tick);
         var debug = new DebugCollector();
-        Sdk.MindContext context =
-            (trustedArcRelayStockProjection
-                ? GenericMindSdkModelMapper.ToTrustedArcRelayStockSdk(
-                    observation,
-                    _waitAction)
-                : GenericMindSdkModelMapper.ToSdk(observation, _waitAction)) with
-            {
-                Random = new SdkRandom(_random),
-                TeamRandom = new SdkTeamRandom(_teamRandom),
-                Debug = debug,
-            };
+        Sdk.MindContext context;
+        try
+        {
+            context = BuildContext(observation, debug);
+        }
+        catch (Exception exception)
+        {
+            ReportMindException(
+                $"observation mapping tick {observation.Tick}", exception);
+            throw;
+        }
         try
         {
             _mind.Think(context);
@@ -98,6 +98,24 @@ public sealed class InProcessGenericMindRuntime(
                 context.HarvestCommands(),
                 intents: null,
                 TruncateUtf8(debug.TextOrNull, MaxDiagnosticBytes)));
+    }
+
+    private Sdk.MindContext BuildContext(
+        GenericMindRuntimeObservation observation,
+        DebugCollector debug)
+    {
+        Sdk.MindContext context =
+            (trustedArcRelayStockProjection
+                ? GenericMindSdkModelMapper.ToTrustedArcRelayStockSdk(
+                    observation,
+                    _waitAction)
+                : GenericMindSdkModelMapper.ToSdk(observation, _waitAction)) with
+            {
+                Random = new SdkRandom(_random!),
+                TeamRandom = new SdkTeamRandom(_teamRandom!),
+                Debug = debug,
+            };
+        return context;
     }
 
     public void Dispose()

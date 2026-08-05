@@ -291,7 +291,15 @@ public sealed class GenericActorRulesContract
             GameModeKind.ArcRelay,
             ModeId,
             ArcRelayVictory,
-            ScoreCatalog);
+            ScoreCatalog)
+    {
+        /// <summary>
+        /// 1 for historical rulesets. 2 selects the dodgeable signature
+        /// physics (bolt-firing sentinel and hook, telegraphed null-field)
+        /// and projects designed-role metadata onto every signature.
+        /// </summary>
+        public int SignatureGrammarVersion { get; init; } = 1;
+    }
 
     /// <summary>One stable Well's complete production cadence.</summary>
     public sealed record ArcRelayWellSchedule(
@@ -334,6 +342,16 @@ public sealed class GenericActorRulesContract
         public int? BonusDamage { get; init; }
         public int? PushTiles { get; init; }
         public int? FireCooldownTicks { get; init; }
+        public int? BoltTilesPerAdvance { get; init; }
+
+        /// <summary>
+        /// Designed-role metadata, present only on grammar-2 contracts:
+        /// executors dispatch by these instead of hand tables. Null on
+        /// historical rulesets.
+        /// </summary>
+        public string? Category { get; init; }
+        public string? ArgumentKind { get; init; }
+        public int? EngagementRange { get; init; }
     }
 
     /// <summary>

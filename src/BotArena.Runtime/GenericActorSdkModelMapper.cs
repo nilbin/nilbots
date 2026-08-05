@@ -691,6 +691,12 @@ internal static class GenericActorSdkModelMapper
                 "smoke-canister",
             ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
                 "sentinel-seed",
+            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
+                "sentinel-seed",
+            ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
+                "tractor-hook",
+            ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
+                "null-field",
             _ => throw UnknownEnum(value),
         };
 

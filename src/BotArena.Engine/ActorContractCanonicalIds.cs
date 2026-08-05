@@ -217,6 +217,15 @@ internal static class ActorContractCanonicalIds
             "smoke-canister",
         ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
             "sentinel-seed",
+        // Grammar-2 forms share the player-facing id: the signature IS the
+        // sentinel/hook/field; the grammar version, carried on the mode,
+        // says which physics it obeys.
+        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
+            "sentinel-seed",
+        ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
+            "tractor-hook",
+        ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
+            "null-field",
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>

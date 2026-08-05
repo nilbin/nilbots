@@ -186,7 +186,9 @@ public static class ActorRulesDefinitionValidator
             attackProfiles,
             profile => profile.Id,
             "Attack profile",
-            usedAttackProfiles,
+            usedAttackProfiles
+                .Union(gameMode.ModeOwnedAttackProfileIds)
+                .ToHashSet(StringComparer.Ordinal),
             errors);
         ValidateUnusedCatalogEntries(
             actions,

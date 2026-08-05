@@ -16,8 +16,10 @@ public sealed record ArcRelayLoopProfile
         int wellCadenceTicks,
         int firstGlobalBeatTicks,
         int scheduledBirthRounds,
-        bool directionalCombat = false)
+        bool directionalCombat = false,
+        int signatureGrammarVersion = 1)
     {
+        SignatureGrammarVersion = signatureGrammarVersion;
         Id = id;
         RulesetId = rulesetId;
         MapId = mapId;
@@ -38,6 +40,7 @@ public sealed record ArcRelayLoopProfile
     public int FirstGlobalBeatTicks { get; }
     public int ScheduledBirthRounds { get; }
     internal bool DirectionalCombat { get; }
+    internal int SignatureGrammarVersion { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -136,6 +139,25 @@ public sealed record ArcRelayLoopProfile
         directionalCombat: true);
 
     /// <summary>
+    /// Signature grammar 2 on the accepted Counterflow combat rules (owner
+    /// ruling 2026-08-05): dodgeable sentinel and hook bolts, telegraphed
+    /// null-field, contract-projected signature metadata. Kept beside the
+    /// grammar-1 profile so prior contracts and replay hashes remain
+    /// executable byte-for-byte.
+    /// </summary>
+    public static ArcRelayLoopProfile ForwardCombat2 { get; } = new(
+        "forward-combat-2",
+        "arc-relay-forward-combat-02",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -191,6 +213,7 @@ public sealed record ArcRelayLoopProfile
         DepthLarger,
         DepthCounterflow,
         ForwardCombat,
+        ForwardCombat2,
         Return16,
         Return24,
         Hot60,

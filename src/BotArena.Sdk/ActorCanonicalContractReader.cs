@@ -731,20 +731,20 @@ public static class ActorCanonicalContractReader
     private static RulesContract.ArcRelayGameMode ReadArcRelayMode(
         JsonElement element)
     {
-        ExactObject(
-            element,
-            "kind",
-            "modeId",
-            "victory",
-            "scoreCatalog",
-            "pendingRearmTicks",
-            "coreRelocationIntervalTicks",
-            "coresPerPulse",
-            "fieldedSlotsPerTeam",
-            "maxCopiesPerClass",
+        bool hasGrammarVersion = element.TryGetProperty(
+            "signatureGrammarVersion", out _);
+        string[] modeFields =
+        [
+            "kind", "modeId", "victory", "scoreCatalog",
+            "pendingRearmTicks", "coreRelocationIntervalTicks",
+            "coresPerPulse", "fieldedSlotsPerTeam", "maxCopiesPerClass",
             "respawnDelayTicks",
-            "wells",
-            "signatures");
+            .. hasGrammarVersion
+                ? new[] { "signatureGrammarVersion" }
+                : System.Array.Empty<string>(),
+            "wells", "signatures",
+        ];
+        ExactObject(element, modeFields);
         RulesContract.Victory victory =
             ReadVictory(Property(element, "victory"));
         if (victory is not RulesContract.ArcRelayVictory arcRelayVictory)
@@ -763,7 +763,12 @@ public static class ActorCanonicalContractReader
             Int(element, "maxCopiesPerClass"),
             Int(element, "respawnDelayTicks"),
             Array(Property(element, "wells"), ReadArcRelayWell),
-            Array(Property(element, "signatures"), ReadArcRelaySignature));
+            Array(Property(element, "signatures"), ReadArcRelaySignature))
+        {
+            SignatureGrammarVersion = hasGrammarVersion
+                ? Int(element, "signatureGrammarVersion")
+                : 1,
+        };
     }
 
     private static RulesContract.ArcRelayWellSchedule ReadArcRelayWell(
@@ -786,12 +791,20 @@ public static class ActorCanonicalContractReader
         JsonElement element)
     {
         string kind = PeekString(element, "kind");
+        // Grammar-2 forms keep their player-facing kind id; the extra
+        // physics fields and the designed-role metadata are recognized by
+        // presence, the same way the writer emits them.
+        bool hasBolt = element.TryGetProperty("boltTilesPerAdvance", out _);
+        bool hasFieldTell = element.TryGetProperty("tellTicks", out _);
+        bool hasMetadata = element.TryGetProperty("category", out _);
         string[] specific = kind switch
         {
             "vector-dash" => ["tellTicks", "maxTiles"],
             "prism-wall" =>
                 ["segmentCount", "durationTicks", "contactCapacity"],
-            "tractor-hook" => ["range", "maxPullTiles"],
+            "tractor-hook" => hasBolt
+                ? ["range", "maxPullTiles", "boltTilesPerAdvance"]
+                : ["range", "maxPullTiles"],
             "repair-beam" =>
                 ["range", "ticksPerRepair", "hullPerRepair",
                     "maxHullPerActivation"],
@@ -800,7 +813,9 @@ public static class ActorCanonicalContractReader
                     "durationTicks"],
             "falling-star" => ["range", "tellTicks", "damage"],
             "trip-node" => ["hull", "triggerDamage", "revealRange"],
-            "null-field" => ["radius", "durationTicks"],
+            "null-field" => hasFieldTell
+                ? ["radius", "durationTicks", "tellTicks"]
+                : ["radius", "durationTicks"],
             "arc-toss" =>
                 ["range", "tellTicks", "travelTilesPerTick"],
             "exchange" => ["range", "tellTicks"],
@@ -812,15 +827,20 @@ public static class ActorCanonicalContractReader
                     "bonusDamage"],
             "kinetic-burst" => ["tellTicks", "pushTiles"],
             "smoke-canister" => ["range", "radius", "durationTicks"],
-            "sentinel-seed" =>
-                ["hull", "range", "damage", "fireCooldownTicks",
+            "sentinel-seed" => hasBolt
+                ? ["hull", "range", "damage", "fireCooldownTicks",
+                    "durationTicks", "boltTilesPerAdvance"]
+                : ["hull", "range", "damage", "fireCooldownTicks",
                     "durationTicks"],
             _ => throw Unsupported("signature.kind", kind),
         };
         ExactObject(
             element,
             ["kind", "signatureId", "classId", "actionId",
-                "cooldownTicks", .. specific]);
+                "cooldownTicks", .. specific,
+                .. hasMetadata
+                    ? new[] { "category", "argumentKind", "engagementRange" }
+                    : []]);
 
         int? Optional(string name) => specific.Contains(name)
             ? Int(element, name)
@@ -854,6 +874,14 @@ public static class ActorCanonicalContractReader
             BonusDamage = Optional("bonusDamage"),
             PushTiles = Optional("pushTiles"),
             FireCooldownTicks = Optional("fireCooldownTicks"),
+            BoltTilesPerAdvance = specific.Contains("boltTilesPerAdvance")
+                ? Int(element, "boltTilesPerAdvance")
+                : null,
+            Category = hasMetadata ? Id(element, "category") : null,
+            ArgumentKind = hasMetadata ? Id(element, "argumentKind") : null,
+            EngagementRange = hasMetadata
+                ? Int(element, "engagementRange")
+                : null,
         };
     }
 

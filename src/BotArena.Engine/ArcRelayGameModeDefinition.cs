@@ -18,9 +18,14 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int fieldedSlotsPerTeam,
         int maxCopiesPerClass,
         int respawnDelayTicks,
-        IEnumerable<ArcRelaySignatureDefinition> signatures)
+        IEnumerable<ArcRelaySignatureDefinition> signatures,
+        int signatureGrammarVersion = 1)
         : base(modeId, victory, scoreCatalog)
     {
+        if (signatureGrammarVersion is not (1 or 2))
+            throw new ArgumentOutOfRangeException(
+                nameof(signatureGrammarVersion));
+        SignatureGrammarVersion = signatureGrammarVersion;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -99,6 +104,20 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public int MaxCopiesPerClass { get; }
     public int RespawnDelayTicks { get; }
     public ImmutableArray<ArcRelaySignatureDefinition> Signatures { get; }
+
+    /// <summary>
+    /// 1 is the historical launch grammar. 2 (owner ruling 2026-08-05) makes
+    /// every enemy-affecting signature dodgeable — sentinel and hook fire
+    /// real bolts, null-field telegraphs — and projects designed-role
+    /// metadata into the public contract. Canonically written only when not
+    /// 1, so historical rules bytes are unchanged.
+    /// </summary>
+    public int SignatureGrammarVersion { get; }
+
+    public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
+        SignatureGrammarVersion >= 2
+            ? ["sentinel-bolt", "hook-bolt"]
+            : [];
 
     private static void RequirePositive(int value, string parameterName)
     {

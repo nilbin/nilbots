@@ -228,6 +228,18 @@ public static class ArcRelayH0Definition
                 loopProfile.DirectionalCombat),
             Attack("long-slow", range: 9, nextFireInterval: 5,
                 loopProfile.DirectionalCombat),
+            // Grammar-2 signature bolts are contract-declared projectiles:
+            // the world snapshot, validators, and viewers all know them the
+            // same way they know the guns. No body selects them as its gun.
+            .. loopProfile.SignatureGrammarVersion >= 2
+                ? new[]
+                {
+                    Attack("sentinel-bolt", range: 4, nextFireInterval: 2,
+                        directionalCombat: false),
+                    Attack("hook-bolt", range: 6, nextFireInterval: 2,
+                        directionalCombat: false),
+                }
+                : System.Array.Empty<ActorAttackProfileDefinition>(),
         ];
         List<ActorActionDefinition> actions =
         [
@@ -377,7 +389,60 @@ public static class ArcRelayH0Definition
             fieldedSlotsPerTeam: 8,
             maxCopiesPerClass: 2,
             respawnDelayTicks: loopProfile.RespawnDelayTicks,
-            Classes.Select(entry => entry.Signature));
+            ClassesFor(loopProfile.SignatureGrammarVersion)
+                .Select(entry => entry.Signature),
+            signatureGrammarVersion: loopProfile.SignatureGrammarVersion);
+
+    /// <summary>
+    /// Grammar 2 swaps exactly three envelopes for their dodgeable forms
+    /// (owner ruling 2026-08-05): the sentinel fires real bolts and fires
+    /// faster (2-tick cadence as compensation), the hook becomes a grapple
+    /// bolt, and null-field gains a one-tick tell. Hulls, handling, guns,
+    /// and every other signature are identical across grammars.
+    /// </summary>
+    private static ImmutableArray<LaunchClass> ClassesFor(
+        int signatureGrammarVersion) =>
+        signatureGrammarVersion == 1
+            ? Classes
+            : [.. Classes.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.SentinelSeed seed =>
+                        entry with
+                        {
+                            Signature = new ArcRelaySignatureDefinition
+                                .SentinelSeed2(
+                                    seed.SignatureId, seed.ClassId,
+                                    seed.ActionId, seed.Hull, seed.Range,
+                                    seed.Damage,
+                                    fireCooldownTicks: 2,
+                                    seed.DurationTicks,
+                                    boltTilesPerAdvance: 2,
+                                    seed.CooldownTicks),
+                        },
+                    ArcRelaySignatureDefinition.TractorHook hook =>
+                        entry with
+                        {
+                            Signature = new ArcRelaySignatureDefinition
+                                .TractorHook2(
+                                    hook.SignatureId, hook.ClassId,
+                                    hook.ActionId, hook.Range,
+                                    hook.MaxPullTiles,
+                                    boltTilesPerAdvance: 2,
+                                    hook.CooldownTicks),
+                        },
+                    ArcRelaySignatureDefinition.NullField field =>
+                        entry with
+                        {
+                            Signature = new ArcRelaySignatureDefinition
+                                .NullField2(
+                                    field.SignatureId, field.ClassId,
+                                    field.ActionId, field.Radius,
+                                    field.DurationTicks,
+                                    tellTicks: 1,
+                                    field.CooldownTicks),
+                        },
+                    _ => entry,
+                })];
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
     [
@@ -453,6 +518,7 @@ public static class ArcRelayH0Definition
         {
             ArcRelaySignatureDefinition.VectorDash or
             ArcRelaySignatureDefinition.TractorHook or
+            ArcRelaySignatureDefinition.TractorHook2 or
             ArcRelaySignatureDefinition.RailLine =>
                 [ActorActionParameterKind.ProjectileHeading],
             ArcRelaySignatureDefinition.RepairBeam or
@@ -465,11 +531,13 @@ public static class ArcRelayH0Definition
             ArcRelaySignatureDefinition.ArcToss or
             ArcRelaySignatureDefinition.HardlightBlock or
             ArcRelaySignatureDefinition.SmokeCanister or
-            ArcRelaySignatureDefinition.SentinelSeed =>
+            ArcRelaySignatureDefinition.SentinelSeed or
+            ArcRelaySignatureDefinition.SentinelSeed2 =>
                 [ActorActionParameterKind.PositionTarget],
             ArcRelaySignatureDefinition.PrismWall =>
                 [ActorActionParameterKind.Direction],
             ArcRelaySignatureDefinition.NullField or
+            ArcRelaySignatureDefinition.NullField2 or
             ArcRelaySignatureDefinition.KineticBurst => [],
             _ => throw new ArgumentOutOfRangeException(nameof(signature)),
         };
