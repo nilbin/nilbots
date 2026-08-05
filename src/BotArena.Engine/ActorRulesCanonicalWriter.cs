@@ -257,6 +257,13 @@ internal static class ActorRulesCanonicalWriter
                 "signatureGrammarVersion",
                 mode.SignatureGrammarVersion);
         }
+        // Written only when non-zero so historical rules bytes are untouched.
+        if (mode.WellBirthJitterTicks != 0)
+        {
+            writer.WriteNumber(
+                "wellBirthJitterTicks",
+                mode.WellBirthJitterTicks);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

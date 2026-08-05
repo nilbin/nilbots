@@ -299,6 +299,13 @@ public sealed class GenericActorRulesContract
         /// and projects designed-role metadata onto every signature.
         /// </summary>
         public int SignatureGrammarVersion { get; init; } = 1;
+
+        /// <summary>
+        /// Half-width of the seed-derived window each scheduled well birth
+        /// may shift within. Zero (and absent from canonical rules) for
+        /// historical rulesets.
+        /// </summary>
+        public int WellBirthJitterTicks { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

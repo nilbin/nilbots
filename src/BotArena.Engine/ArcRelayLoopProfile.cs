@@ -17,9 +17,11 @@ public sealed record ArcRelayLoopProfile
         int firstGlobalBeatTicks,
         int scheduledBirthRounds,
         bool directionalCombat = false,
-        int signatureGrammarVersion = 1)
+        int signatureGrammarVersion = 1,
+        int wellBirthJitterTicks = 0)
     {
         SignatureGrammarVersion = signatureGrammarVersion;
+        WellBirthJitterTicks = wellBirthJitterTicks;
         Id = id;
         RulesetId = rulesetId;
         MapId = mapId;
@@ -41,6 +43,7 @@ public sealed record ArcRelayLoopProfile
     public int ScheduledBirthRounds { get; }
     internal bool DirectionalCombat { get; }
     internal int SignatureGrammarVersion { get; }
+    internal int WellBirthJitterTicks { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -158,6 +161,25 @@ public sealed record ArcRelayLoopProfile
         signatureGrammarVersion: 2);
 
     /// <summary>
+    /// Robust-play foundations (owner goal 2026-08-05): grammar-2 combat
+    /// plus seed-derived well-birth jitter, so distinct seeds produce
+    /// genuinely distinct games. Kept beside -02 so prior contracts and
+    /// replay hashes remain executable byte-for-byte.
+    /// </summary>
+    public static ArcRelayLoopProfile ForwardCombat3 { get; } = new(
+        "forward-combat-3",
+        "arc-relay-forward-combat-03",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -214,6 +236,7 @@ public sealed record ArcRelayLoopProfile
         DepthCounterflow,
         ForwardCombat,
         ForwardCombat2,
+        ForwardCombat3,
         Return16,
         Return24,
         Hot60,

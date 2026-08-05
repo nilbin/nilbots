@@ -21,7 +21,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void BirthSettlesPickupBeforeObservationAndStartsRecovery()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         GenericActorModeTickResult tickStart = driver.PrepareTick(
             25,
             World(Life(Carrier, CentreWell)));
@@ -42,7 +43,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void PassingCannotEraseTravelRecoveryOrChainOnConsecutiveTicks()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         Position receiverPosition = CentreWell.Offset(-1, 0);
         Position nextPosition = CentreWell.Offset(-2, 0);
         GenericActorModeWorldView world = World(
@@ -96,7 +98,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void CarrierRelocationAvailabilityFollowsTheObjectOwnedClock()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         Position receiverPosition = CentreWell.Offset(-1, 0);
         driver.PrepareTick(
             25,
@@ -121,7 +124,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void DestructionDropPrecedesBankAndCannotShortenRecovery()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
         Position reactor = State(driver).Reactors.Single(value =>
             value.TeamId == Carrier.TeamId).Position;
@@ -155,7 +159,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void InFlightCoreCannotBePickedBackUpAtItsDepartureTile()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
 
         Assert.NotEmpty(driver.LaunchArcToss(
@@ -177,7 +182,8 @@ public sealed class ArcRelayCoreInvariantTests
     public void PendingChargeRemainsPublicThroughoutItsRearmRing()
     {
         var driver = new ArcRelayActorMatchModeDriver(
-            ArcRelayH0Definition.Create());
+            ArcRelayH0Definition.Create(),
+            matchSeed: 0);
         driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
         driver.PrepareTick(100, World(Life(Carrier, CentreWell)));
         Position reactor = State(driver).Reactors.Single(value =>

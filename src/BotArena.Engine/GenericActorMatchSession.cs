@@ -155,7 +155,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
         IGenericActorMatchModeDriver mode =
-            GenericActorMatchModeDriverFactory.Create(definition);
+            GenericActorMatchModeDriverFactory.Create(definition, matchSeed);
         ValidateWorldCapabilities(definition);
 
         _definition = definition;

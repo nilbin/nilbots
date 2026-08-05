@@ -19,13 +19,18 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int maxCopiesPerClass,
         int respawnDelayTicks,
         IEnumerable<ArcRelaySignatureDefinition> signatures,
-        int signatureGrammarVersion = 1)
+        int signatureGrammarVersion = 1,
+        int wellBirthJitterTicks = 0)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
             throw new ArgumentOutOfRangeException(
                 nameof(signatureGrammarVersion));
         SignatureGrammarVersion = signatureGrammarVersion;
+        if (wellBirthJitterTicks < 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(wellBirthJitterTicks));
+        WellBirthJitterTicks = wellBirthJitterTicks;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -38,6 +43,15 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
             throw new ArgumentException(
                 "Arc Relay Wells must be non-null with unique IDs.",
                 nameof(wells));
+        }
+        if (wellBirthJitterTicks > 0
+            && wellSnapshot.Any(well =>
+                2 * wellBirthJitterTicks >= well.CadenceTicks
+                || well.FirstBirthTick - wellBirthJitterTicks < 1))
+        {
+            throw new ArgumentException(
+                "Well-birth jitter must keep every birth window disjoint and after tick zero.",
+                nameof(wellBirthJitterTicks));
         }
         if (signatureSnapshot.Length == 0
             || signatureSnapshot.Any(signature => signature is null)
@@ -113,6 +127,15 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// 1, so historical rules bytes are unchanged.
     /// </summary>
     public int SignatureGrammarVersion { get; }
+
+    /// <summary>
+    /// Half-width of the seed-derived window each scheduled well birth may
+    /// shift within (owner goal 2026-08-05): round k of a well fires at
+    /// nominal + jitter, where jitter is drawn deterministically from the
+    /// match seed in [-J, +J]. Zero for historical rulesets, and canonically
+    /// written only when non-zero, so their rules bytes are unchanged.
+    /// </summary>
+    public int WellBirthJitterTicks { get; }
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
         SignatureGrammarVersion >= 2

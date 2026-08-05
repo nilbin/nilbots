@@ -178,6 +178,21 @@ public static class SeedDerivation
     public static ulong DeriveSpawnSeed(ulong matchSeed, string gameRulesVersion) =>
         DeterministicRandom.Mix(matchSeed ^ Fnv1a64("spawns:" + gameRulesVersion));
 
+    /// <summary>
+    /// Independent draw for one scheduled Arc Relay well birth. The domain
+    /// prefix keeps it disjoint from actor/team/mind streams; the well id
+    /// and round index give every scheduled birth its own deterministic
+    /// value for the same match seed.
+    /// </summary>
+    public static ulong DeriveWellBirthDraw(
+        ulong matchSeed, string wellId, int round)
+    {
+        ulong x = DeterministicRandom.Mix(
+            matchSeed ^ Fnv1a64("arc-wells:" + wellId));
+        return DeterministicRandom.Mix(
+            x + 0x9E3779B97F4A7C15UL * ((ulong)round + 1));
+    }
+
     private static ulong Fnv1a64(string value)
     {
         ulong hash = 14695981039346656037UL;

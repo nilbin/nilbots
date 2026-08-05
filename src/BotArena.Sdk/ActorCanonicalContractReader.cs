@@ -733,6 +733,8 @@ public static class ActorCanonicalContractReader
     {
         bool hasGrammarVersion = element.TryGetProperty(
             "signatureGrammarVersion", out _);
+        bool hasBirthJitter = element.TryGetProperty(
+            "wellBirthJitterTicks", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -741,6 +743,9 @@ public static class ActorCanonicalContractReader
             "respawnDelayTicks",
             .. hasGrammarVersion
                 ? new[] { "signatureGrammarVersion" }
+                : System.Array.Empty<string>(),
+            .. hasBirthJitter
+                ? new[] { "wellBirthJitterTicks" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -768,6 +773,9 @@ public static class ActorCanonicalContractReader
             SignatureGrammarVersion = hasGrammarVersion
                 ? Int(element, "signatureGrammarVersion")
                 : 1,
+            WellBirthJitterTicks = hasBirthJitter
+                ? Int(element, "wellBirthJitterTicks")
+                : 0,
         };
     }
 

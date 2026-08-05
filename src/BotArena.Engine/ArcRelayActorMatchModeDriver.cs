@@ -23,13 +23,17 @@ internal sealed class ArcRelayActorMatchModeDriver
     private readonly ImmutableDictionary<int, ImmutableHashSet<Position>>
         _homePads;
     private readonly ArcRelaySignatureRuntime _signatures;
+    private readonly ulong _matchSeed;
     private int _currentTick;
     private int? _latestPulseTeamId;
     private int? _latestPulseTick;
 
-    public ArcRelayActorMatchModeDriver(ActorResolvedMatchDefinition definition)
+    public ArcRelayActorMatchModeDriver(
+        ActorResolvedMatchDefinition definition,
+        ulong matchSeed)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        _matchSeed = matchSeed;
         _definition = definition;
         _gameMode = definition.Rules.GameMode as ArcRelayGameModeDefinition
             ?? throw new ArgumentException(
@@ -205,10 +209,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         foreach (WellRuntime well in _wells)
         {
             ArcRelayWellScheduleDefinition schedule = well.Schedule;
-            bool scheduled = tick >= schedule.FirstBirthTick
-                && tick <= schedule.FinalBirthTick
-                && (tick - schedule.FirstBirthTick) % schedule.CadenceTicks == 0;
-            if (!scheduled)
+            if (!ScheduledBirthAt(schedule, tick))
                 continue;
             if (well.OutstandingCoreId is null
                 && well.RearmCompletesAtTick is null)
@@ -693,20 +694,77 @@ internal sealed class ArcRelayActorMatchModeDriver
         return current;
     }
 
-    private static int? NextScheduledBirth(
+    private int? NextScheduledBirth(
         ArcRelayWellScheduleDefinition schedule,
         int tick)
     {
-        if (tick >= schedule.FinalBirthTick)
-            return null;
-        if (tick < schedule.FirstBirthTick)
-            return schedule.FirstBirthTick;
-        int elapsed = tick - schedule.FirstBirthTick;
-        int steps = checked(
-            elapsed / schedule.CadenceTicks + 1);
-        int next = checked(
-            schedule.FirstBirthTick + steps * schedule.CadenceTicks);
-        return next <= schedule.FinalBirthTick ? next : null;
+        if (_gameMode.WellBirthJitterTicks == 0)
+        {
+            if (tick >= schedule.FinalBirthTick)
+                return null;
+            if (tick < schedule.FirstBirthTick)
+                return schedule.FirstBirthTick;
+            int elapsed = tick - schedule.FirstBirthTick;
+            int steps = checked(
+                elapsed / schedule.CadenceTicks + 1);
+            int next = checked(
+                schedule.FirstBirthTick + steps * schedule.CadenceTicks);
+            return next <= schedule.FinalBirthTick ? next : null;
+        }
+        int round = tick < schedule.FirstBirthTick
+            ? 0
+            : (tick - schedule.FirstBirthTick) / schedule.CadenceTicks;
+        while (true)
+        {
+            int nominal = checked(
+                schedule.FirstBirthTick + round * schedule.CadenceTicks);
+            if (nominal > schedule.FinalBirthTick)
+                return null;
+            int actual = nominal + BirthJitter(schedule.WellId, round);
+            if (actual > tick)
+                return actual;
+            round++;
+        }
+    }
+
+    /// <summary>
+    /// Whether this exact tick is a scheduled birth for the well. With
+    /// jitter, round k fires at nominal + draw(seed, well, k); the definition
+    /// guarantees 2*J &lt; cadence, so every tick maps to at most one
+    /// candidate round and windows never overlap.
+    /// </summary>
+    private bool ScheduledBirthAt(
+        ArcRelayWellScheduleDefinition schedule,
+        int tick)
+    {
+        int jitter = _gameMode.WellBirthJitterTicks;
+        if (jitter == 0)
+        {
+            return tick >= schedule.FirstBirthTick
+                && tick <= schedule.FinalBirthTick
+                && (tick - schedule.FirstBirthTick) % schedule.CadenceTicks
+                    == 0;
+        }
+        if (tick < schedule.FirstBirthTick - jitter)
+            return false;
+        int round = tick < schedule.FirstBirthTick
+            ? 0
+            : (tick - schedule.FirstBirthTick + schedule.CadenceTicks / 2)
+                / schedule.CadenceTicks;
+        int nominal = checked(
+            schedule.FirstBirthTick + round * schedule.CadenceTicks);
+        return nominal <= schedule.FinalBirthTick
+            && tick == nominal + BirthJitter(schedule.WellId, round);
+    }
+
+    private int BirthJitter(string wellId, int round)
+    {
+        int jitter = _gameMode.WellBirthJitterTicks;
+        if (jitter == 0)
+            return 0;
+        ulong draw = SeedDerivation.DeriveWellBirthDraw(
+            _matchSeed, wellId, round);
+        return (int)(draw % (ulong)(2 * jitter + 1)) - jitter;
     }
 
     private TeamStandings ResolveStandings(

@@ -391,7 +391,8 @@ public static class ArcRelayH0Definition
             respawnDelayTicks: loopProfile.RespawnDelayTicks,
             ClassesFor(loopProfile.SignatureGrammarVersion)
                 .Select(entry => entry.Signature),
-            signatureGrammarVersion: loopProfile.SignatureGrammarVersion);
+            signatureGrammarVersion: loopProfile.SignatureGrammarVersion,
+            wellBirthJitterTicks: loopProfile.WellBirthJitterTicks);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

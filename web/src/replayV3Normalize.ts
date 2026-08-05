@@ -443,6 +443,11 @@ function validateContract(
               ...(own(mode, 'signatureGrammarVersion')
                 ? ['signatureGrammarVersion']
                 : []),
+              // Foundations -03: seed-derived well-birth jitter half-width,
+              // written only when non-zero.
+              ...(own(mode, 'wellBirthJitterTicks')
+                ? ['wellBirthJitterTicks']
+                : []),
               'wells',
               'signatures',
             ]
