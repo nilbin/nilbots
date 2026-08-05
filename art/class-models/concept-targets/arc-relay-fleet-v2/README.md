@@ -11,11 +11,20 @@
 
 ## Generated review artifact
 
-- Selected color direction: `concept-sheet-class-color-v2.png`
-- Selected source dimensions: 1254×1254 RGBA PNG
-- Selected source SHA-256:
+- High-chroma experiment: `concept-sheet-clear-color-v3.png`
+- High-chroma dimensions: 1254×1254 RGBA PNG
+- High-chroma SHA-256:
+  `d6e2e6723169d6195e400227554fba343ab98857475893415815f27697b549bf`
+- High-chroma gameplay-scale proof:
+  `gameplay-scale-clear-color-sheet.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Built-in image-generation high-chroma output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-df35cdd3-f964-497c-a9fc-3d21b4dd8388.png`
+- Restrained color direction: `concept-sheet-class-color-v2.png`
+- Restrained source dimensions: 1254×1254 RGBA PNG
+- Restrained source SHA-256:
   `af63986804a0da856b43480a59e3d3770fd74a937049f2b95df4acb9bae1acc0`
-- Selected gameplay-scale proof: `gameplay-scale-color-sheet.png`, a 256×256
+- Restrained gameplay-scale proof: `gameplay-scale-color-sheet.png`, a 256×256
   deterministic downsample that presents each bot at approximately 63×63
   pixels.
 - Built-in image-generation color-pass output:
@@ -39,6 +48,47 @@ neutral amber. Its soft studio contact shadows are acceptable for concept
 review but are not approved provider inputs. If the direction is approved,
 isolation must remove the shadows and produce one clean square image of at
 least 1040 pixels per bot before any Meshy request.
+
+The high-chroma experiment increases the fixed paint coverage to roughly
+45–60% and uses saturated yellow, green, orange, turquoise, violet, blue,
+magenta, red, purple, and lime. It has a materially stronger 63-pixel read, but
+some fixed hues necessarily overlap the team-color spectrum. Emissives remain
+neutral; approval still requires a real-replay check that renderer-owned team
+ownership remains faster to read than class paint.
+
+## High-chroma refinement prompt
+
+```text
+Use case: precise-object-edit.
+Asset type: conceptual 3D game-bot roster high-clarity color experiment.
+Input image: Image 1 is the edit target.
+
+Primary request: change ONLY the matte class paint into much clearer, bolder, more saturated colors. Preserve the exact sixteen machines, exact four-by-four order and positions, every silhouette, geometry, proportion, signature hardware, mine discs, folded turret pods, locomotion, East/right facing, camera, scale, padding, background, materials, lighting, and rendering style. Do not redesign or move anything.
+
+Color treatment: make 45–60 percent of each machine's large external armor panels a single strong, high-chroma class color, with the remainder bright ivory, pale titanium, and brushed metal. Use clean contiguous color blocks that remain obvious at 50–70 pixels; no tiny stripes as the main color read. Saturated premium industrial paint, not pastel, beige, muddy, faded, military-drab, or mostly white. Keep dark graphite only in mechanical recesses and underbodies. Retain realistic matte paint and metal response; do not make the bots toy plastic.
+
+Use these unmistakable colors by fixed grid position:
+row 1 col 1 Kestrel: vivid golden yellow;
+row 1 col 2 Palisade: saturated emerald green;
+row 1 col 3 Towline: bright safety orange;
+row 1 col 4 Patchbay: vivid leaf green with crisp white medical armor;
+row 2 col 1 Lantern: bright turquoise;
+row 2 col 2 Mortar: strong deep olive green;
+row 2 col 3 Minesmith: vivid hazard orange, with flat mine discs staying dark slate metal;
+row 2 col 4 Hush: saturated violet;
+row 3 col 1 Relay: vivid cobalt blue;
+row 3 col 2 Switchback: strong magenta;
+row 3 col 3 Longshot: saturated deep blue with a bright yellow rail stripe;
+row 3 col 4 Mason: canary yellow with charcoal mechanics;
+row 4 col 1 Sunder: vivid crimson-red;
+row 4 col 2 Repulsor: saturated turquoise-green;
+row 4 col 3 Veil: rich royal purple;
+row 4 col 4 Nest: bright khaki-lime armor with dark green turret-pod housings.
+
+Team distinction: all emissive lights remain tiny neutral warm-white or amber. No cyan/red/team-colored glow, no luminous colored paint, no team inlays. These bold colors are fixed matte class paint only; team ownership remains renderer-owned.
+
+Constraints: exactly sixteen machines, no additions or omissions, no text, labels, borders, logos, watermark, scenery, effects, weapon fire, black ink outlines, or comic strokes. Change only color blocking and saturation; keep everything else unchanged.
+```
 
 ## Class-color refinement prompt
 
