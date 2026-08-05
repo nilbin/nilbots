@@ -2081,7 +2081,12 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<ActorIdentity>.Builder relocated,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        foreach (PendingHookPull pull in _pendingHookPulls)
+        IEnumerable<PendingHookPull> pullOrder =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && Tick % 2 == 1
+                ? Enumerable.Reverse(_pendingHookPulls)
+                : _pendingHookPulls;
+        foreach (PendingHookPull pull in pullOrder)
         {
             if (!_lives.TryGetValue(pull.Target, out LifeState? target))
                 continue;
@@ -2842,8 +2847,17 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
-        foreach (ProjectileState projectile in _projectiles
-                     .OrderBy(projectile => projectile.Id)
+        // Launch order is attack-resolution order, which is ActorId order —
+        // always team 0 first. The order decides which bolt spends itself on
+        // a limited-capacity construct and which same-target hook pull gets
+        // the final word, so -03 fairness alternates it by tick parity.
+        bool descendingAdvance =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && Tick % 2 == 1;
+        foreach (ProjectileState projectile in (descendingAdvance
+                     ? _projectiles.OrderByDescending(
+                         projectile => projectile.Id)
+                     : _projectiles.OrderBy(projectile => projectile.Id))
                      .ToArray())
         {
             projectile.TicksUntilAdvance--;
