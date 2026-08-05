@@ -366,6 +366,29 @@ public sealed record ArcRelayLoopProfile
         omniProximityRange: 0);
 
     /// <summary>
+    /// Serpentine warren (owner review 2026-08-05: well-to-base returns
+    /// still ran straight). Adds single-tile return chokes at (7,11) and
+    /// (23,11), lane serpentines, a south split-lane divider, and centre
+    /// orbit blockers - returns now funnel through known squeeze tiles.
+    /// Chiral pairs throughout; predation rules unchanged from -02/-03.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren4 { get; } = new(
+        "ambush-warren-4",
+        "arc-relay-ambush-04",
+        "arc-relay-ambush-warren-03",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -430,6 +453,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren,
         AmbushWarren2,
         AmbushWarren3,
+        AmbushWarren4,
         Return16,
         Return24,
         Hot60,
@@ -458,4 +482,5 @@ internal enum ArcRelayMapGeometry
     DepthCounterflow,
     AmbushWarren,
     AmbushWarrenDense,
+    AmbushWarrenSerpentine,
 }

@@ -130,6 +130,45 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void SerpentineWarrenMintsBesideTheDenseArmWithoutMovingIt()
+    {
+        string denseMap = ActorContractFingerprint.ComputeMap(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.AmbushWarren3).Map);
+        string serpentineMap = ActorContractFingerprint.ComputeMap(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.AmbushWarren4).Map);
+        Assert.NotEqual(denseMap, serpentineMap);
+        Assert.Equal(
+            denseMap,
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren3).Map));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren2)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren4)));
+        ActorMapDefinition serpentine = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren4).Map;
+        // The return chokes: walls above and below, passage tile open.
+        foreach ((int x, int y) in new[]
+                 { (7, 10), (7, 12), (23, 10), (23, 12), (14, 13), (16, 9) })
+        {
+            Assert.True(
+                serpentine.IsWall(new Position(x, y)), $"({x},{y}) open");
+        }
+        foreach ((int x, int y) in new[]
+                 { (7, 11), (23, 11), (15, 4), (15, 11), (15, 18) })
+        {
+            Assert.False(
+                serpentine.IsWall(new Position(x, y)), $"({x},{y}) walled");
+        }
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(

@@ -734,7 +734,8 @@ public static class ArcRelayH0Definition
         }
         else if (geometry is ArcRelayMapGeometry.DepthCounterflow
                  or ArcRelayMapGeometry.AmbushWarren
-                 or ArcRelayMapGeometry.AmbushWarrenDense)
+                 or ArcRelayMapGeometry.AmbushWarrenDense
+                 or ArcRelayMapGeometry.AmbushWarrenSerpentine)
         {
             foreach (int y in new[] { 1, 5, 8, 14, 17, 21 })
                 changed[y] = Open(changed[y], 5, 25);
@@ -760,7 +761,8 @@ public static class ArcRelayH0Definition
                 changed[y] = Set(changed[y], x, '#');
             }
             if (geometry is ArcRelayMapGeometry.AmbushWarren
-                or ArcRelayMapGeometry.AmbushWarrenDense)
+                or ArcRelayMapGeometry.AmbushWarrenDense
+                or ArcRelayMapGeometry.AmbushWarrenSerpentine)
             {
                 // Counterflow plus predation terrain, every wall in an exact
                 // 180-degree chiral pair: sightline breakers across the open
@@ -785,7 +787,8 @@ public static class ArcRelayH0Definition
                     changed[y] = Set(changed[y], x, '#');
                 }
             }
-            if (geometry == ArcRelayMapGeometry.AmbushWarrenDense)
+            if (geometry is ArcRelayMapGeometry.AmbushWarrenDense
+                or ArcRelayMapGeometry.AmbushWarrenSerpentine)
             {
                 // Owner review: the warren still played too open. Every
                 // horizontal corridor now breaks (border lanes, second
@@ -804,6 +807,25 @@ public static class ArcRelayH0Definition
                     (7, 9), (23, 13),
                     (12, 7), (12, 8), (18, 15), (18, 14),
                     (13, 12), (17, 10),
+                })
+                {
+                    changed[y] = Set(changed[y], x, '#');
+                }
+            }
+            if (geometry == ArcRelayMapGeometry.AmbushWarrenSerpentine)
+            {
+                // Owner review: well-to-base returns still ran straight.
+                // Single-tile return chokes (passage only at (7,11) and
+                // (23,11)), lane serpentine staggers, a south split-lane
+                // divider, and centre orbit blockers. Verified: zero
+                // protected clashes, 461 open tiles mutually reachable,
+                // exact chirality.
+                foreach ((int x, int y) in new[]
+                {
+                    (7, 10), (7, 12), (23, 12), (23, 10),
+                    (9, 5), (14, 7), (21, 17), (16, 15),
+                    (10, 15), (11, 15), (20, 7), (19, 7),
+                    (14, 13), (16, 9),
                 })
                 {
                     changed[y] = Set(changed[y], x, '#');
