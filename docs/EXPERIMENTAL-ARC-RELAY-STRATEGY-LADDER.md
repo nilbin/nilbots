@@ -413,3 +413,27 @@ If a stage can succeed only through a tactic-specific branch in C#, hidden
 information, opponent identity, seed selection, weakening the opponent, or
 relaxing a frozen eligibility bar, the framework has failed even if the match
 table says `10-0`.
+
+## Stage 3 gate proposal: the cohort replaces the parity control (2026-08-05)
+
+The v2 finals false-positive reads exposed the parity control as a soft
+yardstick: depth-map cohort strategies beat it comfortably. A full cohort
+read of Breakwater v2 (in-process analysis lane, both orientations, all 32
+entrants — `evidence/breakwater-v2-cohort-read.json`) scores **50/64**:
+twenty entrants swept, ten split by orientation, and exactly two —
+`balanced` and `sensor-grid` — win both ways. The parity control would sit
+mid-table in its own gate.
+
+Proposed Stage 3 baseline gate, for owner ratification:
+
+- Keep the frozen-champion pairings and blind-holdout discipline unchanged.
+- Replace the parity-control cells with a cohort slice: the candidate must
+  take at least 75% of games across the full cohort (both orientations)
+  AND may not be swept 0-2 by any single entrant.
+- The entrants that beat the reigning deliverable both ways (currently
+  `balanced`, `sensor-grid`) are named in the next goal as explicit
+  counterplay targets, the way `four-down-double-relay` was for v2.
+
+This keeps the gate honest as the population strengthens: every new
+deliverable is measured against the field it will actually meet, not
+against a control frozen at an earlier meta.
