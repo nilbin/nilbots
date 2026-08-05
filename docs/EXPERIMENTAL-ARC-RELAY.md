@@ -178,3 +178,26 @@ Grammar-2 contracts also carry designed-role metadata on every signature
 can play a new class without hand-written dispatch tables. Grammar-1
 contracts, fingerprints, and replays are unchanged and remain the record
 for everything frozen before this date.
+
+
+## Foundations (`arc-relay-forward-combat-03`, 2026-08-05)
+
+The `forward-combat-3` loop profile keeps grammar-2 combat and adds the
+robust-play foundations (DECISIONS #210):
+
+- **Seed variance.** Each scheduled well birth round shifts within a
+  seed-derived window of ±6 ticks (`wellBirthJitterTicks: 6`). The
+  jittered schedule is public — `nextScheduledBirthTick` in the mode
+  observation reflects it — and the same seed always reproduces the same
+  schedule. Distinct seeds now produce genuinely distinct games; plan for
+  a birth *window*, not a fixed beat.
+- **Side fairness** (`alternatingResolutionOrder: true`). The
+  order-dependent slices of resolution — contested projectile
+  consumption, projectile advancement, same-target hook pulls — alternate
+  direction by tick parity instead of always favouring team 0, and a
+  sentinel breaks equal-distance target ties toward its own reactor
+  rather than toward the lowest enemy slot.
+
+Grammar-1 and grammar-2 contracts, fingerprints, and replays are
+unchanged. Under -03, evaluate strategies over a seed distribution: a
+single game is one draw, not a verdict.

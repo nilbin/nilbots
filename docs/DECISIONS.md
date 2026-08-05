@@ -4630,3 +4630,42 @@ signal for the next rung's targets.
   built-in-style multi-bot selector — decide when the project template lands.
 - wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
   verify when a second platform enters CI.
+
+
+## 210. Foundations -03: seed variance and side fairness are rules, not tuning
+
+Owner goal (2026-08-05, in-session): single-game determinism made every
+matchup a solved chess position, and counters could only be built with
+one-tile scalpels. `arc-relay-forward-combat-03` mints beside -02 with two
+foundations. VARIANCE: each scheduled well birth round shifts within a
+seed-derived +/-6-tick window (`wellBirthJitterTicks`, drawn from the match
+seed per well and round via a domain-prefixed SplitMix64 stream in
+`SeedDerivation`); measured 8/8 distinct outcomes across 8 seeds on a fixed
+matchup, same-seed replay hash byte-identical. FAIRNESS
+(`alternatingResolutionOrder`): the order-dependent slices of resolution —
+contested projectile consumption during movement, projectile advancement,
+and same-target hook pulls — alternate direction by tick parity instead of
+always resolving lowest-ActorId (team 0) first, and sentinel target ties
+break toward the shooter's own reactor before ActorId. Both fields are
+canonically written only when non-default; -01/-02 fingerprints and goldens
+stay byte-exact.
+
+## 211. Executor decisions are expressed in the team's canonical frame
+
+Mirror matches under -03 exposed that the tactical executor's tie-breaks
+were absolute: lowest-Y/X goal and placement preferences, heading and
+direction enum order, formation reflow and spacing ties. Under the
+180-degree side binding these pick opposite relative tiles for the two
+sides — measured as 6-7/8 side skews in mirrors. All executor tie-breaks
+now route through the mind's canonical frame (`MirroredFrame` /
+frame-keyed orderings). The executor also gained a dedicated
+opportunistic heading channel (hooks and rails fire at ray-aligned
+hostiles without waiting for the gun-gated focus path; 0-2 casts/game
+became 51-55, stock parity) and mine avoidance (armed visible hostile
+trip-nodes are blocked tiles; forced movement still lands on them).
+Residual documented: the hook-heavy hook-control mirror retains a
+13/16-west skew whose mechanism has survived every structural engine
+audit so far; sentinel-zone and stock-baseline mirrors sit inside the
+6/8 bar. Cross-runtime note: tactical-mind games are runtime-deterministic
+but not byte-identical between in-process and WASM (same winner observed);
+evidence remains WASM-only per the standing house rule.
