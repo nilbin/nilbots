@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "outputDirectory": "web/dist-review",
+  "archiveDirectory": "art/class-models/provider-runs/meshy/arc-fleet-v4-pilot-review/replay-gallery",
+  "entries": [
+    {
+      "id": "minesmith-a-v-nest-b",
+      "displayBots": [
+        "Roster A · Minesmith · amber",
+        "Roster B · Nest · cyan"
+      ],
+      "broadcastOnly": "art/class-models/provider-runs/meshy/arc-fleet-review/replay-gallery/stock-a-v-flow-b.broadcast.json.gz"
+    },
+    {
+      "id": "nest-a-v-minesmith-b",
+      "displayBots": [
+        "Roster B · Nest · amber",
+        "Roster A · Minesmith · cyan"
+      ],
+      "broadcastOnly": "art/class-models/provider-runs/meshy/arc-fleet-review/replay-gallery/stock-b-v-flow-a.broadcast.json.gz"
+    }
+  ]
+}

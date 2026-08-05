@@ -1,0 +1,2761 @@
+{
+  "schemaVersion": 1,
+  "installedAt": "2026-08-05T23:32:50.278Z",
+  "entries": [
+    {
+      "id": "minesmith-a-v-nest-b",
+      "sourceReplay": null,
+      "archivedReplay": null,
+      "canonicalReplayHash": "507ed83e13f4ec9a99271a532167471e542eaa11b8507afef219a2291b45fb1c",
+      "ticks": 253,
+      "map": "arc-relay-threefold-01",
+      "seed": "42",
+      "result": {
+        "completionReason": "reactor-destroyed",
+        "endTick": 252,
+        "standings": {
+          "winnerTeamId": 1,
+          "teams": [
+            {
+              "teamId": 1,
+              "rank": 1,
+              "outcome": "win",
+              "scores": [
+                {
+                  "channel": "pulses",
+                  "value": "3"
+                },
+                {
+                  "channel": "reactor-charge",
+                  "value": "0"
+                }
+              ]
+            },
+            {
+              "teamId": 0,
+              "rank": 2,
+              "outcome": "loss",
+              "scores": [
+                {
+                  "channel": "pulses",
+                  "value": "0"
+                },
+                {
+                  "channel": "reactor-charge",
+                  "value": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "units": [
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 0,
+              "participantId": 0,
+              "nextLifeId": 6,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 265,
+                "targetFormId": "arc-body-kestrel",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 0,
+                "unitId": 0,
+                "lifeId": 5
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 1,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 1,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-palisade"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 1,
+                "lifeId": 0
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-palisade",
+              "position": {
+                "x": 3,
+                "y": 7
+              },
+              "facing": "east",
+              "health": 5,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 2,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 2,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-towline"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 2,
+                "lifeId": 0
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-towline",
+              "position": {
+                "x": 3,
+                "y": 9
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 3,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 3,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-patchbay"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 3,
+                "lifeId": 0
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-patchbay",
+              "position": {
+                "x": 2,
+                "y": 9
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 4,
+              "participantId": 0,
+              "nextLifeId": 7,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 4,
+                  "lifeId": 6
+                },
+                "generation": 0,
+                "formId": "arc-body-lantern"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 4,
+                "lifeId": 6
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-lantern",
+              "position": {
+                "x": 3,
+                "y": 12
+              },
+              "facing": "east",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 250,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 4,
+                "lifeId": 5
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 5,
+              "participantId": 0,
+              "nextLifeId": 6,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 5,
+                  "lifeId": 5
+                },
+                "generation": 0,
+                "formId": "arc-body-mortar"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 5,
+                "lifeId": 5
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-mortar",
+              "position": {
+                "x": 3,
+                "y": 13
+              },
+              "facing": "east",
+              "health": 2,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 248,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 5,
+                "lifeId": 4
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 6,
+              "participantId": 0,
+              "nextLifeId": 3,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 259,
+                "targetFormId": "arc-body-minesmith",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 0,
+                "unitId": 6,
+                "lifeId": 2
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 7,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 7,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-hush"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 7,
+                "lifeId": 0
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-hush",
+              "position": {
+                "x": 2,
+                "y": 14
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 0,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 0,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-relay"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 0,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-relay",
+              "position": {
+                "x": 16,
+                "y": 4
+              },
+              "facing": "south",
+              "health": 2,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 1,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 264,
+                "targetFormId": "arc-body-switchback",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 1,
+                "unitId": 1,
+                "lifeId": 0
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 2,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 2,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-longshot"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 2,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-longshot",
+              "position": {
+                "x": 14,
+                "y": 11
+              },
+              "facing": "east",
+              "health": 2,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 3,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 3,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-mason"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 3,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-mason",
+              "position": {
+                "x": 16,
+                "y": 12
+              },
+              "facing": "west",
+              "health": 5,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "west"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "west"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "rotate",
+                  "actionCode": 2,
+                  "arguments": [
+                    {
+                      "kind": "direction",
+                      "value": "west"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 4,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 4,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-sunder"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 4,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-sunder",
+              "position": {
+                "x": 28,
+                "y": 11
+              },
+              "facing": "east",
+              "health": 1,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 5,
+              "participantId": 1,
+              "nextLifeId": 2,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 5,
+                  "lifeId": 1
+                },
+                "generation": 0,
+                "formId": "arc-body-repulsor"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 5,
+                "lifeId": 1
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-repulsor",
+              "position": {
+                "x": 16,
+                "y": 18
+              },
+              "facing": "west",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 188,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 5,
+                "lifeId": 0
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 6,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 6,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-veil"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 6,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-veil",
+              "position": {
+                "x": 15,
+                "y": 11
+              },
+              "facing": "west",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north-east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 7,
+              "participantId": 1,
+              "nextLifeId": 2,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 7,
+                  "lifeId": 1
+                },
+                "generation": 0,
+                "formId": "arc-body-nest"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 7,
+                "lifeId": 1
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-nest",
+              "position": {
+                "x": 16,
+                "y": 10
+              },
+              "facing": "east",
+              "health": 1,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 122,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 7,
+                "lifeId": 0
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          }
+        ],
+        "mode": {
+          "kind": "arc-relay",
+          "reason": "reactor-destroyed",
+          "state": {
+            "kind": "arc-relay",
+            "modeId": "arc-relay-h0",
+            "wells": [
+              {
+                "wellId": "centre",
+                "position": {
+                  "x": 15,
+                  "y": 11
+                },
+                "nextScheduledBirthTick": 325,
+                "outstandingCoreId": {
+                  "sourceWellId": "centre",
+                  "sourceOrdinal": 3
+                },
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              },
+              {
+                "wellId": "north",
+                "position": {
+                  "x": 15,
+                  "y": 4
+                },
+                "nextScheduledBirthTick": 275,
+                "outstandingCoreId": null,
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              },
+              {
+                "wellId": "south",
+                "position": {
+                  "x": 15,
+                  "y": 18
+                },
+                "nextScheduledBirthTick": 300,
+                "outstandingCoreId": null,
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              }
+            ],
+            "reactors": [
+              {
+                "teamId": 0,
+                "position": {
+                  "x": 2,
+                  "y": 11
+                },
+                "chargePips": 0,
+                "integritySegments": 0
+              },
+              {
+                "teamId": 1,
+                "position": {
+                  "x": 28,
+                  "y": 11
+                },
+                "chargePips": 0,
+                "integritySegments": 3
+              }
+            ],
+            "visibleCores": [
+              {
+                "coreId": {
+                  "sourceWellId": "centre",
+                  "sourceOrdinal": 3
+                },
+                "position": {
+                  "x": 15,
+                  "y": 11
+                },
+                "disposition": "carried",
+                "carrierActorId": {
+                  "teamId": 1,
+                  "unitId": 6,
+                  "lifeId": 0
+                },
+                "nextRelocationTick": 254,
+                "flightTarget": null,
+                "flightCompletesAtTick": null
+              }
+            ],
+            "visibleSignatures": [
+              {
+                "operationId": "arc-signature-125",
+                "signatureId": "trip-node",
+                "signatureKind": "trip-node",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 6,
+                  "lifeId": 2
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 231,
+                "completesAtTick": null,
+                "endsAtTick": null,
+                "positions": [
+                  {
+                    "x": 13,
+                    "y": 12
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 1,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-134",
+                "signatureId": "sentinel-seed",
+                "signatureKind": "sentinel-seed",
+                "ownerActorId": {
+                  "teamId": 1,
+                  "unitId": 7,
+                  "lifeId": 1
+                },
+                "ownerTeamId": 1,
+                "phase": "active",
+                "startedTick": 249,
+                "completesAtTick": null,
+                "endsAtTick": 279,
+                "positions": [
+                  {
+                    "x": 16,
+                    "y": 10
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 2,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-135",
+                "signatureId": "survey-flare",
+                "signatureKind": "survey-flare",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 4,
+                  "lifeId": 6
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 250,
+                "completesAtTick": null,
+                "endsAtTick": 260,
+                "positions": [
+                  {
+                    "x": 1,
+                    "y": 9
+                  },
+                  {
+                    "x": 2,
+                    "y": 9
+                  },
+                  {
+                    "x": 3,
+                    "y": 9
+                  },
+                  {
+                    "x": 4,
+                    "y": 9
+                  },
+                  {
+                    "x": 5,
+                    "y": 9
+                  },
+                  {
+                    "x": 6,
+                    "y": 9
+                  },
+                  {
+                    "x": 7,
+                    "y": 9
+                  },
+                  {
+                    "x": 8,
+                    "y": 9
+                  },
+                  {
+                    "x": 1,
+                    "y": 10
+                  },
+                  {
+                    "x": 2,
+                    "y": 10
+                  },
+                  {
+                    "x": 3,
+                    "y": 10
+                  },
+                  {
+                    "x": 4,
+                    "y": 10
+                  },
+                  {
+                    "x": 6,
+                    "y": 10
+                  },
+                  {
+                    "x": 7,
+                    "y": 10
+                  },
+                  {
+                    "x": 8,
+                    "y": 10
+                  },
+                  {
+                    "x": 1,
+                    "y": 11
+                  },
+                  {
+                    "x": 2,
+                    "y": 11
+                  },
+                  {
+                    "x": 3,
+                    "y": 11
+                  },
+                  {
+                    "x": 4,
+                    "y": 11
+                  },
+                  {
+                    "x": 6,
+                    "y": 11
+                  },
+                  {
+                    "x": 7,
+                    "y": 11
+                  },
+                  {
+                    "x": 8,
+                    "y": 11
+                  },
+                  {
+                    "x": 1,
+                    "y": 12
+                  },
+                  {
+                    "x": 2,
+                    "y": 12
+                  },
+                  {
+                    "x": 3,
+                    "y": 12
+                  },
+                  {
+                    "x": 4,
+                    "y": 12
+                  },
+                  {
+                    "x": 6,
+                    "y": 12
+                  },
+                  {
+                    "x": 7,
+                    "y": 12
+                  },
+                  {
+                    "x": 8,
+                    "y": 12
+                  },
+                  {
+                    "x": 1,
+                    "y": 13
+                  },
+                  {
+                    "x": 2,
+                    "y": 13
+                  },
+                  {
+                    "x": 3,
+                    "y": 13
+                  },
+                  {
+                    "x": 4,
+                    "y": 13
+                  },
+                  {
+                    "x": 5,
+                    "y": 13
+                  },
+                  {
+                    "x": 6,
+                    "y": 13
+                  },
+                  {
+                    "x": 7,
+                    "y": 13
+                  },
+                  {
+                    "x": 8,
+                    "y": 13
+                  },
+                  {
+                    "x": 1,
+                    "y": 14
+                  },
+                  {
+                    "x": 2,
+                    "y": 14
+                  },
+                  {
+                    "x": 3,
+                    "y": 14
+                  },
+                  {
+                    "x": 4,
+                    "y": 14
+                  },
+                  {
+                    "x": 6,
+                    "y": 14
+                  },
+                  {
+                    "x": 7,
+                    "y": 14
+                  },
+                  {
+                    "x": 8,
+                    "y": 14
+                  },
+                  {
+                    "x": 1,
+                    "y": 15
+                  },
+                  {
+                    "x": 2,
+                    "y": 15
+                  },
+                  {
+                    "x": 3,
+                    "y": 15
+                  },
+                  {
+                    "x": 4,
+                    "y": 15
+                  },
+                  {
+                    "x": 6,
+                    "y": 15
+                  },
+                  {
+                    "x": 7,
+                    "y": 15
+                  },
+                  {
+                    "x": 8,
+                    "y": 15
+                  },
+                  {
+                    "x": 1,
+                    "y": 16
+                  },
+                  {
+                    "x": 2,
+                    "y": 16
+                  },
+                  {
+                    "x": 3,
+                    "y": 16
+                  },
+                  {
+                    "x": 4,
+                    "y": 16
+                  },
+                  {
+                    "x": 5,
+                    "y": 16
+                  },
+                  {
+                    "x": 6,
+                    "y": 16
+                  },
+                  {
+                    "x": 7,
+                    "y": 16
+                  },
+                  {
+                    "x": 8,
+                    "y": 16
+                  },
+                  {
+                    "x": 1,
+                    "y": 17
+                  },
+                  {
+                    "x": 2,
+                    "y": 17
+                  },
+                  {
+                    "x": 3,
+                    "y": 17
+                  },
+                  {
+                    "x": 4,
+                    "y": 17
+                  },
+                  {
+                    "x": 6,
+                    "y": 17
+                  },
+                  {
+                    "x": 7,
+                    "y": 17
+                  },
+                  {
+                    "x": 8,
+                    "y": 17
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 0,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-38",
+                "signatureId": "trip-node",
+                "signatureKind": "trip-node",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 6,
+                  "lifeId": 0
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 60,
+                "completesAtTick": null,
+                "endsAtTick": null,
+                "positions": [
+                  {
+                    "x": 11,
+                    "y": 8
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 1,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-76",
+                "signatureId": "trip-node",
+                "signatureKind": "trip-node",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 6,
+                  "lifeId": 1
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 138,
+                "completesAtTick": null,
+                "endsAtTick": null,
+                "positions": [
+                  {
+                    "x": 14,
+                    "y": 8
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 1,
+                "suppressed": false
+              }
+            ],
+            "latestPulseTeamId": 1,
+            "latestPulseTick": 252
+          }
+        }
+      },
+      "participants": null,
+      "transport": {
+        "source": "art/class-models/provider-runs/meshy/arc-fleet-review/replay-gallery/stock-a-v-flow-b.broadcast.json.gz",
+        "archive": "art/class-models/provider-runs/meshy/arc-fleet-v4-pilot-review/replay-gallery/minesmith-a-v-nest-b.broadcast.json.gz",
+        "broadcastVersion": 1,
+        "gzipBytes": 66855,
+        "gzipSha256": "79defbd28e5d73c7f5a3bda3011bd468920a7c429e6c9350778d68252ff4d1a9"
+      }
+    },
+    {
+      "id": "nest-a-v-minesmith-b",
+      "sourceReplay": null,
+      "archivedReplay": null,
+      "canonicalReplayHash": "a2b1e24964a879f482aff92152e273ff2a848edc40ea88570f8176dfb517f4f9",
+      "ticks": 284,
+      "map": "arc-relay-threefold-01",
+      "seed": "42",
+      "result": {
+        "completionReason": "reactor-destroyed",
+        "endTick": 283,
+        "standings": {
+          "winnerTeamId": 1,
+          "teams": [
+            {
+              "teamId": 1,
+              "rank": 1,
+              "outcome": "win",
+              "scores": [
+                {
+                  "channel": "pulses",
+                  "value": "3"
+                },
+                {
+                  "channel": "reactor-charge",
+                  "value": "0"
+                }
+              ]
+            },
+            {
+              "teamId": 0,
+              "rank": 2,
+              "outcome": "loss",
+              "scores": [
+                {
+                  "channel": "pulses",
+                  "value": "0"
+                },
+                {
+                  "channel": "reactor-charge",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "units": [
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 0,
+              "participantId": 0,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 296,
+                "targetFormId": "arc-body-relay",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 0,
+                "unitId": 0,
+                "lifeId": 3
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 1,
+              "participantId": 0,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 1,
+                  "lifeId": 3
+                },
+                "generation": 0,
+                "formId": "arc-body-switchback"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 1,
+                "lifeId": 3
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-switchback",
+              "position": {
+                "x": 6,
+                "y": 7
+              },
+              "facing": "east",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 265,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 1,
+                "lifeId": 2
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-west"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-west"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-west"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 2,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 287,
+                "targetFormId": "arc-body-longshot",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 0,
+                "unitId": 2,
+                "lifeId": 0
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 3,
+              "participantId": 0,
+              "nextLifeId": 2,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 3,
+                  "lifeId": 1
+                },
+                "generation": 0,
+                "formId": "arc-body-mason"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 3,
+                "lifeId": 1
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-mason",
+              "position": {
+                "x": 3,
+                "y": 10
+              },
+              "facing": "east",
+              "health": 5,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 253,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 3,
+                "lifeId": 0
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 4,
+              "participantId": 0,
+              "nextLifeId": 6,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 4,
+                  "lifeId": 5
+                },
+                "generation": 0,
+                "formId": "arc-body-sunder"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 4,
+                "lifeId": 5
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-sunder",
+              "position": {
+                "x": 3,
+                "y": 12
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 282,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 4,
+                "lifeId": 4
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 5,
+              "participantId": 0,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 299,
+                "targetFormId": "arc-body-repulsor",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 0,
+                "unitId": 5,
+                "lifeId": 3
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 6,
+              "participantId": 0,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 6,
+                  "lifeId": 3
+                },
+                "generation": 0,
+                "formId": "arc-body-veil"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 6,
+                "lifeId": 3
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-veil",
+              "position": {
+                "x": 12,
+                "y": 14
+              },
+              "facing": "east",
+              "health": 1,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 245,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 0,
+                "unitId": 6,
+                "lifeId": 2
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 0,
+              "unitId": 7,
+              "participantId": 0,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 0,
+                  "unitId": 7,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-nest"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 0,
+                "unitId": 7,
+                "lifeId": 0
+              },
+              "participantId": 0,
+              "generation": 0,
+              "formId": "arc-body-nest",
+              "position": {
+                "x": 3,
+                "y": 15
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 0,
+              "participantId": 1,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 0,
+                  "lifeId": 3
+                },
+                "generation": 0,
+                "formId": "arc-body-kestrel"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 0,
+                "lifeId": 3
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-kestrel",
+              "position": {
+                "x": 18,
+                "y": 7
+              },
+              "facing": "north",
+              "health": 2,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 260,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 0,
+                "lifeId": 2
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 1,
+              "participantId": 1,
+              "nextLifeId": 3,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 1,
+                  "lifeId": 2
+                },
+                "generation": 0,
+                "formId": "arc-body-palisade"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 1,
+                "lifeId": 2
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-palisade",
+              "position": {
+                "x": 18,
+                "y": 6
+              },
+              "facing": "west",
+              "health": 5,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 266,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 1,
+                "lifeId": 1
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 2,
+              "participantId": 1,
+              "nextLifeId": 2,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 2,
+                  "lifeId": 1
+                },
+                "generation": 0,
+                "formId": "arc-body-towline"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 2,
+                "lifeId": 1
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-towline",
+              "position": {
+                "x": 28,
+                "y": 11
+              },
+              "facing": "east",
+              "health": 4,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 241,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 2,
+                "lifeId": 0
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-east"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-east"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south-east"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 3,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 3,
+                  "lifeId": 0
+                },
+                "generation": 0,
+                "formId": "arc-body-patchbay"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 3,
+                "lifeId": 0
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-patchbay",
+              "position": {
+                "x": 26,
+                "y": 9
+              },
+              "facing": "west",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 0,
+              "spawnReason": "initial",
+              "parentActorId": null,
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "acceptedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "validatedAction": {
+                  "actionId": "wait",
+                  "actionCode": 0,
+                  "arguments": []
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 4,
+              "participantId": 1,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 292,
+                "targetFormId": "arc-body-lantern",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 1,
+                "unitId": 4,
+                "lifeId": 3
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 5,
+              "participantId": 1,
+              "nextLifeId": 4,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 5,
+                  "lifeId": 3
+                },
+                "generation": 0,
+                "formId": "arc-body-mortar"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 5,
+                "lifeId": 3
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-mortar",
+              "position": {
+                "x": 28,
+                "y": 9
+              },
+              "facing": "north",
+              "health": 1,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 193,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 5,
+                "lifeId": 2
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "north"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 6,
+              "participantId": 1,
+              "nextLifeId": 2,
+              "state": {
+                "kind": "active",
+                "actorId": {
+                  "teamId": 1,
+                  "unitId": 6,
+                  "lifeId": 1
+                },
+                "generation": 0,
+                "formId": "arc-body-minesmith"
+              },
+              "pendingParentActorId": null,
+              "splitReservation": null
+            },
+            "activeLife": {
+              "actorId": {
+                "teamId": 1,
+                "unitId": 6,
+                "lifeId": 1
+              },
+              "participantId": 1,
+              "generation": 0,
+              "formId": "arc-body-minesmith",
+              "position": {
+                "x": 16,
+                "y": 12
+              },
+              "facing": "west",
+              "health": 3,
+              "cooldown": 0,
+              "energy": null,
+              "spawnedAtTick": 94,
+              "spawnReason": "automatic-return",
+              "parentActorId": {
+                "teamId": 1,
+                "unitId": 6,
+                "lifeId": 0
+              },
+              "sourceTransitionId": null,
+              "sourceOperationId": null,
+              "previousActionResolution": {
+                "submittedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "acceptedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "validatedAction": {
+                  "actionId": "move-eight-way",
+                  "actionCode": 1,
+                  "arguments": [
+                    {
+                      "kind": "projectile-heading",
+                      "value": "south"
+                    }
+                  ]
+                },
+                "outcome": "success",
+                "runtimeFault": null
+              },
+              "pendingSameLifeTransition": null
+            }
+          },
+          {
+            "slot": {
+              "teamId": 1,
+              "unitId": 7,
+              "participantId": 1,
+              "nextLifeId": 1,
+              "state": {
+                "kind": "automatic-return-pending",
+                "dueTick": 296,
+                "targetFormId": "arc-body-hush",
+                "generation": 0
+              },
+              "pendingParentActorId": {
+                "teamId": 1,
+                "unitId": 7,
+                "lifeId": 0
+              },
+              "splitReservation": null
+            },
+            "activeLife": null
+          }
+        ],
+        "mode": {
+          "kind": "arc-relay",
+          "reason": "reactor-destroyed",
+          "state": {
+            "kind": "arc-relay",
+            "modeId": "arc-relay-h0",
+            "wells": [
+              {
+                "wellId": "centre",
+                "position": {
+                  "x": 15,
+                  "y": 11
+                },
+                "nextScheduledBirthTick": 325,
+                "outstandingCoreId": null,
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              },
+              {
+                "wellId": "north",
+                "position": {
+                  "x": 15,
+                  "y": 4
+                },
+                "nextScheduledBirthTick": 350,
+                "outstandingCoreId": {
+                  "sourceWellId": "north",
+                  "sourceOrdinal": 3
+                },
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              },
+              {
+                "wellId": "south",
+                "position": {
+                  "x": 15,
+                  "y": 18
+                },
+                "nextScheduledBirthTick": 300,
+                "outstandingCoreId": null,
+                "pendingCharge": false,
+                "rearmCompletesAtTick": null
+              }
+            ],
+            "reactors": [
+              {
+                "teamId": 0,
+                "position": {
+                  "x": 2,
+                  "y": 11
+                },
+                "chargePips": 1,
+                "integritySegments": 0
+              },
+              {
+                "teamId": 1,
+                "position": {
+                  "x": 28,
+                  "y": 11
+                },
+                "chargePips": 0,
+                "integritySegments": 3
+              }
+            ],
+            "visibleCores": [
+              {
+                "coreId": {
+                  "sourceWellId": "north",
+                  "sourceOrdinal": 3
+                },
+                "position": {
+                  "x": 18,
+                  "y": 7
+                },
+                "disposition": "carried",
+                "carrierActorId": {
+                  "teamId": 1,
+                  "unitId": 0,
+                  "lifeId": 3
+                },
+                "nextRelocationTick": 284,
+                "flightTarget": null,
+                "flightCompletesAtTick": null
+              }
+            ],
+            "visibleSignatures": [
+              {
+                "operationId": "arc-signature-153",
+                "signatureId": "sentinel-seed",
+                "signatureKind": "sentinel-seed",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 7,
+                  "lifeId": 0
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 271,
+                "completesAtTick": null,
+                "endsAtTick": 301,
+                "positions": [
+                  {
+                    "x": 4,
+                    "y": 14
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 2,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-156",
+                "signatureId": "prism-wall",
+                "signatureKind": "prism-wall",
+                "ownerActorId": {
+                  "teamId": 1,
+                  "unitId": 1,
+                  "lifeId": 2
+                },
+                "ownerTeamId": 1,
+                "phase": "active",
+                "startedTick": 277,
+                "completesAtTick": null,
+                "endsAtTick": 285,
+                "positions": [
+                  {
+                    "x": 20,
+                    "y": 6
+                  },
+                  {
+                    "x": 20,
+                    "y": 7
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 3,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-157",
+                "signatureId": "smoke-canister",
+                "signatureKind": "smoke-canister",
+                "ownerActorId": {
+                  "teamId": 0,
+                  "unitId": 6,
+                  "lifeId": 3
+                },
+                "ownerTeamId": 0,
+                "phase": "active",
+                "startedTick": 282,
+                "completesAtTick": null,
+                "endsAtTick": 292,
+                "positions": [
+                  {
+                    "x": 8,
+                    "y": 11
+                  },
+                  {
+                    "x": 9,
+                    "y": 11
+                  },
+                  {
+                    "x": 8,
+                    "y": 12
+                  },
+                  {
+                    "x": 9,
+                    "y": 12
+                  },
+                  {
+                    "x": 8,
+                    "y": 13
+                  },
+                  {
+                    "x": 9,
+                    "y": 13
+                  },
+                  {
+                    "x": 10,
+                    "y": 13
+                  },
+                  {
+                    "x": 11,
+                    "y": 13
+                  },
+                  {
+                    "x": 12,
+                    "y": 13
+                  },
+                  {
+                    "x": 8,
+                    "y": 14
+                  },
+                  {
+                    "x": 9,
+                    "y": 14
+                  },
+                  {
+                    "x": 10,
+                    "y": 14
+                  },
+                  {
+                    "x": 11,
+                    "y": 14
+                  },
+                  {
+                    "x": 12,
+                    "y": 14
+                  },
+                  {
+                    "x": 8,
+                    "y": 15
+                  },
+                  {
+                    "x": 9,
+                    "y": 15
+                  },
+                  {
+                    "x": 10,
+                    "y": 15
+                  },
+                  {
+                    "x": 11,
+                    "y": 15
+                  },
+                  {
+                    "x": 12,
+                    "y": 15
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 0,
+                "suppressed": false
+              },
+              {
+                "operationId": "arc-signature-158",
+                "signatureId": "trip-node",
+                "signatureKind": "trip-node",
+                "ownerActorId": {
+                  "teamId": 1,
+                  "unitId": 6,
+                  "lifeId": 1
+                },
+                "ownerTeamId": 1,
+                "phase": "active",
+                "startedTick": 282,
+                "completesAtTick": null,
+                "endsAtTick": null,
+                "positions": [
+                  {
+                    "x": 15,
+                    "y": 10
+                  }
+                ],
+                "targetActorId": null,
+                "remainingCapacity": 1,
+                "suppressed": false
+              }
+            ],
+            "latestPulseTeamId": 1,
+            "latestPulseTick": 283
+          }
+        }
+      },
+      "participants": null,
+      "transport": {
+        "source": "art/class-models/provider-runs/meshy/arc-fleet-review/replay-gallery/stock-b-v-flow-a.broadcast.json.gz",
+        "archive": "art/class-models/provider-runs/meshy/arc-fleet-v4-pilot-review/replay-gallery/nest-a-v-minesmith-b.broadcast.json.gz",
+        "broadcastVersion": 1,
+        "gzipBytes": 82942,
+        "gzipSha256": "85f8f85e99a87c8157fe4c682f13d1fc2800b2ea95a32940bb8da6c204048e93"
+      }
+    }
+  ]
+}

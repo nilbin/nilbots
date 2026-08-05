@@ -11,6 +11,8 @@
 
 ## Generated review artifact
 
+- End-to-end Minesmith/Nest pilot inputs and exact prompts:
+  `pilot-v4/README.md`
 - Industrial-color refinement: `concept-sheet-industrial-color-v4.png`
 - Industrial-color dimensions: 1254×1254 RGBA PNG
 - Industrial-color SHA-256:

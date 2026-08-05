@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-minesmith-v4-pilot",
+  "taskId": "019fd437-54d5-7c94-afce-b86642294962",
+  "submittedAt": "2026-08-05T23:17:03.053Z",
+  "balanceBefore": 250,
+  "input": {
+    "file": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-minesmith/meshy-input.png",
+    "bytes": 1120643,
+    "sha256": "927c522ccb671e72c598f548545d8d2545e25d133457a52eab0a5ce50f717f62",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "authorizedAt": "2026-08-06",
+  "scope": "Industrial-color Arc Relay Minesmith and Nest vertical slice",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "execution": "sequential-stop-on-failure",
+  "expectedCreditsPerCall": 15,
+  "authorizedCalls": 2,
+  "expectedMaximumCredits": 30,
+  "balanceBefore": 250,
+  "normalization": {
+    "orientation": "pending-provider-facing-review",
+    "targetPlanformSpan": 0.99,
+    "teamGlow": "renderer-owned-only",
+    "meshContract": "monolithic",
+    "runtimeTextureTier": "512 ETC1S base, 256 UASTC normal, 256 UASTC metallic-roughness, 128 ETC1S emissive"
+  },
+  "looks": [
+    {
+      "lookId": "arc-minesmith-v4-pilot",
+      "input": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-minesmith/meshy-input.png",
+      "inputSha256": "927c522ccb671e72c598f548545d8d2545e25d133457a52eab0a5ce50f717f62"
+    },
+    {
+      "lookId": "arc-nest-v4-pilot",
+      "input": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-nest/meshy-input.png",
+      "inputSha256": "ebfdd6b56f091f9e08cb4d35be13c73938e7a04fa9c8e9250aacbb0de6ac1dc2"
+    }
+  ]
+}

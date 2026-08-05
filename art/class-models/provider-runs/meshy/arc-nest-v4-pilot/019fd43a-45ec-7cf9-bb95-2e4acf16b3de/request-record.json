@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-nest-v4-pilot",
+  "taskId": "019fd43a-45ec-7cf9-bb95-2e4acf16b3de",
+  "submittedAt": "2026-08-05T23:20:15.781Z",
+  "balanceBefore": 235,
+  "input": {
+    "file": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-nest/meshy-input.png",
+    "bytes": 881519,
+    "sha256": "ebfdd6b56f091f9e08cb4d35be13c73938e7a04fa9c8e9250aacbb0de6ac1dc2",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

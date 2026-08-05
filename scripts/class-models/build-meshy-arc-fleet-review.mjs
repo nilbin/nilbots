@@ -23,10 +23,15 @@ const repository = path.resolve(
   '..',
 );
 const options = parseOptions(process.argv.slice(2));
-const receiptPath = absolute(
-  options.receipt ??
-    'art/class-models/provider-runs/meshy/arc-fleet-rest-15-2026-08-02.json',
-);
+const runtimeTierAuditPath = options['runtime-tier-audit']
+  ? absolute(options['runtime-tier-audit'])
+  : null;
+const receiptPath = runtimeTierAuditPath
+  ? null
+  : absolute(
+      options.receipt ??
+        'art/class-models/provider-runs/meshy/arc-fleet-rest-15-2026-08-02.json',
+    );
 const outputDirectory = absolute(
   options.output ??
     'art/class-models/provider-runs/meshy/arc-fleet-review',
@@ -37,8 +42,28 @@ const identityLooks = new Set(
     .map((value) => value.trim())
     .filter(Boolean),
 );
-const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
-const lookIds = ['arc-mason', ...receipt.looks];
+const receipt = receiptPath ? JSON.parse(readFileSync(receiptPath, 'utf8')) : null;
+const runtimeTierAudit = runtimeTierAuditPath
+  ? JSON.parse(readFileSync(runtimeTierAuditPath, 'utf8'))
+  : null;
+const reviewEntries = runtimeTierAudit
+  ? runtimeTierAudit.looks.map((entry) => {
+      const runtimeLookId = entry.runtimeLookId ?? entry.id;
+      if (typeof runtimeLookId !== 'string' || typeof entry.runtime?.file !== 'string')
+        throw new Error('Every runtime-tier review entry needs a runtime look ID and file.');
+      return {
+        lookId: runtimeLookId,
+        providerLookId: entry.id,
+        candidate: absolute(entry.runtime.file),
+        orientation: entry.orientation,
+      };
+    })
+  : ['arc-mason', ...receipt.looks].map((lookId) => ({
+      lookId,
+      providerLookId: lookId,
+      candidate: candidatePath(lookId),
+      orientation: identityLooks.has(lookId) ? 'identity' : 'lay-flat-x',
+    }));
 const backupDirectory = mkdtempSync(
   path.join(tmpdir(), 'nilbots-meshy-fleet-review-'),
 );
@@ -47,7 +72,8 @@ const staged = [];
 mkdirSync(outputDirectory, { recursive: true });
 
 try {
-  for (const lookId of lookIds) {
+  for (const entry of reviewEntries) {
+    const { lookId } = entry;
     const runtimeModel = path.join(
       repository,
       'web',
@@ -57,7 +83,7 @@ try {
       lookId,
       'model.glb',
     );
-    const candidateModel = candidatePath(lookId);
+    const candidateModel = entry.candidate;
     const backupModel = path.join(backupDirectory, `${lookId}.glb`);
     const before = readFileSync(runtimeModel);
     copyFileSync(runtimeModel, backupModel);
@@ -65,8 +91,9 @@ try {
     const candidate = readFileSync(candidateModel);
     staged.push({
       lookId,
+      providerLookId: entry.providerLookId,
       candidate: path.relative(repository, candidateModel),
-      orientation: identityLooks.has(lookId) ? 'identity' : 'lay-flat-x',
+      orientation: entry.orientation,
       runtimeSha256Before: sha256(before),
       candidateSha256: sha256(candidate),
       candidateBytes: candidate.length,
@@ -119,7 +146,10 @@ const record = {
   builtAt: new Date().toISOString(),
   purpose: 'Unapproved Meshy Arc Relay fleet review build',
   runtimeAssetsPromoted: false,
-  receipt: path.relative(repository, receiptPath),
+  receipt: receiptPath ? path.relative(repository, receiptPath) : null,
+  runtimeTierAudit: runtimeTierAuditPath
+    ? path.relative(repository, runtimeTierAuditPath)
+    : null,
   output: 'web/dist-review',
   staged,
 };

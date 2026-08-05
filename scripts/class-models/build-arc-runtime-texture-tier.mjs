@@ -58,6 +58,22 @@ const profileContract = {
       rgba8FallbackModelGpuBytes: 6 * 1_048_576,
     },
   },
+  'fleet-v4-pilot': {
+    audit: 'art/class-models/provider-runs/meshy/arc-fleet-v4-pilot-review/pilot-audit.json',
+    tier: 'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v4-pilot',
+    id: 'arc-relay-ktx2-selective-v4-pilot',
+    expectedCount: 2,
+    entries: (audit) => audit.models,
+    budgets: {
+      decoderTransferBytes: 600_000,
+      perLookTransferBytes: 1_048_576,
+      fleetTransferBytes: 2 * 1_048_576,
+      compressedTextureGpuBytes: 1 * 1_048_576,
+      rgba8FallbackTextureGpuBytes: 5 * 1_048_576,
+      compressedModelGpuBytes: 2 * 1_048_576,
+      rgba8FallbackModelGpuBytes: 6 * 1_048_576,
+    },
+  },
 }[profile];
 if (!profileContract)
   throw new Error(`Unknown Arc runtime texture profile '${profile}'.`);
@@ -179,6 +195,7 @@ for (const entry of entries) {
 
   looks.push({
     id: entry.lookId,
+    ...(entry.runtimeLookId ? { runtimeLookId: entry.runtimeLookId } : {}),
     taskId: entry.taskId,
     approvedCandidate: {
       file: entry.candidate.file,
@@ -572,7 +589,8 @@ function required(name) {
   if (!value)
     throw new Error(
       'Usage: build-arc-runtime-texture-tier.mjs --toktx <path> ' +
-        '[--profile fleet|signatures] [--gltf-transform <path>] [--check]',
+        '[--profile fleet|signatures|fleet-v4-pilot] ' +
+        '[--gltf-transform <path>] [--check]',
     );
   return value;
 }

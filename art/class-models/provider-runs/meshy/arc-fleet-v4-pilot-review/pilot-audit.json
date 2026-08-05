@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-08-06T00:00:00.000Z",
+  "authorization": "art/class-models/provider-runs/meshy/arc-fleet-v4-pilot-2-2026-08-06.json",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "batch": {
+    "requestedCalls": 2,
+    "succeededCalls": 2,
+    "failedCalls": 0,
+    "expectedCredits": 30,
+    "consumedCredits": 30,
+    "balanceBefore": 250,
+    "balanceAfter": 220,
+    "providerStageSeconds": 354.81736225
+  },
+  "reviewContract": {
+    "targetPlanformSpan": 0.99,
+    "modelOwnedTeamGlow": false,
+    "meshContract": "monolithic",
+    "cameraPitchDegrees": 58,
+    "realReplayScale": true,
+    "runtimeAssetsPromoted": false
+  },
+  "models": [
+    {
+      "lookId": "arc-minesmith-v4-pilot",
+      "runtimeLookId": "arc-minesmith",
+      "taskId": "019fd437-54d5-7c94-afce-b86642294962",
+      "submittedAt": "2026-08-05T23:17:03.053Z",
+      "finishedAt": "2026-08-05T23:19:57.223Z",
+      "providerStageSeconds": 174.16903925,
+      "consumedCredits": 15,
+      "balanceBefore": 250,
+      "balanceAfter": 235,
+      "input": {
+        "file": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-minesmith/meshy-input.png",
+        "bytes": 1120643,
+        "sha256": "927c522ccb671e72c598f548545d8d2545e25d133457a52eab0a5ce50f717f62",
+        "mimeType": "image/png"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-minesmith-v4-pilot/019fd437-54d5-7c94-afce-b86642294962/model-normalized-identity-review.glb",
+        "bytes": 666764,
+        "sha256": "83a0763c8bb4dadaf2d4698c9b832ce3d51486e23ab57cedca4b6d24cbb0a692",
+        "triangles": 14957,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [-3.9041409492492676, 0, -2.882357120513916],
+          "max": [3.9041409492492676, 3.5, 2.8518500328063965]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": ["MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"]
+      }
+    },
+    {
+      "lookId": "arc-nest-v4-pilot",
+      "runtimeLookId": "arc-nest",
+      "taskId": "019fd43a-45ec-7cf9-bb95-2e4acf16b3de",
+      "submittedAt": "2026-08-05T23:20:15.781Z",
+      "finishedAt": "2026-08-05T23:23:16.430Z",
+      "providerStageSeconds": 180.648323,
+      "consumedCredits": 15,
+      "balanceBefore": 235,
+      "balanceAfter": 220,
+      "input": {
+        "file": "art/class-models/concept-targets/arc-relay-fleet-v2/pilot-v4/arc-nest/meshy-input.png",
+        "bytes": 881519,
+        "sha256": "ebfdd6b56f091f9e08cb4d35be13c73938e7a04fa9c8e9250aacbb0de6ac1dc2",
+        "mimeType": "image/png"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-nest-v4-pilot/019fd43a-45ec-7cf9-bb95-2e4acf16b3de/model-normalized-identity-review.glb",
+        "bytes": 578960,
+        "sha256": "d2fbc0771468a10ea832105e8f66e18c8eda5b64b30ae502ec0b2bdc1e92dfd7",
+        "triangles": 14527,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [-1.896295428276062, 0, -1.6074062585830688],
+          "max": [1.896295428276062, 2, 1.6222200393676758]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": ["MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"]
+      }
+    }
+  ]
+}

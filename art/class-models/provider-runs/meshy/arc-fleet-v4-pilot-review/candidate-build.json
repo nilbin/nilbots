@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "builtAt": "2026-08-05T23:32:50.214Z",
+  "purpose": "Unapproved Meshy Arc Relay fleet review build",
+  "runtimeAssetsPromoted": false,
+  "receipt": null,
+  "runtimeTierAudit": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v4-pilot/audit.json",
+  "output": "web/dist-review",
+  "staged": [
+    {
+      "lookId": "arc-minesmith",
+      "providerLookId": "arc-minesmith-v4-pilot",
+      "candidate": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v4-pilot/arc-minesmith-v4-pilot.glb",
+      "orientation": "identity",
+      "runtimeSha256Before": "067def44f3ef7fbe99eb61e703b70c0ae1f37884229e8e3504bd0580092f256e",
+      "candidateSha256": "b6f338a7d38b0e7c21605e8209c22358f9c246e1d02162e5e4f0c772c5b34ae3",
+      "candidateBytes": 545160,
+      "runtimeSha256After": "067def44f3ef7fbe99eb61e703b70c0ae1f37884229e8e3504bd0580092f256e"
+    },
+    {
+      "lookId": "arc-nest",
+      "providerLookId": "arc-nest-v4-pilot",
+      "candidate": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v4-pilot/arc-nest-v4-pilot.glb",
+      "orientation": "identity",
+      "runtimeSha256Before": "48ae465dad7bc816f4bfa361864da7c2a33da21161346c510f139df65d88deda",
+      "candidateSha256": "f8d58a4a6bffd55f5e28f7c6c94358814effd94a3e231547811fc731d97011ed",
+      "candidateBytes": 518504,
+      "runtimeSha256After": "48ae465dad7bc816f4bfa361864da7c2a33da21161346c510f139df65d88deda"
+    }
+  ]
+}
