@@ -52,6 +52,24 @@ internal sealed class StrategyDirector
         }
     }
 
+    /// <summary>
+    /// Origins this team can still bank. Outside threefold every origin
+    /// is always bankable, so the preference collapses to the old order.
+    /// </summary>
+    private HashSet<string> NeededOrigins(
+        GenericActorContext.ModeObservationState.ArcRelay arc) =>
+        (_contract.Rules.GameMode as
+            GenericActorRulesContract.ArcRelayGameMode)?.ThreefoldSockets
+                == true
+            ? arc.Wells.Select(value => value.WellId)
+                .Except(
+                    arc.Reactors.Single(value => value.TeamId == _teamId)
+                        .FilledSocketWellIds,
+                    StringComparer.Ordinal)
+                .ToHashSet(StringComparer.Ordinal)
+            : arc.Wells.Select(value => value.WellId)
+                .ToHashSet(StringComparer.Ordinal);
+
     internal GambitPlan? Active => _activeId is null
         ? null
         : _sheet.Gambits.Single(value => string.Equals(
@@ -529,13 +547,22 @@ internal sealed class StrategyDirector
                 value.TeamId != _teamId).Position,
             "next-well" => arc.Wells
                 .Where(value => value.NextScheduledBirthTick is not null)
-                .OrderBy(value => value.NextScheduledBirthTick)
+                // Threefold: a well whose origin we still need outranks an
+                // earlier birth we cannot bank.
+                .OrderBy(value => NeededOrigins(arc).Contains(value.WellId)
+                    ? 0
+                    : 1)
+                .ThenBy(value => value.NextScheduledBirthTick)
                 .ThenBy(value => value.WellId, StringComparer.Ordinal)
                 .Select(value => (Position?)value.Position).FirstOrDefault(),
             "nearest-loose-core" => arc.VisibleCores
                 .Where(core => core.Disposition
                     == GenericActorContext.ArcRelayCoreDisposition.Loose)
-                .OrderBy(core => body.Position.ChebyshevDistance(core.Position))
+                .OrderBy(core => NeededOrigins(arc)
+                        .Contains(core.CoreId.SourceWellId)
+                    ? 0
+                    : 1)
+                .ThenBy(core => body.Position.ChebyshevDistance(core.Position))
                 .ThenBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
                 .ThenBy(core => core.CoreId.SourceOrdinal)
                 .Select(core => (Position?)core.Position).FirstOrDefault(),

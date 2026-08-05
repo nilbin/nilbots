@@ -82,6 +82,21 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     == GenericActorContext.ArcRelayCoreDisposition.Carried
                 && core.CarrierActorId is not null)
             .ToDictionary(core => core.CarrierActorId!, core => core);
+        bool threefold = (_contract!.Rules.GameMode as
+            GenericActorRulesContract.ArcRelayGameMode)?.ThreefoldSockets
+            == true;
+        HashSet<string> ownFilled = threefold
+            ? arc.Reactors.Single(value => value.TeamId == _teamId)
+                .FilledSocketWellIds.ToHashSet(StringComparer.Ordinal)
+            : [];
+        HashSet<string> enemyNeeds = threefold
+            ? arc.Wells.Select(value => value.WellId)
+                .Except(
+                    arc.Reactors.Single(value => value.TeamId != _teamId)
+                        .FilledSocketWellIds,
+                    StringComparer.Ordinal)
+                .ToHashSet(StringComparer.Ordinal)
+            : [];
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickups =
             AssignPickups(mind, arc, plans, carried);
         MindBody[] ownCarriers = mind.Bodies
@@ -121,7 +136,11 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             .ToHashSet();
         var claims = ArenaBasics.Claims.ForTick(mind);
         Dictionary<int, Position> carrierSteps = ownCarriers
-            .Where(carrier => carrier.Position != _ownReactor)
+            .Where(carrier => carrier.Position != _ownReactor
+                // Threefold: a Core whose socket is filled cannot bank now;
+                // its carrier stages instead of pressing the reactor.
+                && !(threefold && ownFilled.Contains(
+                    carried[carrier.ActorId].CoreId.SourceWellId)))
             .Select(carrier => (
                 Carrier: carrier,
                 Step: ArenaBasics.StaticFirstStep(
@@ -148,6 +167,32 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                 + $"{RoleCode(plan.Role)}-{TheaterCode(plan.Theater)}";
             body.SetRole(director.RoleTag(basePlan, normalRole));
 
+            if (threefold
+                && carried.TryGetValue(body.ActorId, out var heldCore)
+                && ownFilled.Contains(heldCore.CoreId.SourceWellId))
+            {
+                // Hold the duplicate where it serves: away from the enemy
+                // when they still need this origin (denial), beside our own
+                // reactor otherwise, ready for the socket reset. The anchor
+                // alternates so a staging carrier never reads as stuck.
+                bool deny = enemyNeeds.Contains(
+                    heldCore.CoreId.SourceWellId);
+                Position[] anchors = deny
+                    ? [Mirror(new Position(4, 7)), Mirror(new Position(4, 15))]
+                    : [Mirror(new Position(5, 9)), Mirror(new Position(5, 13))];
+                Position anchor = anchors[mind.Tick / 24 % 2];
+                if (body.Position == anchor)
+                {
+                    body.Hold("staging an unbankable Core for the socket reset");
+                }
+                else if (!ArenaBasics.TryMoveToward(
+                    contract, mind, body, [anchor], claims,
+                    "stage unbankable Core"))
+                {
+                    body.Hold("staging an unbankable Core (path blocked)");
+                }
+                continue;
+            }
             if (_catchHoldUntil.GetValueOrDefault(body.UnitId, -1) >= mind.Tick
                 && _catchHoldPosition.GetValueOrDefault(body.UnitId)
                     == body.Position)
