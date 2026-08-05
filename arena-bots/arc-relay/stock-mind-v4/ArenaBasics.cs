@@ -1200,6 +1200,29 @@ internal static class ArenaBasics
         blocked.UnionWith(mind.VisibleTiles
             .Where(tile => tile.SpawnReservation is not null)
             .Select(tile => tile.Position));
+        // Threefold: never walk onto a loose Core whose origin socket we
+        // already filled. Possession of an unbankable Core has no legal
+        // disposal and always ends in a felt-degeneracy bar; guarding the
+        // tile without pickup keeps the denial and the eligibility.
+        if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay
+                arcThreefold)
+        {
+            var ownFilled = arcThreefold.Reactors
+                .FirstOrDefault(reactor =>
+                    reactor.TeamId == moving.ActorId.TeamId)
+                ?.FilledSocketWellIds;
+            if (ownFilled is { IsEmpty: false } filledSockets)
+            {
+                blocked.UnionWith(arcThreefold.VisibleCores
+                    .Where(core => core.Disposition
+                            == GenericActorContext.ArcRelayCoreDisposition
+                                .Loose
+                        && filledSockets.Contains(
+                            core.CoreId.SourceWellId,
+                            StringComparer.Ordinal))
+                    .Select(core => core.Position));
+            }
+        }
 
         foreach (GenericActorContext.ObservedProjectile projectile
                  in avoidHostileProjectiles ? mind.VisibleProjectiles ?? [] : [])
