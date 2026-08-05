@@ -9,6 +9,10 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
 {
     private readonly Dictionary<int, CarrierMotion> _carrierMotion = [];
     private readonly CoordinatedAttackAllocator _attackAllocator = new();
+    private readonly Dictionary<int, int> _pendingInvest = [];
+    private readonly HashSet<string> _seenLevelEvents =
+        new(StringComparer.Ordinal);
+    private Position[] _healTiles = [];
     private readonly Dictionary<int, int> _catchHoldUntil = [];
     private readonly Dictionary<int, Position> _catchHoldPosition = [];
     private GenericActorResolvedMatchContract? _contract;
@@ -47,6 +51,11 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     StringComparison.Ordinal))
             .Tiles.OrderBy(value => value.Y).ThenBy(value => value.X).First();
         _mirror = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
+        _healTiles = start.Contract.Map.Regions
+            .Where(region => region.RegionId.StartsWith(
+                "heal-", StringComparison.Ordinal))
+            .SelectMany(region => region.Tiles)
+            .ToArray();
         _director = new StrategyDirector(
             _sheet,
             start.Contract,
@@ -155,6 +164,21 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         if (ownCarriers.Length > 0)
             carrierClearance.Add(_ownReactor);
 
+        // Veterancy: a level-up event queues one skill point; the body
+        // spends it (one-tick pause) the first tick no enemy is close.
+        foreach (GenericActorContext.ObservedEvent observed in
+                 mind.VisibleEvents)
+        {
+            if (observed.Payload is GenericActorContext.EventPayload.ArcRelay
+                    { Fact: GenericActorContext.ArcRelayEvent.LeveledUp level }
+                && level.ActorId.TeamId == _teamId
+                && _seenLevelEvents.Add(observed.EventHandle))
+            {
+                _pendingInvest[level.ActorId.UnitId] =
+                    _pendingInvest.GetValueOrDefault(level.ActorId.UnitId) + 1;
+            }
+        }
+
         foreach (MindBody body in mind.Bodies
                      .OrderByDescending(candidate =>
                          carried.ContainsKey(candidate.ActorId))
@@ -163,6 +187,53 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         {
             UnitPlan basePlan = basePlans[body.UnitId];
             UnitPlan plan = plans[body.UnitId];
+            if (_pendingInvest.GetValueOrDefault(body.UnitId) > 0
+                && !carried.ContainsKey(body.ActorId)
+                && mind.Enemies.All(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) > 5)
+                && body.Action(ArenaBasics.InvestActionId)
+                    is { Available: true } investAction)
+            {
+                _pendingInvest[body.UnitId]--;
+                body.Command(
+                    investAction.ActionId,
+                    investAction.ActionCode,
+                    [
+                        new GenericActorActionArgument.UpgradeTrackArgument(
+                            ArenaBasics.DefaultBuildTrack(body.FormId)),
+                    ],
+                    "veterancy: spending a skill point");
+                continue;
+            }
+
+            // Heal zones: a wounded, unpressured, hands-free body channels
+            // on the nearest midline heal tile instead of fighting on at a
+            // deficit. The tiles are deliberately contested ground, so the
+            // enemy-distance guard is what prices the visit.
+            if (_healTiles.Length > 0
+                && body.Health <= 2
+                && !carried.ContainsKey(body.ActorId)
+                && mind.Enemies.All(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) > 6))
+            {
+                Position healTile = _healTiles
+                    .OrderBy(tile => tile.ChebyshevDistance(body.Position))
+                    .First();
+                if (body.Position.ChebyshevDistance(healTile) <= 8)
+                {
+                    if (body.Position == healTile)
+                    {
+                        body.Hold("channeling on the heal tile");
+                        continue;
+                    }
+                    if (ArenaBasics.TryMoveToward(
+                            contract, mind, body, [healTile], claims,
+                            "walking to a heal tile"))
+                    {
+                        continue;
+                    }
+                }
+            }
             string normalRole = $"a-{StrategyCode(_strategy)}-"
                 + $"{RoleCode(plan.Role)}-{TheaterCode(plan.Theater)}";
             body.SetRole(director.RoleTag(basePlan, normalRole));

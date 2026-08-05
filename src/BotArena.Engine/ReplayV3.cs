@@ -764,6 +764,17 @@ internal sealed record ReplayV3(
             PositionValue Position,
             int Value) : ArcRelayFact("core-ripened");
 
+        internal sealed record LeveledUp(
+            ActorId ActorId,
+            int Level,
+            PositionValue Position) : ArcRelayFact("leveled-up");
+
+        internal sealed record ZoneHealed(
+            ActorId ActorId,
+            int Amount,
+            int NewHealth,
+            PositionValue Position) : ArcRelayFact("zone-healed");
+
         internal sealed record CorePickedUp(
             ArcCoreId CoreId,
             ActorId CarrierActorId,

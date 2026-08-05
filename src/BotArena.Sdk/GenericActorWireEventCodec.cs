@@ -559,6 +559,19 @@ internal static class GenericActorWireEventCodec
                 writer.Field(3, GenericActorWireCodecValues.EncodePosition(fact.Position));
                 writer.Field(4, ActorWireValue.Int32(fact.Value));
                 break;
+            case GenericActorContext.ArcRelayEvent.LeveledUp fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("leveled-up"));
+                writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
+                writer.Field(3, ActorWireValue.Int32(fact.Level));
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                break;
+            case GenericActorContext.ArcRelayEvent.ZoneHealed fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("zone-healed"));
+                writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
+                writer.Field(3, ActorWireValue.Int32(fact.Amount));
+                writer.Field(4, ActorWireValue.Int32(fact.NewHealth));
+                writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                break;
             case GenericActorContext.ArcRelayEvent.CorePickedUp fact:
                 writer.Field(1, GenericActorWireCodecValues.SemanticId("core-picked-up"));
                 writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
@@ -684,6 +697,21 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireCodecValues.DecodePosition(
                             reader.Required(3), depth + 1),
                         GenericActorWireCodecValues.Int32(reader, 4)),
+                "leveled-up" =>
+                    new GenericActorContext.ArcRelayEvent.LeveledUp(
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 3),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(4), depth + 1)),
+                "zone-healed" =>
+                    new GenericActorContext.ArcRelayEvent.ZoneHealed(
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 3),
+                        GenericActorWireCodecValues.Int32(reader, 4),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(5), depth + 1)),
                 "core-picked-up" =>
                     new GenericActorContext.ArcRelayEvent.CorePickedUp(
                         GenericActorWireObservationCodec.DecodeArcCoreId(

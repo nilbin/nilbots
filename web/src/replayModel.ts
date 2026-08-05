@@ -1410,6 +1410,19 @@ export type ReplayArcRelayFact =
       value: number;
     }
   | {
+      kind: 'leveled-up';
+      actor: ReplayActorIdentity;
+      level: number;
+      position: ReplayPosition;
+    }
+  | {
+      kind: 'zone-healed';
+      actor: ReplayActorIdentity;
+      amount: number;
+      newHealth: number;
+      position: ReplayPosition;
+    }
+  | {
       kind: 'core-picked-up';
       coreId: ReplayArcCoreId;
       carrierActor: ReplayActorIdentity;

@@ -1075,6 +1075,17 @@ internal static class ReplayV3Projection
                     ArcCoreId(fact.CoreId),
                     Position(fact.Position),
                     fact.Value),
+            ArcRelayEvent.LeveledUp fact =>
+                new ReplayV3.ArcRelayFact.LeveledUp(
+                    ActorId(fact.ActorId),
+                    fact.Level,
+                    Position(fact.Position)),
+            ArcRelayEvent.ZoneHealed fact =>
+                new ReplayV3.ArcRelayFact.ZoneHealed(
+                    ActorId(fact.ActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
             ArcRelayEvent.CorePickedUp fact =>
                 new ReplayV3.ArcRelayFact.CorePickedUp(
                     ArcCoreId(fact.CoreId),

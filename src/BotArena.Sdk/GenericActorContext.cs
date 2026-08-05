@@ -2851,6 +2851,17 @@ public sealed record GenericActorContext
             ArcRelayCoreId CoreId,
             Position Position,
             int Value) : ArcRelayEvent;
+        /// <summary>A body's kill earned it a veterancy level.</summary>
+        public sealed record LeveledUp(
+            ActorIdentity ActorId,
+            int Level,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A body channeled a point of health on a heal tile.</summary>
+        public sealed record ZoneHealed(
+            ActorIdentity ActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
         /// <summary>A body acquired a loose Core.</summary>
         public sealed record CorePickedUp(
             ArcRelayCoreId CoreId,

@@ -169,6 +169,81 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void VeterancyMintsBesideTheSerpentineArmWithItsOwnMapAndRules()
+    {
+        // -05 changes BOTH rules (veterancy, heal zones) and map (heal
+        // regions); -04 re-derives byte-identically beside it.
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren4)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren5)));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren4).Map),
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren5).Map));
+        string json = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren5));
+        Assert.Contains("\"veterancyXpPerLevel\":2", json);
+        Assert.Contains("\"veterancyMaxLevel\":3", json);
+        Assert.Contains("\"healZoneTicksPerHp\":3", json);
+        Assert.Contains("\"invest\"", json);
+        string priorJson = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren4));
+        Assert.DoesNotContain("veterancy", priorJson);
+        Assert.DoesNotContain("healZone", priorJson);
+    }
+
+    [Fact]
+    public void KillsLevelTheKillerAndPointsSpendIntoTracks()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.AmbushWarren5),
+            matchSeed: 0);
+        var killer = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+        var victimOne = ActorIdentity.FromTeamUnitLife(1, 0, 0);
+        var victimTwo = ActorIdentity.FromTeamUnitLife(1, 1, 0);
+
+        // First kill: 1 XP - below the 2-XP threshold, still level 1.
+        driver.HandleDestructions(10,
+            [new FrontlineScrapDestruction(
+                victimOne, new Position(10, 10), killer)]);
+        Assert.Equal(1, driver.VeterancyLevel(killer));
+        Assert.False(driver.TryInvest(11, killer, "damage"));
+
+        // Second kill: reaches 2 XP - level 2, one point to spend.
+        var events = driver.HandleDestructions(12,
+            [new FrontlineScrapDestruction(
+                victimTwo, new Position(10, 11), killer)]);
+        Assert.Equal(2, driver.VeterancyLevel(killer));
+        Assert.Contains(events, value =>
+            value.Payload is GenericActorRuntimeObservation.EventPayload
+                .ArcRelay { Fact: ArcRelayEvent.LeveledUp { Level: 2 } });
+        Assert.True(driver.TryInvest(13, killer, "damage"));
+        Assert.Equal(1, driver.VeterancyDamagePoints(killer));
+        // The point is spent: a second invest is refused.
+        Assert.False(driver.TryInvest(14, killer, "vision"));
+
+        // Killing the level-2 killer pays the bounty: 1 + 1 XP at once.
+        var avenger = ActorIdentity.FromTeamUnitLife(1, 2, 0);
+        driver.HandleDestructions(20,
+            [new FrontlineScrapDestruction(
+                killer, new Position(11, 11), avenger)]);
+        Assert.Equal(2, driver.VeterancyLevel(avenger));
+        // And the dead killer's progression is gone with its life.
+        Assert.Equal(1, driver.VeterancyLevel(killer));
+        Assert.Equal(0, driver.VeterancyDamagePoints(killer));
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(

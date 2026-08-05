@@ -122,6 +122,8 @@ public sealed class GenericActorMatchSession : IDisposable
     /// </summary>
     private readonly Dictionary<ActorIdentity, string> _roleTags = [];
     private readonly HashSet<ActorIdentity> _arcSignatureDamagedThisTick = [];
+    private readonly Dictionary<ActorIdentity, int> _arcHealChannel = [];
+    private ImmutableHashSet<Position>? _arcHealTiles;
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
     private ImmutableDictionary<ActorIdentity, Position>
@@ -1769,6 +1771,71 @@ public sealed class GenericActorMatchSession : IDisposable
             }
             EmitModeEvent(modeEvent!, events);
         }
+        ApplyArcRelayZoneHealing(arcRelay, resolutions, events);
+    }
+
+    /// <summary>
+    /// Heal zones (owner direction 2026-08-05): a body that successfully
+    /// Waits on a heal-region tile channels 1 health per
+    /// <c>HealZoneTicksPerHp</c> consecutive waiting ticks, up to its
+    /// effective maximum — which the veterancy vitality track can raise, so
+    /// bought health becomes recoverable rather than spawn-only. Any other
+    /// action, or leaving the tile, resets the channel.
+    /// </summary>
+    private void ApplyArcRelayZoneHealing(
+        ArcRelayActorMatchModeDriver arcRelay,
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        int ticksPerHp = arcRelay.GameMode.HealZoneTicksPerHp;
+        if (ticksPerHp <= 0)
+            return;
+        _arcHealTiles ??= _definition.Map.Regions
+            .Where(region => region.RegionId.StartsWith(
+                "heal-", StringComparison.Ordinal))
+            .SelectMany(region => region.Tiles)
+            .ToImmutableHashSet();
+        foreach (LifeState life in _lives.Values
+                     .OrderBy(value => value.ActorId)
+                     .ToArray())
+        {
+            bool channeling = life.Health > 0
+                && _arcHealTiles.Contains(life.Position)
+                && resolutions.TryGetValue(
+                    life.ActorId, out ActionState? resolution)
+                && resolution.Outcome
+                    == GenericActorRuntimeActionResolution.ActionOutcome
+                        .Success
+                && _actions[resolution.ValidatedAction.ActionId].Kind
+                    == ActorActionKind.Wait;
+            if (!channeling)
+            {
+                _arcHealChannel.Remove(life.ActorId);
+                continue;
+            }
+            int progress = _arcHealChannel.GetValueOrDefault(life.ActorId) + 1;
+            if (progress >= ticksPerHp)
+            {
+                progress = 0;
+                int maximum = EffectiveMaxHealth(
+                    life.FormId,
+                    life.ActorId.TeamId,
+                    life.ActorId.UnitId);
+                if (life.Health < maximum)
+                {
+                    life.Health++;
+                    EmitModeEvent(new GenericActorModeEvent(
+                        new GenericActorRuntimeObservation.EventPayload
+                            .ArcRelay(new ArcRelayEvent.ZoneHealed(
+                                life.ActorId,
+                                1,
+                                life.Health,
+                                life.Position)),
+                        life.Position), events);
+                }
+            }
+            _arcHealChannel[life.ActorId] = progress;
+        }
     }
 
     private void ResolveArcRelaySignatureActions(
@@ -3145,6 +3212,13 @@ public sealed class GenericActorMatchSession : IDisposable
         int damage = projectile.Profile.Projectile.DamagePerHit;
         if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
             return damage;
+        // Veterancy damage points add before the rear multiplier, capped so
+        // the leveled base never exceeds 3 (owner rule against front-arc
+        // one-shots at max health 5).
+        int damagePoints = arcRelay.VeterancyDamagePoints(
+            projectile.OwnerActorId);
+        if (damagePoints > 0)
+            damage += Math.Min(damagePoints, Math.Max(0, 3 - damage));
         int rearMultiplier = arcRelay.GameMode.RearArcDamageMultiplier;
         if (rearMultiplier > 1)
         {
@@ -3353,7 +3427,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 continue;
             destroyed.Add(new FrontlineScrapDestruction(
                 life.ActorId,
-                life.Position));
+                life.Position,
+                life.DestructionCause?.SourceActorId));
             CancelSourceSplit(life.ActorId, "source-destroyed", events);
             _host.RetireLife(life.ActorId);
             _lives.Remove(life.ActorId);

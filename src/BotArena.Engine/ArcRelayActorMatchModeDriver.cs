@@ -15,8 +15,25 @@ internal sealed class ArcRelayActorMatchModeDriver
 
     private readonly ActorResolvedMatchDefinition _definition;
     private readonly ArcRelayGameModeDefinition _gameMode;
+    private readonly Dictionary<ActorIdentity, VeterancyState> _veterancy = [];
 
     internal ArcRelayGameModeDefinition GameMode => _gameMode;
+
+    /// <summary>
+    /// One life's earned progression. Keyed by the full life identity, so
+    /// death resets it by construction: a respawn is a new life.
+    /// </summary>
+    private sealed class VeterancyState
+    {
+        public int Xp { get; set; }
+        public int Level { get; set; } = 1;
+        public int SpentPoints { get; set; }
+        public int DamagePoints { get; set; }
+        public int VisionPoints { get; set; }
+        public int ReachPoints { get; set; }
+        public int VitalityPoints { get; set; }
+        public int UnspentPoints => Level - 1 - SpentPoints;
+    }
     private readonly PublicMatchTopology _topology;
     private readonly ImmutableArray<WellRuntime> _wells;
     private readonly Dictionary<string, WellRuntime> _wellsById;
@@ -383,6 +400,41 @@ internal sealed class ArcRelayActorMatchModeDriver
     {
         _currentTick = tick;
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        if (_gameMode.VeterancyXpPerLevel > 0)
+        {
+            HashSet<ActorIdentity> dying = destructions
+                .Select(value => value.ActorId)
+                .ToHashSet();
+            foreach (FrontlineScrapDestruction destruction in destructions
+                         .OrderBy(value => value.ActorId))
+            {
+                int victimLevel = VeterancyLevel(destruction.ActorId);
+                _veterancy.Remove(destruction.ActorId);
+                if (destruction.SourceActorId is not { } killer
+                    || killer.TeamId == destruction.ActorId.TeamId
+                    || dying.Contains(killer))
+                {
+                    continue;
+                }
+                if (!_veterancy.TryGetValue(killer, out VeterancyState? state))
+                    _veterancy[killer] = state = new VeterancyState();
+                // The bounty: a higher-level victim pays its level above 1
+                // on top of the base kill XP.
+                state.Xp += 1 + Math.Max(0, victimLevel - 1);
+                while (state.Level < _gameMode.VeterancyMaxLevel
+                       && state.Xp >= _gameMode.VeterancyXpPerLevel)
+                {
+                    state.Xp -= _gameMode.VeterancyXpPerLevel;
+                    state.Level++;
+                    events.Add(Spatial(
+                        new ArcRelayEvent.LeveledUp(
+                            killer,
+                            state.Level,
+                            destruction.Position),
+                        destruction.Position));
+                }
+            }
+        }
         foreach (FrontlineScrapDestruction destruction in destructions)
         {
             CoreRuntime? core = _cores.Values.SingleOrDefault(value =>
@@ -576,10 +628,60 @@ internal sealed class ArcRelayActorMatchModeDriver
             ProjectState());
     }
 
-    public IReadOnlyList<string> InvestableTracks(int teamId) => [];
-    public bool TryInvest(int tick, ActorIdentity actor, string trackId) => false;
+    private static readonly string[] VeterancyTracks =
+        ["damage", "vision", "reach", "vitality"];
+
+    public IReadOnlyList<string> InvestableTracks(int teamId) =>
+        _gameMode.VeterancyXpPerLevel > 0 ? VeterancyTracks : [];
+
+    public bool TryInvest(int tick, ActorIdentity actor, string trackId)
+    {
+        if (_gameMode.VeterancyXpPerLevel == 0
+            || !_veterancy.TryGetValue(actor, out VeterancyState? state)
+            || state.UnspentPoints <= 0)
+        {
+            return false;
+        }
+        switch (trackId)
+        {
+            case "damage":
+                state.DamagePoints++;
+                break;
+            case "vision":
+                state.VisionPoints++;
+                break;
+            case "reach":
+                state.ReachPoints++;
+                break;
+            case "vitality":
+                state.VitalityPoints++;
+                break;
+            default:
+                return false;
+        }
+        state.SpentPoints++;
+        return true;
+    }
+
     public GenericActorModeStatModifiers StatModifiersFor(ActorIdentity actor) =>
-        GenericActorModeStatModifiers.None;
+        _gameMode.VeterancyXpPerLevel > 0
+        && _veterancy.TryGetValue(actor, out VeterancyState? state)
+            ? new GenericActorModeStatModifiers(
+                state.ReachPoints,
+                state.VisionPoints,
+                state.VitalityPoints)
+            : GenericActorModeStatModifiers.None;
+
+    /// <summary>Skill points this life has put into damage.</summary>
+    internal int VeterancyDamagePoints(ActorIdentity actor) =>
+        _veterancy.TryGetValue(actor, out VeterancyState? state)
+            ? state.DamagePoints
+            : 0;
+
+    internal int VeterancyLevel(ActorIdentity actor) =>
+        _veterancy.TryGetValue(actor, out VeterancyState? state)
+            ? state.Level
+            : 1;
 
     private void Birth(
         WellRuntime well,

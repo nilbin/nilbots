@@ -19,6 +19,17 @@ public abstract record ArcRelayEvent
         Position Position,
         int Value) : ArcRelayEvent;
 
+    public sealed record LeveledUp(
+        ActorIdentity ActorId,
+        int Level,
+        Position Position) : ArcRelayEvent;
+
+    public sealed record ZoneHealed(
+        ActorIdentity ActorId,
+        int Amount,
+        int NewHealth,
+        Position Position) : ArcRelayEvent;
+
     public sealed record CorePickedUp(
         ArcRelayCoreId CoreId,
         ActorIdentity CarrierActorId,

@@ -291,6 +291,18 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber(
                 "rearArcDamageMultiplier", mode.RearArcDamageMultiplier);
         }
+        // Written only when veterancy is active.
+        if (mode.VeterancyXpPerLevel != 0)
+        {
+            writer.WriteNumber(
+                "veterancyXpPerLevel", mode.VeterancyXpPerLevel);
+            writer.WriteNumber("veterancyMaxLevel", mode.VeterancyMaxLevel);
+        }
+        if (mode.HealZoneTicksPerHp != 0)
+        {
+            writer.WriteNumber(
+                "healZoneTicksPerHp", mode.HealZoneTicksPerHp);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

@@ -28,6 +28,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// <summary>Live bait Cores by key, owned by their custody id.</summary>
     private readonly Dictionary<string, string> _baitCores =
         new(StringComparer.Ordinal);
+    /// <summary>Unspent veterancy points queued per own unit.</summary>
+    private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -339,6 +341,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             }
 
+            // Veterancy: spend a queued skill point the first quiet tick.
+            if (_pendingInvest.GetValueOrDefault(body.UnitId) > 0
+                && !carried.ContainsKey(body.ActorId)
+                && mind.Enemies.All(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) > 5)
+                && body.Action("invest") is { Available: true } investAction)
+            {
+                _pendingInvest[body.UnitId]--;
+                body.Command(
+                    investAction.ActionId,
+                    investAction.ActionCode,
+                    [
+                        new GenericActorActionArgument.UpgradeTrackArgument(
+                            DefaultBuildTrack(roles[body.UnitId])),
+                    ],
+                    Provenance(machine, group, order, "veterancy-invest"));
+                continue;
+            }
+
             bool acted = false;
             foreach (string channel in package.Source.Arbitration.Channels)
             {
@@ -526,6 +547,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             switch (mode.Fact)
             {
+                case GenericActorContext.ArcRelayEvent.LeveledUp level
+                    when level.ActorId.TeamId == _teamId:
+                    _pendingInvest[level.ActorId.UnitId] =
+                        _pendingInvest.GetValueOrDefault(
+                            level.ActorId.UnitId) + 1;
+                    break;
                 case GenericActorContext.ArcRelayEvent.CoreDropped drop:
                     _emergencyRecoveries.Remove(CoreKey(drop.CoreId));
                     if (drop.SourceActorId.TeamId != _teamId)
@@ -3915,6 +3942,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position target) => body.Position.ChebyshevDistance(target) >= 3
         && ArenaBasics.TryHeadingSignature(
             contract, body, "vector-dash", target, "movement:vector-dash");
+
+    /// <summary>
+    /// Role-keyed default build under veterancy rules: sharpshooters buy
+    /// damage, eyes buy vision, everyone else buys vitality (which heal
+    /// zones make recoverable).
+    /// </summary>
+    private static string DefaultBuildTrack(string roleId) => roleId switch
+    {
+        "sharp" or "hook" => "damage",
+        "eyes" => "vision",
+        _ => "vitality",
+    };
 
     private static bool TryFaceTarget(
         GenericActorResolvedMatchContract contract,

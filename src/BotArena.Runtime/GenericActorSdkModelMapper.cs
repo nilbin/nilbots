@@ -556,6 +556,17 @@ internal static class GenericActorSdkModelMapper
                     ToSdk(fact.CoreId),
                     ToSdk(fact.Position),
                     fact.Value),
+            ArcRelayEvent.LeveledUp fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.LeveledUp(
+                    ToSdk(fact.ActorId),
+                    fact.Level,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.ZoneHealed fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.ZoneHealed(
+                    ToSdk(fact.ActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
             ArcRelayEvent.CorePickedUp fact =>
                 new Sdk.GenericActorContext.ArcRelayEvent.CorePickedUp(
                     ToSdk(fact.CoreId),

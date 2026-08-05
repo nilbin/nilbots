@@ -2004,6 +2004,21 @@ internal static class ReplayV3Serializer
                 WritePosition(writer, fact.Position);
                 writer.WriteNumber("value", fact.Value);
                 break;
+            case ReplayV3.ArcRelayFact.LeveledUp fact:
+                writer.WritePropertyName("actorId");
+                WriteActorId(writer, fact.ActorId);
+                writer.WriteNumber("level", fact.Level);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.ZoneHealed fact:
+                writer.WritePropertyName("actorId");
+                WriteActorId(writer, fact.ActorId);
+                writer.WriteNumber("amount", fact.Amount);
+                writer.WriteNumber("newHealth", fact.NewHealth);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
             case ReplayV3.ArcRelayFact.CorePickedUp fact:
                 WriteArcCoreId(writer, "coreId", fact.CoreId);
                 writer.WritePropertyName("carrierActorId");
@@ -7829,6 +7844,10 @@ internal static class ReplayV3Serializer
             ReplayV3.ArcRelayFact.CoreRipened value =>
                 InvalidCoreId(value.CoreId)
                 || value.Value < 2,
+            ReplayV3.ArcRelayFact.LeveledUp value =>
+                value.Level < 2,
+            ReplayV3.ArcRelayFact.ZoneHealed value =>
+                value.Amount < 1 || value.NewHealth < 1,
             ReplayV3.ArcRelayFact.CorePickedUp value =>
                 InvalidCoreId(value.CoreId)
                 || value.NextRelocationTick < 0,
@@ -8628,6 +8647,10 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.ArcRelayFact.CoreBorn),
                     ["core-ripened"] =
                         typeof(ReplayV3.ArcRelayFact.CoreRipened),
+                    ["leveled-up"] =
+                        typeof(ReplayV3.ArcRelayFact.LeveledUp),
+                    ["zone-healed"] =
+                        typeof(ReplayV3.ArcRelayFact.ZoneHealed),
                     ["core-picked-up"] =
                         typeof(ReplayV3.ArcRelayFact.CorePickedUp),
                     ["core-relocated"] =

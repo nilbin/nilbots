@@ -25,4 +25,5 @@ public sealed record FrontlineScrapBody(
 /// <param name="Position">Its death tile.</param>
 public sealed record FrontlineScrapDestruction(
     ActorIdentity ActorId,
-    Position Position);
+    Position Position,
+    ActorIdentity? SourceActorId = null);

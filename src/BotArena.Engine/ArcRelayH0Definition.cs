@@ -159,6 +159,13 @@ public static class ArcRelayH0Definition
             rows,
             anchors.ToImmutable(),
             [
+                .. loopProfile.HealZoneTicksPerHp > 0
+                    ? new[]
+                    {
+                        Region("heal-north", new Position(centreX, 8)),
+                        Region("heal-south", new Position(centreX, 14)),
+                    }
+                    : System.Array.Empty<ActorMapRegionDefinition>(),
                 Region("well-north", new Position(centreX, northY)),
                 Region("well-centre", new Position(centreX, centreY)),
                 Region("well-south", new Position(centreX, southY)),
@@ -257,6 +264,14 @@ public static class ArcRelayH0Definition
                 ActorActionKind.Objective,
                 [ActorActionParameterKind.UnitTarget]),
         ];
+        if (loopProfile.VeterancyXpPerLevel > 0)
+        {
+            actions.Add(new ActorActionDefinition(
+                ArcRelayActionIds.Invest,
+                ArcRelayActionIds.InvestCode,
+                ActorActionKind.ModeInvestment,
+                [ActorActionParameterKind.UpgradeTrack]));
+        }
         if (loopProfile.DirectionalCombat)
         {
             actions.Add(new ActorActionDefinition(
@@ -400,7 +415,10 @@ public static class ArcRelayH0Definition
             ripenIntervalTicks: loopProfile.RipenIntervalTicks,
             ripenMaxValue: loopProfile.RipenMaxValue,
             ripenResumeTicks: loopProfile.RipenResumeTicks,
-            rearArcDamageMultiplier: loopProfile.RearArcDamageMultiplier);
+            rearArcDamageMultiplier: loopProfile.RearArcDamageMultiplier,
+            veterancyXpPerLevel: loopProfile.VeterancyXpPerLevel,
+            veterancyMaxLevel: loopProfile.VeterancyMaxLevel,
+            healZoneTicksPerHp: loopProfile.HealZoneTicksPerHp);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms
@@ -592,6 +610,8 @@ public static class ArcRelayH0Definition
         yield return ShootActionId;
         yield return ArcRelayActionIds.DropCore;
         yield return ArcRelayActionIds.HandoffCore;
+        if (loopProfile.VeterancyXpPerLevel > 0)
+            yield return ArcRelayActionIds.Invest;
         yield return entry.Signature.ActionId;
     }
 

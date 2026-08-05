@@ -27,7 +27,10 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int ripenIntervalTicks = 0,
         int ripenMaxValue = 0,
         int ripenResumeTicks = 0,
-        int rearArcDamageMultiplier = 1)
+        int rearArcDamageMultiplier = 1,
+        int veterancyXpPerLevel = 0,
+        int veterancyMaxLevel = 0,
+        int healZoneTicksPerHp = 0)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -60,6 +63,18 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
             throw new ArgumentOutOfRangeException(
                 nameof(rearArcDamageMultiplier));
         RearArcDamageMultiplier = rearArcDamageMultiplier;
+        if (veterancyXpPerLevel < 0 || healZoneTicksPerHp < 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(veterancyXpPerLevel));
+        if (veterancyXpPerLevel > 0 && veterancyMaxLevel < 2)
+        {
+            throw new ArgumentException(
+                "Veterancy needs a maximum level of at least 2.",
+                nameof(veterancyMaxLevel));
+        }
+        VeterancyXpPerLevel = veterancyXpPerLevel;
+        VeterancyMaxLevel = veterancyMaxLevel;
+        HealZoneTicksPerHp = healZoneTicksPerHp;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -208,6 +223,27 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// canonically written only when not 1.
     /// </summary>
     public int RearArcDamageMultiplier { get; }
+
+    /// <summary>
+    /// Veterancy (owner direction 2026-08-05): bodies start at level 1 and
+    /// earn XP per kill (1 plus the victim's level above 1); each
+    /// <see cref="VeterancyXpPerLevel"/> XP grants a level up to
+    /// <see cref="VeterancyMaxLevel"/>, each level past 1 grants one skill
+    /// point spent via the invest action (damage/vision/reach/vitality),
+    /// and death resets everything with the life. 0 disables; fields are
+    /// canonically written only when active.
+    /// </summary>
+    public int VeterancyXpPerLevel { get; }
+    public int VeterancyMaxLevel { get; }
+
+    /// <summary>
+    /// Heal zones (owner direction 2026-08-05): a body that Waits on a tile
+    /// of a map region whose id starts with <c>heal-</c> recovers 1 health
+    /// per this many consecutive waiting ticks, up to its effective maximum
+    /// (which the vitality track can raise). 0 disables; canonically
+    /// written only when active.
+    /// </summary>
+    public int HealZoneTicksPerHp { get; }
 
     public override bool AlternatingResolutionOrder =>
         _alternatingResolutionOrder;

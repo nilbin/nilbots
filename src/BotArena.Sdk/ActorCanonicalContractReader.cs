@@ -745,6 +745,10 @@ public static class ActorCanonicalContractReader
             "ripenIntervalTicks", out _);
         bool hasRearArc = element.TryGetProperty(
             "rearArcDamageMultiplier", out _);
+        bool hasVeterancy = element.TryGetProperty(
+            "veterancyXpPerLevel", out _);
+        bool hasHealZones = element.TryGetProperty(
+            "healZoneTicksPerHp", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -775,6 +779,12 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasRearArc
                 ? new[] { "rearArcDamageMultiplier" }
+                : System.Array.Empty<string>(),
+            .. hasVeterancy
+                ? new[] { "veterancyXpPerLevel", "veterancyMaxLevel" }
+                : System.Array.Empty<string>(),
+            .. hasHealZones
+                ? new[] { "healZoneTicksPerHp" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -824,6 +834,15 @@ public static class ActorCanonicalContractReader
             RearArcDamageMultiplier = hasRearArc
                 ? Int(element, "rearArcDamageMultiplier")
                 : 1,
+            VeterancyXpPerLevel = hasVeterancy
+                ? Int(element, "veterancyXpPerLevel")
+                : 0,
+            VeterancyMaxLevel = hasVeterancy
+                ? Int(element, "veterancyMaxLevel")
+                : 0,
+            HealZoneTicksPerHp = hasHealZones
+                ? Int(element, "healZoneTicksPerHp")
+                : 0,
         };
     }
 

@@ -51,6 +51,22 @@ internal static class ArenaBasics
         GenericActorResolvedMatchContract contract) =>
         contract.Rules.GameMode as GenericActorRulesContract.ArcRelayGameMode;
 
+    public const string InvestActionId = "invest";
+
+    /// <summary>
+    /// Class-keyed default build under veterancy rules: gun-forward chassis
+    /// sharpen damage, sensor chassis extend vision, everything else buys
+    /// vitality (which heal zones make recoverable).
+    /// </summary>
+    public static string DefaultBuildTrack(string formId) => formId switch
+    {
+        "arc-body-longshot" or "arc-body-mortar" or "arc-body-sunder"
+            or "arc-body-kestrel" or "arc-body-switchback" => "damage",
+        "arc-body-veil" or "arc-body-nest" or "arc-body-lantern"
+            or "arc-body-hush" => "vision",
+        _ => "vitality",
+    };
+
     /// <summary>
     /// 0 when the nearest shooter's 8-way heading toward the target lands in
     /// the target's blind rear quadrant (a backstab under predation rules),

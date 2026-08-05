@@ -8527,6 +8527,21 @@ function arcRelayFactFromV3(
         position: copyPosition(fact.position),
         value: fact.value,
       };
+    case 'leveled-up':
+      return {
+        kind: fact.kind,
+        actor: identity(fact.actorId),
+        level: fact.level,
+        position: copyPosition(fact.position),
+      };
+    case 'zone-healed':
+      return {
+        kind: fact.kind,
+        actor: identity(fact.actorId),
+        amount: fact.amount,
+        newHealth: fact.newHealth,
+        position: copyPosition(fact.position),
+      };
     case 'core-picked-up':
       return {
         kind: fact.kind,

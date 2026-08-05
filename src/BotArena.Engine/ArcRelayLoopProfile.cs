@@ -27,10 +27,16 @@ public sealed record ArcRelayLoopProfile
         int ripenMaxValue = 0,
         int ripenResumeTicks = 0,
         int rearArcDamageMultiplier = 1,
-        int omniProximityRange = 1)
+        int omniProximityRange = 1,
+        int veterancyXpPerLevel = 0,
+        int veterancyMaxLevel = 0,
+        int healZoneTicksPerHp = 0)
     {
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
+        VeterancyXpPerLevel = veterancyXpPerLevel;
+        VeterancyMaxLevel = veterancyMaxLevel;
+        HealZoneTicksPerHp = healZoneTicksPerHp;
         SignatureGrammarVersion = signatureGrammarVersion;
         WellBirthJitterTicks = wellBirthJitterTicks;
         AlternatingResolutionOrder = alternatingResolutionOrder;
@@ -71,6 +77,9 @@ public sealed record ArcRelayLoopProfile
     internal int RipenResumeTicks { get; }
     internal int RearArcDamageMultiplier { get; }
     internal int OmniProximityRange { get; }
+    internal int VeterancyXpPerLevel { get; }
+    internal int VeterancyMaxLevel { get; }
+    internal int HealZoneTicksPerHp { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -389,6 +398,33 @@ public sealed record ArcRelayLoopProfile
         omniProximityRange: 0);
 
     /// <summary>
+    /// Veterancy and heal zones (owner direction 2026-08-05) on the
+    /// serpentine predation world: bodies start at level 1, earn XP per
+    /// kill with a bounty for high-level victims, allocate skill points via
+    /// the invest action (damage / vision / reach / vitality), lose it all
+    /// on death, and can channel 1 health per 3 waited ticks on the
+    /// contested midline heal tiles. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren5 { get; } = new(
+        "ambush-warren-5",
+        "arc-relay-ambush-05",
+        "arc-relay-ambush-warren-04",
+        ArcRelayMapGeometry.AmbushWarrenSerpentine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 3,
+        healZoneTicksPerHp: 3);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -454,6 +490,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren2,
         AmbushWarren3,
         AmbushWarren4,
+        AmbushWarren5,
         Return16,
         Return24,
         Hot60,

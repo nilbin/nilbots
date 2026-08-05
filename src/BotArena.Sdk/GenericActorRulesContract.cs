@@ -338,6 +338,22 @@ public sealed class GenericActorRulesContract
         /// the victim's rear quadrant (1 historically).
         /// </summary>
         public int RearArcDamageMultiplier { get; init; } = 1;
+
+        /// <summary>
+        /// Veterancy: XP per level (0 disables), kill XP is 1 plus the
+        /// victim's level above 1, levels cap at
+        /// <see cref="VeterancyMaxLevel"/>, each level past 1 grants a
+        /// skill point spent via the invest action, and death resets all
+        /// of it.
+        /// </summary>
+        public int VeterancyXpPerLevel { get; init; }
+        public int VeterancyMaxLevel { get; init; }
+
+        /// <summary>
+        /// Heal zones: Waiting on a heal-region tile recovers 1 health per
+        /// this many consecutive ticks (0 disables).
+        /// </summary>
+        public int HealZoneTicksPerHp { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

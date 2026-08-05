@@ -1104,6 +1104,8 @@ export type ReplayV3EventPayload =
 export type ReplayV3ArcRelayFact =
   | (ReplayV3JsonObject & { kind: 'core-born'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; chargeValue?: number })
   | (ReplayV3JsonObject & { kind: 'core-ripened'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; value: number })
+  | (ReplayV3JsonObject & { kind: 'leveled-up'; actorId: ReplayV3ActorId; level: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'zone-healed'; actorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
   | (ReplayV3JsonObject & { kind: 'core-picked-up'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
   | (ReplayV3JsonObject & { kind: 'core-relocated'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId | null; from: ReplayV3Position; to: ReplayV3Position; nextRelocationTick: number; relocationKind: string })
   | (ReplayV3JsonObject & { kind: 'core-handed-off'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
