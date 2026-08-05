@@ -487,7 +487,7 @@ internal sealed class StrategyDirector
             }
         }
         return goals
-            .Select(goal => NearestOpen(goal.Offset(_mirror ? -dx : dx, dy)))
+            .Select(goal => NearestOpen(goal.Offset(_mirror ? -dx : dx, _mirror ? -dy : dy)))
             .Distinct()
             .ToArray();
     }
@@ -1133,7 +1133,9 @@ internal sealed class StrategyDirector
     };
 
     private Position Mirror(Position position) => _mirror
-        ? new Position(_contract.Map.Width - 1 - position.X, position.Y)
+        ? new Position(
+            _contract.Map.Width - 1 - position.X,
+            _contract.Map.Height - 1 - position.Y)
         : position;
 
     private Position Unmirror(Position position) => Mirror(position);

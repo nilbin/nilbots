@@ -362,10 +362,18 @@ public sealed record FrontlineScrapEconomyDefinition
     public static int HeadroomOn(
         GameModeDefinition gameMode,
         UpgradeEffectKind effect) =>
-        gameMode is FrontlineGameModeDefinition frontline
-        && frontline.ScrapEconomy is { } economy
-            ? economy.Headroom(effect)
-            : 0;
+        gameMode switch
+        {
+            FrontlineGameModeDefinition { ScrapEconomy: { } economy } =>
+                economy.Headroom(effect),
+            // Arc Relay veterancy: every skill point may go into vitality,
+            // and heal zones make the raised maximum reachable mid-life, so
+            // every health validator grants the same headroom.
+            ArcRelayGameModeDefinition { VeterancyXpPerLevel: > 0 } veterancy
+                when effect == UpgradeEffectKind.SpawnMaxHealthDelta =>
+                veterancy.VeterancyMaxLevel - 1,
+            _ => 0,
+        };
 
     /// <summary>
     /// Whether a scheduled deposit is due on this tick. Fully derivable from

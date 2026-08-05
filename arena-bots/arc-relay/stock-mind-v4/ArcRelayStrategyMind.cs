@@ -51,6 +51,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     StringComparison.Ordinal))
             .Tiles.OrderBy(value => value.Y).ThenBy(value => value.X).First();
         _mirror = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
+        if (_mirror)
+            RelabelPlansToRotationPartners(start);
         _healTiles = start.Contract.Map.Regions
             .Where(region => region.RegionId.StartsWith(
                 "heal-", StringComparison.Ordinal))
@@ -62,6 +64,59 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             _teamId,
             _mirror,
             _ownReactor);
+    }
+
+    /// <summary>
+    /// The map's fairness is 180-degree rotational while spawn numbering is
+    /// x-mirrored, so the mirrored side re-labels its sheet plans to the
+    /// rotation partner of each pad: the body on the physical-south pad runs
+    /// the plan authored for the north pad, exactly as a rotated west team
+    /// would. Playing an x-flip frame on a chiral map handed east the slow
+    /// half of every chiral feature — the lineage's west residual. The
+    /// relabel is skipped (legacy frame) when any pad lacks an exact
+    /// rotation partner.
+    /// </summary>
+    private void RelabelPlansToRotationPartners(MindStart start)
+    {
+        int maxX = start.Contract.Map.Width - 1;
+        int maxY = start.Contract.Map.Height - 1;
+        Dictionary<(int X, int Y), int> westUnitByPosition = start.Contract
+            .Map.SpawnAnchors
+            .Where(anchor => anchor.SpawnId.StartsWith(
+                "team-0-", StringComparison.Ordinal))
+            .ToDictionary(
+                anchor => (anchor.Position.X, anchor.Position.Y),
+                anchor => int.Parse(anchor.SpawnId[
+                    (anchor.SpawnId.LastIndexOf('-') + 1)..]));
+        var relabel = new Dictionary<int, int>();
+        foreach (GenericActorMapContract.SpawnAnchor anchor in start.Contract
+                     .Map.SpawnAnchors
+                     .Where(anchor => anchor.SpawnId.StartsWith(
+                         $"team-{_teamId}-", StringComparison.Ordinal)))
+        {
+            int ownUnit = int.Parse(anchor.SpawnId[
+                (anchor.SpawnId.LastIndexOf('-') + 1)..]);
+            if (!westUnitByPosition.TryGetValue(
+                    (maxX - anchor.Position.X, maxY - anchor.Position.Y),
+                    out int westUnit))
+            {
+                return;
+            }
+            relabel[westUnit] = ownUnit;
+        }
+        UnitPlan[] units = _sheet!.Units;
+        if (relabel.Count != units.Length)
+            return;
+        for (int index = 0; index < units.Length; index++)
+        {
+            UnitPlan plan = units[index];
+            units[index] = plan with
+            {
+                UnitId = relabel.GetValueOrDefault(plan.UnitId, plan.UnitId),
+                PartnerUnitId = relabel.GetValueOrDefault(
+                    plan.PartnerUnitId, plan.PartnerUnitId),
+            };
+        }
     }
 
     public void Think(MindContext mind)
@@ -1378,7 +1433,9 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
     }
 
     private Position Mirror(Position position) => _mirror
-        ? new Position(_contract!.Map.Width - 1 - position.X, position.Y)
+        ? new Position(
+            _contract!.Map.Width - 1 - position.X,
+            _contract!.Map.Height - 1 - position.Y)
         : position;
 
     private enum Strategy
