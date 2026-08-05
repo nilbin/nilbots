@@ -3455,8 +3455,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return false;
         return signature.ArgumentKind switch
         {
+            // A heading cast needs exact ray alignment; when the focus
+            // target is off-ray, sweep the other visible hostiles so a hook
+            // or rail fires at whoever IS aligned instead of idling (the
+            // stock mind casts ~40 hooks a game to this executor's 0-2).
             "heading" => ArenaBasics.TryHeadingSignature(
-                contract, body, signature.Kind, target.Position, reason),
+                contract, body, signature.Kind, target.Position, reason)
+                || mind.Enemies
+                    .Where(enemy => enemy.ActorId != target.ActorId
+                        && body.Position.ChebyshevDistance(enemy.Position)
+                            <= range)
+                    .OrderBy(enemy =>
+                        body.Position.ChebyshevDistance(enemy.Position))
+                    .ThenBy(enemy => ArenaBasics.FrameY(
+                        enemy.Position,
+                        ArenaBasics.MirroredFrame(contract, mind)))
+                    .ThenBy(enemy => ArenaBasics.FrameX(
+                        enemy.Position,
+                        ArenaBasics.MirroredFrame(contract, mind)))
+                    .Any(enemy => ArenaBasics.TryHeadingSignature(
+                        contract, body, signature.Kind, enemy.Position,
+                        reason)),
             "position" => ArenaBasics.TryPositionSignature(
                 contract, body, signature.Kind,
                 string.Equals(

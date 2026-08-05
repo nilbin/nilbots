@@ -1320,6 +1320,21 @@ internal static class ArenaBasics
         blocked.UnionWith(mind.VisibleTiles
             .Where(tile => tile.SpawnReservation is not null)
             .Select(tile => tile.Position));
+        // An armed hostile mine is a visible kill tile; walk around it the
+        // way the stock mind always has.
+        if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay
+            arcMode)
+        {
+            blocked.UnionWith(arcMode.VisibleSignatures
+                .Where(signature => string.Equals(
+                        signature.SignatureId, "trip-node",
+                        StringComparison.Ordinal)
+                    && signature.OwnerTeamId != moving.ActorId.TeamId
+                    && !signature.Suppressed
+                    && signature.Phase
+                        == GenericActorContext.ArcRelaySignaturePhase.Active)
+                .SelectMany(signature => signature.Positions));
+        }
 
         foreach (GenericActorContext.ObservedProjectile projectile
                  in avoidHostileProjectiles ? mind.VisibleProjectiles ?? [] : [])
