@@ -272,6 +272,30 @@ def encode(value: dict) -> bytes:
     ).encode("utf-8")
 
 
+def apply_sheet_labels(replay: dict, replay_path: Path) -> None:
+    """Label participants by their tactical sheet, when the run receipt is
+    beside the replay. Mirror matches otherwise show the same mind name on
+    both sides, which makes the spectator view unreadable. The broadcast is
+    a presentation artifact; the canonical replay is untouched."""
+    run_path = replay_path.parent / "run.json"
+    if not run_path.exists():
+        return
+    try:
+        receipt = json.loads(run_path.read_text(encoding="utf-8"))
+        by_participant = {
+            entry["ParticipantId"]: entry.get("SheetPath")
+            for entry in receipt.get("Participants", [])
+        }
+    except (ValueError, KeyError, TypeError):
+        return
+    for participant in (
+        replay.get("header", {}).get("provenance", {}).get("participants", [])
+    ):
+        sheet = by_participant.get(participant.get("participantId"))
+        if sheet:
+            participant["name"] = Path(sheet).stem
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("replay", type=Path)
@@ -285,7 +309,9 @@ def main() -> int:
     if args.max_gzip_bytes <= 0:
         raise SystemExit("--max-gzip-bytes must be positive")
 
-    raw = encode(project(read_json(args.replay)))
+    replay = read_json(args.replay)
+    apply_sheet_labels(replay, args.replay)
+    raw = encode(project(replay))
     compressed = gzip.compress(raw, compresslevel=9, mtime=0)
     if len(compressed) > args.max_gzip_bytes:
         raise SystemExit(

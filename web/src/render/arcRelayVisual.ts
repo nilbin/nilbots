@@ -50,7 +50,86 @@ export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
   drawCores(input, state, true);
   drawTransferEffects(input);
   drawDiegeticEvents(input, state);
+  drawSignatureCombatEvents(input, state);
   drawSignatureReadiness(input, state);
+}
+
+/**
+ * Signature damage and repair resolve during tick start, so their facts
+ * arrive in `lifecycleEvents`, not `events` — reading only the latter is
+ * how sentinel fire spent a whole campaign invisible. A sentinel shot is
+ * a tracer from its turret tile; a mine or artillery hit is an impact
+ * burst; a repair is a heal pulse on the patient.
+ */
+function drawSignatureCombatEvents(
+  input: ArcRelayVisualContext,
+  state: ArcState,
+): void {
+  const { ctx, tile, fraction } = input;
+  const tick = input.tick;
+  if (!tick) return;
+  const fade = Math.max(0, 1 - fraction);
+  for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+    const fact = event.arcRelayFact;
+    if (!fact) continue;
+    if (fact.kind !== 'signature-damage' && fact.kind !== 'signature-repair')
+      continue;
+    const impact = centre(input, fact.position);
+    const accent = teamAccent(input, fact.ownerActor.teamId);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (fact.kind === 'signature-repair') {
+      ctx.strokeStyle = withAlpha('#6ee7a8', fade * 0.9);
+      ctx.lineWidth = Math.max(2, tile * 0.07);
+      const arm = tile * (0.16 + 0.1 * fraction);
+      ctx.beginPath();
+      ctx.moveTo(impact.x - arm, impact.y);
+      ctx.lineTo(impact.x + arm, impact.y);
+      ctx.moveTo(impact.x, impact.y - arm);
+      ctx.lineTo(impact.x, impact.y + arm);
+      ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    const operation = state.visibleSignatures.find(
+      (candidate) => candidate.operationId === fact.operationId,
+    );
+    const muzzle = operation?.positions[0]
+      ? centre(input, operation.positions[0])
+      : actorCentre(input, fact.ownerActor);
+    if (
+      muzzle &&
+      fact.signatureId === 'sentinel-seed' &&
+      (muzzle.x !== impact.x || muzzle.y !== impact.y)
+    ) {
+      ctx.strokeStyle = withAlpha(accent, fade * 0.95);
+      ctx.lineWidth = Math.max(2, tile * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(muzzle.x, muzzle.y);
+      ctx.lineTo(impact.x, impact.y);
+      ctx.stroke();
+      ctx.fillStyle = withAlpha('#f8fafc', fade * 0.9);
+      ctx.beginPath();
+      ctx.arc(muzzle.x, muzzle.y, tile * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const burst =
+      fact.signatureId === 'falling-star'
+        ? 0.55
+        : fact.signatureId === 'trip-node'
+          ? 0.48
+          : 0.3;
+    ctx.strokeStyle = withAlpha(accent, fade * 0.9);
+    ctx.lineWidth = Math.max(2, tile * 0.07);
+    ctx.beginPath();
+    ctx.arc(impact.x, impact.y, tile * burst * (0.5 + 0.5 * fraction), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = withAlpha('#f8fafc', fade * 0.55);
+    ctx.beginPath();
+    ctx.arc(impact.x, impact.y, tile * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function currentState(input: ArcRelayVisualContext): ArcState | null {
@@ -290,6 +369,30 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
 
     const areaField = ['survey-flare', 'null-field', 'smoke-canister']
       .includes(signature.signatureId);
+    const deployed = signature.phase === 'active'
+      && ['sentinel-seed', 'trip-node'].includes(signature.signatureId);
+    if (deployed && points.length > 0) {
+      for (const point of points) {
+        if (signature.signatureId === 'sentinel-seed') {
+          drawSentinelTurret(input, signature, point, accent);
+        } else {
+          drawMine(ctx, point, tile, accent, time);
+        }
+        if (signature.suppressed) {
+          ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
+          ctx.lineWidth = Math.max(2, tile * 0.06);
+          ctx.beginPath();
+          ctx.moveTo(point.x - tile * 0.28, point.y - tile * 0.28);
+          ctx.lineTo(point.x + tile * 0.28, point.y + tile * 0.28);
+          ctx.moveTo(point.x + tile * 0.28, point.y - tile * 0.28);
+          ctx.lineTo(point.x - tile * 0.28, point.y + tile * 0.28);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      continue;
+    }
     if (areaField && points.length > 0) {
       const minX = Math.min(...points.map((point) => point.x));
       const maxX = Math.max(...points.map((point) => point.x));
@@ -354,6 +457,139 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
     }
     ctx.restore();
   }
+}
+
+/**
+ * A deployed Sentinel reads as a turret, not a glyph: base plate, dome,
+ * hull pips, a duration arc, and a barrel that tracks its work — this
+ * tick's fire target when it shot, otherwise the nearest enemy in reach.
+ * Sentinels fire omnidirectionally without a facing, so the barrel is
+ * presentation; the tracer in drawSignatureCombatEvents is the shot.
+ */
+function drawSentinelTurret(
+  input: ArcRelayVisualContext,
+  signature: ArcState['visibleSignatures'][number],
+  point: { x: number; y: number },
+  accent: string,
+): void {
+  const { ctx, tile, time } = input;
+  const tick = input.tick;
+  let aim: { x: number; y: number } | null = null;
+  for (const event of tick ? [...tick.lifecycleEvents, ...tick.events] : []) {
+    const fact = event.arcRelayFact;
+    if (
+      fact?.kind === 'signature-damage' &&
+      fact.operationId === signature.operationId
+    ) {
+      aim = centre(input, fact.position);
+      break;
+    }
+  }
+  if (!aim) {
+    let best = Number.POSITIVE_INFINITY;
+    for (const pose of input.poses) {
+      if (pose.teamId === signature.ownerTeamId) continue;
+      const enemy = centre(input, { x: pose.x, y: pose.y });
+      const range = Math.hypot(enemy.x - point.x, enemy.y - point.y);
+      if (range < best && range <= tile * 5) {
+        best = range;
+        aim = enemy;
+      }
+    }
+  }
+  const angle = aim
+    ? Math.atan2(aim.y - point.y, aim.x - point.x)
+    : -Math.PI / 2;
+
+  ctx.setLineDash([]);
+  ctx.fillStyle = withAlpha(accent, 0.28);
+  ctx.strokeStyle = withAlpha(accent, 0.95);
+  ctx.lineWidth = Math.max(2, tile * 0.07);
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  if (signature.endsAtTick !== null && tick) {
+    const total = signature.endsAtTick - signature.startedTick;
+    const left = Math.max(0, signature.endsAtTick - tick.tick);
+    if (total > 0) {
+      ctx.strokeStyle = withAlpha(accent, 0.55);
+      ctx.lineWidth = Math.max(1.5, tile * 0.045);
+      ctx.beginPath();
+      ctx.arc(
+        point.x,
+        point.y,
+        tile * 0.52,
+        -Math.PI / 2,
+        -Math.PI / 2 + (Math.PI * 2 * left) / total,
+      );
+      ctx.stroke();
+    }
+  }
+
+  ctx.strokeStyle = withAlpha('#f8fafc', 0.95);
+  ctx.lineWidth = Math.max(3, tile * 0.11);
+  ctx.beginPath();
+  ctx.moveTo(point.x, point.y);
+  ctx.lineTo(
+    point.x + Math.cos(angle) * tile * 0.5,
+    point.y + Math.sin(angle) * tile * 0.5,
+  );
+  ctx.stroke();
+
+  ctx.fillStyle = withAlpha('#f8fafc', 0.9);
+  ctx.beginPath();
+  ctx.arc(
+    point.x,
+    point.y,
+    tile * (0.16 + 0.015 * Math.sin(time * Math.PI * 2)),
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+
+  for (let pip = 0; pip < signature.remainingCapacity; pip += 1) {
+    ctx.fillStyle = withAlpha(accent, 0.95);
+    ctx.beginPath();
+    ctx.arc(
+      point.x - tile * 0.14 + pip * tile * 0.28,
+      point.y + tile * 0.58,
+      tile * 0.06,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+}
+
+function drawMine(
+  ctx: CanvasRenderingContext2D,
+  point: { x: number; y: number },
+  tile: number,
+  accent: string,
+  time: number,
+): void {
+  ctx.setLineDash([]);
+  ctx.fillStyle = withAlpha(accent, 0.3);
+  ctx.strokeStyle = withAlpha(accent, 0.9);
+  ctx.lineWidth = Math.max(2, tile * 0.06);
+  ctx.beginPath();
+  for (let prong = 0; prong < 8; prong += 1) {
+    const spike = (prong * Math.PI) / 4;
+    const radius = tile * (prong % 2 === 0 ? 0.3 : 0.16);
+    const x = point.x + Math.cos(spike) * radius;
+    const y = point.y + Math.sin(spike) * radius;
+    if (prong === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = withAlpha('#f8fafc', 0.55 + 0.35 * Math.sin(time * Math.PI * 2));
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * 0.07, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawClassSignatureGlyph(
