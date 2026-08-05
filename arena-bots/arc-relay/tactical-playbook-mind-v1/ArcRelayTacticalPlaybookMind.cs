@@ -304,7 +304,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && TrySupportIdleSignature(
                             contract, mind, body,
                             Provenance(machine, group, order,
-                                "signature-idle")),
+                                "signature-idle"))
+                        || engagement.SignatureCoordination != "none"
+                        && !carried.ContainsKey(body.ActorId)
+                        && TryOpportunisticHeadingSignature(
+                            contract, mind, body,
+                            Provenance(machine, group, order,
+                                "signature-heading")),
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
@@ -2612,6 +2618,73 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && ArenaBasics.TryPositionSignature(
                 contract, body, "survey-flare", stalest.Position, reason,
                 mirrored: _mirrored);
+    }
+
+    /// <summary>
+    /// The hook/rail channel: a heading signature needs exact ray alignment,
+    /// which the focus-gated combat path almost never supplies (measured 0-2
+    /// casts against the stock mind's ~40 per game). Any non-carrying body
+    /// with a ready heading signature scans the visible hostiles for an
+    /// aligned one in range and fires, independent of its gun state. Enemy
+    /// carriers come first: a landed hook on a courier is the class's whole
+    /// purpose.
+    /// </summary>
+    private bool TryOpportunisticHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        string reason)
+    {
+        if (!mind.Enemies.Any())
+            return false;
+        HashSet<ActorIdentity> carriers = mind.Mode is
+            GenericActorContext.ModeObservationState.ArcRelay arcState
+            ? arcState.VisibleCores
+                .Where(core => core.CarrierActorId is not null)
+                .Select(core => core.CarrierActorId!)
+                .ToHashSet()
+            : [];
+        GenericActorContext.ObservedEnemyState[] ordered = [.. mind.Enemies
+            .OrderBy(enemy => carriers.Contains(enemy.ActorId) ? 0 : 1)
+            .ThenBy(enemy => body.Position.ChebyshevDistance(enemy.Position))
+            .ThenBy(enemy => ArenaBasics.FrameY(enemy.Position, _mirrored))
+            .ThenBy(enemy => ArenaBasics.FrameX(enemy.Position, _mirrored))];
+        foreach (string kind in HeadingSignatureKinds(contract))
+        {
+            foreach (GenericActorContext.ObservedEnemyState enemy in ordered)
+            {
+                if (ArenaBasics.TryHeadingSignature(
+                        contract, body, kind, enemy.Position, reason))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The heading-argument combat signatures this contract carries, from
+    /// metadata when annotated (grammar 2) and from the known grammar-1
+    /// kinds otherwise. Movement dashes stay with their dedicated logic.
+    /// </summary>
+    private static string[] HeadingSignatureKinds(
+        GenericActorResolvedMatchContract contract)
+    {
+        GenericActorRulesContract.ArcRelaySignature[] annotated =
+            (ArenaBasics.ArcRules(contract)?.Signatures
+                ?? Enumerable.Empty<
+                    GenericActorRulesContract.ArcRelaySignature>())
+            .Where(signature => signature.Category is not null)
+            .ToArray();
+        if (annotated.Length > 0)
+        {
+            return [.. annotated
+                .Where(signature => string.Equals(
+                        signature.ArgumentKind, "heading",
+                        StringComparison.Ordinal)
+                    && !RoleHandledSignatures.Contains(signature.Kind))
+                .Select(signature => signature.Kind)];
+        }
+        return ["tractor-hook", "rail-line"];
     }
 
     private bool TrySelfPreservation(
