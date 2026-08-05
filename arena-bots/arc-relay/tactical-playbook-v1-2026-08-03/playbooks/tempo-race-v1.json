@@ -7,7 +7,7 @@
   },
   "composition": [
     "palisade",
-    "patchbay",
+    "longshot",
     "veil",
     "switchback",
     "kestrel",
@@ -60,7 +60,7 @@
         "patchbay"
       ],
       "minimum": 0,
-      "preferred": 1,
+      "preferred": 0,
       "maximum": 1,
       "carrierPreference": "allow",
       "deathPolicy": "hold-vacancy",
@@ -100,7 +100,7 @@
         "relay",
         "veil",
         "switchback",
-        "patchbay"
+        "longshot"
       ],
       "minimum": 1,
       "preferred": 3,
@@ -120,7 +120,7 @@
         "hook"
       ],
       "minimum": 1,
-      "preferred": 3,
+      "preferred": 2,
       "maximum": 3,
       "membership": {
         "persistence": "stable-slot",
@@ -146,7 +146,7 @@
         "eyes"
       ],
       "minimum": 1,
-      "preferred": 5,
+      "preferred": 6,
       "maximum": 8,
       "membership": {
         "persistence": "stable-slot",
@@ -1039,7 +1039,7 @@
               "switchback"
             ],
             "minimum": 1,
-            "preferred": 2,
+            "preferred": 3,
             "maximum": 3,
             "carrier": "allow",
             "distance": {
@@ -1087,7 +1087,7 @@
               "switchback"
             ],
             "minimum": 1,
-            "preferred": 2,
+            "preferred": 3,
             "maximum": 3,
             "carrier": "allow",
             "distance": {
