@@ -389,7 +389,17 @@ internal sealed class TacticalPlaybookPackage
         string SignatureCoordination,
         DodgeCoverage DodgeCoverage,
         ReleasePolicy Release,
-        SelfDefensePolicy SelfDefense);
+        SelfDefensePolicy SelfDefense,
+        HoldFire? HoldFire = null);
+
+    /// <summary>
+    /// Ambush discipline: participants acquire no focus and fire nothing
+    /// until a target is within the gate distance of a participant, or the
+    /// release conditions fire. Self-defense stays live throughout.
+    /// </summary>
+    internal sealed record HoldFire(
+        int WithinDistance,
+        ConditionGroup[]? ReleaseAll = null);
 
     internal sealed record DodgeCoverage(
         string Mode,
@@ -438,7 +448,20 @@ internal sealed class TacticalPlaybookPackage
         string? EmergencyRecoveryDisposition = null,
         string? EmergencyDisplacementTarget = null,
         int EmergencyDisplacementReleaseRadius = 0,
-        string ForwardPass = "none");
+        string ForwardPass = "none",
+        BaitDrop? BaitDrop = null);
+
+    /// <summary>
+    /// Bait delivery: instead of banking, the authorized carrier tosses its
+    /// Core into the zone (an uncaught arc-toss landing is a loose Core with
+    /// nobody standing on it — a voluntary drop would be re-collected from
+    /// the dropper's own tile at the next tick start). While the reclaim
+    /// conditions stay false the bait is untouchable to own bodies; once
+    /// they fire, normal collection resumes.
+    /// </summary>
+    internal sealed record BaitDrop(
+        string Zone,
+        ConditionGroup[] ReclaimAll);
 
     internal sealed record Order(
         string OrderId,
@@ -451,7 +474,8 @@ internal sealed class TacticalPlaybookPackage
         string SupportId,
         string CustodyId,
         string LocalState,
-        Fallback Fallback);
+        Fallback Fallback,
+        string Stance = "");
 
     internal sealed record MemberSelection(
         string Kind,

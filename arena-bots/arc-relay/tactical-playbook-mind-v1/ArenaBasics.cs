@@ -51,6 +51,38 @@ internal static class ArenaBasics
         GenericActorResolvedMatchContract contract) =>
         contract.Rules.GameMode as GenericActorRulesContract.ArcRelayGameMode;
 
+    /// <summary>
+    /// True when any currently visible enemy's facing-quadrant vision covers
+    /// the tile, mirroring the engine cone (point-blank ring always seen;
+    /// beyond it forward ≥ 0 with |lateral| ≤ forward out to range 7).
+    /// Walls are ignored, deliberately erring toward "seen": an ambusher
+    /// that hides one tile more than necessary loses nothing.
+    /// </summary>
+    public static bool SeenByVisibleEnemy(MindContext mind, Position tile)
+    {
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+        {
+            int dx = tile.X - enemy.Position.X;
+            int dy = tile.Y - enemy.Position.Y;
+            int distance = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            if (distance <= 1)
+                return true;
+            if (distance > 7)
+                continue;
+            (int forward, int lateral) = enemy.Facing switch
+            {
+                Direction.North => (-dy, dx),
+                Direction.South => (dy, dx),
+                Direction.East => (dx, dy),
+                Direction.West => (-dx, dy),
+                _ => (distance, 0),
+            };
+            if (forward >= 0 && Math.Abs(lateral) <= forward)
+                return true;
+        }
+        return false;
+    }
+
     public static Position? Reactor(
         MindContext mind,
         int teamId) =>

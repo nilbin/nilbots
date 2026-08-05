@@ -25,6 +25,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, EmergencyRecovery>
         _emergencyRecoveries = new(StringComparer.Ordinal);
+    /// <summary>Live bait Cores by key, owned by their custody id.</summary>
+    private readonly Dictionary<string, string> _baitCores =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -216,19 +219,55 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         HashSet<int> unavailableAttackers = repairs.Keys.ToHashSet();
         unavailableAttackers.UnionWith(carrierUnitIds);
         Dictionary<int, FocusAssignment> focus =
-            AllocateFocus(contract, mind, arc, package.Source, roles, orders,
-                targets, unavailableAttackers);
+            AllocateFocus(contract, mind, arc, package.Source, package,
+                snapshot, roles, orders, targets, unavailableAttackers);
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
             .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
             .ThenBy(core => core.CoreId.SourceOrdinal)
             .ToArray();
+        // Bait custody state: while a bait's reclaim conditions stay false,
+        // its dropped Core is untouchable and unassigned for the own team.
+        HashSet<string> baitingCustodies = new(StringComparer.Ordinal);
+        foreach (TacticalPlaybookPackage.CustodyPolicy custodyPolicy in
+                 package.Source.CustodyPolicies)
+        {
+            if (custodyPolicy.BaitDrop is not { } custodyBait)
+                continue;
+            bool reclaimed = custodyBait.ReclaimAll.Any(group =>
+                TacticalPlaybookMachine.Matches(group,
+                    condition => Evaluate(condition, snapshot, package)));
+            if (!reclaimed)
+                baitingCustodies.Add(custodyPolicy.CustodyId);
+        }
+        foreach (string stale in _baitCores
+                     .Where(value => !baitingCustodies.Contains(value.Value)
+                         || arc.VisibleCores.All(core =>
+                             CoreKey(core.CoreId) != value.Key
+                             || core.Disposition == GenericActorContext
+                                 .ArcRelayCoreDisposition.Carried))
+                     .Select(value => value.Key).ToArray())
+        {
+            _baitCores.Remove(stale);
+        }
+        HashSet<string> activeBaitKeys =
+            _baitCores.Keys.ToHashSet(StringComparer.Ordinal);
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
             AllocateCorePickups(
-                mind, package, snapshot, roles, orders, loose,
+                mind, package, snapshot, roles, orders,
+                loose.Where(core => !activeBaitKeys.Contains(
+                        CoreKey(core.CoreId)))
+                    .ToArray(),
                 out HashSet<string> openSourceWells);
         var claims = ArenaBasics.Claims.ForTick(mind);
+        // A live bait is a trap, not supply: no own body may stand on it on
+        // any ruleset, or tick-start pickup would spring our own trap.
+        foreach (GenericActorContext.ArcRelayCoreState core in loose)
+        {
+            if (activeBaitKeys.Contains(CoreKey(core.CoreId)))
+                claims.Reserve(core.Position);
+        }
         if (ArenaBasics.ArcRules(contract) is { RipenIntervalTicks: > 0 })
         {
             // Under ripening rules a loose Core is a growing asset: stepping
@@ -302,7 +341,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 {
                     "custody-emergency" => TryCustodyEmergency(
                         contract, mind, arc, package, body, role, order,
-                        carried, pickupAssignments, claims),
+                        carried, pickupAssignments, baitingCustodies, claims),
                     "self-preservation" => TrySelfPreservation(
                         contract, mind, package.Source, body, order, claims),
                     "repair" => repairs.TryGetValue(
@@ -1547,6 +1586,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
         TacticalPlaybookPackage.Playbook playbook,
+        TacticalPlaybookPackage package,
+        TacticalSnapshot snapshot,
         IReadOnlyDictionary<int, string> roles,
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
         IReadOnlyDictionary<int, Position> targets,
@@ -1593,6 +1634,26 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 policy, left, right, carriers, participants,
                                 mind.Tick)))
                     .ToArray();
+                if (policy.HoldFire is { } holdFire
+                    && !(holdFire.ReleaseAll is { Length: > 0 } releaseGroups
+                        && releaseGroups.Any(group =>
+                            TacticalPlaybookMachine.Matches(group,
+                                condition => Evaluate(
+                                    condition, snapshot, package)))))
+                {
+                    // Ambush discipline: acquire nothing outside the gate, so
+                    // held bodies neither rotate to track nor chase early.
+                    enemies = enemies.Where(enemy => participants.Any(
+                            participant => participant.Position
+                                .ChebyshevDistance(enemy.Position)
+                                    <= holdFire.WithinDistance))
+                        .ToArray();
+                    if (enemies.Length == 0)
+                    {
+                        _focusLocks.Remove(scopeId);
+                        continue;
+                    }
+                }
                 GenericActorContext.ObservedEnemyState primary = enemies[0];
                 bool retainHiddenLock = false;
                 bool selectedExistingLock = false;
@@ -2367,6 +2428,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried,
         IReadOnlyDictionary<int,
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
+        IReadOnlySet<string> baitingCustodies,
         ArenaBasics.Claims claims)
     {
         if (!carried.ContainsKey(body.ActorId))
@@ -2426,6 +2488,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (custody.AuthorizedCarrierRoles.Contains(role,
                 StringComparer.Ordinal))
         {
+            if (custody.BaitDrop is { } bait
+                && baitingCustodies.Contains(custody.CustodyId))
+            {
+                bool baitActed = ActBaitCarrier(
+                    contract, mind, package, body, custody, bait, carried,
+                    claims);
+                return baitActed || Hold(body, "custody:bait-carry-wait");
+            }
             bool acted = TacticalCustodyPrimitives.DeliveryTimedOut(
                     progress.StagnantTicks,
                     custody.DeliveryTimeoutTicks)
@@ -2584,6 +2654,54 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             [target],
             claims,
             "custody:emergency-displacement-move");
+    }
+
+    /// <summary>
+    /// Carries toward the bait pocket and tosses the Core in from range. The
+    /// toss (not a drop) is load-bearing: an uncaught arc-toss landing is a
+    /// loose Core with no body standing on it, while a voluntary drop would
+    /// be re-collected from the dropper's own tile at the next tick start.
+    /// Non-toss carriers walk into the pocket and lure in person.
+    /// </summary>
+    private bool ActBaitCarrier(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage package,
+        MindBody body,
+        TacticalPlaybookPackage.CustodyPolicy custody,
+        TacticalPlaybookPackage.BaitDrop bait,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried,
+        ArenaBasics.Claims claims)
+    {
+        Position pocket = package.ZoneCenter(bait.Zone);
+        bool Occupied(Position tile) =>
+            mind.Bodies.Any(ally => ally.Position == tile)
+            || mind.Enemies.Any(enemy => enemy.Position == tile);
+        Position? landing = new (int Dx, int Dy)[]
+            {
+                (0, 0), (0, -1), (1, 0), (0, 1), (-1, 0),
+                (1, -1), (1, 1), (-1, 1), (-1, -1),
+            }
+            .Select(offset => new Position(
+                pocket.X + offset.Dx, pocket.Y + offset.Dy))
+            .Where(tile => !Occupied(tile))
+            .Cast<Position?>()
+            .FirstOrDefault();
+        if (landing is Position target
+            && ArenaBasics.TryPositionSignature(
+                contract, body, "arc-toss", target, "custody:bait-toss"))
+        {
+            _baitCores[CoreKey(carried[body.ActorId].CoreId)] =
+                custody.CustodyId;
+            return true;
+        }
+        Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
+            contract, mind, body, pocket);
+        return step is Position committed
+            && ArenaBasics.TryMoveDirect(
+                contract, mind, body, committed, claims,
+                "custody:bait-approach");
     }
 
     private bool ActCarrier(
@@ -2837,6 +2955,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     throw new InvalidDataException(
                         $"Unknown understrength fallback "
                         + $"'{order.Fallback.OnUnderstrength}'.");
+            }
+        }
+
+        // Ambush stance: a body settled near its post that is standing
+        // inside a visible enemy's facing cone slips one tile into cover
+        // instead of following the formation. Everything else about the
+        // order (engagement gate, custody, facing) stays authored.
+        if (string.Equals(order.Stance, "ambush", StringComparison.Ordinal)
+            && body.Position.ChebyshevDistance(target)
+                <= order.Movement.ArrivalRadius + 2
+            && ArenaBasics.SeenByVisibleEnemy(mind, body.Position))
+        {
+            foreach (Position candidate in new (int Dx, int Dy)[]
+                     {
+                         (0, -1), (1, 0), (0, 1), (-1, 0),
+                         (1, -1), (1, 1), (-1, 1), (-1, -1),
+                     }
+                     .Select(offset => new Position(
+                         body.Position.X + offset.Dx,
+                         body.Position.Y + offset.Dy))
+                     .Where(tile => !ArenaBasics.SeenByVisibleEnemy(mind, tile)
+                         && tile.ChebyshevDistance(target)
+                             <= order.Movement.ArrivalRadius + 2)
+                     .OrderBy(tile => tile.ChebyshevDistance(target)))
+            {
+                if (ArenaBasics.TryMoveDirect(
+                        contract, mind, body, candidate, claims,
+                        Provenance(machine, group, order, "ambush-conceal")))
+                    return true;
             }
         }
 
