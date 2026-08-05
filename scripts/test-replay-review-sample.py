@@ -102,6 +102,37 @@ class ReplayReviewSampleTests(unittest.TestCase):
             [item["source"] for item in reverse],
         )
 
+    def test_gz_replays_are_discovered_read_and_deduplicated(self) -> None:
+        import gzip
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            both = root / "both"
+            gz_only = root / "gz-only"
+            both.mkdir()
+            gz_only.mkdir()
+            (both / "replay.json").write_bytes(V3.read_bytes())
+            with gzip.open(both / "replay.json.gz", "wb") as stream:
+                stream.write(V3.read_bytes())
+            with gzip.open(gz_only / "replay.json.gz", "wb") as stream:
+                stream.write(V3.read_bytes())
+
+            found = list(SAMPLER.replay_files([root]))
+            # both/ counts once (the .json wins); gz-only/ counts via .gz.
+            self.assertEqual(2, len(found))
+            self.assertIn(both / "replay.json", found)
+            self.assertIn(gz_only / "replay.json.gz", found)
+
+            from_gz = SAMPLER.candidate(gz_only / "replay.json.gz", 17)
+            from_json = SAMPLER.candidate(both / "replay.json", 17)
+            self.assertEqual(from_json["order"], from_gz["order"])
+
+            package = root / "package"
+            SAMPLER.write_review_package(package, [dict(from_gz)], False)
+            copied = package / "replays" / "sample-01.json"
+            # The package copy is decompressed JSON bytes, not gzip bytes.
+            self.assertEqual(V3.read_bytes(), copied.read_bytes())
+
     def test_identity_blind_manifest_hides_v3_bot_names(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

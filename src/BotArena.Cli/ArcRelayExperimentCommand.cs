@@ -171,10 +171,11 @@ public static class ArcRelayExperimentCommand
                     screenReceipt,
                     new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine(
-                $"Arc Relay screen {loopProfile.Id}: {first.Name} vs "
-                + $"{second.Name}, seed {seed}");
+                $"Arc Relay screen {loopProfile.Id}: "
+                + $"{SideLabel(first.Name, 0, teamZero)} vs "
+                + $"{SideLabel(second.Name, 1, teamOne)}, seed {seed}");
             Console.WriteLine(
-                $"Result: {Verdict(result, first.Name, second.Name)} — "
+                $"Result: {Verdict(result, SideLabel(first.Name, 0, teamZero), SideLabel(second.Name, 1, teamOne))} — "
                 + $"{Reason(result)} at tick {result.EndTick ?? -1}");
             Console.WriteLine($"Screen: {Path.GetFullPath(screenPath)}");
             return result.EligibleTeamIds.Length == 2 ? 0 : 2;
@@ -210,10 +211,10 @@ public static class ArcRelayExperimentCommand
                 new JsonSerializerOptions { WriteIndented = true }));
 
         Console.WriteLine(
-            $"Arc Relay {loopProfile.Id}: {first.Name} vs {second.Name}, "
-            + $"seed {seed}");
+            $"Arc Relay {loopProfile.Id}: {SideLabel(first.Name, 0, teamZero)} "
+            + $"vs {SideLabel(second.Name, 1, teamOne)}, seed {seed}");
         Console.WriteLine(
-            $"Result: {Verdict(result, first.Name, second.Name)} — "
+            $"Result: {Verdict(result, SideLabel(first.Name, 0, teamZero), SideLabel(second.Name, 1, teamOne))} — "
             + $"{Reason(result)} at tick {result.EndTick ?? -1}");
         Console.WriteLine($"Hash:   {completedReplay.ReplayHash}");
         Console.WriteLine($"Replay: {written.ReplayPath}");
@@ -964,6 +965,11 @@ public static class ArcRelayExperimentCommand
         return true;
     }
 
+    /// <summary>
+    /// Winner text names the team id and sheet, not just the mind: in a
+    /// mirror match both sides print the same mind name, which has caused
+    /// a misattributed result during evaluation.
+    /// </summary>
     private static string Verdict(
         GenericActorMatchResult result,
         string first,
@@ -974,6 +980,15 @@ public static class ArcRelayExperimentCommand
             1 => $"{second} wins",
             _ => "draw",
         };
+
+    private static string SideLabel(
+        string name,
+        int teamId,
+        SheetSelection sheet) =>
+        sheet.Path is null
+            ? $"{name} [team {teamId}]"
+            : $"{name} [team {teamId}, "
+              + $"{Path.GetFileNameWithoutExtension(sheet.Path)}]";
 
     private static string Reason(GenericActorMatchResult result) =>
         result.Mode is GenericActorMatchModeResult.ArcRelay arc
