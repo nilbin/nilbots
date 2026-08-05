@@ -1,3 +1,28 @@
+# Arc Relay strategy ladder — finals reports
+
+## Sentinel-zone v1: Stage 3 PASS (2026-08-05, freeze `52e8a4a1`)
+
+The first Stage 3 candidate under the ratified cohort gate (DECISIONS
+#208) passed every registered bar across 75 WASM games with zero faults:
+
+| Cell | Result |
+|---|---|
+| Breakwater v2 (reigning), west / east | W 3-1@370 / W 3-1@380 |
+| Home Siege v3, west / east | **W 3-0@314** / W 3-1@455 |
+| parity, west / east | W 3-1@376 / W 3-1@351 |
+| mortar-line BLIND holdout, first contact | **W 3-0@365 / W 3-0@378** |
+| cohort gate (bar: 75%, no 0-2 sweeps) | **60/64 (93.75%), zero sweeps** |
+| false positives | 0 fortify ticks, all three games won |
+
+The holdout was authored adversarially — double mortar artillery, the
+designed counter to sentinel clusters — and was shut out both ways on
+first contact. The four cohort split-losses (control-grid E,
+counter-courier E, sensor-grid E, sustain-attrition W; three of four on
+the east side) are the named signal for future work; no entrant beats it
+both ways. Sentinel-zone v1 is the Stage 3 deliverable. Evidence:
+`evidence/sentinel-zone-v1-finals-results.json`; curated gallery
+(including the losses, unedited) at the standing tunnel URL.
+
 # Breakwater — Stage 2 finals report
 
 ## v2 finals: PASS (2026-08-05, freeze `c7d47647`)

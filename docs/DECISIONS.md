@@ -4609,6 +4609,19 @@ are named as explicit counterplay targets for the following rung. The
 frozen-champion pairings, blind-holdout discipline, false-positive reads,
 and elimination-only scoring are unchanged.
 
+## 209. Sentinel-zone v1 passes the Stage 3 gate and is the Stage 3 deliverable
+
+Owner approved the promotion run in-session (2026-08-05); the pre-outcome
+freeze (`52e8a4a1`) registered the champion cells, the ratified cohort
+gate, an adversarial blind holdout, and false-positive reads. All bars
+were met in 75 WASM games with zero faults: Breakwater v2 beaten 3-1 both
+ways, Home Siege v3 3-0/3-1, the mortar-line holdout — authored as the
+designed counter to sentinel clusters — shut out 3-0 in both orientations
+on first contact, cohort 60/64 with no entrant sweeping the candidate,
+and zero false-positive fortify latches. Sentinel-zone v1 is the Stage 3
+deliverable; the four east-leaning cohort split-losses are the recorded
+signal for the next rung's targets.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
