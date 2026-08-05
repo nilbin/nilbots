@@ -743,6 +743,8 @@ public static class ActorCanonicalContractReader
             "coreBaseValue", out _);
         bool hasRipening = element.TryGetProperty(
             "ripenIntervalTicks", out _);
+        bool hasRearArc = element.TryGetProperty(
+            "rearArcDamageMultiplier", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -770,6 +772,9 @@ public static class ActorCanonicalContractReader
                     "ripenIntervalTicks", "ripenMaxValue",
                     "ripenResumeTicks",
                 }
+                : System.Array.Empty<string>(),
+            .. hasRearArc
+                ? new[] { "rearArcDamageMultiplier" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -816,6 +821,9 @@ public static class ActorCanonicalContractReader
             RipenResumeTicks = hasRipening
                 ? Int(element, "ripenResumeTicks")
                 : 0,
+            RearArcDamageMultiplier = hasRearArc
+                ? Int(element, "rearArcDamageMultiplier")
+                : 1,
         };
     }
 

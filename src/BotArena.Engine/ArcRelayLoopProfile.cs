@@ -25,8 +25,12 @@ public sealed record ArcRelayLoopProfile
         int coreBaseValue = 1,
         int ripenIntervalTicks = 0,
         int ripenMaxValue = 0,
-        int ripenResumeTicks = 0)
+        int ripenResumeTicks = 0,
+        int rearArcDamageMultiplier = 1,
+        int omniProximityRange = 1)
     {
+        RearArcDamageMultiplier = rearArcDamageMultiplier;
+        OmniProximityRange = omniProximityRange;
         SignatureGrammarVersion = signatureGrammarVersion;
         WellBirthJitterTicks = wellBirthJitterTicks;
         AlternatingResolutionOrder = alternatingResolutionOrder;
@@ -65,6 +69,8 @@ public sealed record ArcRelayLoopProfile
     internal int RipenIntervalTicks { get; }
     internal int RipenMaxValue { get; }
     internal int RipenResumeTicks { get; }
+    internal int RearArcDamageMultiplier { get; }
+    internal int OmniProximityRange { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -315,6 +321,29 @@ public sealed record ArcRelayLoopProfile
         alternatingResolutionOrder: true);
 
     /// <summary>
+    /// Predation rules (owner direction 2026-08-05) on the warren terrain:
+    /// front-only vision (no omnidirectional proximity ring — the quadrant
+    /// stays, the sideways question stays an open knob), double damage from
+    /// the victim's blind rear arc, and a costlier death. Together: flanking
+    /// skill decides fights, dying matters, awareness is earned.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren2 { get; } = new(
+        "ambush-warren-2",
+        "arc-relay-ambush-02",
+        "arc-relay-ambush-warren-01",
+        ArcRelayMapGeometry.AmbushWarren,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -377,6 +406,7 @@ public sealed record ArcRelayLoopProfile
         RipeningCores,
         RipeningCores2,
         AmbushWarren,
+        AmbushWarren2,
         Return16,
         Return24,
         Hot60,

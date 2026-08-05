@@ -15,6 +15,8 @@ internal sealed class ArcRelayActorMatchModeDriver
 
     private readonly ActorResolvedMatchDefinition _definition;
     private readonly ArcRelayGameModeDefinition _gameMode;
+
+    internal ArcRelayGameModeDefinition GameMode => _gameMode;
     private readonly PublicMatchTopology _topology;
     private readonly ImmutableArray<WellRuntime> _wells;
     private readonly Dictionary<string, WellRuntime> _wellsById;

@@ -332,6 +332,12 @@ public sealed class GenericActorRulesContract
         public int RipenIntervalTicks { get; init; }
         public int RipenMaxValue { get; init; }
         public int RipenResumeTicks { get; init; }
+
+        /// <summary>
+        /// Projectile damage multiplier for shots whose heading lies inside
+        /// the victim's rear quadrant (1 historically).
+        /// </summary>
+        public int RearArcDamageMultiplier { get; init; } = 1;
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

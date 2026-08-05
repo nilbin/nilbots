@@ -63,6 +63,35 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void PredationRulesMintBesideTheTerrainArm()
+    {
+        string terrain = ActorContractFingerprint.ComputeRules(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren));
+        string predation = ActorContractFingerprint.ComputeRules(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren2));
+        Assert.NotEqual(terrain, predation);
+        // The terrain arm re-derives byte-identically beside the rules arm.
+        Assert.Equal(
+            terrain,
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren)));
+        string json = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren2));
+        Assert.Contains("\"rearArcDamageMultiplier\":2", json);
+        Assert.Contains("\"respawnDelayTicks\":30", json);
+        Assert.Contains("\"omnidirectionalProximityRange\":0", json);
+        string terrainJson = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren));
+        Assert.DoesNotContain("rearArcDamageMultiplier", terrainJson);
+        Assert.Contains("\"omnidirectionalProximityRange\":1", terrainJson);
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(

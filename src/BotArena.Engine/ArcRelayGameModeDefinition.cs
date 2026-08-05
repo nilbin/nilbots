@@ -26,7 +26,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int coreBaseValue = 1,
         int ripenIntervalTicks = 0,
         int ripenMaxValue = 0,
-        int ripenResumeTicks = 0)
+        int ripenResumeTicks = 0,
+        int rearArcDamageMultiplier = 1)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -55,6 +56,10 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         RipenIntervalTicks = ripenIntervalTicks;
         RipenMaxValue = ripenMaxValue;
         RipenResumeTicks = ripenResumeTicks;
+        if (rearArcDamageMultiplier is < 1 or > 4)
+            throw new ArgumentOutOfRangeException(
+                nameof(rearArcDamageMultiplier));
+        RearArcDamageMultiplier = rearArcDamageMultiplier;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -195,6 +200,14 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public int RipenIntervalTicks { get; }
     public int RipenMaxValue { get; }
     public int RipenResumeTicks { get; }
+
+    /// <summary>
+    /// Predation (owner direction 2026-08-05): projectile damage is
+    /// multiplied by this when the shot's heading lies inside the victim's
+    /// rear quadrant — fired from its blind arc. 1 disables the bonus;
+    /// canonically written only when not 1.
+    /// </summary>
+    public int RearArcDamageMultiplier { get; }
 
     public override bool AlternatingResolutionOrder =>
         _alternatingResolutionOrder;

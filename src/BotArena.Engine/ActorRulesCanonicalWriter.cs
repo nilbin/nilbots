@@ -286,6 +286,11 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber("ripenMaxValue", mode.RipenMaxValue);
             writer.WriteNumber("ripenResumeTicks", mode.RipenResumeTicks);
         }
+        if (mode.RearArcDamageMultiplier != 1)
+        {
+            writer.WriteNumber(
+                "rearArcDamageMultiplier", mode.RearArcDamageMultiplier);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

@@ -213,7 +213,7 @@ public static class ArcRelayH0Definition
             range: 7,
             ActorVisionDistanceMetric.Chebyshev,
             ActorVisionShape.FacingQuadrant,
-            omnidirectionalProximityRange: 1,
+            omnidirectionalProximityRange: loopProfile.OmniProximityRange,
             ActorLineOfSightModel.CornerStrictSupercover,
             hearingRadius: 0,
             hearingBearingSectors: 0,
@@ -399,7 +399,8 @@ public static class ArcRelayH0Definition
             coreBaseValue: loopProfile.CoreBaseValue,
             ripenIntervalTicks: loopProfile.RipenIntervalTicks,
             ripenMaxValue: loopProfile.RipenMaxValue,
-            ripenResumeTicks: loopProfile.RipenResumeTicks);
+            ripenResumeTicks: loopProfile.RipenResumeTicks,
+            rearArcDamageMultiplier: loopProfile.RearArcDamageMultiplier);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

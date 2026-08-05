@@ -3145,6 +3145,16 @@ public sealed class GenericActorMatchSession : IDisposable
         int damage = projectile.Profile.Projectile.DamagePerHit;
         if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
             return damage;
+        int rearMultiplier = arcRelay.GameMode.RearArcDamageMultiplier;
+        if (rearMultiplier > 1)
+        {
+            // A shot travelling in the victim's own facing quadrant was
+            // fired from its blind rear arc: the backstab bonus applies
+            // before any painted-target bonus.
+            (int headingDx, int headingDy) = projectile.Heading.Vector();
+            if (Visibility.InQuadrant(headingDx, headingDy, target.Facing))
+                damage = checked(damage * rearMultiplier);
+        }
         int bonus = arcRelay.Signatures.TargetPaintBonus(
             projectile.OwnerActorId,
             target.ActorId,
