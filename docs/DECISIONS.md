@@ -4598,6 +4598,17 @@ is the artifact all Stage 3 candidates are measured against. The owner
 also approved the sentinel-zone promotion run as the next campaign; the
 Stage 3 cohort-gate proposal remains open pending owner ratification.
 
+## 208. Stage 3 gate: cohort slice replaces the parity control
+
+Owner-approved 2026-08-05 ("let's proceed" on the recommended protocol).
+From the sentinel-zone campaign onward, finals evidence includes the full
+depth-map cohort read — all 32 entrants, both orientations, WASM — with a
+registered bar of at least 75% of games won and no single entrant sweeping
+the candidate 0-2. Entrants that beat the reigning deliverable both ways
+are named as explicit counterplay targets for the following rung. The
+frozen-champion pairings, blind-holdout discipline, false-positive reads,
+and elimination-only scoring are unchanged.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
