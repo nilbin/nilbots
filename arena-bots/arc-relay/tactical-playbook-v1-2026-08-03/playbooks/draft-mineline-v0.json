@@ -8,16 +8,16 @@
   "composition": [
     "palisade",
     "palisade",
-    "patchbay",
+    "minesmith",
     "lantern",
+    "towline",
     "minesmith",
     "kestrel",
-    "relay",
-    "towline"
+    "relay"
   ],
   "layout": {
     "path": "../layouts/counterflow-draft-mineline-v0.json",
-    "sha256": "260d98bc25315dc2c2d078c11dfdd680dd3d94c2f4822a039c9bae4a484ccf39"
+    "sha256": "462b6b588876a5e881aad14512c6d8957ece9977a5fb6725967402fb98da342a"
   },
   "perspective": "team-relative",
   "memory": {
@@ -60,7 +60,7 @@
         "patchbay"
       ],
       "minimum": 0,
-      "preferred": 1,
+      "preferred": 0,
       "maximum": 1,
       "carrierPreference": "allow",
       "deathPolicy": "hold-vacancy",
@@ -89,7 +89,7 @@
       "preferred": 1,
       "maximum": 1,
       "carrierPreference": "allow",
-      "deathPolicy": "hold-vacancy",
+      "deathPolicy": "promote-best",
       "respawnPolicy": "rejoin",
       "overflowRoleId": "runner"
     },
@@ -98,12 +98,9 @@
       "candidateClasses": [
         "kestrel",
         "relay",
-        "palisade",
-        "patchbay",
         "lantern",
-        "towline",
-        "nest",
-        "minesmith"
+        "minesmith",
+        "towline"
       ],
       "minimum": 1,
       "preferred": 3,
@@ -119,12 +116,11 @@
       "groupId": "home-group",
       "roleIds": [
         "anchor",
-        "medic",
-        "hook"
+        "medic"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 4,
+      "preferred": 2,
+      "maximum": 3,
       "membership": {
         "persistence": "stable-slot",
         "casualty": "hold-vacancy",
@@ -146,10 +142,11 @@
       "groupId": "farm-group",
       "roleIds": [
         "runner",
-        "eyes"
+        "eyes",
+        "hook"
       ],
       "minimum": 1,
-      "preferred": 4,
+      "preferred": 6,
       "maximum": 8,
       "membership": {
         "persistence": "stable-slot",
@@ -504,6 +501,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -551,6 +551,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -595,6 +598,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -841,7 +847,7 @@
             "formationId": "farm-column",
             "movement": {
               "kind": "zone",
-              "target": "well-line",
+              "target": "enemy-gate",
               "stuckTicks": 8,
               "pace": "free"
             },
@@ -1062,8 +1068,7 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern",
-              "minesmith"
+              "lantern"
             ],
             "minimum": 1,
             "preferred": 2,
@@ -1110,8 +1115,7 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern",
-              "minesmith"
+              "lantern"
             ],
             "minimum": 1,
             "preferred": 2,
@@ -1155,13 +1159,12 @@
               "runner"
             ],
             "classes": [
-              "kestrel",
-              "relay",
-              "minesmith"
+              "minesmith",
+              "towline"
             ],
             "minimum": 1,
             "preferred": 2,
-            "maximum": 2,
+            "maximum": 3,
             "carrier": "forbid",
             "distance": {
               "kind": "anchor",
@@ -1201,13 +1204,12 @@
               "runner"
             ],
             "classes": [
-              "kestrel",
-              "relay",
-              "minesmith"
+              "minesmith",
+              "towline"
             ],
             "minimum": 1,
             "preferred": 2,
-            "maximum": 2,
+            "maximum": 3,
             "carrier": "forbid",
             "distance": {
               "kind": "anchor",

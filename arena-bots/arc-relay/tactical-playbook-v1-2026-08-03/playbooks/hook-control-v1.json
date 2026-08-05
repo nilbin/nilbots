@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/counterflow-hook-control-v1.json",
-    "sha256": "9453b99142bd3d07d6ec8ebdbbc9005c78f4f870987b127f4708ba44c8358f5f"
+    "sha256": "7bc7aed4defa5bae898e40223d2db6b6403b95a9eb844247b1611097310ec226"
   },
   "perspective": "team-relative",
   "memory": {
@@ -70,7 +70,8 @@
     {
       "roleId": "eyes",
       "candidateClasses": [
-        "sunder"
+        "sunder",
+        "longshot"
       ],
       "minimum": 0,
       "preferred": 1,
@@ -89,7 +90,7 @@
       "preferred": 2,
       "maximum": 2,
       "carrierPreference": "allow",
-      "deathPolicy": "hold-vacancy",
+      "deathPolicy": "promote-best",
       "respawnPolicy": "rejoin",
       "overflowRoleId": "runner"
     },
@@ -99,8 +100,9 @@
         "kestrel",
         "relay",
         "sunder",
-        "repulsor",
-        "towline"
+        "longshot",
+        "towline",
+        "repulsor"
       ],
       "minimum": 1,
       "preferred": 3,
@@ -116,12 +118,11 @@
       "groupId": "home-group",
       "roleIds": [
         "anchor",
-        "medic",
-        "hook"
+        "medic"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 4,
+      "preferred": 2,
+      "maximum": 3,
       "membership": {
         "persistence": "stable-slot",
         "casualty": "hold-vacancy",
@@ -143,10 +144,11 @@
       "groupId": "farm-group",
       "roleIds": [
         "runner",
-        "eyes"
+        "eyes",
+        "hook"
       ],
       "minimum": 1,
-      "preferred": 4,
+      "preferred": 6,
       "maximum": 8,
       "membership": {
         "persistence": "stable-slot",
@@ -264,6 +266,10 @@
             [
               3,
               0
+            ],
+            [
+              3,
+              4
             ]
           ]
         },
@@ -376,6 +382,10 @@
             [
               3,
               0
+            ],
+            [
+              3,
+              4
             ]
           ]
         },
@@ -488,6 +498,10 @@
             [
               3,
               0
+            ],
+            [
+              3,
+              4
             ]
           ]
         },
@@ -513,6 +527,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -560,6 +577,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -604,6 +624,9 @@
       ],
       "targetPriorities": [
         "enemy-carrier",
+        "class:towline",
+        "class:kestrel",
+        "class:relay",
         "closest-to-anchor",
         "lowest-health"
       ],
@@ -850,7 +873,7 @@
             "formationId": "farm-column",
             "movement": {
               "kind": "zone",
-              "target": "well-line",
+              "target": "enemy-gate",
               "stuckTicks": 8,
               "pace": "free"
             },
@@ -1071,7 +1094,7 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern"
+              "sunder"
             ],
             "minimum": 1,
             "preferred": 2,
@@ -1118,7 +1141,7 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern"
+              "sunder"
             ],
             "minimum": 1,
             "preferred": 2,
@@ -1162,8 +1185,7 @@
               "runner"
             ],
             "classes": [
-              "kestrel",
-              "relay"
+              "towline"
             ],
             "minimum": 1,
             "preferred": 2,
@@ -1207,8 +1229,7 @@
               "runner"
             ],
             "classes": [
-              "kestrel",
-              "relay"
+              "towline"
             ],
             "minimum": 1,
             "preferred": 2,

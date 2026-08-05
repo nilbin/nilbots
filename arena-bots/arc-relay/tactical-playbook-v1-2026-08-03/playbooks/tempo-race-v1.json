@@ -8,7 +8,7 @@
   "composition": [
     "palisade",
     "patchbay",
-    "lantern",
+    "veil",
     "switchback",
     "kestrel",
     "kestrel",
@@ -70,7 +70,7 @@
     {
       "roleId": "eyes",
       "candidateClasses": [
-        "lantern"
+        "veil"
       ],
       "minimum": 0,
       "preferred": 1,
@@ -98,7 +98,7 @@
       "candidateClasses": [
         "kestrel",
         "relay",
-        "lantern",
+        "veil",
         "switchback",
         "patchbay"
       ],
@@ -146,7 +146,7 @@
         "eyes"
       ],
       "minimum": 1,
-      "preferred": 4,
+      "preferred": 5,
       "maximum": 8,
       "membership": {
         "persistence": "stable-slot",
@@ -755,25 +755,6 @@
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
       "safeConversionConditionSetId": "convert-freely"
-    },
-    {
-      "custodyId": "farm-centre",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
-      "escortGroups": [
-        "farm-group"
-      ],
-      "sourceWells": [
-        "centre"
-      ],
-      "pickupReservationTicks": 8,
-      "transferTimeoutTicks": 8,
-      "deliveryTimeoutTicks": 120,
-      "accidentalPickup": "deliver",
-      "dropRecovery": "nearest-authorized",
-      "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
     }
   ],
   "authoring": {
@@ -941,30 +922,6 @@
           }
         }
       },
-      "hunt-run": {
-        "tracks": {
-          "main": {
-            "formationId": "run-escort",
-            "movement": {
-              "kind": "zone",
-              "target": "well-line",
-              "stuckTicks": 8,
-              "pace": "free"
-            },
-            "assignments": {
-              "courier-hunter": {
-                "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
-                "chaseLeash": 4,
-                "engagementId": "hunt-carrier",
-                "custodyId": "incidental-delivery",
-                "fallbackId": "continue-and-hold-invalid",
-                "assignmentProfileId": "farm-standard"
-              }
-            }
-          }
-        }
-      },
       "farm-south-run": {
         "tracks": {
           "main": {
@@ -982,30 +939,6 @@
                 "chaseLeash": 2,
                 "engagementId": "run-fight",
                 "custodyId": "farm-south",
-                "fallbackId": "continue-and-hold-invalid",
-                "assignmentProfileId": "farm-standard"
-              }
-            }
-          }
-        }
-      },
-      "farm-centre-run": {
-        "tracks": {
-          "main": {
-            "formationId": "run-escort",
-            "movement": {
-              "kind": "zone",
-              "target": "well-line",
-              "stuckTicks": 8,
-              "pace": "free"
-            },
-            "assignments": {
-              "centre-runner": {
-                "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
-                "chaseLeash": 2,
-                "engagementId": "run-fight",
-                "custodyId": "farm-centre",
                 "fallbackId": "continue-and-hold-invalid",
                 "assignmentProfileId": "farm-standard"
               }
@@ -1102,11 +1035,12 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern"
+              "veil",
+              "switchback"
             ],
             "minimum": 1,
             "preferred": 2,
-            "maximum": 2,
+            "maximum": 3,
             "carrier": "allow",
             "distance": {
               "kind": "anchor",
@@ -1149,148 +1083,12 @@
             "classes": [
               "kestrel",
               "relay",
-              "lantern"
+              "veil",
+              "switchback"
             ],
             "minimum": 1,
             "preferred": 2,
-            "maximum": 2,
-            "carrier": "allow",
-            "distance": {
-              "kind": "anchor",
-              "target": "home-gate"
-            }
-          }
-        ],
-        "whenConditionSetId": "convert-freely",
-        "completeConditionSetId": "task-never-done",
-        "failConditionSetId": "task-never-done",
-        "reintegration": {
-          "mode": "primary-order",
-          "orderIds": [],
-          "completeConditionSetId": "",
-          "timeoutTicks": 0
-        }
-      },
-      {
-        "taskId": "counter-courier-linger",
-        "priority": 6,
-        "activation": "while-true",
-        "preemption": "higher-priority",
-        "participantLoss": "replace",
-        "triggerStableTicks": 1,
-        "minimumTicks": 4,
-        "timeoutTicks": 60,
-        "cooldownTicks": 4,
-        "minimumPrimaryBodies": 2,
-        "eligiblePhases": [
-          "balanced"
-        ],
-        "assignments": [
-          {
-            "assignmentId": "courier-hunter",
-            "orderId": "courier-hunter",
-            "roles": [
-              "runner"
-            ],
-            "classes": [
-              "kestrel",
-              "relay"
-            ],
-            "minimum": 1,
-            "preferred": 2,
-            "maximum": 2,
-            "carrier": "forbid",
-            "distance": {
-              "kind": "anchor",
-              "target": "home-gate"
-            }
-          }
-        ],
-        "whenConditionSetId": "courier-lingering",
-        "completeConditionSetId": "courier-gone",
-        "failConditionSetId": "task-never-done",
-        "reintegration": {
-          "mode": "primary-order",
-          "orderIds": [],
-          "completeConditionSetId": "",
-          "timeoutTicks": 0
-        }
-      },
-      {
-        "taskId": "counter-courier",
-        "priority": 5,
-        "activation": "while-true",
-        "preemption": "higher-priority",
-        "participantLoss": "replace",
-        "triggerStableTicks": 1,
-        "minimumTicks": 4,
-        "timeoutTicks": 60,
-        "cooldownTicks": 4,
-        "minimumPrimaryBodies": 2,
-        "eligiblePhases": [
-          "fortify"
-        ],
-        "assignments": [
-          {
-            "assignmentId": "courier-hunter",
-            "orderId": "courier-hunter",
-            "roles": [
-              "runner"
-            ],
-            "classes": [
-              "kestrel",
-              "relay"
-            ],
-            "minimum": 1,
-            "preferred": 2,
-            "maximum": 2,
-            "carrier": "forbid",
-            "distance": {
-              "kind": "anchor",
-              "target": "home-gate"
-            }
-          }
-        ],
-        "whenConditionSetId": "courier-visible",
-        "completeConditionSetId": "courier-gone",
-        "failConditionSetId": "task-never-done",
-        "reintegration": {
-          "mode": "primary-order",
-          "orderIds": [],
-          "completeConditionSetId": "",
-          "timeoutTicks": 0
-        }
-      },
-      {
-        "taskId": "farm-centre-task",
-        "priority": 12,
-        "activation": "while-true",
-        "preemption": "higher-priority",
-        "participantLoss": "replace",
-        "triggerStableTicks": 1,
-        "minimumTicks": 8,
-        "timeoutTicks": 600,
-        "cooldownTicks": 2,
-        "minimumPrimaryBodies": 2,
-        "eligiblePhases": [
-          "balanced",
-          "fortify"
-        ],
-        "assignments": [
-          {
-            "assignmentId": "centre-runner",
-            "orderId": "centre-runner",
-            "roles": [
-              "runner"
-            ],
-            "classes": [
-              "kestrel",
-              "relay",
-              "lantern"
-            ],
-            "minimum": 1,
-            "preferred": 2,
-            "maximum": 2,
+            "maximum": 3,
             "carrier": "allow",
             "distance": {
               "kind": "anchor",
