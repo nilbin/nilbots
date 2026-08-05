@@ -1,5 +1,25 @@
 # Arc Relay strategy ladder — finals reports
 
+## Grammar-2 landscape (2026-08-05, analysis lane, `arc-relay-forward-combat-02`)
+
+First screens under the new signature physics
+(`evidence/grammar-2-landscape.json`, seed 424242, in-process):
+
+- **Sentinel-zone v1 keeps the crown among strategies** — beats
+  Breakwater 3-1/3-0 and Home Siege 3-1/3-1 — but its parity read cracks
+  to a split (W 3-2 west, L 2-3 east): dodgeable bolts are a real nerf.
+- **Breakwater v2 collapses**: loses both ways to Home Siege and to the
+  parity control. Its linger-hunt tuning and hook usage were fitted to
+  grammar-1 physics.
+- **Home Siege v3 splits parity** (W 3-1 west, L east).
+
+No sheet meets its old bars under the new physics — the expected result
+of an honest grammar change. Every -01 record stands as history; the
+-02 ladder starts from zero and needs grammar-2-native tuning as its
+own owner-gated goal.
+
+
+
 ## Sentinel-zone v1: Stage 3 PASS (2026-08-05, freeze `52e8a4a1`)
 
 The first Stage 3 candidate under the ratified cohort gate (DECISIONS

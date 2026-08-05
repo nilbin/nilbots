@@ -1,0 +1,14 @@
+{
+  "sentinel-zone (west) vs breakwater": "W 3-0@442/elim",
+  "sentinel-zone (east) vs breakwater": "W 3-1@368/elim",
+  "sentinel-zone (west) vs home-siege": "W 3-1@444/elim",
+  "sentinel-zone (east) vs home-siege": "W 3-1@373/elim",
+  "breakwater (west) vs home-siege": "L 2-2@599/max-ticks",
+  "breakwater (east) vs home-siege": "L 1-3@475/elim",
+  "sentinel-zone (west) vs parity": "W 3-2@453/elim",
+  "sentinel-zone (east) vs parity": "L 2-3@469/elim",
+  "breakwater (west) vs parity": "L 2-3@451/elim",
+  "breakwater (east) vs parity": "L 2-3@466/elim",
+  "home-siege (west) vs parity": "W 3-1@597/elim",
+  "home-siege (east) vs parity": "L 2-3@502/elim"
+}
