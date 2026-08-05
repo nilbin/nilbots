@@ -49,8 +49,14 @@ A role declares:
 - an ordered class candidate pool;
 - minimum, preferred, and maximum cardinality;
 - carrier preference;
-- death and respawn policy; and
-- the declared overflow role.
+- death and respawn policy;
+- the declared overflow role; and
+- optionally, a veterancy `build`: an ordered list of upgrade tracks
+  (`damage`, `vision`, `reach`, `vitality`). On rulesets with veterancy, the
+  Nth skill point a body earns in one life is spent on the Nth listed track,
+  repeating the last entry past the end; a death resets the count with the
+  life, matching the rules' progression reset. A role without a build keeps
+  the mind's class-agnostic default.
 
 Allocation is stable by unit slot while the body remains eligible. Vacancies
 are filled deterministically by candidate-class rank, health, then stable unit
@@ -416,7 +422,11 @@ A condition group is exactly one of `all` or `any`. Facts are typed by their
 required fields:
 
 - zone facts require `zone`;
-- group, role, or Well facts require `subject`;
+- group, role, or Well facts require `subject` — this includes
+  `group-max-level`, the highest current veterancy level among the subject
+  group's live bodies (a body whose recorded level belongs to an earlier
+  life reads as 1, and an empty group reads as 0, so an apex phase entered
+  on `at-least N` releases when the apex dies);
 - `remembered-enemies-in-zone` and `secured-cores` may add a bounded
   `freshnessTicks`; and
 - facts without those variants reject the extra fields.
