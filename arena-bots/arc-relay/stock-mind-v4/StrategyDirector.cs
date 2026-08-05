@@ -354,7 +354,7 @@ internal sealed class StrategyDirector
                 .FirstOrDefault();
         Position aim = threat?.Position
             ?? goals.OrderBy(goal => body.Position.ChebyshevDistance(goal))
-                .ThenBy(goal => goal.Y).ThenBy(goal => goal.X).First();
+                .ThenBy(CanonY).ThenBy(CanonX).First();
         bool spendSignature = signature switch
         {
             "conserve" => false,
@@ -553,7 +553,7 @@ internal sealed class StrategyDirector
                     ? 0
                     : 1)
                 .ThenBy(value => value.NextScheduledBirthTick)
-                .ThenBy(value => value.WellId, StringComparer.Ordinal)
+                .ThenBy(value => CanonWellId(value.WellId), StringComparer.Ordinal)
                 .Select(value => (Position?)value.Position).FirstOrDefault(),
             "nearest-loose-core" => arc.VisibleCores
                 .Where(core => core.Disposition
@@ -564,7 +564,9 @@ internal sealed class StrategyDirector
                     : 1)
                 .ThenByDescending(core => core.ChargeValue)
                 .ThenBy(core => body.Position.ChebyshevDistance(core.Position))
-                .ThenBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
+                .ThenBy(
+                    core => CanonWellId(core.CoreId.SourceWellId),
+                    StringComparer.Ordinal)
                 .ThenBy(core => core.CoreId.SourceOrdinal)
                 .Select(core => (Position?)core.Position).FirstOrDefault(),
             "nearest-own-carrier" => mind.Bodies
@@ -688,7 +690,9 @@ internal sealed class StrategyDirector
             .Where(value => bindingZones.Length == 0
                 || bindingZones.Any(zone => _sheet.Zones[zone].Contains(
                     Unmirror(value.Position))))
-            .OrderBy(value => value.CoreId.SourceWellId, StringComparer.Ordinal)
+            .OrderBy(
+                value => CanonWellId(value.CoreId.SourceWellId),
+                StringComparer.Ordinal)
             .ThenBy(value => value.CoreId.SourceOrdinal)
             .FirstOrDefault();
         if (core?.CarrierActorId is not { } carrier)
@@ -1140,14 +1144,32 @@ internal sealed class StrategyDirector
 
     private Position Unmirror(Position position) => Mirror(position);
 
+    // Rotational tie-break canon (see ArenaBasics.MirroredFrame): raw
+    // coordinate or well-id keys would make the mirrored side pick the
+    // non-rotation-paired option from an equivalent tie.
+    private int CanonY(Position position) =>
+        _mirror ? _contract.Map.Height - 1 - position.Y : position.Y;
+
+    private int CanonX(Position position) =>
+        _mirror ? _contract.Map.Width - 1 - position.X : position.X;
+
+    private string CanonWellId(string wellId) => _mirror
+        ? wellId switch
+        {
+            "north" => "south",
+            "south" => "north",
+            _ => wellId,
+        }
+        : wellId;
+
     private Position NearestOpen(Position desired) =>
         Enumerable.Range(0, _contract.Map.Height)
             .SelectMany(y => Enumerable.Range(0, _contract.Map.Width)
                 .Select(x => new Position(x, y)))
             .Where(position => !IsWall(position))
             .OrderBy(position => position.ChebyshevDistance(desired))
-            .ThenBy(position => position.Y)
-            .ThenBy(position => position.X)
+            .ThenBy(CanonY)
+            .ThenBy(CanonX)
             .First();
 
     private bool IsWall(Position position) =>

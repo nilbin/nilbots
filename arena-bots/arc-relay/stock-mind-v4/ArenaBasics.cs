@@ -47,6 +47,47 @@ internal static class ArenaBasics
         MindContext mind) =>
         mind.Mode as GenericActorContext.ModeObservationState.ArcRelay;
 
+    /// <summary>
+    /// The warren maps are 180-degree chiral and the eastern side mirrors
+    /// its doctrine by rotation, so a tie-break comparing raw direction
+    /// enum order or raw (Y,X) coordinates makes inequivalent picks from
+    /// rotationally equivalent situations - the stock-mirror west residual.
+    /// Every such key goes through these canonical accessors instead: the
+    /// west frame is unchanged and the east frame compares the rotated
+    /// value, so both sides make exactly rotation-paired choices.
+    /// </summary>
+    public static bool MirroredFrame(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        Position? anchor = contract.Map.SpawnAnchors
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.SpawnId,
+                $"team-{body.ActorId.TeamId}-unit-0",
+                StringComparison.Ordinal))
+            ?.Position;
+        return anchor is { } spawn
+            && spawn.X > (contract.Map.Width - 1) / 2;
+    }
+
+    public static int CanonHeading(bool mirrored, ProjectileHeading heading)
+        => mirrored ? ((int)heading + 4) % 8 : (int)heading;
+
+    public static int CanonDirection(bool mirrored, Direction direction)
+        => mirrored ? ((int)direction + 2) % 4 : (int)direction;
+
+    public static int CanonY(
+        GenericActorResolvedMatchContract contract,
+        bool mirrored,
+        Position position)
+        => mirrored ? contract.Map.Height - 1 - position.Y : position.Y;
+
+    public static int CanonX(
+        GenericActorResolvedMatchContract contract,
+        bool mirrored,
+        Position position)
+        => mirrored ? contract.Map.Width - 1 - position.X : position.X;
+
     public static GenericActorRulesContract.ArcRelayGameMode? ArcRules(
         GenericActorResolvedMatchContract contract) =>
         contract.Rules.GameMode as GenericActorRulesContract.ArcRelayGameMode;
@@ -161,7 +202,7 @@ internal static class ArenaBasics
             goals.ToHashSet(),
             blocked,
             routeHeadings,
-            PreferredHeadings(body, goals));
+            PreferredHeadings(contract, body, goals));
         if (desired is not ProjectileHeading heading)
             return false;
 
@@ -248,7 +289,7 @@ internal static class ArenaBasics
             new HashSet<Position> { goal },
             new HashSet<Position>(),
             RouteHeadings(contract, body),
-            PreferredHeadings(body, [goal]));
+            PreferredHeadings(contract, body, [goal]));
         return heading is ProjectileHeading step
             ? Step(body.Position, step)
             : null;
@@ -281,7 +322,7 @@ internal static class ArenaBasics
             new HashSet<Position> { goal },
             reservations,
             RouteHeadings(contract, body),
-            PreferredHeadings(body, [goal]),
+            PreferredHeadings(contract, body, [goal]),
             blockThroughout: true);
         return heading is ProjectileHeading step
             ? Step(body.Position, step)
@@ -344,6 +385,7 @@ internal static class ArenaBasics
         HashSet<Position> blocked = BlockedNow(contract, mind, body, claims);
         ProjectileHeading facing =
             (ProjectileHeading)((int)body.Facing * 2);
+        bool mirrored = MirroredFrame(contract, body);
         (ProjectileHeading Heading, Position Destination, int Distance)?
             selected = RouteHeadings(contract, body)
                 .Select(heading => (
@@ -367,7 +409,7 @@ internal static class ArenaBasics
                     && candidate.Distance <= currentDistance)
                 .OrderBy(candidate => candidate.Distance)
                 .ThenBy(candidate => candidate.Heading == facing ? 0 : 1)
-                .ThenBy(candidate => (int)candidate.Heading)
+                .ThenBy(candidate => CanonHeading(mirrored, candidate.Heading))
                 .Select(candidate => (ValueTuple<ProjectileHeading, Position, int>?) (
                     candidate.Heading,
                     candidate.Destination,
@@ -482,6 +524,7 @@ internal static class ArenaBasics
             body,
             claims,
             avoidHostileProjectiles: false);
+        bool mirrored = MirroredFrame(contract, body);
         ProjectileHeading? selected = RouteHeadings(contract, body)
             .Select(heading => (Heading: heading, Tile: Step(body.Position, heading)))
             .Where(candidate =>
@@ -491,7 +534,7 @@ internal static class ArenaBasics
                 && !forbidden.Contains(candidate.Tile))
             .OrderByDescending(candidate => forbidden.Min(tile =>
                 candidate.Tile.ChebyshevDistance(tile)))
-            .ThenBy(candidate => (int)candidate.Heading)
+            .ThenBy(candidate => CanonHeading(mirrored, candidate.Heading))
             .Select(candidate => (ProjectileHeading?)candidate.Heading)
             .FirstOrDefault();
         if (selected is not ProjectileHeading heading)
@@ -700,7 +743,7 @@ internal static class ArenaBasics
             {
                 continue;
             }
-            Direction desired = FacingForCone(body.Facing, heading);
+            Direction desired = FacingForCone(contract, body, heading);
             if (TryRotate(
                     contract,
                     body,
@@ -873,13 +916,14 @@ internal static class ArenaBasics
                 .OfType<GenericActorActionLegality.ArgumentConstraint
                     .DirectionConstraint>()
                 .SingleOrDefault();
+        bool mirrored = MirroredFrame(contract, body);
         Direction? selected = directions?.AllowedValues
             .OrderBy(direction =>
             {
                 (int dx, int dy) = direction.Vector();
                 return body.Position.Offset(dx, dy).ChebyshevDistance(target);
             })
-            .ThenBy(direction => (int)direction)
+            .ThenBy(direction => CanonDirection(mirrored, direction))
             .Select(direction => (Direction?)direction)
             .FirstOrDefault();
         if (action is not { Available: true } || selected is not Direction value)
@@ -912,11 +956,12 @@ internal static class ArenaBasics
                 .OfType<GenericActorActionLegality.ArgumentConstraint
                     .PositionTargetConstraint>()
                 .SingleOrDefault();
+        bool mirrored = MirroredFrame(contract, body);
         Position? selected = targets?.AllowedValues
             .Where(position => extraFilter?.Invoke(position) ?? true)
             .OrderBy(position => position.ChebyshevDistance(target))
-            .ThenBy(position => position.Y)
-            .ThenBy(position => position.X)
+            .ThenBy(position => CanonY(contract, mirrored, position))
+            .ThenBy(position => CanonX(contract, mirrored, position))
             .Select(position => (Position?)position)
             .FirstOrDefault();
         if (action is not { Available: true } || selected is not Position position)
@@ -975,8 +1020,14 @@ internal static class ArenaBasics
 
     public static Position[] ApproachTiles(
         GenericActorMapContract map,
-        Position target) =>
+        Position target,
+        bool mirrored = false) =>
         EightWay
+            // Ring order is a positional preference (patrol indexing walks
+            // it), so the mirrored frame starts from the rotated heading:
+            // the west sequence N,NE,E,... becomes S,SW,W,... and each
+            // index lands on the rotation partner of the west pick.
+            .OrderBy(heading => CanonHeading(mirrored, heading))
             .Select(heading =>
             {
                 (int dx, int dy) = heading.Vector();
@@ -1148,16 +1199,19 @@ internal static class ArenaBasics
     }
 
     private static Direction FacingForCone(
-        Direction current,
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
         ProjectileHeading target)
     {
+        Direction current = body.Facing;
+        bool mirrored = MirroredFrame(contract, body);
         Direction[] candidates = Enum.GetValues<Direction>()
             .Where(direction => HeadingDistance(
                 (ProjectileHeading)((int)direction * 2), target) <= 1)
             .OrderBy(direction => HeadingDistance(
                 (ProjectileHeading)((int)current * 2),
                 (ProjectileHeading)((int)direction * 2)))
-            .ThenBy(direction => (int)direction)
+            .ThenBy(direction => CanonDirection(mirrored, direction))
             .ToArray();
         return candidates[0];
     }
@@ -1188,13 +1242,15 @@ internal static class ArenaBasics
     }
 
     private static ProjectileHeading[] PreferredHeadings(
+        GenericActorResolvedMatchContract contract,
         MindBody body,
         IReadOnlyCollection<Position> goals)
     {
+        bool mirrored = MirroredFrame(contract, body);
         Position nearest = goals
             .OrderBy(goal => body.Position.ChebyshevDistance(goal))
-            .ThenBy(goal => goal.Y)
-            .ThenBy(goal => goal.X)
+            .ThenBy(goal => CanonY(contract, mirrored, goal))
+            .ThenBy(goal => CanonX(contract, mirrored, goal))
             .First();
         int dx = Math.Sign(nearest.X - body.Position.X);
         int dy = Math.Sign(nearest.Y - body.Position.Y);
@@ -1210,7 +1266,7 @@ internal static class ArenaBasics
             // current bearing. This preserves straight Deliberate runs
             // without lengthening the route or changing any game rule.
             .ThenBy(heading => heading == facing ? 0 : 1)
-            .ThenBy(heading => heading)
+            .ThenBy(heading => CanonHeading(mirrored, heading))
             .ToArray();
     }
 

@@ -44,12 +44,22 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
                     value.RegionRoleId,
                     binding.ReactorRegionRoleId,
                     StringComparison.Ordinal));
-        _ownReactor = start.Contract.Map.Regions.Single(value =>
-                string.Equals(
-                    value.RegionId,
-                    assignment.MapRegionId,
-                    StringComparison.Ordinal))
-            .Tiles.OrderBy(value => value.Y).ThenBy(value => value.X).First();
+        IReadOnlyList<Position> reactorTiles = start.Contract.Map.Regions
+            .Single(value => string.Equals(
+                value.RegionId,
+                assignment.MapRegionId,
+                StringComparison.Ordinal))
+            .Tiles;
+        // The landmark tile must be the rotation partner of the western
+        // pick, so the eastern region orders by rotated coordinates.
+        bool east = reactorTiles.Min(value => value.X)
+            > (start.Contract.Map.Width - 1) / 2;
+        int maxLandmarkY = start.Contract.Map.Height - 1;
+        int maxLandmarkX = start.Contract.Map.Width - 1;
+        _ownReactor = reactorTiles
+            .OrderBy(value => east ? maxLandmarkY - value.Y : value.Y)
+            .ThenBy(value => east ? maxLandmarkX - value.X : value.X)
+            .First();
         _mirror = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
         if (_mirror)
             RelabelPlansToRotationPartners(start);
@@ -273,6 +283,8 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             {
                 Position healTile = _healTiles
                     .OrderBy(tile => tile.ChebyshevDistance(body.Position))
+                    .ThenBy(tile => Mirror(tile).Y)
+                    .ThenBy(tile => Mirror(tile).X)
                     .First();
                 if (body.Position.ChebyshevDistance(healTile) <= 8)
                 {
@@ -1030,7 +1042,7 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         {
             return _strategy == Strategy.Split
                 && string.Equals(
-                    plan.Theater,
+                    MirrorTheater(plan.Theater),
                     Theater(carrier.Position),
                     StringComparison.Ordinal)
                 && plan.Role is not "carrier"
@@ -1041,7 +1053,7 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             Strategy.Fortress =>
                 carrier.Position.ChebyshevDistance(_ownReactor) <= 9,
             Strategy.Ambush => string.Equals(
-                    plan.Theater,
+                    MirrorTheater(plan.Theater),
                     Theater(carrier.Position),
                     StringComparison.Ordinal)
                 && distance <= 7,
@@ -1294,13 +1306,13 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
             Theater(well.WellId), theater, StringComparison.Ordinal))
         ?? arc.Wells.OrderBy(well => well.WellId, StringComparer.Ordinal).First();
 
-    private static Position PatrolPoint(
+    private Position PatrolPoint(
         GenericActorMapContract map,
         Position well,
         int unitId,
         int tick)
     {
-        Position[] ring = ArenaBasics.ApproachTiles(map, well);
+        Position[] ring = ArenaBasics.ApproachTiles(map, well, _mirror);
         if (ring.Length == 0)
             return well;
         int patrolStep = (tick + unitId * 2) / 6;
@@ -1420,16 +1432,33 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
     private static string Theater(Position position) =>
         position.Y <= 7 ? "north" : position.Y >= 15 ? "south" : "centre";
 
-    private string EffectiveTheater(string theater, int tick)
-    {
-        if (_strategy != Strategy.Feint || tick < 150)
-            return theater;
-        return theater switch
+    /// <summary>
+    /// Plan theaters are authored in the western frame; the mirrored side
+    /// plays the 180-degree rotation, so its "north" doctrine physically
+    /// operates in the south. Every comparison of a plan theater against a
+    /// physical theater (wells, cores, carrier positions) goes through this
+    /// map or the mirrored side stations rotated units across the map from
+    /// their assignments.
+    /// </summary>
+    private string MirrorTheater(string theater) => _mirror
+        ? theater switch
         {
             "north" => "south",
             "south" => "north",
             _ => theater,
-        };
+        }
+        : theater;
+
+    private string EffectiveTheater(string theater, int tick)
+    {
+        if (_strategy != Strategy.Feint || tick < 150)
+            return MirrorTheater(theater);
+        return MirrorTheater(theater switch
+        {
+            "north" => "south",
+            "south" => "north",
+            _ => theater,
+        });
     }
 
     private Position Mirror(Position position) => _mirror
