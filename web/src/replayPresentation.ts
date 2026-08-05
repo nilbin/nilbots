@@ -333,6 +333,7 @@ export interface ArcRelayBeatPresentation {
 export interface ArcRelayCorePresentation {
   key: string;
   sourceLabel: string;
+  sourceWellId: string;
   position: { x: number; y: number };
   disposition: 'loose' | 'carried' | 'in-flight';
   carrierUnitKey: ReplayStableUnitKey | null;
@@ -363,6 +364,7 @@ export interface ArcRelayStoryPresentation {
     teamId: number;
     position: { x: number; y: number };
     chargePips: number;
+    filledSocketWellIds: string[];
     integritySegments: number;
     accent: string;
   }[];
@@ -1510,6 +1512,24 @@ const ARC_RELAY_BEAT_TICKS = 5;
 
 type ArcRelayBeat = Omit<ArcRelayBeatPresentation, 'strength'>;
 
+/**
+ * Threefold origin hues, shared by both renderers: a Core's sphere and its
+ * reactor socket read as the same object. North cool, centre teal, south
+ * warm; anything unrecognized keeps the neutral core white.
+ */
+export function arcOriginAccent(sourceWellId: string): string {
+  switch (sourceWellId) {
+    case 'north':
+      return '#5ea0ff';
+    case 'centre':
+      return '#7fe8d8';
+    case 'south':
+      return '#ffb45e';
+    default:
+      return '#f5f8fb';
+  }
+}
+
 function arcCoreKey(core: { sourceWellId: string; sourceOrdinal: number }): string {
   return `${core.sourceWellId}:${core.sourceOrdinal}`;
 }
@@ -1640,6 +1660,7 @@ function arcRelayAt(
     return {
       key: arcCoreKey(core.coreId),
       sourceLabel: arcSourceLabel(core.coreId.sourceWellId),
+      sourceWellId: core.coreId.sourceWellId,
       position: core.position,
       disposition: core.disposition,
       carrierUnitKey: carrier?.unitKey ?? null,
@@ -1727,6 +1748,7 @@ function arcRelayAt(
         teamId: reactor.teamId,
         position: reactor.position,
         chargePips: reactor.chargePips,
+        filledSocketWellIds: reactor.filledSocketWellIds,
         integritySegments: reactor.integritySegments,
         accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
       };

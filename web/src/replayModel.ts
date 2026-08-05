@@ -955,6 +955,8 @@ export interface ReplayArcRelayModeState {
     position: ReplayPosition;
     chargePips: number;
     integritySegments: number;
+    /** Threefold sockets in canonical well order; empty otherwise. */
+    filledSocketWellIds: string[];
   }[];
   visibleCores: {
     coreId: ReplayArcCoreId;

@@ -1,3 +1,4 @@
+import { arcOriginAccent } from '../replayPresentation';
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
@@ -2012,12 +2013,23 @@ function buildArcRelayStory(
       } else {
         rig.crest.visible = false;
       }
+      const socketOrder = ['north', 'centre', 'south'];
+      const sockets = state.filledSocketWellIds ?? [];
       for (let pip = 0; pip < 3; pip++) {
         rig.integrityMaterials[pip]!.color.set(
           pip < state.integritySegments ? state.accent : '#334155',
         );
+        // Threefold sockets light positionally in the lane's hue; the
+        // count-based fill remains for every other ruleset (identical at
+        // zero charge).
         rig.chargeMaterials[pip]!.color.set(
-          pip < state.chargePips ? state.accent : '#25313d',
+          sockets.length > 0
+            ? sockets.includes(socketOrder[pip]!)
+              ? arcOriginAccent(socketOrder[pip]!)
+              : '#25313d'
+            : pip < state.chargePips
+              ? state.accent
+              : '#25313d',
         );
       }
     }
@@ -2028,10 +2040,9 @@ function buildArcRelayStory(
     for (const [index, state] of story.cores.entries()) {
       const rig = core(index);
       const carried = state.disposition === 'carried';
-      const accent = state.carrierTeamId === null
-        ? '#eef8fc'
-        : story.reactors.find((entry) => entry.teamId === state.carrierTeamId)
-            ?.accent ?? '#eef8fc';
+      // The lane owns the sphere (owner ruling 2026-08-05): a Core reads as
+      // its origin wherever it is.
+      const accent = arcOriginAccent(state.sourceWellId);
       const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + index * 1.7);
       const carrier = carried && state.carrierUnitKey !== null
         ? actorPoses.find((pose) => pose.unitKey === state.carrierUnitKey)

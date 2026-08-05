@@ -897,6 +897,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && core.CarrierActorId?.TeamId != _teamId);
         GenericActorContext.ArcRelayReactorState own = arc.Reactors.Single(
             reactor => reactor.TeamId == _teamId);
+        GenericActorContext.ArcRelayReactorState enemyReactorState =
+            arc.Reactors.Single(reactor => reactor.TeamId != _teamId);
+        Dictionary<string, int> ownSocketFilled = arc.Wells.ToDictionary(
+            well => well.WellId,
+            well => own.FilledSocketWellIds.Contains(
+                well.WellId, StringComparer.Ordinal) ? 1 : 0,
+            StringComparer.Ordinal);
+        Dictionary<string, int> enemySocketFilled = arc.Wells.ToDictionary(
+            well => well.WellId,
+            well => enemyReactorState.FilledSocketWellIds.Contains(
+                well.WellId, StringComparer.Ordinal) ? 1 : 0,
+            StringComparer.Ordinal);
         return new TacticalSnapshot(
             mind.Tick,
             Math.Max(0, mind.Tick - machine.PhaseEnteredTick),
@@ -933,7 +945,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _formationLifecycles.ToDictionary(
                 value => value.Key,
                 value => value.Value.Broken ? 1 : 0,
-                StringComparer.Ordinal));
+                StringComparer.Ordinal),
+            ownSocketFilled,
+            enemySocketFilled);
     }
 
     private static int CohesionPercent(Position[] positions, int maximumSpacing)
@@ -1044,6 +1058,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     snapshot.Tick - value.StartedTick),
             "role-live-count" => snapshot.RoleLive
                 .GetValueOrDefault(condition.Subject),
+            // Threefold sockets: subjects are the contract's absolute well
+            // ids, exactly like custody sourceWells.
+            "own-socket-filled" => snapshot.OwnSocketFilled
+                .GetValueOrDefault(condition.Subject),
+            "enemy-socket-filled" => snapshot.EnemySocketFilled
+                .GetValueOrDefault(condition.Subject),
+            "own-filled-sockets" => snapshot.OwnSocketFilled.Values.Sum(),
+            "enemy-filled-sockets" => snapshot.EnemySocketFilled.Values.Sum(),
             _ => throw new InvalidDataException(
                 $"Unknown tactical fact '{condition.Fact}'."),
         };
@@ -3777,5 +3799,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> VisibleLooseCoresByZone,
         IReadOnlyDictionary<string, int> WellOutstanding,
         IReadOnlyDictionary<string, int> FormationStableTicks,
-        IReadOnlyDictionary<string, int> FormationBroken);
+        IReadOnlyDictionary<string, int> FormationBroken,
+        IReadOnlyDictionary<string, int> OwnSocketFilled,
+        IReadOnlyDictionary<string, int> EnemySocketFilled);
 }

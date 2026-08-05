@@ -25,7 +25,7 @@ export {
   fullArenaFrame,
   strategicOverviewFrame,
 } from '../../src/render/arenaCamera';
-export { createPresenter } from '../../src/replayPresentation';
+export { arcOriginAccent, createPresenter } from '../../src/replayPresentation';
 export {
   parsePlayRoleTag,
   playAwarenessTimeline,

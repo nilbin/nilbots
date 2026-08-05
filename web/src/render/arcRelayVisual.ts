@@ -9,6 +9,7 @@ import type {
 } from '../replayModel';
 import type { BotPose } from './interpolate';
 import { unitLook } from './unitPresentation';
+import { arcOriginAccent } from '../replayPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
 import type { CrestPresentation } from '../components/EntrantCrest';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
@@ -311,9 +312,17 @@ function drawReactors(input: ArcRelayVisualContext, state: ArcState): void {
     }
 
     const gap = tile * 0.17;
+    const socketOrder = ['north', 'centre', 'south'];
+    const sockets = reactor.filledSocketWellIds ?? [];
     for (let index = 0; index < 3; index++) {
-      ctx.fillStyle =
-        index < reactor.chargePips
+      // Threefold sockets light positionally in the lane's own hue; the
+      // count-based fill remains for every other ruleset (both styles are
+      // identical at zero charge).
+      ctx.fillStyle = sockets.length > 0
+        ? sockets.includes(socketOrder[index]!)
+          ? arcOriginAccent(socketOrder[index]!)
+          : 'rgba(100, 116, 139, 0.32)'
+        : index < reactor.chargePips
           ? accent
           : 'rgba(100, 116, 139, 0.32)';
       ctx.beginPath();
@@ -746,6 +755,9 @@ function drawCores(
     const accent = carried
       ? input.accentFor(core.carrierActor!.unitKey)
       : '#f5f8fb';
+    // The lane owns the sphere: a Core reads as its origin wherever it is,
+    // loose, carried, or in flight (owner ruling 2026-08-05).
+    const originAccent = arcOriginAccent(core.coreId.sourceWellId);
     const radius = input.tile * 0.16;
     let x = base.x;
     let y = base.y;
@@ -791,7 +803,7 @@ function drawCores(
         coreKey(event.arcRelayFact.coreId) === coreKey(core.coreId),
     );
     input.ctx.save();
-    input.ctx.shadowColor = accent;
+    input.ctx.shadowColor = originAccent;
     input.ctx.shadowBlur = Math.max(4, input.tile * (carried ? 0.28 : 0.18));
     const atSourceWell = core.disposition === 'loose' && state.wells.some(
       (well) =>
@@ -806,10 +818,10 @@ function drawCores(
         base.y,
         radius,
         core.coreId.sourceWellId,
-        accent,
+        originAccent,
         cracked,
       );
-    drawCoreSphere(input.ctx, x, y, radius, carried ? accent : null);
+    drawCoreSphere(input.ctx, x, y, radius, originAccent);
     if (!carried && coreKey(core.coreId) === threat) {
       input.ctx.strokeStyle = withAlpha(accent, 0.7);
       input.ctx.lineWidth = Math.max(1.5, input.tile * 0.035);

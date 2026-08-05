@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import * as THREE from 'three';
 import {
+  arcOriginAccent,
   buildOverlays,
   createPresenter,
   defaultPlaybackSpeed,
@@ -295,9 +296,10 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
   assert.ok(story);
   const core = story.cores[0];
   assert.ok(core?.carrierUnitKey);
-  const accent = story.reactors.find(
-    (reactor) => reactor.teamId === core.carrierTeamId,
-  )?.accent;
+  // The lane owns the sphere (owner ruling 2026-08-05): a Core reads as its
+  // origin wherever it is; possession stays readable through the carrier
+  // underneath and the tether.
+  const accent = arcOriginAccent(core.sourceWellId);
   assert.ok(accent);
   const carrier = posesAt(replay, time).find(
     (pose) => pose.unitKey === core.carrierUnitKey,
@@ -336,12 +338,12 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
   assert.equal(
     (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
     new THREE.Color(accent).getHexString(),
-    'the carried sphere itself takes the carrier team colour',
+    'the carried sphere keeps its origin-lane colour',
   );
   assert.equal(
     (glow.material as THREE.SpriteMaterial).color.getHexString(),
     new THREE.Color(accent).getHexString(),
-    'the carried glow takes the carrier team colour',
+    'the carried glow keeps its origin-lane colour',
   );
 
   overlays.dispose();

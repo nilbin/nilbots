@@ -448,6 +448,14 @@ function validateContract(
               ...(own(mode, 'wellBirthJitterTicks')
                 ? ['wellBirthJitterTicks']
                 : []),
+              // Foundations -03: parity-alternating resolution, written only
+              // when true.
+              ...(own(mode, 'alternatingResolutionOrder')
+                ? ['alternatingResolutionOrder']
+                : []),
+              // Threefold Pulse prototype: per-origin sockets, written only
+              // when true.
+              ...(own(mode, 'threefoldSockets') ? ['threefoldSockets'] : []),
               'wells',
               'signatures',
             ]
@@ -7717,8 +7725,11 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         : null,
     })),
     reactors: mode.reactors.map((reactor) => ({
-      ...reactor,
+      teamId: reactor.teamId,
       position: copyPosition(reactor.position),
+      chargePips: reactor.chargePips,
+      integritySegments: reactor.integritySegments,
+      filledSocketWellIds: [...(reactor.filledSocketWellIds ?? [])],
     })),
     visibleCores: mode.visibleCores.map((core) => ({
       coreId: { ...core.coreId },
