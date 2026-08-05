@@ -1420,7 +1420,10 @@ internal static class ReplayV3Projection
                 reactor.TeamId,
                 Position(reactor.Position),
                 reactor.ChargePips,
-                reactor.IntegritySegments))],
+                reactor.IntegritySegments)
+            {
+                FilledSocketWellIds = reactor.FilledSocketWellIds,
+            })],
             [.. value.VisibleCores.Select(core => new ReplayV3.ArcCore(
                 ArcCoreId(core.CoreId),
                 Position(core.Position),

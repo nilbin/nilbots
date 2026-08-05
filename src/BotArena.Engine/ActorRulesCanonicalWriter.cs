@@ -271,6 +271,11 @@ internal static class ActorRulesCanonicalWriter
                 "alternatingResolutionOrder",
                 mode.AlternatingResolutionOrder);
         }
+        // Written only when true so historical rules bytes are untouched.
+        if (mode.ThreefoldSockets)
+        {
+            writer.WriteBoolean("threefoldSockets", mode.ThreefoldSockets);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

@@ -21,7 +21,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         IEnumerable<ArcRelaySignatureDefinition> signatures,
         int signatureGrammarVersion = 1,
         int wellBirthJitterTicks = 0,
-        bool alternatingResolutionOrder = false)
+        bool alternatingResolutionOrder = false,
+        bool threefoldSockets = false)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -33,6 +34,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
                 nameof(wellBirthJitterTicks));
         WellBirthJitterTicks = wellBirthJitterTicks;
         _alternatingResolutionOrder = alternatingResolutionOrder;
+        ThreefoldSockets = threefoldSockets;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -54,6 +56,12 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
             throw new ArgumentException(
                 "Well-birth jitter must keep every birth window disjoint and after tick zero.",
                 nameof(wellBirthJitterTicks));
+        }
+        if (threefoldSockets && wellSnapshot.Length != 3)
+        {
+            throw new ArgumentException(
+                "Threefold sockets require exactly three Wells.",
+                nameof(threefoldSockets));
         }
         if (signatureSnapshot.Length == 0
             || signatureSnapshot.Any(signature => signature is null)
@@ -140,6 +148,14 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public int WellBirthJitterTicks { get; }
 
     private readonly bool _alternatingResolutionOrder;
+
+    /// <summary>
+    /// Threefold Pulse (owner brief 2026-08-05): a Pulse requires one banked
+    /// Core from EACH Well origin; a duplicate-origin Core cannot be
+    /// consumed and stays contestable; sockets reset on the Pulse.
+    /// Canonically written only when true.
+    /// </summary>
+    public bool ThreefoldSockets { get; }
 
     public override bool AlternatingResolutionOrder =>
         _alternatingResolutionOrder;

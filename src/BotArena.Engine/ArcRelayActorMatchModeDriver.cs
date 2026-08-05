@@ -452,6 +452,13 @@ internal sealed class ArcRelayActorMatchModeDriver
             {
                 continue;
             }
+            // Threefold: a Core whose origin socket is already filled cannot
+            // be consumed. It stays carried, physical, and contestable.
+            if (_gameMode.ThreefoldSockets
+                && reactor.FilledSockets.Contains(core.CoreId.SourceWellId))
+            {
+                continue;
+            }
             Bank(input.Tick, core, life.ActorId, reactor, events);
         }
 
@@ -605,7 +612,15 @@ internal sealed class ArcRelayActorMatchModeDriver
         _cores.Remove(core.CoreId);
         WellRuntime well = _wellsById[core.CoreId.SourceWellId];
         well.OutstandingCoreId = null;
-        reactor.Charge++;
+        if (_gameMode.ThreefoldSockets)
+        {
+            reactor.FilledSockets.Add(core.CoreId.SourceWellId);
+            reactor.Charge = reactor.FilledSockets.Count;
+        }
+        else
+        {
+            reactor.Charge++;
+        }
         events.Add(Public(new ArcRelayEvent.CoreBanked(
             core.CoreId,
             carrier,
@@ -622,8 +637,13 @@ internal sealed class ArcRelayActorMatchModeDriver
             well.PendingCharge,
             well.RearmCompletesAtTick,
             null)));
-        if (reactor.Charge < _gameMode.CoresPerPulse)
+        if (_gameMode.ThreefoldSockets
+                ? reactor.FilledSockets.Count < _wells.Length
+                : reactor.Charge < _gameMode.CoresPerPulse)
+        {
             return;
+        }
+        reactor.FilledSockets.Clear();
         reactor.Charge = 0;
         reactor.Pulses++;
         ReactorRuntime opposing = _reactors.Values.Single(
@@ -654,7 +674,15 @@ internal sealed class ArcRelayActorMatchModeDriver
                     value.TeamId,
                     value.Position,
                     value.Charge,
-                    value.IntegritySegments))
+                    value.IntegritySegments)
+                {
+                    FilledSocketWellIds = _gameMode.ThreefoldSockets
+                        ? _wells
+                            .Select(well => well.Schedule.WellId)
+                            .Where(value.FilledSockets.Contains)
+                            .ToImmutableArray()
+                        : [],
+                })
                 .ToImmutableArray(),
             _cores.Values.OrderBy(value => value.CoreId.SourceWellId,
                     StringComparer.Ordinal)
@@ -893,5 +921,9 @@ internal sealed class ArcRelayActorMatchModeDriver
         public int Charge { get; set; }
         public int Pulses { get; set; }
         public int IntegritySegments { get; set; }
+
+        /// <summary>Threefold origins banked this cycle, empty otherwise.</summary>
+        public HashSet<string> FilledSockets { get; } =
+            new(StringComparer.Ordinal);
     }
 }

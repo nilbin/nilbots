@@ -394,7 +394,8 @@ public static class ArcRelayH0Definition
             signatureGrammarVersion: loopProfile.SignatureGrammarVersion,
             wellBirthJitterTicks: loopProfile.WellBirthJitterTicks,
             alternatingResolutionOrder:
-                loopProfile.AlternatingResolutionOrder);
+                loopProfile.AlternatingResolutionOrder,
+            threefoldSockets: loopProfile.ThreefoldSockets);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

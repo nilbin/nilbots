@@ -485,7 +485,10 @@ internal static class GenericActorSdkModelMapper
             value.TeamId,
             ToSdk(value.Position),
             value.ChargePips,
-            value.IntegritySegments);
+            value.IntegritySegments)
+        {
+            FilledSocketWellIds = value.FilledSocketWellIds,
+        };
 
     internal static Sdk.GenericActorContext.ArcRelayCoreState ToSdk(
         ArcRelayCoreState value) =>

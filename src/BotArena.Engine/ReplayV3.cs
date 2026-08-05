@@ -1118,7 +1118,32 @@ internal sealed record ReplayV3(
         int TeamId,
         PositionValue Position,
         int ChargePips,
-        int IntegritySegments);
+        int IntegritySegments)
+    {
+        /// <summary>Threefold sockets; empty outside threefold rulesets.</summary>
+        public ImmutableArray<string> FilledSocketWellIds { get; init; } = [];
+
+        public bool Equals(ArcReactor? other) =>
+            other is not null
+            && TeamId == other.TeamId
+            && Position == other.Position
+            && ChargePips == other.ChargePips
+            && IntegritySegments == other.IntegritySegments
+            && FilledSocketWellIds.SequenceEqual(
+                other.FilledSocketWellIds, StringComparer.Ordinal);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(TeamId);
+            hash.Add(Position);
+            hash.Add(ChargePips);
+            hash.Add(IntegritySegments);
+            foreach (string wellId in FilledSocketWellIds)
+                hash.Add(wellId, StringComparer.Ordinal);
+            return hash.ToHashCode();
+        }
+    }
 
     internal sealed record ArcCore(
         ArcCoreId CoreId,

@@ -1113,6 +1113,14 @@ internal static class GenericActorWireObservationCodec
         writer.Field(2, GenericActorWireCodecValues.EncodePosition(value.Position));
         writer.Field(3, ActorWireValue.Int32(value.ChargePips));
         writer.Field(4, ActorWireValue.Int32(value.IntegritySegments));
+        // Tagged and emitted only when non-empty (threefold rulesets), so
+        // historical observation bytes are untouched.
+        if (!value.FilledSocketWellIds.IsEmpty)
+        {
+            writer.Field(5, Array(
+                value.FilledSocketWellIds,
+                GenericActorWireCodecValues.SemanticId));
+        }
         return writer.ToArray();
     }
 
@@ -1126,7 +1134,14 @@ internal static class GenericActorWireObservationCodec
             GenericActorWireCodecValues.DecodePosition(
                 reader.Required(2), depth + 1),
             GenericActorWireCodecValues.Int32(reader, 3),
-            GenericActorWireCodecValues.Int32(reader, 4));
+            GenericActorWireCodecValues.Int32(reader, 4))
+        {
+            FilledSocketWellIds = reader.Optional(5) is { } sockets
+                ? ActorWireValue.Array(
+                    sockets,
+                    GenericActorWireCodecValues.SemanticId)
+                : [],
+        };
     }
 
     private static byte[] EncodeArcCore(

@@ -2448,10 +2448,21 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
     });
     array(item.reactors, `${path}.reactors`, fail).forEach((entry, index) => {
       const reactorPath = `${path}.reactors[${index}]`;
+      const hasSockets =
+        typeof entry === 'object'
+        && entry !== null
+        && own(entry, 'filledSocketWellIds');
       const reactor = exact(
         entry,
         reactorPath,
-        ['teamId', 'position', 'chargePips', 'integritySegments'],
+        [
+          'teamId',
+          'position',
+          'chargePips',
+          'integritySegments',
+          // Threefold sockets, written only under threefold rulesets.
+          ...(hasSockets ? ['filledSocketWellIds'] : []),
+        ],
         fail,
       );
       integer(reactor.teamId, `${reactorPath}.teamId`, fail);
@@ -2462,6 +2473,19 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         `${reactorPath}.integritySegments`,
         fail,
       );
+      if (hasSockets) {
+        array(
+          reactor.filledSocketWellIds,
+          `${reactorPath}.filledSocketWellIds`,
+          fail,
+        ).forEach((wellId, wellIndex) =>
+          nonEmpty(
+            wellId,
+            `${reactorPath}.filledSocketWellIds[${wellIndex}]`,
+            fail,
+          ),
+        );
+      }
     });
     array(item.visibleCores, `${path}.visibleCores`, fail).forEach(
       (entry, index) => {

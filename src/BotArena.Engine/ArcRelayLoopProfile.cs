@@ -19,11 +19,13 @@ public sealed record ArcRelayLoopProfile
         bool directionalCombat = false,
         int signatureGrammarVersion = 1,
         int wellBirthJitterTicks = 0,
-        bool alternatingResolutionOrder = false)
+        bool alternatingResolutionOrder = false,
+        bool threefoldSockets = false)
     {
         SignatureGrammarVersion = signatureGrammarVersion;
         WellBirthJitterTicks = wellBirthJitterTicks;
         AlternatingResolutionOrder = alternatingResolutionOrder;
+        ThreefoldSockets = threefoldSockets;
         Id = id;
         RulesetId = rulesetId;
         MapId = mapId;
@@ -47,6 +49,7 @@ public sealed record ArcRelayLoopProfile
     internal int SignatureGrammarVersion { get; }
     internal int WellBirthJitterTicks { get; }
     internal bool AlternatingResolutionOrder { get; }
+    internal bool ThreefoldSockets { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -184,6 +187,27 @@ public sealed record ArcRelayLoopProfile
         alternatingResolutionOrder: true);
 
     /// <summary>
+    /// Threefold Pulse depth prototype (owner brief 2026-08-05,
+    /// docs/briefs/THREEFOLD-PULSE-PROTOTYPE-BRIEF.md): the -03 foundations
+    /// plus per-origin reactor sockets — a Pulse requires one banked Core
+    /// from each Well. Experimental only; never the hosted/current profile.
+    /// </summary>
+    public static ArcRelayLoopProfile ThreefoldPulse { get; } = new(
+        "threefold-pulse",
+        "arc-relay-threefold-01",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        threefoldSockets: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -241,6 +265,7 @@ public sealed record ArcRelayLoopProfile
         ForwardCombat,
         ForwardCombat2,
         ForwardCombat3,
+        ThreefoldPulse,
         Return16,
         Return24,
         Hot60,

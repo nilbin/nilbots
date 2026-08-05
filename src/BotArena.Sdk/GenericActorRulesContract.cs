@@ -312,6 +312,13 @@ public sealed class GenericActorRulesContract
         /// alternates direction by tick parity (foundations -03 fairness).
         /// </summary>
         public bool AlternatingResolutionOrder { get; init; }
+
+        /// <summary>
+        /// True when a Pulse requires one banked Core from each Well origin
+        /// (Threefold Pulse prototype); duplicate-origin Cores cannot be
+        /// consumed while their socket is filled.
+        /// </summary>
+        public bool ThreefoldSockets { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

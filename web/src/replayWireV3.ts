@@ -753,6 +753,8 @@ export interface ReplayV3ArcReactor {
   position: ReplayV3Position;
   chargePips: number;
   integritySegments: number;
+  /** Threefold sockets; present only under threefold rulesets. */
+  filledSocketWellIds?: string[];
 }
 
 export interface ReplayV3ArcCore {

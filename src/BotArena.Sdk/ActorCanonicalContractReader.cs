@@ -737,6 +737,8 @@ public static class ActorCanonicalContractReader
             "wellBirthJitterTicks", out _);
         bool hasAlternatingOrder = element.TryGetProperty(
             "alternatingResolutionOrder", out _);
+        bool hasThreefold = element.TryGetProperty(
+            "threefoldSockets", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -751,6 +753,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasAlternatingOrder
                 ? new[] { "alternatingResolutionOrder" }
+                : System.Array.Empty<string>(),
+            .. hasThreefold
+                ? new[] { "threefoldSockets" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -783,6 +788,8 @@ public static class ActorCanonicalContractReader
                 : 0,
             AlternatingResolutionOrder = hasAlternatingOrder
                 && Bool(element, "alternatingResolutionOrder"),
+            ThreefoldSockets = hasThreefold
+                && Bool(element, "threefoldSockets"),
         };
     }
 

@@ -2607,6 +2607,16 @@ internal static class ReplayV3Serializer
         WritePosition(writer, value.Position);
         writer.WriteNumber("chargePips", value.ChargePips);
         writer.WriteNumber("integritySegments", value.IntegritySegments);
+        // Written only for threefold rulesets so historical replay bytes
+        // are untouched.
+        if (!value.FilledSocketWellIds.IsEmpty)
+        {
+            writer.WritePropertyName("filledSocketWellIds");
+            writer.WriteStartArray();
+            foreach (string wellId in value.FilledSocketWellIds)
+                writer.WriteStringValue(wellId);
+            writer.WriteEndArray();
+        }
         writer.WriteEndObject();
     }
 
