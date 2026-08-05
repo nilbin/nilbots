@@ -6626,12 +6626,19 @@ public sealed record GenericActorMatchChronology
             .Where(id => !afterProjectiles.ContainsKey(id))
             .Order()
             .ToArray();
-        HashSet<ActorIdentity> priorActors = before.ActiveLives
-            .Select(life => life.ActorId)
-            .ToHashSet();
-        Position[] placementPositions = after.ActiveLives
-            .Where(life => !priorActors.Contains(life.ActorId))
-            .Select(life => life.Position)
+        // Placement tiles come from the recorded LifeSpawned events, not from
+        // the post-boundary life positions: the arc-relay signature phase runs
+        // inside this same window AFTER lifecycle placement and may lawfully
+        // relocate a just-placed life (knockback, hook pull), so a new life's
+        // final position can differ from the tile whose projectiles the
+        // placement purged.
+        Position[] placementPositions = events
+            .Where(item =>
+                item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                    item.Payload).Position)
             .ToArray();
         long[] expectedRemovedIds = beforeProjectiles.Values
             .Where(projectile =>
@@ -6647,8 +6654,23 @@ public sealed record GenericActorMatchChronology
                 beforeProjectiles.ContainsKey(item.ProjectileId)
                 && afterProjectiles.ContainsKey(item.ProjectileId)))
         {
+            string removedDetail = string.Join(
+                ", ",
+                removedIds.Select(id =>
+                    $"{id}@{beforeProjectiles[id].Position}"));
+            string expectedDetail = string.Join(
+                ", ",
+                expectedRemovedIds.Select(id =>
+                    $"{id}@{beforeProjectiles[id].Position}"));
+            string placementDetail = string.Join(
+                ", ",
+                placementPositions.Select(position => position.ToString()));
             throw new ArgumentException(
-                "Every tick-start projectile removal must have exactly one lifecycle-placement traversal.",
+                "Every tick-start projectile removal must have exactly one "
+                + $"lifecycle-placement traversal. Removed [{removedDetail}], "
+                + $"expected [{expectedDetail}], placements "
+                + $"[{placementDetail}], boundary before tick "
+                + $"{after.NextTick}.",
                 parameterName);
         }
 
