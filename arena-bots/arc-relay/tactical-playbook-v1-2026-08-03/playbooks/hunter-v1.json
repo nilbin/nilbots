@@ -747,6 +747,50 @@
     "threatDistance": 3,
     "returnToFormation": true
    }
+  },
+  {
+   "engagementId": "disrupt-fight",
+   "participants": [
+    "carrier",
+    "lancer",
+    "eyes"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 3,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 2,
+   "overkillDamage": 0,
+   "aimPreparation": "current-cone-only",
+   "chaseLeash": 0,
+   "signatureCoordination": "control-first",
+   "dodgeCoverage": {
+    "mode": "escape-lanes",
+    "horizonTicks": 4,
+    "minimumDirectShots": 2,
+    "minimumCoveredOptions": 5,
+    "fallback": "best-coverage"
+   },
+   "release": {
+    "hiddenTicks": 1,
+    "unreachableTicks": 2,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 4,
+    "returnToFormation": true
+   }
   }
  ],
  "supportPolicies": [
@@ -876,7 +920,7 @@
         "arrivalRadius": 2,
         "completion": "continuous",
         "chaseLeash": 1,
-        "engagementId": "well-fight",
+        "engagementId": "disrupt-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "well-standard"
@@ -941,7 +985,7 @@
         "arrivalRadius": 2,
         "completion": "continuous",
         "chaseLeash": 1,
-        "engagementId": "well-fight",
+        "engagementId": "disrupt-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "well-standard"
@@ -985,7 +1029,7 @@
         "arrivalRadius": 1,
         "completion": "continuous",
         "chaseLeash": 1,
-        "engagementId": "well-fight",
+        "engagementId": "disrupt-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "well-standard"
@@ -1009,7 +1053,7 @@
         "arrivalRadius": 1,
         "completion": "continuous",
         "chaseLeash": 1,
-        "engagementId": "well-fight",
+        "engagementId": "disrupt-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "well-standard"
@@ -1039,6 +1083,30 @@
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "shadow-standard",
         "stance": "ambush"
+       }
+      }
+     }
+    }
+   },
+   "surge-wells": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "zone",
+       "target": "well-line",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "surge-bank": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
        }
       }
      }
@@ -1074,6 +1142,11 @@
     "fact": "known-enemy-carriers",
     "operator": "at-least",
     "value": 1
+   },
+   "window-open": {
+    "fact": "known-enemies-unavailable",
+    "operator": "at-least",
+    "value": 2
    }
   },
   "conditionSets": {
@@ -1110,6 +1183,11 @@
    "carrier-sighted": [
     [
      "carrier-known"
+    ]
+   ],
+   "kill-window": [
+    [
+     "window-open"
     ]
    ]
   }
@@ -1293,6 +1371,55 @@
      }
     ],
     "whenConditionSetId": "carrier-sighted",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
+    "taskId": "kill-window-surge",
+    "priority": 30,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 6,
+    "timeoutTicks": 600,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "surge-bank",
+      "orderId": "surge-bank",
+      "roles": [
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "towline",
+       "lantern"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "kill-window",
     "completeConditionSetId": "task-never-done",
     "failConditionSetId": "task-never-done",
     "reintegration": {
