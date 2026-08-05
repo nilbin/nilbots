@@ -1126,6 +1126,42 @@
         "operator": "at-least",
         "value": 1,
         "subject": "south"
+      },
+      "centre-well-empty": {
+        "fact": "well-has-outstanding",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "centre"
+      },
+      "centre-zone-clear": {
+        "fact": "visible-loose-cores-in-zone",
+        "operator": "at-most",
+        "value": 0,
+        "zone": "centre-farm"
+      },
+      "north-well-empty": {
+        "fact": "well-has-outstanding",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "north"
+      },
+      "north-zone-clear": {
+        "fact": "visible-loose-cores-in-zone",
+        "operator": "at-most",
+        "value": 0,
+        "zone": "north-farm"
+      },
+      "south-well-empty": {
+        "fact": "well-has-outstanding",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "south"
+      },
+      "south-zone-clear": {
+        "fact": "visible-loose-cores-in-zone",
+        "operator": "at-most",
+        "value": 0,
+        "zone": "south-farm"
       }
     },
     "conditionSets": {
@@ -1178,6 +1214,24 @@
       "south-is-socketed": [
         [
           "south-socketed"
+        ]
+      ],
+      "centre-is-dry": [
+        [
+          "centre-well-empty",
+          "centre-zone-clear"
+        ]
+      ],
+      "north-is-dry": [
+        [
+          "north-well-empty",
+          "north-zone-clear"
+        ]
+      ],
+      "south-is-dry": [
+        [
+          "south-well-empty",
+          "south-zone-clear"
         ]
       ]
     }
@@ -1341,6 +1395,14 @@
             "minimumPolicy": "respect",
             "stableTicks": 1,
             "conditionSetId": "centre-is-socketed"
+          },
+          {
+            "priority": 20,
+            "to": "take-north",
+            "cause": "failure",
+            "minimumPolicy": "respect",
+            "stableTicks": 10,
+            "conditionSetId": "centre-is-dry"
           }
         ]
       },
@@ -1357,6 +1419,14 @@
             "minimumPolicy": "respect",
             "stableTicks": 1,
             "conditionSetId": "north-is-socketed"
+          },
+          {
+            "priority": 20,
+            "to": "take-south",
+            "cause": "failure",
+            "minimumPolicy": "respect",
+            "stableTicks": 10,
+            "conditionSetId": "north-is-dry"
           }
         ]
       },
@@ -1373,6 +1443,14 @@
             "minimumPolicy": "respect",
             "stableTicks": 1,
             "conditionSetId": "south-is-socketed"
+          },
+          {
+            "priority": 20,
+            "to": "take-centre",
+            "cause": "failure",
+            "minimumPolicy": "respect",
+            "stableTicks": 10,
+            "conditionSetId": "south-is-dry"
           }
         ]
       }
