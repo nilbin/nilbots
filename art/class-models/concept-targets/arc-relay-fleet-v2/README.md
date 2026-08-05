@@ -11,21 +11,68 @@
 
 ## Generated review artifact
 
+- Selected color direction: `concept-sheet-class-color-v2.png`
+- Selected source dimensions: 1254×1254 RGBA PNG
+- Selected source SHA-256:
+  `af63986804a0da856b43480a59e3d3770fd74a937049f2b95df4acb9bae1acc0`
+- Selected gameplay-scale proof: `gameplay-scale-color-sheet.png`, a 256×256
+  deterministic downsample that presents each bot at approximately 63×63
+  pixels.
+- Built-in image-generation color-pass output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-2c17e09a-3129-4f21-a0d5-ce6b2cdb7860.png`
 - Built-in image generation output:
   `019fc27e-33d3-7971-a896-3915521f3a0b/exec-2e8a5e45-e990-4f37-b6fd-e412ae96d863.png`
-- Checked-in source: `concept-sheet.png`
+- Checked-in neutral baseline: `concept-sheet.png`
 - Source dimensions: 1254×1254 RGBA PNG
 - Source SHA-256:
   `d7d64c98b0a1b97a223b32d8aeac0f12bfdb6a3a5c72e3b4566d75ea39bc7ab1`
 - Gameplay-scale proof: `gameplay-scale-sheet.png`, a 256×256 deterministic
   downsample that presents each bot at approximately 63×63 pixels.
 
-The generated sheet keeps the exact class count/order and clears the intended
+The generated sheets keep the exact class count/order and clear the intended
 payload distinction: Minesmith carries flat marked discs, while Nest carries
-two barrelled turret pods. Its soft studio contact shadows are acceptable for
-concept review but are not approved provider inputs. If the direction is
-approved, isolation must remove the shadows and produce one clean square image
-of at least 1040 pixels per bot before any Meshy request.
+two barrelled turret pods. The selected pass restores class-specific fixed
+paint without adding semantic team color: each chassis keeps the shared bright
+ivory/metal family, while 25–40% of its large armor panels carry one muted
+ochre, olive, orange, indigo, violet, bronze, or tan class color. Emissives stay
+neutral amber. Its soft studio contact shadows are acceptable for concept
+review but are not approved provider inputs. If the direction is approved,
+isolation must remove the shadows and produce one clean square image of at
+least 1040 pixels per bot before any Meshy request.
+
+## Class-color refinement prompt
+
+```text
+Use case: precise-object-edit.
+Asset type: conceptual 3D game-bot roster color pass.
+Input image: Image 1 is the edit target.
+
+Primary request: change ONLY the fixed non-team paint colors of the sixteen machines so class color helps recognition. Preserve the exact sixteen designs, exact four-by-four positions and order, geometry, silhouettes, proportions, signature hardware, locomotion, East/right facing, camera angle, object scale, padding, neutral background, materials, lighting, and rendering style. Do not redesign, replace, add, remove, rotate, or move any machine or hardware. Minesmith must still carry flat mine discs; Nest must still carry two folded barrelled turret pods.
+
+Keep the shared bright fleet identity: every chassis retains substantial ivory, light warm-gray, pale titanium, and brushed aluminum. Add one clearly visible restrained matte class paint color to approximately 25–40 percent of each bot's large armor panels, enough to read at 50–70 pixels. Dark graphite remains only in recesses and underbodies. All emissive lights remain tiny neutral warm-white or amber. Paint is matte material color, never glow.
+
+Apply these distinct palettes by fixed grid position:
+row 1 col 1 Kestrel: saffron-gold wing panels;
+row 1 col 2 Palisade: moss-olive shield and tread armor;
+row 1 col 3 Towline: burnt-orange utility panels;
+row 1 col 4 Patchbay: muted sage-green medical panels;
+row 2 col 1 Lantern: warm brass and pale gold;
+row 2 col 2 Mortar: military olive and sand;
+row 2 col 3 Minesmith: safety orange mine-rack armor, with mine discs staying slate metal;
+row 2 col 4 Hush: rich muted violet dampener band;
+row 3 col 1 Relay: aged copper-bronze fork panels;
+row 3 col 2 Switchback: deep matte indigo twin-frame panels;
+row 3 col 3 Longshot: dark blue-gray rail housing with a narrow ochre rail stripe;
+row 3 col 4 Mason: construction-yellow tool-arm armor;
+row 4 col 1 Sunder: royal purple optic-body panels;
+row 4 col 2 Repulsor: copper-orange radial emitter vanes;
+row 4 col 3 Veil: smoky lavender canister banks;
+row 4 col 4 Nest: desert-tan carrier armor with dark olive turret-pod housings.
+
+Team-color constraint: no cyan, bright blue, scarlet, or red paint; no cyan or red emission; no team-color glow or inlays. Keep adjacent bots visibly different. Preserve physical bevel/value separation with no black ink outlines or comic strokes.
+
+Constraints: exactly sixteen machines, same order and framing, no text, labels, borders, logos, watermark, scenery, effects, weapon fire, or extra objects. Change only the class paint color blocking; keep everything else unchanged.
+```
 
 ## Fixed order and silhouette contract
 
