@@ -92,6 +92,44 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void DenseWarrenMintsBesideBothArmsWithoutMovingThem()
+    {
+        string warrenMap = ActorContractFingerprint.ComputeMap(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.AmbushWarren).Map);
+        string denseMap = ActorContractFingerprint.ComputeMap(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.AmbushWarren3).Map);
+        Assert.NotEqual(warrenMap, denseMap);
+        Assert.Equal(
+            warrenMap,
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren).Map));
+        // Same predation rules as -02: the rules documents are identical, so
+        // -02 vs -03 is a pure terrain-density A/B.
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren2)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren3)));
+        ActorMapDefinition dense = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren3).Map;
+        foreach ((int x, int y) in new[]
+                 { (7, 1), (20, 2), (12, 7), (13, 12), (23, 21), (18, 14) })
+        {
+            Assert.True(dense.IsWall(new Position(x, y)), $"({x},{y}) open");
+        }
+        foreach ((int x, int y) in new[]
+                 { (8, 4), (22, 18), (15, 4), (15, 11), (15, 18), (5, 8) })
+        {
+            Assert.False(dense.IsWall(new Position(x, y)), $"({x},{y}) walled");
+        }
+    }
+
+    [Fact]
     public void CounterflowMapIsUntouchedByTheWarrenMint()
     {
         ActorMapDefinition counterflow = ArcRelayH0Definition.Create(

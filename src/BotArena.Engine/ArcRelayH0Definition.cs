@@ -733,7 +733,8 @@ public static class ArcRelayH0Definition
             }
         }
         else if (geometry is ArcRelayMapGeometry.DepthCounterflow
-                 or ArcRelayMapGeometry.AmbushWarren)
+                 or ArcRelayMapGeometry.AmbushWarren
+                 or ArcRelayMapGeometry.AmbushWarrenDense)
         {
             foreach (int y in new[] { 1, 5, 8, 14, 17, 21 })
                 changed[y] = Open(changed[y], 5, 25);
@@ -758,7 +759,8 @@ public static class ArcRelayH0Definition
             {
                 changed[y] = Set(changed[y], x, '#');
             }
-            if (geometry == ArcRelayMapGeometry.AmbushWarren)
+            if (geometry is ArcRelayMapGeometry.AmbushWarren
+                or ArcRelayMapGeometry.AmbushWarrenDense)
             {
                 // Counterflow plus predation terrain, every wall in an exact
                 // 180-degree chiral pair: sightline breakers across the open
@@ -778,6 +780,30 @@ public static class ArcRelayH0Definition
                     (7, 4), (7, 5), (8, 5), (23, 18), (23, 17), (22, 17),
                     (7, 17), (7, 18), (8, 17), (8, 19),
                     (23, 5), (23, 4), (22, 5), (22, 3),
+                })
+                {
+                    changed[y] = Set(changed[y], x, '#');
+                }
+            }
+            if (geometry == ArcRelayMapGeometry.AmbushWarrenDense)
+            {
+                // Owner review: the warren still played too open. Every
+                // horizontal corridor now breaks (border lanes, second
+                // strips, gate rows, centre approaches), north-south transit
+                // weaves through the x12/x18 stubs, and the centre pillars
+                // grow hooks. Chiral pairs throughout; verified against all
+                // protected tiles with 475 open tiles mutually reachable.
+                foreach ((int x, int y) in new[]
+                {
+                    (7, 1), (8, 1), (13, 1), (14, 1),
+                    (23, 21), (22, 21), (17, 21), (16, 21),
+                    (20, 2), (21, 2), (10, 20), (9, 20),
+                    (18, 6), (24, 6), (12, 16), (6, 16),
+                    (13, 8), (14, 8), (20, 8), (21, 8),
+                    (17, 14), (16, 14), (10, 14), (9, 14),
+                    (7, 9), (23, 13),
+                    (12, 7), (12, 8), (18, 15), (18, 14),
+                    (13, 12), (17, 10),
                 })
                 {
                     changed[y] = Set(changed[y], x, '#');

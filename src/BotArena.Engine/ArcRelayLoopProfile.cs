@@ -344,6 +344,28 @@ public sealed record ArcRelayLoopProfile
         omniProximityRange: 0);
 
     /// <summary>
+    /// Denser warren (owner review 2026-08-05: the map still played too
+    /// open). Same predation rules as -02; the map roughly doubles the
+    /// added wall mass — every horizontal corridor breaks, north-south
+    /// transit weaves, alcoves and hooks stay. Chiral pairs throughout.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren3 { get; } = new(
+        "ambush-warren-3",
+        "arc-relay-ambush-03",
+        "arc-relay-ambush-warren-02",
+        ArcRelayMapGeometry.AmbushWarrenDense,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -407,6 +429,7 @@ public sealed record ArcRelayLoopProfile
         RipeningCores2,
         AmbushWarren,
         AmbushWarren2,
+        AmbushWarren3,
         Return16,
         Return24,
         Hot60,
@@ -434,4 +457,5 @@ internal enum ArcRelayMapGeometry
     DepthLarger,
     DepthCounterflow,
     AmbushWarren,
+    AmbushWarrenDense,
 }
