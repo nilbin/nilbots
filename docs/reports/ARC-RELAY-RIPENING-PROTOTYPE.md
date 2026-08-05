@@ -2,10 +2,17 @@
 
 Binding brief: `docs/briefs/RIPENING-CORES-PROTOTYPE-BRIEF.md` (metrics
 pre-registered before any evaluation game). Depth memo proposal #1,
-built beside Forward Combat 03. **Recommendation: REJECT as
-parameterized** — the evidence below shows take-immediately dominates
-and the primitive never fires in real play, which is the brief's own
-pre-registered failure condition.
+built beside Forward Combat 03. Two parameterizations evaluated:
+
+- **`arc-relay-ripening-01` (interval 45): REJECT** — take-immediately
+  dominates and the primitive never fires in real play, the brief's own
+  pre-registered failure condition. Full evidence below.
+- **`arc-relay-ripening-02` (interval 12, owner-directed tuning): the
+  primitive is alive** — organic ripening in every game including stock
+  mirrors, value captured by both sides, lead reversals return. The
+  clean-slate strategy bar remains unmet (2/10), and the charge
+  attribution shows the residual gap is base-lane farming quality, not
+  ripening. See "Tuned parameterization" at the end.
 
 ## Implemented rules
 
@@ -170,20 +177,72 @@ Outcome-visible, curated, current 3D presentation:
 - sample-05 — bar e-3001: the sheet's only win — earned by combat
   quality, with the primitive still silent.
 
-## Recommendation: REJECT as parameterized
+## Recommendation on -01: REJECT as parameterized
 
 The primitive is inert in its control arm (as designed) and inert in
 adversarial play (fatally). Any revival needs a parameterization that
-makes patience purchasable rather than punished, e.g. one or more of:
-accrual driven by Core age regardless of touches (no freeze), an
-interval well below the Well cycle, accrual while carried, or Well
-rearm decoupled from the outstanding Core. Each of those is a new
-prototype with its own control arm — not a tweak to this one. The
-engine plumbing (value-carrying Cores, the closed ripen fact ledger,
-value grammar facts, executor discipline) is sound, fully tested, and
-reusable by any future value-bearing mechanic; only the accrual rule
-failed.
+makes patience purchasable rather than punished. The engine plumbing
+(value-carrying Cores, the closed ripen fact ledger, value grammar
+facts, executor discipline) is sound, fully tested, and reusable; only
+the accrual rule failed.
+
+## Tuned parameterization: arc-relay-ripening-02 (owner-directed)
+
+The -01 arithmetic dictates the fix: patience is a real choice only
+when the accrual rate sits near the well-cycle rate. Minted beside -01
+(fingerprints pinned, -01 re-derives byte-identically):
+`ripenIntervalTicks 12` (~0.083 charge/tick waiting vs ~0.077 cycling),
+`ripenMaxValue 4`, `ripenResumeTicks 8` so contested standoffs still
+escalate. No engine changes — the -01 plumbing is fully parameterized.
+
+**The primitive is alive on -02.** Stock mirror (seed 2001, WASM
+outcome-confirmed): banks `{2: 8, 3: 2}` with 2 organic ripens — even
+take-immediately now harvests value from delayed pickups. Every
+evaluation game shows 1–5 ripens, 3s and 4s banked by both sides, and
+lead reversals reappear (3 of 10 bar games).
+
+**Strategy bar: 2/10 (unmet).** `ripen-harvest-v1` draft 6
+(micro-patience: centre custody converts at value ≥ 3, i.e. twelve
+ticks of guarded waiting; 4-guard wedge; drafts with threat-gating,
+value floors under threat, and a thinner 3-guard orchard all screened
+worse). Authoritative WASM, all 10 outcomes agreeing with in-process
+screening; 20/20 team-slots degeneracy-eligible, frozen bars untouched:
+
+| game | winner | sheet charge (ripe banks) | stock charge (ripe banks) |
+|---|---|---|---|
+| w-3001 | stock | 11 (1) | 19 (2) |
+| e-3001 | stock | 9 (1) | 18 (0) |
+| w-3002 | stock | 15 (1) | 18 (0) |
+| e-3002 | stock | 8 (1) | 18 (0) |
+| w-3003 | stock | 8 (0) | 19 (3) |
+| e-3003 | **sheet** | 19 (1) | 12 (1) |
+| w-3004 | stock | 15 (1) | 19 (1) |
+| e-3004 | **sheet** | 18 (2) | 8 (0) |
+| w-3005 | stock | 12 (2) | 18 (2) |
+| e-3005 | stock | 16 (2) | 19 (1) |
+| **total** | 2/10 | **131 (12 ripe)** | **168 (10 ripe)** |
+
+**Attribution: the sheet wins the ripening game and loses the tempo
+war.** It captures more ripe banks than stock (12 vs 10) — guarded
+micro-patience works as designed — but trails 37 charge in base
+economy, ≈ 18 base cores lost across its two-runner outer lanes against
+stock's three-body lane parties. The residual gap is generic farming
+competence, not the mechanic.
+
+**Verdict on -02: the mechanic passes its health checks and is worth
+keeping on the table.** Ripening now shapes play for both sides without
+any dedicated doctrine (value-aware stock harvests it passively), which
+is arguably the healthiest possible integration. What remains unproven
+is a strategy that *leverages* it to beat tempo play — the clean-slate
+bar stays unmet, and by the campaign protocol the next move is either a
+stronger base doctrine to attach the orchard to, or the owner accepting
+that ripening is texture rather than a strategy axis.
+
+Gallery updated with two -02 games (the sheet's decisive ripe-capture
+win and stock's triple-ripe harvest):
+**https://minerals-relying-duke-defendant.trycloudflare.com**
 
 Campaign evidence commits: `28918c23` (fact ledger), `074c9c90` (stock
 value preference + metrics script `scripts/arc-relay-ripening-metrics.py`),
-`a4cb3edc` (grammar facts, executor discipline, `ripen-harvest-v1`).
+`a4cb3edc` (grammar facts, executor discipline, `ripen-harvest-v1`),
+`72c4c271` (-01 report), `0227a223` (-02 mint + draft-6 sheet).
