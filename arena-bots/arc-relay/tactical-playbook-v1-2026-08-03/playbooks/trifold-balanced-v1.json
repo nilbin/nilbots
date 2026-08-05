@@ -16,8 +16,8 @@
     "relay"
   ],
   "layout": {
-    "path": "../layouts/counterflow-tempo-race-v1.json",
-    "sha256": "9b0f02a90d5f97ad81b00c10a16c22bd15ee5da707cfb8ab7f44047085e3d0ff"
+    "path": "../layouts/counterflow-trifold-balanced-v1.json",
+    "sha256": "1d9817e393deb35ca6d3a2ebcf62fbfee0bbcc875db730f166f4d8c45aa09086"
   },
   "perspective": "team-relative",
   "memory": {
@@ -988,6 +988,105 @@
             }
           }
         }
+      },
+      "mass-centre": {
+        "tracks": {
+          "main": {
+            "formationId": "farm-column",
+            "movement": {
+              "kind": "zone",
+              "target": "centre-farm",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "front-home-centre": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "front-fight",
+                "custodyId": "farm-centre",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "home-standard"
+              },
+              "front-runners-centre": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
+                "custodyId": "farm-centre",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
+              }
+            }
+          }
+        }
+      },
+      "mass-north": {
+        "tracks": {
+          "main": {
+            "formationId": "farm-column",
+            "movement": {
+              "kind": "zone",
+              "target": "north-farm",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "front-home-north": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "front-fight",
+                "custodyId": "farm-north",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "home-standard"
+              },
+              "front-runners-north": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
+                "custodyId": "farm-north",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
+              }
+            }
+          }
+        }
+      },
+      "mass-south": {
+        "tracks": {
+          "main": {
+            "formationId": "farm-column",
+            "movement": {
+              "kind": "zone",
+              "target": "south-farm",
+              "stuckTicks": 8,
+              "pace": "free"
+            },
+            "assignments": {
+              "front-home-south": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "front-fight",
+                "custodyId": "farm-south",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "home-standard"
+              },
+              "front-runners-south": {
+                "arrivalRadius": 1,
+                "completion": "cohesion-arrived",
+                "chaseLeash": 2,
+                "engagementId": "run-fight",
+                "custodyId": "farm-south",
+                "fallbackId": "continue-and-hold-invalid",
+                "assignmentProfileId": "farm-standard"
+              }
+            }
+          }
+        }
       }
     },
     "predicates": {
@@ -1009,6 +1108,24 @@
         "operator": "at-least",
         "valueParameter": "linger-mass",
         "zone": "own-approach"
+      },
+      "centre-socketed": {
+        "fact": "own-socket-filled",
+        "operator": "at-least",
+        "value": 1,
+        "subject": "centre"
+      },
+      "north-socketed": {
+        "fact": "own-socket-filled",
+        "operator": "at-least",
+        "value": 1,
+        "subject": "north"
+      },
+      "south-socketed": {
+        "fact": "own-socket-filled",
+        "operator": "at-least",
+        "value": 1,
+        "subject": "south"
       }
     },
     "conditionSets": {
@@ -1047,11 +1164,26 @@
         [
           "no-known-enemy-carrier"
         ]
+      ],
+      "centre-is-socketed": [
+        [
+          "centre-socketed"
+        ]
+      ],
+      "north-is-socketed": [
+        [
+          "north-socketed"
+        ]
+      ],
+      "south-is-socketed": [
+        [
+          "south-socketed"
+        ]
       ]
     }
   },
   "coordination": {
-    "initialPhase": "balanced",
+    "initialPhase": "take-centre",
     "tasks": [
       {
         "taskId": "farm-north-task",
@@ -1065,8 +1197,7 @@
         "cooldownTicks": 2,
         "minimumPrimaryBodies": 2,
         "eligiblePhases": [
-          "balanced",
-          "fortify"
+          "take-north"
         ],
         "assignments": [
           {
@@ -1082,8 +1213,8 @@
               "switchback"
             ],
             "minimum": 1,
-            "preferred": 2,
-            "maximum": 3,
+            "preferred": 3,
+            "maximum": 4,
             "carrier": "allow",
             "distance": {
               "kind": "anchor",
@@ -1113,8 +1244,7 @@
         "cooldownTicks": 2,
         "minimumPrimaryBodies": 2,
         "eligiblePhases": [
-          "balanced",
-          "fortify"
+          "take-south"
         ],
         "assignments": [
           {
@@ -1130,8 +1260,8 @@
               "switchback"
             ],
             "minimum": 1,
-            "preferred": 2,
-            "maximum": 3,
+            "preferred": 3,
+            "maximum": 4,
             "carrier": "allow",
             "distance": {
               "kind": "anchor",
@@ -1161,8 +1291,7 @@
         "cooldownTicks": 2,
         "minimumPrimaryBodies": 2,
         "eligiblePhases": [
-          "balanced",
-          "fortify"
+          "take-centre"
         ],
         "assignments": [
           {
@@ -1178,8 +1307,8 @@
               "switchback"
             ],
             "minimum": 1,
-            "preferred": 2,
-            "maximum": 3,
+            "preferred": 3,
+            "maximum": 4,
             "carrier": "allow",
             "distance": {
               "kind": "anchor",
@@ -1200,34 +1329,50 @@
     ],
     "phases": [
       {
-        "phaseId": "balanced",
-        "minimumTicks": 12,
-        "maneuverId": "contest-line",
+        "phaseId": "take-centre",
+        "minimumTicks": 4,
+        "maneuverId": "mass-centre",
         "standingOrderIds": [],
         "transitions": [
           {
             "priority": 10,
-            "to": "fortify",
+            "to": "take-north",
             "cause": "success",
             "minimumPolicy": "respect",
-            "stableTicks": 2,
-            "conditionSetId": "siege-detected"
+            "stableTicks": 1,
+            "conditionSetId": "centre-is-socketed"
           }
         ]
       },
       {
-        "phaseId": "fortify",
-        "minimumTicks": 20,
-        "maneuverId": "hold-line",
+        "phaseId": "take-north",
+        "minimumTicks": 4,
+        "maneuverId": "mass-north",
         "standingOrderIds": [],
         "transitions": [
           {
             "priority": 10,
-            "to": "balanced",
-            "cause": "failure",
+            "to": "take-south",
+            "cause": "success",
             "minimumPolicy": "respect",
-            "stableTicks": 12,
-            "conditionSetId": "siege-released"
+            "stableTicks": 1,
+            "conditionSetId": "north-is-socketed"
+          }
+        ]
+      },
+      {
+        "phaseId": "take-south",
+        "minimumTicks": 4,
+        "maneuverId": "mass-south",
+        "standingOrderIds": [],
+        "transitions": [
+          {
+            "priority": 10,
+            "to": "take-centre",
+            "cause": "success",
+            "minimumPolicy": "respect",
+            "stableTicks": 1,
+            "conditionSetId": "south-is-socketed"
           }
         ]
       }

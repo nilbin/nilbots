@@ -43,6 +43,9 @@ public static class ArcRelayTacticalPlaybookCompiler
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
         "group-formation-broken", "movement-complete", "custody-state-ticks",
         "role-live-count",
+        // Threefold sockets (subject = the contract's absolute well id).
+        "own-socket-filled", "enemy-socket-filled",
+        "own-filled-sockets", "enemy-filled-sockets",
     ];
 
     private static readonly HashSet<string> GroupSubjectFacts =
@@ -2602,7 +2605,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             throw Error(path, $"unknown condition fact '{fact}'.");
         var variantFields = new List<string>();
         if (GroupSubjectFacts.Contains(fact)
-            || fact is "role-live-count" or "well-has-outstanding")
+            || fact is "role-live-count" or "well-has-outstanding"
+                or "own-socket-filled" or "enemy-socket-filled")
             variantFields.Add("subject");
         if (OrderSubjectFacts.Contains(fact))
             variantFields.Add("subject");
