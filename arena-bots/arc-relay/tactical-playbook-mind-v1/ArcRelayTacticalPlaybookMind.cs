@@ -947,7 +947,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 value => value.Value.Broken ? 1 : 0,
                 StringComparer.Ordinal),
             ownSocketFilled,
-            enemySocketFilled);
+            enemySocketFilled,
+            arc.Wells.ToDictionary(
+                well => well.WellId,
+                well => well.NextScheduledBirthTick is int birth
+                    ? Math.Max(0, birth - mind.Tick)
+                    : 9999,
+                StringComparer.Ordinal));
     }
 
     private static int CohesionPercent(Position[] positions, int maximumSpacing)
@@ -1066,6 +1072,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Subject),
             "own-filled-sockets" => snapshot.OwnSocketFilled.Values.Sum(),
             "enemy-filled-sockets" => snapshot.EnemySocketFilled.Values.Sum(),
+            // Ticks until the subject Well's next scheduled birth (9999 when
+            // exhausted). The jittered schedule is public, so leading it is
+            // legal strategy, not an oracle.
+            "well-ticks-until-birth" => snapshot.WellBirthIn
+                .GetValueOrDefault(condition.Subject, 9999),
             _ => throw new InvalidDataException(
                 $"Unknown tactical fact '{condition.Fact}'."),
         };
@@ -3801,5 +3812,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> FormationStableTicks,
         IReadOnlyDictionary<string, int> FormationBroken,
         IReadOnlyDictionary<string, int> OwnSocketFilled,
-        IReadOnlyDictionary<string, int> EnemySocketFilled);
+        IReadOnlyDictionary<string, int> EnemySocketFilled,
+        IReadOnlyDictionary<string, int> WellBirthIn);
 }

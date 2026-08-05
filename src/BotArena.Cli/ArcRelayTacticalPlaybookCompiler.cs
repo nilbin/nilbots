@@ -46,6 +46,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         // Threefold sockets (subject = the contract's absolute well id).
         "own-socket-filled", "enemy-socket-filled",
         "own-filled-sockets", "enemy-filled-sockets",
+        "well-ticks-until-birth",
     ];
 
     private static readonly HashSet<string> GroupSubjectFacts =
@@ -2606,7 +2607,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         var variantFields = new List<string>();
         if (GroupSubjectFacts.Contains(fact)
             || fact is "role-live-count" or "well-has-outstanding"
-                or "own-socket-filled" or "enemy-socket-filled")
+                or "own-socket-filled" or "enemy-socket-filled"
+                or "well-ticks-until-birth")
             variantFields.Add("subject");
         if (OrderSubjectFacts.Contains(fact))
             variantFields.Add("subject");

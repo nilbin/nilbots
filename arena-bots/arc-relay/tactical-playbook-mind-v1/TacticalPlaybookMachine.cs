@@ -66,7 +66,11 @@ internal sealed class TacticalPlaybookMachine
             {
                 continue;
             }
-            string key = $"{phase.PhaseId}->{transition.To}";
+            // The streak key carries the priority: two transitions to the
+            // same target are distinct clocks, not one shared counter a
+            // failing sibling resets every tick.
+            string key =
+                $"{phase.PhaseId}->{transition.To}#{transition.Priority}";
             bool applies = transition.When.Any(group =>
                 Matches(group, evaluate));
             int streak = applies

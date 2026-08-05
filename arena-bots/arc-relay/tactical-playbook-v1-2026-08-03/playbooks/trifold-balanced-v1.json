@@ -1002,7 +1002,7 @@
             "assignments": {
               "front-home-centre": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "front-fight",
                 "custodyId": "farm-centre",
@@ -1011,7 +1011,7 @@
               },
               "front-runners-centre": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "run-fight",
                 "custodyId": "farm-centre",
@@ -1035,7 +1035,7 @@
             "assignments": {
               "front-home-north": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "front-fight",
                 "custodyId": "farm-north",
@@ -1044,7 +1044,7 @@
               },
               "front-runners-north": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "run-fight",
                 "custodyId": "farm-north",
@@ -1068,7 +1068,7 @@
             "assignments": {
               "front-home-south": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "front-fight",
                 "custodyId": "farm-south",
@@ -1077,7 +1077,7 @@
               },
               "front-runners-south": {
                 "arrivalRadius": 1,
-                "completion": "cohesion-arrived",
+                "completion": "continuous",
                 "chaseLeash": 2,
                 "engagementId": "run-fight",
                 "custodyId": "farm-south",
@@ -1162,6 +1162,52 @@
         "operator": "at-most",
         "value": 0,
         "zone": "south-farm"
+      },
+      "centre-birth-soon": {
+        "fact": "well-ticks-until-birth",
+        "operator": "at-most",
+        "value": 14,
+        "subject": "centre"
+      },
+      "north-birth-soon": {
+        "fact": "well-ticks-until-birth",
+        "operator": "at-most",
+        "value": 14,
+        "subject": "north"
+      },
+      "south-birth-soon": {
+        "fact": "well-ticks-until-birth",
+        "operator": "at-most",
+        "value": 14,
+        "subject": "south"
+      },
+      "centre-open": {
+        "fact": "own-socket-filled",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "centre"
+      },
+      "north-open": {
+        "fact": "own-socket-filled",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "north"
+      },
+      "south-open": {
+        "fact": "own-socket-filled",
+        "operator": "at-most",
+        "value": 0,
+        "subject": "south"
+      },
+      "two-filled": {
+        "fact": "own-filled-sockets",
+        "operator": "at-least",
+        "value": 2
+      },
+      "cycle-reset": {
+        "fact": "own-filled-sockets",
+        "operator": "at-most",
+        "value": 1
       }
     },
     "conditionSets": {
@@ -1232,6 +1278,50 @@
         [
           "south-well-empty",
           "south-zone-clear"
+        ]
+      ],
+      "centre-rotate-early": [
+        [
+          "centre-well-empty",
+          "centre-zone-clear",
+          "north-birth-soon"
+        ]
+      ],
+      "north-rotate-early": [
+        [
+          "north-well-empty",
+          "north-zone-clear",
+          "south-birth-soon"
+        ]
+      ],
+      "south-rotate-early": [
+        [
+          "south-well-empty",
+          "south-zone-clear",
+          "centre-birth-soon"
+        ]
+      ],
+      "close-centre-now": [
+        [
+          "two-filled",
+          "centre-open"
+        ]
+      ],
+      "close-north-now": [
+        [
+          "two-filled",
+          "north-open"
+        ]
+      ],
+      "close-south-now": [
+        [
+          "two-filled",
+          "south-open"
+        ]
+      ],
+      "back-to-spread": [
+        [
+          "cycle-reset"
         ]
       ]
     }
@@ -1401,8 +1491,8 @@
             "to": "take-north",
             "cause": "failure",
             "minimumPolicy": "respect",
-            "stableTicks": 10,
-            "conditionSetId": "centre-is-dry"
+            "stableTicks": 3,
+            "conditionSetId": "centre-rotate-early"
           }
         ]
       },
@@ -1425,8 +1515,8 @@
             "to": "take-south",
             "cause": "failure",
             "minimumPolicy": "respect",
-            "stableTicks": 10,
-            "conditionSetId": "north-is-dry"
+            "stableTicks": 3,
+            "conditionSetId": "north-rotate-early"
           }
         ]
       },
@@ -1449,8 +1539,8 @@
             "to": "take-centre",
             "cause": "failure",
             "minimumPolicy": "respect",
-            "stableTicks": 10,
-            "conditionSetId": "south-is-dry"
+            "stableTicks": 3,
+            "conditionSetId": "south-rotate-early"
           }
         ]
       }
