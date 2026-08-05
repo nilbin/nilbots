@@ -226,8 +226,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ToArray();
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
             AllocateCorePickups(
-                mind, package, snapshot, roles, orders, loose);
+                mind, package, snapshot, roles, orders, loose,
+                out HashSet<string> openSourceWells);
         var claims = ArenaBasics.Claims.ForTick(mind);
+        if (ArenaBasics.ArcRules(contract) is { RipenIntervalTicks: > 0 })
+        {
+            // Under ripening rules a loose Core is a growing asset: stepping
+            // on one custody has not released is value destruction, so only
+            // this tick's assigned collectors may enter those tiles. The same
+            // goes for camping a gated Well: a body waiting on the tile would
+            // swallow the birth at base value, so closed Wells are no-stand
+            // tiles too.
+            foreach (GenericActorContext.ArcRelayCoreState core in loose)
+            {
+                if (!pickupAssignments.ContainsValue(core))
+                    claims.Reserve(core.Position);
+            }
+            foreach (GenericActorContext.ArcRelayWellState well in arc.Wells)
+            {
+                if (!openSourceWells.Contains(well.WellId))
+                    claims.Reserve(well.Position);
+            }
+        }
         Dictionary<int, Position> carrierSteps = mind.Bodies
             .Where(body => carried.ContainsKey(body.ActorId))
             .Select(body => (
@@ -889,6 +909,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         == GenericActorContext.ArcRelayCoreDisposition.Loose
                     && package.Contains(zone.ZoneId, core.Position)),
                 StringComparer.Ordinal);
+        Dictionary<string, int> looseCoreValueByZone =
+            package.LayoutSource.Zones.ToDictionary(
+                zone => zone.ZoneId,
+                zone => arc.VisibleCores
+                    .Where(core =>
+                        core.Disposition
+                            == GenericActorContext.ArcRelayCoreDisposition.Loose
+                        && package.Contains(zone.ZoneId, core.Position))
+                    .Select(core => core.ChargeValue)
+                    .DefaultIfEmpty(0)
+                    .Max(),
+                StringComparer.Ordinal);
         int carriers = arc.VisibleCores.Count(core =>
             core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Carried
             && core.CarrierActorId?.TeamId == _teamId);
@@ -937,6 +969,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             visibleEnemiesByZone,
             rememberedEnemiesByZone,
             visibleLooseCoresByZone,
+            arc.VisibleCores
+                .Where(core => core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Loose)
+                .Select(core => core.ChargeValue)
+                .DefaultIfEmpty(0)
+                .Max(),
+            looseCoreValueByZone,
             arc.Wells.ToDictionary(
                 well => well.WellId,
                 well => well.OutstandingCoreId is null ? 0 : 1,
@@ -1044,6 +1083,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         <= condition.FreshnessTicks),
             "visible-loose-cores" => snapshot.VisibleLooseCores,
             "visible-loose-cores-in-zone" => snapshot.VisibleLooseCoresByZone
+                .GetValueOrDefault(condition.Zone),
+            "visible-loose-core-value" => snapshot.LooseCoreValueMax,
+            "visible-loose-core-value-in-zone" => snapshot.LooseCoreValueByZone
                 .GetValueOrDefault(condition.Zone),
             "well-has-outstanding" => snapshot.WellOutstanding
                 .GetValueOrDefault(condition.Subject),
@@ -3138,7 +3180,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalSnapshot snapshot,
             IReadOnlyDictionary<int, string> roles,
             IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
-            IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose)
+            IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose,
+            out HashSet<string> openSourceWells)
     {
         GenericActorContext.ArcRelayCoreState[] targets = loose
             .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
@@ -3195,6 +3238,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             eligible[body.UnitId] = (
                 body, policy, carrierRank, safeConversion, emergencyRecovery);
+        }
+        openSourceWells = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var value in eligible.Values)
+        {
+            if (value.SafeConversion)
+                openSourceWells.UnionWith(value.Policy.SourceWells);
+            if (value.EmergencyRecovery
+                && value.Policy.EmergencyRecoverySourceWells is
+                    { Length: > 0 } emergencyWells)
+            {
+                openSourceWells.UnionWith(emergencyWells);
+            }
         }
 
         var allocations = new Dictionary<int,
@@ -3808,6 +3863,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<string, int> VisibleEnemiesByZone,
         IReadOnlyDictionary<string, int> RememberedEnemiesByZone,
         IReadOnlyDictionary<string, int> VisibleLooseCoresByZone,
+        int LooseCoreValueMax,
+        IReadOnlyDictionary<string, int> LooseCoreValueByZone,
         IReadOnlyDictionary<string, int> WellOutstanding,
         IReadOnlyDictionary<string, int> FormationStableTicks,
         IReadOnlyDictionary<string, int> FormationBroken,

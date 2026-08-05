@@ -38,6 +38,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         "known-enemy-carriers",
         "friendly-carriers", "secured-cores", "visible-loose-cores",
         "visible-loose-cores-in-zone",
+        // Ripening rulesets (value-inert elsewhere: every core reads 1).
+        "visible-loose-core-value", "visible-loose-core-value-in-zone",
         "well-has-outstanding", "outstanding-well-count",
         "ticks-without-objective-progress",
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
@@ -64,7 +66,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     [
         "friendlies-in-zone-count", "group-in-zone-count",
         "visible-enemies-in-zone", "remembered-enemies-in-zone",
-        "visible-loose-cores-in-zone",
+        "visible-loose-cores-in-zone", "visible-loose-core-value-in-zone",
     ];
 
     private static readonly HashSet<string> FreshnessFacts =
