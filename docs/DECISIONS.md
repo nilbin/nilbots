@@ -4586,6 +4586,18 @@ opponent from here on; and the west/east detection-sensitivity asymmetry
 (west margin fixed at 3-2 across the searched space) stands as the concrete
 motivation for side-keyed parameter overrides in the format.
 
+## 207. Breakwater v2 supersedes v1 as the Stage 2 deliverable
+
+Owner-ruled 2026-08-05 (in-session "yes"). v2 — release-only memory
+freshness (18 ticks) on the siege-release predicate, no side overrides —
+passed its pre-outcome freeze (`c7d47647`) at 10/10 evidence cells by
+elimination, including the v1-failed double-relay east and a blind
+double-kestrel holdout on first contact, with zero faults and zero
+false-positive fortify latches. The v1 sheet is superseded; the v2 config
+is the artifact all Stage 3 candidates are measured against. The owner
+also approved the sentinel-zone promotion run as the next campaign; the
+Stage 3 cohort-gate proposal remains open pending owner ratification.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
