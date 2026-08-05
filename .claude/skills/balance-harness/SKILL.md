@@ -407,3 +407,14 @@ is part of every sheet's behavior. After ANY executor change:
 - Instant utility signatures (walls, flares, hooks, paint) emit NO facts in
   replays — count accepted `mindTurns` commands, never tell-phase facts, or
   the casts are invisible and you will chase a phantom bug.
+- Owner review galleries for Arc Relay: raw canonical replays only render in
+  the self-contained (Canvas2D) viewer; the hosted (lightweight, phone-
+  friendly) viewer needs the spectator projection. Flow: raw v3 →
+  `scripts/arc-relay-broadcast.py` (writes gzip bytes — name the output
+  `.json.gz`) → `scripts/replay-review-sample.py` →
+  `scripts/build-review-gallery.py` (curated `--index-cards` galleries keep
+  manifest sample ids; hosted mode refuses raw arc-relay docs) →
+  `scripts/serve-gallery.py` behind cloudflared. The builder's independent
+  eligibility read can disagree with the engine's `EligibleTeamIds`
+  attestation; for evidence galleries pass `--skip-arc-relay-eligibility`
+  and cite the engine attestation.

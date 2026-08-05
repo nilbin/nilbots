@@ -457,10 +457,17 @@ def build(args: argparse.Namespace) -> None:
         for manifest in args.sample
         for entry in sample_entries(manifest)
     ]
-    entries.sort(key=lambda entry: hashlib.sha256(
-        str(entry.get("source", entry)).encode()).hexdigest())
-    for index, entry in enumerate(entries, start=1):
-        entry["id"] = f"sample-{index:02}"
+    if args.index_cards:
+        # A curated gallery is already unblinded and its cards reference the
+        # manifest's sample ids. Re-shuffling and renumbering here silently
+        # pointed every card at the wrong game once; keep manifest identity.
+        for index, entry in enumerate(entries, start=1):
+            entry.setdefault("id", f"sample-{index:02}")
+    else:
+        entries.sort(key=lambda entry: hashlib.sha256(
+            str(entry.get("source", entry)).encode()).hexdigest())
+        for index, entry in enumerate(entries, start=1):
+            entry["id"] = f"sample-{index:02}"
     if args.skip_arc_relay_eligibility:
         print(
             "warning: Arc Relay eligibility was explicitly skipped; label "
@@ -522,6 +529,18 @@ def build(args: argparse.Namespace) -> None:
         sid = entry["id"]
         if hosted:
             source = Path(entry["source"])
+            # The hosted viewer consumes the Arc Relay spectator broadcast,
+            # not the raw canonical replay — serving a raw document renders
+            # as "replay not valid" for the reviewer. Refuse with the remedy.
+            document = replay_document(source)
+            rules = str(document.get("header", {}).get(
+                "gameRulesVersion", ""))
+            if (rules.startswith("arc-relay")
+                    and document.get("broadcastVersion") is None):
+                raise SystemExit(
+                    f"{source}: raw Arc Relay replay in hosted mode — "
+                    "project it first (scripts/arc-relay-broadcast.py) or "
+                    "build with --viewer self-contained")
             # Compact Phase-D broadcasts are gzip-only durable artifacts.
             # Keep them that way: serve-gallery maps a request for sample.json
             # to its sample.json.gz sibling with Content-Encoding: gzip, so
