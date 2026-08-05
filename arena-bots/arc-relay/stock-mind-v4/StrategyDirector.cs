@@ -562,6 +562,7 @@ internal sealed class StrategyDirector
                         .Contains(core.CoreId.SourceWellId)
                     ? 0
                     : 1)
+                .ThenByDescending(core => core.ChargeValue)
                 .ThenBy(core => body.Position.ChebyshevDistance(core.Position))
                 .ThenBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
                 .ThenBy(core => core.CoreId.SourceOrdinal)

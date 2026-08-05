@@ -852,7 +852,10 @@ public sealed class ArcRelayStrategyMind : IGenericMindBot
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core =>
                 core.Disposition == GenericActorContext.ArcRelayCoreDisposition.Loose)
-            .OrderBy(core => CoreOrder(core.CoreId.SourceWellId))
+            // A riper Core is claimed first when values differ; historical
+            // rulesets have every value equal, keeping the old order exact.
+            .OrderByDescending(core => core.ChargeValue)
+            .ThenBy(core => CoreOrder(core.CoreId.SourceWellId))
             .ThenBy(core => core.CoreId.SourceOrdinal)
             .ToArray();
         foreach (GenericActorContext.ArcRelayCoreState core in loose)
