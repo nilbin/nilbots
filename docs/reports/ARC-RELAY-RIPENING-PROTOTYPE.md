@@ -242,7 +242,35 @@ Gallery updated with two -02 games (the sheet's decisive ripe-capture
 win and stock's triple-ripe harvest):
 **https://minerals-relying-duke-defendant.trycloudflare.com**
 
+### Lane-fix addendum (owner-directed follow-up)
+
+The owner chose one bounded iteration on the outer-lane economy before
+re-running the bar. Three allocation variants screened against draft 6's
+2N/2S split (which barred 2/10):
+
+- **Rotation** (all 4 runners as one squad, alternating lanes on
+  zone-clearance, orientation-safe zone facts only): 0/4, fast losses.
+  The rotation itself worked — the squad oscillated cleanly every ~30
+  ticks — but wells cycle every ~26, so stock's persistent lane parties
+  collected a free birth per lane per swing and a third of squad time
+  went to transit. Rotation loses to persistent presence.
+- **Concentration** (permanent 4-runner north overload, south
+  conceded): 0/4. Stock's north party only needs to delay four runners
+  while its south party farms uncontested.
+- **Asymmetric 3S/2N with a 3-guard orchard** (tested earlier as draft
+  7): 0/4 — thinning the orchard forfeits the centre.
+
+Conclusion: the base-economy gap is not fixable by allocating 4 runners
+against stock's 6 lane bodies. The binding constraint is the orchard
+concept itself — 4 bodies on centre against stock's 2–3 does not earn
+back its cost even with superior ripe capture, and every attempt to
+shrink it broke the centre. The bar therefore stands at **2/10** with
+draft 6, and further progress requires a different strategy concept
+(or accepting -02 as texture), not more tuning of this one. The sheet
+is reverted to draft 6 as the campaign's best-of-record.
+
 Campaign evidence commits: `28918c23` (fact ledger), `074c9c90` (stock
 value preference + metrics script `scripts/arc-relay-ripening-metrics.py`),
 `a4cb3edc` (grammar facts, executor discipline, `ripen-harvest-v1`),
-`72c4c271` (-01 report), `0227a223` (-02 mint + draft-6 sheet).
+`72c4c271` (-01 report), `0227a223` (-02 mint + draft-6 sheet),
+`b30325d7` (-02 report section).
