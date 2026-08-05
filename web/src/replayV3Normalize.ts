@@ -438,6 +438,11 @@ function validateContract(
               'fieldedSlotsPerTeam',
               'maxCopiesPerClass',
               'respawnDelayTicks',
+              // Grammar 2 (owner ruling 2026-08-05): dodgeable signature
+              // physics plus designed-role metadata on each signature.
+              ...(own(mode, 'signatureGrammarVersion')
+                ? ['signatureGrammarVersion']
+                : []),
               'wells',
               'signatures',
             ]

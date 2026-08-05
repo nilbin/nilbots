@@ -157,3 +157,24 @@ nilbots experiment arc-relay \
 Evaluation sheets in Gate 3 use the provisional
 `arc-relay-evaluation-sheet-v0` audit format for coverage and reproducibility.
 That is deliberately not the future player-facing sheet schema or drawing UX.
+
+## Signature grammar 2 (`arc-relay-forward-combat-02`, 2026-08-05)
+
+The `forward-combat-2` loop profile selects the same map and combat rules
+with three signature changes, so that every enemy-affecting effect gives
+its victim an out (the audit in `ARC-RELAY-SIGNATURE-AUDIT.md`):
+
+- **Sentinel Seed** fires a real bolt (`sentinel-bolt`, 2 tiles/tick)
+  along one of the eight rays only — step off the ray and it misses,
+  walls and constructs eat it — and fires every **2** ticks instead of 3.
+- **Tractor Hook** launches a grapple bolt (`hook-bolt`, 2 tiles/tick,
+  range 6). The pull lands on contact; a Prism Wall between you and the
+  Towline eats the hook.
+- **Null Field** charges for one visible tick before the suppression
+  lands.
+
+Grammar-2 contracts also carry designed-role metadata on every signature
+(`category`, `argumentKind`, `engagementRange`), so a generic executor
+can play a new class without hand-written dispatch tables. Grammar-1
+contracts, fingerprints, and replays are unchanged and remain the record
+for everything frozen before this date.
