@@ -61,6 +61,8 @@ export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
  * a tracer from its turret tile; a mine or artillery hit is an impact
  * burst; a repair is a heal pulse on the patient.
  */
+const SIGNATURE_SHOT_LINGER_TICKS = 3;
+
 function drawSignatureCombatEvents(
   input: ArcRelayVisualContext,
   state: ArcState,
@@ -68,67 +70,99 @@ function drawSignatureCombatEvents(
   const { ctx, tile, fraction } = input;
   const tick = input.tick;
   if (!tick) return;
-  const fade = Math.max(0, 1 - fraction);
-  for (const event of [...tick.lifecycleEvents, ...tick.events]) {
-    const fact = event.arcRelayFact;
-    if (!fact) continue;
-    if (fact.kind !== 'signature-damage' && fact.kind !== 'signature-repair')
-      continue;
-    const impact = centre(input, fact.position);
-    const accent = teamAccent(input, fact.ownerActor.teamId);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    if (fact.kind === 'signature-repair') {
-      ctx.strokeStyle = withAlpha('#6ee7a8', fade * 0.9);
-      ctx.lineWidth = Math.max(2, tile * 0.07);
-      const arm = tile * (0.16 + 0.1 * fraction);
-      ctx.beginPath();
-      ctx.moveTo(impact.x - arm, impact.y);
-      ctx.lineTo(impact.x + arm, impact.y);
-      ctx.moveTo(impact.x, impact.y - arm);
-      ctx.lineTo(impact.x, impact.y + arm);
-      ctx.stroke();
-      ctx.restore();
-      continue;
-    }
-    const operation = state.visibleSignatures.find(
-      (candidate) => candidate.operationId === fact.operationId,
+  // A signature shot is instant in the engine — no projectile entity, one
+  // fact, one tick. Drawn only on its own tick it is a subliminal flash at
+  // playback speed, which read as "sentries never shoot". So each shot is
+  // presented as a bolt that travels muzzle-to-impact and lingers as an
+  // impact burst over the following ticks.
+  for (let age = 0; age < SIGNATURE_SHOT_LINGER_TICKS; age += 1) {
+    const source = age === 0
+      ? tick
+      : input.replay.ticks[tick.tick - age];
+    if (!source) continue;
+    const shotAge = age + fraction;
+    const life = Math.max(
+      0,
+      1 - shotAge / SIGNATURE_SHOT_LINGER_TICKS,
     );
-    const muzzle = operation?.positions[0]
-      ? centre(input, operation.positions[0])
-      : actorCentre(input, fact.ownerActor);
-    if (
-      muzzle &&
-      fact.signatureId === 'sentinel-seed' &&
-      (muzzle.x !== impact.x || muzzle.y !== impact.y)
-    ) {
-      ctx.strokeStyle = withAlpha(accent, fade * 0.95);
-      ctx.lineWidth = Math.max(2, tile * 0.08);
+    if (life <= 0) continue;
+    for (const event of [...source.lifecycleEvents, ...source.events]) {
+      const fact = event.arcRelayFact;
+      if (!fact) continue;
+      if (fact.kind !== 'signature-damage' && fact.kind !== 'signature-repair')
+        continue;
+      const impact = centre(input, fact.position);
+      const accent = teamAccent(input, fact.ownerActor.teamId);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      if (fact.kind === 'signature-repair') {
+        ctx.strokeStyle = withAlpha('#6ee7a8', life * 0.9);
+        ctx.lineWidth = Math.max(2, tile * 0.08);
+        const arm = tile * (0.14 + 0.16 * shotAge);
+        ctx.beginPath();
+        ctx.moveTo(impact.x - arm, impact.y);
+        ctx.lineTo(impact.x + arm, impact.y);
+        ctx.moveTo(impact.x, impact.y - arm);
+        ctx.lineTo(impact.x, impact.y + arm);
+        ctx.stroke();
+        ctx.restore();
+        continue;
+      }
+      const operation = state.visibleSignatures.find(
+        (candidate) => candidate.operationId === fact.operationId,
+      );
+      const muzzle = operation?.positions[0]
+        ? centre(input, operation.positions[0])
+        : actorCentre(input, fact.ownerActor);
+      const beamlike = fact.signatureId === 'sentinel-seed';
+      if (
+        muzzle &&
+        beamlike &&
+        (muzzle.x !== impact.x || muzzle.y !== impact.y)
+      ) {
+        // Bolt head runs the line over the first tick; the trail behind it
+        // fades for the rest of the linger window.
+        const travel = Math.min(1, shotAge);
+        const headX = muzzle.x + (impact.x - muzzle.x) * travel;
+        const headY = muzzle.y + (impact.y - muzzle.y) * travel;
+        ctx.strokeStyle = withAlpha(accent, life * 0.85);
+        ctx.lineWidth = Math.max(3, tile * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(muzzle.x, muzzle.y);
+        ctx.lineTo(headX, headY);
+        ctx.stroke();
+        ctx.fillStyle = withAlpha('#f8fafc', life);
+        ctx.beginPath();
+        ctx.arc(headX, headY, Math.max(3, tile * 0.16), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = withAlpha('#f8fafc', life * 0.9);
+        ctx.beginPath();
+        ctx.arc(muzzle.x, muzzle.y, Math.max(2.5, tile * 0.14), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const burst =
+        fact.signatureId === 'falling-star'
+          ? 0.6
+          : fact.signatureId === 'trip-node'
+            ? 0.5
+            : 0.34;
+      ctx.strokeStyle = withAlpha(accent, life * 0.9);
+      ctx.lineWidth = Math.max(2.5, tile * 0.09);
       ctx.beginPath();
-      ctx.moveTo(muzzle.x, muzzle.y);
-      ctx.lineTo(impact.x, impact.y);
+      ctx.arc(
+        impact.x,
+        impact.y,
+        tile * burst * Math.min(1, 0.35 + shotAge * 0.65),
+        0,
+        Math.PI * 2,
+      );
       ctx.stroke();
-      ctx.fillStyle = withAlpha('#f8fafc', fade * 0.9);
+      ctx.fillStyle = withAlpha('#f8fafc', life * 0.6);
       ctx.beginPath();
-      ctx.arc(muzzle.x, muzzle.y, tile * 0.12, 0, Math.PI * 2);
+      ctx.arc(impact.x, impact.y, Math.max(2.5, tile * 0.12), 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
-    const burst =
-      fact.signatureId === 'falling-star'
-        ? 0.55
-        : fact.signatureId === 'trip-node'
-          ? 0.48
-          : 0.3;
-    ctx.strokeStyle = withAlpha(accent, fade * 0.9);
-    ctx.lineWidth = Math.max(2, tile * 0.07);
-    ctx.beginPath();
-    ctx.arc(impact.x, impact.y, tile * burst * (0.5 + 0.5 * fraction), 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = withAlpha('#f8fafc', fade * 0.55);
-    ctx.beginPath();
-    ctx.arc(impact.x, impact.y, tile * 0.1, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   }
 }
 
@@ -506,7 +540,7 @@ function drawSentinelTurret(
   ctx.strokeStyle = withAlpha(accent, 0.95);
   ctx.lineWidth = Math.max(2, tile * 0.07);
   ctx.beginPath();
-  ctx.arc(point.x, point.y, tile * 0.42, 0, Math.PI * 2);
+  ctx.arc(point.x, point.y, tile * 0.58, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
@@ -520,7 +554,7 @@ function drawSentinelTurret(
       ctx.arc(
         point.x,
         point.y,
-        tile * 0.52,
+        tile * 0.72,
         -Math.PI / 2,
         -Math.PI / 2 + (Math.PI * 2 * left) / total,
       );
@@ -529,12 +563,12 @@ function drawSentinelTurret(
   }
 
   ctx.strokeStyle = withAlpha('#f8fafc', 0.95);
-  ctx.lineWidth = Math.max(3, tile * 0.11);
+  ctx.lineWidth = Math.max(4, tile * 0.16);
   ctx.beginPath();
   ctx.moveTo(point.x, point.y);
   ctx.lineTo(
-    point.x + Math.cos(angle) * tile * 0.5,
-    point.y + Math.sin(angle) * tile * 0.5,
+    point.x + Math.cos(angle) * tile * 0.78,
+    point.y + Math.sin(angle) * tile * 0.78,
   );
   ctx.stroke();
 
@@ -543,7 +577,7 @@ function drawSentinelTurret(
   ctx.arc(
     point.x,
     point.y,
-    tile * (0.16 + 0.015 * Math.sin(time * Math.PI * 2)),
+    tile * (0.22 + 0.02 * Math.sin(time * Math.PI * 2)),
     0,
     Math.PI * 2,
   );
@@ -553,9 +587,9 @@ function drawSentinelTurret(
     ctx.fillStyle = withAlpha(accent, 0.95);
     ctx.beginPath();
     ctx.arc(
-      point.x - tile * 0.14 + pip * tile * 0.28,
-      point.y + tile * 0.58,
-      tile * 0.06,
+      point.x - tile * 0.18 + pip * tile * 0.36,
+      point.y + tile * 0.82,
+      tile * 0.09,
       0,
       Math.PI * 2,
     );
@@ -577,7 +611,7 @@ function drawMine(
   ctx.beginPath();
   for (let prong = 0; prong < 8; prong += 1) {
     const spike = (prong * Math.PI) / 4;
-    const radius = tile * (prong % 2 === 0 ? 0.3 : 0.16);
+    const radius = tile * (prong % 2 === 0 ? 0.38 : 0.2);
     const x = point.x + Math.cos(spike) * radius;
     const y = point.y + Math.sin(spike) * radius;
     if (prong === 0) ctx.moveTo(x, y);

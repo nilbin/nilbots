@@ -103,8 +103,8 @@ interface SignaturePropSlot {
 }
 
 export const ARC_SIGNATURE_PROP_SCALE = {
-  'trip-node': 0.46,
-  'sentinel-seed': 0.66,
+  'trip-node': 0.6,
+  'sentinel-seed': 0.95,
 } as const;
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
@@ -667,7 +667,7 @@ function indexSignatureShotYaws(
         ? tick.after.mode
         : null;
     if (!state) continue;
-    for (const event of tick.events) {
+    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
       const fact = event.arcRelayFact;
       if (
         fact?.kind !== 'signature-damage' ||
@@ -758,9 +758,31 @@ function paintStoryBeats(
     material.opacity = Math.sin(fraction * Math.PI) * 0.86;
   };
 
-  for (const event of replay.ticks[tickIndex]?.events ?? []) {
+  const tickModel = replay.ticks[tickIndex];
+  for (const event of [
+    ...(tickModel?.lifecycleEvents ?? []),
+    ...(tickModel?.events ?? []),
+  ]) {
     const fact = event.arcRelayFact;
     if (!fact) continue;
+    if (fact.kind === 'signature-damage') {
+      const owner = replay.units.find(
+        (unit) => unit.teamId === fact.ownerActor.teamId,
+      );
+      const accent = owner ? unitAccent(replay, owner.unitKey) : '#eef8fc';
+      borrowRing(fact.position, accent, false);
+      if (fact.signatureId === 'sentinel-seed') {
+        const muzzle = state.visibleSignatures.find(
+          (candidate) => candidate.operationId === fact.operationId,
+        )?.positions[0];
+        if (muzzle) borrowRing(muzzle, accent, true);
+      }
+      continue;
+    }
+    if (fact.kind === 'signature-repair') {
+      borrowRing(fact.position, '#6ee7a8', true);
+      continue;
+    }
     if (fact.kind === 'core-born') borrowRing(fact.position, '#eef8fc', false);
     else if (fact.kind === 'core-picked-up') {
       const previousTeam = coreOwnerTeamBefore(replay, tickIndex, fact.coreId);
@@ -827,7 +849,10 @@ function coreOwnerTeamBefore(
 ): number | null {
   const key = `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
   for (let index = tickIndex - 1; index >= 0; index -= 1) {
-    for (const event of [...(replay.ticks[index]?.events ?? [])].reverse()) {
+    for (const event of [
+      ...(replay.ticks[index]?.lifecycleEvents ?? []),
+      ...(replay.ticks[index]?.events ?? []),
+    ].reverse()) {
       const fact = event.arcRelayFact;
       if (!fact || !('coreId' in fact)) continue;
       if (`${fact.coreId.sourceWellId}:${fact.coreId.sourceOrdinal}` !== key) continue;

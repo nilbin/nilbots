@@ -73,8 +73,8 @@ test('signature anticipation never starts early or outlives its authoritative te
 });
 
 test('approved persistent props stay inside their tiles and sentinel yaw never looks ahead', () => {
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.46);
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.66);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.6);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.95);
 
   const shots = [
     { tick: 12, yaw: Math.PI / 2 },
