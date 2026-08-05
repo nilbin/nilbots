@@ -37,6 +37,7 @@ export function drawArcRelayGround(input: ArcRelayVisualContext): void {
   if (!state) return;
 
   drawPulse(input, state);
+  drawHealZones(input);
   drawWells(input, state);
   drawReactors(input, state);
   drawSignatures(input, state);
@@ -200,6 +201,39 @@ function teamAccent(input: ArcRelayVisualContext, teamId: number): string {
 
 function coreKey(coreId: ReplayArcCoreId): string {
   return `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
+}
+
+/**
+ * Heal zones are static map regions: a dim green plate with a cross,
+ * breathing slowly. The channel itself is announced on the bot (its green
+ * ring in `drawArena`); the pad only marks where channelling is possible.
+ */
+function drawHealZones(input: ArcRelayVisualContext): void {
+  const { ctx, tile, time } = input;
+  const tiles = input.replay.map.regions
+    .filter((region) => region.regionId.startsWith('heal-'))
+    .flatMap((region) => region.tiles);
+  for (const [index, position] of tiles.entries()) {
+    const point = centre(input, position);
+    const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 0.8 + index);
+    const radius = tile * 0.34;
+    ctx.save();
+    ctx.fillStyle = 'rgba(22, 101, 52, 0.5)';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(74, 222, 128, ${0.34 + 0.2 * pulse})`;
+    ctx.lineWidth = Math.max(1.5, tile * 0.05);
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius + tile * 0.05, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(134, 239, 172, 0.85)';
+    const bar = tile * 0.3;
+    const thickness = Math.max(2, tile * 0.075);
+    ctx.fillRect(point.x - bar / 2, point.y - thickness / 2, bar, thickness);
+    ctx.fillRect(point.x - thickness / 2, point.y - bar / 2, thickness, bar);
+    ctx.restore();
+  }
 }
 
 function drawWells(input: ArcRelayVisualContext, state: ArcState): void {

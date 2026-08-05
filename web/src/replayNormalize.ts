@@ -5843,6 +5843,7 @@ function normalizeReplayV1Internal(
     height: document.header.mapHeight,
     tileRows: [...document.header.mapTiles],
     objectiveTiles: (document.header.zoneTiles ?? []).map(positionFromTuple),
+    regions: [],
     frontline: null,
     presentation:
       document.header.themeId === undefined &&
@@ -7136,6 +7137,7 @@ function mapFromV2(header: V2.ReplayV2Header): Model.ReplayMap {
     height: map.height,
     tileRows: [...map.tileRows],
     objectiveTiles: map.objectiveTiles.map(positionFromTuple),
+    regions: [],
     frontline: map.frontline
       ? {
           positions: [...map.frontline.positions]

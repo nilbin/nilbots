@@ -7636,6 +7636,10 @@ function mapFromV3(header: V3.ReplayV3Header): Model.ReplayMap {
       frontline?.positions.flatMap((position) =>
         position.tiles.map((tile) => ({ ...tile })),
       ) ?? [],
+    regions: map.regions.map((region) => ({
+      regionId: region.regionId,
+      tiles: region.tiles.map(positionFromTuple),
+    })),
     frontline,
     presentation: header.presentation
       ? {

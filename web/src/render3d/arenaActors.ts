@@ -40,6 +40,7 @@ import {
   replayMaxHealth,
 } from '../replayMetadata';
 import { createPresenter } from '../replayPresentation';
+import { arcVeterancyFor } from '../replayArcVeterancy';
 import {
   isGenuineLookModel,
   lookModel,
@@ -308,6 +309,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
   const presenter = createPresenter(replay);
+  const veterancy = arcVeterancyFor(replay);
   // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
   // visibility still uses the effective form's own maximum.
   const maxHealth = replayMaxHealth(replay);
@@ -897,6 +899,33 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     group.add(pips);
     disposables.push(pipGeometry, litPip, lostPip);
 
+    // Veterancy, as brass chevrons in a second row under the health pips —
+    // level 1 shows nothing, each earned level adds one. Brass on purpose:
+    // the economy's purchase beat already taught that colour to mean "this
+    // machine got stronger", and level is exactly that. They live in the
+    // pips group so they follow the bot (and hide with it) for free.
+    const chevronGeometry = new THREE.CircleGeometry(0.055, 3);
+    const chevronMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#d9a441'),
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const levelPips: THREE.Mesh[] = [];
+    for (let index = 0; index < Math.max(0, veterancy.maxLevel - 1); index++) {
+      const chevron = new THREE.Mesh(chevronGeometry, chevronMaterial);
+      chevron.rotation.x = -CAMERA_PITCH;
+      // A triangle from CircleGeometry(…, 3) points along +X; roll it a
+      // quarter turn in its own plane so it reads as an upward chevron.
+      chevron.rotation.z = Math.PI / 2;
+      chevron.position.y = -0.16;
+      chevron.renderOrder = 10;
+      chevron.visible = false;
+      pips.add(chevron);
+      levelPips.push(chevron);
+    }
+    disposables.push(chevronGeometry, chevronMaterial);
+
     // The channel ring: this body is holding the point still, or standing off
     // it while a teammate does. Radially symmetric on purpose — it is parented
     // to the chassis, which turns with the bot's facing, and a body may aim and
@@ -944,6 +973,28 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     screenRing.position.y = 0.024;
     screenRing.visible = false;
     chassis.add(screenRing);
+
+    // The heal channel: standing on a heal zone, recovering. Green because
+    // nothing else in the arena is, and a ring rather than a flash because a
+    // channel is a state — it holds while the bot holds still, which is
+    // exactly the read a spectator needs (a channelling bot is stationary,
+    // rear-blind, and next to contested ground).
+    const healGeometry = new THREE.RingGeometry(size * 0.7, size * 0.88, 36);
+    healGeometry.rotateX(-Math.PI / 2);
+    const healMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#4ade80'),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const healRing = new THREE.Mesh(healGeometry, healMaterial);
+    healRing.userData.cue = 'heal-ring';
+    healRing.position.y = 0.028;
+    healRing.visible = false;
+    chassis.add(healRing);
+    disposables.push(healGeometry, healMaterial);
 
     // The purchase beat, on the machines it was spent on.
     //
@@ -1177,10 +1228,13 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       pipMeshes,
       litPip,
       lostPip,
+      levelPips,
       channelRing,
       channelMaterial,
       screenRing,
       screenMaterial,
+      healRing,
+      healMaterial,
       upgradeRing,
       upgradeMaterial,
       carry,
@@ -1736,6 +1790,34 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         bot.channelRing.scale.setScalar(1 + 0.06 * swell);
       }
       if (screening) bot.screenMaterial.opacity = 0.24;
+
+      // Veterancy chevrons: one per level above 1, centred like the health
+      // row. Level is a per-life fold, so a respawned body starts blank
+      // without any reset logic here.
+      const level = veterancy.levelAt(
+        time,
+        pose.teamId,
+        pose.unitId,
+        pose.lifeId,
+      );
+      for (const [index, chevron] of bot.levelPips.entries()) {
+        chevron.visible = bot.pips.visible && index < level - 1;
+        chevron.position.x =
+          (index - (level - 2) / 2) * PIP_SPACING;
+      }
+
+      // The heal channel glows while zone-heals are landing and fades
+      // within a cadence of the last one, with the same slow swell the
+      // objective channel uses — both are states, not events.
+      const healGlow = bot.chassis.visible
+        ? veterancy.healGlowAt(time, pose.teamId, pose.unitId, pose.lifeId)
+        : 0;
+      bot.healRing.visible = healGlow > 0;
+      if (healGlow > 0) {
+        const swell = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6);
+        bot.healMaterial.opacity = healGlow * (0.34 + 0.26 * swell);
+        bot.healRing.scale.setScalar(1 + 0.05 * swell);
+      }
 
       // A tier this body's team just bought, thrown outward and out.
       const purchase = presentation.economy?.purchases.find(

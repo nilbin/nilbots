@@ -133,6 +133,10 @@ export default function ArenaCanvas3D({
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
+    // The gesture contract's other half (index.css): without it the browser
+    // claims two-finger touches for page zoom and cancels the pointers, so
+    // pinch and drag never reach the camera on a phone.
+    renderer.domElement.classList.add('arena-touch');
     renderer.domElement.dataset.renderProfile = renderProfile.id;
     renderer.domElement.dataset.rateLimited = String(
       renderProfile.presentationRateLimited,

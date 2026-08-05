@@ -1745,6 +1745,56 @@ function buildArcRelayStory(
   );
   if (coreGlowTexture) disposables.push(coreGlowTexture);
 
+  // Heal zones are static map regions, so their pads are scenery built once:
+  // a soft green plate with a cross, dim enough to read as ground rather
+  // than pickup. The channel itself is announced on the bot (its heal ring),
+  // so the pad only has to say "this is where that happens".
+  const healPulseMaterials: THREE.MeshBasicMaterial[] = [];
+  {
+    const padGeometry = new THREE.CircleGeometry(0.34, 28);
+    padGeometry.rotateX(-Math.PI / 2);
+    const padRingGeometry = new THREE.RingGeometry(0.36, 0.43, 28);
+    padRingGeometry.rotateX(-Math.PI / 2);
+    const crossBarGeometry = new THREE.BoxGeometry(0.3, 0.012, 0.09);
+    disposables.push(padGeometry, padRingGeometry, crossBarGeometry);
+    for (const tile of replay.map.regions
+      .filter((region) => region.regionId.startsWith('heal-'))
+      .flatMap((region) => region.tiles)) {
+      const padMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#166534'),
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      });
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#4ade80'),
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+      });
+      const crossMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#86efac'),
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+      });
+      disposables.push(padMaterial, ringMaterial, crossMaterial);
+      healPulseMaterials.push(ringMaterial);
+      const pad = new THREE.Group();
+      pad.position.set(tile.x + 0.5, 0.018, tile.y + 0.5);
+      pad.add(new THREE.Mesh(padGeometry, padMaterial));
+      pad.add(new THREE.Mesh(padRingGeometry, ringMaterial));
+      const alongX = new THREE.Mesh(crossBarGeometry, crossMaterial);
+      alongX.position.y = 0.012;
+      const alongZ = new THREE.Mesh(crossBarGeometry, crossMaterial);
+      alongZ.rotation.y = Math.PI / 2;
+      alongZ.position.y = 0.012;
+      pad.add(alongX);
+      pad.add(alongZ);
+      group.add(pad);
+    }
+  }
+
   type WellRig = {
     group: THREE.Group;
     body: THREE.Mesh;
@@ -1972,6 +2022,12 @@ function buildArcRelayStory(
     const story = presentation.arcRelay;
     group.visible = story !== null;
     if (!story) return;
+
+    // The heal pads breathe just enough to read as live machinery.
+    for (const [index, material] of healPulseMaterials.entries()) {
+      material.opacity =
+        0.42 + 0.18 * (0.5 + 0.5 * Math.sin(time * Math.PI * 0.8 + index));
+    }
 
     for (const [index, state] of story.wells.entries()) {
       const rig = well(index);

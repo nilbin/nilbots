@@ -773,6 +773,11 @@ export interface ReplayFrontlineMap {
   anchorForbiddenTiles: ReplayPosition[];
 }
 
+export interface ReplayMapRegion {
+  regionId: string;
+  tiles: ReplayPosition[];
+}
+
 export interface ReplayMap {
   mapId: string;
   mapVersion: number;
@@ -781,6 +786,13 @@ export interface ReplayMap {
   height: number;
   tileRows: string[];
   objectiveTiles: ReplayPosition[];
+  /**
+   * Named map regions from the generic contract (wells, reactors, heal
+   * zones, …), verbatim. Empty on replay generations whose wire format
+   * carries no regions (v1/v2); renderers select by regionId prefix and
+   * must tolerate absence.
+   */
+  regions: ReplayMapRegion[];
   frontline: ReplayFrontlineMap | null;
   presentation: ReplayMapPresentation | null;
 }

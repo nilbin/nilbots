@@ -32,6 +32,7 @@ import {
   sampleCanvasLuminance,
 } from './adaptiveAccent';
 import { maxHealthForActor } from '../replayMetadata';
+import { arcVeterancyFor } from '../replayArcVeterancy';
 import {
   participantForUnit,
   visualIndexForUnit,
@@ -2148,7 +2149,7 @@ export function drawArena(
 
     ctx.restore();
 
-    if (!destroyed && !ghosted)
+    if (!destroyed && !ghosted) {
       drawHealthPips(
         pose,
         cx,
@@ -2159,6 +2160,58 @@ export function drawArena(
           health: pose.health,
         }),
       );
+      const veterancy = arcVeterancyFor(replay);
+      const level = veterancy.levelAt(
+        time,
+        pose.teamId,
+        pose.unitId,
+        pose.lifeId,
+      );
+      if (level > 1)
+        drawLevelChevrons(cx, cy - radius - tile * 0.06, level - 1);
+      const healGlow = veterancy.healGlowAt(
+        time,
+        pose.teamId,
+        pose.unitId,
+        pose.lifeId,
+      );
+      if (healGlow > 0) {
+        const swell = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6);
+        ctx.save();
+        ctx.strokeStyle = `rgba(74, 222, 128, ${
+          healGlow * (0.35 + 0.3 * swell)
+        })`;
+        ctx.lineWidth = Math.max(1.5, tile * 0.06);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * (1.14 + 0.05 * swell), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  /**
+   * Veterancy under the health row: one brass chevron per level above 1.
+   * Brass to match the purchase beat — the colour already means "this
+   * machine got stronger" — and below the pips so the two rows never
+   * crowd each other on a small tile.
+   */
+  function drawLevelChevrons(cx: number, cy: number, count: number): void {
+    const width = Math.max(3.5, tile * 0.12);
+    const gap = width * 1.5;
+    const startX = cx - ((count - 1) * gap) / 2;
+    ctx.save();
+    ctx.fillStyle = '#d9a441';
+    for (let index = 0; index < count; index++) {
+      const x = startX + index * gap;
+      ctx.beginPath();
+      ctx.moveTo(x, cy - width * 0.4);
+      ctx.lineTo(x + width / 2, cy + width * 0.4);
+      ctx.lineTo(x - width / 2, cy + width * 0.4);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   /**
