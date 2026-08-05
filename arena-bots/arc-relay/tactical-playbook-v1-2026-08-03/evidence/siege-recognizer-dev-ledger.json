@@ -137,6 +137,28 @@
         "forward hunt anchor (no effect)"
       ],
       "openQuestion": "s0 margin stuck at 3-2 across ~15 configs; dm6 lifts s0 to 3-1 but breaks s1 - the two siege orientations want different detection sensitivity"
+    },
+    {
+      "version": "breakwater-v2 (release-freshness)",
+      "date": "2026-08-05",
+      "change": "approach-clear gains freshnessTicks 18: release reads only recent rememberings, so a false fortify against courier through-traffic (double-relay pinned us home 409/487 ticks) releases quickly, while detection and hunt keep full memory (mass/linger freshness flipped mir1 to an identical loss at every value below 24 - premature release mid-siege). West detect-mass 6 override REJECTED: it fixed s0 to 3-1 but broke mir0 to a max-ticks draw-loss. No side overrides in the final config.",
+      "devCells8": {
+        "s0": "W 3-2@479 elim",
+        "s1": "W 3-1@453 elim",
+        "p0": "W 3-1@378 elim",
+        "p1": "W 3-1@415 elim",
+        "mir0": "W 3-1@478 elim",
+        "mir1": "W 3-2@526 elim",
+        "fdr0": "W 3-2@532 elim",
+        "fdr1": "W 3-2@488 elim"
+      },
+      "freshSeeds": "888001 outcome-identical; tracked artifacts reproduce all cells",
+      "searchedAndRejected": [
+        "east overrides dm4/dm6/lm2 combos (fix fdr1 xor keep s1)",
+        "freshness on all three predicates (16/18: mir1 flips; 24: fdr1 stays lost)",
+        "detection-only freshness (fixes neither)",
+        "west detect-mass 6 (s0 3-1 but mir0 max-ticks loss)"
+      ]
     }
   ],
   "openProblem": "siege-a0 (recognizer west): 206-tick delivery drought t150-350 while the siege ring stands; consistently 8 deliveries vs 9. a1 wins with same sheet - geometric asymmetry unexplained.",
