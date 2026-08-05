@@ -546,13 +546,18 @@
     },
     "parameters": {
       "ripe-value": {
-        "value": 3,
+        "value": 4,
         "minimum": 2,
         "maximum": 4
       },
       "threat-mass": {
         "value": 1,
         "minimum": 1,
+        "maximum": 4
+      },
+      "value-floor": {
+        "value": 3,
+        "minimum": 2,
         "maximum": 4
       }
     },
@@ -674,15 +679,18 @@
         "operator": "at-least",
         "valueParameter": "threat-mass",
         "zone": "orchard-core"
+      },
+      "orchard-worth": {
+        "fact": "visible-loose-core-value-in-zone",
+        "operator": "at-least",
+        "valueParameter": "value-floor",
+        "zone": "centre-farm"
       }
     },
     "conditionSets": {
       "harvest-now": [
         [
-          "orchard-ripe"
-        ],
-        [
-          "orchard-threat"
+          "orchard-worth"
         ]
       ],
       "convert-freely": [

@@ -269,6 +269,32 @@ public sealed record ArcRelayLoopProfile
         ripenResumeTicks: 20);
 
     /// <summary>
+    /// Tuned ripening (owner direction 2026-08-05 after the -01 REJECT):
+    /// the accrual rate must sit near the well-cycle rate for patience to
+    /// be a real choice. +1 per 12 loose ticks (1/12 per tick vs ~2/26
+    /// cycling), cap 4, 8-tick resumption so contested standoffs still
+    /// escalate. Minted beside -01; experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile RipeningCores2 { get; } = new(
+        "ripening-cores-2",
+        "arc-relay-ripening-02",
+        "arc-relay-threefold-depth-counterflow-01",
+        ArcRelayMapGeometry.DepthCounterflow,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        coresPerPulse: 6,
+        coreBaseValue: 2,
+        ripenIntervalTicks: 12,
+        ripenMaxValue: 4,
+        ripenResumeTicks: 8);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -329,6 +355,7 @@ public sealed record ArcRelayLoopProfile
         ThreefoldPulse,
         ChargeValueControl,
         RipeningCores,
+        RipeningCores2,
         Return16,
         Return24,
         Hot60,

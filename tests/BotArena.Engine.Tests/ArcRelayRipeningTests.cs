@@ -100,6 +100,30 @@ public sealed class ArcRelayRipeningTests
     }
 
     [Fact]
+    public void TunedRipeningMintsBesideTheFirstWithoutMovingIt()
+    {
+        string first = ActorContractFingerprint.ComputeRules(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.RipeningCores));
+        string tuned = ActorContractFingerprint.ComputeRules(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.RipeningCores2));
+        Assert.NotEqual(first, tuned);
+        Assert.Equal(
+            first,
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.RipeningCores)));
+        string json = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.RipeningCores2));
+        Assert.Contains("\"ripenIntervalTicks\":12", json);
+        Assert.Contains("\"ripenMaxValue\":4", json);
+        Assert.Contains("\"ripenResumeTicks\":8", json);
+        Assert.Contains("\"coreBaseValue\":2", json);
+    }
+
+    [Fact]
     public void BirthAndRipeningEmitTheirChargeFacts()
     {
         var driver = Driver(ArcRelayLoopProfile.RipeningCores);
