@@ -264,6 +264,13 @@ internal static class ActorRulesCanonicalWriter
                 "wellBirthJitterTicks",
                 mode.WellBirthJitterTicks);
         }
+        // Written only when true so historical rules bytes are untouched.
+        if (mode.AlternatingResolutionOrder)
+        {
+            writer.WriteBoolean(
+                "alternatingResolutionOrder",
+                mode.AlternatingResolutionOrder);
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

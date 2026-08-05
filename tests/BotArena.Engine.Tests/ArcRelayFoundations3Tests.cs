@@ -47,6 +47,8 @@ public sealed class ArcRelayFoundations3Tests
                 ArcRelayLoopProfile.ForwardCombat3));
         Assert.DoesNotContain("wellBirthJitterTicks", two);
         Assert.Contains("\"wellBirthJitterTicks\":6", three);
+        Assert.DoesNotContain("alternatingResolutionOrder", two);
+        Assert.Contains("\"alternatingResolutionOrder\":true", three);
         // Order-strict contract: the jitter field sits between the grammar
         // version and the wells array.
         Assert.True(

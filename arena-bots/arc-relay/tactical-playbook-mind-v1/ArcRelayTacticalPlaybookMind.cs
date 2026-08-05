@@ -231,7 +231,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Select(body => (
                 Body: body,
                 Step: ArenaBasics.StaticFirstStep(
-                    contract, body, _ownReactor)))
+                    contract, mind, body, _ownReactor)))
             .Where(value => value.Step is not null)
             .ToDictionary(value => value.Body.UnitId, value => value.Step!.Value);
         HashSet<Position> carrierClearance = carrierSteps.Values.ToHashSet();

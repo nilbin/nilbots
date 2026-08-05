@@ -4126,8 +4126,17 @@ public sealed record GenericActorMatchChronology
                 projectile => projectile.ProjectileId);
         var expectedMovementContacts =
             new Dictionary<long, MovementContactExpectation>();
+        // Mirrors the session's parity-alternating consumption order under
+        // AlternatingResolutionOrder (foundations -03 fairness).
+        bool descendingResolution =
+            definition.Rules.GameMode.AlternatingResolutionOrder
+            && before.NextTick % 2 == 1;
+        IEnumerable<KeyValuePair<ActorIdentity, MovementQueueCandidate>>
+            consumptionOrder = descendingResolution
+                ? candidates.OrderByDescending(pair => pair.Key)
+                : candidates.OrderBy(pair => pair.Key);
         foreach ((ActorIdentity actorId, MovementQueueCandidate candidate)
-                 in candidates.OrderBy(pair => pair.Key))
+                 in consumptionOrder)
         {
             GenericActorWorldSnapshot.LifeSnapshot life =
                 before.ActiveLives.Single(value =>
@@ -4174,8 +4183,13 @@ public sealed record GenericActorMatchChronology
                         .MovementContact)
             .OrderBy(traversal => traversal.Ordinal)
             .ToArray();
-        long[] canonicalMovementContactIds = expectedMovementContacts
-            .OrderBy(pair => pair.Value.TargetActorId)
+        long[] canonicalMovementContactIds = (descendingResolution
+                ? expectedMovementContacts
+                    .OrderByDescending(pair => pair.Value.TargetActorId)
+                : (IOrderedEnumerable<
+                        KeyValuePair<long, MovementContactExpectation>>)
+                    expectedMovementContacts
+                        .OrderBy(pair => pair.Value.TargetActorId))
             .ThenBy(pair => pair.Key)
             .Select(pair => pair.Key)
             .ToArray();

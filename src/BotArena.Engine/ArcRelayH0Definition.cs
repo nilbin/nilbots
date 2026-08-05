@@ -392,7 +392,9 @@ public static class ArcRelayH0Definition
             ClassesFor(loopProfile.SignatureGrammarVersion)
                 .Select(entry => entry.Signature),
             signatureGrammarVersion: loopProfile.SignatureGrammarVersion,
-            wellBirthJitterTicks: loopProfile.WellBirthJitterTicks);
+            wellBirthJitterTicks: loopProfile.WellBirthJitterTicks,
+            alternatingResolutionOrder:
+                loopProfile.AlternatingResolutionOrder);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

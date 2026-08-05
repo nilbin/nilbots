@@ -129,7 +129,7 @@ internal static class ArenaBasics
             goals.ToHashSet(),
             blocked,
             routeHeadings,
-            PreferredHeadings(body, goals));
+            PreferredHeadings(body, goals, MirroredFrame(contract, mind)));
         if (desired is not ProjectileHeading heading)
             return false;
 
@@ -205,6 +205,7 @@ internal static class ArenaBasics
     /// </summary>
     public static Position? StaticFirstStep(
         GenericActorResolvedMatchContract contract,
+        MindContext mind,
         MindBody body,
         Position goal)
     {
@@ -216,7 +217,7 @@ internal static class ArenaBasics
             new HashSet<Position> { goal },
             new HashSet<Position>(),
             RouteHeadings(contract, body),
-            PreferredHeadings(body, [goal]));
+            PreferredHeadings(body, [goal], MirroredFrame(contract, mind)));
         return heading is ProjectileHeading step
             ? Step(body.Position, step)
             : null;
@@ -249,7 +250,7 @@ internal static class ArenaBasics
             new HashSet<Position> { goal },
             reservations,
             RouteHeadings(contract, body),
-            PreferredHeadings(body, [goal]),
+            PreferredHeadings(body, [goal], MirroredFrame(contract, mind)),
             blockThroughout: true);
         return heading is ProjectileHeading step
             ? Step(body.Position, step)
@@ -1220,12 +1221,17 @@ internal static class ArenaBasics
 
     private static ProjectileHeading[] PreferredHeadings(
         MindBody body,
-        IReadOnlyCollection<Position> goals)
+        IReadOnlyCollection<Position> goals,
+        bool mirrored)
     {
         Position nearest = goals
             .OrderBy(goal => body.Position.ChebyshevDistance(goal))
-            .ThenBy(goal => goal.Y)
-            .ThenBy(goal => goal.X)
+            // Tie-breaks are expressed in the team's canonical frame: an
+            // absolute lowest-Y/lowest-X preference would make mirrored
+            // positions produce different decisions, which measured as a
+            // 6-7/8 east skew in -03 mirror matches.
+            .ThenBy(goal => mirrored ? -goal.Y : goal.Y)
+            .ThenBy(goal => mirrored ? -goal.X : goal.X)
             .First();
         int dx = Math.Sign(nearest.X - body.Position.X);
         int dy = Math.Sign(nearest.Y - body.Position.Y);
@@ -1241,8 +1247,32 @@ internal static class ArenaBasics
             // current bearing. This preserves straight Deliberate runs
             // without lengthening the route or changing any game rule.
             .ThenBy(heading => heading == facing ? 0 : 1)
-            .ThenBy(heading => heading)
+            .ThenBy(heading => mirrored
+                ? ((int)heading + 4) % 8
+                : (int)heading)
             .ToArray();
+    }
+
+    /// <summary>
+    /// True when this mind's canonical frame is the 180-degree rotation of
+    /// the world (own reactor on the east half). Decision tie-breaks route
+    /// through this so mirrored situations produce mirrored choices.
+    /// </summary>
+    public static bool MirroredFrame(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind)
+    {
+        if (mind.Mode is not
+                GenericActorContext.ModeObservationState.ArcRelay arc)
+            return false;
+        MindBody? first = mind.Bodies.FirstOrDefault();
+        if (first is null)
+            return false;
+        int team = first.ActorId.TeamId;
+        GenericActorContext.ArcRelayReactorState? own = arc.Reactors
+            .FirstOrDefault(reactor => reactor.TeamId == team);
+        return own is not null
+            && own.Position.X > (contract.Map.Width - 1) / 2;
     }
 
     private static GenericActorRulesContract.ActionKind? PreviousActionKind(

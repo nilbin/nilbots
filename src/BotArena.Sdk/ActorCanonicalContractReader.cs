@@ -735,6 +735,8 @@ public static class ActorCanonicalContractReader
             "signatureGrammarVersion", out _);
         bool hasBirthJitter = element.TryGetProperty(
             "wellBirthJitterTicks", out _);
+        bool hasAlternatingOrder = element.TryGetProperty(
+            "alternatingResolutionOrder", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -746,6 +748,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasBirthJitter
                 ? new[] { "wellBirthJitterTicks" }
+                : System.Array.Empty<string>(),
+            .. hasAlternatingOrder
+                ? new[] { "alternatingResolutionOrder" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -776,6 +781,8 @@ public static class ActorCanonicalContractReader
             WellBirthJitterTicks = hasBirthJitter
                 ? Int(element, "wellBirthJitterTicks")
                 : 0,
+            AlternatingResolutionOrder = hasAlternatingOrder
+                && Bool(element, "alternatingResolutionOrder"),
         };
     }
 

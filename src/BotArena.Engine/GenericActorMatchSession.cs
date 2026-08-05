@@ -1519,8 +1519,17 @@ public sealed class GenericActorMatchSession : IDisposable
         var blocked = new HashSet<ActorIdentity>();
         Dictionary<Position, LifeState> occupants = _lives.Values.ToDictionary(
             life => life.Position);
-        foreach (ActionState resolution in resolutions.Values
-                     .OrderBy(value => value.ActorId))
+        // The only order-dependent effect in this loop is which mover
+        // consumes a projectile that several movers step toward. Ascending
+        // ActorId always favours team 0, so a mode may opt into alternating
+        // the direction by tick parity (foundations -03 fairness).
+        bool descendingResolution =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && Tick % 2 == 1;
+        IEnumerable<ActionState> movementOrder = descendingResolution
+            ? resolutions.Values.OrderByDescending(value => value.ActorId)
+            : resolutions.Values.OrderBy(value => value.ActorId);
+        foreach (ActionState resolution in movementOrder)
         {
             ActorActionDefinition action =
                 _actions[resolution.ValidatedAction.ActionId];

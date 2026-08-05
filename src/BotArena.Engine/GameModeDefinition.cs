@@ -15,6 +15,15 @@ public abstract record GameModeDefinition
     /// </summary>
     public virtual ImmutableArray<string> ModeOwnedAttackProfileIds => [];
 
+    /// <summary>
+    /// When true, the order-dependent slice of movement resolution — which
+    /// mover consumes a projectile both movers step toward — alternates
+    /// direction by tick parity instead of always favouring the lowest
+    /// ActorId (which is always team 0). False for every historical ruleset,
+    /// so their replay bytes never move.
+    /// </summary>
+    public virtual bool AlternatingResolutionOrder => false;
+
     internal GameModeDefinition(
         string modeId,
         VictoryDefinition victory,

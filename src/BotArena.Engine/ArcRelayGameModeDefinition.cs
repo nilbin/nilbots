@@ -20,7 +20,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int respawnDelayTicks,
         IEnumerable<ArcRelaySignatureDefinition> signatures,
         int signatureGrammarVersion = 1,
-        int wellBirthJitterTicks = 0)
+        int wellBirthJitterTicks = 0,
+        bool alternatingResolutionOrder = false)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -31,6 +32,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
             throw new ArgumentOutOfRangeException(
                 nameof(wellBirthJitterTicks));
         WellBirthJitterTicks = wellBirthJitterTicks;
+        _alternatingResolutionOrder = alternatingResolutionOrder;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -136,6 +138,11 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// written only when non-zero, so their rules bytes are unchanged.
     /// </summary>
     public int WellBirthJitterTicks { get; }
+
+    private readonly bool _alternatingResolutionOrder;
+
+    public override bool AlternatingResolutionOrder =>
+        _alternatingResolutionOrder;
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
         SignatureGrammarVersion >= 2

@@ -306,6 +306,12 @@ public sealed class GenericActorRulesContract
         /// historical rulesets.
         /// </summary>
         public int WellBirthJitterTicks { get; init; }
+
+        /// <summary>
+        /// True when the order-dependent slice of movement resolution
+        /// alternates direction by tick parity (foundations -03 fairness).
+        /// </summary>
+        public bool AlternatingResolutionOrder { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>

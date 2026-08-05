@@ -18,10 +18,12 @@ public sealed record ArcRelayLoopProfile
         int scheduledBirthRounds,
         bool directionalCombat = false,
         int signatureGrammarVersion = 1,
-        int wellBirthJitterTicks = 0)
+        int wellBirthJitterTicks = 0,
+        bool alternatingResolutionOrder = false)
     {
         SignatureGrammarVersion = signatureGrammarVersion;
         WellBirthJitterTicks = wellBirthJitterTicks;
+        AlternatingResolutionOrder = alternatingResolutionOrder;
         Id = id;
         RulesetId = rulesetId;
         MapId = mapId;
@@ -44,6 +46,7 @@ public sealed record ArcRelayLoopProfile
     internal bool DirectionalCombat { get; }
     internal int SignatureGrammarVersion { get; }
     internal int WellBirthJitterTicks { get; }
+    internal bool AlternatingResolutionOrder { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -177,7 +180,8 @@ public sealed record ArcRelayLoopProfile
         7,
         directionalCombat: true,
         signatureGrammarVersion: 2,
-        wellBirthJitterTicks: 6);
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true);
 
     /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
