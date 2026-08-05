@@ -295,6 +295,26 @@ public sealed record ArcRelayLoopProfile
         ripenResumeTicks: 8);
 
     /// <summary>
+    /// Ambush terrain prototype (owner direction 2026-08-05): the counterflow
+    /// map plus chiral-paired sightline breakers and dead-end alcoves, so the
+    /// facing-quadrant vision and team-union projectile visibility actually
+    /// bite. Forward Combat 03 semantics otherwise; experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren { get; } = new(
+        "ambush-warren",
+        "arc-relay-ambush-01",
+        "arc-relay-ambush-warren-01",
+        ArcRelayMapGeometry.AmbushWarren,
+        20,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -356,6 +376,7 @@ public sealed record ArcRelayLoopProfile
         ChargeValueControl,
         RipeningCores,
         RipeningCores2,
+        AmbushWarren,
         Return16,
         Return24,
         Hot60,
@@ -382,4 +403,5 @@ internal enum ArcRelayMapGeometry
     CoverTrim,
     DepthLarger,
     DepthCounterflow,
+    AmbushWarren,
 }

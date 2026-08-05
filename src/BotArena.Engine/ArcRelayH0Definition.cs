@@ -731,7 +731,8 @@ public static class ArcRelayH0Definition
                 changed[y] = Open(changed[y], 10, 20);
             }
         }
-        else if (geometry == ArcRelayMapGeometry.DepthCounterflow)
+        else if (geometry is ArcRelayMapGeometry.DepthCounterflow
+                 or ArcRelayMapGeometry.AmbushWarren)
         {
             foreach (int y in new[] { 1, 5, 8, 14, 17, 21 })
                 changed[y] = Open(changed[y], 5, 25);
@@ -755,6 +756,31 @@ public static class ArcRelayH0Definition
             })
             {
                 changed[y] = Set(changed[y], x, '#');
+            }
+            if (geometry == ArcRelayMapGeometry.AmbushWarren)
+            {
+                // Counterflow plus predation terrain, every wall in an exact
+                // 180-degree chiral pair: sightline breakers across the open
+                // strips so the facing-quadrant vision and team-union
+                // projectile visibility actually bite, and two dead-end
+                // alcove pairs (pockets at (8,4)/(22,18) and (8,18)/(22,4))
+                // whose occupants are invisible except through the opening.
+                // Verified against every layout route, sheet path, anchor,
+                // spawn pad, gate hole, well ring, and reactor ring; all 507
+                // open tiles remain mutually reachable.
+                foreach ((int x, int y) in new[]
+                {
+                    (9, 2), (10, 2), (11, 2), (21, 20), (20, 20), (19, 20),
+                    (16, 1), (17, 1), (14, 21), (13, 21),
+                    (12, 6), (18, 16),
+                    (10, 9), (13, 9), (20, 13), (17, 13),
+                    (7, 4), (7, 5), (8, 5), (23, 18), (23, 17), (22, 17),
+                    (7, 17), (7, 18), (8, 17), (8, 19),
+                    (23, 5), (23, 4), (22, 5), (22, 3),
+                })
+                {
+                    changed[y] = Set(changed[y], x, '#');
+                }
             }
         }
         else
