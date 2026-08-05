@@ -1,6 +1,30 @@
 # Breakwater — Stage 2 finals report
 
-## RESOLVED — owner accepted 7/8 (option 1, 2026-08-05)
+## v2 finals: PASS (2026-08-05, freeze `c7d47647`)
+
+Breakwater v2 — release-only memory freshness (18 ticks) on the
+siege-release predicate, no side overrides — met every registered bar:
+**10/10 evidence cells by elimination, zero faults** (WASM, tick-identical
+to the in-process screens).
+
+| Cell | Result |
+|---|---|
+| frozen siege west / east | W 3-2@479 / W 3-1@453 |
+| parity west / east | W 3-1@378 / W 3-1@415 |
+| south-mirror west / east | W 3-1@478 / W 3-2@526 |
+| double-relay west / east (the v1-failed opponent) | W 3-2@532 / **W 3-2@488** |
+| double-kestrel BLIND holdout, first contact | **W 3-1@576 / W 3-2@478** |
+
+False positives: zero fortify latches vs three non-siege opponents. The
+loss mechanism v1 shipped with — remembered approach mass never decaying,
+so courier through-traffic pinned the team home for 84% of a game — is
+fixed at the release side only; decaying detection or hunt memory instead
+was measured to cause premature release against a lurking besieger.
+Evidence: `evidence/breakwater-v2-finals-results.json`; gallery (all 13
+games, curated) at the URL below. v2 supersedes the accepted v1 as the
+Stage 2 deliverable pending owner confirmation.
+
+## v1 resolution — owner accepted 7/8 (option 1, 2026-08-05)
 
 The bar was re-ruled post-outcome to "all registered pairings plus at least
 one of two holdouts" (DECISIONS #206). Breakwater ships as the Stage 2
