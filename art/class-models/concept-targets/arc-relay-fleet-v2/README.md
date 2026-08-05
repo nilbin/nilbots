@@ -11,6 +11,15 @@
 
 ## Generated review artifact
 
+- Industrial-color refinement: `concept-sheet-industrial-color-v4.png`
+- Industrial-color dimensions: 1254×1254 RGBA PNG
+- Industrial-color SHA-256:
+  `1c017095c97cbf5905c1d440c3c0b962e016342927136efdde98bed55e3cbcb3`
+- Industrial-color gameplay-scale proof:
+  `gameplay-scale-industrial-color-sheet.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Built-in image-generation industrial-material output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-705ba11e-6d5e-4d1e-9450-ed87907ac21f.png`
 - High-chroma experiment: `concept-sheet-clear-color-v3.png`
 - High-chroma dimensions: 1254×1254 RGBA PNG
 - High-chroma SHA-256:
@@ -55,6 +64,33 @@ magenta, red, purple, and lime. It has a materially stronger 63-pixel read, but
 some fixed hues necessarily overlap the team-color spectrum. Emissives remain
 neutral; approval still requires a real-replay check that renderer-owned team
 ownership remains faster to read than class paint.
+
+The industrial-color refinement keeps the same clear hue assignments while
+reducing paint coverage to roughly 30–45%, deepening the pigments, replacing
+pure white with warm coated metal, and returning all functional hardware to
+graphite, steel, rubber, or bronze. Restrained abrasion and roughness variation
+remove the molded-plastic/toy read without restoring the original fleet's dark
+muddy value structure.
+
+## Industrial-material refinement prompt
+
+```text
+Use case: precise-object-edit.
+Asset type: conceptual 3D game-bot roster industrial-material refinement.
+Input image: Image 1 is the edit target.
+
+Primary request: remove the children's-toy appearance while preserving the strong class-color recognition. Change ONLY surface materials, paint coverage, color depth, and restrained wear. Preserve the exact sixteen machines, exact four-by-four order and positions, every silhouette, geometry, proportion, signature hardware, flat Minesmith mine discs, folded barrelled Nest turret pods, locomotion, East/right facing, camera, scale, padding, background, and lighting. Do not redesign, add, remove, move, inflate, round, or simplify any geometry.
+
+Industrial material direction: replace smooth bright plastic-looking shells with credible field-machine construction. Use deep satin industrial enamel over machined aluminum, brushed titanium, dark cast steel, rubber treads, heat-darkened barrels, and exposed gunmetal mechanisms. Convert pure white to warm light-gray ceramic-coated metal. Colored paint covers about 30–45 percent of each bot in a few large contiguous identity panels; enough to remain unmistakable at 50–70 pixels, but never an entire toy-like shell. Keep wheels, treads, joints, hydraulics, hooks, cables, barrels, rails, emitter mechanisms, mine discs, and turret mechanisms unpainted graphite/gunmetal.
+
+Retain the existing hue identity but make every hue deeper, richer, and more engineered: Kestrel deep ochre-gold; Palisade industrial forest green; Towline burnt safety orange; Patchbay deep medical green; Lantern petrol teal with a bronze dish; Mortar deep olive; Minesmith burnt orange; Hush aubergine violet; Relay navy-cobalt; Switchback deep wine-magenta; Longshot dark naval blue with an ochre rail marker; Mason ochre yellow; Sunder oxide crimson; Repulsor dark petrol teal with copper emitters; Veil deep imperial purple; Nest olive-lime reduced to military chartreuse identification panels over khaki and gunmetal.
+
+Material aging: add only restrained believable use—slight edge abrasion exposing metal on the most exposed corners, very subtle uneven roughness, faint heat discoloration near barrels/vents, and a trace of grime in mechanical seams. Keep broad surfaces clean and readable. No dense scratches, rust blanket, dirt coating, camouflage, decals, labels, numbers, logos, or micro-greeble noise.
+
+Anti-toy constraints: no glossy plastic, candy colors, toy-car paint, primary-color shell covering, rounded molded-plastic highlights, clean white plastic, rubbery armor, miniature-model base, black ink outline, comic stroke, cel shading, or exaggerated chunky seams. Use realistic metal roughness and controlled hard-surface reflections.
+
+All emissive lights remain tiny neutral warm-white or amber; no colored glow or team inlays. Exactly sixteen machines; no text, labels, borders, watermark, scenery, effects, weapon fire, or extra objects. Change only material/color treatment; keep everything else unchanged.
+```
 
 ## High-chroma refinement prompt
 
