@@ -100,6 +100,8 @@ interface SignaturePropSlot {
   emissives: { material: THREE.MeshStandardMaterial; base: number }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
+  /** Separate from the prop group: turret yaw must not angle the pips. */
+  pipGroup: THREE.Group;
   ready: boolean;
   disposed: boolean;
 }
@@ -141,14 +143,17 @@ export function buildArcRelayEffects(
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
     const pipGeometry = new THREE.SphereGeometry(0.09, 8, 8);
+    const pipGroup = new THREE.Group();
+    pipGroup.visible = false;
+    group.add(pipGroup);
     const pips = [0, 1].map((index) => {
       const pip = new THREE.Mesh(
         pipGeometry,
         new THREE.MeshBasicMaterial({ color: '#f8fafc' }),
       );
-      pip.position.set(index === 0 ? -0.16 : 0.16, 1.18, 0);
+      pip.position.set(index === 0 ? -0.16 : 0.16, 1.12, 0);
       pip.visible = false;
-      propGroup.add(pip);
+      pipGroup.add(pip);
       return pip;
     });
     const slot: SignaturePropSlot = {
@@ -156,6 +161,7 @@ export function buildArcRelayEffects(
       model: null,
       emissives: [],
       pips,
+      pipGroup,
       ready: false,
       disposed: false,
     };
@@ -306,7 +312,10 @@ export function buildArcRelayEffects(
 
   const update = (time: number) => {
     for (const rig of rigs) rig.group.visible = false;
-    for (const slot of propSlots.values()) slot.group.visible = false;
+    for (const slot of propSlots.values()) {
+      slot.group.visible = false;
+      slot.pipGroup.visible = false;
+    }
     pulse.visible = false;
     for (const ring of beatRings) ring.visible = false;
 
@@ -387,8 +396,18 @@ export function buildArcRelayEffects(
               ) ?? 0
             : 0;
         paintSignaturePropBody(slot.emissives, signature.suppressed, time);
-        for (const [pipIndex, pip] of slot.pips.entries())
+        slot.pipGroup.visible = true;
+        slot.pipGroup.position.copy(points[0]).setY(0);
+        const pipOwner = replay.units.find(
+          (unit) => unit.teamId === signature.ownerTeamId,
+        );
+        const pipAccent = pipOwner
+          ? unitAccent(replay, pipOwner.unitKey)
+          : '#f8fafc';
+        for (const [pipIndex, pip] of slot.pips.entries()) {
           pip.visible = pipIndex < signature.remainingCapacity;
+          (pip.material as THREE.MeshBasicMaterial).color.set(pipAccent);
+        }
         persistentPropReady = slot.ready;
       }
       paintSignature(
