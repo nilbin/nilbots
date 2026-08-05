@@ -99,6 +99,31 @@ public sealed class ArcRelayRipeningTests
                 .ChargePips);
     }
 
+    [Fact]
+    public void BirthAndRipeningEmitTheirChargeFacts()
+    {
+        var driver = Driver(ArcRelayLoopProfile.RipeningCores);
+        var facts = new List<ArcRelayEvent>();
+        for (int tick = 19; tick <= 90; tick++)
+        {
+            facts.AddRange(driver.PrepareTick(tick, World()).ModeEvents
+                .Select(value => value.Payload)
+                .OfType<GenericActorRuntimeObservation.EventPayload.ArcRelay>()
+                .Select(value => value.Fact));
+        }
+
+        ArcRelayEvent.CoreBorn born = facts.OfType<ArcRelayEvent.CoreBorn>()
+            .Single(value => value.CoreId.SourceWellId == "centre");
+        Assert.Equal(2, born.ChargeValue);
+        // Exactly one ripen step fits before tick 90 (45 loose ticks past
+        // birth), and its fact carries the post-step value.
+        ArcRelayEvent.CoreRipened ripen = Assert.Single(
+            facts.OfType<ArcRelayEvent.CoreRipened>(),
+            value => value.CoreId.SourceWellId == "centre");
+        Assert.Equal(3, ripen.Value);
+        Assert.Equal(CentreWell, ripen.Position);
+    }
+
     private static ArcRelayActorMatchModeDriver Driver(
         ArcRelayLoopProfile profile) =>
         new(

@@ -2841,7 +2841,16 @@ public sealed record GenericActorContext
         /// <summary>A scheduled or rearmed Core appeared.</summary>
         public sealed record CoreBorn(
             ArcRelayCoreId CoreId,
-            Position Position) : ArcRelayEvent;
+            Position Position) : ArcRelayEvent
+        {
+            /// <summary>Charge at birth; 1 outside charge-value rulesets.</summary>
+            public int ChargeValue { get; init; } = 1;
+        }
+        /// <summary>A loose Core's charge value grew by one.</summary>
+        public sealed record CoreRipened(
+            ArcRelayCoreId CoreId,
+            Position Position,
+            int Value) : ArcRelayEvent;
         /// <summary>A body acquired a loose Core.</summary>
         public sealed record CorePickedUp(
             ArcRelayCoreId CoreId,

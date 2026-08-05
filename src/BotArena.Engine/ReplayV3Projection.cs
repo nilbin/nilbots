@@ -1066,7 +1066,15 @@ internal static class ReplayV3Projection
             ArcRelayEvent.CoreBorn fact =>
                 new ReplayV3.ArcRelayFact.CoreBorn(
                     ArcCoreId(fact.CoreId),
-                    Position(fact.Position)),
+                    Position(fact.Position))
+                {
+                    ChargeValue = fact.ChargeValue,
+                },
+            ArcRelayEvent.CoreRipened fact =>
+                new ReplayV3.ArcRelayFact.CoreRipened(
+                    ArcCoreId(fact.CoreId),
+                    Position(fact.Position),
+                    fact.Value),
             ArcRelayEvent.CorePickedUp fact =>
                 new ReplayV3.ArcRelayFact.CorePickedUp(
                     ArcCoreId(fact.CoreId),

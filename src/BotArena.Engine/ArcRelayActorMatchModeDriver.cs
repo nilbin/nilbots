@@ -201,7 +201,10 @@ internal sealed class ArcRelayActorMatchModeDriver
 
         if (_gameMode.RipenIntervalTicks > 0)
         {
-            foreach (CoreRuntime core in _cores.Values)
+            foreach (CoreRuntime core in _cores.Values
+                         .OrderBy(value => value.CoreId.SourceWellId,
+                             StringComparer.Ordinal)
+                         .ThenBy(value => value.CoreId.SourceOrdinal))
             {
                 if (core.CarrierActorId is not null
                     || core.FlightTarget is not null)
@@ -220,6 +223,12 @@ internal sealed class ArcRelayActorMatchModeDriver
                 {
                     core.Value++;
                     core.LooseTicks = 0;
+                    events.Add(Spatial(
+                        new ArcRelayEvent.CoreRipened(
+                            core.CoreId,
+                            core.Position,
+                            core.Value),
+                        core.Position));
                 }
             }
         }
@@ -586,7 +595,10 @@ internal sealed class ArcRelayActorMatchModeDriver
         _cores.Add(coreId, core);
         well.OutstandingCoreId = coreId;
         events.Add(Spatial(
-            new ArcRelayEvent.CoreBorn(coreId, well.Position),
+            new ArcRelayEvent.CoreBorn(coreId, well.Position)
+            {
+                ChargeValue = core.Value,
+            },
             well.Position));
         events.Add(Public(new ArcRelayEvent.WellChanged(
             well.Schedule.WellId,

@@ -8518,6 +8518,14 @@ function arcRelayFactFromV3(
         kind: fact.kind,
         coreId: { ...fact.coreId },
         position: copyPosition(fact.position),
+        chargeValue: fact.chargeValue ?? 1,
+      };
+    case 'core-ripened':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        position: copyPosition(fact.position),
+        value: fact.value,
       };
     case 'core-picked-up':
       return {

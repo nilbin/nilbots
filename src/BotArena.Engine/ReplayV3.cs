@@ -753,7 +753,16 @@ internal sealed record ReplayV3(
     {
         internal sealed record CoreBorn(
             ArcCoreId CoreId,
-            PositionValue Position) : ArcRelayFact("core-born");
+            PositionValue Position) : ArcRelayFact("core-born")
+        {
+            /// <summary>Charge at birth; 1 outside charge-value rulesets.</summary>
+            public int ChargeValue { get; init; } = 1;
+        }
+
+        internal sealed record CoreRipened(
+            ArcCoreId CoreId,
+            PositionValue Position,
+            int Value) : ArcRelayFact("core-ripened");
 
         internal sealed record CorePickedUp(
             ArcCoreId CoreId,

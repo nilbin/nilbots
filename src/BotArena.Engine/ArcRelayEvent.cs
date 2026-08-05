@@ -9,7 +9,15 @@ public abstract record ArcRelayEvent
 
     public sealed record CoreBorn(
         ArcRelayCoreId CoreId,
-        Position Position) : ArcRelayEvent;
+        Position Position) : ArcRelayEvent
+    {
+        public int ChargeValue { get; init; } = 1;
+    }
+
+    public sealed record CoreRipened(
+        ArcRelayCoreId CoreId,
+        Position Position,
+        int Value) : ArcRelayEvent;
 
     public sealed record CorePickedUp(
         ArcRelayCoreId CoreId,

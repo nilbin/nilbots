@@ -550,6 +550,14 @@ internal static class GenericActorWireEventCodec
                 writer.Field(1, GenericActorWireCodecValues.SemanticId("core-born"));
                 writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
                 writer.Field(3, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                if (fact.ChargeValue != 1)
+                    writer.Field(4, ActorWireValue.Int32(fact.ChargeValue));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreRipened fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-ripened"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(4, ActorWireValue.Int32(fact.Value));
                 break;
             case GenericActorContext.ArcRelayEvent.CorePickedUp fact:
                 writer.Field(1, GenericActorWireCodecValues.SemanticId("core-picked-up"));
@@ -664,7 +672,18 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireObservationCodec.DecodeArcCoreId(
                             reader.Required(2), depth + 1),
                         GenericActorWireCodecValues.DecodePosition(
-                            reader.Required(3), depth + 1)),
+                            reader.Required(3), depth + 1))
+                    {
+                        ChargeValue = GenericActorWireCodecValues
+                            .OptionalInt32(reader, 4) ?? 1,
+                    },
+                "core-ripened" =>
+                    new GenericActorContext.ArcRelayEvent.CoreRipened(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 4)),
                 "core-picked-up" =>
                     new GenericActorContext.ArcRelayEvent.CorePickedUp(
                         GenericActorWireObservationCodec.DecodeArcCoreId(

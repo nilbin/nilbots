@@ -547,7 +547,15 @@ internal static class GenericActorSdkModelMapper
             ArcRelayEvent.CoreBorn fact =>
                 new Sdk.GenericActorContext.ArcRelayEvent.CoreBorn(
                     ToSdk(fact.CoreId),
-                    ToSdk(fact.Position)),
+                    ToSdk(fact.Position))
+                {
+                    ChargeValue = fact.ChargeValue,
+                },
+            ArcRelayEvent.CoreRipened fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreRipened(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.Position),
+                    fact.Value),
             ArcRelayEvent.CorePickedUp fact =>
                 new Sdk.GenericActorContext.ArcRelayEvent.CorePickedUp(
                     ToSdk(fact.CoreId),

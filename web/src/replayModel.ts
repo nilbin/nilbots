@@ -1401,6 +1401,13 @@ export type ReplayArcRelayFact =
       kind: 'core-born';
       coreId: ReplayArcCoreId;
       position: ReplayPosition;
+      chargeValue: number;
+    }
+  | {
+      kind: 'core-ripened';
+      coreId: ReplayArcCoreId;
+      position: ReplayPosition;
+      value: number;
     }
   | {
       kind: 'core-picked-up';

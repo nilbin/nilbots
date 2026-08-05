@@ -1995,6 +1995,14 @@ internal static class ReplayV3Serializer
                 WriteArcCoreId(writer, "coreId", fact.CoreId);
                 writer.WritePropertyName("position");
                 WritePosition(writer, fact.Position);
+                if (fact.ChargeValue != 1)
+                    writer.WriteNumber("chargeValue", fact.ChargeValue);
+                break;
+            case ReplayV3.ArcRelayFact.CoreRipened fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("value", fact.Value);
                 break;
             case ReplayV3.ArcRelayFact.CorePickedUp fact:
                 WriteArcCoreId(writer, "coreId", fact.CoreId);
@@ -4353,22 +4361,50 @@ internal static class ReplayV3Serializer
                                 null,
                                 0,
                                 null,
-                                null)))
+                                null)
+                            {
+                                ChargeValue = value.ChargeValue,
+                            }))
                     {
                         throw new ArgumentException(
                             $"{context} births an already-live Core.");
                     }
                     break;
-                case ReplayV3.ArcRelayFact.CorePickedUp value:
-                    RequireCore(cores, value.CoreId, context);
-                    cores[value.CoreId] = new ReplayV3.ArcCore(
+                case ReplayV3.ArcRelayFact.CoreRipened value:
+                    ReplayV3.ArcCore ripened = RequireCore(
+                        cores,
                         value.CoreId,
-                        value.Position,
-                        "carried",
-                        value.CarrierActorId,
-                        value.NextRelocationTick,
-                        null,
-                        null);
+                        context);
+                    if (ripened.CarrierActorId is not null
+                        || !string.Equals(
+                            ripened.Disposition,
+                            "loose",
+                            StringComparison.Ordinal)
+                        || ripened.Position != value.Position
+                        || value.Value != ripened.ChargeValue + 1)
+                    {
+                        throw new ArgumentException(
+                            $"{context} ripens a Core outside the loose +1 progression.");
+                    }
+                    cores[value.CoreId] = ripened with
+                    {
+                        ChargeValue = value.Value,
+                    };
+                    break;
+                case ReplayV3.ArcRelayFact.CorePickedUp value:
+                    ReplayV3.ArcCore pickedUp = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    cores[value.CoreId] = pickedUp with
+                    {
+                        Position = value.Position,
+                        Disposition = "carried",
+                        CarrierActorId = value.CarrierActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
                     opaqueFlights.Remove(value.CoreId);
                     break;
                 case ReplayV3.ArcRelayFact.CoreRelocated value:
@@ -4379,14 +4415,16 @@ internal static class ReplayV3Serializer
                         throw new ArgumentException(
                             $"{context} relocates a Core from a forged position.");
                     }
-                    cores[value.CoreId] = new ReplayV3.ArcCore(
-                        value.CoreId,
-                        value.To,
-                        value.CarrierActorId is null ? "loose" : "carried",
-                        value.CarrierActorId,
-                        value.NextRelocationTick,
-                        null,
-                        null);
+                    cores[value.CoreId] = prior with
+                    {
+                        Position = value.To,
+                        Disposition =
+                            value.CarrierActorId is null ? "loose" : "carried",
+                        CarrierActorId = value.CarrierActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
                     opaqueFlights.Remove(value.CoreId);
                     break;
                 case ReplayV3.ArcRelayFact.CoreHandedOff value:
@@ -4399,14 +4437,15 @@ internal static class ReplayV3Serializer
                         throw new ArgumentException(
                             $"{context} hands off a Core from a non-carrier.");
                     }
-                    cores[value.CoreId] = new ReplayV3.ArcCore(
-                        value.CoreId,
-                        value.Position,
-                        "carried",
-                        value.TargetActorId,
-                        value.NextRelocationTick,
-                        null,
-                        null);
+                    cores[value.CoreId] = handed with
+                    {
+                        Position = value.Position,
+                        Disposition = "carried",
+                        CarrierActorId = value.TargetActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
                     break;
                 case ReplayV3.ArcRelayFact.CoreDropped value:
                     ReplayV3.ArcCore dropped = RequireCore(
@@ -4447,14 +4486,15 @@ internal static class ReplayV3Serializer
                     }
                     else
                     {
-                        cores[value.CoreId] = new ReplayV3.ArcCore(
-                            value.CoreId,
-                            value.Position,
-                            "loose",
-                            null,
-                            value.NextRelocationTick,
-                            null,
-                            null);
+                        cores[value.CoreId] = dropped with
+                        {
+                            Position = value.Position,
+                            Disposition = "loose",
+                            CarrierActorId = null,
+                            NextRelocationTick = value.NextRelocationTick,
+                            FlightTarget = null,
+                            FlightCompletesAtTick = null,
+                        };
                     }
                     break;
                 case ReplayV3.ArcRelayFact.CoreBanked value:
@@ -7784,7 +7824,11 @@ internal static class ReplayV3Serializer
         bool invalid = fact switch
         {
             ReplayV3.ArcRelayFact.CoreBorn value =>
-                InvalidCoreId(value.CoreId),
+                InvalidCoreId(value.CoreId)
+                || value.ChargeValue < 1,
+            ReplayV3.ArcRelayFact.CoreRipened value =>
+                InvalidCoreId(value.CoreId)
+                || value.Value < 2,
             ReplayV3.ArcRelayFact.CorePickedUp value =>
                 InvalidCoreId(value.CoreId)
                 || value.NextRelocationTick < 0,
@@ -8582,6 +8626,8 @@ internal static class ReplayV3Serializer
                 {
                     ["core-born"] =
                         typeof(ReplayV3.ArcRelayFact.CoreBorn),
+                    ["core-ripened"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreRipened),
                     ["core-picked-up"] =
                         typeof(ReplayV3.ArcRelayFact.CorePickedUp),
                     ["core-relocated"] =
