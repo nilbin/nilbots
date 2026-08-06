@@ -646,6 +646,57 @@ def passivity_metrics(
     return passivity, formation_freeze
 
 
+def team_statue_metrics(broadcast, team_ids):
+    """Busy-statue detector (bars v5): a livelocked body never waits, so the
+    wait-share detectors stay silent while half a team repaths in place for
+    hundreds of ticks. This one watches displacement only: a live body
+    frozen on one tile for the whole window counts, whatever it commanded.
+    """
+    bar = BARS.get("teamStatue")
+    if bar is None:
+        return {
+            "enforced": False,
+            "barTrippedByTeam": {str(team): False for team in team_ids},
+        }
+    window = bar["windowTicks"]
+    minimum = bar["minimumFrozenBodies"]
+    share = bar["tripAtFrozenShareOfLiveBodies"]
+    streaks = {}
+    worst = {team: 0 for team in team_ids}
+    tripped = {team: False for team in team_ids}
+    for _tick, world in enumerate(broadcast["worlds"]):
+        lives = active_lives(world)
+        frozen_by_team = {team: 0 for team in team_ids}
+        live_by_team = {team: 0 for team in team_ids}
+        for life in lives:
+            key = life["actor"]
+            spot = tuple(life["position"])
+            count = streaks.get(key)
+            streak = count[1] + 1 if count and count[0] == spot else 1
+            streaks[key] = (spot, streak)
+            live_by_team[life["team"]] += 1
+            if streak >= window:
+                frozen_by_team[life["team"]] += 1
+        for team in team_ids:
+            worst[team] = max(worst[team], frozen_by_team[team])
+            if (
+                live_by_team[team] > 0
+                and frozen_by_team[team] >= minimum
+                and frozen_by_team[team] / live_by_team[team] >= share
+            ):
+                tripped[team] = True
+    return {
+        "enforced": True,
+        "windowTicks": window,
+        "worstSimultaneousFrozenByTeam": {
+            str(team): worst[team] for team in team_ids
+        },
+        "barTrippedByTeam": {
+            str(team): tripped[team] for team in team_ids
+        },
+    }
+
+
 def stuck_carrier_metrics(broadcast: dict, team_ids: list[int]) -> dict:
     active: dict[str, dict] = {}
     completed: list[dict] = []
@@ -1460,6 +1511,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     passivity, formation_freeze = passivity_metrics(
         broadcast, team_ids, first_birth_tick)
     stuck_carrier = stuck_carrier_metrics(broadcast, team_ids)
+    team_statue = team_statue_metrics(broadcast, team_ids)
     home_non_progress = home_carrier_non_progress_metrics(
         broadcast,
         team_ids,
@@ -1473,6 +1525,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             or passivity["barTrippedByTeam"][str(team)]
             or formation_freeze["barTrippedByTeam"][str(team)]
             or stuck_carrier["barTrippedByTeam"][str(team)]
+            or team_statue["barTrippedByTeam"][str(team)]
             or home_non_progress["barTrippedByTeam"][str(team)]
         )
         for team in team_ids
@@ -1550,6 +1603,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "sustainedPassivity": passivity,
             "formationFreeze": formation_freeze,
             "stuckCarrier": stuck_carrier,
+            "teamStatue": team_statue,
             "homeCarrierNonProgress": home_non_progress,
             "cohortEligibilityByTeam": eligibility_by_team,
             "matchEligibleForCohortRead": all(eligibility_by_team.values()),
