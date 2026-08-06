@@ -4689,3 +4689,23 @@ with zero felt-degeneracy bar trips, no unresolved-contact streaks,
 both existing sheets running untouched, and owner replay review as the
 final gate. Ranged area-denial and sheet balance are explicit non-goals
 until the melee-beat core proves out.
+
+## 213. Strike cones are the real filled wedge, resolved to the nearest body
+
+Owner rulings 2026-08 during -11 replay review, superseding the
+three-spoke fan of #212's first cut: "attacks are not cones..?", then
+"I want the real cone this is just weird now". The declared telegraph
+is now the filled 90° wedge between the resolved heading's adjacent
+sectors — Chebyshev reach, wall-occluded through the canonical strike
+line (`GenericActorStrikeCone`), boundary spokes inclusive — and
+single-target resolution picks the nearest body anywhere in the wedge
+(Chebyshev first, most-central on integer-exact angle ties, canonical
+tile order last), delivered along the same 8-connected strike line
+through the standard projectile machinery so interposition still works
+tile by tile. A lit tile is exactly a hittable tile; three diverging
+spokes with unlit gaps between them were neither honest nor readable.
+Authored volleys keep frozen per-ray fans; windup stays 1 (one honest
+move, owner tuning after verifying movement precedes combat on the
+resolve tick). Signature bolts (sentinel/hook) still fly untelegraphed
+as historical utility casts — flagged to the owner as the remaining
+inconsistency, ruling pending.

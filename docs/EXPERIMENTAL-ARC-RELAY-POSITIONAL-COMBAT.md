@@ -47,14 +47,19 @@ are the parts already working, and they are load-bearing.
 
 Attack beat: **declare → windup → resolve.**
 
-1. **Declare.** A committed attacker with its target inside its facing cone
-   (clipped to reach) locks the target and the threatened cone becomes
-   public state (the viewer draws it; the victim's mind sees it).
-2. **Windup** (per-class ticks). Counterplay is positional only: leave the
-   cone, break reach, or interpose a body. Staying in the cone is a hit.
-3. **Resolve.** Trace toward the declared target; **the first body on the
-   line eats the hit** (bodyguarding, screening, and wrong-victim scrums all
-   emerge from this one clause). Damage = class base × facing multiplier
+1. **Declare.** A committed attacker locks its heading and the threatened
+   cone becomes public state (the viewer draws it; the victim's mind sees
+   it). The cone is the REAL filled wedge (DECISIONS #213): every
+   wall-reachable tile within ±45° of the heading out to the gun's
+   Chebyshev reach. A lit tile is exactly a hittable tile.
+2. **Windup** (1 tick — owner tuning; movement precedes combat on the
+   resolve tick, so this is exactly one honest move). Counterplay is
+   positional only: leave the wedge, break reach, or interpose a body.
+3. **Resolve.** Single-target: the nearest body anywhere in the wedge eats
+   the one hit (most-central on ties), delivered along the canonical
+   strike line so **the first body on the line eats the hit**
+   (bodyguarding, screening, and wrong-victim scrums all emerge from this
+   clause). No body in the wedge: theatrical whiff down the centre. Damage = class base × facing multiplier
    (front ×1, rear ×2 — existing rule) × level track. Whiff still pays the
    cooldown.
 
