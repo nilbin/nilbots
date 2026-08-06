@@ -404,6 +404,55 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void PositionalStrikesMintBesideTheDeepWarrenWithoutMovingIt()
+    {
+        // DECISIONS #212: -11 turns every class gun into a declared instant
+        // ray (windup 2) on the -10 deep warren. The rules fingerprint moves,
+        // the map does not, and signature bolts keep their historical shape.
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren10)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren11)));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren10).Map),
+            ActorContractFingerprint.ComputeMap(
+                ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.AmbushWarren11).Map));
+        ActorRulesDefinition rules = ArcRelayH0Definition.CreateRules(
+            ArcRelayLoopProfile.AmbushWarren11);
+        foreach (string gun in new[]
+                 { "short-fast", "medium-steady", "long-slow" })
+        {
+            ActorAttackProfileDefinition profile = rules.AttackProfiles
+                .Single(value => value.Id == gun);
+            Assert.Equal(
+                ActorProjectileMode.InstantRay,
+                profile.Projectile.Mode);
+            Assert.Equal(2, profile.Projectile.StrikeWindupTicks);
+        }
+        foreach (string bolt in new[] { "sentinel-bolt", "hook-bolt" })
+        {
+            ActorAttackProfileDefinition profile = rules.AttackProfiles
+                .Single(value => value.Id == bolt);
+            Assert.Equal(
+                ActorProjectileMode.Discrete,
+                profile.Projectile.Mode);
+            Assert.Equal(0, profile.Projectile.StrikeWindupTicks);
+        }
+        string json = ActorContractManifestSerializer.ToCanonicalJson(rules);
+        Assert.Contains("\"strikeWindupTicks\":2", json);
+        string previous = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.AmbushWarren10));
+        Assert.DoesNotContain("strikeWindupTicks", previous);
+    }
+
+    [Fact]
     public void DeepWarrenWrapsTheSerpentineInteriorInShadowLanes()
     {
         ActorMapDefinition deep = ArcRelayH0Definition.Create(

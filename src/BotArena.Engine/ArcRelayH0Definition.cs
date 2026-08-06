@@ -249,12 +249,20 @@ public static class ArcRelayH0Definition
             loudEventKinds: []);
         ActorAttackProfileDefinition[] attacks =
         [
+            // Positional combat (DECISIONS #212): the class guns take the
+            // profile's strike windup; a short gun stays a quicker draw than
+            // a long one through the existing range/cadence triangle.
+            // Signature bolts keep their historical behavior — they are
+            // utility casts, not the combat model under test.
             Attack("short-fast", range: 4, nextFireInterval: 2,
-                loopProfile.DirectionalCombat),
+                loopProfile.DirectionalCombat,
+                loopProfile.StrikeWindupTicks),
             Attack("medium-steady", range: 6, nextFireInterval: 3,
-                loopProfile.DirectionalCombat),
+                loopProfile.DirectionalCombat,
+                loopProfile.StrikeWindupTicks),
             Attack("long-slow", range: 9, nextFireInterval: 5,
-                loopProfile.DirectionalCombat),
+                loopProfile.DirectionalCombat,
+                loopProfile.StrikeWindupTicks),
             // Grammar-2 signature bolts are contract-declared projectiles:
             // the world snapshot, validators, and viewers all know them the
             // same way they know the guns. No body selects them as its gun.
@@ -596,20 +604,33 @@ public static class ArcRelayH0Definition
         string id,
         int range,
         int nextFireInterval,
-        bool directionalCombat) =>
+        bool directionalCombat,
+        int strikeWindupTicks = 0) =>
         new(
             id,
             omnidirectionalAim: !directionalCombat,
-            new ActorProjectileDefinition(
-                ActorProjectileMode.Discrete,
-                damagePerHit: 1,
-                maxTravelTiles: range,
-                ticksPerAdvance: 1,
-                tilesPerAdvance: 2,
-                launchTiles: 1,
-                advancesOnLaunchTick: false,
-                damageAppliedSimultaneously: true,
-                diagonalCornersMustBeClear: true),
+            strikeWindupTicks > 0
+                ? new ActorProjectileDefinition(
+                    ActorProjectileMode.InstantRay,
+                    damagePerHit: 1,
+                    maxTravelTiles: range,
+                    ticksPerAdvance: 0,
+                    tilesPerAdvance: 1,
+                    launchTiles: 1,
+                    advancesOnLaunchTick: false,
+                    damageAppliedSimultaneously: true,
+                    diagonalCornersMustBeClear: true,
+                    strikeWindupTicks: strikeWindupTicks)
+                : new ActorProjectileDefinition(
+                    ActorProjectileMode.Discrete,
+                    damagePerHit: 1,
+                    maxTravelTiles: range,
+                    ticksPerAdvance: 1,
+                    tilesPerAdvance: 2,
+                    launchTiles: 1,
+                    advancesOnLaunchTick: false,
+                    damageAppliedSimultaneously: true,
+                    diagonalCornersMustBeClear: true),
             cooldownTicks: nextFireInterval - 1,
             maxEnergy: 0,
             attackEnergyCost: 0,

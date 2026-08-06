@@ -33,10 +33,12 @@ public sealed record ArcRelayLoopProfile
         int healZoneTicksPerHp = 0,
         bool seedPhasedResolutionOrder = false,
         bool rotationalSpawnAssignment = false,
-        bool seedPhasedWellLead = false)
+        bool seedPhasedWellLead = false,
+        int strikeWindupTicks = 0)
     {
         RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedWellLead = seedPhasedWellLead;
+        StrikeWindupTicks = strikeWindupTicks;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
@@ -89,6 +91,13 @@ public sealed record ArcRelayLoopProfile
     internal bool SeedPhasedResolutionOrder { get; }
     internal bool RotationalSpawnAssignment { get; }
     internal bool SeedPhasedWellLead { get; }
+
+    /// <summary>
+    /// Positional combat (DECISIONS #212): when positive, every class gun is
+    /// a declared instant ray with this windup instead of a dodgeable
+    /// discrete bolt. Zero keeps historical projectile combat.
+    /// </summary>
+    internal int StrikeWindupTicks { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -582,6 +591,35 @@ public sealed record ArcRelayLoopProfile
         seedPhasedWellLead: true);
 
     /// <summary>
+    /// The positional combat remake (DECISIONS #212): the -10 deep warren
+    /// with every gun a declared strike — announce the ray, hold two ticks,
+    /// hit the first body still standing on it. Fights resolve from the
+    /// board; the dodge duel is unrepresentable. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren11 { get; } = new(
+        "ambush-warren-11",
+        "arc-relay-ambush-11",
+        "arc-relay-ambush-warren-06",
+        ArcRelayMapGeometry.AmbushWarrenDeep,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        seedPhasedWellLead: true,
+        strikeWindupTicks: 2);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -653,6 +691,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren8,
         AmbushWarren9,
         AmbushWarren10,
+        AmbushWarren11,
         Return16,
         Return24,
         Hot60,
