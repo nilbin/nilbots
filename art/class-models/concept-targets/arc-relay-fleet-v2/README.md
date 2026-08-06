@@ -12,6 +12,18 @@
 
 ## Generated review artifact
 
+- Drone-family v15 roster: `concept-sheet-drone-family-v15.png`
+- Drone-family dimensions: 1254×1254 RGB PNG
+- Drone-family SHA-256:
+  `6f0d83fd5e40465b5077bd5f06077f86703fbdc5e9c69be02eb9bbd15b526913`
+- Drone-family gameplay-scale proof:
+  `gameplay-scale-drone-family-v15.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `d77983a9be756741d817307ab55252ed3beb31c5b8caf954f06713f97efa5b19`
+- Exact input and prompt: `drone-family-v15/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-ab54a730-44ac-4eab-a1dd-a89a4a782977.png`
 - Sentry-color v14 roster: `concept-sheet-sentry-color-v14.png`
 - Sentry-color dimensions: 1254×1254 RGB PNG
 - Sentry-color SHA-256:
@@ -248,8 +260,13 @@ carrier color.
 The v14 material correction restores the deployed Sentinel Seed's noticeably
 lighter warm sandstone-taupe ceramic over dark gunmetal bearings and barrels,
 with restrained bronze hardware. The two payloads now remain visibly separate
-from the olive/khaki Nest carrier at the 63-pixel proof. This is the current
-concept candidate.
+from the olive/khaki Nest carrier at the 63-pixel proof.
+
+The v15 drone-family pass retains Kestrel as an interceptor while redesigning
+Lantern as an asymmetric tripod survey drone, Sunder as a compact X-planform
+designator drone, and Veil as a continuous smoke-laying drone. Each uses a
+different planform and enclosed lift-node grammar while remaining low-hover,
+tile-bound, and non-emissive underneath. This is the current concept candidate.
 
 ## Industrial-material refinement prompt
 
