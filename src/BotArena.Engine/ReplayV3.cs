@@ -1098,6 +1098,14 @@ internal sealed record ReplayV3(
             int? LatestPulseTick)
             : ModeState("arc-relay", Id)
         {
+            /// <summary>
+            /// Declared strikes in windup (DECISIONS #212); empty on every
+            /// ruleset without strike windups, keeping historical replays
+            /// byte-exact.
+            /// </summary>
+            public ImmutableArray<ArcPendingStrike> PendingStrikes
+            { get; init; } = [];
+
             public bool Equals(ArcRelay? other) =>
                 other is not null
                 && string.Equals(Id, other.Id, StringComparison.Ordinal)
@@ -1106,7 +1114,8 @@ internal sealed record ReplayV3(
                 && VisibleCores.SequenceEqual(other.VisibleCores)
                 && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
                 && LatestPulseTeamId == other.LatestPulseTeamId
-                && LatestPulseTick == other.LatestPulseTick;
+                && LatestPulseTick == other.LatestPulseTick
+                && PendingStrikes.SequenceEqual(other.PendingStrikes);
 
             public override int GetHashCode()
             {
@@ -1119,9 +1128,28 @@ internal sealed record ReplayV3(
                     hash.Add(value);
                 hash.Add(LatestPulseTeamId);
                 hash.Add(LatestPulseTick);
+                foreach (ArcPendingStrike value in PendingStrikes)
+                    hash.Add(value);
                 return hash.ToHashCode();
             }
         }
+    }
+
+    internal sealed record ArcPendingStrike(
+        ActorId Shooter,
+        int ResolveAtTick,
+        ImmutableArray<PositionValue> Tiles)
+    {
+        public bool Equals(ArcPendingStrike? other) =>
+            other is not null
+            && Shooter == other.Shooter
+            && ResolveAtTick == other.ResolveAtTick
+            && Tiles.SequenceEqual(other.Tiles);
+
+        public override int GetHashCode() => HashCode.Combine(
+            Shooter,
+            ResolveAtTick,
+            Tiles.Length);
     }
 
     internal sealed record ArcCoreId(string SourceWellId, int SourceOrdinal);

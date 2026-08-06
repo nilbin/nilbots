@@ -857,6 +857,14 @@ public sealed record GenericActorRuntimeObservation(
             public int? LatestPulseTeamId { get; }
             public int? LatestPulseTick { get; }
 
+            /// <summary>
+            /// Declared strikes in windup, public to both teams
+            /// (DECISIONS #212). Empty on rulesets without strike windups,
+            /// keeping historical observations byte-identical.
+            /// </summary>
+            public ImmutableArray<ArcRelayPendingStrikeState> PendingStrikes
+            { get; init; } = [];
+
             public bool Equals(ArcRelay? other) =>
                 other is not null
                 && ModeId == other.ModeId
@@ -865,7 +873,8 @@ public sealed record GenericActorRuntimeObservation(
                 && VisibleCores.SequenceEqual(other.VisibleCores)
                 && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
                 && LatestPulseTeamId == other.LatestPulseTeamId
-                && LatestPulseTick == other.LatestPulseTick;
+                && LatestPulseTick == other.LatestPulseTick
+                && PendingStrikes.SequenceEqual(other.PendingStrikes);
 
             public override int GetHashCode()
             {
@@ -878,9 +887,32 @@ public sealed record GenericActorRuntimeObservation(
                     hash.Add(value);
                 hash.Add(LatestPulseTeamId);
                 hash.Add(LatestPulseTick);
+                foreach (ArcRelayPendingStrikeState value in PendingStrikes)
+                    hash.Add(value);
                 return hash.ToHashCode();
             }
         }
+    }
+
+    /// <summary>
+    /// One publicly declared strike in windup (DECISIONS #212): the shooter,
+    /// the tick the ray resolves, and the frozen tiles it will trace.
+    /// </summary>
+    public sealed record ArcRelayPendingStrikeState(
+        ActorIdentity Shooter,
+        int ResolveAtTick,
+        ImmutableArray<Position> Tiles)
+    {
+        public bool Equals(ArcRelayPendingStrikeState? other) =>
+            other is not null
+            && Shooter == other.Shooter
+            && ResolveAtTick == other.ResolveAtTick
+            && Tiles.SequenceEqual(other.Tiles);
+
+        public override int GetHashCode() => HashCode.Combine(
+            Shooter,
+            ResolveAtTick,
+            Tiles.Length);
     }
 
     /// <summary>

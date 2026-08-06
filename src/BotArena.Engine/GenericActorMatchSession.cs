@@ -4357,7 +4357,21 @@ public sealed class GenericActorMatchSession : IDisposable
                     || signature.Positions.Any(visibleTiles.Contains))
                 .ToImmutableArray(),
             arcRelay.LatestPulseTeamId,
-            arcRelay.LatestPulseTick);
+            arcRelay.LatestPulseTick)
+        {
+            // Declared strikes are public to BOTH teams unconditionally
+            // (DECISIONS #212): the announcement IS the mechanic — the
+            // victim's only counterplay is reading the tiles and moving.
+            PendingStrikes = _pendingStrikes
+                .OrderBy(strike => strike.Shooter)
+                .Select(strike =>
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            strike.Shooter,
+                            strike.ResolveAtTick,
+                            [.. strike.Bolts.SelectMany(bolt => bolt.Path)]))
+                .ToImmutableArray(),
+        };
     }
 
     /// <summary>

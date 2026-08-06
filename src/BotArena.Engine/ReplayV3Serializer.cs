@@ -2589,11 +2589,34 @@ internal static class ReplayV3Serializer
                     writer,
                     "latestPulseTick",
                     arcRelay.LatestPulseTick);
+                // Declared strikes serialize only where they exist
+                // (DECISIONS #212): every replay from a ruleset without
+                // strike windups stays byte-exact.
+                if (!arcRelay.PendingStrikes.IsEmpty)
+                {
+                    WriteArray(
+                        writer,
+                        "pendingStrikes",
+                        arcRelay.PendingStrikes,
+                        WriteArcPendingStrike);
+                }
                 break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 mode state '{value.GetType().Name}'.");
         }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcPendingStrike(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcPendingStrike value)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("shooter");
+        WriteActorId(writer, value.Shooter);
+        writer.WriteNumber("resolveAtTick", value.ResolveAtTick);
+        WriteArray(writer, "tiles", value.Tiles, WritePosition);
         writer.WriteEndObject();
     }
 
@@ -9125,28 +9148,46 @@ internal static class ReplayV3Serializer
                             scrapPiles ? ReadScrapPiles(piles) : []);
                     }
                 case "arc-relay":
-                    RequireProperties(
-                        root,
-                        "kind",
-                        "modeId",
-                        "wells",
-                        "reactors",
-                        "visibleCores",
-                        "visibleSignatures",
-                        "latestPulseTeamId",
-                        "latestPulseTick");
-                    return new ReplayV3.ModeState.ArcRelay(
-                        modeId,
-                        RequiredArrayValue<ReplayV3.ArcWell>(
-                            root, "wells", options),
-                        RequiredArrayValue<ReplayV3.ArcReactor>(
-                            root, "reactors", options),
-                        RequiredArrayValue<ReplayV3.ArcCore>(
-                            root, "visibleCores", options),
-                        RequiredArrayValue<ReplayV3.ArcSignature>(
-                            root, "visibleSignatures", options),
-                        NullableInt32(root, "latestPulseTeamId"),
-                        NullableInt32(root, "latestPulseTick"));
+                    {
+                        // Declared strikes exist only on strike-windup
+                        // rulesets (DECISIONS #212); their absence is the
+                        // historical document shape.
+                        bool pendingStrikes = root.TryGetProperty(
+                            "pendingStrikes", out _);
+                        RequireProperties(
+                            root,
+                            [
+                                "kind",
+                                "modeId",
+                                "wells",
+                                "reactors",
+                                "visibleCores",
+                                "visibleSignatures",
+                                "latestPulseTeamId",
+                                "latestPulseTick",
+                                .. pendingStrikes
+                                    ? new[] { "pendingStrikes" }
+                                    : System.Array.Empty<string>(),
+                            ]);
+                        return new ReplayV3.ModeState.ArcRelay(
+                            modeId,
+                            RequiredArrayValue<ReplayV3.ArcWell>(
+                                root, "wells", options),
+                            RequiredArrayValue<ReplayV3.ArcReactor>(
+                                root, "reactors", options),
+                            RequiredArrayValue<ReplayV3.ArcCore>(
+                                root, "visibleCores", options),
+                            RequiredArrayValue<ReplayV3.ArcSignature>(
+                                root, "visibleSignatures", options),
+                            NullableInt32(root, "latestPulseTeamId"),
+                            NullableInt32(root, "latestPulseTick"))
+                        {
+                            PendingStrikes = pendingStrikes
+                                ? RequiredArrayValue<ReplayV3.ArcPendingStrike>(
+                                    root, "pendingStrikes", options)
+                                : [],
+                        };
+                    }
                 default:
                     throw new JsonException(
                         $"Unknown replay-v3 mode kind '{kind}'.");

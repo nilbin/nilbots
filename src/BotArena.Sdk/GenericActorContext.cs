@@ -2726,7 +2726,38 @@ public sealed record GenericActorContext
             public int? LatestPulseTeamId { get; }
             /// <summary>Tick of the most recent Pulse, if any.</summary>
             public int? LatestPulseTick { get; }
+
+            /// <summary>
+            /// Every declared strike currently winding up, visible to BOTH
+            /// teams (DECISIONS #212): the announcement is the mechanic. The
+            /// tiles are frozen at declaration; a body still standing on them
+            /// at <see cref="ArcRelayPendingStrike.ResolveAtTick"/> eats the
+            /// hit. Empty on every ruleset without strike windups.
+            /// </summary>
+            public ImmutableArray<ArcRelayPendingStrike> PendingStrikes
+            { get; init; } = [];
         }
+    }
+
+    /// <summary>
+    /// One publicly declared strike in windup (DECISIONS #212). Tiles are
+    /// the union of the strike's bolt paths in trace order.
+    /// </summary>
+    public sealed record ArcRelayPendingStrike(
+        ActorIdentity Shooter,
+        int ResolveAtTick,
+        ImmutableArray<Position> Tiles)
+    {
+        public bool Equals(ArcRelayPendingStrike? other) =>
+            other is not null
+            && Shooter == other.Shooter
+            && ResolveAtTick == other.ResolveAtTick
+            && Tiles.SequenceEqual(other.Tiles);
+
+        public override int GetHashCode() => HashCode.Combine(
+            Shooter,
+            ResolveAtTick,
+            Tiles.Length);
     }
 
     /// <summary>Stable source-local Core identity.</summary>

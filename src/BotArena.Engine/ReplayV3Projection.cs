@@ -1487,7 +1487,14 @@ internal static class ReplayV3Projection
                     signature.RemainingCapacity,
                     signature.Suppressed))],
             value.LatestPulseTeamId,
-            value.LatestPulseTick);
+            value.LatestPulseTick)
+        {
+            PendingStrikes = [.. value.PendingStrikes.Select(strike =>
+                new ReplayV3.ArcPendingStrike(
+                    ActorId(strike.Shooter),
+                    strike.ResolveAtTick,
+                    [.. strike.Tiles.Select(Position)]))],
+        };
 
     internal static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>
