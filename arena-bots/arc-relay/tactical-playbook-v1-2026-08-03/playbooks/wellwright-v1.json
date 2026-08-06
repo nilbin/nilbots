@@ -237,7 +237,7 @@
  "formations": [
   {
    "formationId": "haul-line",
-   "shape": "swarm",
+   "shape": "escort",
    "orientation": "enemy-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -363,7 +363,7 @@
   },
   {
    "formationId": "aid-file",
-   "shape": "swarm",
+   "shape": "escort",
    "orientation": "own-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -489,7 +489,7 @@
   },
   {
    "formationId": "reserve-file",
-   "shape": "swarm",
+   "shape": "escort",
    "orientation": "own-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -1034,7 +1034,7 @@
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 600,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "farm"
@@ -1095,14 +1095,14 @@
    },
    {
     "taskId": "centre-race-task",
-    "priority": 11,
+    "priority": 10,
     "activation": "while-true",
     "preemption": "higher-priority",
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 600,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "farm"
@@ -1163,14 +1163,14 @@
    },
    {
     "taskId": "south-race-task",
-    "priority": 12,
+    "priority": 10,
     "activation": "while-true",
     "preemption": "higher-priority",
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 600,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "farm"

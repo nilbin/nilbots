@@ -389,7 +389,7 @@
   },
   {
    "formationId": "well-screen",
-   "shape": "swarm",
+   "shape": "escort",
    "orientation": "enemy-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -521,7 +521,7 @@
   },
   {
    "formationId": "reserve-file",
-   "shape": "swarm",
+   "shape": "escort",
    "orientation": "own-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -1644,7 +1644,7 @@
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 110,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
@@ -1709,14 +1709,14 @@
    },
    {
     "taskId": "centre-race-task",
-    "priority": 10,
+    "priority": 8,
     "activation": "while-true",
     "preemption": "higher-priority",
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 110,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
@@ -1781,14 +1781,14 @@
    },
    {
     "taskId": "south-race-task",
-    "priority": 9,
+    "priority": 8,
     "activation": "while-true",
     "preemption": "higher-priority",
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
     "timeoutTicks": 110,
-    "cooldownTicks": 2,
+    "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",

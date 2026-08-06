@@ -1769,22 +1769,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         Position[] route = package.RoutePoints(order.Movement.Target);
         RouteProgress state = _routes.GetValueOrDefault(body.UnitId)
-            ?? new RouteProgress(
-                body.ActorId, order.OrderId, NearestWaypoint(route, body));
+            ?? new RouteProgress(body.ActorId, order.OrderId, 0);
         if (state.ActorId != body.ActorId
             || !string.Equals(state.OrderId, order.OrderId,
                 StringComparison.Ordinal))
-        {
-            // Enter a route at the NEAREST waypoint, not waypoint zero
-            // (DECISIONS #212): several bodies joining a patrol loop spread
-            // around the carousel instead of queueing single-file behind
-            // one entry point, and a lease flip mid-map continues forward
-            // instead of marching back to the start. Ties break on the
-            // earlier waypoint, which is deterministic and side-fair
-            // because routes are alias-resolved per side.
-            state = new RouteProgress(
-                body.ActorId, order.OrderId, NearestWaypoint(route, body));
-        }
+            state = new RouteProgress(body.ActorId, order.OrderId, 0);
         int index = Math.Min(state.Index, route.Length - 1);
         // A route is a corridor, not a sequence of single-tile queues. A body
         // reflowed to the edge of the declared corridor has completed that
