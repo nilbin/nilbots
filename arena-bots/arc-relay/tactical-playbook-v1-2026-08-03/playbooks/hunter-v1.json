@@ -943,7 +943,7 @@
     },
     "engageWhen": {
      "maxThreats": 2,
-     "killWithinTicks": 8
+     "killWithinTicks": 12
     },
     "chase": {
      "leash": 6,

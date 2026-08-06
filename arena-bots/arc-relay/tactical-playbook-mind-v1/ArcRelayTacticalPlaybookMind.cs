@@ -2592,11 +2592,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (hits * cadence > commit.EngageWhen.KillWithinTicks)
                 return false;
         }
+        // Catchability gates CHASES, never fights already in reach: a
+        // stationary enemy inside the gun's envelope is attackable however
+        // close to home it stands (the ab57 over-restriction - the gate
+        // refused everything on the enemy half and the ghost went passive).
         if (commit.Chase is { OnlyCatchable: true }
-            && enemy.Health > (commit.Chase?.ExecuteBelowHealth ?? 0))
+            && enemy.Health > (commit.Chase?.ExecuteBelowHealth ?? 0)
+            && !ArenaBasics.CanAimAtPosition(
+                contract, body, enemy.Position))
         {
-            Position enemyHome = _teamId == 0 ? _enemyReactor : _ownReactor;
-            enemyHome = enemy.ActorId.TeamId == _teamId
+            Position enemyHome = enemy.ActorId.TeamId == _teamId
                 ? _ownReactor
                 : _enemyReactor;
             int? own = ArenaBasics.StaticDistance(
