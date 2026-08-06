@@ -1006,7 +1006,15 @@ public sealed class GenericActorRulesContract
         int LaunchTiles,
         bool AdvancesOnLaunchTick,
         bool DamageAppliedSimultaneously,
-        bool DiagonalCornersMustBeClear);
+        bool DiagonalCornersMustBeClear)
+    {
+        /// <summary>
+        /// Ticks between a strike's public declaration and its resolution
+        /// (DECISIONS #212). Zero on every ruleset that predates declared
+        /// strikes: the historical immediate instant ray.
+        /// </summary>
+        public int StrikeWindupTicks { get; init; }
+    }
 
     /// <summary>
     /// Bounds and fallback semantics for programmable projectile heading and

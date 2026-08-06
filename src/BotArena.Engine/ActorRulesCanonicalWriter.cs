@@ -966,6 +966,15 @@ internal static class ActorRulesCanonicalWriter
     {
         writer.WriteStartObject();
         writer.WriteString("mode", Id(projectile.Mode));
+        // Declared strikes (DECISIONS #212) emit only when authored, exactly
+        // like the projectile guard: historical rulesets keep byte-identical
+        // fingerprints.
+        if (projectile.StrikeWindupTicks > 0)
+        {
+            writer.WriteNumber(
+                "strikeWindupTicks",
+                projectile.StrikeWindupTicks);
+        }
         writer.WriteNumber("damagePerHit", projectile.DamagePerHit);
         writer.WriteNumber(
             "maxTravelTiles",

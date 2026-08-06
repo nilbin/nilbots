@@ -53,6 +53,7 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
+    private readonly List<PendingStrike> _pendingStrikes = [];
     private readonly List<PendingHookPull> _pendingHookPulls = [];
     private readonly List<PendingSignatureBolt> _pendingSignatureBolts = [];
     private readonly List<BoundedChildFabricationProvisionalReservation>
@@ -647,6 +648,12 @@ public sealed class GenericActorMatchSession : IDisposable
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
         LaunchPendingSignatureBolts(
+            contacts,
+            ref contactOrdinal,
+            deflections,
+            events,
+            projectileTransitions);
+        LaunchMaturedStrikes(
             contacts,
             ref contactOrdinal,
             deflections,
@@ -2949,6 +2956,88 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
+    /// <summary>
+    /// One declared strike, frozen at declaration (DECISIONS #212). The
+    /// origin and per-bolt paths are the announced state; maturation fires
+    /// them as ordinary instant rays through the standard launch machinery,
+    /// so events, traversals, deflections, and damage all behave exactly
+    /// like a same-tick shot. A strike whose exact declaring LIFE is gone
+    /// at maturation is cancelled: the windup was that fighter's own effort.
+    /// </summary>
+    private sealed record PendingStrike(
+        ActorIdentity Shooter,
+        ActorAttackProfileDefinition Profile,
+        Position Origin,
+        ImmutableArray<DeclaredStrikeBolt> Bolts,
+        GenericActorRuntimeActionResolution.ResolvedAction DeclaredAction,
+        int DeclaredTravel,
+        int ResolveAtTick);
+
+    private sealed record DeclaredStrikeBolt(
+        ProjectileHeading Heading,
+        ImmutableArray<Position> Path);
+
+    private void LaunchMaturedStrikes(
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        if (_pendingStrikes.Count == 0)
+            return;
+        PendingStrike[] matured = [.. _pendingStrikes
+            .Where(strike => strike.ResolveAtTick <= Tick)
+            .OrderBy(strike => strike.Shooter)];
+        _pendingStrikes.RemoveAll(strike => strike.ResolveAtTick <= Tick);
+        foreach (PendingStrike strike in matured)
+        {
+            if (!_lives.TryGetValue(strike.Shooter, out LifeState? shooter))
+                continue;
+            long firstProjectileId = _nextProjectileId;
+            _nextProjectileId = checked(
+                _nextProjectileId + strike.Bolts.Length);
+            for (int bolt = 0; bolt < strike.Bolts.Length; bolt++)
+            {
+                DeclaredStrikeBolt declared = strike.Bolts[bolt];
+                long projectileId = firstProjectileId + bolt;
+                var projectile = new ProjectileState(
+                    projectileId,
+                    shooter.ParticipantId,
+                    strike.Shooter.TeamId,
+                    strike.Shooter,
+                    Tick,
+                    strike.Origin,
+                    declared.Heading,
+                    null,
+                    strike.Profile,
+                    declared.Path,
+                    strike.DeclaredTravel);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.Attack,
+                    new GenericActorRuntimeObservation.EventPayload.Attack(
+                        strike.Shooter,
+                        strike.DeclaredAction,
+                        projectileId,
+                        strike.Origin,
+                        declared.Heading),
+                    strike.Origin));
+                TraverseProjectile(
+                    projectile,
+                    checked(strike.Profile.Projectile.MaxTravelTiles
+                        + strike.DeclaredTravel),
+                    contacts,
+                    ref contactOrdinal,
+                    deflections,
+                    events,
+                    traversals,
+                    GenericActorProjectileTraversal.TraversalTrigger
+                        .AttackLaunch);
+            }
+        }
+    }
+
     private void ResolveAttacks(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
@@ -2984,6 +3073,38 @@ public sealed class GenericActorMatchSession : IDisposable
             // projectile count, so a three-bolt fan is one cast rather than
             // three (ActorAutomaticReturnTriggerDefinition).
             shooter.CountAttackIssued();
+
+            if (profile.Projectile.StrikeWindupTicks > 0)
+            {
+                // Declared strike (DECISIONS #212): the attack succeeds and
+                // pays its cadence now, but the ray fires when the windup
+                // ends. Origin, headings, and paths freeze at declare — the
+                // announced tiles are exactly the tiles that resolve, so the
+                // victim's counterplay is leaving them or interposing a
+                // body, never re-reading a moving cone.
+                int declaredTravel = _mode
+                    .StatModifiersFor(shooter.ActorId)
+                    .AttackTravelTilesDelta;
+                _pendingStrikes.Add(new PendingStrike(
+                    shooter.ActorId,
+                    profile,
+                    shooter.Position,
+                    [.. VolleyHeadings(profile, resolvedHeading)
+                        .Select(heading => new DeclaredStrikeBolt(
+                            heading,
+                            TraceProjectilePath(
+                                shooter.Position,
+                                heading,
+                                profile,
+                                ResolveShotProgram(
+                                    profile,
+                                    resolution.ValidatedAction),
+                                declaredTravel)))],
+                    resolution.ValidatedAction,
+                    declaredTravel,
+                    checked(Tick + profile.Projectile.StrikeWindupTicks)));
+                continue;
+            }
 
             // One successful attack action issues the profile's declared
             // projectile count. Each bolt is an ordinary projectile with its

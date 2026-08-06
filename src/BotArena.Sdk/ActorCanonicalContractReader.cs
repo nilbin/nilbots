@@ -1822,17 +1822,26 @@ public static class ActorCanonicalContractReader
     private static RulesContract.Projectile ReadProjectile(
         JsonElement element)
     {
+        // Declared strikes (DECISIONS #212) appear only on rulesets that
+        // author a windup; historical documents stay byte-exact without it.
+        bool hasStrikeWindup = element.TryGetProperty(
+            "strikeWindupTicks", out _);
         ExactObject(
             element,
-            "mode",
-            "damagePerHit",
-            "maxTravelTiles",
-            "ticksPerAdvance",
-            "tilesPerAdvance",
-            "launchTiles",
-            "advancesOnLaunchTick",
-            "damageAppliedSimultaneously",
-            "diagonalCornersMustBeClear");
+            [
+                "mode",
+                .. hasStrikeWindup
+                    ? new[] { "strikeWindupTicks" }
+                    : System.Array.Empty<string>(),
+                "damagePerHit",
+                "maxTravelTiles",
+                "ticksPerAdvance",
+                "tilesPerAdvance",
+                "launchTiles",
+                "advancesOnLaunchTick",
+                "damageAppliedSimultaneously",
+                "diagonalCornersMustBeClear",
+            ]);
         return new RulesContract.Projectile(
             ProjectileMode(element, "mode"),
             Int(element, "damagePerHit"),
@@ -1842,7 +1851,12 @@ public static class ActorCanonicalContractReader
             Int(element, "launchTiles"),
             Bool(element, "advancesOnLaunchTick"),
             Bool(element, "damageAppliedSimultaneously"),
-            Bool(element, "diagonalCornersMustBeClear"));
+            Bool(element, "diagonalCornersMustBeClear"))
+        {
+            StrikeWindupTicks = hasStrikeWindup
+                ? Int(element, "strikeWindupTicks")
+                : 0,
+        };
     }
 
     private static RulesContract.ShotProgramDefinition ReadShotProgram(

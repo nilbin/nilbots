@@ -16,8 +16,23 @@ public sealed record ActorProjectileDefinition
         int launchTiles,
         bool advancesOnLaunchTick,
         bool damageAppliedSimultaneously,
-        bool diagonalCornersMustBeClear)
+        bool diagonalCornersMustBeClear,
+        int strikeWindupTicks = 0)
     {
+        // The positional-combat strike (DECISIONS #212): a windup turns an
+        // instant ray into a DECLARED one. The path is fixed and public at
+        // declare; resolution traces it strikeWindupTicks later against
+        // whoever stands there then. Zero keeps every existing profile
+        // byte-identical.
+        if (strikeWindupTicks < 0 || strikeWindupTicks > 8)
+            throw new ArgumentOutOfRangeException(nameof(strikeWindupTicks));
+        if (strikeWindupTicks > 0 && mode != ActorProjectileMode.InstantRay)
+        {
+            throw new ArgumentException(
+                "A strike windup is only meaningful on an instant ray: the " +
+                "declared path resolves all at once when the windup ends.",
+                nameof(strikeWindupTicks));
+        }
         if (!Enum.IsDefined(mode))
             throw new ArgumentOutOfRangeException(nameof(mode));
         if (damagePerHit <= 0)
@@ -66,6 +81,7 @@ public sealed record ActorProjectileDefinition
         }
 
         Mode = mode;
+        StrikeWindupTicks = strikeWindupTicks;
         DamagePerHit = damagePerHit;
         MaxTravelTiles = maxTravelTiles;
         TicksPerAdvance = ticksPerAdvance;
@@ -77,6 +93,16 @@ public sealed record ActorProjectileDefinition
     }
 
     public ActorProjectileMode Mode { get; }
+
+    /// <summary>
+    /// Ticks between a strike's public declaration and its resolution; zero
+    /// means the historical immediate instant ray. Positive values are the
+    /// positional-combat beat: the ray's tiles are announced, the victim's
+    /// counterplay is leaving them or interposing a body, and the first body
+    /// on the path at resolution eats the hit.
+    /// </summary>
+    public int StrikeWindupTicks { get; }
+
     public int DamagePerHit { get; }
     public int MaxTravelTiles { get; }
     public int TicksPerAdvance { get; }
