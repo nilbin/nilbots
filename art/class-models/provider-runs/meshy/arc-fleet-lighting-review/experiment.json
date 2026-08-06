@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "subject": "original shipping Arc Relay fleet",
+  "replay": "minesmith-a-v-nest-b",
+  "authoritativeTick": 18,
+  "constants": {
+    "models": "unchanged",
+    "materials": "unchanged",
+    "renderer": "webgl",
+    "browserScale": 1,
+    "camera": "renderer-owned capture script"
+  },
+  "baseline": {
+    "key": { "color": "#f1d4c0", "intensity": 3.6 },
+    "ambient": { "color": "#5d6670", "intensity": 1.8 },
+    "fill": { "color": "#8c5d42", "intensity": 0.75 },
+    "environmentIntensity": 0
+  },
+  "candidate": {
+    "key": { "color": "#f3dfd1", "intensity": 3.2 },
+    "ambient": { "color": "#9aa8b5", "intensity": 2.5 },
+    "fill": { "color": "#8fa8bd", "intensity": 1.25 },
+    "environment": "three.js RoomEnvironment PMREM",
+    "environmentIntensity": 0.22
+  },
+  "rejected": {
+    "environmentIntensity": 0.65,
+    "reason": "Made model surfaces readable but washed out arena depth and floor contrast."
+  }
+}

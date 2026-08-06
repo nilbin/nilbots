@@ -32,6 +32,11 @@ const servedOutput = path.resolve(
   repository,
   process.env.REVIEW_SERVED_OUTPUT ?? 'web/dist-review/pilot-v4-stills',
 );
+const galleryHeading =
+  process.env.REVIEW_HEADING ?? 'Arc Relay v4 — Minesmith / Nest pilot';
+const gallerySummary =
+  process.env.REVIEW_SUMMARY ??
+  'Real replay, WebGL renderer, renderer-owned pan and zoom, browser scale 100%. Tick 18 shows both spawned payloads active.';
 
 // Tick 18 is the first clean frame where both spawned hardware pieces are active.
 // Minesmith is at 7,13 beside its Trip Node at 8,12; Nest is at 17,13 beside its
@@ -311,11 +316,11 @@ function writeGallery(record) {
     path.join(output, 'index.html'),
     `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Arc Relay v4 two-model pilot</title>
+<title>${escapeXml(galleryHeading)}</title>
 <style>
 body{margin:0;background:#070b10;color:#dbe7ef;font:15px ui-monospace,SFMono-Regular,Menlo,monospace}main{max-width:1480px;margin:auto;padding:24px}header{margin-bottom:24px}h1{font-size:24px}h2{font-size:17px;margin:0 0 4px}p{color:#8ea1ad;line-height:1.5}a{color:#66d9ef}article{margin:0 0 28px;padding:14px;background:#0d141b;border:1px solid #273641;border-radius:4px}img{display:block;width:100%;height:auto;margin-top:12px;background:#000}.links{display:flex;gap:18px;flex-wrap:wrap}
-</style></head><body><main><header><h1>Arc Relay v4 — Minesmith / Nest pilot</h1>
-<p>Real replay, WebGL renderer, renderer-owned pan and zoom, browser scale 100%. Tick 18 shows both spawned payloads active.</p>
+</style></head><body><main><header><h1>${escapeXml(galleryHeading)}</h1>
+<p>${escapeXml(gallerySummary)}</p>
 <p class="links"><a href="/">Open the live replay gallery</a><a href="pilot-gameplay-review.webp">Open one contact sheet</a></p></header>${cards}</main></body></html>`,
   );
 }

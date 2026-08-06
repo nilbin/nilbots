@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "sourceUrl": "http://127.0.0.1:4174/?standalone&audio=off",
+  "replay": "web/dist-review/replays/minesmith-a-v-nest-b.json",
+  "authoritativeReviewTick": 18,
+  "reviewFacts": {
+    "minesmith": {
+      "position": {
+        "x": 7,
+        "y": 13
+      },
+      "facing": "east"
+    },
+    "tripNode": {
+      "position": {
+        "x": 8,
+        "y": 12
+      },
+      "phase": "active"
+    },
+    "nest": {
+      "position": {
+        "x": 17,
+        "y": 13
+      },
+      "facing": "west"
+    },
+    "sentinel": {
+      "position": {
+        "x": 16,
+        "y": 12
+      },
+      "phase": "active"
+    }
+  },
+  "captures": [
+    {
+      "id": "desktop-minesmith-trip-node-tick-18",
+      "title": "Minesmith + active Trip Node",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "tick": 18,
+      "cameraInput": {
+        "kind": "renderer-pan-and-wheel",
+        "target": {
+          "x": 8,
+          "y": 13
+        },
+        "requestedZoomFactor": 2.3
+      },
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "successfulGlbs": 18,
+      "image": "art/class-models/provider-runs/meshy/arc-fleet-lighting-review/current/desktop-minesmith-trip-node-tick-18.png",
+      "imageBytes": 1246599,
+      "imageSha256": "c5f5ad4e1b91c1a9006701916f8a4c9df5f3a1a4df63cfb07312ed5cbd33d27c",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-nest-sentinel-tick-18",
+      "title": "Nest + active Sentinel",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "tick": 18,
+      "cameraInput": {
+        "kind": "renderer-pan-and-wheel",
+        "target": {
+          "x": 17,
+          "y": 13
+        },
+        "requestedZoomFactor": 2.3
+      },
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "successfulGlbs": 18,
+      "image": "art/class-models/provider-runs/meshy/arc-fleet-lighting-review/current/desktop-nest-sentinel-tick-18.png",
+      "imageBytes": 1162994,
+      "imageSha256": "4e4f0696af0b01a5e593b571ced13dcb37686ce68a5b53c0df99b9ed3678f392",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-pilot-payloads-tick-18",
+      "title": "Both pilot bodies and spawned payloads",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "tick": 18,
+      "cameraInput": {
+        "kind": "renderer-pan-and-wheel",
+        "target": {
+          "x": 12.5,
+          "y": 13
+        },
+        "requestedZoomFactor": 1.65
+      },
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "successfulGlbs": 18,
+      "image": "art/class-models/provider-runs/meshy/arc-fleet-lighting-review/current/desktop-pilot-payloads-tick-18.png",
+      "imageBytes": 1265635,
+      "imageSha256": "2cc97140e69e46ebba1a6da9461a753c1a531585cb815922a5bfd98133614e25",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-pilot-payloads-tick-18",
+      "title": "Phone landscape gameplay scale",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mobile": true,
+      "tick": 18,
+      "cameraInput": {
+        "kind": "renderer-pan-and-wheel",
+        "target": {
+          "x": 12.5,
+          "y": 13
+        },
+        "requestedZoomFactor": 1.45
+      },
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "successfulGlbs": 18,
+      "image": "art/class-models/provider-runs/meshy/arc-fleet-lighting-review/current/phone-landscape-pilot-payloads-tick-18.png",
+      "imageBytes": 388265,
+      "imageSha256": "f7a0a48c2ba76639f5f19d75c03bc02345015c827a948743a296dfab232a9c39",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "contactSheet": "art/class-models/provider-runs/meshy/arc-fleet-lighting-review/current/pilot-gameplay-review.webp",
+  "contactSheetSha256": "05119e4472c0b79549d5256d03fb9db589ede0b759e49d23466ae74180c2bdb6"
+}

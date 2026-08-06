@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Original fleet · world-lighting A/B</title>
+  <style>
+    :root{color-scheme:dark;background:#070b10;color:#dbe7ef;font:15px ui-monospace,SFMono-Regular,Menlo,monospace}
+    *{box-sizing:border-box}body{margin:0}main{max-width:1488px;margin:auto;padding:18px}header{max-width:920px;margin:0 0 26px}
+    h1{font-size:clamp(21px,4vw,30px);margin:0 0 10px}h2{font-size:17px;margin:0 0 6px}p{color:#9aabb6;line-height:1.55}
+    a{color:#64d9ef}.verdict{border-left:3px solid #64d9ef;padding-left:12px;color:#dbe7ef}.settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+    .settings div{background:#0d141b;border:1px solid #273641;border-radius:6px;padding:12px}.settings strong{display:block;margin-bottom:6px}.settings span{color:#9aabb6;font-size:12px;line-height:1.5;display:block}
+    article{margin:0 0 28px;padding:12px;background:#0d141b;border:1px solid #273641;border-radius:7px}.meta{margin:0 0 10px;font-size:12px}
+    .wipe{--split:50%;position:relative;width:100%;aspect-ratio:var(--ratio);overflow:hidden;background:#000;touch-action:pan-y}.wipe img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+    .wipe .before{clip-path:inset(0 calc(100% - var(--split)) 0 0);z-index:2}.wipe::after{content:"";position:absolute;z-index:3;top:0;bottom:0;left:var(--split);width:2px;background:#fff;box-shadow:0 0 0 1px #000;pointer-events:none}
+    .tag{position:absolute;z-index:4;top:9px;padding:5px 7px;background:#081017dc;border:1px solid #63717b;border-radius:4px;font-size:11px;pointer-events:none}.tag.before-tag{left:9px}.tag.after-tag{right:9px}
+    input[type=range]{width:100%;margin:10px 0 0;accent-color:#64d9ef}.links{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+    @media(max-width:620px){main{padding:12px}.settings{grid-template-columns:1fr}article{padding:8px}.tag{top:5px}.wipe::after{width:1px}}
+  </style>
+</head>
+<body><main>
+  <header>
+    <h1>Original models, better world lighting</h1>
+    <p>Drag each wipe. Left is the current Ember Forge lighting; right is the restrained candidate. The shipping GLBs, materials, replay, authoritative tick, renderer camera, and browser scale are identical.</p>
+    <p class="verdict">The candidate restores useful metal planes and edge separation, but it cannot erase dark strokes baked into the old textures. This is a meaningful low-cost improvement, not a total model-quality cure.</p>
+    <div class="settings">
+      <div><strong>Current</strong><span>Warm key 3.6 · dark ambient 1.8 · warm fill 0.75 · no PBR environment</span></div>
+      <div><strong>Restrained candidate</strong><span>Softer key 3.2 · neutral ambient 2.5 · cool fill 1.25 · PBR environment 0.22</span></div>
+    </div>
+    <p><a href="/">Open the live replay</a> · <a href="experiment.json">Exact experiment record</a></p>
+  </header>
+
+  <article><h2>Minesmith + Trip Node</h2><p class="meta">Desktop · tick 18 · 1440×900</p>
+    <div class="wipe" style="--ratio:1440/900"><img src="restrained-environment/desktop-minesmith-trip-node-tick-18.png" alt="Candidate world lighting"><img class="before" src="current/desktop-minesmith-trip-node-tick-18.png" alt="Current lighting"><span class="tag before-tag">CURRENT</span><span class="tag after-tag">CANDIDATE</span></div><input aria-label="Minesmith lighting comparison" type="range" min="0" max="100" value="50">
+    <p class="links"><a href="current/desktop-minesmith-trip-node-tick-18.png">Current full image</a><a href="restrained-environment/desktop-minesmith-trip-node-tick-18.png">Candidate full image</a></p>
+  </article>
+
+  <article><h2>Nest + Sentinel</h2><p class="meta">Desktop · tick 18 · 1440×900</p>
+    <div class="wipe" style="--ratio:1440/900"><img src="restrained-environment/desktop-nest-sentinel-tick-18.png" alt="Candidate world lighting"><img class="before" src="current/desktop-nest-sentinel-tick-18.png" alt="Current lighting"><span class="tag before-tag">CURRENT</span><span class="tag after-tag">CANDIDATE</span></div><input aria-label="Nest lighting comparison" type="range" min="0" max="100" value="50">
+    <p class="links"><a href="current/desktop-nest-sentinel-tick-18.png">Current full image</a><a href="restrained-environment/desktop-nest-sentinel-tick-18.png">Candidate full image</a></p>
+  </article>
+
+  <article><h2>Both sides at spectator scale</h2><p class="meta">Desktop · tick 18 · 1440×900</p>
+    <div class="wipe" style="--ratio:1440/900"><img src="restrained-environment/desktop-pilot-payloads-tick-18.png" alt="Candidate world lighting"><img class="before" src="current/desktop-pilot-payloads-tick-18.png" alt="Current lighting"><span class="tag before-tag">CURRENT</span><span class="tag after-tag">CANDIDATE</span></div><input aria-label="Spectator lighting comparison" type="range" min="0" max="100" value="50">
+  </article>
+
+  <article><h2>Phone landscape at gameplay scale</h2><p class="meta">Phone · tick 18 · 844×390</p>
+    <div class="wipe" style="--ratio:844/390"><img src="restrained-environment/phone-landscape-pilot-payloads-tick-18.png" alt="Candidate world lighting"><img class="before" src="current/phone-landscape-pilot-payloads-tick-18.png" alt="Current lighting"><span class="tag before-tag">CURRENT</span><span class="tag after-tag">CANDIDATE</span></div><input aria-label="Phone lighting comparison" type="range" min="0" max="100" value="50">
+  </article>
+</main><script>for(const input of document.querySelectorAll('input[type=range]'))input.addEventListener('input',()=>input.previousElementSibling.style.setProperty('--split',`${input.value}%`));</script></body>
+</html>
