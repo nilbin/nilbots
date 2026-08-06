@@ -3002,12 +3002,48 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             if (!_lives.TryGetValue(strike.Shooter, out LifeState? shooter))
                 continue;
+            // Single-target strikes resolve exactly ONE ray of the cone -
+            // the one whose first body contact is nearest the shooter,
+            // centre ray on ties - while the whole cone was public through
+            // the windup. The sweep variant resolves every ray (a
+            // deliberate class trait, owner ruling 2026-08-12).
+            ImmutableArray<DeclaredStrikeBolt> bolts = strike.Bolts;
+            if (!strike.Profile.Projectile.StrikeSweep && bolts.Length > 1)
+            {
+                HashSet<Position> occupied = _lives.Values
+                    .Where(life => life.ActorId != strike.Shooter)
+                    .Select(life => life.Position)
+                    .ToHashSet();
+                int centre = bolts.Length / 2;
+                int bestIndex = centre;
+                (int Contact, int CentreBias) best = (int.MaxValue, 0);
+                for (int index = 0; index < bolts.Length; index++)
+                {
+                    ImmutableArray<Position> path = bolts[index].Path;
+                    for (int tile = 0; tile < path.Length; tile++)
+                    {
+                        if (!occupied.Contains(path[tile]))
+                            continue;
+                        (int Contact, int CentreBias) candidate =
+                            (tile, Math.Abs(index - centre));
+                        if (candidate.Contact < best.Contact
+                            || candidate.Contact == best.Contact
+                            && candidate.CentreBias < best.CentreBias)
+                        {
+                            best = candidate;
+                            bestIndex = index;
+                        }
+                        break;
+                    }
+                }
+                bolts = [bolts[bestIndex]];
+            }
             long firstProjectileId = _nextProjectileId;
             _nextProjectileId = checked(
-                _nextProjectileId + strike.Bolts.Length);
-            for (int bolt = 0; bolt < strike.Bolts.Length; bolt++)
+                _nextProjectileId + bolts.Length);
+            for (int bolt = 0; bolt < bolts.Length; bolt++)
             {
-                DeclaredStrikeBolt declared = strike.Bolts[bolt];
+                DeclaredStrikeBolt declared = bolts[bolt];
                 long projectileId = firstProjectileId + bolt;
                 var projectile = new ProjectileState(
                     projectileId,

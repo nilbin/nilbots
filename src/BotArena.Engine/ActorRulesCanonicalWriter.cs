@@ -975,6 +975,8 @@ internal static class ActorRulesCanonicalWriter
                 "strikeWindupTicks",
                 projectile.StrikeWindupTicks);
         }
+        if (projectile.StrikeSweep)
+            writer.WriteBoolean("strikeSweep", true);
         writer.WriteNumber("damagePerHit", projectile.DamagePerHit);
         writer.WriteNumber(
             "maxTravelTiles",

@@ -17,8 +17,16 @@ public sealed record ActorProjectileDefinition
         bool advancesOnLaunchTick,
         bool damageAppliedSimultaneously,
         bool diagonalCornersMustBeClear,
-        int strikeWindupTicks = 0)
+        int strikeWindupTicks = 0,
+        bool strikeSweep = false)
     {
+        if (strikeSweep && strikeWindupTicks == 0)
+        {
+            throw new ArgumentException(
+                "A sweeping strike is a declared-strike trait; it needs a " +
+                "windup.",
+                nameof(strikeSweep));
+        }
         // The positional-combat strike (DECISIONS #212): a windup turns an
         // instant ray into a DECLARED one. The path is fixed and public at
         // declare; resolution traces it strikeWindupTicks later against
@@ -82,6 +90,7 @@ public sealed record ActorProjectileDefinition
 
         Mode = mode;
         StrikeWindupTicks = strikeWindupTicks;
+        StrikeSweep = strikeSweep;
         DamagePerHit = damagePerHit;
         MaxTravelTiles = maxTravelTiles;
         TicksPerAdvance = ticksPerAdvance;
@@ -102,6 +111,16 @@ public sealed record ActorProjectileDefinition
     /// on the path at resolution eats the hit.
     /// </summary>
     public int StrikeWindupTicks { get; }
+
+    /// <summary>
+    /// When true, every ray of a declared strike's cone resolves - a sweep
+    /// hitting friend and foe alike, a deliberate class trait. False (the
+    /// default) resolves exactly ONE ray: the one whose first body contact
+    /// is nearest the shooter, centre ray on ties. The cone always lights
+    /// in full either way; single-target versus area is the resolution,
+    /// not the telegraph (owner ruling 2026-08-12).
+    /// </summary>
+    public bool StrikeSweep { get; }
 
     public int DamagePerHit { get; }
     public int MaxTravelTiles { get; }
