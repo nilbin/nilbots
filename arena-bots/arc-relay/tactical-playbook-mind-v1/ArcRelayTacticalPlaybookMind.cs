@@ -32,17 +32,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (int LifeId, int Spent)> _investSpent = [];
     private readonly Dictionary<int, (int LifeId, int Level)> _unitLevel = [];
-    // Skirmish instrumentation: replays carry no command provenance, so the
-    // kite rhythm is only measurable through these counters on the debug
-    // line (cumulative per match).
     private readonly Dictionary<int, int> _slotHold = [];
     private readonly Dictionary<int, (int LifeId, Position Anchor, int Streak)>
         _idleWatch = [];
     private IdleContext? _idleContext;
     private int _idleBreaks;
-    private int _skirmishDue;
-    private int _skirmishStepped;
-    private int _skirmishBlocked;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -505,17 +499,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
-                        && !SkirmishStepDue(mind, body, engagement)
                         && WithinEngagementLeash(
                             body, target, shotTarget.Target, engagement)
                         && TryFocusChannelWithReturn(
                             contract, mind, body, shotTarget, target,
                             engagement,
                             Provenance(machine, group, order, "signature")),
-                    "movement" => TrySkirmishStep(
-                            contract, mind, body, engagement, claims,
-                            Provenance(machine, group, order, "skirmish-step"))
-                        || TryCloseOnFocus(
+                    "movement" => TryCloseOnFocus(
                             contract, mind, body, focus, claims,
                             Provenance(machine, group, order, "close-on-focus"))
                         || TryMovement(
@@ -556,8 +546,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _returningToFormation.Keys.Order()) + "; "
             + "repair=" + string.Join(",", repairs.Keys.Order()) + "; "
             + tasks.TraceSummary + "; "
-            + $"skirmish=due:{_skirmishDue}/step:{_skirmishStepped}"
-            + $"/blocked:{_skirmishBlocked}; "
             + $"idle-breaks={_idleBreaks}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
@@ -1961,9 +1949,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 body, targets[body.UnitId], locked, policy));
                         bool reachable = participants.Any(body =>
                             CanContributeToTarget(
-                                contract, body, locked, policy,
-                                carriers.Contains(locked.ActorId),
-                                committedDamage: 0,
+                                contract, body, locked,
                                 requireFireReady: false));
                         int unreachableTicks = reachable
                             ? 0
@@ -2043,8 +2029,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 }
                 var committedDamage = new Dictionary<ActorIdentity, int>();
                 var attackerCounts = new Dictionary<ActorIdentity, int>();
-                var coveredOptions = new Dictionary<ActorIdentity,
-                    HashSet<Position>>();
                 foreach (MindBody body in participants
                              .OrderBy(body =>
                                  ArenaBasics.CanFireAtPosition(
@@ -2060,16 +2044,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 policy,
                                 enemy,
                                 committedDamage.GetValueOrDefault(
-                                    enemy.ActorId),
-                                coveredOptions.GetValueOrDefault(enemy.ActorId)
-                                    ?.Count ?? 0)
+                                    enemy.ActorId))
                             && WithinEngagementLeash(
                                 body, targets[body.UnitId], enemy, policy)
                             && CanContributeToTarget(
-                                contract, body, enemy, policy,
-                                carriers.Contains(enemy.ActorId),
-                                committedDamage.GetValueOrDefault(
-                                    enemy.ActorId),
+                                contract, body, enemy,
                                 requireFireReady: true));
                     selected ??= targetOrder.FirstOrDefault(enemy =>
                         attackerCounts.GetValueOrDefault(enemy.ActorId)
@@ -2077,30 +2056,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && NeedsFocusAssignment(
                             policy,
                             enemy,
-                            committedDamage.GetValueOrDefault(enemy.ActorId),
-                            coveredOptions.GetValueOrDefault(enemy.ActorId)
-                                ?.Count ?? 0)
+                            committedDamage.GetValueOrDefault(enemy.ActorId))
                         && WithinEngagementLeash(
                             body, targets[body.UnitId], enemy, policy)
                             && CanContributeToTarget(
-                                contract, body, enemy, policy,
-                                carriers.Contains(enemy.ActorId),
-                                committedDamage.GetValueOrDefault(enemy.ActorId),
+                                contract, body, enemy,
                                 requireFireReady: false));
                     if (selected is null)
                         continue;
-                    Position aim = SelectCoverageAim(
-                        contract, body, selected, policy,
-                        carriers.Contains(selected.ActorId),
-                        coveredOptions.GetValueOrDefault(selected.ActorId)
-                            ?? [],
-                        directDamageNeeded: committedDamage.GetValueOrDefault(
-                            selected.ActorId) < (carriers.Contains(
-                                selected.ActorId)
-                                    ? Math.Min(
-                                        selected.Health,
-                                        policy.DodgeCoverage.MinimumDirectShots)
-                                    : selected.Health));
+                    // Positional combat (DECISIONS #212/#213): the aim IS the
+                    // target's tile. The declared wedge and nearest-body
+                    // resolution own everything the escape-lane coverage
+                    // arithmetic used to compute here.
+                    Position aim = selected.Position;
                     allocations[body.UnitId] = new FocusAssignment(
                         selected,
                         aim,
@@ -2115,18 +2083,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 policy.SelfDefense.ThreatDistance));
                     attackerCounts[selected.ActorId] = attackerCounts
                         .GetValueOrDefault(selected.ActorId) + 1;
-                    HashSet<Position> coverage = coveredOptions
-                        .GetValueOrDefault(selected.ActorId) ?? [];
-                    foreach (Position option in EscapeOptions(
-                                 contract, selected, policy))
-                    {
-                        if (SameShotLane(body.Position, aim, option))
-                            coverage.Add(option);
-                    }
-                    coveredOptions[selected.ActorId] = coverage;
-                    if (SameShotLane(
-                            body.Position, aim, selected.Position)
-                        && ArenaBasics.CanFireAtPosition(
+                    if (ArenaBasics.CanFireAtPosition(
                             contract, body, selected.Position))
                     {
                         committedDamage[selected.ActorId] = committedDamage
@@ -2170,16 +2127,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private static bool NeedsFocusAssignment(
         TacticalPlaybookPackage.Engagement policy,
         GenericActorContext.ObservedEnemyState target,
-        int committedDamage,
-        int coveredOptions) => TacticalCoordinationPrimitives
+        int committedDamage) => TacticalCoordinationPrimitives
         .NeedsFocusAssignment(
             target.Health,
             committedDamage,
-            policy.OverkillDamage,
-            string.Equals(policy.DodgeCoverage.Mode, "escape-lanes",
-                StringComparison.Ordinal),
-            coveredOptions,
-            policy.DodgeCoverage.MinimumCoveredOptions);
+            policy.OverkillDamage);
 
     private static string? CombatSignatureKey(
         GenericActorResolvedMatchContract contract,
@@ -2191,291 +2143,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         .FirstOrDefault(action => action is { Available: true })
         ?.ActionId;
 
-    private bool CanContributeToTarget(
+    private static bool CanContributeToTarget(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         GenericActorContext.ObservedEnemyState target,
-        TacticalPlaybookPackage.Engagement policy,
-        bool targetIsCarrier,
-        int committedDamage,
-        bool requireFireReady) => EscapeOptions(contract, target, policy)
-        .Where(position => targetIsCarrier
-            && string.Equals(policy.DodgeCoverage.Mode, "escape-lanes",
-                StringComparison.Ordinal)
-            || committedDamage >= target.Health
-            || position == target.Position)
-        .Any(position => requireFireReady
-            ? ArenaBasics.CanFireAtPosition(contract, body, position)
-            : ArenaBasics.CanAimAtPosition(contract, body, position));
-
-    private Position SelectCoverageAim(
-        GenericActorResolvedMatchContract contract,
-        MindBody body,
-        GenericActorContext.ObservedEnemyState target,
-        TacticalPlaybookPackage.Engagement policy,
-        bool targetIsCarrier,
-        IReadOnlySet<Position> alreadyCovered,
-        bool directDamageNeeded)
-    {
-        Position[] options = EscapeOptions(contract, target, policy);
-        bool predictiveCarrier = targetIsCarrier
-            && string.Equals(policy.DodgeCoverage.Mode, "escape-lanes",
-                StringComparison.Ordinal)
-            && policy.DodgeCoverage.HorizonTicks > 0;
-        if (directDamageNeeded
-            && ArenaBasics.CanFireAtPosition(
-                contract, body, target.Position))
-        {
-            return target.Position;
-        }
-        if (predictiveCarrier)
-        {
-            LastSeenEnemy? memory = _lastSeenEnemies.GetValueOrDefault(
-                target.ActorId.UnitId);
-            Position? previous = memory?.ActorId == target.ActorId
-                && memory.PreviousConfirmedTick == memory.LastConfirmedTick - 1
-                    ? memory.PreviousPosition
-                    : null;
-            Position[] oneStep = TacticalCoordinationPrimitives
-                .OrderCarrierAimOptions(
-                    _mirrored,
-                    target.Position,
-                    previous,
-                    options,
-                    position => ArenaBasics.StaticDistance(
-                        contract.Map, position, _enemyReactor));
-            Position[] course = ProjectCarrierCourse(
-                contract,
-                target,
-                previous,
-                policy.DodgeCoverage.HorizonTicks);
-            Position[] predicted = course
-                .Select((position, index) => new
-                {
-                    Position = position,
-                    Step = index + 1,
-                    ContactStep = CarrierContactStep(
-                        contract, body, position),
-                    NewlyCovered = options.Count(option =>
-                        !alreadyCovered.Contains(option)
-                        && SameShotLane(body.Position, position, option)),
-                })
-                .Where(candidate => candidate.ContactStep is not null
-                    && ArenaBasics.CanAimAtPosition(
-                        contract, body, candidate.Position))
-                .OrderBy(candidate => Math.Abs(
-                    candidate.ContactStep!.Value - candidate.Step))
-                .ThenByDescending(candidate => candidate.NewlyCovered)
-                .ThenBy(candidate => candidate.Step)
-                .ThenBy(candidate =>
-                    ArenaBasics.FrameY(candidate.Position, _mirrored))
-                .ThenBy(candidate =>
-                    ArenaBasics.FrameX(candidate.Position, _mirrored))
-                .Select(candidate => candidate.Position)
-                .Concat(oneStep)
-                .Distinct()
-                .ToArray();
-            Position? uncovered = predicted.Where(position =>
-                    ArenaBasics.CanAimAtPosition(contract, body, position)
-                    && options.Any(option => !alreadyCovered.Contains(option)
-                        && SameShotLane(body.Position, position, option)))
-                .Select(position => (Position?)position)
-                .FirstOrDefault();
-            if (uncovered is Position selected)
-                return selected;
-            Position? fallback = predicted.Where(position =>
-                    ArenaBasics.CanAimAtPosition(contract, body, position))
-                .Select(position => (Position?)position)
-                .FirstOrDefault();
-            if (fallback is Position available)
-                return available;
-        }
-        if (directDamageNeeded
-            || string.Equals(policy.DodgeCoverage.Mode, "current-position",
-                StringComparison.Ordinal)
-            || alreadyCovered.Count
-                >= policy.DodgeCoverage.MinimumCoveredOptions)
-        {
-            return ArenaBasics.CanAimAtPosition(
-                    contract, body, target.Position)
-                ? target.Position
-                : options.First(position => ArenaBasics.CanAimAtPosition(
-                    contract, body, position));
-        }
-        Position[] candidates = options
-            .Where(position => ArenaBasics.CanAimAtPosition(
-                contract, body, position))
-            .OrderByDescending(position => options.Count(option =>
-                !alreadyCovered.Contains(option)
-                && SameShotLane(body.Position, position, option)))
-            .ThenByDescending(position => options.Count(option =>
-                SameShotLane(body.Position, position, option)))
-            .ThenBy(position => position == target.Position ? 0 : 1)
-            .ThenBy(position => ArenaBasics.FrameY(position, _mirrored))
-            .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))
-            .ToArray();
-        int index = TacticalCoordinationPrimitives.CoverageFallbackIndex(
-            policy.DodgeCoverage.Fallback,
-            candidates.Select(position => options.Count(option =>
-                    !alreadyCovered.Contains(option)
-                    && SameShotLane(body.Position, position, option)))
-                .ToArray());
-        if (index >= 0)
-            return candidates[index];
-        return target.Position;
-    }
-
-    private Position[] ProjectCarrierCourse(
-        GenericActorResolvedMatchContract contract,
-        GenericActorContext.ObservedEnemyState target,
-        Position? previous,
-        int horizonTicks)
-    {
-        GenericActorRulesContract.Form? form = contract.Rules.Forms
-            .FirstOrDefault(value => value.Id == target.FormId);
-        GenericActorRulesContract.MovementProfile? movement =
-            form?.MovementProfileId is string movementId
-                ? contract.Rules.MovementProfiles.FirstOrDefault(value =>
-                    value.Id == movementId)
-                : null;
-        ProjectileHeading[] headings = movement?.FacingCoupling
-                == GenericActorRulesContract.MovementFacingCoupling.FacingLocked
-            ? [(ProjectileHeading)((int)target.Facing * 2)]
-            : Enum.GetValues<ProjectileHeading>();
-        var result = new List<Position>();
-        Position cursor = target.Position;
-        (int X, int Y)? continuation = previous is Position prior
-            ? (Math.Sign(cursor.X - prior.X), Math.Sign(cursor.Y - prior.Y))
-            : null;
-        for (int step = 0; step < horizonTicks; step++)
-        {
-            Position[] legal = headings.Select(heading =>
-                {
-                    (int dx, int dy) = heading.Vector();
-                    return cursor.Offset(dx, dy);
-                })
-                .Where(position => ArenaBasics.IsLegalTerrainStep(
-                    contract.Map, cursor, position))
-                .Distinct()
-                .ToArray();
-            if (legal.Length == 0)
-            {
-                result.Add(cursor);
-                continue;
-            }
-
-            int currentDistance = ArenaBasics.StaticDistance(
-                contract.Map, cursor, _enemyReactor) ?? int.MaxValue;
-            Position? continuing = continuation is { } delta
-                ? legal.Where(position =>
-                        position.X - cursor.X == delta.X
-                        && position.Y - cursor.Y == delta.Y
-                        && (ArenaBasics.StaticDistance(
-                                contract.Map, position, _enemyReactor)
-                            ?? int.MaxValue) <= currentDistance)
-                    .Select(position => (Position?)position)
-                    .FirstOrDefault()
-                : null;
-            Position selected = continuing ?? legal
-                .OrderBy(position => ArenaBasics.StaticDistance(
-                        contract.Map, position, _enemyReactor)
-                    ?? int.MaxValue)
-                .ThenBy(position => ArenaBasics.FrameY(position, _mirrored))
-                .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))
-                .First();
-            result.Add(selected);
-            continuation = (
-                selected.X - cursor.X,
-                selected.Y - cursor.Y);
-            cursor = selected;
-        }
-        return result.ToArray();
-    }
-
-    private static int? CarrierContactStep(
-        GenericActorResolvedMatchContract contract,
-        MindBody body,
-        Position target)
-    {
-        GenericActorRulesContract.Form? form = contract.Rules.Forms
-            .FirstOrDefault(value => value.Id == body.FormId);
-        GenericActorRulesContract.AttackProfile? attack =
-            form?.AttackProfileId is string attackId
-                ? contract.Rules.AttackProfiles.FirstOrDefault(value =>
-                    value.Id == attackId)
-                : null;
-        int distance = body.Position.ChebyshevDistance(target);
-        if (attack is null || distance < 1
-            || distance > attack.Projectile.MaxTravelTiles)
-        {
-            return null;
-        }
-        return TacticalCoordinationPrimitives
-            .CarrierMovementStepsBeforeProjectileContact(
-                distance,
-                attack.Projectile.Mode
-                    == GenericActorRulesContract.ProjectileMode.InstantRay,
-                attack.Projectile.LaunchTiles,
-                attack.Projectile.TilesPerAdvance,
-                attack.Projectile.TicksPerAdvance,
-                attack.Projectile.AdvancesOnLaunchTick);
-    }
-
-    private Position[] EscapeOptions(
-        GenericActorResolvedMatchContract contract,
-        GenericActorContext.ObservedEnemyState target,
-        TacticalPlaybookPackage.Engagement policy)
-    {
-        if (string.Equals(policy.DodgeCoverage.Mode, "current-position",
-                StringComparison.Ordinal)
-            || policy.DodgeCoverage.HorizonTicks == 0)
-        {
-            return [target.Position];
-        }
-        GenericActorRulesContract.Form? form = contract.Rules.Forms
-            .FirstOrDefault(value => value.Id == target.FormId);
-        GenericActorRulesContract.MovementProfile? movement =
-            form?.MovementProfileId is string movementId
-                ? contract.Rules.MovementProfiles.FirstOrDefault(value =>
-                    value.Id == movementId)
-                : null;
-        IEnumerable<ProjectileHeading> headings = movement?.FacingCoupling
-                == GenericActorRulesContract.MovementFacingCoupling.FacingLocked
-            ? [(ProjectileHeading)((int)target.Facing * 2)]
-            : Enum.GetValues<ProjectileHeading>();
-        return [target.Position, .. headings
-            .Select(heading =>
-            {
-                (int dx, int dy) = heading.Vector();
-                return target.Position.Offset(dx, dy);
-            })
-            .Where(position => ArenaBasics.IsLegalTerrainStep(
-                contract.Map, target.Position, position))
-            .Distinct()
-            .OrderBy(position => ArenaBasics.FrameY(position, _mirrored))
-            .ThenBy(position => ArenaBasics.FrameX(position, _mirrored))];
-    }
-
-    private static bool SameShotLane(
-        Position origin,
-        Position first,
-        Position second)
-    {
-        (int X, int Y)? left = ShotRay(origin, first);
-        (int X, int Y)? right = ShotRay(origin, second);
-        return left.HasValue && right.HasValue && left.Value == right.Value;
-    }
-
-    private static (int X, int Y)? ShotRay(Position origin, Position target)
-    {
-        int dx = target.X - origin.X;
-        int dy = target.Y - origin.Y;
-        if (dx == 0 && dy == 0)
-            return null;
-        if (dx != 0 && dy != 0 && Math.Abs(dx) != Math.Abs(dy))
-            return null;
-        return (Math.Sign(dx), Math.Sign(dy));
-    }
+        bool requireFireReady) => requireFireReady
+        ? ArenaBasics.CanFireAtPosition(contract, body, target.Position)
+        : ArenaBasics.CanAimAtPosition(contract, body, target.Position);
 
     private int CompareTargets(
         TacticalPlaybookPackage.Engagement policy,
@@ -4283,53 +3957,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// yields the fire-while-withdrawing rhythm: they stop, we gain ground
     /// and shoot; they close, we step.
     /// </summary>
-    private static bool SkirmishStepDue(
-        MindContext mind,
-        MindBody body,
-        TacticalPlaybookPackage.Engagement engagement) =>
-        engagement.Posture == "skirmish"
-        // One action per tick means fire XOR step. The honest rhythm is the
-        // weapon's own: a cycling gun (longshot cooldown 4, towline 2) has
-        // nothing better to do than open ground, and a ready gun shoots.
-        // Cadence-1 guns have no off-ticks, so they fall back to an
-        // alternation staggered by unit id - an unconditional inside-band
-        // step was tried first and produced pacifists (1-83 kills).
-        && (body.Cooldown > 0 || (mind.Tick + body.UnitId) % 2 == 0)
-        && mind.Enemies.Any(enemy =>
-            enemy.Position.ChebyshevDistance(body.Position)
-                <= engagement.SelfDefense.ThreatDistance);
-
-    /// <summary>
-    /// The kiting backstep itself. Movement never turns the body, so under
-    /// predation rules the retreat keeps the double-damage rear arc away
-    /// from the enemy the whole way out.
-    /// </summary>
-    private bool TrySkirmishStep(
-        GenericActorResolvedMatchContract contract,
-        MindContext mind,
-        MindBody body,
-        TacticalPlaybookPackage.Engagement engagement,
-        ArenaBasics.Claims claims,
-        string reason)
-    {
-        if (!SkirmishStepDue(mind, body, engagement))
-            return false;
-        _skirmishDue++;
-        Position[] threats = mind.Enemies
-            .Where(enemy => enemy.Position.ChebyshevDistance(body.Position)
-                <= engagement.SelfDefense.ThreatDistance + 2)
-            .Select(enemy => enemy.Position)
-            .ToArray();
-        bool stepped = threats.Length > 0
-            && ArenaBasics.TryStepAway(
-                contract, mind, body, threats, claims, reason);
-        if (stepped)
-            _skirmishStepped++;
-        else
-            _skirmishBlocked++;
-        return stepped;
-    }
-
     private static bool TryFaceTarget(
         GenericActorResolvedMatchContract contract,
         MindBody body,

@@ -4,29 +4,6 @@ namespace BotArena.Cli.Tests;
 
 public sealed class TacticalCoordinationPrimitivesTests
 {
-    [Theory]
-    [InlineData(1, 1)]
-    [InlineData(2, 2)]
-    [InlineData(3, 2)]
-    [InlineData(4, 3)]
-    [InlineData(5, 3)]
-    [InlineData(6, 4)]
-    public void CarrierLeadAccountsForProjectileTravelTime(
-        int distance,
-        int expectedMovementSteps)
-    {
-        int actual = TacticalCoordinationPrimitives
-            .CarrierMovementStepsBeforeProjectileContact(
-                distance,
-                instantRay: false,
-                launchTiles: 1,
-                tilesPerAdvance: 2,
-                ticksPerAdvance: 1,
-                advancesOnLaunchTick: false);
-
-        Assert.Equal(expectedMovementSteps, actual);
-    }
-
     [Fact]
     public void OneControllerPerSignatureAndTargetWinsDeterministically()
     {
@@ -48,29 +25,22 @@ public sealed class TacticalCoordinationPrimitivesTests
     }
 
     [Fact]
-    public void EscapeCoverageMayUseAttackersAfterDirectDamageIsBudgeted()
+    public void FocusAssignmentStopsAtBudgetedDamagePlusPermittedOverkill()
     {
+        // Positional combat (DECISIONS #212/#213): the engine's wedge owns
+        // dodge coverage, so the only pile-on judgment left is overkill.
         Assert.False(TacticalCoordinationPrimitives.NeedsFocusAssignment(
             targetHealth: 3,
             committedDamage: 3,
-            permittedOverkillDamage: 0,
-            coverEscapeLanes: false,
-            coveredOptions: 0,
-            minimumCoveredOptions: 2));
+            permittedOverkillDamage: 0));
         Assert.True(TacticalCoordinationPrimitives.NeedsFocusAssignment(
             targetHealth: 3,
             committedDamage: 3,
-            permittedOverkillDamage: 0,
-            coverEscapeLanes: true,
-            coveredOptions: 1,
-            minimumCoveredOptions: 2));
-        Assert.False(TacticalCoordinationPrimitives.NeedsFocusAssignment(
+            permittedOverkillDamage: 1));
+        Assert.True(TacticalCoordinationPrimitives.NeedsFocusAssignment(
             targetHealth: 3,
-            committedDamage: 3,
-            permittedOverkillDamage: 0,
-            coverEscapeLanes: true,
-            coveredOptions: 2,
-            minimumCoveredOptions: 2));
+            committedDamage: 2,
+            permittedOverkillDamage: 0));
     }
 
     [Theory]
@@ -266,66 +236,5 @@ public sealed class TacticalCoordinationPrimitivesTests
     {
         Assert.Equal(fallback,
             TacticalCoordinationPrimitives.SurvivalDirective(fallback));
-    }
-
-    [Theory]
-    [InlineData("current-position", 0, 0, -1)]
-    [InlineData("current-position", 0, 2, 1)]
-    [InlineData("best-coverage", 0, 0, 0)]
-    [InlineData("best-coverage", 1, 3, 1)]
-    public void DodgeFallbackControlsWhetherZeroValueCoverageIsAttempted(
-        string fallback,
-        int first,
-        int second,
-        int expected) => Assert.Equal(
-            expected,
-            TacticalCoordinationPrimitives.CoverageFallbackIndex(
-                fallback, [first, second]));
-
-    [Fact]
-    public void CarrierAimLeadsTheObservedMotionBeforeCoveringTheCurrentTile()
-    {
-        var current = new Position(10, 10);
-        Position[] ordered = TacticalCoordinationPrimitives
-            .OrderCarrierAimOptions(
-                false,
-                current,
-                previous: new Position(9, 9),
-                legalOptions:
-                [
-                    current,
-                    new Position(11, 11),
-                    new Position(11, 10),
-                    new Position(10, 11),
-                    new Position(9, 10),
-                ],
-                position => position.ChebyshevDistance(
-                    new Position(20, 20)));
-
-        Assert.Equal(new Position(11, 11), ordered[0]);
-        Assert.Equal(current, ordered[1]);
-    }
-
-    [Fact]
-    public void CarrierAimUsesTheBankwardStepWhenMotionHasNotResolved()
-    {
-        var current = new Position(10, 10);
-        Position[] ordered = TacticalCoordinationPrimitives
-            .OrderCarrierAimOptions(
-                false,
-                current,
-                previous: current,
-                legalOptions:
-                [
-                    current,
-                    new Position(11, 10),
-                    new Position(10, 11),
-                    new Position(9, 10),
-                ],
-                position => position.ChebyshevDistance(
-                    new Position(20, 10)));
-
-        Assert.Equal(new Position(11, 10), ordered[0]);
-        Assert.Equal(current, ordered[1]);
     }
 }

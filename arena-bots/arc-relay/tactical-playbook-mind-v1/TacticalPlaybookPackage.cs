@@ -411,6 +411,14 @@ internal sealed class TacticalPlaybookPackage
         int WithinDistance,
         ConditionGroup[]? ReleaseAll = null);
 
+    /// <summary>
+    /// Accepted for sheet compatibility; INERT since the positional remake
+    /// (DECISIONS #212/#213). The declared strike wedge and nearest-body
+    /// resolution moved dodge/coverage judgment into the engine, so the
+    /// executor no longer reads any of these fields. The engagement's
+    /// Posture field is inert the same way (the kite cadence it selected
+    /// is gone).
+    /// </summary>
     internal sealed record DodgeCoverage(
         string Mode,
         int HorizonTicks,

@@ -38,12 +38,8 @@ internal static class TacticalCoordinationPrimitives
     internal static bool NeedsFocusAssignment(
         int targetHealth,
         int committedDamage,
-        int permittedOverkillDamage,
-        bool coverEscapeLanes,
-        int coveredOptions,
-        int minimumCoveredOptions) =>
-        committedDamage < targetHealth + permittedOverkillDamage
-        || coverEscapeLanes && coveredOptions < minimumCoveredOptions;
+        int permittedOverkillDamage) =>
+        committedDamage < targetHealth + permittedOverkillDamage;
 
     internal static bool ShouldReleaseFocus(
         bool destroyed,
@@ -112,96 +108,6 @@ internal static class TacticalCoordinationPrimitives
         int minimumSeparation) => providersAlreadyAssignedToTarget.All(
             assigned => provider.ChebyshevDistance(assigned)
                 >= minimumSeparation);
-
-    internal static int CoverageFallbackIndex(
-        string fallback,
-        IReadOnlyList<int> newlyCoveredOptions)
-    {
-        if (newlyCoveredOptions.Count == 0)
-            return -1;
-        int best = newlyCoveredOptions.Max();
-        bool choose = fallback switch
-        {
-            "current-position" => best > 0,
-            "best-coverage" => true,
-            _ => throw new InvalidDataException(
-                $"Unknown dodge-coverage fallback '{fallback}'."),
-        };
-        if (!choose)
-            return -1;
-        for (int index = 0; index < newlyCoveredOptions.Count; index++)
-        {
-            if (newlyCoveredOptions[index] == best)
-                return index;
-        }
-        return -1;
-    }
-
-    internal static Position[] OrderCarrierAimOptions(
-        bool mirrored,
-        Position current,
-        Position? previous,
-        IEnumerable<Position> legalOptions,
-        Func<Position, int?> bankDistance)
-    {
-        Position[] options = legalOptions.Distinct().ToArray();
-        Position? continuation = previous is Position prior
-            ? new Position(
-                current.X + Math.Sign(current.X - prior.X),
-                current.Y + Math.Sign(current.Y - prior.Y))
-            : null;
-        if (continuation is Position projected
-            && (projected == current || !options.Contains(projected)))
-        {
-            continuation = null;
-        }
-        int bestBankward = options
-            .Where(position => position != current)
-            .Select(position => bankDistance(position) ?? int.MaxValue)
-            .DefaultIfEmpty(int.MaxValue)
-            .Min();
-        return options
-            .OrderBy(position => continuation == position
-                ? 0
-                : position != current
-                    && bankDistance(position) == bestBankward
-                        ? 1
-                        : position == current ? 2 : 3)
-            .ThenBy(position => bankDistance(position) ?? int.MaxValue)
-            .ThenBy(position => mirrored ? -position.Y : position.Y)
-            .ThenBy(position => mirrored ? -position.X : position.X)
-            .ToArray();
-    }
-
-    internal static int CarrierMovementStepsBeforeProjectileContact(
-        int distance,
-        bool instantRay,
-        int launchTiles,
-        int tilesPerAdvance,
-        int ticksPerAdvance,
-        bool advancesOnLaunchTick)
-    {
-        if (distance < 1)
-            throw new ArgumentOutOfRangeException(nameof(distance));
-        if (instantRay)
-            return 1;
-        if (launchTiles < 0)
-            throw new ArgumentOutOfRangeException(nameof(launchTiles));
-        if (tilesPerAdvance < 1)
-            throw new ArgumentOutOfRangeException(nameof(tilesPerAdvance));
-        if (ticksPerAdvance < 1)
-            throw new ArgumentOutOfRangeException(nameof(ticksPerAdvance));
-
-        int launchReach = launchTiles
-            + (advancesOnLaunchTick ? tilesPerAdvance : 0);
-        int remaining = Math.Max(0, distance - launchReach);
-        int advances = (remaining + tilesPerAdvance - 1)
-            / tilesPerAdvance;
-        // The target gets its current-tick movement before a freshly launched
-        // projectile can contact it. Each later projectile advance gives the
-        // target the corresponding number of additional movement ticks.
-        return 1 + advances * ticksPerAdvance;
-    }
 
     internal static EnemyCarrierCandidate? SelectEnemyCarrier(
         IEnumerable<EnemyCarrierCandidate> candidates,
