@@ -12,6 +12,32 @@
 
 ## Generated review artifact
 
+- Rotorless-drones color v19 roster:
+  `concept-sheet-rotorless-drones-color-v19.png`
+- Rotorless-drones color dimensions: 1254×1254 RGB PNG
+- Rotorless-drones color SHA-256:
+  `06d503ca0fa2f2746d9d396b82d75bc4eb803c5169fcea5ba352f0c8c46e195a`
+- Rotorless-drones color gameplay-scale proof:
+  `gameplay-scale-rotorless-drones-color-v19.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `6c0c1dd969e1130408ee83877c1d2db00abd3b51810dd30a2397d5c6cffb1d4d`
+- Exact input and prompt: `rotorless-drones-color-v19/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-62e6276c-a7f7-4c7d-aa11-6d78182535c2.png`
+- Unmistakable-drones color v18 roster:
+  `concept-sheet-unmistakable-drones-color-v18.png`
+- Unmistakable-drones color dimensions: 1254×1254 RGB PNG
+- Unmistakable-drones color SHA-256:
+  `892c924dc218188a1748aa375c126b06ce67b97795e2b33eed8505a742e47e56`
+- Unmistakable-drones color gameplay-scale proof:
+  `gameplay-scale-unmistakable-drones-color-v18.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `8145a2993f3e46f238cba74a19a545da7c20fd9ef4ebc85b9dfff714b4ccf9d9`
+- Exact inputs and prompts: `unmistakable-drones-color-v18/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-3df1a645-73c9-44ae-9f64-0f2c0ac1fa51.png`
 - Drone-family v15 roster: `concept-sheet-drone-family-v15.png`
 - Drone-family dimensions: 1254×1254 RGB PNG
 - Drone-family SHA-256:
@@ -266,7 +292,21 @@ The v15 drone-family pass retains Kestrel as an interceptor while redesigning
 Lantern as an asymmetric tripod survey drone, Sunder as a compact X-planform
 designator drone, and Veil as a continuous smoke-laying drone. Each uses a
 different planform and enclosed lift-node grammar while remaining low-hover,
-tile-bound, and non-emissive underneath. This is the current concept candidate.
+tile-bound, and non-emissive underneath. The enclosed lift nodes remained too
+close to armored hover pucks to read as drones.
+
+The v18 correction uses explicit UAV construction: Kestrel is fixed-wing with
+a rear ducted pusher; Lantern has three open rotors; Sunder has four; Veil has
+six. Visible blades, structural booms, and gimbals survive the 63-pixel proof.
+The same proof also clears sixteen separate class-color identities; Repulsor's
+cool silver body removes the last warm-palette collision. The literal copter
+rings did not fit the fleet's established hard-surface language.
+
+The v19 correction removes all exposed rotors. Kestrel remains a cockpitless
+flying-wing interceptor UAV; Lantern becomes a twin-boom survey UAV with dish
+and gimbal. Sunder and Veil return to solid designator and smoke-layer hover
+bodies. The full sixteen-color pass is unchanged. This is the current concept
+candidate.
 
 ## Industrial-material refinement prompt
 
