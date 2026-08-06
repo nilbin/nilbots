@@ -88,11 +88,13 @@ public static class ArcRelayExperimentCommand
             first.ToParticipant(
                 participantId: 0,
                 teamId: 0,
-                mindEvaluationData: teamZero.Data),
+                mindEvaluationData: teamZero.Data,
+                displayName: SheetDisplayName(first.Name, teamZero)),
             second.ToParticipant(
                 participantId: 1,
                 teamId: 1,
-                mindEvaluationData: teamOne.Data),
+                mindEvaluationData: teamOne.Data,
+                displayName: SheetDisplayName(second.Name, teamOne)),
         ];
 
         bool perfDiagnostics = string.Equals(
@@ -992,6 +994,17 @@ public static class ArcRelayExperimentCommand
             1 => $"{second} wins",
             _ => "draw",
         };
+
+    // The viewer's team labels come from the replay's provenance participant
+    // names. Sheet-vs-sheet cells run one mind on both sides, so the mind name
+    // labels both teams identically; the sheet is the identity a spectator
+    // needs.
+    private static string SheetDisplayName(
+        string name,
+        SheetSelection sheet) =>
+        sheet.Path is null
+            ? name
+            : Path.GetFileNameWithoutExtension(sheet.Path);
 
     private static string SideLabel(
         string name,

@@ -78,12 +78,13 @@ internal sealed class ResolvedLabsEntrant : IDisposable
     public GenericActorParticipantConfiguration ToParticipant(
         int participantId,
         int teamId,
-        byte[]? mindEvaluationData = null) =>
+        byte[]? mindEvaluationData = null,
+        string? displayName = null) =>
         new()
         {
             ParticipantId = participantId,
             TeamId = teamId,
-            Name = Name,
+            Name = displayName ?? Name,
             RuntimeFactory = RuntimeFactory,
             MindRuntimeFactory = MindRuntimeFactory,
             RuntimeKind = RuntimeKind,
