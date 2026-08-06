@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/warren6-hunter-v1.json",
-  "sha256": "e45671616a132026b5c6387184c86ec2fd706dfed810928eebd9e23806117d55"
+  "sha256": "583dd693ece1dc6e66bd48b47aef3add11da962113b1f7b640d87b4ec2a0553d"
  },
  "perspective": "team-relative",
  "memory": {
@@ -1079,7 +1079,7 @@
        "cutoff-strike": {
         "arrivalRadius": 1,
         "completion": "continuous",
-        "chaseLeash": 5,
+        "chaseLeash": 6,
         "engagementId": "shadow-strike",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",

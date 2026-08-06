@@ -32,6 +32,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (int LifeId, int Spent)> _investSpent = [];
     private readonly Dictionary<int, (int LifeId, int Level)> _unitLevel = [];
+    // Skirmish instrumentation: replays carry no command provenance, so the
+    // kite rhythm is only measurable through these counters on the debug
+    // line (cumulative per match).
+    private int _skirmishDue;
+    private int _skirmishStepped;
+    private int _skirmishBlocked;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -516,6 +522,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _returningToFormation.Keys.Order()) + "; "
             + "repair=" + string.Join(",", repairs.Keys.Order()) + "; "
             + tasks.TraceSummary + "; "
+            + $"skirmish=due:{_skirmishDue}/step:{_skirmishStepped}"
+            + $"/blocked:{_skirmishBlocked}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -4081,7 +4089,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// predation rules the retreat keeps the double-damage rear arc away
     /// from the enemy the whole way out.
     /// </summary>
-    private static bool TrySkirmishStep(
+    private bool TrySkirmishStep(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
@@ -4091,14 +4099,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         if (!SkirmishStepDue(mind, body, engagement))
             return false;
+        _skirmishDue++;
         Position[] threats = mind.Enemies
             .Where(enemy => enemy.Position.ChebyshevDistance(body.Position)
                 <= engagement.SelfDefense.ThreatDistance + 2)
             .Select(enemy => enemy.Position)
             .ToArray();
-        return threats.Length > 0
+        bool stepped = threats.Length > 0
             && ArenaBasics.TryStepAway(
                 contract, mind, body, threats, claims, reason);
+        if (stepped)
+            _skirmishStepped++;
+        else
+            _skirmishBlocked++;
+        return stepped;
     }
 
     private static bool TryFaceTarget(
