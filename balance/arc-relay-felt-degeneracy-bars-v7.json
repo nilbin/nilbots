@@ -55,8 +55,8 @@
  },
  "barsId": null,
  "unitParked": {
-  "windowTicks": 120,
-  "confinementRadius": 2,
-  "rationale": "One unit camping a 5x5 area for 120+ ticks reads as a bug on replay however healthy the rest of the team looks - the owner caught exactly this twice before it became a bar. Heal channels finish in ~15 ticks and ambush perches relocate within ~32 under the tactical mind's no-idle invariant, so nothing intended survives this window."
+  "windowTicks": 100,
+  "confinementRadius": 1,
+  "rationale": "One body near-motionless (radius 1) for 100+ ticks reads as a bug on replay whatever the sheet intended - both owner-caught parked ghosts were radius-1 sits of 114-125 ticks. Radius 2 at 120 was tried first and condemned every game including purposeful well coverage and gate staging; the standing-control archetype is legal, statues are not."
  }
 }
