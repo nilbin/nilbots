@@ -515,6 +515,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "movement" => TrySkirmishStep(
                             contract, mind, body, engagement, claims,
                             Provenance(machine, group, order, "skirmish-step"))
+                        || TryCloseOnFocus(
+                            contract, mind, body, focus, claims,
+                            Provenance(machine, group, order, "close-on-focus"))
                         || TryMovement(
                             contract, mind, arc, package, machine, snapshot,
                             body,
@@ -1798,6 +1801,36 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         _routes[body.UnitId] = state with { Index = index };
         return route[index];
+    }
+
+    /// <summary>
+    /// The approach half of the attack verb (DECISIONS #212): a body that
+    /// HOLDS a focus target it did not just fire at must be closing on it -
+    /// focus-locked statues standing at satisfied formation slots while
+    /// their gates veto the shot were the last measured stuck-carrier wall.
+    /// Runs after the skirmish step (kite cadence keeps its say) and before
+    /// formation movement (a hunt outranks a slot).
+    /// </summary>
+    private static bool TryCloseOnFocus(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        IReadOnlyDictionary<int, FocusAssignment> focus,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        if (!focus.TryGetValue(body.UnitId, out FocusAssignment? assignment)
+            || body.Cooldown > 0
+            || body.Position.ChebyshevDistance(
+                assignment.Target.Position) <= 2)
+        {
+            return false;
+        }
+        return ArenaBasics.StaticFirstStepAvoidingReservations(
+                    contract, mind, body, assignment.Target.Position)
+                is Position step
+            && ArenaBasics.TryMoveDirect(
+                contract, mind, body, step, claims, reason);
     }
 
     private static int NearestWaypoint(Position[] route, MindBody body)
