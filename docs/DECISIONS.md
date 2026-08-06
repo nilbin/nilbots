@@ -4734,3 +4734,22 @@ but is expected dead; removing it is a measured follow-up. Attribution
 tooling: scripts/arc-relay-pocket-attribution.py classifies every stuck
 run (free / friendly-blocked / enemy-involved, per-unit blocker table)
 so the next pocket names itself.
+
+## 215. Strikes lock and follow; the wedge is reach, not a zone
+
+Owner ruling 2026-08, after the tracking-ray measurement (ab54: 38% of
+strikes landed on the aimed body, 26% side-swiped a neighbour the
+target dodged into, 88% of targets had a one-step wedge exit): the
+strike is an AIMED attack. It locks the body the resolution rule picks
+when the cone lights, follows it anywhere inside the frozen wedge, and
+resolves only against it; it cancels outright - no bolt, the
+dead-shooter precedent - when the lock dies, crosses the wedge
+boundary, or leaves the shooter's own line of sight (VisibleTilesFor).
+Bodyguarding is stepping onto the firing line, never proximity, because
+delivery stays a first-body-contact ray. Empty-wedge declares keep the
+theatrical centre whiff. Escape is earned geometry: boundary and
+max-range tiles have one-step exits, the deep interior is committed.
+Measured (ab56): hunter 15-9, 21/24 bars-clean, 5794 engagements, 59%
+kill endings, zero unresolved streaks - the every-fight-ends criterion
+survives the collateral bucket becoming escapes. The lock rides the
+pending-strike wire so the viewer's ray is authoritative.
