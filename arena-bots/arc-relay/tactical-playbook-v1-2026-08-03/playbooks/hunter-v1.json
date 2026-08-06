@@ -713,17 +713,14 @@
      "radius": 5,
      "memoryTicks": 16
     },
-    "engageWhen": {
-     "maxThreats": 2,
-     "killWithinTicks": 12
-    },
+    "engageWhen": {},
     "chase": {
      "leash": 6,
      "onlyCatchable": true,
      "executeBelowHealth": 1
     },
     "disengageWhen": {
-     "threats": 3,
+     "threats": 4,
      "withdrawTo": "shadow-north-long"
     }
    }
