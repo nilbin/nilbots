@@ -336,7 +336,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         _idleContext = new IdleContext(
             contract, mind, orders, targets, carrierUnitIds,
-            repairs.Keys.ToHashSet(), claims);
+            repairs.Keys.ToHashSet(), focus.Keys.ToHashSet(), claims);
 
         foreach (MindBody body in mind.Bodies
                      .OrderByDescending(body => carried.ContainsKey(body.ActorId))
@@ -4335,6 +4335,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, Position> Targets,
         HashSet<int> CarrierUnitIds,
         HashSet<int> RepairerUnitIds,
+        HashSet<int> FocusUnitIds,
         ArenaBasics.Claims Claims);
 
     private bool Hold(MindBody body, string reason)
@@ -4382,9 +4383,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             || body.Cooldown > 0
             || context.CarrierUnitIds.Contains(body.UnitId)
             || context.RepairerUnitIds.Contains(body.UnitId)
+            // "In combat" means ENGAGED - a focus target, a cycling gun,
+            // or an enemy at arm's length. An enemy merely visible at range
+            // is not a licence to stand (the ab36 residual: race clusters
+            // frozen mid-approach by a lurker five tiles off).
             || !onSupplyLane
-                && context.Mind.Enemies.Any(enemy =>
-                    enemy.Position.ChebyshevDistance(body.Position) <= 8))
+                && (context.FocusUnitIds.Contains(body.UnitId)
+                    || context.Mind.Enemies.Any(enemy =>
+                        enemy.Position.ChebyshevDistance(body.Position)
+                            <= 2)))
         {
             return false;
         }
