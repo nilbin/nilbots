@@ -4074,12 +4074,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         TacticalPlaybookPackage.Engagement engagement) =>
         engagement.Posture == "skirmish"
-        // One action per tick means fire XOR step, so the rhythm is an
-        // alternation staggered by unit id: half the pack fires while the
-        // other half opens ground, and each body swaps jobs every tick. An
-        // unconditional step inside the band was tried first and produced
-        // pacifists (1-83 kills): a kiter that never shoots is a victim.
-        && (mind.Tick + body.UnitId) % 2 == 0
+        // One action per tick means fire XOR step. The honest rhythm is the
+        // weapon's own: a cycling gun (longshot cooldown 4, towline 2) has
+        // nothing better to do than open ground, and a ready gun shoots.
+        // Cadence-1 guns have no off-ticks, so they fall back to an
+        // alternation staggered by unit id - an unconditional inside-band
+        // step was tried first and produced pacifists (1-83 kills).
+        && (body.Cooldown > 0 || (mind.Tick + body.UnitId) % 2 == 0)
         && mind.Enemies.Any(enemy =>
             enemy.Position.ChebyshevDistance(body.Position)
                 <= engagement.SelfDefense.ThreatDistance);
