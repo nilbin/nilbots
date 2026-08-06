@@ -250,7 +250,7 @@
     "breakRatioPercent": 50,
     "breakTicks": 3,
     "reformTicks": 4,
-    "pace": "free"
+    "pace": "slowest"
    },
    "reflow": {
     "blockedSlot": "nearest-legal",
@@ -894,7 +894,7 @@
        "kind": "route",
        "target": "shadow-north-long",
        "stuckTicks": 10,
-       "pace": "free"
+       "pace": "slowest"
       },
       "assignments": {
        "shadow-prowl": {
@@ -959,7 +959,7 @@
        "kind": "route",
        "target": "strike-line",
        "stuckTicks": 10,
-       "pace": "free"
+       "pace": "slowest"
       },
       "assignments": {
        "apex-strike": {
@@ -1072,7 +1072,7 @@
        "kind": "enemy-carrier-cutoff",
        "target": "perch-north",
        "stuckTicks": 8,
-       "pace": "free",
+       "pace": "slowest",
        "leadTiles": 1
       },
       "assignments": {
@@ -1113,6 +1113,71 @@
       }
      }
     }
+   },
+   "prowl-south-set": {
+    "tracks": {
+     "shadow": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "shadow-south-long",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "assignments": {
+       "shadow-prowl-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 3,
+        "engagementId": "shadow-strike",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "shadow-standard",
+        "stance": "ambush"
+       }
+      }
+     },
+     "wells": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "zone",
+       "target": "centre-farm",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "well-watch-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "disrupt-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     },
+     "reserve": {
+      "formationId": "reserve-file",
+      "movement": {
+       "kind": "zone",
+       "target": "own-approach",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "reserve-idle-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 2,
+        "engagementId": "reserve-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "reserve-standard"
+       }
+      }
+     }
+    }
    }
   },
   "predicates": {
@@ -1149,6 +1214,17 @@
     "fact": "known-enemies-unavailable",
     "operator": "at-least",
     "value": 2
+   },
+   "shadow-pair-alive": {
+    "fact": "group-live-count",
+    "operator": "at-least",
+    "value": 2,
+    "subject": "shadow-group"
+   },
+   "long-dwell": {
+    "fact": "phase-state-ticks",
+    "operator": "at-least",
+    "value": 90
    }
   },
   "conditionSets": {
@@ -1184,12 +1260,18 @@
    ],
    "carrier-sighted": [
     [
-     "carrier-known"
+     "carrier-known",
+     "shadow-pair-alive"
     ]
    ],
    "kill-window": [
     [
      "window-open"
+    ]
+   ],
+   "rotate-timer": [
+    [
+     "long-dwell"
     ]
    ]
   }
@@ -1209,7 +1291,9 @@
     "cooldownTicks": 2,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
-     "prowl"
+     "prowl",
+     "prowl-south",
+     "apex"
     ],
     "assignments": [
      {
@@ -1254,6 +1338,7 @@
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
+     "prowl-south",
      "apex"
     ],
     "assignments": [
@@ -1301,6 +1386,7 @@
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
+     "prowl-south",
      "apex"
     ],
     "assignments": [
@@ -1348,6 +1434,7 @@
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
+     "prowl-south",
      "apex"
     ],
     "assignments": [
@@ -1362,7 +1449,7 @@
        "kestrel",
        "patchbay"
       ],
-      "minimum": 1,
+      "minimum": 2,
       "preferred": 3,
       "maximum": 3,
       "carrier": "forbid",
@@ -1395,6 +1482,7 @@
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
      "prowl",
+     "prowl-south",
      "apex"
     ],
     "assignments": [
@@ -1446,6 +1534,38 @@
       "minimumPolicy": "respect",
       "stableTicks": 2,
       "conditionSetId": "apex-on"
+     },
+     {
+      "priority": 20,
+      "to": "prowl-south",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "rotate-timer"
+     }
+    ]
+   },
+   {
+    "phaseId": "prowl-south",
+    "minimumTicks": 4,
+    "maneuverId": "prowl-south-set",
+    "standingOrderIds": [],
+    "transitions": [
+     {
+      "priority": 10,
+      "to": "apex",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "apex-on"
+     },
+     {
+      "priority": 20,
+      "to": "prowl",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "rotate-timer"
      }
     ]
    },

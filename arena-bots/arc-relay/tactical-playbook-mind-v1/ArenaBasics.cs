@@ -455,7 +455,8 @@ internal static class ArenaBasics
                     && candidate.Distance <= currentDistance)
                 .OrderBy(candidate => candidate.Distance)
                 .ThenBy(candidate => candidate.Heading == facing ? 0 : 1)
-                .ThenBy(candidate => (int)candidate.Heading)
+                .ThenBy(candidate => FrameHeading(
+                    candidate.Heading, MirroredFrame(contract, mind)))
                 .Select(candidate => (ValueTuple<ProjectileHeading, Position, int>?) (
                     candidate.Heading,
                     candidate.Destination,
@@ -516,7 +517,8 @@ internal static class ArenaBasics
                     threat.ChebyshevDistance(candidate.Tile))))
             .Where(candidate => candidate.Distance > current)
             .OrderByDescending(candidate => candidate.Distance)
-            .ThenBy(candidate => (int)candidate.Heading)
+            .ThenBy(candidate => FrameHeading(
+                candidate.Heading, MirroredFrame(contract, mind)))
             .Select(candidate =>
                 ((ProjectileHeading, Position)?)(
                     candidate.Heading, candidate.Tile))
@@ -629,7 +631,8 @@ internal static class ArenaBasics
                 && !forbidden.Contains(candidate.Tile))
             .OrderByDescending(candidate => forbidden.Min(tile =>
                 candidate.Tile.ChebyshevDistance(tile)))
-            .ThenBy(candidate => (int)candidate.Heading)
+            .ThenBy(candidate => FrameHeading(
+                candidate.Heading, MirroredFrame(contract, mind)))
             .Select(candidate => (ProjectileHeading?)candidate.Heading)
             .FirstOrDefault();
         if (selected is not ProjectileHeading heading)
@@ -838,7 +841,8 @@ internal static class ArenaBasics
             {
                 continue;
             }
-            Direction desired = FacingForCone(body.Facing, heading);
+            Direction desired = FacingForCone(
+                body.Facing, heading, MirroredFrame(contract, mind));
             if (TryRotate(
                     contract,
                     body,
@@ -960,7 +964,8 @@ internal static class ArenaBasics
             return false;
         }
         return TryRotate(
-            contract, body, FacingForCone(body.Facing, heading),
+            contract, body,
+            FacingForCone(body.Facing, heading, MirroredFrame(contract, mind)),
             $"prepare {reason}; cover {target}");
     }
 
@@ -1354,7 +1359,8 @@ internal static class ArenaBasics
 
     private static Direction FacingForCone(
         Direction current,
-        ProjectileHeading target)
+        ProjectileHeading target,
+        bool mirrored)
     {
         Direction[] candidates = Enum.GetValues<Direction>()
             .Where(direction => HeadingDistance(
@@ -1362,7 +1368,9 @@ internal static class ArenaBasics
             .OrderBy(direction => HeadingDistance(
                 (ProjectileHeading)((int)current * 2),
                 (ProjectileHeading)((int)direction * 2)))
-            .ThenBy(direction => (int)direction)
+            .ThenBy(direction => mirrored
+                ? ((int)direction + 2) % 4
+                : (int)direction)
             .ToArray();
         return candidates[0];
     }
@@ -1431,6 +1439,10 @@ internal static class ArenaBasics
     /// lowest-Y/lowest-X preferences pick opposite relative tiles for the
     /// two sides of a rotationally bound map.
     /// </summary>
+    /// <summary>Rotation-canonical heading order for tie-breaks.</summary>
+    public static int FrameHeading(ProjectileHeading heading, bool mirrored) =>
+        mirrored ? ((int)heading + 4) % 8 : (int)heading;
+
     public static int FrameY(Position position, bool mirrored) =>
         mirrored ? -position.Y : position.Y;
 

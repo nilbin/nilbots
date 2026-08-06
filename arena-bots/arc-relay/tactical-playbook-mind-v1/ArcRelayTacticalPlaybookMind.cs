@@ -408,11 +408,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && mind.Enemies.All(enemy =>
                         enemy.Position.ChebyshevDistance(body.Position) > 6))
                 {
+                    bool healMirrored = ArenaBasics.MirroredFrame(
+                        contract, mind);
                     Position healTile = _healTiles
                         .OrderBy(tile =>
                             tile.ChebyshevDistance(body.Position))
-                        .ThenBy(tile => tile.Y)
-                        .ThenBy(tile => tile.X)
+                        .ThenBy(tile => ArenaBasics.FrameY(tile, healMirrored))
+                        .ThenBy(tile => ArenaBasics.FrameX(tile, healMirrored))
                         .First();
                     if (body.Position == healTile)
                     {
