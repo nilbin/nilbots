@@ -461,6 +461,9 @@ internal static class GenericActorSdkModelMapper
                             strike.ResolveAtTick,
                             ToSdk(strike.Origin),
                             ToSdk(strike.CentralHeading),
+                            strike.Target is { } target
+                                ? ToSdk(target)
+                                : null,
                             [.. strike.Tiles.Select(ToSdk)]))],
                 },
             _ => throw UnknownUnion(value),

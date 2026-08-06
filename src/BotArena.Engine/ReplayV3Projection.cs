@@ -1498,6 +1498,9 @@ internal static class ReplayV3Projection
                     Origin = Position(strike.Origin),
                     CentralHeading = ProjectileHeading(
                         strike.CentralHeading),
+                    Target = strike.Target is { } target
+                        ? ActorId(target)
+                        : null,
                 })],
         };
 

@@ -2431,6 +2431,7 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
               // they existed.
               ...(own(raw, 'origin') ? ['origin'] : []),
               ...(own(raw, 'centralHeading') ? ['centralHeading'] : []),
+              ...(own(raw, 'target') ? ['target'] : []),
             ],
             fail,
           );
@@ -2445,6 +2446,13 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
             heading(
               strike.centralHeading,
               `${path}.pendingStrikes[${index}].centralHeading`,
+              fail,
+            );
+          }
+          if (own(strike, 'target')) {
+            actorId(
+              strike.target,
+              `${path}.pendingStrikes[${index}].target`,
               fail,
             );
           }
@@ -7840,6 +7848,7 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
       centralHeading:
         (strike.centralHeading as Model.ReplayProjectileHeading | undefined) ??
         null,
+      target: strike.target ? identity(strike.target) : null,
       tiles: strike.tiles.map(copyPosition),
     })),
   };

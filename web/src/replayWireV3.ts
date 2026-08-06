@@ -809,6 +809,8 @@ export interface ReplayV3ArcPendingStrike extends ReplayV3JsonObject {
   origin?: ReplayV3Position;
   /** Declared heading (kebab-case); absent on documents written before it. */
   centralHeading?: string;
+  /** The locked body (lock-and-follow); absent over an empty wedge. */
+  target?: ReplayV3ActorId;
   tiles: ReplayV3Position[];
 }
 

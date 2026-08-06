@@ -2979,6 +2979,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<DeclaredStrikeBolt> Bolts,
         ProjectileHeading CentralHeading,
         ImmutableArray<Position> ConeTiles,
+        ActorIdentity? DeclaredTarget,
         GenericActorRuntimeActionResolution.ResolvedAction DeclaredAction,
         int DeclaredTravel,
         int ResolveAtTick)
@@ -2997,6 +2998,67 @@ public sealed class GenericActorMatchSession : IDisposable
     private sealed record DeclaredStrikeBolt(
         ProjectileHeading Heading,
         ImmutableArray<Position> Path);
+
+    private DeclaredStrikeBolt StrikeLineBolt(
+        PendingStrike strike,
+        Position target)
+    {
+        ImmutableArray<Position> line = GenericActorStrikeCone.LineTo(
+            _definition.Map,
+            strike.Origin,
+            target,
+            strike.Profile.Projectile.DiagonalCornersMustBeClear);
+        return new DeclaredStrikeBolt(
+            line.IsEmpty
+                ? strike.CentralHeading
+                : ProjectileHeadingExtensions.Between(
+                    strike.Origin, line[0]),
+            line);
+    }
+
+    /// <summary>
+    /// The body a cone strike locks when it lights: nearest in the wedge
+    /// by Chebyshev, most-central on integer-exact angle ties (cross/dot
+    /// cross-multiplied, both dots positive inside the wedge), canonical
+    /// row-major tile order last. Null over an empty wedge.
+    /// </summary>
+    private LifeState? SelectStrikeAnchor(
+        Position origin,
+        ProjectileHeading centralHeading,
+        ImmutableArray<Position> coneTiles,
+        ActorIdentity shooter)
+    {
+        var cone = coneTiles.ToHashSet();
+        (int ux, int uy) = centralHeading.Vector();
+        LifeState[] candidates = [.. _lives.Values
+            .Where(life => life.ActorId != shooter
+                && cone.Contains(life.Position))];
+        if (candidates.Length == 0)
+            return null;
+        Array.Sort(candidates, (a, b) =>
+        {
+            int ring = origin.ChebyshevDistance(a.Position)
+                .CompareTo(origin.ChebyshevDistance(b.Position));
+            if (ring != 0)
+                return ring;
+            int axc = Math.Abs(
+                (a.Position.X - origin.X) * uy
+                - (a.Position.Y - origin.Y) * ux);
+            int adot = (a.Position.X - origin.X) * ux
+                + (a.Position.Y - origin.Y) * uy;
+            int bxc = Math.Abs(
+                (b.Position.X - origin.X) * uy
+                - (b.Position.Y - origin.Y) * ux);
+            int bdot = (b.Position.X - origin.X) * ux
+                + (b.Position.Y - origin.Y) * uy;
+            int angle = ((long)axc * bdot).CompareTo((long)bxc * adot);
+            if (angle != 0)
+                return angle;
+            int row = a.Position.Y.CompareTo(b.Position.Y);
+            return row != 0 ? row : a.Position.X.CompareTo(b.Position.X);
+        });
+        return candidates[0];
+    }
 
     private void LaunchMaturedStrikes(
         ICollection<PendingDamageContact> contacts,
@@ -3027,71 +3089,53 @@ public sealed class GenericActorMatchSession : IDisposable
             ImmutableArray<DeclaredStrikeBolt> bolts;
             if (!strike.ConeTiles.IsDefaultOrEmpty)
             {
-                var cone = strike.ConeTiles.ToHashSet();
-                (int ux, int uy) = strike.CentralHeading.Vector();
-                LifeState[] victims = [.. _lives.Values
-                    .Where(life => life.ActorId != strike.Shooter
-                        && cone.Contains(life.Position))];
-                Array.Sort(victims, (a, b) =>
+                // Lock-and-follow (owner ruling 2026-08): the strike resolves
+                // ONLY against the body it locked at declare. It follows that
+                // body anywhere inside the frozen wedge; it cancels - no
+                // bolt, like a dead shooter - when the lock is dead, has
+                // crossed the wedge boundary, or is out of the shooter's own
+                // line of sight. Bodyguarding is stepping onto the firing
+                // line, never proximity: the delivery is still an ordinary
+                // first-body-contact ray. A strike declared over an empty
+                // wedge keeps its theatrical whiff down the centre. The sweep
+                // variant still hits every body in the wedge (reserved).
+                if (strike.Profile.Projectile.StrikeSweep)
                 {
-                    int ring = strike.Origin.ChebyshevDistance(a.Position)
-                        .CompareTo(
-                            strike.Origin.ChebyshevDistance(b.Position));
-                    if (ring != 0)
-                        return ring;
-                    // Most-central wins: compare the angular offsets
-                    // |cross|/dot exactly by cross-multiplying — both dots
-                    // are positive inside the wedge, so the compare is
-                    // integral and float-free.
-                    int axc = Math.Abs(
-                        (a.Position.X - strike.Origin.X) * uy
-                        - (a.Position.Y - strike.Origin.Y) * ux);
-                    int adot = (a.Position.X - strike.Origin.X) * ux
-                        + (a.Position.Y - strike.Origin.Y) * uy;
-                    int bxc = Math.Abs(
-                        (b.Position.X - strike.Origin.X) * uy
-                        - (b.Position.Y - strike.Origin.Y) * ux);
-                    int bdot = (b.Position.X - strike.Origin.X) * ux
-                        + (b.Position.Y - strike.Origin.Y) * uy;
-                    int angle = ((long)axc * bdot)
-                        .CompareTo((long)bxc * adot);
-                    if (angle != 0)
-                        return angle;
-                    int row = a.Position.Y.CompareTo(b.Position.Y);
-                    return row != 0
-                        ? row
-                        : a.Position.X.CompareTo(b.Position.X);
-                });
-                if (!strike.Profile.Projectile.StrikeSweep
-                    && victims.Length > 1)
-                {
-                    victims = [victims[0]];
+                    var cone = strike.ConeTiles.ToHashSet();
+                    LifeState[] victims = [.. _lives.Values
+                        .Where(life => life.ActorId != strike.Shooter
+                            && cone.Contains(life.Position))
+                        .OrderBy(life => life.ActorId)];
+                    bolts = [.. victims.Select(victim =>
+                        StrikeLineBolt(strike, victim.Position))];
+                    if (bolts.IsEmpty)
+                        continue;
                 }
-                bolts = victims.Length == 0
-                    ? [new DeclaredStrikeBolt(
-                        strike.CentralHeading,
-                        TraceProjectilePath(
-                            strike.Origin,
+                else if (strike.DeclaredTarget is not ActorIdentity locked)
+                {
+                    bolts =
+                    [
+                        new DeclaredStrikeBolt(
                             strike.CentralHeading,
-                            strike.Profile,
-                            null,
-                            strike.DeclaredTravel))]
-                    : [.. victims.Select(victim =>
-                    {
-                        ImmutableArray<Position> line =
-                            GenericActorStrikeCone.LineTo(
-                                _definition.Map,
+                            TraceProjectilePath(
                                 strike.Origin,
-                                victim.Position,
-                                strike.Profile.Projectile
-                                    .DiagonalCornersMustBeClear);
-                        return new DeclaredStrikeBolt(
-                            line.IsEmpty
-                                ? strike.CentralHeading
-                                : ProjectileHeadingExtensions.Between(
-                                    strike.Origin, line[0]),
-                            line);
-                    })];
+                                strike.CentralHeading,
+                                strike.Profile,
+                                null,
+                                strike.DeclaredTravel)),
+                    ];
+                }
+                else
+                {
+                    if (!_lives.TryGetValue(locked, out LifeState? target)
+                        || !strike.ConeTiles.Contains(target.Position)
+                        || !VisibleTilesFor(shooter)
+                            .Contains(target.Position))
+                    {
+                        continue;
+                    }
+                    bolts = [StrikeLineBolt(strike, target.Position)];
+                }
             }
             else
             {
@@ -3250,6 +3294,18 @@ public sealed class GenericActorMatchSession : IDisposable
                             checked(profile.Projectile.MaxTravelTiles
                                 + declaredTravel),
                             profile.Projectile.DiagonalCornersMustBeClear);
+                // Lock-and-follow (owner ruling 2026-08): the strike is FOR
+                // the body the resolution rule picks when the cone lights.
+                // It follows that body anywhere inside the frozen wedge and
+                // resolves only against it; a volley profile keeps its
+                // historical per-ray resolution and locks nothing.
+                ActorIdentity? declaredTarget = coneTiles.IsDefaultOrEmpty
+                    ? null
+                    : SelectStrikeAnchor(
+                        shooter.Position,
+                        resolvedHeading,
+                        coneTiles,
+                        shooter.ActorId)?.ActorId;
                 _pendingStrikes.Add(new PendingStrike(
                     shooter.ActorId,
                     profile,
@@ -3257,6 +3313,7 @@ public sealed class GenericActorMatchSession : IDisposable
                     declaredBolts,
                     resolvedHeading,
                     coneTiles,
+                    declaredTarget,
                     resolution.ValidatedAction,
                     declaredTravel,
                     checked(Tick + profile.Projectile.StrikeWindupTicks)));
@@ -4538,6 +4595,7 @@ public sealed class GenericActorMatchSession : IDisposable
                             strike.ResolveAtTick,
                             strike.Origin,
                             strike.CentralHeading,
+                            strike.DeclaredTarget,
                             strike.TelegraphTiles))
                 .ToImmutableArray(),
         };
@@ -6878,6 +6936,7 @@ public sealed class GenericActorMatchSession : IDisposable
                             strike.ResolveAtTick,
                             strike.Origin,
                             strike.CentralHeading,
+                            strike.DeclaredTarget,
                             strike.TelegraphTiles))
                 .ToImmutableArray(),
         };

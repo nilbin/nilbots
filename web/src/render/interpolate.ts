@@ -559,12 +559,16 @@ export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
     const heading = strike.centralHeading
       ? HEADING_VECTORS[strike.centralHeading]
       : null;
-    const anchor = declared.actors
-      .filter(
-        (actor) =>
-          !sameIdentity(actor.identity, strike.shooter) &&
-          wedge.has(`${actor.position.x},${actor.position.y}`),
-      )
+    const anchor = (strike.target
+      ? declared.actors.filter((actor) =>
+          sameIdentity(actor.identity, strike.target!),
+        )
+      : declared.actors.filter(
+          (actor) =>
+            !sameIdentity(actor.identity, strike.shooter) &&
+            wedge.has(`${actor.position.x},${actor.position.y}`),
+        )
+    )
       .sort((a, b) => {
         const ringA = Math.max(
           Math.abs(a.position.x - origin.x),

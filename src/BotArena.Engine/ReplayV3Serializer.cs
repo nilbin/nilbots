@@ -2623,6 +2623,11 @@ internal static class ReplayV3Serializer
         }
         if (value.CentralHeading is not null)
             writer.WriteString("centralHeading", value.CentralHeading);
+        if (value.Target is not null)
+        {
+            writer.WritePropertyName("target");
+            WriteActorId(writer, value.Target);
+        }
         WriteArray(writer, "tiles", value.Tiles, WritePosition);
         writer.WriteEndObject();
     }

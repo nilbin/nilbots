@@ -1008,6 +1008,8 @@ export interface ReplayArcRelayModeState {
     origin: ReplayPosition | null;
     /** Declared heading; null on documents written before it. */
     centralHeading: ReplayProjectileHeading | null;
+    /** The locked body (lock-and-follow); null over an empty wedge. */
+    target: ReplayActorIdentity | null;
     tiles: ReplayPosition[];
   }[];
 }

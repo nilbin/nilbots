@@ -1153,6 +1153,13 @@ internal sealed record ReplayV3(
         /// </summary>
         public string? CentralHeading { get; init; }
 
+        /// <summary>
+        /// The body the strike locked at declare (lock-and-follow, owner
+        /// ruling 2026-08). Null over an empty wedge and on replays
+        /// written before the field existed.
+        /// </summary>
+        public ActorId? Target { get; init; }
+
         public bool Equals(ArcPendingStrike? other) =>
             other is not null
             && Shooter == other.Shooter
@@ -1161,6 +1168,7 @@ internal sealed record ReplayV3(
             && string.Equals(
                 CentralHeading, other.CentralHeading,
                 StringComparison.Ordinal)
+            && Target == other.Target
             && Tiles.SequenceEqual(other.Tiles);
 
         public override int GetHashCode() => HashCode.Combine(

@@ -903,6 +903,7 @@ public sealed record GenericActorRuntimeObservation(
         int ResolveAtTick,
         Position Origin,
         ProjectileHeading CentralHeading,
+        ActorIdentity? Target,
         ImmutableArray<Position> Tiles)
     {
         public bool Equals(ArcRelayPendingStrikeState? other) =>
@@ -911,6 +912,7 @@ public sealed record GenericActorRuntimeObservation(
             && ResolveAtTick == other.ResolveAtTick
             && Origin == other.Origin
             && CentralHeading == other.CentralHeading
+            && Target == other.Target
             && Tiles.SequenceEqual(other.Tiles);
 
         public override int GetHashCode() => HashCode.Combine(
@@ -918,6 +920,7 @@ public sealed record GenericActorRuntimeObservation(
             ResolveAtTick,
             Origin,
             CentralHeading,
+            Target,
             Tiles.Length);
     }
 
