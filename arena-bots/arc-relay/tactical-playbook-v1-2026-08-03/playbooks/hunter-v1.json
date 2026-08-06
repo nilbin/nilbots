@@ -2228,7 +2228,8 @@
       },
       "engagementId": "shadow-strike",
       "chaseLeash": 14,
-      "arrivalRadius": 1
+      "arrivalRadius": 1,
+      "stance": "ambush"
      },
      "while": [
       [
