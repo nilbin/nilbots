@@ -4417,38 +4417,27 @@ public sealed class GenericActorMatchSession : IDisposable
             arcRelay.LatestPulseTeamId,
             arcRelay.LatestPulseTick)
         {
-            // Declared strikes obey the same fog as everything else (owner
-            // ruling 2026-08-12): the announcement is the mechanic FOR THOSE
-            // WHO CAN SEE IT. Your own team's strikes are always fully
-            // visible; an enemy strike shows only through your vision - the
-            // shooter's tile or the lit ground you can actually see - so a
-            // backstab declared behind your cone stays a surprise, and a
-            // partially seen cone warns only where you are looking.
+            // Declared strikes follow the SHOOTER's visibility (owner ruling
+            // 2026-08-12: an enemy cannot see a cone declared from behind
+            // unless that team has vision there). Seeing the striker reveals
+            // the whole swing; not seeing it reveals NOTHING - not even lit
+            // ground underfoot, or every backstab would warn its victim. Own
+            // strikes are always fully visible, and the spectator's
+            // authoritative view keeps every cone.
             PendingStrikes = _pendingStrikes
+                .Where(strike => strike.Shooter.TeamId == observingTeamId
+                    || visibleTiles.Contains(
+                        _lives.TryGetValue(
+                            strike.Shooter, out LifeState? striker)
+                            ? striker.Position
+                            : strike.Origin))
                 .OrderBy(strike => strike.Shooter)
                 .Select(strike =>
-                {
-                    ImmutableArray<Position> tiles =
-                        [.. strike.Bolts.SelectMany(bolt => bolt.Path)];
-                    if (strike.Shooter.TeamId != observingTeamId
-                        && !visibleTiles.Contains(
-                            _lives.TryGetValue(
-                                strike.Shooter, out LifeState? striker)
-                                ? striker.Position
-                                : strike.Origin))
-                    {
-                        tiles = [.. tiles.Where(visibleTiles.Contains)];
-                    }
-                    return tiles.IsEmpty
-                        ? null
-                        : new GenericActorRuntimeObservation
-                            .ArcRelayPendingStrikeState(
-                                strike.Shooter,
-                                strike.ResolveAtTick,
-                                tiles);
-                })
-                .Where(strike => strike is not null)
-                .Select(strike => strike!)
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            strike.Shooter,
+                            strike.ResolveAtTick,
+                            [.. strike.Bolts.SelectMany(bolt => bolt.Path)]))
                 .ToImmutableArray(),
         };
     }
