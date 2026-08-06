@@ -862,8 +862,8 @@
      "aid": {
       "formationId": "aid-file",
       "movement": {
-       "kind": "zone",
-       "target": "own-approach",
+       "kind": "route",
+       "target": "farm-loop",
        "stuckTicks": 8,
        "pace": "free"
       },
@@ -882,8 +882,8 @@
      "reserve": {
       "formationId": "reserve-file",
       "movement": {
-       "kind": "zone",
-       "target": "own-home",
+       "kind": "route",
+       "target": "farm-loop",
        "stuckTicks": 8,
        "pace": "free"
       },
