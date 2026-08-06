@@ -1458,6 +1458,25 @@
     "value": 0,
     "zone": "own-home",
     "freshnessTicks": 21
+   },
+   "carriers-none": {
+    "fact": "known-enemy-carriers",
+    "operator": "at-most",
+    "value": 0
+   },
+   "well-line-cold": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "well-line",
+    "freshnessTicks": 30
+   },
+   "backfield-cold": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "enemy-backfield",
+    "freshnessTicks": 30
    }
   },
   "conditionSets": {
@@ -1548,6 +1567,13 @@
     [
      "approach-clear",
      "home-clear"
+    ]
+   ],
+   "prey-cold": [
+    [
+     "carriers-none",
+     "well-line-cold",
+     "backfield-cold"
     ]
    ]
   }
@@ -1695,6 +1721,24 @@
        "kind": "anchor",
        "target": "home-gate"
       }
+     },
+     {
+      "assignmentId": "race-north-medic",
+      "orderId": "race-north",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
      }
     ],
     "whenConditionSetId": "north-soon",
@@ -1745,6 +1789,24 @@
       "preferred": 4,
       "maximum": 5,
       "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-centre-medic",
+      "orderId": "race-centre",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
       "distance": {
        "kind": "anchor",
        "target": "home-gate"
@@ -1803,6 +1865,24 @@
        "kind": "anchor",
        "target": "home-gate"
       }
+     },
+     {
+      "assignmentId": "race-south-medic",
+      "orderId": "race-south",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
      }
     ],
     "whenConditionSetId": "south-soon",
@@ -1855,7 +1935,7 @@
     ],
     "whenConditionSetId": "carrier-sighted",
     "completeConditionSetId": "task-never-done",
-    "failConditionSetId": "task-never-done",
+    "failConditionSetId": "prey-cold",
     "reintegration": {
      "mode": "primary-order",
      "orderIds": [],
