@@ -4408,13 +4408,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && context.Mind.Bodies.Any(other =>
                 context.CarrierUnitIds.Contains(other.UnitId)
                 && other.Position.ChebyshevDistance(body.Position) <= 1);
-        int limit = onSupplyLane
+        // A pocketed CARRIER is the worst statue of all - boxed by its own
+        // churning teammates it cannot even wedge free while exempt, so it
+        // gets the shortest patience and its objective is always home.
+        bool isCarrier = context.CarrierUnitIds.Contains(body.UnitId);
+        int limit = isCarrier || onSupplyLane
             ? 2
             : string.Equals(
                 order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
         if (idle.Streak < limit
             || body.Cooldown > 0
-            || context.CarrierUnitIds.Contains(body.UnitId)
             || context.RepairerUnitIds.Contains(body.UnitId)
             // "In combat" means ENGAGED - a focus target, a cycling gun,
             // or an enemy at arm's length. An enemy merely visible at range
@@ -4440,8 +4443,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // (the unitParked bar still flags true degeneracy). The invariant
         // breaks only the STRANDED case: far from the objective and not
         // moving, which is where every camping bug lived.
-        Position destination = context.Targets.GetValueOrDefault(
-            body.UnitId, body.Position);
+        Position destination = isCarrier
+            ? _ownReactor
+            : context.Targets.GetValueOrDefault(body.UnitId, body.Position);
         if (body.Position.ChebyshevDistance(destination)
             <= order.Movement.ArrivalRadius + 2)
         {
