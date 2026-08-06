@@ -12,6 +12,19 @@
 
 ## Generated review artifact
 
+- Orientation-consistent v20 roster:
+  `concept-sheet-orientation-consistent-v20.png`
+- Orientation-consistent dimensions: 1254×1254 RGB PNG
+- Orientation-consistent SHA-256:
+  `0ee6b6ed041e5ac8031f6d3a28b2b301768be8f07057e23a8e35aff2e8879f31`
+- Orientation-consistent gameplay-scale proof:
+  `gameplay-scale-orientation-consistent-v20.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `fd70a51347e0fd7e98a4b75edbb48a0ae231f91224353fce39650c4bf741e103`
+- Exact inputs and prompts: `orientation-consistent-v20/README.md`
+- Built-in image-generation accepted output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-b856f1fd-4f3a-4cf3-b2c3-32a263dc6ac9.png`
 - Rotorless-drones color v19 roster:
   `concept-sheet-rotorless-drones-color-v19.png`
 - Rotorless-drones color dimensions: 1254×1254 RGB PNG
@@ -305,8 +318,13 @@ rings did not fit the fleet's established hard-surface language.
 The v19 correction removes all exposed rotors. Kestrel remains a cockpitless
 flying-wing interceptor UAV; Lantern becomes a twin-boom survey UAV with dish
 and gimbal. Sunder and Veil return to solid designator and smoke-layer hover
-bodies. The full sixteen-color pass is unchanged. This is the current concept
-candidate.
+bodies. The full sixteen-color pass is unchanged.
+
+The v20 correction restores the canonical East/right presentation after the
+v19 redesign. Kestrel and Sunder have an unambiguous right-side nose, Lantern's
+camera nose sits right of its left-side H-tail, and Veil places its shallow prow
+and forward sensor on the right with smoke hardware aft. Mortar and Longshot
+remain the orientation anchors. This is the current concept candidate.
 
 ## Industrial-material refinement prompt
 
