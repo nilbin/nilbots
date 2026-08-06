@@ -746,6 +746,102 @@ def unit_parked_metrics(broadcast, team_ids):
     }
 
 
+def engagement_resolution_metrics(broadcast, team_ids):
+    """Engagement resolution (goal criterion 2, DECISIONS #212): every
+    contact must end by kill, withdrawal, or the authored horn - never by
+    an indefinite unresolved streak. A contact run is a maximal stretch of
+    ticks a specific pair of opposing units spends within CONTACT_RANGE,
+    tolerating gaps up to GRACE_TICKS (a re-closed gap is the same fight,
+    which is what keeps an oscillating dance from laundering one long
+    stalemate into many short "withdrawals"). Runs are classified by how
+    they end - a death of either party (kill), separation while both live
+    (withdrawal), the final horn (horn) - and any run reaching
+    STREAK_TICKS counts as an unresolved-contact streak regardless of how
+    it eventually ends: the length itself is the degeneracy. Diagnostic
+    only; not a gallery bar until the owner promotes it.
+    """
+    contact_range = 3
+    grace_ticks = 8
+    streak_ticks = 120
+    runs = {}
+    finished = []
+    last_tick = -1
+
+    def close(pair, state, died):
+        start, last_contact = state
+        finished.append(
+            {
+                "length": last_contact - start + 1,
+                "ending": "kill" if died else "withdrawal",
+                "pair": pair,
+                "start": start,
+            }
+        )
+
+    for tick, world in enumerate(broadcast["worlds"]):
+        last_tick = tick
+        lives = active_lives(world)
+        alive = {life["actor"] for life in lives}
+        by_team = {}
+        for life in lives:
+            by_team.setdefault(life["team"], []).append(life)
+        teams = sorted(by_team)
+        contacts = set()
+        for index, team_a in enumerate(teams):
+            for team_b in teams[index + 1:]:
+                for a in by_team[team_a]:
+                    for b in by_team[team_b]:
+                        if chebyshev(a["position"], b["position"]) <= contact_range:
+                            contacts.add((a["actor"], b["actor"]))
+        for pair in contacts:
+            if pair in runs:
+                runs[pair][1] = tick
+            else:
+                runs[pair] = [tick, tick]
+        for pair in list(runs):
+            if pair in contacts:
+                continue
+            state = runs[pair]
+            a, b = pair
+            died = a not in alive or b not in alive
+            if died or tick - state[1] > grace_ticks:
+                close(pair, state, died)
+                del runs[pair]
+    for pair, state in runs.items():
+        start, last_contact = state
+        finished.append(
+            {
+                "length": last_contact - start + 1,
+                "ending": "horn",
+                "pair": pair,
+                "start": start,
+            }
+        )
+    endings = collections.Counter(run["ending"] for run in finished)
+    streaks = sorted(
+        (run for run in finished if run["length"] >= streak_ticks),
+        key=lambda run: -run["length"],
+    )
+    return {
+        "contactRange": contact_range,
+        "graceTicks": grace_ticks,
+        "streakTicks": streak_ticks,
+        "episodes": len(finished),
+        "endings": counter_dict(endings),
+        "longestContactRun": max((run["length"] for run in finished), default=0),
+        "unresolvedContactStreaks": len(streaks),
+        "streakDetails": [
+            {
+                "length": run["length"],
+                "startTick": run["start"],
+                "ending": run["ending"],
+                "pair": [list(run["pair"][0]), list(run["pair"][1])],
+            }
+            for run in streaks[:5]
+        ],
+    }
+
+
 def team_statue_metrics(broadcast, team_ids):
     """Busy-statue detector (bars v5): a livelocked body never waits, so the
     wait-share detectors stay silent while half a team repaths in place for
@@ -1701,6 +1797,8 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "arcTossLandingsByTeam": team_counter(arc_tosses, team_ids),
             "forcedCarrierDisplacementsByCarrierTeam": team_counter(forced_displacements, team_ids),
         },
+        "engagementResolution": engagement_resolution_metrics(
+            broadcast, team_ids),
         "feltDegeneracy": {
             "handoffPingPong": ping_pong,
             "pickupDropCycle": pickup_drop_cycles,
