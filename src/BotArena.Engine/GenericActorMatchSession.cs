@@ -4417,17 +4417,38 @@ public sealed class GenericActorMatchSession : IDisposable
             arcRelay.LatestPulseTeamId,
             arcRelay.LatestPulseTick)
         {
-            // Declared strikes are public to BOTH teams unconditionally
-            // (DECISIONS #212): the announcement IS the mechanic — the
-            // victim's only counterplay is reading the tiles and moving.
+            // Declared strikes obey the same fog as everything else (owner
+            // ruling 2026-08-12): the announcement is the mechanic FOR THOSE
+            // WHO CAN SEE IT. Your own team's strikes are always fully
+            // visible; an enemy strike shows only through your vision - the
+            // shooter's tile or the lit ground you can actually see - so a
+            // backstab declared behind your cone stays a surprise, and a
+            // partially seen cone warns only where you are looking.
             PendingStrikes = _pendingStrikes
                 .OrderBy(strike => strike.Shooter)
                 .Select(strike =>
-                    new GenericActorRuntimeObservation
-                        .ArcRelayPendingStrikeState(
-                            strike.Shooter,
-                            strike.ResolveAtTick,
-                            [.. strike.Bolts.SelectMany(bolt => bolt.Path)]))
+                {
+                    ImmutableArray<Position> tiles =
+                        [.. strike.Bolts.SelectMany(bolt => bolt.Path)];
+                    if (strike.Shooter.TeamId != observingTeamId
+                        && !visibleTiles.Contains(
+                            _lives.TryGetValue(
+                                strike.Shooter, out LifeState? striker)
+                                ? striker.Position
+                                : strike.Origin))
+                    {
+                        tiles = [.. tiles.Where(visibleTiles.Contains)];
+                    }
+                    return tiles.IsEmpty
+                        ? null
+                        : new GenericActorRuntimeObservation
+                            .ArcRelayPendingStrikeState(
+                                strike.Shooter,
+                                strike.ResolveAtTick,
+                                tiles);
+                })
+                .Where(strike => strike is not null)
+                .Select(strike => strike!)
                 .ToImmutableArray(),
         };
     }
