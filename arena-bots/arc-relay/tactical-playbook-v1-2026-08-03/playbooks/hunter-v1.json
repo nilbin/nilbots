@@ -841,6 +841,52 @@
     "returnToFormation": true
    },
    "posture": "skirmish"
+  },
+  {
+   "engagementId": "carrier-strike",
+   "participants": [
+    "hunter",
+    "hauler",
+    "carrier",
+    "lancer",
+    "medic"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 4,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 1,
+   "overkillDamage": 0,
+   "aimPreparation": "rotate-to-engage",
+   "chaseLeash": 6,
+   "signatureCoordination": "damage-first",
+   "dodgeCoverage": {
+    "mode": "escape-lanes",
+    "horizonTicks": 4,
+    "minimumDirectShots": 2,
+    "minimumCoveredOptions": 5,
+    "fallback": "best-coverage"
+   },
+   "release": {
+    "hiddenTicks": 2,
+    "unreachableTicks": 3,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 2,
+    "returnToFormation": true
+   }
   }
  ],
  "supportPolicies": [
@@ -1015,7 +1061,7 @@
         "arrivalRadius": 2,
         "completion": "continuous",
         "chaseLeash": 14,
-        "engagementId": "shadow-strike",
+        "engagementId": "carrier-strike",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "shadow-standard",
@@ -1129,7 +1175,7 @@
         "arrivalRadius": 1,
         "completion": "continuous",
         "chaseLeash": 14,
-        "engagementId": "shadow-strike",
+        "engagementId": "carrier-strike",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
         "assignmentProfileId": "shadow-standard",
