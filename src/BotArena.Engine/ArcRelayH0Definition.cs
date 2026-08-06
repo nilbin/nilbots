@@ -637,6 +637,17 @@ public static class ArcRelayH0Definition
             energyRegenerationIntervalTicks: 0,
             energyRegenerationAmount: 0,
             DisabledShotProgram(),
+            // A declared strike sweeps a CONE, not a line (owner review of
+            // the first clean gallery): three rays a sector apart, lit as
+            // one area from declaration. Stepping out of the cone is the
+            // counterplay; a one-tile side-step off a single ray was no
+            // counterplay at all.
+            volley: strikeWindupTicks > 0
+                ? new ActorAttackVolleyDefinition(
+                    projectileCount: 3,
+                    ActorAttackVolleyDefinition.VolleySpreadKind
+                        .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset)
+                : null,
             facingAimHalfWidthSectors: directionalCombat ? 1 : 0);
 
     private static IEnumerable<string> AllowedActions(
