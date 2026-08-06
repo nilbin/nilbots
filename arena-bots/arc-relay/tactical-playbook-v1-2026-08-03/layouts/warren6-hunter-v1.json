@@ -383,7 +383,7 @@
   },
   {
    "routeId": "north-well-loop",
-   "corridorWidth": 1,
+   "corridorWidth": 2,
    "waypoints": [
     [
      13,
@@ -409,7 +409,7 @@
   },
   {
    "routeId": "centre-well-loop",
-   "corridorWidth": 1,
+   "corridorWidth": 2,
    "waypoints": [
     [
      13,
@@ -435,7 +435,7 @@
   },
   {
    "routeId": "south-well-loop",
-   "corridorWidth": 1,
+   "corridorWidth": 2,
    "waypoints": [
     [
      13,

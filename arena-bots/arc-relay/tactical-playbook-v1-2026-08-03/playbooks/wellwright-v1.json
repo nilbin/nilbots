@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/wellwright-warren6-v1.json",
-  "sha256": "254c308526072fafb92488f56900c2b87a633136908c3cea5ee4c811fc11e97d"
+  "sha256": "e5f0e72543a54000524547330b59cfeab3af13cda30bde9d2429640da71f4c0c"
  },
  "perspective": "team-relative",
  "memory": {
@@ -1055,7 +1055,7 @@
       ],
       "minimum": 1,
       "preferred": 3,
-      "maximum": 4,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",
@@ -1123,7 +1123,7 @@
       ],
       "minimum": 1,
       "preferred": 3,
-      "maximum": 4,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",
@@ -1191,7 +1191,7 @@
       ],
       "minimum": 1,
       "preferred": 3,
-      "maximum": 4,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",

@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/warren6-hunter-v1.json",
-  "sha256": "c596378ac20c9e1a7265b12168a37bd5c1110dde58a4a7cb5826604674a4549f"
+  "sha256": "8ca9b9dc79b90ab325b753bbacbec3d533508c48a17563801ee923800fb08b70"
  },
  "perspective": "team-relative",
  "memory": {
@@ -1668,8 +1668,8 @@
        "mason"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 5,
+      "preferred": 3,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",
@@ -1740,8 +1740,8 @@
        "mason"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 5,
+      "preferred": 3,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",
@@ -1812,8 +1812,8 @@
        "mason"
       ],
       "minimum": 1,
-      "preferred": 4,
-      "maximum": 5,
+      "preferred": 3,
+      "maximum": 3,
       "carrier": "allow",
       "distance": {
        "kind": "anchor",
