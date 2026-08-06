@@ -2360,13 +2360,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                 string[] selectedRoles = StringArray(
                     assignment.GetProperty("roles"),
                     $"{at}.{taskId}.{assignmentId}.roles", 0, 8);
-                if (selectedRoles.Any(role => !roleIds.Contains(role)
-                        || !rolesByGroup[groupId].Contains(role)))
+                // Cross-group claims (owner doctrine 2026-08-07): a task
+                // may pull an authorized body from ANY group into this
+                // order - tasks are explicit detachments, and merit
+                // promotion needs the levelled towline to take the knife.
+                // Role existence still validates; group ownership does not.
+                _ = groupId;
+                if (selectedRoles.Any(role => !roleIds.Contains(role)))
                 {
                     throw Error(at,
                         $"task '{taskId}' assignment '{assignmentId}' "
-                        + $"selects a role outside order '{orderId}' group "
-                        + $"'{groupId}'.");
+                        + $"selects an unknown role for order '{orderId}'.");
                 }
                 string[] classes = StringArray(
                     assignment.GetProperty("classes"),

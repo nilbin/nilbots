@@ -35,6 +35,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     // Skirmish instrumentation: replays carry no command provenance, so the
     // kite rhythm is only measurable through these counters on the debug
     // line (cumulative per match).
+    private readonly Dictionary<int, int> _slotHold = [];
     private int _skirmishDue;
     private int _skirmishStepped;
     private int _skirmishBlocked;
@@ -3282,6 +3283,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             _motion[body.UnitId] = new MotionProgress(
                 body.ActorId, order.OrderId, body.Position, 0);
+            // The shake alone made dancers: the body stepped out and walked
+            // straight back into the same contended slot. Blacklist the
+            // approach for a while so the reflow spreads to an alternative.
+            _slotHold[body.UnitId] = mind.Tick + 24;
             return true;
         }
         TacticalPlaybookPackage.Formation formation = package.ResolveFormation(
@@ -3323,6 +3328,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract.Map.TileRows,
             target,
             stuck >= order.Movement.StuckTicks || targetBlocked
+                || _slotHold.GetValueOrDefault(body.UnitId) > mind.Tick
                 ? formation.Reflow.SearchRadius
                 : 0,
             formation.Reflow.BlockedSlot);

@@ -646,6 +646,60 @@ def passivity_metrics(
     return passivity, formation_freeze
 
 
+def team_dance_metrics(broadcast, team_ids):
+    """Dancer detector (bars v6): displacement without progress. A body
+    confined to a small radius for a long window counts however busily it
+    steps; the wedge-shake taught that motion alone proves nothing.
+    """
+    bar = BARS.get("teamDance")
+    if bar is None:
+        return {
+            "enforced": False,
+            "barTrippedByTeam": {str(team): False for team in team_ids},
+        }
+    window = bar["windowTicks"]
+    radius = bar["confinementRadius"]
+    minimum = bar["minimumConfinedBodies"]
+    share = bar["tripAtConfinedShareOfLiveBodies"]
+    anchors = {}
+    worst = {team: 0 for team in team_ids}
+    tripped = {team: False for team in team_ids}
+    for _tick, world in enumerate(broadcast["worlds"]):
+        lives = active_lives(world)
+        confined_by_team = {team: 0 for team in team_ids}
+        live_by_team = {team: 0 for team in team_ids}
+        for life in lives:
+            key = life["actor"]
+            spot = tuple(life["position"])
+            entry = anchors.get(key)
+            if entry is None or chebyshev(spot, entry[0]) > radius:
+                anchors[key] = (spot, 1)
+            else:
+                anchors[key] = (entry[0], entry[1] + 1)
+            live_by_team[life["team"]] += 1
+            if anchors[key][1] >= window:
+                confined_by_team[life["team"]] += 1
+        for team in team_ids:
+            worst[team] = max(worst[team], confined_by_team[team])
+            if (
+                live_by_team[team] > 0
+                and confined_by_team[team] >= minimum
+                and confined_by_team[team] / live_by_team[team] >= share
+            ):
+                tripped[team] = True
+    return {
+        "enforced": True,
+        "windowTicks": window,
+        "confinementRadius": radius,
+        "worstSimultaneousConfinedByTeam": {
+            str(team): worst[team] for team in team_ids
+        },
+        "barTrippedByTeam": {
+            str(team): tripped[team] for team in team_ids
+        },
+    }
+
+
 def team_statue_metrics(broadcast, team_ids):
     """Busy-statue detector (bars v5): a livelocked body never waits, so the
     wait-share detectors stay silent while half a team repaths in place for
@@ -1512,6 +1566,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
         broadcast, team_ids, first_birth_tick)
     stuck_carrier = stuck_carrier_metrics(broadcast, team_ids)
     team_statue = team_statue_metrics(broadcast, team_ids)
+    team_dance = team_dance_metrics(broadcast, team_ids)
     home_non_progress = home_carrier_non_progress_metrics(
         broadcast,
         team_ids,
@@ -1526,6 +1581,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             or formation_freeze["barTrippedByTeam"][str(team)]
             or stuck_carrier["barTrippedByTeam"][str(team)]
             or team_statue["barTrippedByTeam"][str(team)]
+            or team_dance["barTrippedByTeam"][str(team)]
             or home_non_progress["barTrippedByTeam"][str(team)]
         )
         for team in team_ids
@@ -1604,6 +1660,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "formationFreeze": formation_freeze,
             "stuckCarrier": stuck_carrier,
             "teamStatue": team_statue,
+            "teamDance": team_dance,
             "homeCarrierNonProgress": home_non_progress,
             "cohortEligibilityByTeam": eligibility_by_team,
             "matchEligibleForCohortRead": all(eligibility_by_team.values()),

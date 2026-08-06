@@ -177,12 +177,11 @@
   {
    "groupId": "shadow-group",
    "roleIds": [
-    "hunter",
-    "medic"
+    "hunter"
    ],
    "minimum": 1,
-   "preferred": 2,
-   "maximum": 2,
+   "preferred": 1,
+   "maximum": 1,
    "membership": {
     "persistence": "stable-slot",
     "casualty": "hold-vacancy",
@@ -203,14 +202,15 @@
   {
    "groupId": "well-group",
    "roleIds": [
+    "medic",
     "hauler",
     "carrier",
     "lancer",
     "eyes"
    ],
    "minimum": 1,
-   "preferred": 6,
-   "maximum": 6,
+   "preferred": 7,
+   "maximum": 7,
    "membership": {
     "persistence": "stable-slot",
     "casualty": "hold-vacancy",
@@ -712,7 +712,8 @@
     "carrier",
     "lancer",
     "eyes",
-    "hauler"
+    "hauler",
+    "medic"
    ],
    "targetPriorities": [
     "enemy-carrier",
@@ -800,7 +801,8 @@
     "carrier",
     "lancer",
     "eyes",
-    "hauler"
+    "hauler",
+    "medic"
    ],
    "targetPriorities": [
     "enemy-carrier",
@@ -1618,10 +1620,16 @@
       "assignmentId": "apex-assassin",
       "orderId": "apex-strike",
       "roles": [
-       "hunter"
+       "hunter",
+       "hauler",
+       "carrier",
+       "lancer"
       ],
       "classes": [
-       "kestrel"
+       "kestrel",
+       "relay",
+       "longshot",
+       "towline"
       ],
       "minimum": 1,
       "preferred": 1,
