@@ -16,8 +16,8 @@
   "lantern"
  ],
  "layout": {
-  "path": "../layouts/warren5-hunter-v1.json",
-  "sha256": "9b9f09824391df39215d46685dfc05012c0919048ccf47557ad5ff77c0abc94e"
+  "path": "../layouts/warren6-hunter-v1.json",
+  "sha256": "e45671616a132026b5c6387184c86ec2fd706dfed810928eebd9e23806117d55"
  },
  "perspective": "team-relative",
  "memory": {
@@ -657,9 +657,10 @@
    },
    "selfDefense": {
     "enabled": true,
-    "threatDistance": 3,
+    "threatDistance": 2,
     "returnToFormation": true
-   }
+   },
+   "posture": "skirmish"
   },
   {
    "engagementId": "well-fight",
@@ -788,9 +789,10 @@
    },
    "selfDefense": {
     "enabled": true,
-    "threatDistance": 4,
+    "threatDistance": 2,
     "returnToFormation": true
-   }
+   },
+   "posture": "skirmish"
   }
  ],
  "supportPolicies": [

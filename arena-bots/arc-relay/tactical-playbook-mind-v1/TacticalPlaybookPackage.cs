@@ -391,7 +391,8 @@ internal sealed class TacticalPlaybookPackage
         DodgeCoverage DodgeCoverage,
         ReleasePolicy Release,
         SelfDefensePolicy SelfDefense,
-        HoldFire? HoldFire = null);
+        HoldFire? HoldFire = null,
+        string Posture = "committed");
 
     /// <summary>
     /// Ambush discipline: participants acquire no focus and fire nothing

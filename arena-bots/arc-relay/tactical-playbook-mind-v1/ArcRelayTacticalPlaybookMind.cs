@@ -468,17 +468,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
+                        && !SkirmishStepDue(mind, body, engagement)
                         && WithinEngagementLeash(
                             body, target, shotTarget.Target, engagement)
                         && TryFocusChannelWithReturn(
                             contract, mind, body, shotTarget, target,
                             engagement,
                             Provenance(machine, group, order, "signature")),
-                    "movement" => TryMovement(
-                        contract, mind, arc, package, machine, snapshot, body,
-                        role, group, order, target, targets, groups,
-                        orders,
-                        pickupAssignments, focus, claims),
+                    "movement" => TrySkirmishStep(
+                            contract, mind, body, engagement, claims,
+                            Provenance(machine, group, order, "skirmish-step"))
+                        || TryMovement(
+                            contract, mind, arc, package, machine, snapshot,
+                            body,
+                            role, group, order, target, targets, groups,
+                            orders,
+                            pickupAssignments, focus, claims),
                     "facing" => facingTarget is Position lookAt
                         && TryFaceTarget(
                         contract, body, lookAt,
@@ -4046,6 +4051,55 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         "eyes" => "vision",
         _ => "vitality",
     };
+
+    /// <summary>
+    /// The skirmish posture's range band: inside the self-defense threat
+    /// distance the body steps out rather than trading, at range it stands
+    /// and fires. The step preempts focus-fire (the channel checks this
+    /// predicate), because a kiter that finishes its aim first is just a
+    /// fragile fighter - against an opponent that halts to shoot, the band
+    /// yields the fire-while-withdrawing rhythm: they stop, we gain ground
+    /// and shoot; they close, we step.
+    /// </summary>
+    private static bool SkirmishStepDue(
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Engagement engagement) =>
+        engagement.Posture == "skirmish"
+        // One action per tick means fire XOR step, so the rhythm is an
+        // alternation staggered by unit id: half the pack fires while the
+        // other half opens ground, and each body swaps jobs every tick. An
+        // unconditional step inside the band was tried first and produced
+        // pacifists (1-83 kills): a kiter that never shoots is a victim.
+        && (mind.Tick + body.UnitId) % 2 == 0
+        && mind.Enemies.Any(enemy =>
+            enemy.Position.ChebyshevDistance(body.Position)
+                <= engagement.SelfDefense.ThreatDistance);
+
+    /// <summary>
+    /// The kiting backstep itself. Movement never turns the body, so under
+    /// predation rules the retreat keeps the double-damage rear arc away
+    /// from the enemy the whole way out.
+    /// </summary>
+    private static bool TrySkirmishStep(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Engagement engagement,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        if (!SkirmishStepDue(mind, body, engagement))
+            return false;
+        Position[] threats = mind.Enemies
+            .Where(enemy => enemy.Position.ChebyshevDistance(body.Position)
+                <= engagement.SelfDefense.ThreatDistance + 2)
+            .Select(enemy => enemy.Position)
+            .ToArray();
+        return threats.Length > 0
+            && ArenaBasics.TryStepAway(
+                contract, mind, body, threats, claims, reason);
+    }
 
     private static bool TryFaceTarget(
         GenericActorResolvedMatchContract contract,

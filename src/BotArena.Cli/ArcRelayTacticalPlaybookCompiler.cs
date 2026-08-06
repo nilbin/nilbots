@@ -1974,8 +1974,15 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "overkillDamage", "chaseLeash", "aimPreparation",
                 "signatureCoordination",
                 "dodgeCoverage", "release", "selfDefense",
-            ], ["holdFire"]);
+            ], ["holdFire", "posture"]);
         string id = Identifier(value, "engagementId", at);
+        // Skirmish posture (owner direction 2026-08-06): participants fire
+        // when their weapon is ready and back away from close threats on the
+        // cooldown ticks, keeping the front arc on the enemy - the kiting
+        // discipline the disruption doctrine needs. Committed is the
+        // historical default.
+        if (value.TryGetProperty("posture", out _))
+            OneOf(value, "posture", at, "committed", "skirmish");
         if (value.TryGetProperty("holdFire", out JsonElement holdFire))
         {
             Object(holdFire, $"{at}.{id}.holdFire",

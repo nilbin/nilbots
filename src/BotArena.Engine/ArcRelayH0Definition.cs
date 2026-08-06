@@ -114,11 +114,16 @@ public static class ArcRelayH0Definition
         ];
         rows = ApplyGeometry(rows, loopProfile.Geometry);
         bool larger = loopProfile.Geometry == ArcRelayMapGeometry.DepthLarger;
+        // The deep warren wraps the interior in two shadow-corridor rows per
+        // side, so every interior landmark sits two rows lower.
+        int drop = loopProfile.Geometry == ArcRelayMapGeometry.AmbushWarrenDeep
+            ? 2
+            : 0;
         int maximumX = rows[0].Length - 1;
         int centreX = 15;
-        int centreY = larger ? 14 : 11;
-        int northY = 4;
-        int southY = larger ? 24 : 18;
+        int centreY = (larger ? 14 : 11) + drop;
+        int northY = 4 + drop;
+        int southY = (larger ? 24 : 18) + drop;
         var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
         Position[] west = larger
             ?
@@ -128,8 +133,10 @@ public static class ArcRelayH0Definition
             ]
             :
             [
-                new(1, 8), new(2, 8), new(3, 9), new(1, 10),
-                new(1, 12), new(3, 13), new(1, 14), new(2, 14),
+                new(1, 8 + drop), new(2, 8 + drop), new(3, 9 + drop),
+                new(1, 10 + drop),
+                new(1, 12 + drop), new(3, 13 + drop), new(1, 14 + drop),
+                new(2, 14 + drop),
             ];
         // Eastern anchors historically X-flip the western tiles, which is
         // fair only on left-right symmetric maps. The warren maps are
@@ -153,7 +160,7 @@ public static class ArcRelayH0Definition
         }
 
         ImmutableArray<Position> westHome = Rectangle(
-            1, 3, larger ? 11 : 8, larger ? 17 : 14);
+            1, 3, (larger ? 11 : 8) + drop, (larger ? 17 : 14) + drop);
         ImmutableArray<Position> eastHome = westHome
             .Select(value => new Position(maximumX - value.X, value.Y))
             .OrderBy(value => value.Y).ThenBy(value => value.X)
@@ -173,8 +180,10 @@ public static class ArcRelayH0Definition
                 .. loopProfile.HealZoneTicksPerHp > 0
                     ? new[]
                     {
-                        Region("heal-north", new Position(centreX, 8)),
-                        Region("heal-south", new Position(centreX, 14)),
+                        Region(
+                            "heal-north", new Position(centreX, 8 + drop)),
+                        Region(
+                            "heal-south", new Position(centreX, 14 + drop)),
                     }
                     : System.Array.Empty<ActorMapRegionDefinition>(),
                 Region("well-north", new Position(centreX, northY)),
@@ -735,6 +744,36 @@ public static class ArcRelayH0Definition
         if (geometry is ArcRelayMapGeometry.H0
             or ArcRelayMapGeometry.DepthLarger)
             return rows;
+
+        if (geometry == ArcRelayMapGeometry.AmbushWarrenDeep)
+        {
+            // The deep warren (owner map ruling 2026-08-06: "there's no way
+            // to sneak by on top/mid/bottom") wraps the serpentine interior
+            // in shadow lanes: a fully open perimeter corridor top and
+            // bottom behind a screen wall with three gates. The gate columns
+            // are an x-symmetric set and the two screens are identical, so
+            // the wrap is exactly 180-degree chiral and the interior needs
+            // no re-derivation - every interior feature just sits two rows
+            // lower on the canvas.
+            ImmutableArray<string> interior = ApplyGeometry(
+                rows, ArcRelayMapGeometry.AmbushWarrenSerpentine);
+            int width = interior[0].Length;
+            string corridor = $"#{new string('.', width - 2)}#";
+            char[] screenChars = new string('#', width).ToCharArray();
+            foreach (int gate in new[] { 3, 15, 27 })
+                screenChars[gate] = '.';
+            string screen = new string(screenChars);
+            return
+            [
+                interior[0],
+                corridor,
+                screen,
+                .. interior.Skip(1).Take(interior.Length - 2),
+                screen,
+                corridor,
+                interior[^1],
+            ];
+        }
 
         string[] changed = rows.ToArray();
         if (geometry == ArcRelayMapGeometry.HomeGatesWide)

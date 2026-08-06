@@ -1,0 +1,366 @@
+{
+ "schema": "arc-relay-tactical-layout-v1",
+ "layoutId": "warren6-hunter-v1",
+ "mapId": "arc-relay-ambush-warren-06",
+ "bindings": [
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "east",
+   "transform": "rotate-180",
+   "routeAliases": {
+    "north-out": "south-out",
+    "south-out": "north-out",
+    "shadow-north-long": "shadow-south-long",
+    "shadow-south-long": "shadow-north-long"
+   },
+   "formationAliases": {}
+  },
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "west",
+   "transform": "identity",
+   "routeAliases": {},
+   "formationAliases": {}
+  }
+ ],
+ "zones": [
+  {
+   "zoneId": "own-home",
+   "rect": [
+    1,
+    9,
+    4,
+    17
+   ]
+  },
+  {
+   "zoneId": "own-approach",
+   "rect": [
+    4,
+    6,
+    11,
+    20
+   ]
+  },
+  {
+   "zoneId": "well-line",
+   "rect": [
+    12,
+    4,
+    18,
+    22
+   ]
+  },
+  {
+   "zoneId": "north-farm",
+   "rect": [
+    12,
+    4,
+    18,
+    10
+   ]
+  },
+  {
+   "zoneId": "centre-farm",
+   "rect": [
+    12,
+    11,
+    18,
+    15
+   ]
+  },
+  {
+   "zoneId": "south-farm",
+   "rect": [
+    12,
+    16,
+    18,
+    22
+   ]
+  },
+  {
+   "zoneId": "north-run",
+   "rect": [
+    1,
+    3,
+    29,
+    4
+   ]
+  },
+  {
+   "zoneId": "south-run",
+   "rect": [
+    1,
+    22,
+    29,
+    23
+   ]
+  },
+  {
+   "zoneId": "enemy-backfield",
+   "rect": [
+    22,
+    6,
+    29,
+    20
+   ]
+  },
+  {
+   "zoneId": "north-perch",
+   "rect": [
+    23,
+    5,
+    28,
+    9
+   ]
+  },
+  {
+   "zoneId": "south-perch",
+   "rect": [
+    23,
+    17,
+    28,
+    21
+   ]
+  },
+  {
+   "zoneId": "shadow-north",
+   "rect": [
+    1,
+    1,
+    29,
+    1
+   ]
+  },
+  {
+   "zoneId": "shadow-south",
+   "rect": [
+    1,
+    25,
+    29,
+    25
+   ]
+  }
+ ],
+ "routes": [
+  {
+   "routeId": "shadow-north-long",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     2,
+     7
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     15,
+     1
+    ],
+    [
+     21,
+     1
+    ],
+    [
+     27,
+     1
+    ],
+    [
+     27,
+     2
+    ],
+    [
+     27,
+     4
+    ],
+    [
+     26,
+     8
+    ]
+   ]
+  },
+  {
+   "routeId": "shadow-south-long",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     2,
+     19
+    ],
+    [
+     3,
+     22
+    ],
+    [
+     3,
+     24
+    ],
+    [
+     3,
+     25
+    ],
+    [
+     9,
+     25
+    ],
+    [
+     15,
+     25
+    ],
+    [
+     21,
+     25
+    ],
+    [
+     27,
+     25
+    ],
+    [
+     27,
+     24
+    ],
+    [
+     27,
+     22
+    ],
+    [
+     26,
+     18
+    ]
+   ]
+  },
+  {
+   "routeId": "strike-line",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     26,
+     8
+    ],
+    [
+     27,
+     10
+    ],
+    [
+     27,
+     12
+    ]
+   ]
+  },
+  {
+   "routeId": "north-out",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     8
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     13,
+     7
+    ],
+    [
+     14,
+     6
+    ]
+   ]
+  },
+  {
+   "routeId": "south-out",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     18
+    ],
+    [
+     8,
+     18
+    ],
+    [
+     13,
+     18
+    ],
+    [
+     14,
+     19
+    ],
+    [
+     14,
+     20
+    ]
+   ]
+  },
+  {
+   "routeId": "centre-probe",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     11
+    ],
+    [
+     8,
+     11
+    ],
+    [
+     11,
+     11
+    ],
+    [
+     14,
+     11
+    ],
+    [
+     15,
+     12
+    ]
+   ]
+  }
+ ],
+ "anchors": [
+  {
+   "anchorId": "home-gate",
+   "position": [
+    4,
+    13
+   ]
+  },
+  {
+   "anchorId": "perch-north",
+   "position": [
+    26,
+    8
+   ]
+  },
+  {
+   "anchorId": "perch-south",
+   "position": [
+    26,
+    18
+   ]
+  }
+ ]
+}

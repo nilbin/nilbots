@@ -476,6 +476,56 @@ internal static class ArenaBasics
     /// lateral detour around transient traffic. Core carriers use this so a
     /// one-tick reservation cannot turn into an endless two-tile orbit.
     /// </summary>
+    /// <summary>
+    /// One kiting backstep: the legal step that most improves the body's
+    /// distance to the given threats, taken without turning - movement never
+    /// changes facing, so the front arc (and with it the rear-arc
+    /// protection) stays on the enemy while the body opens the range.
+    /// Returns false when no step strictly improves the distance, so callers
+    /// fall through to their normal movement instead of jittering in place.
+    /// </summary>
+    public static bool TryStepAway(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        IReadOnlyCollection<Position> threats,
+        Claims claims,
+        string reason)
+    {
+        if (threats.Count == 0)
+            return false;
+        HashSet<Position> blocked = BlockedNow(contract, mind, body, claims);
+        int current = threats.Min(threat =>
+            threat.ChebyshevDistance(body.Position));
+        (ProjectileHeading Heading, Position Tile)? best = RouteHeadings(
+                contract, body)
+            .Select(heading => (
+                Heading: heading,
+                Tile: Step(body.Position, heading)))
+            .Where(candidate =>
+                CanStep(
+                    contract.Map,
+                    body.Position,
+                    candidate.Tile,
+                    candidate.Heading)
+                && !blocked.Contains(candidate.Tile))
+            .Select(candidate => (
+                candidate.Heading,
+                candidate.Tile,
+                Distance: threats.Min(threat =>
+                    threat.ChebyshevDistance(candidate.Tile))))
+            .Where(candidate => candidate.Distance > current)
+            .OrderByDescending(candidate => candidate.Distance)
+            .ThenBy(candidate => (int)candidate.Heading)
+            .Select(candidate =>
+                ((ProjectileHeading, Position)?)(
+                    candidate.Heading, candidate.Tile))
+            .FirstOrDefault();
+        return best is { } step
+            && TryMoveDirect(
+                contract, mind, body, step.Item2, claims, reason);
+    }
+
     public static bool TryMoveDirect(
         GenericActorResolvedMatchContract contract,
         MindContext mind,

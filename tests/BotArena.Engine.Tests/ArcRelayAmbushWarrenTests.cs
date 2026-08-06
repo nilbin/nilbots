@@ -404,6 +404,64 @@ public sealed class ArcRelayAmbushWarrenTests
     }
 
     [Fact]
+    public void DeepWarrenWrapsTheSerpentineInteriorInShadowLanes()
+    {
+        ActorMapDefinition deep = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren10).Map;
+        ActorMapDefinition serpentine = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.AmbushWarren9).Map;
+        Assert.Equal(27, deep.Height);
+        Assert.Equal(31, deep.Width);
+        // The interior is the serpentine map verbatim, two rows lower.
+        for (int y = 1; y <= 21; y++)
+            Assert.Equal(serpentine.TileRows[y], deep.TileRows[y + 2]);
+        // Shadow corridors are fully open; screens carry exactly the three
+        // gates; the whole canvas stays 180-degree chiral.
+        Assert.Equal($"#{new string('.', 29)}#", deep.TileRows[1]);
+        Assert.Equal(deep.TileRows[1], deep.TileRows[25]);
+        Assert.Equal(deep.TileRows[2], deep.TileRows[24]);
+        Assert.Equal(
+            new[] { 3, 15, 27 },
+            Enumerable.Range(0, 31)
+                .Where(x => deep.TileRows[2][x] == '.')
+                .ToArray());
+        for (int y = 0; y < deep.Height; y++)
+        {
+            for (int x = 0; x < deep.Width; x++)
+            {
+                Assert.Equal(
+                    deep.TileRows[y][x],
+                    deep.TileRows[deep.Height - 1 - y][deep.Width - 1 - x]);
+            }
+        }
+        // Landmarks and spawns dropped with the interior.
+        Assert.Contains(
+            deep.Regions,
+            region => region.RegionId == "well-north"
+                && region.Tiles.Single() == new Position(15, 6));
+        Assert.Contains(
+            deep.Regions,
+            region => region.RegionId == "heal-south"
+                && region.Tiles.Single() == new Position(15, 16));
+        Assert.Equal(
+            new Position(1, 10),
+            deep.SpawnAnchors.Single(anchor =>
+                anchor.Spawn.SpawnId == "team-0-unit-0").Spawn.Position);
+        Assert.Equal(
+            new Position(29, 16),
+            deep.SpawnAnchors.Single(anchor =>
+                anchor.Spawn.SpawnId == "team-1-unit-0").Spawn.Position);
+        // Rules byte-identical to the -09 apex arm: map-only mint.
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren9)),
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.AmbushWarren10)));
+    }
+
+    [Fact]
     public void ResolutionPhaseDerivationIsPinned()
     {
         // Golden values: changing these changes which seeds flip the

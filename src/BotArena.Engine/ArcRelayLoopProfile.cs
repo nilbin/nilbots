@@ -553,6 +553,35 @@ public sealed record ArcRelayLoopProfile
         seedPhasedWellLead: true);
 
     /// <summary>
+    /// The deep warren (owner map ruling 2026-08-06): the -09 apex stack on
+    /// a 31x27 canvas that wraps the serpentine interior in true shadow
+    /// lanes - an open perimeter corridor top and bottom behind a
+    /// three-gate screen wall - so a hunting pack can transit the map
+    /// without crossing well country. Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile AmbushWarren10 { get; } = new(
+        "ambush-warren-10",
+        "arc-relay-ambush-10",
+        "arc-relay-ambush-warren-06",
+        ArcRelayMapGeometry.AmbushWarrenDeep,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        seedPhasedWellLead: true);
+
+    /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
     /// contracts and golden replays never change when the product advances.
     /// </summary>
@@ -623,6 +652,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren7,
         AmbushWarren8,
         AmbushWarren9,
+        AmbushWarren10,
         Return16,
         Return24,
         Hot60,
@@ -652,4 +682,5 @@ internal enum ArcRelayMapGeometry
     AmbushWarren,
     AmbushWarrenDense,
     AmbushWarrenSerpentine,
+    AmbushWarrenDeep,
 }
