@@ -4753,3 +4753,19 @@ Measured (ab56): hunter 15-9, 21/24 bars-clean, 5794 engagements, 59%
 kill endings, zero unresolved streaks - the every-fight-ends criterion
 survives the collateral bucket becoming escapes. The lock rides the
 pending-strike wire so the viewer's ray is authoritative.
+
+## 216. Fight-plane consolidation: one vocabulary for when a unit fights
+
+Owner design review 2026-08-07, conducted field by field against the
+ghost as the concrete case. The job plane (doctrines v1) was
+consolidated long ago; the fight plane accreted four generations
+(predation-era holdFire/isolation/stance, focus-fire lock arithmetic,
+inert dodgeCoverage/posture, and the new commit block) with invisible
+couplings - stance removal alone collapsed a battery, and chaseLeash
+lives in three places. The consolidation target, semantics, mapping
+table, deletions (whileCarrying is not a knob - carriers cannot fight
+and drop-to-fight is ruled out; backstab is automatic engine physics),
+and migration guardrails (parity-first, ghost-scope only, strict sugar
+validation) are frozen in docs/SPEC-GHOST-DOCTRINE-V3.md. Execution
+awaits the owner's go; hunter-v1 stays on the ab72 configuration
+meanwhile.
