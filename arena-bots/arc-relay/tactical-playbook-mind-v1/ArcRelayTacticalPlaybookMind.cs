@@ -4068,26 +4068,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // breaks only the STRANDED case: far from the objective and not
         // moving, which is where every camping bug lived.
         //
-        // EXCEPT on the carrier's bank side of the supply lane. The ab51
-        // pocket family (owner replay finding: "it's friendly bodies
-        // blocking it") was an escort whose post resolved onto the loaded
-        // carrier's only bankward corridor tile - on-post forever, corridor
-        // plugged for 114 ticks with no enemy in sight. A post that stands
-        // strictly closer to the bank than the adjacent carrier it escorts
-        // is a plug, not a perch, and the streak-2 supply-lane break must
-        // displace it (TryStepAway pushes away from the own reactor, which
-        // is exactly off the carrier's route).
+        // EXCEPT when this body is THE plug in an adjacent loaded
+        // carrier's route home. The ab51 pocket family (owner replay
+        // finding: "it's friendly bodies blocking it") was an escort whose
+        // post resolved onto the carrier's only bankward corridor tile -
+        // on-post forever, corridor plugged for 114 ticks with no enemy in
+        // sight. "Closer to the bank" is not the test - multiple routes
+        // can exist (owner point) - so the test is path existence: the
+        // carrier has no way home around its own team, and vacating THIS
+        // tile opens one. The streak-2 supply-lane break then displaces
+        // the plug (TryStepAway pushes away from the own reactor, which is
+        // exactly off the carrier's route).
         bool plugsBankLane = onSupplyLane
             && context.Mind.Bodies.Any(other =>
                 context.CarrierUnitIds.Contains(other.UnitId)
                 && other.Position.ChebyshevDistance(body.Position) <= 1
-                && ArenaBasics.StaticDistance(
-                        context.Contract.Map, body.Position, _ownReactor)
-                    is int bodyDistance
-                && ArenaBasics.StaticDistance(
-                        context.Contract.Map, other.Position, _ownReactor)
-                    is int carrierDistance
-                && bodyDistance < carrierDistance);
+                && ArenaBasics.UnblocksCarrierRoute(
+                    context.Contract.Map,
+                    context.Mind,
+                    other,
+                    body,
+                    _ownReactor));
         Position destination = context.Targets.GetValueOrDefault(
             body.UnitId, body.Position);
         if (!plugsBankLane

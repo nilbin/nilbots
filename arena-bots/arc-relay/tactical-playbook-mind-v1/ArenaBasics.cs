@@ -381,6 +381,72 @@ internal static class ArenaBasics
     /// corner rule. Carrier progress uses map distance rather than Chebyshev
     /// distance so moving around cover cannot masquerade as home progress.
     /// </summary>
+    /// <summary>
+    /// Whether this candidate body is THE plug in the loaded carrier's
+    /// route home: with every other own body treated as an obstacle, a
+    /// path from the carrier to the bank exists only once the candidate's
+    /// tile is vacated. No single "supply lane" is assumed — multiple
+    /// routes can exist (owner point 2026-08), and a body the carrier can
+    /// path around is not a plug, however bankward it stands.
+    /// </summary>
+    public static bool UnblocksCarrierRoute(
+        GenericActorMapContract map,
+        MindContext mind,
+        MindBody carrier,
+        MindBody candidate,
+        Position bank)
+    {
+        var obstacles = new HashSet<Position>();
+        foreach (MindBody other in mind.Bodies)
+        {
+            if (other.UnitId != carrier.UnitId
+                && other.UnitId != candidate.UnitId)
+            {
+                obstacles.Add(other.Position);
+            }
+        }
+        if (PathExists(
+                map, carrier.Position, bank, obstacles,
+                candidate.Position))
+        {
+            return false;
+        }
+        return PathExists(map, carrier.Position, bank, obstacles, null);
+    }
+
+    private static bool PathExists(
+        GenericActorMapContract map,
+        Position start,
+        Position goal,
+        IReadOnlySet<Position> obstacles,
+        Position? extraObstacle)
+    {
+        if (start == goal)
+            return true;
+        var visited = new HashSet<Position> { start };
+        var queue = new Queue<Position>();
+        queue.Enqueue(start);
+        while (queue.Count > 0)
+        {
+            Position position = queue.Dequeue();
+            foreach (ProjectileHeading heading in EightWay)
+            {
+                Position next = Step(position, heading);
+                if (!CanStep(map, position, next, heading)
+                    || !visited.Add(next))
+                {
+                    continue;
+                }
+                if (next == goal)
+                    return true;
+                if (obstacles.Contains(next) || next == extraObstacle)
+                    continue;
+                queue.Enqueue(next);
+            }
+        }
+        return false;
+    }
+
     public static int? StaticDistance(
         GenericActorMapContract map,
         Position start,
