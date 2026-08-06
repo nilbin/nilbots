@@ -704,6 +704,28 @@
    "posture": "skirmish",
    "isolation": {
     "supportRange": 4
+   },
+   "commit": {
+    "roles": [
+     "hunter"
+    ],
+    "awareness": {
+     "radius": 8,
+     "memoryTicks": 24
+    },
+    "engageWhen": {
+     "maxThreats": 2,
+     "killWithinTicks": 12
+    },
+    "chase": {
+     "leash": 6,
+     "onlyCatchable": true,
+     "executeBelowHealth": 1
+    },
+    "disengageWhen": {
+     "threats": 3,
+     "withdrawTo": "shadow-north-long"
+    }
    }
   },
   {
@@ -886,78 +908,6 @@
     "enabled": true,
     "threatDistance": 2,
     "returnToFormation": true
-   }
-  },
-  {
-   "engagementId": "ghost-commit",
-   "participants": [
-    "hunter",
-    "medic",
-    "carrier",
-    "lancer",
-    "hauler"
-   ],
-   "targetPriorities": [
-    "enemy-carrier",
-    "lowest-health"
-   ],
-   "tieBreakers": [
-    "distance",
-    "health",
-    "unit-id",
-    "life-id"
-   ],
-   "coordinationScope": "shared-policy",
-   "lockTicks": 4,
-   "lockPreemption": "urgent-carrier",
-   "maximumAttackersPerTarget": 2,
-   "overkillDamage": 0,
-   "aimPreparation": "rotate-to-engage",
-   "chaseLeash": 4,
-   "signatureCoordination": "damage-first",
-   "holdFire": {
-    "withinDistance": 4
-   },
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
-   "release": {
-    "hiddenTicks": 2,
-    "unreachableTicks": 3,
-    "outsideLeash": true,
-    "destroyed": true
-   },
-   "selfDefense": {
-    "enabled": true,
-    "threatDistance": 2,
-    "returnToFormation": true
-   },
-   "posture": "skirmish",
-   "isolation": {
-    "supportRange": 4
-   },
-   "commit": {
-    "awareness": {
-     "radius": 8,
-     "memoryTicks": 24
-    },
-    "engageWhen": {
-     "maxThreats": 2,
-     "killWithinTicks": 12
-    },
-    "chase": {
-     "leash": 6,
-     "onlyCatchable": true,
-     "executeBelowHealth": 1
-    },
-    "disengageWhen": {
-     "threats": 3,
-     "withdrawTo": "shadow-north-long"
-    }
    }
   }
  ],
@@ -2130,7 +2080,7 @@
        "pace": "slowest",
        "scan": "sweep"
       },
-      "engagementId": "ghost-commit",
+      "engagementId": "shadow-strike",
       "stance": "ambush",
       "chaseLeash": 3,
       "arrivalRadius": 2
@@ -2147,7 +2097,7 @@
        "pace": "slowest",
        "leadTiles": 1
       },
-      "engagementId": "ghost-commit",
+      "engagementId": "shadow-strike",
       "stance": "ambush",
       "chaseLeash": 14,
       "arrivalRadius": 1

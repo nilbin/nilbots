@@ -440,7 +440,8 @@ internal sealed class TacticalPlaybookPackage
         CommitEngageWhen EngageWhen,
         CommitAwareness? Awareness = null,
         CommitChase? Chase = null,
-        CommitDisengageWhen? DisengageWhen = null);
+        CommitDisengageWhen? DisengageWhen = null,
+        string[]? Roles = null);
 
     /// <summary>The threat picture: visible enemies plus remembered
     /// positions no staler than MemoryTicks, within Radius of the body.

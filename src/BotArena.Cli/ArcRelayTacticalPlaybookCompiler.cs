@@ -2338,7 +2338,15 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(commit, $"{at}.{id}.commit",
                 ["engageWhen"],
-                ["awareness", "chase", "disengageWhen"]);
+                ["awareness", "chase", "disengageWhen", "roles"]);
+            // Role scoping: the discipline gates only the named roles
+            // (a lone hunter's discretion must not become the escort
+            // pack's rules of engagement - the ab60 lesson).
+            if (commit.TryGetProperty("roles", out JsonElement commitRoles))
+            {
+                References(commitRoles, roleIds,
+                    $"{at}.{id}.commit.roles", 1, 16);
+            }
             if (commit.TryGetProperty("awareness", out JsonElement awareness))
             {
                 Object(awareness, $"{at}.{id}.commit.awareness",

@@ -2245,8 +2245,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 {
                     // Sheet-owned commit discipline (ghost doctrine v2):
                     // the threat picture decides whether this body fights
-                    // at all, before any target is weighed.
+                    // at all, before any target is weighed. Role-scoped:
+                    // a lone hunter's discretion, not the pack's rules.
                     if (policy.Commit is { } commitPolicy
+                        && CommitAppliesTo(commitPolicy, body)
                         && !CommitAllowsEngaging(mind, body, commitPolicy))
                     {
                         continue;
@@ -2582,8 +2584,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorContext.ObservedEnemyState enemy,
         TacticalPlaybookPackage.Engagement policy)
     {
-        if (policy.Commit is not { } commit)
+        if (policy.Commit is not { } commit
+            || !CommitAppliesTo(commit, body))
+        {
             return true;
+        }
         if (commit.EngageWhen.KillWithinTicks > 0)
         {
             int damage = ExpectedDamage(contract, body);
@@ -2613,6 +2618,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         return true;
     }
+
+    private bool CommitAppliesTo(
+        TacticalPlaybookPackage.Commit commit,
+        MindBody body) =>
+        commit.Roles is not { Length: > 0 } roles
+        || roles.Contains(
+            _stableRoles.GetValueOrDefault(body.UnitId),
+            StringComparer.Ordinal);
 
     private static int AttackCadence(
         GenericActorResolvedMatchContract contract,
