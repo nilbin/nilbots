@@ -701,7 +701,10 @@
     "threatDistance": 2,
     "returnToFormation": true
    },
-   "posture": "skirmish"
+   "posture": "skirmish",
+   "isolation": {
+    "supportRange": 4
+   }
   },
   {
    "engagementId": "well-fight",

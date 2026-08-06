@@ -392,7 +392,15 @@ internal sealed class TacticalPlaybookPackage
         ReleasePolicy Release,
         SelfDefensePolicy SelfDefense,
         HoldFire? HoldFire = null,
-        string Posture = "committed");
+        string Posture = "committed",
+        Isolation? Isolation = null);
+
+    /// <summary>
+    /// Assassin discipline: participants only acquire targets that have no
+    /// ally within the support range - strike the straggler, shadow the
+    /// escorted (wellwright carriers measured alone just 12% of ticks).
+    /// </summary>
+    internal sealed record Isolation(int SupportRange);
 
     /// <summary>
     /// Ambush discipline: participants acquire no focus and fire nothing

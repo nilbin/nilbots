@@ -1777,6 +1777,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 if (participants.Length == 0 || mind.Enemies.Length == 0)
                     continue;
                 GenericActorContext.ObservedEnemyState[] enemies = mind.Enemies
+                    .Where(enemy => policy.Isolation is not
+                            TacticalPlaybookPackage.Isolation isolation
+                        || !mind.Enemies.Any(ally =>
+                            ally.ActorId != enemy.ActorId
+                            && ally.Position.ChebyshevDistance(enemy.Position)
+                                <= isolation.SupportRange))
                     .OrderBy(enemy => enemy,
                         Comparer<GenericActorContext.ObservedEnemyState>.Create(
                             (left, right) => CompareTargets(

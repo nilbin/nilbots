@@ -1975,7 +1975,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "overkillDamage", "chaseLeash", "aimPreparation",
                 "signatureCoordination",
                 "dodgeCoverage", "release", "selfDefense",
-            ], ["holdFire", "posture"]);
+            ], ["holdFire", "posture", "isolation"]);
         string id = Identifier(value, "engagementId", at);
         // Skirmish posture (owner direction 2026-08-06): participants fire
         // when their weapon is ready and back away from close threats on the
@@ -1984,6 +1984,13 @@ public static class ArcRelayTacticalPlaybookCompiler
         // historical default.
         if (value.TryGetProperty("posture", out _))
             OneOf(value, "posture", at, "committed", "skirmish");
+        // Assassin discipline: targets with an ally inside the support
+        // range are not acquirable by this engagement's participants.
+        if (value.TryGetProperty("isolation", out JsonElement isolation))
+        {
+            Object(isolation, $"{at}.{id}.isolation", ["supportRange"]);
+            Range(isolation, "supportRange", at, 1, 8);
+        }
         if (value.TryGetProperty("holdFire", out JsonElement holdFire))
         {
             Object(holdFire, $"{at}.{id}.holdFire",
