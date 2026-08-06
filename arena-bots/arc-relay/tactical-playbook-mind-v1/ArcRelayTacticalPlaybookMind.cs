@@ -1663,6 +1663,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 }
                 Position authored = authoredTargets[body.UnitId];
                 string role = roles[body.UnitId];
+                // A swarm has no slots (DECISIONS #212): everyone heads for
+                // the authored target and per-tick tile reservations do the
+                // spacing. Slot contention was the dance factory; there is
+                // nothing here to contend.
+                if (string.Equals(
+                        formation.Shape, "swarm", StringComparison.Ordinal))
+                {
+                    result[body.UnitId] = authored;
+                    assigned.Add(
+                        new TacticalFormationPrimitives.AssignedTarget(
+                            role, authored));
+                    continue;
+                }
                 Position selected = TacticalFormationPrimitives
                     .SelectFormationTarget(
                         _mirrored,

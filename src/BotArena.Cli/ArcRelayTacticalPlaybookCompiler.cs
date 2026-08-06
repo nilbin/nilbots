@@ -2212,8 +2212,13 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "placements", "cohesion", "reflow",
             ]);
         string id = Identifier(value, "formationId", at);
+        // "swarm" (DECISIONS #212): no placement slots at all - every member
+        // heads for the authored target and tile reservations do the spacing.
+        // Slot contention was the dance factory; a swarm has nothing to
+        // contend.
         OneOf(value, "shape", at,
-            "line", "column", "wedge", "arc", "ring", "escort", "custom");
+            "line", "column", "wedge", "arc", "ring", "escort", "custom",
+            "swarm");
         OneOf(value, "orientation", at,
             "route", "enemy-reactor", "own-reactor", "focus-target", "fixed");
         JsonElement spacing = value.GetProperty("spacing");

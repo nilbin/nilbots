@@ -389,7 +389,7 @@
   },
   {
    "formationId": "well-screen",
-   "shape": "escort",
+   "shape": "swarm",
    "orientation": "enemy-reactor",
    "spacing": {
     "metric": "chebyshev",
@@ -521,7 +521,7 @@
   },
   {
    "formationId": "reserve-file",
-   "shape": "escort",
+   "shape": "swarm",
    "orientation": "own-reactor",
    "spacing": {
     "metric": "chebyshev",
