@@ -4353,10 +4353,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         if (engagement.Commit?.DisengageWhen?.WithdrawTo is not string named)
             return false;
-        (int LifeId, bool Active) latch =
+        (int LifeId, int UntilTick) latch =
             _disengaging.GetValueOrDefault(body.UnitId);
-        if (latch.LifeId != body.ActorId.LifeId || !latch.Active)
+        if (latch.LifeId != body.ActorId.LifeId
+            || mind.Tick >= latch.UntilTick)
+        {
             return false;
+        }
         Position[] points = package.WithdrawPoints(named);
         // A withdraw destination at the body's own feet is a no-op that
         // suppresses fighting while going nowhere (the camping-ghost
