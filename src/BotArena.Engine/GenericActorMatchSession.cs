@@ -274,7 +274,15 @@ public sealed class GenericActorMatchSession : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _mode.State;
+            GenericActorModeState state = _mode.State;
+            if (state is GenericActorModeState.ArcRelay arcRelay
+                && _pendingStrikes.Count > 0)
+            {
+                return new GenericActorModeState.ArcRelay(
+                    (GenericActorRuntimeObservation.ModeObservationState
+                        .ArcRelay)WithPendingStrikes(arcRelay.State));
+            }
+            return state;
         }
     }
     public GenericActorMatchDescriptor MatchDescriptor
@@ -6679,7 +6687,37 @@ public sealed class GenericActorMatchSession : IDisposable
             _splitReservations,
             projectiles,
             modeProjection.Scoreboard,
-            modeProjection.Mode);
+            WithPendingStrikes(modeProjection.Mode));
+    }
+
+    /// <summary>
+    /// The session owns declared strikes (DECISIONS #212); every projection
+    /// of the arc mode state — authoritative snapshot, per-team observation,
+    /// external mode state — carries them through here so the lit cone is
+    /// one fact everywhere.
+    /// </summary>
+    private GenericActorRuntimeObservation.ModeObservationState
+        WithPendingStrikes(
+            GenericActorRuntimeObservation.ModeObservationState mode)
+    {
+        if (_pendingStrikes.Count == 0
+            || mode is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay arcRelay)
+        {
+            return mode;
+        }
+        return arcRelay with
+        {
+            PendingStrikes = _pendingStrikes
+                .OrderBy(strike => strike.Shooter)
+                .Select(strike =>
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            strike.Shooter,
+                            strike.ResolveAtTick,
+                            [.. strike.Bolts.SelectMany(bolt => bolt.Path)]))
+                .ToImmutableArray(),
+        };
     }
 
     private static GenericActorMatchResult ToGenericResult(

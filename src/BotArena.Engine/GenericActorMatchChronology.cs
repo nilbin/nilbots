@@ -1643,15 +1643,23 @@ public sealed record GenericActorMatchChronology
             definition,
             tickStart.Events,
             parameterName);
+        // ModeChanged evidence is DRIVER state; declared strikes are session
+        // state the driver cannot know (DECISIONS #212). The evidence match
+        // therefore compares the driver-owned portion, and strike stability
+        // across the lifecycle boundary is required separately.
         bool evidencedArcModeChange =
             before.Mode is GenericActorRuntimeObservation
-                .ModeObservationState.ArcRelay
+                .ModeObservationState.ArcRelay strikesBefore
             && after.Mode is GenericActorRuntimeObservation
-                .ModeObservationState.ArcRelay
+                .ModeObservationState.ArcRelay strikesAfter
+            && strikesBefore.PendingStrikes
+                .SequenceEqual(strikesAfter.PendingStrikes)
             && tickStart.Events.Any(value =>
                 value.UnredactedPayload is GenericActorRuntimeObservation
                     .EventPayload.ModeChanged changed
-                && Equals(changed.State, after.Mode));
+                && Equals(
+                    changed.State,
+                    strikesAfter with { PendingStrikes = [] }));
         bool derivedArcScheduleAdvance = ArcScheduleOnlyAdvance(
             before.Mode,
             after.Mode,
@@ -1732,6 +1740,10 @@ public sealed record GenericActorMatchChronology
             || !left.VisibleSignatures.SequenceEqual(right.VisibleSignatures)
             || left.LatestPulseTeamId != right.LatestPulseTeamId
             || left.LatestPulseTick != right.LatestPulseTick
+            // Declared strikes may not appear, vanish, or move across the
+            // lifecycle boundary either (DECISIONS #212): they change only
+            // inside a step, at declare and at maturation.
+            || !left.PendingStrikes.SequenceEqual(right.PendingStrikes)
             || left.Wells.Length != right.Wells.Length)
         {
             return false;
