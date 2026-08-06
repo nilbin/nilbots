@@ -4067,9 +4067,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // (the unitParked bar still flags true degeneracy). The invariant
         // breaks only the STRANDED case: far from the objective and not
         // moving, which is where every camping bug lived.
+        //
+        // EXCEPT on the carrier's bank side of the supply lane. The ab51
+        // pocket family (owner replay finding: "it's friendly bodies
+        // blocking it") was an escort whose post resolved onto the loaded
+        // carrier's only bankward corridor tile - on-post forever, corridor
+        // plugged for 114 ticks with no enemy in sight. A post that stands
+        // strictly closer to the bank than the adjacent carrier it escorts
+        // is a plug, not a perch, and the streak-2 supply-lane break must
+        // displace it (TryStepAway pushes away from the own reactor, which
+        // is exactly off the carrier's route).
+        bool plugsBankLane = onSupplyLane
+            && context.Mind.Bodies.Any(other =>
+                context.CarrierUnitIds.Contains(other.UnitId)
+                && other.Position.ChebyshevDistance(body.Position) <= 1
+                && ArenaBasics.StaticDistance(
+                        context.Contract.Map, body.Position, _ownReactor)
+                    is int bodyDistance
+                && ArenaBasics.StaticDistance(
+                        context.Contract.Map, other.Position, _ownReactor)
+                    is int carrierDistance
+                && bodyDistance < carrierDistance);
         Position destination = context.Targets.GetValueOrDefault(
             body.UnitId, body.Position);
-        if (body.Position.ChebyshevDistance(destination)
+        if (!plugsBankLane
+            && body.Position.ChebyshevDistance(destination)
             <= order.Movement.ArrivalRadius + 2)
         {
             return false;
