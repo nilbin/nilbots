@@ -2616,6 +2616,13 @@ internal static class ReplayV3Serializer
         writer.WritePropertyName("shooter");
         WriteActorId(writer, value.Shooter);
         writer.WriteNumber("resolveAtTick", value.ResolveAtTick);
+        if (value.Origin is not null)
+        {
+            writer.WritePropertyName("origin");
+            WritePosition(writer, value.Origin);
+        }
+        if (value.CentralHeading is not null)
+            writer.WriteString("centralHeading", value.CentralHeading);
         WriteArray(writer, "tiles", value.Tiles, WritePosition);
         writer.WriteEndObject();
     }

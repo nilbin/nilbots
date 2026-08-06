@@ -805,6 +805,10 @@ export interface ReplayV3ArcRelayModeState {
 export interface ReplayV3ArcPendingStrike extends ReplayV3JsonObject {
   shooter: ReplayV3ActorId;
   resolveAtTick: number;
+  /** The strike's frozen apex; absent on documents written before it. */
+  origin?: ReplayV3Position;
+  /** Declared heading (kebab-case); absent on documents written before it. */
+  centralHeading?: string;
   tiles: ReplayV3Position[];
 }
 

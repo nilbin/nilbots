@@ -1140,15 +1140,34 @@ internal sealed record ReplayV3(
         int ResolveAtTick,
         ImmutableArray<PositionValue> Tiles)
     {
+        /// <summary>
+        /// The strike's frozen apex. Null on replays written before the
+        /// tracking-ray fields existed; a viewer treats a missing origin
+        /// as the shooter's tile.
+        /// </summary>
+        public PositionValue? Origin { get; init; }
+
+        /// <summary>
+        /// The declared heading, in the wire's kebab-case heading grammar.
+        /// Null on replays written before the field existed.
+        /// </summary>
+        public string? CentralHeading { get; init; }
+
         public bool Equals(ArcPendingStrike? other) =>
             other is not null
             && Shooter == other.Shooter
             && ResolveAtTick == other.ResolveAtTick
+            && Origin == other.Origin
+            && string.Equals(
+                CentralHeading, other.CentralHeading,
+                StringComparison.Ordinal)
             && Tiles.SequenceEqual(other.Tiles);
 
         public override int GetHashCode() => HashCode.Combine(
             Shooter,
             ResolveAtTick,
+            Origin,
+            CentralHeading,
             Tiles.Length);
     }
 

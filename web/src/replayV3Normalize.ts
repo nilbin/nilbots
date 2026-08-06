@@ -2416,12 +2416,38 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
     if (own(item, 'pendingStrikes')) {
       array(item.pendingStrikes, `${path}.pendingStrikes`, fail).forEach(
         (entry, index) => {
+          const raw =
+            typeof entry === 'object' && entry !== null
+              ? (entry as Record<string, unknown>)
+              : {};
           const strike = exact(
             entry,
             `${path}.pendingStrikes[${index}]`,
-            ['shooter', 'resolveAtTick', 'tiles'],
+            [
+              'shooter',
+              'resolveAtTick',
+              'tiles',
+              // Tracking-ray fields; absent on documents written before
+              // they existed.
+              ...(own(raw, 'origin') ? ['origin'] : []),
+              ...(own(raw, 'centralHeading') ? ['centralHeading'] : []),
+            ],
             fail,
           );
+          if (own(strike, 'origin')) {
+            position(
+              strike.origin,
+              `${path}.pendingStrikes[${index}].origin`,
+              fail,
+            );
+          }
+          if (own(strike, 'centralHeading')) {
+            heading(
+              strike.centralHeading,
+              `${path}.pendingStrikes[${index}].centralHeading`,
+              fail,
+            );
+          }
           actorId(strike.shooter, `${path}.pendingStrikes[${index}].shooter`, fail);
           integer(
             strike.resolveAtTick,
@@ -7810,6 +7836,10 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
     pendingStrikes: (mode.pendingStrikes ?? []).map((strike) => ({
       shooter: identity(strike.shooter),
       resolveAtTick: strike.resolveAtTick,
+      origin: strike.origin ? copyPosition(strike.origin) : null,
+      centralHeading:
+        (strike.centralHeading as Model.ReplayProjectileHeading | undefined) ??
+        null,
       tiles: strike.tiles.map(copyPosition),
     })),
   };

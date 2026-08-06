@@ -4536,6 +4536,8 @@ public sealed class GenericActorMatchSession : IDisposable
                         .ArcRelayPendingStrikeState(
                             strike.Shooter,
                             strike.ResolveAtTick,
+                            strike.Origin,
+                            strike.CentralHeading,
                             strike.TelegraphTiles))
                 .ToImmutableArray(),
         };
@@ -6874,6 +6876,8 @@ public sealed class GenericActorMatchSession : IDisposable
                         .ArcRelayPendingStrikeState(
                             strike.Shooter,
                             strike.ResolveAtTick,
+                            strike.Origin,
+                            strike.CentralHeading,
                             strike.TelegraphTiles))
                 .ToImmutableArray(),
         };

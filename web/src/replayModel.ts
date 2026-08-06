@@ -1004,6 +1004,10 @@ export interface ReplayArcRelayModeState {
   pendingStrikes: {
     shooter: ReplayActorIdentity;
     resolveAtTick: number;
+    /** The strike's frozen apex; null on documents written before it. */
+    origin: ReplayPosition | null;
+    /** Declared heading; null on documents written before it. */
+    centralHeading: ReplayProjectileHeading | null;
     tiles: ReplayPosition[];
   }[];
 }

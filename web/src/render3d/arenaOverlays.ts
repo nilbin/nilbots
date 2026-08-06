@@ -12,6 +12,7 @@ import {
   arrivalsAt,
   posesAt,
   spentBoltsAt,
+  strikeAimsAt,
   strikeSlashesAt,
 } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
@@ -102,6 +103,9 @@ export function buildOverlays(
   const strikeSlashes = buildStrikeSlashes(replay, disposables);
   group.add(strikeSlashes.group);
 
+  const strikeAims = buildStrikeAims(replay, disposables);
+  group.add(strikeAims.group);
+
   const absorptions = buildAbsorptions(replay, disposables);
   group.add(absorptions.group);
 
@@ -157,6 +161,7 @@ export function buildOverlays(
     impacts.update(tick, fraction);
     spent.update(time);
     strikeSlashes.update(time);
+    strikeAims.update(time);
     absorptions.update(tick, fraction);
     arrivals.update(time);
   };
@@ -2491,6 +2496,73 @@ function buildStrikeSlashes(
     }
     for (let index = impactsUsed; index < impacts.pool.length; index++) {
       impacts.pool[index].visible = false;
+    }
+  };
+
+  return { group, update };
+}
+
+/**
+ * The tracking ray of a declared strike in windup (owner direction
+ * 2026-08): a thin line from the strike's frozen apex to the body it was
+ * for at declare, FOLLOWING that body as it moves. When the anchor steps
+ * off the wedge the ray fades to a ghost — the escape read — and the
+ * slash then tells the truth about who actually ate the strike. Thinner
+ * and dimmer than the slash so windup and landing can never be confused.
+ */
+function buildStrikeAims(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (time: number) => void } {
+  const group = new THREE.Group();
+  const geometry = new THREE.PlaneGeometry(1, 0.07);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const pool: THREE.Mesh[] = [];
+  const borrow = (index: number) => {
+    while (pool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        color: '#f87171',
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.visible = false;
+      mesh.position.y = 0.045;
+      group.add(mesh);
+      pool.push(mesh);
+      disposables.push(material);
+    }
+    return pool[index];
+  };
+
+  const update = (time: number) => {
+    let used = 0;
+    for (const aim of strikeAimsAt(replay, time)) {
+      if (!aim.target) continue;
+      const fromX = aim.origin.x + 0.5;
+      const fromZ = aim.origin.y + 0.5;
+      const toX = aim.target.x + 0.5;
+      const toZ = aim.target.y + 0.5;
+      const dx = toX - fromX;
+      const dz = toZ - fromZ;
+      const length = Math.hypot(dx, dz);
+      if (length < 0.01) continue;
+      const mesh = borrow(used++);
+      mesh.visible = true;
+      mesh.position.set((fromX + toX) / 2, 0.045, (fromZ + toZ) / 2);
+      mesh.rotation.y = -Math.atan2(dz, dx);
+      mesh.scale.set(length, 1, 1);
+      const pulse = 0.75 + 0.25 * Math.sin(time * Math.PI * 6);
+      (mesh.material as THREE.MeshBasicMaterial).opacity = aim.escaped
+        ? 0.1
+        : (0.2 + 0.25 * aim.urgency) * pulse;
+    }
+    for (let index = used; index < pool.length; index++) {
+      pool[index].visible = false;
     }
   };
 

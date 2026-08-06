@@ -1493,7 +1493,12 @@ internal static class ReplayV3Projection
                 new ReplayV3.ArcPendingStrike(
                     ActorId(strike.Shooter),
                     strike.ResolveAtTick,
-                    [.. strike.Tiles.Select(Position)]))],
+                    [.. strike.Tiles.Select(Position)])
+                {
+                    Origin = Position(strike.Origin),
+                    CentralHeading = ProjectileHeading(
+                        strike.CentralHeading),
+                })],
         };
 
     internal static ReplayV3.MatchResult MatchResult(

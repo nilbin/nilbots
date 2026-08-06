@@ -8,6 +8,7 @@ import type {
   ReplayPosition,
   ReplayProjectileHeading,
   ReplayStableUnitKey,
+  ReplayTick,
   ReplayUnitLifecycleStatus,
   ReplayWorldSnapshot,
 } from '../replayModel';
@@ -482,6 +483,157 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
     });
   }
   return poses;
+}
+
+const HEADING_VECTORS: Record<ReplayProjectileHeading, [number, number]> = {
+  north: [0, -1],
+  'north-east': [1, -1],
+  east: [1, 0],
+  'south-east': [1, 1],
+  south: [0, 1],
+  'south-west': [-1, 1],
+  west: [-1, 0],
+  'north-west': [-1, -1],
+};
+
+export interface StrikeAim {
+  /** The strike's frozen apex (tile coordinates). */
+  origin: ReplayPosition;
+  /** 0..1: how close the resolve tick is. */
+  urgency: number;
+  /**
+   * The anchored victim's CURRENT interpolated pose — the body the strike
+   * was for at declare, followed as it moves. Null when the wedge was
+   * empty at declare (a pending whiff draws no ray).
+   */
+  target: { actorKey: ReplayActorLifeKey; x: number; y: number } | null;
+  /** True once the anchored victim no longer stands on a wedge tile. */
+  escaped: boolean;
+}
+
+/**
+ * Tracking rays for declared strikes (owner direction 2026-08): the ray is
+ * ANCHORED at declare — whoever the resolution rule would pick when the
+ * cone lights — and follows that body through the windup. It does not
+ * re-pick per frame; if the anchor steps off the wedge the ray reports
+ * escaped (the renderers fade it) and the slash then shows who actually
+ * ate the strike. The anchor mirrors the engine's single-target rule:
+ * nearest body in the wedge by Chebyshev, most-central on integer-exact
+ * angle ties, canonical (y, x) order last.
+ */
+export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
+  const tickCount = replay.ticks.length;
+  if (tickCount === 0) return [];
+  const clamped = Math.max(0, Math.min(time, tickCount));
+  const tick = Math.min(Math.floor(clamped), tickCount - 1);
+  const current = replay.ticks[tick];
+  const strikes = arcPendingStrikes(current);
+  if (strikes.length === 0) return [];
+  const poses = posesAt(replay, time);
+  const aims: StrikeAim[] = [];
+  for (const strike of strikes) {
+    let declare = tick;
+    while (
+      declare > 0 &&
+      arcPendingStrikes(replay.ticks[declare - 1]).some(
+        (candidate) =>
+          sameIdentity(candidate.shooter, strike.shooter) &&
+          candidate.resolveAtTick === strike.resolveAtTick,
+      )
+    ) {
+      declare -= 1;
+    }
+    const declared = replay.ticks[declare].after;
+    const shooter = declared.actors.find((actor) =>
+      sameIdentity(actor.identity, strike.shooter),
+    );
+    const origin = strike.origin ?? shooter?.position ?? null;
+    if (!origin) continue;
+    const urgency =
+      strike.resolveAtTick - current.tick <= 1
+        ? 1
+        : 1 / Math.max(1, strike.resolveAtTick - current.tick);
+    const wedge = new Set(
+      strike.tiles.map((tile) => `${tile.x},${tile.y}`),
+    );
+    const heading = strike.centralHeading
+      ? HEADING_VECTORS[strike.centralHeading]
+      : null;
+    const anchor = declared.actors
+      .filter(
+        (actor) =>
+          !sameIdentity(actor.identity, strike.shooter) &&
+          wedge.has(`${actor.position.x},${actor.position.y}`),
+      )
+      .sort((a, b) => {
+        const ringA = Math.max(
+          Math.abs(a.position.x - origin.x),
+          Math.abs(a.position.y - origin.y),
+        );
+        const ringB = Math.max(
+          Math.abs(b.position.x - origin.x),
+          Math.abs(b.position.y - origin.y),
+        );
+        if (ringA !== ringB) return ringA - ringB;
+        if (heading) {
+          const [ux, uy] = heading;
+          const crossA = Math.abs(
+            (a.position.x - origin.x) * uy - (a.position.y - origin.y) * ux,
+          );
+          const dotA =
+            (a.position.x - origin.x) * ux + (a.position.y - origin.y) * uy;
+          const crossB = Math.abs(
+            (b.position.x - origin.x) * uy - (b.position.y - origin.y) * ux,
+          );
+          const dotB =
+            (b.position.x - origin.x) * ux + (b.position.y - origin.y) * uy;
+          const angle = crossA * dotB - crossB * dotA;
+          if (angle !== 0) return angle;
+        }
+        if (a.position.y !== b.position.y) return a.position.y - b.position.y;
+        return a.position.x - b.position.x;
+      })[0];
+    if (!anchor) {
+      aims.push({ origin, urgency, target: null, escaped: false });
+      continue;
+    }
+    const now = current.after.actors.find(
+      (actor) => actor.actorKey === anchor.actorKey,
+    );
+    const escaped =
+      !now || !wedge.has(`${now.position.x},${now.position.y}`);
+    const pose = poses.find((value) => value.actorKey === anchor.actorKey);
+    aims.push({
+      origin,
+      urgency,
+      target: pose
+        ? { actorKey: anchor.actorKey, x: pose.x, y: pose.y }
+        : null,
+      escaped,
+    });
+  }
+  return aims;
+}
+
+type ArcPendingStrikeState = Extract<
+  NonNullable<ReplayTick['after']['mode']>,
+  { kind: 'arc-relay' }
+>['pendingStrikes'][number];
+
+function arcPendingStrikes(tick: ReplayTick): ArcPendingStrikeState[] {
+  const mode = tick.after.mode;
+  return mode && mode.kind === 'arc-relay' && 'pendingStrikes' in mode
+    ? mode.pendingStrikes
+    : [];
+}
+
+function sameIdentity(
+  a: ReplayActorIdentity,
+  b: ReplayActorIdentity,
+): boolean {
+  return (
+    a.teamId === b.teamId && a.unitId === b.unitId && a.lifeId === b.lifeId
+  );
 }
 
 const strikeProfileCache = new WeakMap<ReplayModel, ReadonlySet<string>>();

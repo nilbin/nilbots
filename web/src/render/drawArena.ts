@@ -41,6 +41,7 @@ import {
   arrivalsAt,
   boltsAt,
   posesAt,
+  strikeAimsAt,
   strikeSlashesAt,
   type Arrival,
   type BotPose,
@@ -343,6 +344,7 @@ export function drawArena(
   drawSpill();
   if (teamVision !== null) drawFog(teamVision.visibleTiles);
   drawProjectiles();
+  drawStrikeAims();
   drawStrikeSlashes();
   drawVolleys();
   drawHeardSounds();
@@ -1025,6 +1027,33 @@ export function drawArena(
       ctx.beginPath();
       ctx.arc(cx, cy, tile * 1.5, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  // The tracking ray of a declared strike in windup: apex to the body it
+  // was for at declare, following that body. An escaped anchor fades the
+  // ray to a ghost; the slash tells the landing truth.
+  function drawStrikeAims(): void {
+    const aims = strikeAimsAt(replay, time);
+    if (aims.length === 0) return;
+    for (const aim of aims) {
+      if (!aim.target) continue;
+      const pulse = 0.75 + 0.25 * Math.sin(time * Math.PI * 6);
+      const alpha = aim.escaped
+        ? 0.12
+        : (0.25 + 0.3 * aim.urgency) * pulse;
+      ctx.strokeStyle = hexWithAlpha('#f87171', alpha);
+      ctx.lineWidth = Math.max(1, tile * 0.07);
+      ctx.beginPath();
+      ctx.moveTo(
+        px(aim.origin.x) + tile / 2,
+        py(aim.origin.y) + tile / 2,
+      );
+      ctx.lineTo(
+        px(aim.target.x) + tile / 2,
+        py(aim.target.y) + tile / 2,
+      );
+      ctx.stroke();
     }
   }
 

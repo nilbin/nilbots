@@ -901,17 +901,23 @@ public sealed record GenericActorRuntimeObservation(
     public sealed record ArcRelayPendingStrikeState(
         ActorIdentity Shooter,
         int ResolveAtTick,
+        Position Origin,
+        ProjectileHeading CentralHeading,
         ImmutableArray<Position> Tiles)
     {
         public bool Equals(ArcRelayPendingStrikeState? other) =>
             other is not null
             && Shooter == other.Shooter
             && ResolveAtTick == other.ResolveAtTick
+            && Origin == other.Origin
+            && CentralHeading == other.CentralHeading
             && Tiles.SequenceEqual(other.Tiles);
 
         public override int GetHashCode() => HashCode.Combine(
             Shooter,
             ResolveAtTick,
+            Origin,
+            CentralHeading,
             Tiles.Length);
     }
 

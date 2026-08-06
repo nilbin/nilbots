@@ -459,6 +459,8 @@ internal static class GenericActorSdkModelMapper
                         new Sdk.GenericActorContext.ArcRelayPendingStrike(
                             ToSdk(strike.Shooter),
                             strike.ResolveAtTick,
+                            ToSdk(strike.Origin),
+                            ToSdk(strike.CentralHeading),
                             [.. strike.Tiles.Select(ToSdk)]))],
                 },
             _ => throw UnknownUnion(value),
