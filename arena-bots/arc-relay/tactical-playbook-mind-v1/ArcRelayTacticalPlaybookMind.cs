@@ -4350,10 +4350,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (latch.LifeId != body.ActorId.LifeId || !latch.Active)
             return false;
         Position[] points = package.WithdrawPoints(named);
-        if (points.Length == 0)
+        // A withdraw destination at the body's own feet is a no-op that
+        // suppresses fighting while going nowhere (the camping-ghost
+        // scene, owner catch 2026-08). Withdrawal means AWAY: skip points
+        // already underfoot and take the one farthest from the nearest
+        // threat.
+        Position[] away = [.. points
+            .Where(point => body.Position.ChebyshevDistance(point) > 2)];
+        if (away.Length == 0)
             return false;
-        Position destination = points
-            .OrderBy(point => body.Position.ChebyshevDistance(point))
+        Position destination = away
+            .OrderByDescending(point => mind.Enemies
+                .Select(enemy => enemy.Position.ChebyshevDistance(point))
+                .DefaultIfEmpty(int.MaxValue)
+                .Min())
+            .ThenBy(point => body.Position.ChebyshevDistance(point))
             .ThenBy(point => ArenaBasics.FrameY(point, _mirrored))
             .ThenBy(point => ArenaBasics.FrameX(point, _mirrored))
             .First();
