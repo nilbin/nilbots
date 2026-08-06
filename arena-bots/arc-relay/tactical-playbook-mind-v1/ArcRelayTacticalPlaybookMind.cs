@@ -4366,14 +4366,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (!context.Orders.TryGetValue(
                 body.UnitId, out TacticalPlaybookPackage.Order? order))
             return false;
-        int limit = string.Equals(
-            order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
+        // Standing beside an own carrier is standing on the supply lane
+        // (owner replay review, measured again as the ab35 stuck-carrier
+        // wall): a fight nearby is no excuse - the combat exemption does
+        // not apply there and the patience is a quarter of the usual.
+        bool onSupplyLane = !context.CarrierUnitIds.Contains(body.UnitId)
+            && context.Mind.Bodies.Any(other =>
+                context.CarrierUnitIds.Contains(other.UnitId)
+                && other.Position.ChebyshevDistance(body.Position) <= 1);
+        int limit = onSupplyLane
+            ? 2
+            : string.Equals(
+                order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
         if (idle.Streak < limit
             || body.Cooldown > 0
             || context.CarrierUnitIds.Contains(body.UnitId)
             || context.RepairerUnitIds.Contains(body.UnitId)
-            || context.Mind.Enemies.Any(enemy =>
-                enemy.Position.ChebyshevDistance(body.Position) <= 8))
+            || !onSupplyLane
+                && context.Mind.Enemies.Any(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) <= 8))
         {
             return false;
         }
