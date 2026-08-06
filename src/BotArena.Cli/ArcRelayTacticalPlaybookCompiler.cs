@@ -166,6 +166,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (libraryMerged is not null)
             source = libraryMerged.RootElement;
 
+        using JsonDocument? doctrineDesugared = DesugarDoctrines(source, path);
+        if (doctrineDesugared is not null)
+            source = doctrineDesugared.RootElement;
+
         Object(source, path,
             [
                 "schema", "playbookId", "auditStatus", "composition",
@@ -817,6 +821,195 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (assignment.TryGetProperty("stance", out JsonElement stance))
             expanded["stance"] = stance.GetString();
         return expanded;
+    }
+
+    /// <summary>
+    /// Desugars the mode/reaction doctrine grammar (owner design 2026-08-08)
+    /// into the legacy task/maneuver machinery BEFORE validation, so the mind
+    /// contract is untouched and consistency holds by construction: one
+    /// authored condition generates the mode's activation set and exit set,
+    /// task priorities come from mode ORDER (later mode outranks earlier -
+    /// there are no hand-numbered priorities to invert), and every generated
+    /// assignment uses the alternate-on-invalid fallback so no desugared
+    /// order can park a unit off its post. A doctrine is a small state
+    /// machine per role: each mode carries a default (formation, movement,
+    /// engagement, stance) and `while`/`until` predicate groups as its
+    /// transitions; an optional escort row rides along (the beast's medic).
+    /// Returns null when the playbook authors no doctrines.
+    /// </summary>
+    private static JsonDocument? DesugarDoctrines(
+        JsonElement source,
+        string path)
+    {
+        if (!source.TryGetProperty("doctrines", out JsonElement doctrines))
+            return null;
+        JsonObject root = JsonNode.Parse(source.GetRawText())!.AsObject();
+        root.Remove("doctrines");
+        JsonObject maneuvers = root["authoring"]!["maneuvers"]!.AsObject();
+        JsonObject conditionSets =
+            root["authoring"]!["conditionSets"]!.AsObject();
+        JsonArray tasks = root["coordination"]!["tasks"]!.AsArray();
+        string[] phaseIds = root["coordination"]!["phases"]!.AsArray()
+            .Select(phase => phase!["phaseId"]!.GetValue<string>())
+            .ToArray();
+
+        foreach (JsonProperty doctrine in doctrines.EnumerateObject())
+        {
+            string id = doctrine.Name;
+            JsonElement value = doctrine.Value;
+            Object(value, $"{path}.doctrines.{id}",
+                [
+                    "role", "assignmentProfileId", "custodyId",
+                    "claimAnchor", "modes",
+                ]);
+            string role = value.GetProperty("role").GetString()!;
+            string profile = value.GetProperty("assignmentProfileId")
+                .GetString()!;
+            string custody = value.GetProperty("custodyId").GetString()!;
+            string claimAnchor = value.GetProperty("claimAnchor").GetString()!;
+            JsonElement[] modes = BoundedArray(
+                value.GetProperty("modes"), $"{path}.doctrines.{id}", 1, 8);
+            for (int index = 0; index < modes.Length; index++)
+            {
+                JsonElement mode = modes[index];
+                string modeId = mode.GetProperty("modeId").GetString()!;
+                string name = $"{id}-{modeId}";
+                JsonElement defaults = mode.GetProperty("default");
+
+                string whenSet = "convert-freely";
+                if (mode.TryGetProperty("while", out JsonElement whileGroups)
+                    && whileGroups.GetArrayLength() > 0)
+                {
+                    whenSet = $"{name}-on";
+                    conditionSets[whenSet] =
+                        JsonNode.Parse(whileGroups.GetRawText());
+                }
+                string failSet = "task-never-done";
+                if (mode.TryGetProperty("until", out JsonElement untilGroups)
+                    && untilGroups.GetArrayLength() > 0)
+                {
+                    failSet = $"{name}-off";
+                    conditionSets[failSet] =
+                        JsonNode.Parse(untilGroups.GetRawText());
+                }
+                else if (whenSet != "convert-freely")
+                {
+                    Console.Error.WriteLine(
+                        $"lint: doctrine '{id}' mode '{modeId}' has 'while' "
+                        + "but no 'until' - once active it only yields to a "
+                        + "later mode, never back to an earlier one.");
+                }
+
+                var assignment = new JsonObject
+                {
+                    ["arrivalRadius"] = defaults.TryGetProperty(
+                        "arrivalRadius", out JsonElement arrival)
+                        ? arrival.GetInt32() : 2,
+                    ["completion"] = "continuous",
+                    ["chaseLeash"] = defaults.TryGetProperty(
+                        "chaseLeash", out JsonElement leash)
+                        ? leash.GetInt32() : 2,
+                    ["engagementId"] = defaults.GetProperty("engagementId")
+                        .GetString(),
+                    ["custodyId"] = custody,
+                    ["fallbackId"] = "continue-with-alternate",
+                    ["assignmentProfileId"] = profile,
+                };
+                if (defaults.TryGetProperty("stance", out JsonElement stance))
+                    assignment["stance"] = stance.GetString();
+                maneuvers[$"{name}-set"] = new JsonObject
+                {
+                    ["tracks"] = new JsonObject
+                    {
+                        ["main"] = new JsonObject
+                        {
+                            ["formationId"] = defaults
+                                .GetProperty("formationId").GetString(),
+                            ["movement"] = JsonNode.Parse(
+                                defaults.GetProperty("movement").GetRawText()),
+                            ["assignments"] = new JsonObject
+                            {
+                                [name] = assignment,
+                            },
+                        },
+                    },
+                };
+
+                var rows = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["assignmentId"] = name,
+                        ["orderId"] = name,
+                        ["roles"] = new JsonArray(role),
+                        ["classes"] = new JsonArray(),
+                        ["minimum"] = 0,
+                        ["preferred"] = 1,
+                        ["maximum"] = 1,
+                        ["carrier"] = "forbid",
+                        ["distance"] = new JsonObject
+                        {
+                            ["kind"] = "anchor",
+                            ["target"] = claimAnchor,
+                        },
+                    },
+                };
+                if (mode.TryGetProperty("escort", out JsonElement escort)
+                    && escort.ValueKind == JsonValueKind.Object)
+                {
+                    rows.Add(new JsonObject
+                    {
+                        ["assignmentId"] = $"{name}-escort",
+                        ["orderId"] = name,
+                        ["roles"] = JsonNode.Parse(
+                            escort.GetProperty("roles").GetRawText()),
+                        ["classes"] = new JsonArray(),
+                        ["minimum"] = 0,
+                        ["preferred"] = 1,
+                        ["maximum"] = escort.TryGetProperty(
+                            "maximum", out JsonElement escortMax)
+                            ? escortMax.GetInt32() : 1,
+                        ["carrier"] = "forbid",
+                        ["distance"] = new JsonObject
+                        {
+                            ["kind"] = "anchor",
+                            ["target"] = claimAnchor,
+                        },
+                    });
+                }
+                // Later modes outrank earlier ones by construction; the band
+                // under 8 keeps every doctrine mode able to preempt the
+                // legacy standing tasks (8+) while home-defense-class tasks
+                // can still be authored under it if ever needed.
+                tasks.Add(new JsonObject
+                {
+                    ["taskId"] = name,
+                    ["priority"] = 7 - index,
+                    ["activation"] = "while-true",
+                    ["preemption"] = "higher-priority",
+                    ["participantLoss"] = "replace",
+                    ["triggerStableTicks"] = 1,
+                    ["minimumTicks"] = 8,
+                    ["timeoutTicks"] = 600,
+                    ["cooldownTicks"] = 2,
+                    ["minimumPrimaryBodies"] = 1,
+                    ["eligiblePhases"] = new JsonArray(
+                        phaseIds.Select(phase => (JsonNode)phase!).ToArray()),
+                    ["assignments"] = rows,
+                    ["whenConditionSetId"] = whenSet,
+                    ["completeConditionSetId"] = "task-never-done",
+                    ["failConditionSetId"] = failSet,
+                    ["reintegration"] = new JsonObject
+                    {
+                        ["mode"] = "primary-order",
+                        ["orderIds"] = new JsonArray(),
+                        ["completeConditionSetId"] = "",
+                        ["timeoutTicks"] = 0,
+                    },
+                });
+            }
+        }
+        return JsonDocument.Parse(root.ToJsonString());
     }
 
     /// <summary>

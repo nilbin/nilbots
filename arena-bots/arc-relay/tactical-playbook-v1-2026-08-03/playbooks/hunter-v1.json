@@ -1582,52 +1582,6 @@
   "initialPhase": "prowl",
   "tasks": [
    {
-    "taskId": "south-lane-hunt",
-    "priority": 15,
-    "activation": "while-true",
-    "preemption": "higher-priority",
-    "participantLoss": "replace",
-    "triggerStableTicks": 1,
-    "minimumTicks": 8,
-    "timeoutTicks": 600,
-    "cooldownTicks": 2,
-    "minimumPrimaryBodies": 1,
-    "eligiblePhases": [
-     "prowl",
-     "prowl-south",
-     "apex"
-    ],
-    "assignments": [
-     {
-      "assignmentId": "south-shadow",
-      "orderId": "shadow-prowl",
-      "roles": [
-       "hunter"
-      ],
-      "classes": [
-       "kestrel"
-      ],
-      "minimum": 0,
-      "preferred": 1,
-      "maximum": 1,
-      "carrier": "forbid",
-      "distance": {
-       "kind": "anchor",
-       "target": "perch-south"
-      }
-     }
-    ],
-    "whenConditionSetId": "convert-freely",
-    "completeConditionSetId": "task-never-done",
-    "failConditionSetId": "task-never-done",
-    "reintegration": {
-     "mode": "primary-order",
-     "orderIds": [],
-     "completeConditionSetId": "",
-     "timeoutTicks": 0
-    }
-   },
-   {
     "taskId": "home-defense",
     "priority": 6,
     "activation": "while-true",
@@ -1898,52 +1852,6 @@
     "completionReleaseMode": "armed-carrier-loss"
    },
    {
-    "taskId": "carrier-cutoff-task",
-    "priority": 12,
-    "activation": "while-true",
-    "preemption": "higher-priority",
-    "participantLoss": "replace",
-    "triggerStableTicks": 1,
-    "minimumTicks": 6,
-    "timeoutTicks": 600,
-    "cooldownTicks": 2,
-    "minimumPrimaryBodies": 1,
-    "eligiblePhases": [
-     "prowl",
-     "prowl-south",
-     "apex"
-    ],
-    "assignments": [
-     {
-      "assignmentId": "cutoff-strike",
-      "orderId": "cutoff-strike",
-      "roles": [
-       "hunter"
-      ],
-      "classes": [
-       "kestrel"
-      ],
-      "minimum": 1,
-      "preferred": 1,
-      "maximum": 1,
-      "carrier": "forbid",
-      "distance": {
-       "kind": "anchor",
-       "target": "perch-north"
-      }
-     }
-    ],
-    "whenConditionSetId": "carrier-sighted",
-    "completeConditionSetId": "task-never-done",
-    "failConditionSetId": "prey-cold",
-    "reintegration": {
-     "mode": "primary-order",
-     "orderIds": [],
-     "completeConditionSetId": "",
-     "timeoutTicks": 0
-    }
-   },
-   {
     "taskId": "kill-window-surge",
     "priority": 30,
     "activation": "while-true",
@@ -2016,13 +1924,11 @@
       "assignmentId": "apex-assassin",
       "orderId": "apex-strike",
       "roles": [
-       "hunter",
        "hauler",
        "carrier",
        "lancer"
       ],
       "classes": [
-       "kestrel",
        "relay",
        "longshot",
        "towline"
@@ -2133,5 +2039,98 @@
     ]
    }
   ]
+ },
+ "doctrines": {
+  "ghost": {
+   "role": "hunter",
+   "assignmentProfileId": "shadow-standard",
+   "custodyId": "well-custody",
+   "claimAnchor": "home-gate",
+   "modes": [
+    {
+     "modeId": "prowl",
+     "default": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "shadow-north-long",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "engagementId": "shadow-strike",
+      "stance": "ambush",
+      "chaseLeash": 3,
+      "arrivalRadius": 2
+     }
+    },
+    {
+     "modeId": "stalk",
+     "default": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "enemy-carrier-cutoff",
+       "target": "perch-north",
+       "stuckTicks": 8,
+       "pace": "slowest",
+       "leadTiles": 1
+      },
+      "engagementId": "shadow-strike",
+      "stance": "ambush",
+      "chaseLeash": 14,
+      "arrivalRadius": 1
+     },
+     "while": [
+      [
+       "carrier-known"
+      ],
+      [
+       "enemy-remembered"
+      ],
+      [
+       "enemy-remembered-deep"
+      ]
+     ],
+     "until": [
+      [
+       "carriers-none",
+       "well-line-cold",
+       "backfield-cold"
+      ]
+     ]
+    },
+    {
+     "modeId": "beast",
+     "default": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "strike-line",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "engagementId": "carrier-strike",
+      "stance": "ambush",
+      "chaseLeash": 14,
+      "arrivalRadius": 2
+     },
+     "while": [
+      [
+       "shadow-op"
+      ]
+     ],
+     "until": [
+      [
+       "shadow-cooled"
+      ]
+     ],
+     "escort": {
+      "roles": [
+       "medic"
+      ],
+      "maximum": 1
+     }
+    }
+   ]
+  }
  }
 }
