@@ -39,6 +39,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _idleBreaks;
     private readonly Dictionary<int, (int LifeId, bool Active)> _disengaging
         = [];
+    private readonly Dictionary<int, (int LifeId, Position Rally)>
+        _withdrawRallies = [];
     private readonly Dictionary<int, (int LifeId, int Index)> _patrols = [];
     private Position[]? _trafficWaypoints;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
@@ -2564,6 +2566,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             active = false;
         }
+        if (!active)
+            _withdrawRallies.Remove(body.UnitId);
         _disengaging[body.UnitId] = (body.ActorId.LifeId, active);
         if (active)
             return false;
@@ -4355,21 +4359,39 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // scene, owner catch 2026-08). Withdrawal means AWAY: skip points
         // already underfoot and take the one farthest from the nearest
         // threat.
-        Position[] away = [.. points
-            .Where(point => body.Position.ChebyshevDistance(point) > 2)];
-        if (away.Length == 0)
-            return false;
-        Position destination = away
-            .OrderByDescending(point => mind.Enemies
-                .Select(enemy => enemy.Position.ChebyshevDistance(point))
-                .DefaultIfEmpty(int.MaxValue)
-                .Min())
-            .ThenBy(point => body.Position.ChebyshevDistance(point))
-            .ThenBy(point => ArenaBasics.FrameY(point, _mirrored))
-            .ThenBy(point => ArenaBasics.FrameX(point, _mirrored))
-            .First();
+        // The rally is STICKY: chosen once when the latch trips, kept
+        // until release or arrival. Re-picking per tick made the
+        // farthest-from-threat choice flip as enemies moved, and the ghost
+        // paced two tiles forever - the dance the owner caught (ab69
+        // trace: 'withdraw via North / via South' alternating every tick).
+        (int LifeId, Position Rally) rally =
+            _withdrawRallies.GetValueOrDefault(body.UnitId);
+        if (rally.LifeId != body.ActorId.LifeId)
+        {
+            Position[] away = [.. points
+                .Where(point => body.Position.ChebyshevDistance(point) > 2)];
+            if (away.Length == 0)
+                return false;
+            rally = (body.ActorId.LifeId, away
+                .OrderByDescending(point => mind.Enemies
+                    .Select(enemy =>
+                        enemy.Position.ChebyshevDistance(point))
+                    .DefaultIfEmpty(int.MaxValue)
+                    .Min())
+                .ThenBy(point => body.Position.ChebyshevDistance(point))
+                .ThenBy(point => ArenaBasics.FrameY(point, _mirrored))
+                .ThenBy(point => ArenaBasics.FrameX(point, _mirrored))
+                .First());
+            _withdrawRallies[body.UnitId] = rally;
+        }
+        if (body.Position.ChebyshevDistance(rally.Rally) <= 1)
+        {
+            // Arrived and still latched: hold the rally rather than resume
+            // the route into the same threats.
+            return Hold(body, reason);
+        }
         return ArenaBasics.TryMoveHomeward(
-            contract, mind, body, destination, claims, reason);
+            contract, mind, body, rally.Rally, claims, reason);
     }
 
     /// <summary>
