@@ -2605,14 +2605,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (hits * cadence > commit.EngageWhen.KillWithinTicks)
                 return false;
         }
-        // Catchability gates CHASES, never fights already in reach: a
-        // stationary enemy inside the gun's envelope is attackable however
-        // close to home it stands (the ab57 over-restriction - the gate
-        // refused everything on the enemy half and the ghost went passive).
+        // Catchability gates CHASES, never fights already in reach - and
+        // "in reach" is DISTANCE, not aim-readiness (owner catch: a ghost
+        // circling a lone carrier is never aim-ready under facing-locked
+        // combat, so an aim-based bypass let it orbit forever without
+        // striking). Anything inside the gun's range is killable now;
+        // geometry only decides whether to CHASE what is beyond it.
         if (commit.Chase is { OnlyCatchable: true }
             && enemy.Health > (commit.Chase?.ExecuteBelowHealth ?? 0)
-            && !ArenaBasics.CanAimAtPosition(
-                contract, body, enemy.Position))
+            && body.Position.ChebyshevDistance(enemy.Position)
+                > AttackRange(contract, body))
         {
             Position enemyHome = enemy.ActorId.TeamId == _teamId
                 ? _ownReactor
@@ -2634,6 +2636,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         || roles.Contains(
             _stableRoles.GetValueOrDefault(body.UnitId),
             StringComparer.Ordinal);
+
+    private static int AttackRange(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(value => value.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string id
+                ? contract.Rules.AttackProfiles.FirstOrDefault(value =>
+                    value.Id == id)
+                : null;
+        return attack?.Projectile.MaxTravelTiles ?? 1;
+    }
 
     private static int AttackCadence(
         GenericActorResolvedMatchContract contract,
