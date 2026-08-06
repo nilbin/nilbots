@@ -650,6 +650,52 @@
      ]
     }
    ]
+  },
+  {
+   "formationId": "shadow-solo",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 4,
+    "pace": "free"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    }
+   ]
   }
  ],
  "engagements": [
@@ -2069,12 +2115,12 @@
     {
      "modeId": "prowl",
      "default": {
-      "formationId": "shadow-file",
+      "formationId": "shadow-solo",
       "movement": {
        "kind": "route",
        "target": "shadow-north-long",
        "stuckTicks": 10,
-       "pace": "slowest",
+       "pace": "free",
        "scan": "sweep"
       },
       "engagementId": "shadow-strike",
