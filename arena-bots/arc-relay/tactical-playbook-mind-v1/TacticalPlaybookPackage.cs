@@ -205,6 +205,40 @@ internal sealed class TacticalPlaybookPackage
             .ToArray();
     }
 
+    /// <summary>
+    /// Tolerant lookup for a commit withdraw destination: a route yields
+    /// its waypoints, a zone its centre, an anchor its tile; an unknown id
+    /// yields nothing (the body simply keeps its ordered movement).
+    /// </summary>
+    internal Position[] WithdrawPoints(string id)
+    {
+        string resolved = _routeAliases.GetValueOrDefault(id, id);
+        if (_routes.TryGetValue(resolved, out Route? route))
+        {
+            return route.Waypoints
+                .Select(value => World(new Position(value[0], value[1])))
+                .ToArray();
+        }
+        if (_zones.TryGetValue(id, out Zone? zone))
+        {
+            return
+            [
+                World(new Position(
+                    (zone.Rect[0] + zone.Rect[2]) / 2,
+                    (zone.Rect[1] + zone.Rect[3]) / 2)),
+            ];
+        }
+        if (_anchors.TryGetValue(id, out Anchor? anchor))
+        {
+            return
+            [
+                World(new Position(
+                    anchor.Position[0], anchor.Position[1])),
+            ];
+        }
+        return [];
+    }
+
     internal int RouteCorridorWidth(string routeId)
     {
         string resolved = _routeAliases.GetValueOrDefault(routeId, routeId);
@@ -393,7 +427,48 @@ internal sealed class TacticalPlaybookPackage
         SelfDefensePolicy SelfDefense,
         HoldFire? HoldFire = null,
         string Posture = "committed",
-        Isolation? Isolation = null);
+        Isolation? Isolation = null,
+        Commit? Commit = null);
+
+    /// <summary>
+    /// Sheet-owned commit discipline (owner design 2026-08, ghost doctrine
+    /// v2): when this engagement's participants pick a fight, how far they
+    /// chase, and where they break off to. Every predicate reads from the
+    /// contract and the mind's remembered-enemy picture.
+    /// </summary>
+    internal sealed record Commit(
+        CommitEngageWhen EngageWhen,
+        CommitAwareness? Awareness = null,
+        CommitChase? Chase = null,
+        CommitDisengageWhen? DisengageWhen = null);
+
+    /// <summary>The threat picture: visible enemies plus remembered
+    /// positions no staler than MemoryTicks, within Radius of the body.
+    /// </summary>
+    internal sealed record CommitAwareness(int Radius, int MemoryTicks);
+
+    /// <summary>Commit only when the picture shows at most MaxThreats and
+    /// the candidate dies within KillWithinTicks (ceil(health / own damage)
+    /// x own attack cadence). Zero means the gate is not applied.</summary>
+    internal sealed record CommitEngageWhen(
+        int MaxThreats = 0,
+        int KillWithinTicks = 0);
+
+    /// <summary>Chase discipline: OnlyCatchable compares movement cadences
+    /// (never chase what you cannot close on); a target at or below
+    /// ExecuteBelowHealth suspends the leash - the kill is worth the
+    /// ground.</summary>
+    internal sealed record CommitChase(
+        int Leash = 0,
+        bool OnlyCatchable = false,
+        int ExecuteBelowHealth = 0);
+
+    /// <summary>Break off when the picture reaches Threats, withdrawing
+    /// toward the named route or zone until it thins back to the engage
+    /// gate.</summary>
+    internal sealed record CommitDisengageWhen(
+        int Threats,
+        string? WithdrawTo = null);
 
     /// <summary>
     /// Assassin discipline: participants only acquire targets that have no
@@ -510,7 +585,8 @@ internal sealed class TacticalPlaybookPackage
         string StuckRecovery,
         int ChaseLeash,
         string Pace,
-        int LeadTiles = 0);
+        int LeadTiles = 0,
+        string? Scan = null);
 
     internal sealed record Fallback(
         string OnNoPath,

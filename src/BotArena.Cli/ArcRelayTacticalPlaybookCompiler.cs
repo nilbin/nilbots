@@ -1057,7 +1057,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     {
         string[] dynamicKinds =
             ["enemy-carrier-cutoff", "enemy-carrier", "carrier",
-             "secured-core"];
+             "secured-core", "incoming-cutoff"];
         foreach (CatalogEntry maneuver in maneuvers)
         foreach (CatalogEntry track in Catalog(
                      maneuver.Value.GetProperty("tracks"), "lint", 1, 8))
@@ -1230,11 +1230,17 @@ public static class ArcRelayTacticalPlaybookCompiler
             Identifier(track.Value, "formationId", path);
             JsonElement movement = track.Value.GetProperty("movement");
             Object(movement, $"{path}.maneuvers.tracks.movement",
-                ["kind", "target", "stuckTicks", "pace"], ["leadTiles"]);
+                ["kind", "target", "stuckTicks", "pace"],
+                ["leadTiles", "scan"]);
             OneOf(movement, "kind", path,
                 "route", "zone", "anchor", "reactor", "carrier",
                 "enemy-carrier", "enemy-carrier-cutoff", "secured-core",
-                "hold");
+                "shadow-traffic", "incoming-cutoff", "hold");
+            // Patrol scan (ghost doctrine v2): a body on post under this
+            // movement sweeps its facing to cover the approaches instead of
+            // staring down one corridor.
+            if (movement.TryGetProperty("scan", out _))
+                OneOf(movement, "scan", path, "sweep");
             NonEmptyString(movement, "target", path, allowEmpty: true);
             Range(movement, "stuckTicks", path, 1, 120);
             OneOf(movement, "pace", path, "slowest", "leader", "free");
@@ -1512,8 +1518,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "route" => routes.Contains(target),
                 "zone" => zones.Contains(target),
                 "anchor" or "carrier" or "enemy-carrier"
-                    or "enemy-carrier-cutoff" or "secured-core" =>
+                    or "enemy-carrier-cutoff" or "secured-core"
+                    or "incoming-cutoff" =>
                         anchors.Contains(target),
+                // Traffic shadowing computes its own corridor waypoints
+                // from the contract; the target names the fallback anchor.
+                "shadow-traffic" => anchors.Contains(target),
                 "reactor" => target is "own" or "enemy",
                 "hold" => target.Length == 0,
                 _ => false,
@@ -2303,7 +2313,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "overkillDamage", "chaseLeash", "aimPreparation",
                 "signatureCoordination",
                 "dodgeCoverage", "release", "selfDefense",
-            ], ["holdFire", "posture", "isolation"]);
+            ], ["holdFire", "posture", "isolation", "commit"]);
         string id = Identifier(value, "engagementId", at);
         // Skirmish posture (owner direction 2026-08-06): participants fire
         // when their weapon is ready and back away from close threats on the
@@ -2318,6 +2328,56 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(isolation, $"{at}.{id}.isolation", ["supportRange"]);
             Range(isolation, "supportRange", at, 1, 8);
+        }
+        // Commit discipline (owner design 2026-08, ghost doctrine v2): the
+        // sheet owns when its participants pick a fight, how far they chase,
+        // and where they break off to. Every predicate reads from the
+        // contract and the mind's remembered-enemy picture; the executor
+        // keeps only the verbs.
+        if (value.TryGetProperty("commit", out JsonElement commit))
+        {
+            Object(commit, $"{at}.{id}.commit",
+                ["engageWhen"],
+                ["awareness", "chase", "disengageWhen"]);
+            if (commit.TryGetProperty("awareness", out JsonElement awareness))
+            {
+                Object(awareness, $"{at}.{id}.commit.awareness",
+                    ["radius", "memoryTicks"]);
+                Range(awareness, "radius", at, 2, 16);
+                Range(awareness, "memoryTicks", at, 1, 120);
+            }
+            JsonElement engageWhen = commit.GetProperty("engageWhen");
+            Object(engageWhen, $"{at}.{id}.commit.engageWhen",
+                [], ["maxThreats", "killWithinTicks"]);
+            if (engageWhen.TryGetProperty("maxThreats", out _))
+                Range(engageWhen, "maxThreats", at, 1, 8);
+            if (engageWhen.TryGetProperty("killWithinTicks", out _))
+                Range(engageWhen, "killWithinTicks", at, 1, 60);
+            if (commit.TryGetProperty("chase", out JsonElement chase))
+            {
+                Object(chase, $"{at}.{id}.commit.chase",
+                    [], ["leash", "onlyCatchable", "executeBelowHealth"]);
+                if (chase.TryGetProperty("leash", out _))
+                    Range(chase, "leash", at, 1, 24);
+                if (chase.TryGetProperty("onlyCatchable", out JsonElement oc)
+                    && oc.ValueKind is not JsonValueKind.True
+                        and not JsonValueKind.False)
+                {
+                    throw Error($"{at}.{id}.commit.chase",
+                        "'onlyCatchable' must be a boolean.");
+                }
+                if (chase.TryGetProperty("executeBelowHealth", out _))
+                    Range(chase, "executeBelowHealth", at, 1, 8);
+            }
+            if (commit.TryGetProperty(
+                    "disengageWhen", out JsonElement disengage))
+            {
+                Object(disengage, $"{at}.{id}.commit.disengageWhen",
+                    ["threats"], ["withdrawTo"]);
+                Range(disengage, "threats", at, 1, 8);
+                if (disengage.TryGetProperty("withdrawTo", out _))
+                    Identifier(disengage, "withdrawTo", at);
+            }
         }
         if (value.TryGetProperty("holdFire", out JsonElement holdFire))
         {
@@ -2950,10 +3010,13 @@ public static class ArcRelayTacticalPlaybookCompiler
             [
                 "kind", "target", "arrivalRadius", "completion",
                 "stuckTicks", "stuckRecovery", "chaseLeash", "pace",
-            ], ["leadTiles"]);
+            ], ["leadTiles", "scan"]);
         OneOf(value, "kind", path,
             "route", "zone", "anchor", "reactor", "carrier",
-            "enemy-carrier", "enemy-carrier-cutoff", "secured-core", "hold");
+            "enemy-carrier", "enemy-carrier-cutoff", "secured-core",
+            "shadow-traffic", "incoming-cutoff", "hold");
+        if (value.TryGetProperty("scan", out _))
+            OneOf(value, "scan", path, "sweep");
         NonEmptyString(value, "target", path, allowEmpty: true);
         Range(value, "arrivalRadius", path, 0, 16);
         OneOf(value, "completion", path,

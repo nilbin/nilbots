@@ -37,6 +37,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _idleWatch = [];
     private IdleContext? _idleContext;
     private int _idleBreaks;
+    private readonly Dictionary<int, (int LifeId, bool Active)> _disengaging
+        = [];
+    private readonly Dictionary<int, (int LifeId, int Index)> _patrols = [];
+    private Position[]? _trafficWaypoints;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
@@ -520,7 +524,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             contract, mind, body, shotTarget, target,
                             engagement,
                             Provenance(machine, group, order, "signature")),
-                    "movement" => TryCloseOnFocus(
+                    "movement" => TryWithdraw(
+                            contract, mind, package, body, engagement, claims,
+                            Provenance(machine, group, order, "withdraw"))
+                        || TryCloseOnFocus(
                             contract, mind, body, focus, claims,
                             Provenance(machine, group, order, "close-on-focus"))
                         || TryMovement(
@@ -529,7 +536,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             role, group, order, target, targets, groups,
                             orders,
                             pickupAssignments, focus, claims),
-                    "facing" => facingTarget is Position lookAt
+                    "facing" => TryScanSweep(
+                            contract, mind, body, order, target,
+                            Provenance(machine, group, order, "scan"))
+                        || facingTarget is Position lookAt
                         && TryFaceTarget(
                         contract, body, lookAt,
                         Provenance(machine, group, order, "facing")),
@@ -1474,6 +1484,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 package, carried, order),
             "enemy-carrier-cutoff" => EnemyCarrierCutoffTarget(
                 contract, package, carried, order, body),
+            "shadow-traffic" => ShadowTrafficTarget(
+                contract, mind, package, order, body),
+            "incoming-cutoff" => IncomingCutoffTarget(
+                contract, mind, package, order, body),
             "secured-core" => SecuredCoreTarget(
                 package, order),
             "hold" => body.Position,
@@ -1605,6 +1619,184 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && cutoffDistance <= order.Movement.LeadTiles
                 ? cutoff
                 : carrier.Position;
+    }
+
+    /// <summary>
+    /// Traffic shadowing (ghost doctrine v2, owner design): patrol the
+    /// corridors the enemy actually walks - for each Well, the point a
+    /// third of the way along its static route to the ENEMY reactor, which
+    /// is where their collectors and escorts stream from and back to. The
+    /// waypoints are computed once from the contract (map, wells, reactor)
+    /// and toured as a loop; the movement target names the fallback anchor
+    /// for a map with no wells.
+    /// </summary>
+    private Position ShadowTrafficTarget(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order,
+        MindBody body)
+    {
+        // Patrol and interception are one job (owner design): the body
+        // walks the enemy's traffic corridors, and the moment its memory
+        // shows someone inbound toward our half it moves on THEM instead
+        // of the next waypoint.
+        if (FindInboundCutoff(contract, mind, order, body)
+            is Position inbound)
+        {
+            return inbound;
+        }
+        _trafficWaypoints ??= ComputeTrafficWaypoints(contract, mind);
+        if (_trafficWaypoints.Length == 0)
+            return package.AnchorPosition(order.Movement.Target);
+        (int LifeId, int Index) patrol =
+            _patrols.GetValueOrDefault(body.UnitId);
+        if (patrol.LifeId != body.ActorId.LifeId)
+            patrol = (body.ActorId.LifeId, 0);
+        Position waypoint =
+            _trafficWaypoints[patrol.Index % _trafficWaypoints.Length];
+        if (body.Position.ChebyshevDistance(waypoint)
+            <= order.Movement.ArrivalRadius)
+        {
+            patrol = (patrol.LifeId,
+                (patrol.Index + 1) % _trafficWaypoints.Length);
+            waypoint = _trafficWaypoints[patrol.Index];
+        }
+        _patrols[body.UnitId] = patrol;
+        return waypoint;
+    }
+
+    private Position[] ComputeTrafficWaypoints(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind)
+    {
+        GenericActorContext.ModeObservationState.ArcRelay? arc =
+            ArenaBasics.ArcState(mind);
+        if (arc is null)
+            return [];
+        var waypoints = new List<Position>();
+        foreach (GenericActorContext.ArcRelayWellState well in arc.Wells
+                     .OrderBy(value => ArenaBasics.FrameY(
+                         value.Position, _mirrored))
+                     .ThenBy(value => ArenaBasics.FrameX(
+                         value.Position, _mirrored)))
+        {
+            int? total = ArenaBasics.StaticDistance(
+                contract.Map, well.Position, _enemyReactor);
+            if (total is not int distance || distance <= 2)
+                continue;
+            int steps = Math.Max(1, distance / 3);
+            Position cursor = well.Position;
+            for (int step = 0; step < steps; step++)
+            {
+                Position best = cursor;
+                (int Distance, int FrameY, int FrameX) bestKey = (
+                    ArenaBasics.StaticDistance(
+                        contract.Map, cursor, _enemyReactor)
+                        ?? int.MaxValue,
+                    int.MaxValue,
+                    int.MaxValue);
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        if (dx == 0 && dy == 0)
+                            continue;
+                        Position next = cursor.Offset(dx, dy);
+                        if (!ArenaBasics.IsLegalTerrainStep(
+                                contract.Map, cursor, next))
+                        {
+                            continue;
+                        }
+                        if (ArenaBasics.StaticDistance(
+                                contract.Map, next, _enemyReactor)
+                            is not int candidate)
+                        {
+                            continue;
+                        }
+                        (int, int, int) key = (
+                            candidate,
+                            ArenaBasics.FrameY(next, _mirrored),
+                            ArenaBasics.FrameX(next, _mirrored));
+                        if (key.CompareTo(bestKey) < 0)
+                        {
+                            bestKey = key;
+                            best = next;
+                        }
+                    }
+                }
+                if (best == cursor)
+                    break;
+                cursor = best;
+            }
+            waypoints.Add(cursor);
+        }
+        return [.. waypoints.Distinct()];
+    }
+
+    /// <summary>
+    /// Interception (ghost doctrine v2, owner design: "act on an incoming
+    /// enemy that it saw start walking from the mid"): take the freshest
+    /// remembered enemy whose last observed motion carried it CLOSER to
+    /// our reactor, and move to cut its lane - the same predicted-lane
+    /// machinery the carrier cutoff uses, pointed at our own bank. The
+    /// movement target names the fallback anchor when nothing is inbound.
+    /// </summary>
+    private Position IncomingCutoffTarget(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order,
+        MindBody body) =>
+        FindInboundCutoff(contract, mind, order, body)
+            ?? package.AnchorPosition(order.Movement.Target);
+
+    /// <summary>
+    /// The freshest remembered enemy whose last observed motion carried it
+    /// CLOSER to our reactor, resolved to a lane cutoff - the same
+    /// predicted-lane machinery the carrier cutoff uses, pointed at our
+    /// own bank. Null when nothing is inbound.
+    /// </summary>
+    private Position? FindInboundCutoff(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage.Order order,
+        MindBody body)
+    {
+        LastSeenEnemy? inbound = _lastSeenEnemies.Values
+            .Where(enemy => mind.Tick - enemy.LastConfirmedTick <= 24
+                && enemy.PreviousPosition is Position prior
+                && ArenaBasics.StaticDistance(
+                        contract.Map, enemy.Position, _ownReactor)
+                    is int now
+                && ArenaBasics.StaticDistance(
+                        contract.Map, prior, _ownReactor)
+                    is int before
+                && now < before)
+            .OrderBy(enemy => ArenaBasics.StaticDistance(
+                    contract.Map, enemy.Position, _ownReactor)
+                ?? int.MaxValue)
+            .ThenBy(enemy => enemy.ActorId.UnitId)
+            .FirstOrDefault();
+        if (inbound is null)
+            return null;
+        Position cutoff = TacticalCoordinationPrimitives
+            .PredictReturnLaneCutoff(
+                _mirrored,
+                inbound.Position,
+                inbound.PreviousPosition,
+                Math.Max(1, order.Movement.LeadTiles),
+                position => ArenaBasics.StaticDistance(
+                    contract.Map, position, _ownReactor),
+                (from, to) =>
+                    ArenaBasics.IsLegalTerrainStep(contract.Map, from, to));
+        int? reach = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, cutoff);
+        return cutoff != inbound.Position
+            && reach is int steps
+            && steps <= Math.Max(1, order.Movement.LeadTiles)
+                ? cutoff
+                : inbound.Position;
     }
 
     private IEnumerable<TacticalCoordinationPrimitives.EnemyCarrierCandidate>
@@ -2051,6 +2243,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                      ? 0 : 1)
                              .ThenBy(body => body.UnitId))
                 {
+                    // Sheet-owned commit discipline (ghost doctrine v2):
+                    // the threat picture decides whether this body fights
+                    // at all, before any target is weighed.
+                    if (policy.Commit is { } commitPolicy
+                        && !CommitAllowsEngaging(mind, body, commitPolicy))
+                    {
+                        continue;
+                    }
                     GenericActorContext.ObservedEnemyState? selected =
                         targetOrder.FirstOrDefault(enemy =>
                             attackerCounts.GetValueOrDefault(enemy.ActorId)
@@ -2062,6 +2262,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                     enemy.ActorId))
                             && WithinEngagementLeash(
                                 body, targets[body.UnitId], enemy, policy)
+                            && CommitAllowsTarget(
+                                contract, body, enemy, policy)
                             && CanContributeToTarget(
                                 contract, body, enemy,
                                 requireFireReady: true));
@@ -2074,6 +2276,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             committedDamage.GetValueOrDefault(enemy.ActorId))
                         && WithinEngagementLeash(
                             body, targets[body.UnitId], enemy, policy)
+                            && CommitAllowsTarget(
+                                contract, body, enemy, policy)
                             && CanContributeToTarget(
                                 contract, body, enemy,
                                 requireFireReady: false));
@@ -2277,14 +2481,147 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         Position assignment,
         GenericActorContext.ObservedEnemyState enemy,
-        TacticalPlaybookPackage.Engagement policy) =>
-        TacticalCoordinationPrimitives.IsWithinEngagementLeash(
+        TacticalPlaybookPackage.Engagement policy)
+    {
+        // Commit chase discipline: an authored chase leash overrides the
+        // engagement's, and a target at or below the execute threshold
+        // suspends the leash entirely - the kill is worth the ground.
+        int leash = policy.ChaseLeash;
+        if (policy.Commit?.Chase is { } chase)
+        {
+            if (chase.ExecuteBelowHealth > 0
+                && enemy.Health <= chase.ExecuteBelowHealth)
+            {
+                return true;
+            }
+            if (chase.Leash > 0)
+                leash = chase.Leash;
+        }
+        return TacticalCoordinationPrimitives.IsWithinEngagementLeash(
             assignment,
             enemy.Position,
             body.Position,
-            policy.ChaseLeash,
+            leash,
             policy.SelfDefense.Enabled,
             policy.SelfDefense.ThreatDistance);
+    }
+
+    /// <summary>
+    /// The commit threat picture: visible enemies within the awareness
+    /// radius plus remembered positions no staler than the memory window,
+    /// deduplicated by unit. Defaults: radius 8, memory 24.
+    /// </summary>
+    private int AwarenessThreats(
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Commit commit)
+    {
+        int radius = commit.Awareness?.Radius ?? 8;
+        int memory = commit.Awareness?.MemoryTicks ?? 24;
+        var units = new HashSet<int>();
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+        {
+            if (enemy.Position.ChebyshevDistance(body.Position) <= radius)
+                units.Add(enemy.ActorId.UnitId);
+        }
+        foreach (LastSeenEnemy remembered in _lastSeenEnemies.Values)
+        {
+            if (mind.Tick - remembered.LastConfirmedTick <= memory
+                && remembered.Position.ChebyshevDistance(body.Position)
+                    <= radius)
+            {
+                units.Add(remembered.ActorId.UnitId);
+            }
+        }
+        return units.Count;
+    }
+
+    /// <summary>
+    /// Whether the commit discipline lets this body pick a fight at all,
+    /// updating its disengage latch: at or past the disengage threshold the
+    /// body breaks off (and withdraws, when the sheet names where) until
+    /// the picture thins back to the engage gate.
+    /// </summary>
+    private bool CommitAllowsEngaging(
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Commit commit)
+    {
+        int threats = AwarenessThreats(mind, body, commit);
+        (int LifeId, bool Active) latch =
+            _disengaging.GetValueOrDefault(body.UnitId);
+        bool active = latch.LifeId == body.ActorId.LifeId && latch.Active;
+        if (commit.DisengageWhen is { } disengage
+            && threats >= disengage.Threats)
+        {
+            active = true;
+        }
+        else if (active
+            && (commit.EngageWhen.MaxThreats == 0
+                || threats <= commit.EngageWhen.MaxThreats))
+        {
+            active = false;
+        }
+        _disengaging[body.UnitId] = (body.ActorId.LifeId, active);
+        if (active)
+            return false;
+        return commit.EngageWhen.MaxThreats == 0
+            || threats <= commit.EngageWhen.MaxThreats;
+    }
+
+    /// <summary>
+    /// Whether the commit discipline lets this body take THIS target: it
+    /// must die fast enough (ceil(health / own damage) x own cadence within
+    /// the authored window) and be catchable - movement is uniform-speed in
+    /// this contract, so catchable means standing between the target and
+    /// its own bank; equal-speed pursuit from behind never closes.
+    /// </summary>
+    private bool CommitAllowsTarget(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState enemy,
+        TacticalPlaybookPackage.Engagement policy)
+    {
+        if (policy.Commit is not { } commit)
+            return true;
+        if (commit.EngageWhen.KillWithinTicks > 0)
+        {
+            int damage = ExpectedDamage(contract, body);
+            int cadence = AttackCadence(contract, body);
+            int hits = (enemy.Health + damage - 1) / damage;
+            if (hits * cadence > commit.EngageWhen.KillWithinTicks)
+                return false;
+        }
+        if (commit.Chase is { OnlyCatchable: true }
+            && enemy.Health > (commit.Chase?.ExecuteBelowHealth ?? 0))
+        {
+            Position enemyHome = _teamId == 0 ? _enemyReactor : _ownReactor;
+            enemyHome = enemy.ActorId.TeamId == _teamId
+                ? _ownReactor
+                : _enemyReactor;
+            int? own = ArenaBasics.StaticDistance(
+                contract.Map, body.Position, enemyHome);
+            int? theirs = ArenaBasics.StaticDistance(
+                contract.Map, enemy.Position, enemyHome);
+            if (own is int ours && theirs is int retreat && ours > retreat)
+                return false;
+        }
+        return true;
+    }
+
+    private static int AttackCadence(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(value => value.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string id
+                ? contract.Rules.AttackProfiles.FirstOrDefault(value =>
+                    value.Id == id)
+                : null;
+        return attack is null ? 1 : Math.Max(1, attack.CooldownTicks + 1);
+    }
 
     private void RefreshSelfDefenseReturns(
         MindContext mind,
@@ -3972,6 +4309,95 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// yields the fire-while-withdrawing rhythm: they stop, we gain ground
     /// and shoot; they close, we step.
     /// </summary>
+    /// <summary>
+    /// Withdraw discipline (ghost doctrine v2): a body whose commit latch
+    /// tripped breaks toward the sheet's named withdraw destination until
+    /// the threat picture thins back to the engage gate. Falls through to
+    /// ordinary movement when the sheet names nowhere (or the id resolves
+    /// to nothing on this layout).
+    /// </summary>
+    private bool TryWithdraw(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage package,
+        MindBody body,
+        TacticalPlaybookPackage.Engagement engagement,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        if (engagement.Commit?.DisengageWhen?.WithdrawTo is not string named)
+            return false;
+        (int LifeId, bool Active) latch =
+            _disengaging.GetValueOrDefault(body.UnitId);
+        if (latch.LifeId != body.ActorId.LifeId || !latch.Active)
+            return false;
+        Position[] points = package.WithdrawPoints(named);
+        if (points.Length == 0)
+            return false;
+        Position destination = points
+            .OrderBy(point => body.Position.ChebyshevDistance(point))
+            .ThenBy(point => ArenaBasics.FrameY(point, _mirrored))
+            .ThenBy(point => ArenaBasics.FrameX(point, _mirrored))
+            .First();
+        return ArenaBasics.TryMoveHomeward(
+            contract, mind, body, destination, claims, reason);
+    }
+
+    /// <summary>
+    /// Patrol scan (ghost doctrine v2): a body on post under a movement
+    /// with scan: sweep, with no enemy in sight nearby, rotates a quadrant
+    /// every few ticks so its vision cone covers the approaches instead of
+    /// staring down one corridor. Staggered by unit so two scouts never
+    /// stare the same way.
+    /// </summary>
+    private static bool TryScanSweep(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        Position target,
+        string reason)
+    {
+        if (!string.Equals(
+                order.Movement.Scan, "sweep", StringComparison.Ordinal))
+        {
+            return false;
+        }
+        if (body.Position.ChebyshevDistance(target)
+            > order.Movement.ArrivalRadius + 1)
+        {
+            return false;
+        }
+        if (mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position) <= 8))
+        {
+            return false;
+        }
+        var desired = (Direction)(((mind.Tick / 8) + body.UnitId) % 4);
+        if (body.Facing == desired)
+            return false;
+        GenericActorRulesContract.ActionDefinition? definition =
+            contract.Rules.Actions.FirstOrDefault(value =>
+                value.Kind == GenericActorRulesContract.ActionKind.Rotation);
+        GenericActorActionLegality? action = definition is null
+            ? null
+            : body.Action(definition.Id);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            directions = action?.Constraints.OfType<
+                GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>().SingleOrDefault();
+        if (action is not { Available: true }
+            || directions is null
+            || !directions.AllowedValues.Contains(desired))
+        {
+            return false;
+        }
+        body.Command(action.ActionId, action.ActionCode,
+            [new GenericActorActionArgument.DirectionArgument(desired)],
+            reason);
+        return true;
+    }
+
     private static bool TryFaceTarget(
         GenericActorResolvedMatchContract contract,
         MindBody body,
