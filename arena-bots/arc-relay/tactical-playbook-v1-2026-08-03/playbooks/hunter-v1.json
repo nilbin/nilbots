@@ -694,6 +694,92 @@
        0
       ]
      ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
     }
    ]
   }
