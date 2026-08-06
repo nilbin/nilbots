@@ -6936,9 +6936,15 @@ public sealed record GenericActorMatchChronology
         ValidateTerminalScores(finalState, result);
         if (result.Mode is GenericActorMatchModeResult.ArcRelay arcRelay)
         {
+            // Terminal facts are DRIVER state; a strike still winding up at
+            // the final horn is session ephemera that dies with the match
+            // (DECISIONS #212), so the comparison strips it - the same
+            // ownership split the lifecycle boundary makes.
             if (finalState.Mode is not GenericActorRuntimeObservation
                     .ModeObservationState.ArcRelay finalArc
-                || !Equals(finalArc, arcRelay.State))
+                || !Equals(
+                    finalArc with { PendingStrikes = [] },
+                    arcRelay.State))
             {
                 throw new ArgumentException(
                     "Arc Relay terminal facts must exactly equal the final world.",

@@ -6881,8 +6881,12 @@ internal static class ReplayV3Serializer
             throw new ArgumentException(
                 "Replay-v3 Arc Relay completion reason is invalid or inconsistent.");
         }
+        // Terminal facts are DRIVER state; a strike still winding up at the
+        // final horn is session ephemera that dies with the match
+        // (DECISIONS #212) - the same ownership split the live chronology
+        // validator makes.
         if (finalState.Mode is not ReplayV3.ModeState.ArcRelay finalArc
-            || !Equals(arcRelay.State, finalArc))
+            || !Equals(arcRelay.State, finalArc with { PendingStrikes = [] }))
         {
             throw new ArgumentException(
                 "Replay-v3 Arc Relay terminal state must exactly equal the final mode state.");
