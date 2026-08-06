@@ -1582,6 +1582,328 @@
   "initialPhase": "prowl",
   "tasks": [
    {
+    "taskId": "home-defense",
+    "priority": 6,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 600,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "guard-home",
+      "orderId": "guard-home",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes",
+       "medic"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason",
+       "patchbay"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 6,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "gates-threatened",
+    "completeConditionSetId": "gates-clear",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
+    "taskId": "north-race-task",
+    "priority": 8,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-north",
+      "orderId": "race-north",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-north-medic",
+      "orderId": "race-north",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "north-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "centre-race-task",
+    "priority": 10,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-centre",
+      "orderId": "race-centre",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-centre-medic",
+      "orderId": "race-centre",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "centre-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "south-race-task",
+    "priority": 9,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-south",
+      "orderId": "race-south",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-south-medic",
+      "orderId": "race-south",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "south-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "kill-window-surge",
+    "priority": 30,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 6,
+    "timeoutTicks": 600,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "surge-bank",
+      "orderId": "surge-bank",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "kill-window",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
     "taskId": "assassin-promotion",
     "priority": 5,
     "activation": "while-true",
@@ -1807,153 +2129,6 @@
       ],
       "maximum": 1
      }
-    }
-   ]
-  },
-  "pack": {
-   "role": "hauler",
-   "assignmentProfileId": "well-standard",
-   "custodyId": "well-custody",
-   "claimAnchor": "home-gate",
-   "claim": {
-    "roles": [
-     "hauler",
-     "carrier",
-     "lancer",
-     "eyes",
-     "medic"
-    ],
-    "preferred": 5,
-    "maximum": 6
-   },
-   "modes": [
-    {
-     "modeId": "screen",
-     "default": {
-      "formationId": "well-screen",
-      "movement": {
-       "kind": "route",
-       "target": "stage-loop",
-       "stuckTicks": 8,
-       "pace": "free"
-      },
-      "engagementId": "disrupt-fight",
-      "chaseLeash": 1,
-      "arrivalRadius": 2
-     }
-    },
-    {
-     "modeId": "race-north",
-     "default": {
-      "formationId": "well-screen",
-      "movement": {
-       "kind": "route",
-       "target": "north-out",
-       "stuckTicks": 8,
-       "pace": "free"
-      },
-      "engagementId": "well-fight",
-      "chaseLeash": 1,
-      "arrivalRadius": 1
-     },
-     "while": [
-      [
-       "north-birth-soon"
-      ]
-     ],
-     "until": [
-      [
-       "north-birth-far"
-      ]
-     ],
-     "armOn": "assigned-carrier",
-     "releaseOn": "armed-carrier-loss",
-     "timeoutTicks": 110
-    },
-    {
-     "modeId": "race-centre",
-     "default": {
-      "formationId": "well-screen",
-      "movement": {
-       "kind": "route",
-       "target": "centre-probe",
-       "stuckTicks": 8,
-       "pace": "free"
-      },
-      "engagementId": "well-fight",
-      "chaseLeash": 1,
-      "arrivalRadius": 1
-     },
-     "while": [
-      [
-       "centre-birth-soon"
-      ]
-     ],
-     "until": [
-      [
-       "centre-birth-far"
-      ]
-     ],
-     "armOn": "assigned-carrier",
-     "releaseOn": "armed-carrier-loss",
-     "timeoutTicks": 110
-    },
-    {
-     "modeId": "race-south",
-     "default": {
-      "formationId": "well-screen",
-      "movement": {
-       "kind": "route",
-       "target": "south-out",
-       "stuckTicks": 8,
-       "pace": "free"
-      },
-      "engagementId": "well-fight",
-      "chaseLeash": 1,
-      "arrivalRadius": 1
-     },
-     "while": [
-      [
-       "south-birth-soon"
-      ]
-     ],
-     "until": [
-      [
-       "south-birth-far"
-      ]
-     ],
-     "armOn": "assigned-carrier",
-     "releaseOn": "armed-carrier-loss",
-     "timeoutTicks": 110
-    },
-    {
-     "modeId": "guard-home",
-     "default": {
-      "formationId": "well-screen",
-      "movement": {
-       "kind": "zone",
-       "target": "own-home",
-       "stuckTicks": 8,
-       "pace": "free"
-      },
-      "engagementId": "well-fight",
-      "chaseLeash": 4,
-      "arrivalRadius": 2
-     },
-     "while": [
-      [
-       "gate-threat"
-      ],
-      [
-       "home-threat"
-      ]
-     ],
-     "until": [
-      [
-       "approach-clear",
-       "home-clear"
-      ]
-     ]
     }
    ]
   }
