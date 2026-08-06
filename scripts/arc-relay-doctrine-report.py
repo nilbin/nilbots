@@ -131,19 +131,24 @@ def analyse(run, replay, teams, dwell_radius, dwell_ticks):
             "taskReasons": defaultdict(Counter),
         }
 
-    dwell = {}  # (team, unit) -> [startTick, anchor, lastTick, task]
+    # Dwell is keyed by POSITION ONLY. Task-lease churn must not reset the
+    # streak: a unit that stands still while tasks cycle over it (trigger,
+    # fail, re-trigger) is still parked — that churn is how the first version
+    # of this detector was blinded to a camping ghost the owner then caught
+    # on replay. The tasks held during the streak are reported as a set.
+    dwell = {}  # (team, unit) -> [startTick, anchor, lastTick, set(tasks)]
     carriers = {}  # (team, unit) -> carrying since pickup
 
     def close_dwell(key, tick):
         state = dwell.pop(key, None)
         if state is None:
             return
-        start, anchor, last, task = state
+        start, anchor, last, tasks = state
         if last - start >= dwell_ticks:
             team, unit = key
             report[team]["units"][unit]["parked"].append({
                 "from": start, "to": last, "around": anchor,
-                "task": task or "unleased"})
+                "task": "+".join(sorted(tasks)) if tasks else "unleased"})
 
     for tick in replay["ticks"]:
         now = tick["tick"]
@@ -162,16 +167,21 @@ def analyse(run, replay, teams, dwell_radius, dwell_ticks):
                 state = dwell.get(key)
                 task_name = lease[0] if lease else None
                 if state is None:
-                    dwell[key] = [now, position, now, task_name]
+                    dwell[key] = [
+                        now, position, now,
+                        {task_name} if task_name else set()]
                 else:
                     anchor = state[1]
                     if (max(abs(position[0] - anchor[0]),
-                            abs(position[1] - anchor[1])) > dwell_radius
-                            or state[3] != task_name):
+                            abs(position[1] - anchor[1])) > dwell_radius):
                         close_dwell(key, now)
-                        dwell[key] = [now, position, now, task_name]
+                        dwell[key] = [
+                            now, position, now,
+                            {task_name} if task_name else set()]
                     else:
                         state[2] = now
+                        if task_name:
+                            state[3].add(task_name)
         for fact in arc_facts(tick):
             kind = fact.get("kind")
             team, unit = fact_team_unit(fact)

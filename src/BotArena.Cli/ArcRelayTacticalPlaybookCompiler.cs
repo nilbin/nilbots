@@ -265,6 +265,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             value => value.Id,
             value => value.Value,
             StringComparer.Ordinal);
+        LintDoctrine(source, coordination, maneuvers, fallbackById);
         var assignmentProfileById = assignmentProfiles.ToDictionary(
             value => value.Id,
             value => value.Value,
@@ -816,6 +817,108 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (assignment.TryGetProperty("stance", out JsonElement stance))
             expanded["stance"] = stance.GetString();
         return expanded;
+    }
+
+    /// <summary>
+    /// Doctrine coherence lints — warnings, never errors, because frozen
+    /// clean-slate opponents must keep compiling byte-identically. Each lint
+    /// is a bug class that shipped silently before it was caught on replay:
+    /// a strike task that can never preempt the standing task holding its
+    /// only candidates (the parked ghost's first cause), and a hold-on-
+    /// invalid fallback on a dynamic-target movement, which parks the unit
+    /// wherever it happens to stand when its prey predicate flickers false
+    /// (the parked ghost's second cause).
+    /// </summary>
+    private static void LintDoctrine(
+        JsonElement source,
+        JsonElement coordination,
+        CatalogEntry[] maneuvers,
+        IReadOnlyDictionary<string, JsonElement> fallbackById)
+    {
+        string[] dynamicKinds =
+            ["enemy-carrier-cutoff", "enemy-carrier", "carrier",
+             "secured-core"];
+        foreach (CatalogEntry maneuver in maneuvers)
+        foreach (CatalogEntry track in Catalog(
+                     maneuver.Value.GetProperty("tracks"), "lint", 1, 8))
+        {
+            string kind = track.Value.GetProperty("movement")
+                .GetProperty("kind").GetString()!;
+            if (!dynamicKinds.Contains(kind))
+                continue;
+            foreach (CatalogEntry assignment in Catalog(
+                         track.Value.GetProperty("assignments"),
+                         "lint", 1, 32))
+            {
+                string fallbackId = assignment.Value
+                    .GetProperty("fallbackId").GetString()!;
+                if (fallbackById.TryGetValue(
+                        fallbackId, out JsonElement fallback)
+                    && fallback.GetProperty("onInvalidTarget").GetString()
+                        == "hold")
+                {
+                    Console.Error.WriteLine(
+                        $"lint: maneuver '{maneuver.Id}' assignment "
+                        + $"'{assignment.Id}' pairs dynamic movement "
+                        + $"'{kind}' with onInvalidTarget=hold — the body "
+                        + "parks where it stands whenever the target "
+                        + "predicate is false; prefer a fallback with "
+                        + "onInvalidTarget=alternate.");
+                }
+            }
+        }
+
+        Dictionary<string, int> roleMaxima = source.GetProperty("roles")
+            .EnumerateArray()
+            .ToDictionary(
+                role => role.GetProperty("roleId").GetString()!,
+                role => role.GetProperty("maximum").GetInt32(),
+                StringComparer.Ordinal);
+        var tasks = coordination.GetProperty("tasks").EnumerateArray()
+            .Select(task => (
+                Id: task.GetProperty("taskId").GetString()!,
+                Priority: task.GetProperty("priority").GetInt32(),
+                Timeout: task.GetProperty("timeoutTicks").GetInt32(),
+                When: task.GetProperty("whenConditionSetId").GetString()!,
+                Assignments: task.GetProperty("assignments")
+                    .EnumerateArray()
+                    .Select(value => (
+                        Roles: value.GetProperty("roles").EnumerateArray()
+                            .Select(role => role.GetString()!).ToArray(),
+                        Maximum: value.GetProperty("maximum").GetInt32()))
+                    .ToArray()))
+            .ToArray();
+        JsonElement conditionSets = source.GetProperty("authoring")
+            .GetProperty("conditionSets");
+        bool AlwaysOn(string setId) =>
+            conditionSets.TryGetProperty(setId, out JsonElement set)
+            && set.EnumerateArray().Any(group =>
+                group.EnumerateArray().Count() == 1
+                && group.EnumerateArray().First().GetString() == "always");
+        foreach (var task in tasks)
+        foreach (var assignment in task.Assignments)
+        foreach (string role in assignment.Roles)
+        {
+            if (!roleMaxima.TryGetValue(role, out int unitMaximum))
+                continue;
+            int standingHold = tasks
+                .Where(other => other.Id != task.Id
+                    && other.Priority < task.Priority
+                    && other.Timeout >= 600
+                    && AlwaysOn(other.When))
+                .SelectMany(other => other.Assignments)
+                .Where(other => other.Roles.Contains(role, StringComparer.Ordinal))
+                .Sum(other => other.Maximum);
+            if (standingHold >= unitMaximum && standingHold > 0)
+            {
+                Console.Error.WriteLine(
+                    $"lint: task '{task.Id}' (priority {task.Priority}) can "
+                    + $"never claim role '{role}': standing higher-priority "
+                    + "tasks can hold every unit of that role and never "
+                    + "complete. Preemption requires the claimant to "
+                    + "OUTRANK the owner (lower priority number).");
+            }
+        }
     }
 
     private static void ValidateAuthoredFallback(

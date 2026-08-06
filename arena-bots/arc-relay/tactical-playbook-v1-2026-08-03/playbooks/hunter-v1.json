@@ -1063,7 +1063,7 @@
         "chaseLeash": 14,
         "engagementId": "carrier-strike",
         "custodyId": "well-custody",
-        "fallbackId": "continue-and-hold-invalid",
+        "fallbackId": "continue-with-alternate",
         "assignmentProfileId": "shadow-standard",
         "stance": "ambush"
        }
@@ -1175,9 +1175,9 @@
         "arrivalRadius": 1,
         "completion": "continuous",
         "chaseLeash": 14,
-        "engagementId": "carrier-strike",
+        "engagementId": "shadow-strike",
         "custodyId": "well-custody",
-        "fallbackId": "continue-and-hold-invalid",
+        "fallbackId": "continue-with-alternate",
         "assignmentProfileId": "shadow-standard",
         "stance": "ambush"
        }

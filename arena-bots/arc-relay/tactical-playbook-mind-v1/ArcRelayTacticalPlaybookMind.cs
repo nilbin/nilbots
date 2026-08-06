@@ -36,6 +36,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     // kite rhythm is only measurable through these counters on the debug
     // line (cumulative per match).
     private readonly Dictionary<int, int> _slotHold = [];
+    private readonly Dictionary<int, (int LifeId, Position Anchor, int Streak)>
+        _idleWatch = [];
+    private IdleContext? _idleContext;
+    private int _idleBreaks;
     private int _skirmishDue;
     private int _skirmishStepped;
     private int _skirmishBlocked;
@@ -321,6 +325,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (carrierSteps.Count > 0)
             carrierClearance.Add(_ownReactor);
 
+        foreach (MindBody watched in mind.Bodies)
+        {
+            (int LifeId, Position Anchor, int Streak) idle =
+                _idleWatch.GetValueOrDefault(watched.UnitId);
+            _idleWatch[watched.UnitId] =
+                idle.LifeId != watched.ActorId.LifeId
+                    || watched.Position.ChebyshevDistance(idle.Anchor) > 1
+                ? (watched.ActorId.LifeId, watched.Position, 0)
+                : (idle.LifeId, idle.Anchor, idle.Streak + 1);
+        }
+        _idleContext = new IdleContext(
+            contract, mind, orders, targets, carrierUnitIds,
+            repairs.Keys.ToHashSet(), claims);
+
         foreach (MindBody body in mind.Bodies
                      .OrderByDescending(body => carried.ContainsKey(body.ActorId))
                      .ThenBy(body => orders[body.UnitId].Priority)
@@ -438,9 +456,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 }
             }
 
-            bool acted = false;
+            // The no-idle invariant runs BEFORE the channels, not only under
+            // Hold: a camper can act every tick without displacing (facing
+            // scans, in-place micro), and those paths never reach Hold at
+            // all. Exemptions inside TryIdleBreak keep fights, repairs, heal
+            // channels, carriers, and settled ambush posts authored.
+            bool acted = TryIdleBreak(
+                body, Provenance(machine, group, order, "streak"));
             foreach (string channel in package.Source.Arbitration.Channels)
             {
+                if (acted)
+                    break;
                 acted = channel switch
                 {
                     "custody-emergency" => TryCustodyEmergency(
@@ -506,7 +532,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     break;
             }
             if (!acted)
-                body.Hold(Provenance(machine, group, order, "exhausted"));
+                Hold(body, Provenance(machine, group, order, "exhausted"));
         }
 
         mind.Debug.Write(
@@ -527,6 +553,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + tasks.TraceSummary + "; "
             + $"skirmish=due:{_skirmishDue}/step:{_skirmishStepped}"
             + $"/blocked:{_skirmishBlocked}; "
+            + $"idle-breaks={_idleBreaks}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -4205,10 +4232,95 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return true;
     }
 
-    private static bool Hold(MindBody body, string reason)
+    private sealed record IdleContext(
+        GenericActorResolvedMatchContract Contract,
+        MindContext Mind,
+        Dictionary<int, TacticalPlaybookPackage.Order> Orders,
+        Dictionary<int, Position> Targets,
+        HashSet<int> CarrierUnitIds,
+        HashSet<int> RepairerUnitIds,
+        ArenaBasics.Claims Claims);
+
+    private bool Hold(MindBody body, string reason)
     {
+        if (TryIdleBreak(body, reason))
+            return true;
         body.Hold(reason);
         return true;
+    }
+
+    // The no-idle invariant (owner doctrine 2026-08-08): standing still is
+    // never a strategy outside an ambush post, a live fight, or a heal
+    // channel. Four layers can each independently conclude "hold" — task,
+    // order movement, formation, engagement — and any predicate gap between
+    // them used to absorb a unit into permanent camping (the parked ghost the
+    // owner caught on replay twice). A hold that has already lasted the limit
+    // converts into motion toward the authored objective instead; when the
+    // objective itself is the parking spot, the body displaces the way the
+    // wedge-shake does, away from here and from the own reactor, which is
+    // where camps collect.
+    private bool TryIdleBreak(MindBody body, string reason)
+    {
+        if (_idleContext is not { } context)
+            return false;
+        (int LifeId, Position Anchor, int Streak) idle =
+            _idleWatch.GetValueOrDefault(body.UnitId);
+        if (idle.LifeId != body.ActorId.LifeId)
+            return false;
+        if (!context.Orders.TryGetValue(
+                body.UnitId, out TacticalPlaybookPackage.Order? order))
+            return false;
+        int limit = string.Equals(
+            order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
+        if (idle.Streak < limit
+            || body.Cooldown > 0
+            || context.CarrierUnitIds.Contains(body.UnitId)
+            || context.RepairerUnitIds.Contains(body.UnitId)
+            || context.Mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position) <= 8))
+        {
+            return false;
+        }
+        if (_healTiles.Contains(body.Position)
+            && body.Health <= 1 + (_unitLevel.TryGetValue(
+                    body.UnitId, out (int LifeId, int Level) level)
+                && level.LifeId == body.ActorId.LifeId ? level.Level : 1))
+        {
+            return false;
+        }
+        // A body standing AT its resolved target is on post - staging,
+        // guarding, perching are authored intents and the sheet's business
+        // (the unitParked bar still flags true degeneracy). The invariant
+        // breaks only the STRANDED case: far from the objective and not
+        // moving, which is where every camping bug lived.
+        Position destination = context.Targets.GetValueOrDefault(
+            body.UnitId, body.Position);
+        if (body.Position.ChebyshevDistance(destination)
+            <= order.Movement.ArrivalRadius + 2)
+        {
+            return false;
+        }
+        if (ArenaBasics.StaticFirstStepAvoidingReservations(
+                    context.Contract, context.Mind, body, destination)
+                is Position step
+            && ArenaBasics.TryMoveDirect(
+                context.Contract, context.Mind, body, step,
+                context.Claims, $"idle-break:{reason}"))
+        {
+            _idleBreaks++;
+            return true;
+        }
+        // Boxed in with no legal step toward the objective: displace like
+        // the wedge-shake does so the deadlock cannot absorb the body.
+        if (ArenaBasics.TryStepAway(
+                context.Contract, context.Mind, body,
+                [body.Position, _ownReactor],
+                context.Claims, $"idle-break:{reason}"))
+        {
+            _idleBreaks++;
+            return true;
+        }
+        return false;
     }
 
     private static string Provenance(

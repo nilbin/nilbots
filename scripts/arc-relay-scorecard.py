@@ -700,6 +700,52 @@ def team_dance_metrics(broadcast, team_ids):
     }
 
 
+def unit_parked_metrics(broadcast, team_ids):
+    """Parked detector (bars v7): one body confined to a small radius for a
+    very long window. The team-level statue/dance bars need several bodies
+    at once; the parked ghost the owner caught twice on replay was a single
+    unit camping while its team played on. The window sits far above every
+    intended stationary behavior: heal channels finish in ~15 ticks and
+    ambush perches relocate within ~32 under the mind's no-idle invariant.
+    """
+    bar = BARS.get("unitParked")
+    if bar is None:
+        return {
+            "enforced": False,
+            "barTrippedByTeam": {str(team): False for team in team_ids},
+        }
+    window = bar["windowTicks"]
+    radius = bar["confinementRadius"]
+    anchors = {}
+    worst = {team: 0 for team in team_ids}
+    tripped = {team: False for team in team_ids}
+    for _tick, world in enumerate(broadcast["worlds"]):
+        for life in active_lives(world):
+            key = life["actor"]
+            spot = tuple(life["position"])
+            entry = anchors.get(key)
+            if entry is None or chebyshev(spot, entry[0]) > radius:
+                anchors[key] = (spot, 1)
+            else:
+                anchors[key] = (entry[0], entry[1] + 1)
+            streak = anchors[key][1]
+            team = life["team"]
+            worst[team] = max(worst[team], streak)
+            if streak >= window:
+                tripped[team] = True
+    return {
+        "enforced": True,
+        "windowTicks": window,
+        "confinementRadius": radius,
+        "worstConfinementStreakByTeam": {
+            str(team): worst[team] for team in team_ids
+        },
+        "barTrippedByTeam": {
+            str(team): tripped[team] for team in team_ids
+        },
+    }
+
+
 def team_statue_metrics(broadcast, team_ids):
     """Busy-statue detector (bars v5): a livelocked body never waits, so the
     wait-share detectors stay silent while half a team repaths in place for
@@ -1567,6 +1613,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
     stuck_carrier = stuck_carrier_metrics(broadcast, team_ids)
     team_statue = team_statue_metrics(broadcast, team_ids)
     team_dance = team_dance_metrics(broadcast, team_ids)
+    unit_parked = unit_parked_metrics(broadcast, team_ids)
     home_non_progress = home_carrier_non_progress_metrics(
         broadcast,
         team_ids,
@@ -1582,6 +1629,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             or stuck_carrier["barTrippedByTeam"][str(team)]
             or team_statue["barTrippedByTeam"][str(team)]
             or team_dance["barTrippedByTeam"][str(team)]
+            or unit_parked["barTrippedByTeam"][str(team)]
             or home_non_progress["barTrippedByTeam"][str(team)]
         )
         for team in team_ids
@@ -1661,6 +1709,7 @@ def measure(broadcast: dict, record: dict | None, source_path: Path) -> dict:
             "stuckCarrier": stuck_carrier,
             "teamStatue": team_statue,
             "teamDance": team_dance,
+            "unitParked": unit_parked,
             "homeCarrierNonProgress": home_non_progress,
             "cohortEligibilityByTeam": eligibility_by_team,
             "matchEligibleForCohortRead": all(eligibility_by_team.values()),

@@ -1061,6 +1061,26 @@
        "kind": "anchor",
        "target": "home-gate"
       }
+     },
+     {
+      "assignmentId": "race-north-watch",
+      "orderId": "race-north",
+      "roles": [
+       "eyes",
+       "medic"
+      ],
+      "classes": [
+       "lantern",
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 2,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
      }
     ],
     "whenConditionSetId": "north-soon",
@@ -1109,6 +1129,26 @@
        "kind": "anchor",
        "target": "home-gate"
       }
+     },
+     {
+      "assignmentId": "race-centre-watch",
+      "orderId": "race-centre",
+      "roles": [
+       "eyes",
+       "medic"
+      ],
+      "classes": [
+       "lantern",
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 2,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
      }
     ],
     "whenConditionSetId": "centre-soon",
@@ -1153,6 +1193,26 @@
       "preferred": 3,
       "maximum": 4,
       "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-south-watch",
+      "orderId": "race-south",
+      "roles": [
+       "eyes",
+       "medic"
+      ],
+      "classes": [
+       "lantern",
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 2,
+      "carrier": "forbid",
       "distance": {
        "kind": "anchor",
        "target": "home-gate"
