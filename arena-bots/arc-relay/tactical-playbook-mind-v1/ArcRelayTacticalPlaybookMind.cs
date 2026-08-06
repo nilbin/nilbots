@@ -318,6 +318,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         HashSet<Position> carrierClearance = carrierSteps.Values.ToHashSet();
         if (carrierSteps.Count > 0)
             carrierClearance.Add(_ownReactor);
+        // Right-of-way: the carrier's next route step belongs to the
+        // carrier. Reserving it as a lane keeps every other own body out
+        // of it for the tick, so clearing it is durable - the measured
+        // failure (w-9003, 114 ticks) was an escort that finally stepped
+        // aside while a dancing teammate claimed the freed tile first.
+        foreach ((int carrierUnit, Position step) in carrierSteps)
+            claims.ReserveLane(step, carrierUnit);
         foreach (MindBody watched in mind.Bodies)
         {
             (int LifeId, Position Anchor, int Streak) idle =
@@ -334,6 +341,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
         foreach (MindBody body in mind.Bodies
                      .OrderByDescending(body => carried.ContainsKey(body.ActorId))
+                     // A body standing on a carrier's lane acts before the
+                     // rest of the team: its escape tiles must be chosen
+                     // before lower-priority escorts claim them (owner
+                     // direction 2026-08 - cooperative movement resolves
+                     // by weight, carriers heaviest, their blockers next).
+                     .ThenByDescending(body =>
+                         !carried.ContainsKey(body.ActorId)
+                         && carrierClearance.Contains(body.Position))
                      .ThenBy(body => orders[body.UnitId].Priority)
                      .ThenBy(body => body.UnitId))
         {
@@ -4073,18 +4088,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // finding: "it's friendly bodies blocking it") was an escort whose
         // post resolved onto the carrier's only bankward corridor tile -
         // on-post forever, corridor plugged for 114 ticks with no enemy in
-        // sight. "Closer to the bank" is not the test - multiple routes
-        // can exist (owner point) - so the test is path existence: the
-        // carrier has no way home around its own team, and vacating THIS
-        // tile opens one. The streak-2 supply-lane break then displaces
-        // the plug (TryStepAway pushes away from the own reactor, which is
-        // exactly off the carrier's route).
+        // sight. Whole-map path existence was tried and measured wrong
+        // (ab53): winding detours exist, but the carrier's movement policy
+        // deliberately refuses distance-increasing steps, so it never
+        // takes them. The plug test asks the policy's own question: is
+        // the body standing on an admissible homeward step while every
+        // such step is taken. The streak-2 supply-lane break then
+        // displaces the plug (TryStepAway pushes away from the own
+        // reactor, which is exactly off the carrier's route).
         bool plugsBankLane = onSupplyLane
             && context.Mind.Bodies.Any(other =>
                 context.CarrierUnitIds.Contains(other.UnitId)
                 && other.Position.ChebyshevDistance(body.Position) <= 1
-                && ArenaBasics.UnblocksCarrierRoute(
-                    context.Contract.Map,
+                && ArenaBasics.PlugsCarrierRoute(
+                    context.Contract,
                     context.Mind,
                     other,
                     body,

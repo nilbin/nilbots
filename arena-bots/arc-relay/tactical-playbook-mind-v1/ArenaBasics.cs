@@ -29,10 +29,23 @@ internal static class ArenaBasics
     internal sealed class Claims
     {
         private readonly HashSet<Position> _tiles = [];
+        private readonly Dictionary<Position, int> _lanes = [];
 
         public IReadOnlySet<Position> Tiles => _tiles;
 
+        /// <summary>Carrier right-of-way tiles, keyed to the owning
+        /// carrier's unit. A loaded carrier's next route step is reserved
+        /// for that carrier alone: no other own body may step into it
+        /// this tick, so an orbiting escort can never steal the lane the
+        /// moment its blocker finally yields (owner direction 2026-08:
+        /// prioritize whose movement weighs most and adjust the rest).
+        /// </summary>
+        public IReadOnlyDictionary<Position, int> Lanes => _lanes;
+
         public bool Reserve(Position tile) => _tiles.Add(tile);
+
+        public void ReserveLane(Position tile, int carrierUnitId) =>
+            _lanes[tile] = carrierUnitId;
 
         public static Claims ForTick(MindContext mind)
         {
@@ -382,69 +395,52 @@ internal static class ArenaBasics
     /// distance so moving around cover cannot masquerade as home progress.
     /// </summary>
     /// <summary>
-    /// Whether this candidate body is THE plug in the loaded carrier's
-    /// route home: with every other own body treated as an obstacle, a
-    /// path from the carrier to the bank exists only once the candidate's
-    /// tile is vacated. No single "supply lane" is assumed — multiple
-    /// routes can exist (owner point 2026-08), and a body the carrier can
-    /// path around is not a plug, however bankward it stands.
+    /// Whether the candidate stands on one of the loaded carrier's
+    /// admissible homeward steps while every such step is taken. The
+    /// carrier's movement policy (TryMoveHomeward) only takes steps whose
+    /// static distance to the bank does not increase - winding detours
+    /// are deliberately refused - so the plug question is asked about
+    /// exactly that ring, not about theoretical alternative routes
+    /// (owner point 2026-08: multiple paths can exist; a free admissible
+    /// step means nobody needs to yield).
     /// </summary>
-    public static bool UnblocksCarrierRoute(
-        GenericActorMapContract map,
+    public static bool PlugsCarrierRoute(
+        GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody carrier,
         MindBody candidate,
         Position bank)
     {
-        var obstacles = new HashSet<Position>();
-        foreach (MindBody other in mind.Bodies)
-        {
-            if (other.UnitId != carrier.UnitId
-                && other.UnitId != candidate.UnitId)
-            {
-                obstacles.Add(other.Position);
-            }
-        }
-        if (PathExists(
-                map, carrier.Position, bank, obstacles,
-                candidate.Position))
-        {
+        int? current = StaticDistance(contract.Map, carrier.Position, bank);
+        if (current is null)
             return false;
-        }
-        return PathExists(map, carrier.Position, bank, obstacles, null);
-    }
-
-    private static bool PathExists(
-        GenericActorMapContract map,
-        Position start,
-        Position goal,
-        IReadOnlySet<Position> obstacles,
-        Position? extraObstacle)
-    {
-        if (start == goal)
-            return true;
-        var visited = new HashSet<Position> { start };
-        var queue = new Queue<Position>();
-        queue.Enqueue(start);
-        while (queue.Count > 0)
+        var occupied = mind.Bodies
+            .Where(other => other.UnitId != carrier.UnitId)
+            .Select(other => other.Position)
+            .ToHashSet();
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+            occupied.Add(enemy.Position);
+        bool candidateOnStep = false;
+        foreach (ProjectileHeading heading in EightWay)
         {
-            Position position = queue.Dequeue();
-            foreach (ProjectileHeading heading in EightWay)
+            Position next = Step(carrier.Position, heading);
+            if (!CanStep(contract.Map, carrier.Position, next, heading))
+                continue;
+            if (StaticDistance(contract.Map, next, bank)
+                    is not int distance
+                || distance > current)
             {
-                Position next = Step(position, heading);
-                if (!CanStep(map, position, next, heading)
-                    || !visited.Add(next))
-                {
-                    continue;
-                }
-                if (next == goal)
-                    return true;
-                if (obstacles.Contains(next) || next == extraObstacle)
-                    continue;
-                queue.Enqueue(next);
+                continue;
             }
+            if (next == candidate.Position)
+            {
+                candidateOnStep = true;
+                continue;
+            }
+            if (!occupied.Contains(next))
+                return false;
         }
-        return false;
+        return candidateOnStep;
     }
 
     public static int? StaticDistance(
@@ -1562,6 +1558,11 @@ internal static class ArenaBasics
     {
         var blocked = new HashSet<Position>(claims.Tiles);
         blocked.Remove(moving.Position);
+        foreach ((Position lane, int owner) in claims.Lanes)
+        {
+            if (owner != moving.ActorId.UnitId)
+                blocked.Add(lane);
+        }
         blocked.UnionWith(mind.Allies.Select(ally => ally.Position));
         blocked.UnionWith(mind.Enemies.Select(enemy => enemy.Position));
         blocked.UnionWith(mind.VisibleTiles
