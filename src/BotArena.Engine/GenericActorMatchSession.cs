@@ -3129,21 +3129,35 @@ public sealed class GenericActorMatchSession : IDisposable
                 int declaredTravel = _mode
                     .StatModifiersFor(shooter.ActorId)
                     .AttackTravelTilesDelta;
+                // The telegraph is a CONE - the resolved heading plus one
+                // sector each side - even though a single-target strike
+                // launches exactly one bolt at maturation (owner ruling
+                // 2026-08-12: single-target versus area is the resolution,
+                // not the announcement). A profile with a real volley keeps
+                // its authored fan.
+                ProjectileHeading[] fan = profile.Volley is not null
+                    ? [.. VolleyHeadings(profile, resolvedHeading)]
+                    :
+                    [
+                        (ProjectileHeading)((((int)resolvedHeading - 1) % 8
+                            + 8) % 8),
+                        resolvedHeading,
+                        (ProjectileHeading)(((int)resolvedHeading + 1) % 8),
+                    ];
                 _pendingStrikes.Add(new PendingStrike(
                     shooter.ActorId,
                     profile,
                     shooter.Position,
-                    [.. VolleyHeadings(profile, resolvedHeading)
-                        .Select(heading => new DeclaredStrikeBolt(
+                    [.. fan.Select(heading => new DeclaredStrikeBolt(
+                        heading,
+                        TraceProjectilePath(
+                            shooter.Position,
                             heading,
-                            TraceProjectilePath(
-                                shooter.Position,
-                                heading,
+                            profile,
+                            ResolveShotProgram(
                                 profile,
-                                ResolveShotProgram(
-                                    profile,
-                                    resolution.ValidatedAction),
-                                declaredTravel)))],
+                                resolution.ValidatedAction),
+                            declaredTravel)))],
                     resolution.ValidatedAction,
                     declaredTravel,
                     checked(Tick + profile.Projectile.StrikeWindupTicks)));
