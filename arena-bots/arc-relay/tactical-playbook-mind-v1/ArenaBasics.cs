@@ -443,6 +443,21 @@ internal static class ArenaBasics
         return candidateOnStep;
     }
 
+    private static readonly System.Runtime.CompilerServices
+        .ConditionalWeakTable<
+            GenericActorMapContract,
+            Dictionary<Position, Dictionary<Position, int>>>
+        DistanceFields = new();
+
+    /// <summary>
+    /// Static shortest-step distance over the map's 8-way step relation.
+    /// Backed by a flow field: one BFS FROM the goal serves every query
+    /// against that goal for the whole match (the map never changes), so
+    /// a unit weighing its candidate steps costs lookups instead of
+    /// floods. The step relation is symmetric — a diagonal's clear-corner
+    /// pair is the same two tiles read from either end — so the field's
+    /// values are byte-identical to the historical start-out search.
+    /// </summary>
     public static int? StaticDistance(
         GenericActorMapContract map,
         Position start,
@@ -450,26 +465,61 @@ internal static class ArenaBasics
     {
         if (start == goal)
             return 0;
-        var visited = new HashSet<Position> { start };
-        var queue = new Queue<(Position Position, int Distance)>();
-        queue.Enqueue((start, 0));
+        // The historical start-out search could never ENTER a wall goal.
+        if (!CanEnter(map, goal))
+            return null;
+        Dictionary<Position, Dictionary<Position, int>> fields =
+            DistanceFields.GetOrCreateValue(map);
+        if (!fields.TryGetValue(
+                goal, out Dictionary<Position, int>? field))
+        {
+            field = DistanceField(map, goal);
+            fields.Add(goal, field);
+        }
+        if (field.TryGetValue(start, out int distance))
+            return distance;
+        // The historical search never checked the START's own tile, so a
+        // query FROM a wall legally walks out of it: one step to any
+        // reachable neighbour, then the symmetric field takes over.
+        int? best = null;
+        foreach (ProjectileHeading heading in EightWay)
+        {
+            Position next = Step(start, heading);
+            if (!CanStep(map, start, next, heading)
+                || !field.TryGetValue(next, out int through))
+            {
+                continue;
+            }
+            if (best is null || through + 1 < best)
+                best = through + 1;
+        }
+        return best;
+    }
+
+    private static Dictionary<Position, int> DistanceField(
+        GenericActorMapContract map,
+        Position goal)
+    {
+        var field = new Dictionary<Position, int> { [goal] = 0 };
+        var queue = new Queue<Position>();
+        queue.Enqueue(goal);
         while (queue.Count > 0)
         {
-            (Position position, int distance) = queue.Dequeue();
+            Position position = queue.Dequeue();
+            int distance = field[position];
             foreach (ProjectileHeading heading in EightWay)
             {
                 Position next = Step(position, heading);
                 if (!CanStep(map, position, next, heading)
-                    || !visited.Add(next))
+                    || field.ContainsKey(next))
                 {
                     continue;
                 }
-                if (next == goal)
-                    return distance + 1;
-                queue.Enqueue((next, distance + 1));
+                field[next] = distance + 1;
+                queue.Enqueue(next);
             }
         }
-        return null;
+        return field;
     }
 
     /// <summary>

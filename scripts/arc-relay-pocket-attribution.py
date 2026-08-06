@@ -28,10 +28,11 @@ from __future__ import annotations
 import collections
 import gzip
 import json
+import os
 import sys
 from pathlib import Path
 
-STUCK_TICKS = 30
+STUCK_TICKS = int(os.environ.get("POCKET_MIN_TICKS", "30"))
 
 
 def read_json(path: Path) -> dict:
