@@ -12,6 +12,18 @@
 
 ## Generated review artifact
 
+- Hover-explicit v9 roster: `concept-sheet-hover-explicit-v9.png`
+- Hover-explicit dimensions: 1254×1254 RGB PNG
+- Hover-explicit SHA-256:
+  `d3a02a1a0b1f3b0b69f957a0d85683572e1a0f1fc8809182837ea955c6f4bf62`
+- Hover-explicit gameplay-scale proof:
+  `gameplay-scale-hover-explicit-v9.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `de3a35a6d6657f0a0cad84be3efa600e39db1e6bef01238c5887967a4d2744ec`
+- Exact input and prompt: `hover-explicit-v9/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-ef9616a6-1231-4e0a-9821-422a0b49ec10.png`
 - Hover-clean v8 roster: `concept-sheet-hover-clean-v8.png`
 - Hover-clean dimensions: 1254×1254 RGB PNG
 - Hover-clean SHA-256:
@@ -152,7 +164,15 @@ The v8 surface pass retains those sixteen silhouettes and functional assemblies
 while removing the high-contrast seam network. Broad enamel and pale-metal
 planes now carry the value read; dark values are confined to actual cavities,
 joints, bores, underbodies, and track gaps. The 63-pixel proof preserves the
-class distinctions without reducing them to black-lined plate mosaics.
+class distinctions without reducing them to black-lined plate mosaics. It
+failed the locomotion-read gate because several nominal hovers still appeared
+to rest directly on their studio shadows.
+
+The v9 physical pass raises the twelve intended hover chassis onto visible
+underside field hardware and separates their ground shadows. Palisade, Mortar,
+Mason, and Nest alone retain weight-bearing tracks and contact shadows. The
+detached air gap and warm-neutral underbody cue survive the 63-pixel proof;
+this is the current concept candidate.
 
 ## Industrial-material refinement prompt
 
