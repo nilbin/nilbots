@@ -114,12 +114,13 @@ export default function Viewer({
     useState<ReplayStableUnitKey | null>(null);
   const [selectedPlayKey, setSelectedPlayKey] = useState<string | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
-  // The camera follows the fight by default, and any pan or zoom gesture drops that until
-  // the toggle in the transport hands it back. Owned here rather than inside either
+  // The camera starts on the fixed plan view (owner ruling: a first watch reads
+  // positions before it follows a fight); the transport toggle hands the director back,
+  // and any pan or zoom gesture drops it again. Owned here rather than inside either
   // renderer because the two must never disagree about it — a device that loses its WebGL
   // context falls back to Canvas2D mid-replay, and the camera should not change its mind
   // about following at the same moment the arena changes how it is drawn.
-  const [autoFit, setAutoFit] = useState(true);
+  const [autoFit, setAutoFit] = useState(false);
   // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
   // a dimension count was never a choice a player wanted to make.
   //

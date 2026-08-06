@@ -35,12 +35,13 @@ export interface PlaybackState {
  */
 export const PRESENTATION_TICKS_PER_SECOND = 2.5;
 
-/** Arc Relay's simultaneous eight-body objective play needs a slower first watch. */
+/**
+ * Every mode starts at 1x (owner ruling — the half-speed Arc Relay first watch read as
+ * sluggish); the speed control still offers 0.5x for a slow read.
+ */
 export function defaultPlaybackSpeed(replay: ReplayModel): number {
-  return replay.contract.kind === 'v3-generic' &&
-    replay.contract.modeKind === 'arc-relay'
-    ? 0.5
-    : 1;
+  void replay;
+  return 1;
 }
 
 /**
