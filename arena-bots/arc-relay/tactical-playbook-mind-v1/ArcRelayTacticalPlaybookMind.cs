@@ -4330,13 +4330,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string channel) =>
         $"tp:{machine.PhaseId}:{group}:{order.OrderId}:{channel}";
 
+    // The tag is the spectator's answer to "what does this unit think it is
+    // doing" (owner review 2026-08-09: a guard reading as a bug because
+    // intent was illegible). Order ids are already job-shaped - race-north,
+    // guard-home, ghost-stalk - so the tag IS the current order, with the
+    // role only as a prefix when it adds information.
     private static string RoleTag(
         string phase,
         string group,
         string role,
         string order)
     {
-        string value = $"{phase}-{group}-{role}-{order}".ToLowerInvariant();
+        _ = phase;
+        _ = group;
+        string value = (order.Contains(role, StringComparison.Ordinal)
+            ? order
+            : $"{role}:{order}").ToLowerInvariant();
         return (value.Length <= 24 ? value : value[..24]).TrimEnd('-');
     }
 

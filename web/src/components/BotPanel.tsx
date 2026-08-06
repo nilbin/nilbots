@@ -180,9 +180,6 @@ export default function BotPanel({
   // author's plan, not from nine bodies agreeing.
   const mindProfile =
     replay.versions.actorRuntime?.family === 'generic-mind-match-1';
-  const isArcRelay =
-    replay.contract.kind === 'v3-generic' &&
-    replay.contract.modeKind === 'arc-relay';
   // Arc Relay has sixteen bodies. Pair equal slots across teams so the roster
   // reads like a lineup, rather than a long diagnostic log for one team and
   // then another. Full detail remains one click away.
@@ -427,8 +424,11 @@ export default function BotPanel({
         // entering a stance show up in the panel at the same tick they show up in the
         // arena.
         const look = unitLook(replay, unit.unitKey, unit.formId);
-        const displayedRole = playRoleSummary(unit.roleTag) ??
-          (isArcRelay ? null : unit.roleTag);
+        // The live tag is the unit's own answer to "what am I doing" —
+        // race-north, guard-home, ghost-stalk. Suppressing it on Arc Relay
+        // made authored guards unreadable from bugs (owner review): always
+        // fall back to the raw tag.
+        const displayedRole = playRoleSummary(unit.roleTag) ?? unit.roleTag;
         const controllerName = replay.participants.find(
           (participant) => participant.participantId === unit.participantId,
         )?.name;
