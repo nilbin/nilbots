@@ -710,8 +710,8 @@
      "hunter"
     ],
     "awareness": {
-     "radius": 8,
-     "memoryTicks": 24
+     "radius": 5,
+     "memoryTicks": 16
     },
     "engageWhen": {
      "maxThreats": 2,
