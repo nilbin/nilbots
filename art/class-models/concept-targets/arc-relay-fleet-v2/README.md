@@ -12,6 +12,18 @@
 
 ## Generated review artifact
 
+- Payload-fidelity v13 roster: `concept-sheet-payload-fidelity-v13.png`
+- Payload-fidelity dimensions: 1254×1254 RGB PNG
+- Payload-fidelity SHA-256:
+  `735dda9431e999bc79bb9020933cf050716d11c1786b30e430f10074bbbc787f`
+- Payload-fidelity gameplay-scale proof:
+  `gameplay-scale-payload-fidelity-v13.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `1b33bcc57ac694ccc6f46e81c95447e808cd1e53713ef9c63f1ec3735e978e02`
+- Exact inputs and prompt: `payload-fidelity-v13/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-a255781d-4ebf-432f-a956-686d52fb244e.png`
 - Clean all-hover v12 roster: `concept-sheet-clean-all-hover-v12.png`
 - Clean all-hover dimensions: 1254×1254 RGB PNG
 - Clean all-hover SHA-256:
@@ -210,7 +222,15 @@ tracked machines retain heavy bastion, artillery, workshop, and carrier
 proportions on distinct grav platforms. It also removes Patchbay's redundant
 raised arm, reserves the crane/hook silhouette for Towline, replaces Mason's
 long booms with compact radial tools, and removes track-like skirt grids. This
-is the current concept candidate.
+pass still used warm lift pools, and its generic carried discs/pods did not
+match the deployed signature props closely enough.
+
+The v13 payload-fidelity pass removes all underbody emission and relies only on
+air gaps plus detached neutral shadows. Minesmith now carries three folded Trip
+Nodes with the approved three-prong graphite puck and triangular sensor
+language. Nest carries two folded Sentinel Seeds with the approved taupe base,
+yaw bearing, compact gun head, sensor slit, and short barrel. This is the
+current concept candidate.
 
 ## Industrial-material refinement prompt
 
