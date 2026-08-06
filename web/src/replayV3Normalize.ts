@@ -2407,9 +2407,41 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         'visibleSignatures',
         'latestPulseTeamId',
         'latestPulseTick',
+        // Declared strikes exist only on strike-windup rulesets
+        // (DECISIONS #212); absence is the historical document shape.
+        ...(own(base, 'pendingStrikes') ? ['pendingStrikes'] : []),
       ],
       fail,
     );
+    if (own(item, 'pendingStrikes')) {
+      array(item.pendingStrikes, `${path}.pendingStrikes`, fail).forEach(
+        (entry, index) => {
+          const strike = exact(
+            entry,
+            `${path}.pendingStrikes[${index}]`,
+            ['shooter', 'resolveAtTick', 'tiles'],
+            fail,
+          );
+          actorId(strike.shooter, `${path}.pendingStrikes[${index}].shooter`, fail);
+          integer(
+            strike.resolveAtTick,
+            `${path}.pendingStrikes[${index}].resolveAtTick`,
+            fail,
+          );
+          array(
+            strike.tiles,
+            `${path}.pendingStrikes[${index}].tiles`,
+            fail,
+          ).forEach((tile, tileIndex) =>
+            position(
+              tile,
+              `${path}.pendingStrikes[${index}].tiles[${tileIndex}]`,
+              fail,
+            ),
+          );
+        },
+      );
+    }
     nonEmpty(item.modeId, `${path}.modeId`, fail);
     const coreId = (value: unknown, corePath: string) => {
       const core = exact(
@@ -7775,6 +7807,11 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
     })),
     latestPulseTeamId: mode.latestPulseTeamId,
     latestPulseTick: mode.latestPulseTick,
+    pendingStrikes: (mode.pendingStrikes ?? []).map((strike) => ({
+      shooter: identity(strike.shooter),
+      resolveAtTick: strike.resolveAtTick,
+      tiles: strike.tiles.map(copyPosition),
+    })),
   };
 }
 

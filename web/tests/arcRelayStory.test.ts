@@ -190,8 +190,8 @@ function arcEvent(tick: number, fact: ReplayArcRelayFact): ReplayCausalEvent {
   };
 }
 
-test('Arc Relay defaults to a human-readable half-speed first watch', () => {
-  assert.equal(defaultPlaybackSpeed(arcRelayReplay()), 0.5);
+test('Arc Relay starts at full speed (owner ruling: half-speed read as sluggish)', () => {
+  assert.equal(defaultPlaybackSpeed(arcRelayReplay()), 1);
 });
 
 test('Arc Relay presents the carrier and every possession beat', () => {

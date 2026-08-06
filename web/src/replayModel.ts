@@ -996,6 +996,16 @@ export interface ReplayArcRelayModeState {
   }[];
   latestPulseTeamId: number | null;
   latestPulseTick: number | null;
+  /**
+   * Declared strikes in windup (DECISIONS #212): the shooter, the tick the
+   * ray resolves, and the frozen tiles it will trace. Empty on every ruleset
+   * without strike windups.
+   */
+  pendingStrikes: {
+    shooter: ReplayActorIdentity;
+    resolveAtTick: number;
+    tiles: ReplayPosition[];
+  }[];
 }
 
 export interface ReplayProjectileState {

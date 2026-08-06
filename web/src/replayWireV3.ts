@@ -794,6 +794,18 @@ export interface ReplayV3ArcRelayModeState {
   visibleSignatures: ReplayV3ArcSignature[];
   latestPulseTeamId: number | null;
   latestPulseTick: number | null;
+  /**
+   * Declared strikes in windup (DECISIONS #212). Present only on rulesets
+   * with strike windups; absence is the historical document shape.
+   */
+  pendingStrikes?: ReplayV3ArcPendingStrike[];
+}
+
+/** One publicly declared strike in windup (DECISIONS #212). */
+export interface ReplayV3ArcPendingStrike extends ReplayV3JsonObject {
+  shooter: ReplayV3ActorId;
+  resolveAtTick: number;
+  tiles: ReplayV3Position[];
 }
 
 /** One team's published economic position under a declared scrap economy. */

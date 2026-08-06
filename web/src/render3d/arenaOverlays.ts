@@ -2018,6 +2018,35 @@ function buildArcRelayStory(
     return cores[index]!;
   };
 
+  // The lit cone (DECISIONS #212): pooled red tile plates for declared
+  // strikes, revealed per tick from the presentation story. Urgency drives
+  // brightness so the final windup tick reads as NOW.
+  const strikeTileGeometry = new THREE.PlaneGeometry(0.92, 0.92);
+  strikeTileGeometry.rotateX(-Math.PI / 2);
+  disposables.push(strikeTileGeometry);
+  const strikeTiles: {
+    mesh: THREE.Mesh;
+    material: THREE.MeshBasicMaterial;
+  }[] = [];
+  const strikeTile = (index: number) => {
+    while (strikeTiles.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#f87171'),
+        transparent: true,
+        opacity: 0.3,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(strikeTileGeometry, material);
+      mesh.visible = false;
+      mesh.position.y = 0.024;
+      mesh.userData.cue = 'pending-strike';
+      group.add(mesh);
+      disposables.push(material);
+      strikeTiles.push({ mesh, material });
+    }
+    return strikeTiles[index]!;
+  };
+
   const update = (presentation: TickPresentation, time: number) => {
     const story = presentation.arcRelay;
     group.visible = story !== null;
@@ -2027,6 +2056,26 @@ function buildArcRelayStory(
     for (const [index, material] of healPulseMaterials.entries()) {
       material.opacity =
         0.42 + 0.18 * (0.5 + 0.5 * Math.sin(time * Math.PI * 0.8 + index));
+    }
+
+    let strikeTileCount = 0;
+    for (const strike of story.pendingStrikes) {
+      const pulse = 0.7 + 0.3 * Math.sin(time * Math.PI * 4);
+      for (const tile of strike.tiles) {
+        const plate = strikeTile(strikeTileCount);
+        strikeTileCount += 1;
+        plate.mesh.visible = true;
+        plate.mesh.position.set(tile.x + 0.5, 0.024, tile.y + 0.5);
+        plate.material.opacity =
+          (0.18 + 0.4 * strike.urgency) * pulse;
+      }
+    }
+    for (
+      let index = strikeTileCount;
+      index < strikeTiles.length;
+      index++
+    ) {
+      strikeTiles[index]!.mesh.visible = false;
     }
 
     for (const [index, state] of story.wells.entries()) {
