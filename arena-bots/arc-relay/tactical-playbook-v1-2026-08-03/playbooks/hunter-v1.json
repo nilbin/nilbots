@@ -2084,16 +2084,12 @@
        "carrier-known"
       ],
       [
-       "enemy-remembered"
-      ],
-      [
        "enemy-remembered-deep"
       ]
      ],
      "until": [
       [
        "carriers-none",
-       "well-line-cold",
        "backfield-cold"
       ]
      ]

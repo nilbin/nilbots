@@ -174,9 +174,6 @@ export function drawArena(
     height: mapHeight,
     tileRows: mapTiles,
   } = replay.map;
-  const isArcRelay =
-    replay.contract.kind === 'v3-generic' &&
-    replay.contract.modeKind === 'arc-relay';
   // The tile size and origin the camera asks for. `arenaViewport` also owns the whole-map
   // fallback and its margin, so `ArenaCanvas`'s hit-test converts a click back to a tile
   // through the same arithmetic — the two used to state it separately, with a comment on
@@ -1557,7 +1554,9 @@ export function drawArena(
     );
     const tag = unit?.roleTag;
     if (!tag) return;
-    if (isArcRelay) return;
+    // Arc Relay tags carry the unit's live order now (race-north,
+    // guard-home, ghost-stalk) — suppressing them made authored guards
+    // unreadable from bugs (owner review), so they draw like any other.
     if (parsePlayRoleTag(tag)) return;
     const caption = roleTagCaption(tag);
     // Camera close-ups must enlarge the machine, not turn sheet metadata into a billboard.

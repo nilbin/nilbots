@@ -79,7 +79,8 @@ internal sealed class ResolvedLabsEntrant : IDisposable
         int participantId,
         int teamId,
         byte[]? mindEvaluationData = null,
-        string? displayName = null) =>
+        string? displayName = null,
+        string? accentOverride = null) =>
         new()
         {
             ParticipantId = participantId,
@@ -92,7 +93,7 @@ internal sealed class ResolvedLabsEntrant : IDisposable
             MindEvaluationData = mindEvaluationData is null
                 ? []
                 : [.. mindEvaluationData],
-            Accent = Accent,
+            Accent = accentOverride ?? Accent,
             LookId = LookId,
             ProjectileLookId = ProjectileLookId,
         };

@@ -1831,8 +1831,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 if (participants.Length == 0 || mind.Enemies.Length == 0)
                     continue;
                 GenericActorContext.ObservedEnemyState[] enemies = mind.Enemies
+                    // The isolation gate keeps a fragile predator from diving
+                    // escorted prey - but a target whose BACK is to one of our
+                    // shooters is a free backstab under the rear-arc rules,
+                    // escorts or not, and refusing it read as "he doesn't
+                    // like attacking even when clearly behind an enemy"
+                    // (owner review 2026-08-10). Rear exposure overrides
+                    // isolation; nothing else does.
                     .Where(enemy => policy.Isolation is not
                             TacticalPlaybookPackage.Isolation isolation
+                        || ArenaBasics.RearExposedRank(participants, enemy) == 1
                         || !mind.Enemies.Any(ally =>
                             ally.ActorId != enemy.ActorId
                             && ally.Position.ChebyshevDistance(enemy.Position)

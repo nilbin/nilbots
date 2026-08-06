@@ -1835,11 +1835,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // ENEMIES too — half the drama of a set-piece is seeing both sides'
       // assignments and knowing one of them is wrong. An absent tag draws
       // nothing at all: an unlabelled body should look unlabelled.
+      // Arc Relay tags were suppressed here once — and a guard near base
+      // read as a bug because its intent was invisible (owner review). The
+      // tag now IS the unit's live order, so it always draws when present.
       const roleTag = mechanics?.roleTag ?? null;
-      const isArcRelay =
-        replay.contract.kind === 'v3-generic' &&
-        replay.contract.modeKind === 'arc-relay';
-      const visibleRoleTag = !isArcRelay && roleTag && !parsePlayRoleTag(roleTag)
+      const visibleRoleTag = roleTag && !parsePlayRoleTag(roleTag)
         ? roleTag
         : null;
       bot.paintRole(visibleRoleTag);

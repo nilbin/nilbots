@@ -47,11 +47,12 @@
   "frozenDefinition": "a live body whose position is unchanged for the whole window, regardless of the actions it issues; the team trips when at least minimumFrozenBodies and at least the configured share of its live bodies are simultaneously frozen"
  },
  "teamDance": {
-  "windowTicks": 150,
+  "windowTicks": 80,
   "confinementRadius": 2,
   "minimumConfinedBodies": 3,
   "tripAtConfinedShareOfLiveBodies": 0.5,
-  "confinedDefinition": "a live body that never leaves the Chebyshev radius around its reference tile for the whole window (the reference resets whenever it steps outside); statues are radius-0 dancers, so this subsumes teamStatue, which remains for continuity"
+  "confinedDefinition": "a live body that never leaves the Chebyshev radius around its reference tile for the whole window (the reference resets whenever it steps outside); statues are radius-0 dancers, so this subsumes teamStatue, which remains for continuity",
+  "ownerCalibration": "w-9007 review: four wellwright units milling 89 ticks read as an obvious dance on replay; the 150-tick window sailed past it. 80 ticks is ~32 seconds of screen time at 1x - anything confined that long together is felt."
  },
  "barsId": null,
  "unitParked": {

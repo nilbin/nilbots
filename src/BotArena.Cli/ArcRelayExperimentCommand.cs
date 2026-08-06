@@ -94,7 +94,15 @@ public static class ArcRelayExperimentCommand
                 participantId: 1,
                 teamId: 1,
                 mindEvaluationData: teamOne.Data,
-                displayName: SheetDisplayName(second.Name, teamOne)),
+                displayName: SheetDisplayName(second.Name, teamOne),
+                // A mirror cell runs one artifact on both sides, which would
+                // paint both teams the same colour — the owner could not say
+                // WHICH team's units were misbehaving. Cyan is the house
+                // accent's far complement.
+                accentOverride: string.Equals(
+                    first.Accent, second.Accent, StringComparison.Ordinal)
+                    ? "#22d3ee"
+                    : null),
         ];
 
         bool perfDiagnostics = string.Equals(
