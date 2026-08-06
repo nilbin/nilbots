@@ -891,7 +891,11 @@
   {
    "engagementId": "ghost-commit",
    "participants": [
-    "hunter"
+    "hunter",
+    "medic",
+    "carrier",
+    "lancer",
+    "hauler"
    ],
    "targetPriorities": [
     "enemy-carrier",
