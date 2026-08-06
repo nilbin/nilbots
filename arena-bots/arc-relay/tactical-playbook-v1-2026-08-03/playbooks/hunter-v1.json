@@ -2120,11 +2120,10 @@
      "default": {
       "formationId": "shadow-file",
       "movement": {
-       "kind": "shadow-traffic",
-       "target": "perch-north",
+       "kind": "route",
+       "target": "shadow-north-long",
        "stuckTicks": 10,
        "pace": "slowest",
-       "leadTiles": 4,
        "scan": "sweep"
       },
       "engagementId": "ghost-commit",
