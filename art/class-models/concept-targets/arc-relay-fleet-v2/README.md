@@ -12,6 +12,30 @@
 
 ## Generated review artifact
 
+- Clean all-hover v12 roster: `concept-sheet-clean-all-hover-v12.png`
+- Clean all-hover dimensions: 1254×1254 RGB PNG
+- Clean all-hover SHA-256:
+  `7a8e980576f1b36a24d951b44f2a062e3590f9c19a9db0027c35d16fee827c35`
+- Clean all-hover gameplay-scale proof:
+  `gameplay-scale-clean-all-hover-v12.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `0889fe51c9093830467c8494a96c04e04baa67cafd9d2dea27f1e911b7133499`
+- Exact inputs and prompts: `clean-all-hover-v12/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-0a4040d3-e265-4bbd-ada3-cd322deeecd0.png`
+- Silhouette-distinct v10 roster: `concept-sheet-silhouette-distinct-v10.png`
+- Silhouette-distinct dimensions: 1254×1254 RGB PNG
+- Silhouette-distinct SHA-256:
+  `0d2ee8c349b1851aab2b8cb42830899f11d6863da3cda78a1a3527e875362714`
+- Silhouette-distinct gameplay-scale proof:
+  `gameplay-scale-silhouette-distinct-v10.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `9323be26b9c12e0443c029f5e187d19fcf4203b14d94d5180032e25f84f1beb1`
+- Exact inputs and prompts: `silhouette-distinct-v10/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-0e1f8066-b657-415b-9944-7cc55d19e4ed.png`
 - Hover-explicit v9 roster: `concept-sheet-hover-explicit-v9.png`
 - Hover-explicit dimensions: 1254×1254 RGB PNG
 - Hover-explicit SHA-256:
@@ -172,7 +196,21 @@ The v9 physical pass raises the twelve intended hover chassis onto visible
 underside field hardware and separates their ground shadows. Palisade, Mortar,
 Mason, and Nest alone retain weight-bearing tracks and contact shadows. The
 detached air gap and warm-neutral underbody cue survive the 63-pixel proof;
-this is the current concept candidate.
+however, Patchbay's medical cross became too small and the roster repeated the
+open twin-tip nose language across several classes.
+
+The v10 identity pass restores one large top-facing white medical cross to
+Patchbay and reserves an open twin-prong front for Relay alone. Kestrel now has
+a single lance point, Lantern a single teardrop nose, Switchback a closed
+reversal frame, and Veil a single smoke-layer wedge. These distinctions and the
+cross survive the 63-pixel proof.
+
+The v12 pass makes all sixteen bodies visibly levitate. The four formerly
+tracked machines retain heavy bastion, artillery, workshop, and carrier
+proportions on distinct grav platforms. It also removes Patchbay's redundant
+raised arm, reserves the crane/hook silhouette for Towline, replaces Mason's
+long booms with compact radial tools, and removes track-like skirt grids. This
+is the current concept candidate.
 
 ## Industrial-material refinement prompt
 
