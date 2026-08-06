@@ -2074,7 +2074,7 @@
        "kind": "route",
        "target": "shadow-north-long",
        "stuckTicks": 10,
-       "pace": "free",
+       "pace": "slowest",
        "scan": "sweep"
       },
       "engagementId": "shadow-strike",
