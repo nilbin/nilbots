@@ -2381,8 +2381,10 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "disengageWhen", out JsonElement disengage))
             {
                 Object(disengage, $"{at}.{id}.commit.disengageWhen",
-                    ["threats"], ["withdrawTo"]);
+                    ["threats"], ["withdrawTo", "recoverTicks"]);
                 Range(disengage, "threats", at, 1, 8);
+                if (disengage.TryGetProperty("recoverTicks", out _))
+                    Range(disengage, "recoverTicks", at, 4, 120);
                 if (disengage.TryGetProperty("withdrawTo", out _))
                     Identifier(disengage, "withdrawTo", at);
             }

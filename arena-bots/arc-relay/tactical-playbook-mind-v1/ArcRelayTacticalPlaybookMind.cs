@@ -37,8 +37,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _idleWatch = [];
     private IdleContext? _idleContext;
     private int _idleBreaks;
-    private readonly Dictionary<int, (int LifeId, bool Active)> _disengaging
-        = [];
+    private readonly Dictionary<int, (int LifeId, int UntilTick)>
+        _disengaging = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
         _withdrawRallies = [];
     private readonly Dictionary<int, (int LifeId, int Index)> _patrols = [];
@@ -2552,23 +2552,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Commit commit)
     {
         int threats = AwarenessThreats(mind, body, commit);
-        (int LifeId, bool Active) latch =
+        (int LifeId, int UntilTick) latch =
             _disengaging.GetValueOrDefault(body.UnitId);
-        bool active = latch.LifeId == body.ActorId.LifeId && latch.Active;
-        if (commit.DisengageWhen is { } disengage
-            && threats >= disengage.Threats)
+        bool active = latch.LifeId == body.ActorId.LifeId
+            && mind.Tick < latch.UntilTick;
+        // Disengagement is a BREAK, never a retirement (the ab70 lesson:
+        // a while-threats-persist latch parked the ghost for 250 ticks at
+        // a hot home front, because a losing side's home always has
+        // threats). The latch runs a fixed recovery window and expires
+        // unconditionally; it can re-trip only after expiry.
+        if (!active
+            && commit.DisengageWhen is { } disengage
+            && threats >= disengage.Threats
+            && latch.UntilTick != mind.Tick)
         {
             active = true;
-        }
-        else if (active
-            && (commit.EngageWhen.MaxThreats == 0
-                || threats <= commit.EngageWhen.MaxThreats))
-        {
-            active = false;
+            _disengaging[body.UnitId] = (
+                body.ActorId.LifeId,
+                mind.Tick + disengage.RecoverTicks);
         }
         if (!active)
             _withdrawRallies.Remove(body.UnitId);
-        _disengaging[body.UnitId] = (body.ActorId.LifeId, active);
         if (active)
             return false;
         return commit.EngageWhen.MaxThreats == 0

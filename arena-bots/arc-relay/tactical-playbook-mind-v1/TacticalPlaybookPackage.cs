@@ -469,7 +469,8 @@ internal sealed class TacticalPlaybookPackage
     /// gate.</summary>
     internal sealed record CommitDisengageWhen(
         int Threats,
-        string? WithdrawTo = null);
+        string? WithdrawTo = null,
+        int RecoverTicks = 24);
 
     /// <summary>
     /// Assassin discipline: participants only acquire targets that have no
