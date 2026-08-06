@@ -4669,3 +4669,23 @@ audit so far; sentinel-zone and stock-baseline mirrors sit inside the
 6/8 bar. Cross-runtime note: tactical-mind games are runtime-deterministic
 but not byte-identical between in-process and WASM (same winner observed);
 evidence remains WASM-only per the standing house rule.
+
+## 212. Positional combat remake: fights resolve from the board, not from micro
+
+Owner ruling 2026-08-11, after replay review kept finding dances and
+Mexican standoffs that every executor patch only relocated: projectile
+dodge combat is the wrong model for a deterministic, spectated,
+sheet-authored game. Perfect-information bots dodge perfectly, so duels
+resolve by tie-break arithmetic that neither the author nor the spectator
+can read, while everything that works in the game (pulse race, birth
+windows, hunts, promotion, backstabs) is positional. The remake goal is
+recorded in docs/EXPERIMENTAL-ARC-RELAY-POSITIONAL-COMBAT.md: combat
+becomes declare -> windup cone -> first-body-in-the-way resolve, with
+facing/level multipliers; sheets own all judgment (engagement entry and
+exit conditions); the mind owns few convergent verbs; standoffs become
+unrepresentable rather than discouraged. Minted as arc-relay-ambush-11
+behind GameRules flags, frozen-beside; acceptance is a 24-seed battery
+with zero felt-degeneracy bar trips, no unresolved-contact streaks,
+both existing sheets running untouched, and owner replay review as the
+final gate. Ranged area-denial and sheet balance are explicit non-goals
+until the melee-beat core proves out.
