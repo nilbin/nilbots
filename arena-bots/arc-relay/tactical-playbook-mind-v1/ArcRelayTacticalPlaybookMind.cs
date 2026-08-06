@@ -324,7 +324,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         HashSet<Position> carrierClearance = carrierSteps.Values.ToHashSet();
         if (carrierSteps.Count > 0)
             carrierClearance.Add(_ownReactor);
-
         foreach (MindBody watched in mind.Bodies)
         {
             (int LifeId, Position Anchor, int Streak) idle =
@@ -4343,9 +4342,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _ = phase;
         _ = group;
-        string value = (order.Contains(role, StringComparison.Ordinal)
-            ? order
-            : $"{role}:{order}").ToLowerInvariant();
+        _ = role;
+        // The arena badge truncates past 14 characters, and every order id
+        // is shorter than that: the order alone is the whole caption.
+        string value = order.ToLowerInvariant();
         return (value.Length <= 24 ? value : value[..24]).TrimEnd('-');
     }
 
