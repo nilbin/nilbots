@@ -2797,15 +2797,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // Carrying is an exclusive tactical state. On movement-cooldown
             // ticks ActCarrier may have no legal action; falling through
             // would let the prior formation rotate or steer the carrier away
-            // from its homeward route between delivery steps. A carrier whose
-            // delivery step is BLOCKED wedges one tile instead of standing -
-            // the pocket dissolves and next tick re-paths (DECISIONS #212);
-            // on cooldown ticks no step is legal and this stays a wait.
-            return acted
-                || ArenaBasics.TryStepAway(
-                    contract, mind, body, [body.Position], claims,
-                    "custody:pocket-wedge")
-                || Hold(body, "custody:committed-delivery-wait");
+            // from its homeward route between delivery steps.
+            return acted || Hold(body, "custody:committed-delivery-wait");
         }
 
         if (string.Equals(custody.AccidentalPickup, "deliver",
@@ -2817,11 +2810,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ? ActUnreachableCustodyFallback(
                     contract, mind, body, custody, claims)
                 : ActCarrier(contract, mind, body, custody, claims);
-            return acted
-                || ArenaBasics.TryStepAway(
-                    contract, mind, body, [body.Position], claims,
-                    "custody:pocket-wedge")
-                || Hold(body, "custody:committed-delivery-wait");
+            return acted || Hold(body, "custody:committed-delivery-wait");
         }
 
         if (string.Equals(custody.AccidentalPickup, "drop-safe",
