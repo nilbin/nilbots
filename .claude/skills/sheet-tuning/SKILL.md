@@ -68,7 +68,13 @@ replay.
 ## Scripts
 
 - `scripts/arc-relay-battery.sh` — the whole standard battery + scoring.
-- `scripts/arc-relay-unit-audit.py` — per-unit behavior from raw replays.
+- `scripts/arc-relay-unit-audit.py` — per-unit behavior from raw
+  replays: dwell, confinement, actions, reasons, plus intent-level
+  columns the owner's eye catches and outcome stats miss — `pend`
+  (edge re-traversal: commuters near 1, circuits near 0), `territory`
+  (own/mid/enemy half shares — a prowler below ~0.6 enemy is not
+  prowling), and `lone a/b` (strikes taken per lone-target-in-range
+  contact episodes — missed-kill detection).
 - `scripts/arc-relay-scorecard.py --bars balance/...v7.json` — bars +
   engagement resolution per broadcast.
 - `scripts/arc-relay-pocket-attribution.py` — WHY a carrier is stuck.

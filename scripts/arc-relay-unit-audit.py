@@ -35,6 +35,18 @@ def read_replay(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def gun_range(replay: dict, form_id: str) -> int:
+    rules = replay["header"]["contract"]["rules"]
+    form = next(
+        (f for f in rules["forms"] if f["id"] == form_id), None)
+    if not form or not form.get("attackProfileId"):
+        return 0
+    attack = next(
+        (a for a in rules["attackProfiles"]
+         if a["id"] == form["attackProfileId"]), None)
+    return attack["projectile"]["maxTravelTiles"] if attack else 0
+
+
 def audit(replay: dict, team_filter: int | None) -> dict:
     units: dict[tuple[int, int], dict] = {}
 
@@ -47,6 +59,12 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                 "actions": collections.Counter(),
                 "reasons": collections.Counter(),
                 "positions": [],
+                "edges": collections.Counter(),
+                "halves": collections.Counter(),
+                "form": None,
+                "loneContacts": 0,
+                "loneStruck": 0,
+                "contactActive": False,
             },
         )
 
@@ -60,18 +78,70 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                 if command.get("roleTag"):
                     entry["roles"][command["roleTag"]] += 1
                 entry["actions"][command["actionId"]] += 1
+                if (command["actionId"].startswith("shoot")
+                        and entry.get("contactActive")
+                        and not entry.get("struckThisContact")):
+                    entry["loneStruck"] += 1
+                    entry["struckThisContact"] = True
                 reason = (command.get("debugMessage") or "")[:64]
                 if reason:
                     entry["reasons"][reason] += 1
         state = tick.get("tickStart", {}).get("state", {})
-        for life in state.get("activeLives", []) or []:
+        lives = state.get("activeLives", []) or []
+        width = replay["header"]["contract"]["map"]["width"]
+        mid = width // 2
+        for life in lives:
             actor = life["actorId"]
             if team_filter is not None and actor["teamId"] != team_filter:
                 continue
             entry = unit(actor["teamId"], actor["unitId"])
+            entry["form"] = life.get("formId") or entry["form"]
             spot = (life["position"]["x"], life["position"]["y"])
+            if entry["positions"]:
+                prev = entry["positions"][-1][1]
+                if prev != spot:
+                    entry["edges"][
+                        (min(prev, spot), max(prev, spot),
+                         prev < spot)
+                    ] += 1
+            # Territory: which half of the map (canonical: team 0 owns
+            # low-x, team 1 owns high-x).
+            own_low = actor["teamId"] == 0
+            if spot[0] == mid:
+                half = "mid"
+            elif (spot[0] < mid) == own_low:
+                half = "own"
+            else:
+                half = "enemy"
+            entry["halves"][half] += 1
             entry["dwell"][spot] += 1
             entry["positions"].append((tick["tick"], spot))
+            # Opportunity ledger: a LONE enemy inside this unit's gun
+            # range (no other enemy within 4 of it) is a canonical kill
+            # chance; count distinct contact episodes and how many drew a
+            # strike while in contact.
+            reach = gun_range(replay, entry["form"] or "")
+            if reach > 0:
+                enemies = [
+                    (l["position"]["x"], l["position"]["y"])
+                    for l in lives
+                    if l["actorId"]["teamId"] != actor["teamId"]
+                ]
+                lone_in_reach = any(
+                    max(abs(e[0] - spot[0]), abs(e[1] - spot[1])) <= reach
+                    and not any(
+                        o != e
+                        and max(abs(o[0] - e[0]), abs(o[1] - e[1])) <= 4
+                        for o in enemies
+                    )
+                    for e in enemies
+                )
+                if lone_in_reach and not entry["contactActive"]:
+                    entry["loneContacts"] += 1
+                    entry["contactActive"] = True
+                    entry["struckThisContact"] = False
+                elif not lone_in_reach:
+                    entry["contactActive"] = False
 
     report = {}
     for key, entry in sorted(units.items()):
@@ -88,7 +158,33 @@ def audit(replay: dict, team_filter: int | None) -> dict:
             if tick_number - start > best:
                 best = tick_number - start
                 anchor = current
+        total_edges = sum(entry["edges"].values())
+        # Pendulum score: how much of the walking re-traverses the same
+        # tile edges in BOTH directions. A circuit walks each edge one
+        # way (score near 0); a commuter walks its corridor out and back
+        # (score near 1). This is the owner's "walks back and forth"
+        # made measurable.
+        both_ways = collections.Counter()
+        for (a, b, forward), count in entry["edges"].items():
+            both_ways[(a, b)] = both_ways.get((a, b), 0)
+        pendulum = 0.0
+        if total_edges:
+            paired = 0
+            undirected = collections.defaultdict(lambda: [0, 0])
+            for (a, b, forward), count in entry["edges"].items():
+                undirected[(a, b)][0 if forward else 1] += count
+            for fwd, rev in undirected.values():
+                paired += 2 * min(fwd, rev)
+            pendulum = paired / total_edges
+        halves_total = sum(entry["halves"].values()) or 1
         report[key] = {
+            "pendulum": round(pendulum, 2),
+            "territory": {
+                half: round(entry["halves"][half] / halves_total, 2)
+                for half in ("own", "mid", "enemy")
+            },
+            "loneContacts": entry["loneContacts"],
+            "loneStruck": entry["loneStruck"],
             "roles": [role for role, _ in entry["roles"].most_common(3)],
             "topDwell": entry["dwell"].most_common(3),
             "confinementTicks": best,
@@ -129,11 +225,20 @@ def main() -> None:
                 for action, count in entry["actions"].items()
                 if "move" in action or "strafe" in action
             )
+            terr = entry["territory"]
+            opp = (
+                f" lone {entry['loneStruck']}/{entry['loneContacts']}"
+                if entry["loneContacts"]
+                else ""
+            )
             print(
                 f"  t{team} u{unit_id} [{roles}] "
                 f"confined {entry['confinementTicks']:3d}t"
                 f" @ {entry['confinementAnchor']}"
-                f" | moves {moves:3d} shots {shots:3d}{flag}"
+                f" | moves {moves:3d} shots {shots:3d}"
+                f" | pend {entry['pendulum']:.2f}"
+                f" own/mid/enemy {terr['own']:.2f}/{terr['mid']:.2f}"
+                f"/{terr['enemy']:.2f}{opp}{flag}"
             )
             if args.verbose or flag:
                 for reason, count in entry["topReasons"]:
