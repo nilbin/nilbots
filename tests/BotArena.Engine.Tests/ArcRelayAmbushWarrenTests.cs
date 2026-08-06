@@ -407,7 +407,7 @@ public sealed class ArcRelayAmbushWarrenTests
     public void PositionalStrikesMintBesideTheDeepWarrenWithoutMovingIt()
     {
         // DECISIONS #212: -11 turns every class gun into a declared instant
-        // ray (windup 2) on the -10 deep warren. The rules fingerprint moves,
+        // ray (windup 1) on the -10 deep warren. The rules fingerprint moves,
         // the map does not, and signature bolts keep their historical shape.
         Assert.NotEqual(
             ActorContractFingerprint.ComputeRules(
@@ -433,7 +433,7 @@ public sealed class ArcRelayAmbushWarrenTests
             Assert.Equal(
                 ActorProjectileMode.InstantRay,
                 profile.Projectile.Mode);
-            Assert.Equal(2, profile.Projectile.StrikeWindupTicks);
+            Assert.Equal(1, profile.Projectile.StrikeWindupTicks);
         }
         foreach (string bolt in new[] { "sentinel-bolt", "hook-bolt" })
         {
@@ -445,7 +445,7 @@ public sealed class ArcRelayAmbushWarrenTests
             Assert.Equal(0, profile.Projectile.StrikeWindupTicks);
         }
         string json = ActorContractManifestSerializer.ToCanonicalJson(rules);
-        Assert.Contains("\"strikeWindupTicks\":2", json);
+        Assert.Contains("\"strikeWindupTicks\":1", json);
         string previous = ActorContractManifestSerializer.ToCanonicalJson(
             ArcRelayH0Definition.CreateRules(
                 ArcRelayLoopProfile.AmbushWarren10));

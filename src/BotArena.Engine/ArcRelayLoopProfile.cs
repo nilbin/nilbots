@@ -617,7 +617,7 @@ public sealed record ArcRelayLoopProfile
         seedPhasedResolutionOrder: true,
         rotationalSpawnAssignment: true,
         seedPhasedWellLead: true,
-        strikeWindupTicks: 2);
+        strikeWindupTicks: 1);
 
     /// <summary>
     /// Owner-selected hosted product map. Kept separate from H0 so historical
