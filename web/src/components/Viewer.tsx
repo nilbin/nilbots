@@ -546,8 +546,21 @@ export default function Viewer({
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
           {isArcRelay && arcStanding && (
-            <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
-              reactors={arcStanding.reactors} />
+            /* In immersive mode the score bug follows the chrome: tapping
+               reveals the transport AND the names/scores together, and both
+               get out of the way of the match. Fully hidden rather than
+               dimmed - names and scores are exactly what a spectator wants
+               gone while watching, unlike the tick, which stays readable. */
+            <div
+              className={clsx(
+                'transition-opacity duration-300',
+                immersive.active && !chromeVisible &&
+                  'pointer-events-none opacity-0',
+              )}
+            >
+              <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
+                reactors={arcStanding.reactors} />
+            </div>
           )}
           {isArcRelay && !playback.atEnd && playTimeline.activations.length > 0 && (
             <TacticsLens
