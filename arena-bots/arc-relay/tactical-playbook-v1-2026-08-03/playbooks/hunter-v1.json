@@ -1014,7 +1014,7 @@
        "apex-strike": {
         "arrivalRadius": 2,
         "completion": "continuous",
-        "chaseLeash": 4,
+        "chaseLeash": 14,
         "engagementId": "shadow-strike",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
@@ -1035,7 +1035,7 @@
        "well-watch-apex": {
         "arrivalRadius": 2,
         "completion": "continuous",
-        "chaseLeash": 1,
+        "chaseLeash": 14,
         "engagementId": "disrupt-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
@@ -1055,7 +1055,7 @@
        "reserve-idle-apex": {
         "arrivalRadius": 2,
         "completion": "continuous",
-        "chaseLeash": 2,
+        "chaseLeash": 14,
         "engagementId": "reserve-fight",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
@@ -1128,7 +1128,7 @@
        "cutoff-strike": {
         "arrivalRadius": 1,
         "completion": "continuous",
-        "chaseLeash": 6,
+        "chaseLeash": 14,
         "engagementId": "shadow-strike",
         "custodyId": "well-custody",
         "fallbackId": "continue-and-hold-invalid",
@@ -1245,13 +1245,13 @@
    "north-birth-soon": {
     "fact": "well-ticks-until-birth",
     "operator": "at-most",
-    "value": 16,
+    "value": 28,
     "subject": "north"
    },
    "south-birth-soon": {
     "fact": "well-ticks-until-birth",
     "operator": "at-most",
-    "value": 16,
+    "value": 28,
     "subject": "south"
    },
    "carrier-known": {
@@ -1298,6 +1298,20 @@
     "operator": "at-most",
     "value": 2,
     "subject": "well-group"
+   },
+   "enemy-remembered": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "well-line",
+    "freshnessTicks": 30
+   },
+   "enemy-remembered-deep": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "enemy-backfield",
+    "freshnessTicks": 30
    }
   },
   "conditionSets": {
@@ -1338,6 +1352,12 @@
    "carrier-sighted": [
     [
      "carrier-known"
+    ],
+    [
+     "enemy-remembered"
+    ],
+    [
+     "enemy-remembered-deep"
     ]
    ],
    "kill-window": [

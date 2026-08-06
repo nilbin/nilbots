@@ -1535,7 +1535,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _enemyReactor,
                 order.Movement.ChaseLeash);
         if (selected is not { } carrier)
-            return fallback;
+        {
+            // Stalk (owner doctrine 2026-08-07: "it needs to actually hunt
+            // and look for ambushes"): no known carrier does not mean no
+            // prey. Take the nearest remembered enemy that has no ally
+            // within support range - the same isolation discipline the
+            // strike obeys - and go set up on it; the perch is only for a
+            // truly empty memory.
+            Position? prey = _lastSeenEnemies.Values
+                .Where(enemy => !_lastSeenEnemies.Values.Any(ally =>
+                    ally.ActorId != enemy.ActorId
+                    && ally.Position.ChebyshevDistance(enemy.Position) <= 4))
+                .OrderBy(enemy => interceptor.Position
+                    .ChebyshevDistance(enemy.Position))
+                .Select(enemy => (Position?)enemy.Position)
+                .FirstOrDefault();
+            return prey ?? fallback;
+        }
         Position cutoff = TacticalCoordinationPrimitives
             .PredictReturnLaneCutoff(
                 _mirrored,
@@ -3278,7 +3294,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // tile.
         if (stuck >= order.Movement.StuckTicks * 3
             && ArenaBasics.TryStepAway(
-                contract, mind, body, [body.Position], claims,
+                contract, mind, body, [body.Position, _ownReactor], claims,
                 Provenance(machine, group, order, "wedge-shake")))
         {
             _motion[body.UnitId] = new MotionProgress(
