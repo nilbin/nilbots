@@ -652,7 +652,7 @@
    ]
   },
   {
-   "formationId": "shadow-solo",
+   "formationId": "ghost-solo",
    "shape": "escort",
    "orientation": "enemy-reactor",
    "spacing": {
@@ -667,6 +667,138 @@
     "breakTicks": 3,
     "reformTicks": 4,
     "pace": "free"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "formationId": "ghost-escort",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 4,
+    "pace": "slowest"
    },
    "reflow": {
     "blockedSlot": "nearest-legal",
@@ -815,13 +947,6 @@
    "holdFire": {
     "withinDistance": 4
    },
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
    "release": {
     "hiddenTicks": 2,
     "unreachableTicks": 3,
@@ -833,7 +958,6 @@
     "threatDistance": 2,
     "returnToFormation": true
    },
-   "posture": "skirmish",
    "isolation": {
     "supportRange": 4
    },
@@ -885,13 +1009,6 @@
    "aimPreparation": "rotate-to-engage",
    "chaseLeash": 1,
    "signatureCoordination": "control-first",
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
    "release": {
     "hiddenTicks": 1,
     "unreachableTicks": 3,
@@ -927,13 +1044,6 @@
    "aimPreparation": "current-cone-only",
    "chaseLeash": 2,
    "signatureCoordination": "damage-first",
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
    "release": {
     "hiddenTicks": 1,
     "unreachableTicks": 3,
@@ -973,13 +1083,6 @@
    "aimPreparation": "current-cone-only",
    "chaseLeash": 0,
    "signatureCoordination": "control-first",
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
    "release": {
     "hiddenTicks": 1,
     "unreachableTicks": 2,
@@ -990,8 +1093,7 @@
     "enabled": true,
     "threatDistance": 4,
     "returnToFormation": true
-   },
-   "posture": "skirmish"
+   }
   },
   {
    "engagementId": "carrier-strike",
@@ -1020,13 +1122,6 @@
    "aimPreparation": "rotate-to-engage",
    "chaseLeash": 6,
    "signatureCoordination": "damage-first",
-   "dodgeCoverage": {
-    "mode": "escape-lanes",
-    "horizonTicks": 4,
-    "minimumDirectShots": 2,
-    "minimumCoveredOptions": 5,
-    "fallback": "best-coverage"
-   },
    "release": {
     "hiddenTicks": 2,
     "unreachableTicks": 3,
@@ -2194,89 +2289,62 @@
  "doctrines": {
   "ghost": {
    "role": "hunter",
-   "assignmentProfileId": "shadow-standard",
-   "custodyId": "well-custody",
-   "claimAnchor": "home-gate",
+   "custody": "well-custody",
+   "fight": {
+    "targets": {
+     "lone": 4
+    },
+    "engage": {
+     "within": 4
+    },
+    "chase": {
+     "leash": 6,
+     "onlyCatchable": true,
+     "executeBelowHealth": 1
+    },
+    "breakOff": {
+     "threats": 4,
+     "within": 5,
+     "memoryTicks": 16,
+     "recoverTicks": 24
+    }
+   },
    "modes": [
     {
-     "modeId": "prowl",
-     "default": {
-      "formationId": "shadow-solo",
-      "movement": {
-       "kind": "route",
-       "target": "shadow-north-long",
-       "stuckTicks": 10,
-       "pace": "free",
-       "scan": "sweep"
+     "assault": "strike-line",
+     "while": "shadow-op",
+     "until": "shadow-cooled",
+     "escort": "medic",
+     "fight": {
+      "targets": {
+       "lone": 0
       },
-      "engagementId": "shadow-strike",
-      "stance": "ambush",
-      "chaseLeash": 3,
-      "arrivalRadius": 2
+      "engage": {
+       "within": 0
+      },
+      "chase": {
+       "leash": 14,
+       "onlyCatchable": false,
+       "executeBelowHealth": 0
+      },
+      "breakOff": {
+       "threats": 0
+      }
      }
     },
     {
-     "modeId": "stalk",
-     "default": {
-      "formationId": "shadow-file",
-      "movement": {
-       "kind": "enemy-carrier-cutoff",
-       "target": "perch-north",
-       "stuckTicks": 8,
-       "pace": "slowest",
-       "leadTiles": 1
-      },
-      "engagementId": "shadow-strike",
-      "chaseLeash": 14,
-      "arrivalRadius": 1,
-      "stance": "ambush"
-     },
-     "while": [
-      [
-       "carrier-known"
-      ],
-      [
-       "enemy-remembered-deep"
-      ]
-     ],
-     "until": [
-      [
-       "carriers-none",
-       "backfield-cold"
-      ]
-     ]
+     "intercept": "enemy-carriers",
+     "from": "perch-north",
+     "while": "carrier-known or enemy-remembered-deep",
+     "until": "carriers-none and backfield-cold",
+     "fight": {
+      "chase": {
+       "leash": 14
+      }
+     }
     },
     {
-     "modeId": "beast",
-     "default": {
-      "formationId": "shadow-file",
-      "movement": {
-       "kind": "route",
-       "target": "strike-line",
-       "stuckTicks": 10,
-       "pace": "slowest"
-      },
-      "engagementId": "carrier-strike",
-      "stance": "ambush",
-      "chaseLeash": 14,
-      "arrivalRadius": 2
-     },
-     "while": [
-      [
-       "shadow-op"
-      ]
-     ],
-     "until": [
-      [
-       "shadow-cooled"
-      ]
-     ],
-     "escort": {
-      "roles": [
-       "medic"
-      ],
-      "maximum": 1
-     }
+     "patrol": "shadow-north-long"
     }
    ]
   }

@@ -820,21 +820,46 @@ public static class ArcRelayTacticalPlaybookCompiler
             expanded["custodyId"] = custodyId;
         if (assignment.TryGetProperty("stance", out JsonElement stance))
             expanded["stance"] = stance.GetString();
+        if (assignment.TryGetProperty(
+                "patienceTicks", out JsonElement patienceTicks))
+        {
+            expanded["patienceTicks"] = patienceTicks.GetInt32();
+        }
         return expanded;
     }
 
     /// <summary>
-    /// Desugars the mode/reaction doctrine grammar (owner design 2026-08-08)
-    /// into the legacy task/maneuver machinery BEFORE validation, so the mind
-    /// contract is untouched and consistency holds by construction: one
-    /// authored condition generates the mode's activation set and exit set,
-    /// task priorities come from mode ORDER (later mode outranks earlier -
-    /// there are no hand-numbered priorities to invert), and every generated
-    /// assignment uses the alternate-on-invalid fallback so no desugared
-    /// order can park a unit off its post. A doctrine is a small state
-    /// machine per role: each mode carries a default (formation, movement,
-    /// engagement, stance) and `while`/`until` predicate groups as its
-    /// transitions; an optional escort row rides along (the beast's medic).
+    /// Desugars the consolidated doctrine grammar (ghost doctrine v3,
+    /// SPEC-GHOST-DOCTRINE-V3 / DECISIONS #216) into the legacy
+    /// task/maneuver/engagement machinery BEFORE validation, so the mind
+    /// contract is untouched and every generated artifact still passes the
+    /// full strict validation pass. A doctrine binds one role and answers
+    /// two questions exactly once:
+    ///
+    /// - `modes` is an ordered priority list of verb-keyed movement modes
+    ///   (`patrol`, `intercept`, `assault`), first match wins, re-evaluated
+    ///   continuously; the LAST mode must be an unconditioned patrol - the
+    ///   floor a body always falls back to, so no predicate gap can park it.
+    ///   `while`/`until` are boolean strings over authored predicates
+    ///   ("carrier-known or enemy-remembered-deep"): `and` binds tighter
+    ///   than `or`, and an unknown predicate is a compile error downstream.
+    /// - `fight` answers when to shoot in four sub-blocks (targets, engage,
+    ///   chase, breakOff) that desugar into one generated engagement per
+    ///   mode: holdFire from engage.within, isolation from targets.lone,
+    ///   the commit block from chase/breakOff, and ONE chase leash feeding
+    ///   all three legacy homes (movement, engagement, commit). A mode's
+    ///   `fight` overrides individual keys; a resolved fight with no gates
+    ///   at all generates no commit/holdFire/isolation, which is exactly
+    ///   the committed-assault shape. Zero clears a gate.
+    ///
+    /// Everything the v2 grammar authored explicitly is now derived: the
+    /// group and local state from the role, the assignment profile
+    /// (priority 20, members all, repath), support from the escort roles'
+    /// kit, the withdraw rally from the floor patrol route, formations by
+    /// convention (`{id}-solo`, and `{id}-escort` when any mode rides an
+    /// escort), and stance - concealment is the doctrine plane's character,
+    /// every generated assignment is an ambusher (backstab physics live in
+    /// the engine; there is no sheet knob).
     /// Returns null when the playbook authors no doctrines.
     /// </summary>
     private static JsonDocument? DesugarDoctrines(
@@ -845,9 +870,12 @@ public static class ArcRelayTacticalPlaybookCompiler
             return null;
         JsonObject root = JsonNode.Parse(source.GetRawText())!.AsObject();
         root.Remove("doctrines");
+        JsonObject profiles =
+            root["authoring"]!["assignmentProfiles"]!.AsObject();
         JsonObject maneuvers = root["authoring"]!["maneuvers"]!.AsObject();
         JsonObject conditionSets =
             root["authoring"]!["conditionSets"]!.AsObject();
+        JsonArray engagements = root["engagements"]!.AsArray();
         JsonArray tasks = root["coordination"]!["tasks"]!.AsArray();
         string[] phaseIds = root["coordination"]!["phases"]!.AsArray()
             .Select(phase => phase!["phaseId"]!.GetValue<string>())
@@ -856,95 +884,150 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonProperty doctrine in doctrines.EnumerateObject())
         {
             string id = doctrine.Name;
+            string at = $"{path}.doctrines.{id}";
             JsonElement value = doctrine.Value;
-            Object(value, $"{path}.doctrines.{id}",
-                value.TryGetProperty("claim", out _)
-                    ?
-                    [
-                        "role", "assignmentProfileId", "custodyId",
-                        "claimAnchor", "claim", "modes",
-                    ]
-                    :
-                    [
-                        "role", "assignmentProfileId", "custodyId",
-                        "claimAnchor", "modes",
-                    ]);
+            Object(value, at, ["role", "custody", "modes"], ["fight"]);
             string role = value.GetProperty("role").GetString()!;
-            string profile = value.GetProperty("assignmentProfileId")
-                .GetString()!;
-            string custody = value.GetProperty("custodyId").GetString()!;
-            string claimAnchor = value.GetProperty("claimAnchor").GetString()!;
-            // Multi-unit doctrines (the well pack) override the default
-            // single-unit claim with a role list and a size.
-            string claimRolesJson = $"[\"{role}\"]";
-            int claimPreferred = 1;
-            int claimMaximum = 1;
-            if (value.TryGetProperty("claim", out JsonElement claim))
-            {
-                claimRolesJson = claim.GetProperty("roles").GetRawText();
-                claimPreferred = claim.GetProperty("preferred").GetInt32();
-                claimMaximum = claim.GetProperty("maximum").GetInt32();
-            }
+            string custody = value.GetProperty("custody").GetString()!;
+            JsonElement doctrineFight = value.TryGetProperty(
+                "fight", out JsonElement fightValue)
+                ? fightValue
+                : default;
+            if (doctrineFight.ValueKind == JsonValueKind.Object)
+                ValidateDoctrineFight(doctrineFight, at);
+
+            (string GroupId, string LocalState) home =
+                DoctrineHome(root, role, at);
             JsonElement[] modes = BoundedArray(
-                value.GetProperty("modes"), $"{path}.doctrines.{id}", 1, 8);
+                value.GetProperty("modes"), at, 1, 8);
+
+            // Pre-scan the modes for the derivations that need the whole
+            // list: the floor route (withdraw rally), the escort union
+            // (support kit + escort formation requirement), and per-verb
+            // occurrence counts for stable generated names.
+            var escortRoles = new List<string>();
+            bool anyEscort = false;
+            var verbCounts = new Dictionary<string, int>(
+                StringComparer.Ordinal);
+            string[] verbs = new string[modes.Length];
+            for (int index = 0; index < modes.Length; index++)
+            {
+                string verb = DoctrineVerb(modes[index], at);
+                verbs[index] = verb;
+                verbCounts[verb] = verbCounts.GetValueOrDefault(verb) + 1;
+                if (TryDoctrineEscort(modes[index], at,
+                        out string[] modeEscorts))
+                {
+                    anyEscort = true;
+                    foreach (string escortRole in modeEscorts)
+                    {
+                        if (!escortRoles.Contains(escortRole,
+                                StringComparer.Ordinal))
+                            escortRoles.Add(escortRole);
+                    }
+                }
+            }
+            JsonElement floor = modes[^1];
+            if (verbs[^1] != "patrol"
+                || floor.TryGetProperty("while", out _)
+                || floor.TryGetProperty("until", out _))
+            {
+                throw Error(at,
+                    "the last mode must be an unconditioned 'patrol' - the "
+                    + "floor the body always falls back to.");
+            }
+            string floorRoute = floor.GetProperty("patrol").GetString()!;
+            string soloFormation = $"{id}-solo";
+            RequireFormation(root, soloFormation, at);
+            string escortFormation = $"{id}-escort";
+            if (anyEscort)
+                RequireFormation(root, escortFormation, at);
+            string supportId = DoctrineSupport(root, role, escortRoles, at);
+
+            profiles[$"{id}-doctrine"] = new JsonObject
+            {
+                ["groupId"] = home.GroupId,
+                ["localState"] = home.LocalState,
+                ["priority"] = 20,
+                ["members"] = new JsonObject { ["kind"] = "all" },
+                ["stuckRecovery"] = "repath",
+                ["supportId"] = supportId,
+            };
+
+            var seenVerbs = new Dictionary<string, int>(StringComparer.Ordinal);
             for (int index = 0; index < modes.Length; index++)
             {
                 JsonElement mode = modes[index];
-                string modeId = mode.GetProperty("modeId").GetString()!;
-                string name = $"{id}-{modeId}";
-                JsonElement defaults = mode.GetProperty("default");
+                string verb = verbs[index];
+                int occurrence = seenVerbs.GetValueOrDefault(verb) + 1;
+                seenVerbs[verb] = occurrence;
+                string name = verbCounts[verb] > 1
+                    ? $"{id}-{verb}-{occurrence}"
+                    : $"{id}-{verb}";
+                string modeAt = $"{at}.modes[{index}]";
+                bool isFloor = index == modes.Length - 1;
+                ValidateDoctrineMode(mode, verb, isFloor, modeAt);
 
                 string whenSet = "convert-freely";
-                if (mode.TryGetProperty("while", out JsonElement whileGroups)
-                    && whileGroups.GetArrayLength() > 0)
+                if (mode.TryGetProperty("while", out JsonElement whileText))
                 {
                     whenSet = $"{name}-on";
-                    conditionSets[whenSet] =
-                        JsonNode.Parse(whileGroups.GetRawText());
+                    conditionSets[whenSet] = ParseConditionString(
+                        whileText.GetString()!, modeAt);
                 }
                 string failSet = "task-never-done";
-                if (mode.TryGetProperty("until", out JsonElement untilGroups)
-                    && untilGroups.GetArrayLength() > 0)
+                if (mode.TryGetProperty("until", out JsonElement untilText))
                 {
                     failSet = $"{name}-off";
-                    conditionSets[failSet] =
-                        JsonNode.Parse(untilGroups.GetRawText());
+                    conditionSets[failSet] = ParseConditionString(
+                        untilText.GetString()!, modeAt);
                 }
                 else if (whenSet != "convert-freely")
                 {
                     Console.Error.WriteLine(
-                        $"lint: doctrine '{id}' mode '{modeId}' has 'while' "
+                        $"lint: doctrine '{id}' mode '{verb}' has 'while' "
                         + "but no 'until' - once active it only yields to a "
                         + "later mode, never back to an earlier one.");
                 }
 
+                ResolvedFight fight = ResolveFight(
+                    doctrineFight,
+                    mode.TryGetProperty("fight", out JsonElement modeFight)
+                        ? modeFight
+                        : default,
+                    modeAt);
+                bool hasEscort = TryDoctrineEscort(
+                    mode, modeAt, out string[] escorts);
+                engagements.Add(DoctrineEngagement(
+                    name, role, escorts, fight, floorRoute, modeAt));
+
                 var assignment = new JsonObject
                 {
-                    ["arrivalRadius"] = defaults.TryGetProperty(
-                        "arrivalRadius", out JsonElement arrival)
-                        ? arrival.GetInt32() : 2,
+                    ["arrivalRadius"] = verb == "intercept" ? 1 : 2,
                     ["completion"] = "continuous",
-                    ["chaseLeash"] = defaults.TryGetProperty(
-                        "chaseLeash", out JsonElement leash)
-                        ? leash.GetInt32() : 2,
-                    ["engagementId"] = defaults.GetProperty("engagementId")
-                        .GetString(),
+                    ["chaseLeash"] = fight.ChaseLeash,
+                    ["engagementId"] = name,
                     ["custodyId"] = custody,
                     ["fallbackId"] = "continue-with-alternate",
-                    ["assignmentProfileId"] = profile,
+                    ["assignmentProfileId"] = $"{id}-doctrine",
+                    ["stance"] = "ambush",
                 };
-                if (defaults.TryGetProperty("stance", out JsonElement stance))
-                    assignment["stance"] = stance.GetString();
+                if (mode.TryGetProperty(
+                        "patienceTicks", out JsonElement patience))
+                {
+                    assignment["patienceTicks"] = patience.GetInt32();
+                }
                 maneuvers[$"{name}-set"] = new JsonObject
                 {
                     ["tracks"] = new JsonObject
                     {
                         ["main"] = new JsonObject
                         {
-                            ["formationId"] = defaults
-                                .GetProperty("formationId").GetString(),
-                            ["movement"] = JsonNode.Parse(
-                                defaults.GetProperty("movement").GetRawText()),
+                            ["formationId"] = hasEscort
+                                ? escortFormation
+                                : soloFormation,
+                            ["movement"] = DoctrineMovement(
+                                mode, verb, hasEscort),
                             ["assignments"] = new JsonObject
                             {
                                 [name] = assignment,
@@ -959,58 +1042,53 @@ public static class ArcRelayTacticalPlaybookCompiler
                     {
                         ["assignmentId"] = name,
                         ["orderId"] = name,
-                        ["roles"] = JsonNode.Parse(claimRolesJson),
+                        ["roles"] = new JsonArray(role),
                         ["classes"] = new JsonArray(),
                         ["minimum"] = 0,
-                        ["preferred"] = claimPreferred,
-                        ["maximum"] = claimMaximum,
+                        ["preferred"] = 1,
+                        ["maximum"] = 1,
                         ["carrier"] = "allow",
                         ["distance"] = new JsonObject
                         {
-                            ["kind"] = "anchor",
-                            ["target"] = claimAnchor,
+                            ["kind"] = "own-reactor",
+                            ["target"] = "",
                         },
                     },
                 };
-                if (mode.TryGetProperty("escort", out JsonElement escort)
-                    && escort.ValueKind == JsonValueKind.Object)
+                if (hasEscort)
                 {
                     rows.Add(new JsonObject
                     {
                         ["assignmentId"] = $"{name}-escort",
                         ["orderId"] = name,
-                        ["roles"] = JsonNode.Parse(
-                            escort.GetProperty("roles").GetRawText()),
+                        ["roles"] = new JsonArray(escorts
+                            .Select(escortRole => (JsonNode)escortRole)
+                            .ToArray()),
                         ["classes"] = new JsonArray(),
                         ["minimum"] = 0,
                         ["preferred"] = 1,
-                        ["maximum"] = escort.TryGetProperty(
-                            "maximum", out JsonElement escortMax)
-                            ? escortMax.GetInt32() : 1,
+                        ["maximum"] = 1,
                         ["carrier"] = "forbid",
                         ["distance"] = new JsonObject
                         {
-                            ["kind"] = "anchor",
-                            ["target"] = claimAnchor,
+                            ["kind"] = "own-reactor",
+                            ["target"] = "",
                         },
                     });
                 }
-                // Later modes outrank earlier ones by construction; the band
-                // under 8 keeps every doctrine mode able to preempt the
-                // legacy standing tasks (8+) while home-defense-class tasks
-                // can still be authored under it if ever needed.
-                var generated = new JsonObject
+                // First mode outranks by construction (lower number wins in
+                // the task band); the band stays under 8 so every doctrine
+                // mode preempts the legacy standing tasks (8+).
+                tasks.Add(new JsonObject
                 {
                     ["taskId"] = name,
-                    ["priority"] = 7 - index,
+                    ["priority"] = 8 - modes.Length + index,
                     ["activation"] = "while-true",
                     ["preemption"] = "higher-priority",
                     ["participantLoss"] = "replace",
                     ["triggerStableTicks"] = 1,
                     ["minimumTicks"] = 8,
-                    ["timeoutTicks"] = mode.TryGetProperty(
-                        "timeoutTicks", out JsonElement timeout)
-                        ? timeout.GetInt32() : 600,
+                    ["timeoutTicks"] = 600,
                     ["cooldownTicks"] = 2,
                     ["minimumPrimaryBodies"] = 1,
                     ["eligiblePhases"] = new JsonArray(
@@ -1026,17 +1104,521 @@ public static class ArcRelayTacticalPlaybookCompiler
                         ["completeConditionSetId"] = "",
                         ["timeoutTicks"] = 0,
                     },
-                };
-                if (mode.TryGetProperty("armOn", out JsonElement armOn))
-                {
-                    generated["completionArmMode"] = armOn.GetString();
-                    generated["completionReleaseMode"] = mode
-                        .GetProperty("releaseOn").GetString();
-                }
-                tasks.Add(generated);
+                });
             }
         }
         return JsonDocument.Parse(root.ToJsonString());
+    }
+
+    /// <summary>The verb key names the mode; exactly one must be present.
+    /// </summary>
+    private static string DoctrineVerb(JsonElement mode, string path)
+    {
+        string[] present = new[] { "patrol", "intercept", "assault" }
+            .Where(verb => mode.TryGetProperty(verb, out _))
+            .ToArray();
+        if (present.Length != 1)
+        {
+            throw Error(path,
+                "each doctrine mode must carry exactly one of 'patrol', "
+                + "'intercept', or 'assault'.");
+        }
+        return present[0];
+    }
+
+    private static void ValidateDoctrineMode(
+        JsonElement mode,
+        string verb,
+        bool isFloor,
+        string path)
+    {
+        string[] optional = verb switch
+        {
+            "patrol" => ["while", "until", "fight"],
+            "intercept" =>
+                ["from", "while", "until", "fight", "patienceTicks"],
+            _ => ["while", "until", "fight", "escort"],
+        };
+        Object(mode, path, [verb], optional);
+        NonEmptyString(mode, verb, path);
+        if (verb == "intercept")
+        {
+            OneOf(mode, "intercept", path, "enemy-carriers", "inbound");
+            if (mode.TryGetProperty("from", out _))
+                Identifier(mode, "from", path);
+            if (mode.TryGetProperty("patienceTicks", out _))
+                Range(mode, "patienceTicks", path, 2, 120);
+        }
+        if (mode.TryGetProperty("while", out JsonElement whileText)
+            && whileText.ValueKind != JsonValueKind.String)
+        {
+            throw Error(path, "'while' must be a boolean condition string.");
+        }
+        if (mode.TryGetProperty("until", out JsonElement untilText)
+            && untilText.ValueKind != JsonValueKind.String)
+        {
+            throw Error(path, "'until' must be a boolean condition string.");
+        }
+        if (!isFloor && !mode.TryGetProperty("while", out _))
+        {
+            throw Error(path,
+                "every mode above the floor needs a 'while' - an "
+                + "unconditioned mode would permanently shadow everything "
+                + "below it.");
+        }
+        if (mode.TryGetProperty("fight", out JsonElement fight))
+            ValidateDoctrineFight(fight, path);
+    }
+
+    /// <summary>
+    /// Boolean condition strings compile to the legacy condition-set groups
+    /// (disjunctive normal form): 'and' binds tighter than 'or', operands
+    /// are authored predicate ids, and there are no parentheses - a policy
+    /// that needs them wants a named predicate, not a longer formula. An
+    /// operand that names no authored predicate fails downstream in
+    /// ExpandConditionSet, so a typo is a compile error, never a
+    /// silently-false gate.
+    /// </summary>
+    private static JsonArray ParseConditionString(string text, string path)
+    {
+        var groups = new JsonArray();
+        foreach (string alternative in text.Split(
+                     " or ", StringSplitOptions.None))
+        {
+            var group = new JsonArray();
+            foreach (string operand in alternative.Split(
+                         " and ", StringSplitOptions.None))
+            {
+                string token = operand.Trim();
+                if (token.Length == 0
+                    || token.Any(character => !char.IsAsciiLetterLower(
+                        character) && !char.IsAsciiDigit(character)
+                        && character != '-'))
+                {
+                    throw Error(path,
+                        $"condition string '{text}' is not of the form "
+                        + "'predicate [and predicate ...] [or ...]'.");
+                }
+                group.Add((JsonNode)token);
+            }
+            groups.Add(group);
+        }
+        return groups;
+    }
+
+    private static bool TryDoctrineEscort(
+        JsonElement mode,
+        string path,
+        out string[] escortRoles)
+    {
+        escortRoles = [];
+        if (!mode.TryGetProperty("escort", out JsonElement escort))
+            return false;
+        if (escort.ValueKind != JsonValueKind.String
+            || escort.GetString() is not { Length: > 0 } escortRole)
+        {
+            throw Error(path, "'escort' must name a single role.");
+        }
+        escortRoles = [escortRole];
+        return true;
+    }
+
+    /// <summary>The doctrine's home group: the role must belong to exactly
+    /// one group, whose initial state the generated orders inherit.
+    /// </summary>
+    private static (string GroupId, string LocalState) DoctrineHome(
+        JsonObject root,
+        string role,
+        string path)
+    {
+        var homes = root["groups"]!.AsArray()
+            .Where(group => group!["roleIds"]!.AsArray()
+                .Any(roleId => roleId!.GetValue<string>() == role))
+            .Select(group => (
+                GroupId: group!["groupId"]!.GetValue<string>(),
+                LocalState: group["localStateMachine"]!["initialState"]!
+                    .GetValue<string>()))
+            .ToArray();
+        if (homes.Length != 1)
+        {
+            throw Error(path,
+                $"doctrine role '{role}' must belong to exactly one group "
+                + $"(found {homes.Length}).");
+        }
+        return homes[0];
+    }
+
+    /// <summary>Escorts bring their kit: the generated orders carry the one
+    /// support policy provided by the doctrine role or its escorts, if any.
+    /// </summary>
+    private static string DoctrineSupport(
+        JsonObject root,
+        string role,
+        IReadOnlyCollection<string> escortRoles,
+        string path)
+    {
+        string[] matching = root["supportPolicies"]!.AsArray()
+            .Where(policy => policy!["providers"]!.AsArray()
+                .Any(provider => provider!.GetValue<string>() == role
+                    || escortRoles.Contains(provider.GetValue<string>(),
+                        StringComparer.Ordinal)))
+            .Select(policy => policy!["supportId"]!.GetValue<string>())
+            .ToArray();
+        if (matching.Length > 1)
+        {
+            throw Error(path,
+                "the doctrine's role and escorts provide more than one "
+                + $"support policy ({string.Join(", ", matching)}); the "
+                + "grammar cannot choose between them.");
+        }
+        return matching.Length == 1 ? matching[0] : "";
+    }
+
+    private static void RequireFormation(
+        JsonObject root,
+        string formationId,
+        string path)
+    {
+        bool exists = root["formations"]!.AsArray()
+            .Any(formation => formation!["formationId"]!
+                .GetValue<string>() == formationId);
+        if (!exists)
+        {
+            throw Error(path,
+                $"doctrine formations are conventional: author "
+                + $"'{formationId}' in the formations section.");
+        }
+    }
+
+    private static JsonObject DoctrineMovement(
+        JsonElement mode,
+        string verb,
+        bool hasEscort)
+    {
+        string pace = hasEscort ? "slowest" : "free";
+        switch (verb)
+        {
+            case "patrol":
+                string route = mode.GetProperty("patrol").GetString()!;
+                var patrol = new JsonObject
+                {
+                    ["kind"] = route == "traffic" ? "shadow-traffic" : "route",
+                    ["target"] = route == "traffic" ? "" : route,
+                    ["stuckTicks"] = 10,
+                    ["pace"] = pace,
+                    ["scan"] = "sweep",
+                };
+                return patrol;
+            case "intercept":
+                return new JsonObject
+                {
+                    ["kind"] = mode.GetProperty("intercept").GetString()
+                        == "inbound"
+                        ? "incoming-cutoff"
+                        : "enemy-carrier-cutoff",
+                    ["target"] = mode.TryGetProperty(
+                        "from", out JsonElement perch)
+                        ? perch.GetString()
+                        : "",
+                    ["stuckTicks"] = 8,
+                    ["pace"] = pace,
+                    ["leadTiles"] = 1,
+                };
+            default:
+                return new JsonObject
+                {
+                    ["kind"] = "route",
+                    ["target"] = mode.GetProperty("assault").GetString(),
+                    ["stuckTicks"] = 10,
+                    ["pace"] = pace,
+                };
+        }
+    }
+
+    /// <summary>The four fight questions with a mode's overrides applied
+    /// per key. Zero clears a gate; a cleared gate generates nothing.
+    /// </summary>
+    private readonly record struct ResolvedFight(
+        int Lone,
+        int Within,
+        int KillableTicks,
+        string? From,
+        int PositionTicks,
+        string Else,
+        int ChaseLeash,
+        bool OnlyCatchable,
+        int ExecuteBelowHealth,
+        int Threats,
+        int ThreatsWithin,
+        int MemoryTicks,
+        int RecoverTicks);
+
+    private static void ValidateDoctrineFight(JsonElement fight, string path)
+    {
+        Object(fight, $"{path}.fight", [],
+            ["targets", "engage", "chase", "breakOff"]);
+        if (fight.TryGetProperty("targets", out JsonElement targets))
+        {
+            Object(targets, $"{path}.fight.targets", [], ["lone"]);
+            if (targets.TryGetProperty("lone", out _))
+                Range(targets, "lone", path, 0, 8);
+        }
+        if (fight.TryGetProperty("engage", out JsonElement engage))
+        {
+            Object(engage, $"{path}.fight.engage", [],
+                ["within", "killableTicks", "from", "positionTicks", "else"]);
+            if (engage.TryGetProperty("within", out _))
+                Range(engage, "within", path, 0, 12);
+            if (engage.TryGetProperty("killableTicks", out _))
+                Range(engage, "killableTicks", path, 0, 60);
+            if (engage.TryGetProperty("from", out _))
+                OneOf(engage, "from", path, "behind");
+            if (engage.TryGetProperty("positionTicks", out _))
+                Range(engage, "positionTicks", path, 1, 64);
+            if (engage.TryGetProperty("else", out _))
+                OneOf(engage, "else", path, "strike", "breakOff");
+        }
+        if (fight.TryGetProperty("chase", out JsonElement chase))
+        {
+            Object(chase, $"{path}.fight.chase", [],
+                ["leash", "onlyCatchable", "executeBelowHealth"]);
+            if (chase.TryGetProperty("leash", out _))
+                Range(chase, "leash", path, 0, 16);
+            if (chase.TryGetProperty("onlyCatchable", out JsonElement catchable)
+                && catchable.ValueKind is not JsonValueKind.True
+                    and not JsonValueKind.False)
+            {
+                throw Error(path, "'onlyCatchable' must be a boolean.");
+            }
+            if (chase.TryGetProperty("executeBelowHealth", out _))
+                Range(chase, "executeBelowHealth", path, 0, 8);
+        }
+        if (fight.TryGetProperty("breakOff", out JsonElement breakOff))
+        {
+            Object(breakOff, $"{path}.fight.breakOff", [],
+                ["threats", "within", "memoryTicks", "recoverTicks"]);
+            if (breakOff.TryGetProperty("threats", out _))
+                Range(breakOff, "threats", path, 0, 8);
+            if (breakOff.TryGetProperty("within", out _))
+                Range(breakOff, "within", path, 2, 16);
+            if (breakOff.TryGetProperty("memoryTicks", out _))
+                Range(breakOff, "memoryTicks", path, 1, 120);
+            if (breakOff.TryGetProperty("recoverTicks", out _))
+                Range(breakOff, "recoverTicks", path, 4, 120);
+        }
+    }
+
+    private static int FightValue(
+        JsonElement doctrineFight,
+        JsonElement modeFight,
+        string block,
+        string key,
+        int fallback)
+    {
+        foreach (JsonElement fight in (JsonElement[])[modeFight, doctrineFight])
+        {
+            if (fight.ValueKind == JsonValueKind.Object
+                && fight.TryGetProperty(block, out JsonElement sub)
+                && sub.TryGetProperty(key, out JsonElement found))
+            {
+                return found.GetInt32();
+            }
+        }
+        return fallback;
+    }
+
+    private static JsonElement FightElement(
+        JsonElement doctrineFight,
+        JsonElement modeFight,
+        string block,
+        string key)
+    {
+        foreach (JsonElement fight in (JsonElement[])[modeFight, doctrineFight])
+        {
+            if (fight.ValueKind == JsonValueKind.Object
+                && fight.TryGetProperty(block, out JsonElement sub)
+                && sub.TryGetProperty(key, out JsonElement found))
+            {
+                return found;
+            }
+        }
+        return default;
+    }
+
+    private static ResolvedFight ResolveFight(
+        JsonElement doctrineFight,
+        JsonElement modeFight,
+        string path)
+    {
+        JsonElement from = FightElement(
+            doctrineFight, modeFight, "engage", "from");
+        JsonElement catchable = FightElement(
+            doctrineFight, modeFight, "chase", "onlyCatchable");
+        var resolved = new ResolvedFight(
+            Lone: FightValue(doctrineFight, modeFight, "targets", "lone", 0),
+            Within: FightValue(doctrineFight, modeFight, "engage", "within", 0),
+            KillableTicks: FightValue(
+                doctrineFight, modeFight, "engage", "killableTicks", 0),
+            From: from.ValueKind == JsonValueKind.String
+                ? from.GetString()
+                : null,
+            PositionTicks: FightValue(
+                doctrineFight, modeFight, "engage", "positionTicks", 16),
+            Else: FightElement(doctrineFight, modeFight, "engage", "else")
+                    is { ValueKind: JsonValueKind.String } elseValue
+                ? elseValue.GetString()!
+                : "strike",
+            ChaseLeash: FightValue(
+                doctrineFight, modeFight, "chase", "leash", 0),
+            OnlyCatchable: catchable.ValueKind == JsonValueKind.True,
+            ExecuteBelowHealth: FightValue(
+                doctrineFight, modeFight, "chase", "executeBelowHealth", 0),
+            Threats: FightValue(
+                doctrineFight, modeFight, "breakOff", "threats", 0),
+            ThreatsWithin: FightValue(
+                doctrineFight, modeFight, "breakOff", "within", 0),
+            MemoryTicks: FightValue(
+                doctrineFight, modeFight, "breakOff", "memoryTicks", 0),
+            RecoverTicks: FightValue(
+                doctrineFight, modeFight, "breakOff", "recoverTicks", 24));
+        if (resolved.Threats > 0
+            && (resolved.ThreatsWithin == 0 || resolved.MemoryTicks == 0))
+        {
+            throw Error(path,
+                "an active breakOff needs its whole threat picture: "
+                + "'threats' requires 'within' and 'memoryTicks'.");
+        }
+        return resolved;
+    }
+
+    /// <summary>
+    /// One generated engagement per mode. The scaffolding (priorities, tie
+    /// breaks, locks, release, self-defense) is fixed - the engine's
+    /// declared-strike physics made the old per-sheet arithmetic noise -
+    /// and the fight block maps onto the three proven gates: holdFire
+    /// (engage.within), isolation (targets.lone), commit (the rest). A
+    /// fight with no gates generates none of them: the body takes every
+    /// fight its movement reaches, which is the committed-assault shape.
+    /// </summary>
+    private static JsonObject DoctrineEngagement(
+        string name,
+        string role,
+        IReadOnlyCollection<string> escortRoles,
+        ResolvedFight fight,
+        string floorRoute,
+        string path)
+    {
+        var engagement = new JsonObject
+        {
+            ["engagementId"] = name,
+            ["participants"] = new JsonArray(
+                ((string[])[role, .. escortRoles])
+                .Select(participant => (JsonNode)participant)
+                .ToArray()),
+            ["targetPriorities"] = new JsonArray(
+                "enemy-carrier", "lowest-health"),
+            ["tieBreakers"] = new JsonArray(
+                "distance", "health", "unit-id", "life-id"),
+            ["coordinationScope"] = "shared-policy",
+            ["lockTicks"] = 4,
+            ["lockPreemption"] = "urgent-carrier",
+            ["maximumAttackersPerTarget"] = 2,
+            ["overkillDamage"] = 0,
+            ["chaseLeash"] = Math.Min(fight.ChaseLeash, 16),
+            ["aimPreparation"] = "rotate-to-engage",
+            ["signatureCoordination"] = "damage-first",
+            ["release"] = new JsonObject
+            {
+                ["hiddenTicks"] = 2,
+                ["unreachableTicks"] = 3,
+                ["outsideLeash"] = true,
+                ["destroyed"] = true,
+            },
+            ["selfDefense"] = new JsonObject
+            {
+                ["enabled"] = true,
+                ["threatDistance"] = 2,
+                ["returnToFormation"] = true,
+            },
+        };
+        if (fight.Within > 0)
+        {
+            engagement["holdFire"] = new JsonObject
+            {
+                ["withinDistance"] = fight.Within,
+            };
+        }
+        if (fight.Lone > 0)
+        {
+            engagement["isolation"] = new JsonObject
+            {
+                ["supportRange"] = fight.Lone,
+            };
+        }
+        bool hasChaseGates = fight.OnlyCatchable
+            || fight.ExecuteBelowHealth > 0;
+        bool hasGates = fight.KillableTicks > 0
+            || fight.From is not null
+            || hasChaseGates
+            || fight.Threats > 0;
+        if (!hasGates)
+            return engagement;
+        var commit = new JsonObject
+        {
+            ["roles"] = new JsonArray(role),
+            ["engageWhen"] = fight.KillableTicks > 0
+                ? new JsonObject
+                {
+                    ["killWithinTicks"] = fight.KillableTicks,
+                }
+                : new JsonObject(),
+        };
+        if (fight.Threats > 0)
+        {
+            commit["awareness"] = new JsonObject
+            {
+                ["radius"] = fight.ThreatsWithin,
+                ["memoryTicks"] = fight.MemoryTicks,
+            };
+        }
+        if (fight.ChaseLeash > 0 || hasChaseGates)
+        {
+            var chase = new JsonObject();
+            if (fight.ChaseLeash > 0)
+                chase["leash"] = fight.ChaseLeash;
+            if (fight.OnlyCatchable)
+                chase["onlyCatchable"] = true;
+            if (fight.ExecuteBelowHealth > 0)
+                chase["executeBelowHealth"] = fight.ExecuteBelowHealth;
+            commit["chase"] = chase;
+        }
+        if (fight.Threats > 0)
+        {
+            if (floorRoute == "traffic")
+            {
+                throw Error(path,
+                    "an active breakOff rallies to the floor patrol route, "
+                    + "but the floor patrols computed traffic; author a "
+                    + "route floor or clear breakOff.threats.");
+            }
+            commit["disengageWhen"] = new JsonObject
+            {
+                ["threats"] = fight.Threats,
+                ["withdrawTo"] = floorRoute,
+                ["recoverTicks"] = fight.RecoverTicks,
+            };
+        }
+        if (fight.From is not null)
+        {
+            commit["approach"] = new JsonObject
+            {
+                ["from"] = fight.From,
+                ["positionTicks"] = fight.PositionTicks,
+                ["else"] = fight.Else,
+            };
+        }
+        engagement["commit"] = commit;
+        return engagement;
     }
 
     /// <summary>
@@ -1260,9 +1842,11 @@ public static class ArcRelayTacticalPlaybookCompiler
                         "assignmentProfileId", "arrivalRadius", "completion",
                         "chaseLeash", "engagementId", "custodyId",
                         "fallbackId",
-                    ], ["stance"]);
+                    ], ["stance", "patienceTicks"]);
                 if (assignment.Value.TryGetProperty("stance", out _))
                     OneOf(assignment.Value, "stance", path, "ambush");
+                if (assignment.Value.TryGetProperty("patienceTicks", out _))
+                    Range(assignment.Value, "patienceTicks", path, 2, 120);
                 Identifier(assignment.Value, "assignmentProfileId", path);
                 Range(assignment.Value, "arrivalRadius", path, 0, 16);
                 OneOf(assignment.Value, "completion", path,
@@ -2312,8 +2896,14 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "maximumAttackersPerTarget",
                 "overkillDamage", "chaseLeash", "aimPreparation",
                 "signatureCoordination",
-                "dodgeCoverage", "release", "selfDefense",
-            ], ["holdFire", "posture", "isolation", "commit"]);
+                "release", "selfDefense",
+            ],
+            // dodgeCoverage and posture are DELETED from the schema
+            // (SPEC-GHOST-DOCTRINE-V3): the engine's declared-strike wedge
+            // owns dodge judgment and the kite cadence is gone. They stay
+            // accepted-and-inert so frozen clean-slate sheets keep
+            // compiling byte-identically.
+            ["holdFire", "posture", "isolation", "commit", "dodgeCoverage"]);
         string id = Identifier(value, "engagementId", at);
         // Skirmish posture (owner direction 2026-08-06): participants fire
         // when their weapon is ready and back away from close threats on the
@@ -2338,7 +2928,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(commit, $"{at}.{id}.commit",
                 ["engageWhen"],
-                ["awareness", "chase", "disengageWhen", "roles"]);
+                ["awareness", "chase", "disengageWhen", "roles", "approach"]);
             // Role scoping: the discipline gates only the named roles
             // (a lone hunter's discretion must not become the escort
             // pack's rules of engagement - the ab60 lesson).
@@ -2388,6 +2978,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                 if (disengage.TryGetProperty("withdrawTo", out _))
                     Identifier(disengage, "withdrawTo", at);
             }
+            // Approach discipline (ghost doctrine v3): suppress frontal
+            // declares and maneuver to the target's blind rear inside a
+            // tick budget, then either strike anyway or break off.
+            if (commit.TryGetProperty("approach", out JsonElement approach))
+            {
+                Object(approach, $"{at}.{id}.commit.approach",
+                    ["from", "positionTicks", "else"]);
+                OneOf(approach, "from", at, "behind");
+                Range(approach, "positionTicks", at, 1, 64);
+                OneOf(approach, "else", at, "strike", "breakOff");
+            }
         }
         if (value.TryGetProperty("holdFire", out JsonElement holdFire))
         {
@@ -2422,18 +3023,20 @@ public static class ArcRelayTacticalPlaybookCompiler
             "current-cone-only", "rotate-to-engage");
         OneOf(value, "signatureCoordination", at,
             "none", "control-first", "damage-first", "support-first");
-        JsonElement dodge = value.GetProperty("dodgeCoverage");
-        Object(dodge, $"{at}.{id}.dodgeCoverage",
-            [
-                "mode", "horizonTicks", "minimumDirectShots",
-                "minimumCoveredOptions", "fallback",
-            ]);
-        OneOf(dodge, "mode", at, "current-position", "escape-lanes");
-        Range(dodge, "horizonTicks", at, 0, 8);
-        Range(dodge, "minimumDirectShots", at, 0, 8);
-        Range(dodge, "minimumCoveredOptions", at, 1, 9);
-        OneOf(dodge, "fallback", at,
-            "current-position", "best-coverage");
+        if (value.TryGetProperty("dodgeCoverage", out JsonElement dodge))
+        {
+            Object(dodge, $"{at}.{id}.dodgeCoverage",
+                [
+                    "mode", "horizonTicks", "minimumDirectShots",
+                    "minimumCoveredOptions", "fallback",
+                ]);
+            OneOf(dodge, "mode", at, "current-position", "escape-lanes");
+            Range(dodge, "horizonTicks", at, 0, 8);
+            Range(dodge, "minimumDirectShots", at, 0, 8);
+            Range(dodge, "minimumCoveredOptions", at, 1, 9);
+            OneOf(dodge, "fallback", at,
+                "current-position", "best-coverage");
+        }
         JsonElement release = value.GetProperty("release");
         Object(release, $"{at}.{id}.release",
             ["hiddenTicks", "unreachableTicks", "outsideLeash", "destroyed"]);
@@ -2944,9 +3547,11 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "formationId", "engagementId", "custodyId", "localState",
                 "fallback",
             ],
-            ["supportId", "stance"]);
+            ["supportId", "stance", "patienceTicks"]);
         if (value.TryGetProperty("stance", out _))
             OneOf(value, "stance", at, "ambush");
+        if (value.TryGetProperty("patienceTicks", out _))
+            Range(value, "patienceTicks", at, 2, 120);
         Identifier(value, "orderId", at);
         Reference(value, "groupId", groupIds, at);
         Range(value, "priority", at, 0, 1000);

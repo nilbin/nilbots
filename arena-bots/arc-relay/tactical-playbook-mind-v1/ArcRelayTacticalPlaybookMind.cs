@@ -41,6 +41,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _disengaging = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
         _withdrawRallies = [];
+    /// <summary>Get-behind positioning budgets (commit.approach): when the
+    /// window opened per unit, keyed to the life and the target it was
+    /// opened against.</summary>
+    private readonly Dictionary<int, (int LifeId, ActorIdentity Target,
+        int StartTick)> _positioning = [];
     private readonly Dictionary<int, (int LifeId, int Index)> _patrols = [];
     private Position[]? _trafficWaypoints;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
@@ -520,6 +525,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "focus-fire" => focus.TryGetValue(
                             body.UnitId, out FocusAssignment?
                                 shotTarget)
+                        && !shotTarget.HoldDeclare
                         && WithinEngagementLeash(
                             body, target, shotTarget.Target, engagement)
                         && TryFocusChannelWithReturn(
@@ -2017,6 +2023,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string reason)
     {
         if (!focus.TryGetValue(body.UnitId, out FocusAssignment? assignment)
+            || assignment.HoldDeclare
             || body.Cooldown > 0
             || body.Position.ChebyshevDistance(
                 assignment.Target.Position) <= 2)
@@ -2287,6 +2294,54 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 requireFireReady: false));
                     if (selected is null)
                         continue;
+                    // Approach discipline (ghost doctrine v3): a body told
+                    // to strike from behind holds its declare and maneuvers
+                    // toward the target's blind rear while the position
+                    // budget lasts; on expiry it either strikes frontally
+                    // anyway or trips the timed break-off latch. The window
+                    // resets whenever the target changes or the life does.
+                    bool holdDeclare = false;
+                    if (policy.Commit is { Approach: { } approach }
+                            approachCommit
+                        && CommitAppliesTo(approachCommit, body)
+                        && ArenaBasics.RearExposedRank([body], selected) == 1)
+                    {
+                        (int LifeId, ActorIdentity Target, int StartTick)
+                            window = _positioning.GetValueOrDefault(
+                                body.UnitId);
+                        if (window.LifeId != body.ActorId.LifeId
+                            || window.Target != selected.ActorId)
+                        {
+                            window = (
+                                body.ActorId.LifeId,
+                                selected.ActorId,
+                                mind.Tick);
+                            _positioning[body.UnitId] = window;
+                        }
+                        if (mind.Tick - window.StartTick
+                            < approach.PositionTicks)
+                        {
+                            holdDeclare = true;
+                        }
+                        else if (string.Equals(
+                                     approach.Else,
+                                     "breakOff",
+                                     StringComparison.Ordinal))
+                        {
+                            _disengaging[body.UnitId] = (
+                                body.ActorId.LifeId,
+                                mind.Tick + (approachCommit.DisengageWhen
+                                    ?.RecoverTicks ?? 24));
+                            _positioning.Remove(body.UnitId);
+                            continue;
+                        }
+                        // else "strike": the budget is spent - declare
+                        // frontally and keep the fight.
+                    }
+                    else
+                    {
+                        _positioning.Remove(body.UnitId);
+                    }
                     // Positional combat (DECISIONS #212/#213): the aim IS the
                     // target's tile. The declared wedge and nearest-body
                     // resolution own everything the escape-lane coverage
@@ -2303,7 +2358,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 selected.Position,
                                 policy.ChaseLeash,
                                 policy.SelfDefense.Enabled,
-                                policy.SelfDefense.ThreatDistance));
+                                policy.SelfDefense.ThreatDistance),
+                        HoldDeclare: holdDeclare);
                     attackerCounts[selected.ActorId] = attackerCounts
                         .GetValueOrDefault(selected.ActorId) + 1;
                     if (ArenaBasics.CanFireAtPosition(
@@ -3369,10 +3425,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // cannot hit its target's blind rear from here steps toward the
         // nearest rear firing tile instead of holding a frontal slot,
         // staying inside its engagement leash. Ambushers keep concealment
-        // instead; everything else about the order stays authored.
+        // instead - unless a held declare (commit.approach) says the whole
+        // point of this fight is to get behind first; everything else
+        // about the order stays authored.
         if (_rearArcDamageMultiplier > 1
-            && !string.Equals(order.Stance, "ambush", StringComparison.Ordinal)
             && focus.TryGetValue(body.UnitId, out FocusAssignment? hunt)
+            && (hunt.HoldDeclare
+                || !string.Equals(
+                    order.Stance, "ambush", StringComparison.Ordinal))
             && ArenaBasics.RearExposedRank([body], hunt.Target) == 1
             && body.Position.ChebyshevDistance(hunt.Target.Position) <= 7)
         {
@@ -4550,10 +4610,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && context.Mind.Bodies.Any(other =>
                 context.CarrierUnitIds.Contains(other.UnitId)
                 && other.Position.ChebyshevDistance(body.Position) <= 1);
+        // The sheet may bound a perch's patience directly (patienceTicks,
+        // ghost doctrine v3 intercept); otherwise ambushers wait long and
+        // everyone else briefly.
         int limit = onSupplyLane
             ? 2
-            : string.Equals(
-                order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
+            : order.PatienceTicks > 0
+                ? order.PatienceTicks
+                : string.Equals(
+                    order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
         if (idle.Streak < limit
             || body.Cooldown > 0
             || context.CarrierUnitIds.Contains(body.UnitId)
@@ -4701,7 +4766,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorContext.ObservedEnemyState Target,
         Position AimPosition,
         bool UseSignature,
-        bool SelfDefenseExcursion);
+        bool SelfDefenseExcursion,
+        bool HoldDeclare = false);
 
     private sealed record CoreReservation(
         ActorIdentity ActorId,

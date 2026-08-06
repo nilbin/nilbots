@@ -422,9 +422,9 @@ internal sealed class TacticalPlaybookPackage
         int ChaseLeash,
         string AimPreparation,
         string SignatureCoordination,
-        DodgeCoverage DodgeCoverage,
         ReleasePolicy Release,
         SelfDefensePolicy SelfDefense,
+        DodgeCoverage? DodgeCoverage = null,
         HoldFire? HoldFire = null,
         string Posture = "committed",
         Isolation? Isolation = null,
@@ -441,7 +441,17 @@ internal sealed class TacticalPlaybookPackage
         CommitAwareness? Awareness = null,
         CommitChase? Chase = null,
         CommitDisengageWhen? DisengageWhen = null,
-        string[]? Roles = null);
+        string[]? Roles = null,
+        CommitApproach? Approach = null);
+
+    /// <summary>Get-behind discipline (ghost doctrine v3): hold the strike
+    /// declare and maneuver into the target's blind rear for at most
+    /// PositionTicks; on expiry either declare frontally anyway ("strike")
+    /// or trip the timed break-off latch ("breakOff").</summary>
+    internal sealed record CommitApproach(
+        string From,
+        int PositionTicks,
+        string Else);
 
     /// <summary>The threat picture: visible enemies plus remembered
     /// positions no staler than MemoryTicks, within Radius of the body.
@@ -570,7 +580,8 @@ internal sealed class TacticalPlaybookPackage
         string CustodyId,
         string LocalState,
         Fallback Fallback,
-        string Stance = "");
+        string Stance = "",
+        int PatienceTicks = 0);
 
     internal sealed record MemberSelection(
         string Kind,
