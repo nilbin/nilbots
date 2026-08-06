@@ -1,0 +1,169 @@
+{
+ "schema": "arc-relay-tactical-layout-v1",
+ "layoutId": "wellwright-warren6-v1",
+ "mapId": "arc-relay-ambush-warren-06",
+ "bindings": [
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "east",
+   "transform": "rotate-180",
+   "routeAliases": {
+    "north-out": "south-out",
+    "south-out": "north-out"
+   },
+   "formationAliases": {}
+  },
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "west",
+   "transform": "identity",
+   "routeAliases": {},
+   "formationAliases": {}
+  }
+ ],
+ "zones": [
+  {
+   "zoneId": "own-home",
+   "rect": [
+    1,
+    9,
+    4,
+    17
+   ]
+  },
+  {
+   "zoneId": "own-approach",
+   "rect": [
+    4,
+    6,
+    11,
+    20
+   ]
+  },
+  {
+   "zoneId": "well-line",
+   "rect": [
+    12,
+    4,
+    18,
+    22
+   ]
+  },
+  {
+   "zoneId": "north-farm",
+   "rect": [
+    12,
+    4,
+    18,
+    10
+   ]
+  },
+  {
+   "zoneId": "centre-farm",
+   "rect": [
+    12,
+    11,
+    18,
+    15
+   ]
+  },
+  {
+   "zoneId": "south-farm",
+   "rect": [
+    12,
+    16,
+    18,
+    22
+   ]
+  }
+ ],
+ "routes": [
+  {
+   "routeId": "north-out",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     8
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     13,
+     7
+    ],
+    [
+     14,
+     6
+    ]
+   ]
+  },
+  {
+   "routeId": "centre-probe",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     11
+    ],
+    [
+     8,
+     11
+    ],
+    [
+     11,
+     11
+    ],
+    [
+     14,
+     11
+    ],
+    [
+     15,
+     12
+    ]
+   ]
+  },
+  {
+   "routeId": "south-out",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     18
+    ],
+    [
+     8,
+     18
+    ],
+    [
+     13,
+     18
+    ],
+    [
+     14,
+     19
+    ],
+    [
+     14,
+     20
+    ]
+   ]
+  }
+ ],
+ "anchors": [
+  {
+   "anchorId": "home-gate",
+   "position": [
+    4,
+    13
+   ]
+  }
+ ]
+}
