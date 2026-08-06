@@ -471,8 +471,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "custody-emergency" => TryCustodyEmergency(
                         contract, mind, arc, package, body, role, order,
                         carried, pickupAssignments, baitingCustodies, claims),
-                    "self-preservation" => TrySelfPreservation(
-                        contract, mind, package.Source, body, order, claims),
+                    "self-preservation" => TryStrikeEvacuation(
+                            contract, mind, arc, body, claims)
+                        || TrySelfPreservation(
+                            contract, mind, package.Source, body, order,
+                            claims),
                     "repair" => repairs.TryGetValue(
                             body.UnitId, out MindBody? repairTarget)
                         && ArenaBasics.TryUnitSignature(
@@ -3105,6 +3108,52 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .Select(signature => signature.Kind)];
         }
         return ["tractor-hook", "rail-line"];
+    }
+
+    /// <summary>
+    /// Declared-strike evacuation (DECISIONS #212): a body standing on a lit
+    /// tile leaves NOW, whatever its health — the public announcement is the
+    /// whole counterplay, and it outranks every other movement concern. The
+    /// shooter is exempt on its own ray (it starts underfoot), and the step
+    /// prefers un-lit tiles in the canonical frame so both sides evacuate
+    /// mirror-fairly.
+    /// </summary>
+    private static bool TryStrikeEvacuation(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        ArenaBasics.Claims claims)
+    {
+        if (arc.PendingStrikes.IsDefaultOrEmpty)
+            return false;
+        var lit = arc.PendingStrikes
+            .Where(strike => strike.Shooter != body.ActorId)
+            .SelectMany(strike => strike.Tiles)
+            .ToHashSet();
+        if (!lit.Contains(body.Position))
+            return false;
+        bool mirrored = ArenaBasics.MirroredFrame(contract, mind);
+        foreach (Position candidate in new (int Dx, int Dy)[]
+                 {
+                     (0, -1), (1, 0), (0, 1), (-1, 0),
+                     (1, -1), (1, 1), (-1, 1), (-1, -1),
+                 }
+                 .Select(offset => new Position(
+                     body.Position.X + offset.Dx,
+                     body.Position.Y + offset.Dy))
+                 .Where(tile => !lit.Contains(tile))
+                 .OrderBy(tile => ArenaBasics.FrameY(tile, mirrored))
+                 .ThenBy(tile => ArenaBasics.FrameX(tile, mirrored)))
+        {
+            if (ArenaBasics.TryMoveDirect(
+                    contract, mind, body, candidate, claims,
+                    "strike-evacuation"))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private bool TrySelfPreservation(

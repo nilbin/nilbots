@@ -453,7 +453,14 @@ internal static class GenericActorSdkModelMapper
                     [.. mode.VisibleCores.Select(ToSdk)],
                     [.. mode.VisibleSignatures.Select(ToSdk)],
                     mode.LatestPulseTeamId,
-                    mode.LatestPulseTick),
+                    mode.LatestPulseTick)
+                {
+                    PendingStrikes = [.. mode.PendingStrikes.Select(strike =>
+                        new Sdk.GenericActorContext.ArcRelayPendingStrike(
+                            ToSdk(strike.Shooter),
+                            strike.ResolveAtTick,
+                            [.. strike.Tiles.Select(ToSdk)]))],
+                },
             _ => throw UnknownUnion(value),
         };
 
