@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/warren6-hunter-v1.json",
-  "sha256": "46b88e865d23a99cd849ffe6cfa3a973cc890369ec24d84f9b698e620cdfe09a"
+  "sha256": "2d648835149ce1e58b1d8027a9adefa2a35d766da99aca3672aca2931ca2f62d"
  },
  "perspective": "team-relative",
  "memory": {
@@ -2074,7 +2074,7 @@
        "kind": "route",
        "target": "shadow-north-long",
        "stuckTicks": 10,
-       "pace": "slowest",
+       "pace": "free",
        "scan": "sweep"
       },
       "engagementId": "shadow-strike",
