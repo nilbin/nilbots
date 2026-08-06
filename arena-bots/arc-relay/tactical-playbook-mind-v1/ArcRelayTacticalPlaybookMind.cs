@@ -3250,6 +3250,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         + $"'{order.Movement.StuckRecovery}'.");
             }
         }
+        // Statue-livelock breaker (owner replay observation 2026-08-07,
+        // seed 9002: both teams frozen for hundreds of ticks). A body
+        // several recovery windows deep is wedged WITH its own formation -
+        // the pace gate and mutual tile claims can hold a group in place
+        // forever while every member busily repaths. Any legal displacing
+        // step beats standing still: stepping away from one's own tile
+        // accepts any open neighbour, bypasses the pace gate below, and
+        // resets the counter so the normal machinery re-plans from the new
+        // tile.
+        if (stuck >= order.Movement.StuckTicks * 3
+            && ArenaBasics.TryStepAway(
+                contract, mind, body, [body.Position], claims,
+                Provenance(machine, group, order, "wedge-shake")))
+        {
+            _motion[body.UnitId] = new MotionProgress(
+                body.ActorId, order.OrderId, body.Position, 0);
+            return true;
+        }
         TacticalPlaybookPackage.Formation formation = package.ResolveFormation(
             package.Source, order.FormationId);
         MindBody[] paceMembers = mind.Bodies
