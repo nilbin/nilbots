@@ -41,6 +41,7 @@ import {
   arrivalsAt,
   boltsAt,
   posesAt,
+  strikeSlashesAt,
   type Arrival,
   type BotPose,
 } from './interpolate';
@@ -342,6 +343,7 @@ export function drawArena(
   drawSpill();
   if (teamVision !== null) drawFog(teamVision.visibleTiles);
   drawProjectiles();
+  drawStrikeSlashes();
   drawVolleys();
   drawHeardSounds();
   // Before the bodies, because it happens on the floor: the 3D renderer puts the same ring
@@ -1022,6 +1024,42 @@ export function drawArena(
       ctx.fillStyle = hexWithAlpha(accent, 0.045);
       ctx.beginPath();
       ctx.arc(cx, cy, tile * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // A matured strike landing - deliberately NOT a projectile (owner ruling:
+  // strikes must never look like regular bolts). The whole line flashes at
+  // once in the telegraph's red and burns out over the resolve tick; the
+  // disc marks where it landed. Nothing travels, because nothing here is
+  // dodgeable.
+  function drawStrikeSlashes(): void {
+    const slashes = strikeSlashesAt(replay, time);
+    if (slashes.length === 0) return;
+    for (const slash of slashes) {
+      const heat = (1 - slash.age) ** 2;
+      ctx.strokeStyle = hexWithAlpha('#f87171', heat * 0.9);
+      ctx.lineWidth = Math.max(2, tile * 0.18);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      slash.points.forEach((point, index) => {
+        const cx = px(point.x) + tile / 2;
+        const cy = py(point.y) + tile / 2;
+        if (index === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      });
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      const landed = slash.points[slash.points.length - 1];
+      ctx.fillStyle = hexWithAlpha('#fda4a4', heat * 0.95);
+      ctx.beginPath();
+      ctx.arc(
+        px(landed.x) + tile / 2,
+        py(landed.y) + tile / 2,
+        tile * (0.24 + slash.age * 0.22),
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
     }
   }

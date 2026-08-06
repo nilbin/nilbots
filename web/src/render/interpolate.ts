@@ -430,6 +430,7 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
   const current = replay.ticks[tick];
   const traversals = current.projectileTraversals;
   const bolts = current.after.projectiles ?? [];
+  const strikes = strikeAttackProfileIds(replay);
   const moving = new Set(
     traversals.map((traversal) => traversal.projectileId),
   );
@@ -437,6 +438,15 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
 
   for (const traversal of traversals) {
     if (traversal.path.length === 0) continue;
+    // A declared strike's resolution is drawn as a slash by
+    // strikeSlashesAt, never as a traveling bolt — a strike is a hit on
+    // the board, not a dodgeable object in flight.
+    if (
+      traversal.attackProfileId !== undefined &&
+      strikes.has(traversal.attackProfileId)
+    ) {
+      continue;
+    }
     const points = [traversal.from, ...traversal.path];
     const progress = fraction * traversal.path.length;
     const segment = Math.min(
@@ -472,6 +482,81 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
     });
   }
   return poses;
+}
+
+const strikeProfileCache = new WeakMap<ReplayModel, ReadonlySet<string>>();
+
+/**
+ * Attack profiles whose successful attack is a declared strike (positive
+ * windup): the cone telegraphs during the windup and the resolution lands
+ * in-place on the resolve tick. Their traversals must never be drawn as
+ * traveling bolts — a strike is a hit on the board, not a dodgeable
+ * object in flight — so boltsAt skips them and strikeSlashesAt owns the
+ * visual. Only the v3 generic contract declares windup; every other
+ * source yields the empty set and changes nothing.
+ */
+export function strikeAttackProfileIds(
+  replay: ReplayModel,
+): ReadonlySet<string> {
+  const cached = strikeProfileCache.get(replay);
+  if (cached) return cached;
+  const ids = new Set<string>();
+  if (replay.contract.kind === 'v3-generic') {
+    for (const profile of replay.contract.rawContract.rules
+      .attackProfiles) {
+      const windup = (
+        profile.projectile as { strikeWindupTicks?: unknown }
+      ).strikeWindupTicks;
+      if (typeof windup === 'number' && windup > 0) ids.add(profile.id);
+    }
+  }
+  strikeProfileCache.set(replay, ids);
+  return ids;
+}
+
+export interface StrikeSlash {
+  ownerActor: ReplayActorIdentity;
+  /** The landed line: shooter's tile first, impact tile last. */
+  points: readonly ReplayPosition[];
+  /** 0 at the resolve instant, 1 when the flash has fully faded. */
+  age: number;
+}
+
+/**
+ * Matured strike resolutions flashing at continuous playhead `time`.
+ *
+ * The whole line exists at once for the resolve tick and fades over it —
+ * the visual is the cone collapsing into the one line that landed, not a
+ * projectile traveling. Same tick/fraction derivation as boltsAt so the
+ * two grammars can never overlap on a projectile.
+ */
+export function strikeSlashesAt(
+  replay: ReplayModel,
+  time: number,
+): StrikeSlash[] {
+  const tickCount = replay.ticks.length;
+  if (tickCount === 0) return [];
+  const clamped = Math.max(0, Math.min(time, tickCount));
+  const tick = Math.min(Math.floor(clamped), tickCount - 1);
+  const fraction = Math.max(0, Math.min(clamped - tick, 1));
+  const strikes = strikeAttackProfileIds(replay);
+  if (strikes.size === 0) return [];
+  const slashes: StrikeSlash[] = [];
+  for (const traversal of replay.ticks[tick].projectileTraversals) {
+    if (
+      traversal.attackProfileId === undefined ||
+      !strikes.has(traversal.attackProfileId) ||
+      traversal.path.length === 0
+    ) {
+      continue;
+    }
+    slashes.push({
+      ownerActor: traversal.ownerActor,
+      points: [traversal.from, ...traversal.path],
+      age: fraction,
+    });
+  }
+  return slashes;
 }
 
 export interface SpentBolt {
@@ -520,7 +605,16 @@ export function spentBoltsAt(
       position: projectile.position,
     });
   }
+  const strikes = strikeAttackProfileIds(replay);
   for (const traversal of deathTick.projectileTraversals) {
+    // Strike resolutions end in their slash, not in a bolt's
+    // dissipation ring — the two grammars must stay unmistakable.
+    if (
+      traversal.attackProfileId !== undefined &&
+      strikes.has(traversal.attackProfileId)
+    ) {
+      continue;
+    }
     candidates.set(traversal.projectileId, {
       ownerActor: traversal.ownerActor,
       position:

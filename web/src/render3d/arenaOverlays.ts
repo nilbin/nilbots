@@ -8,7 +8,12 @@ import type {
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
-import { arrivalsAt, posesAt, spentBoltsAt } from '../render/interpolate';
+import {
+  arrivalsAt,
+  posesAt,
+  spentBoltsAt,
+  strikeSlashesAt,
+} from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
 import {
@@ -94,6 +99,9 @@ export function buildOverlays(
   const spent = buildSpentBolts(replay, disposables);
   group.add(spent.group);
 
+  const strikeSlashes = buildStrikeSlashes(replay, disposables);
+  group.add(strikeSlashes.group);
+
   const absorptions = buildAbsorptions(replay, disposables);
   group.add(absorptions.group);
 
@@ -148,6 +156,7 @@ export function buildOverlays(
     flashes.update(tick, fraction);
     impacts.update(tick, fraction);
     spent.update(time);
+    strikeSlashes.update(time);
     absorptions.update(tick, fraction);
     arrivals.update(time);
   };
@@ -2392,6 +2401,97 @@ function buildSpentBolts(
       material.opacity = (1 - bolt.age) ** 2 * 0.9;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/**
+ * A matured strike landing — deliberately NOT a projectile (owner ruling:
+ * strikes must never look like regular bolts).
+ *
+ * The whole line exists at once: a hot red blade from the shooter through
+ * the impact tile, flashing on at the resolve instant and burning out over
+ * the tick, plus a disc where it landed. It inherits the telegraph's red
+ * so cone → slash reads as one sentence — the wedge collapsing into the
+ * one line that landed — while bolts keep their team-accent spheres and
+ * dissipation rings. Nothing here travels, because nothing here is
+ * dodgeable.
+ */
+function buildStrikeSlashes(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (time: number) => void } {
+  const group = new THREE.Group();
+  const segmentGeometry = new THREE.PlaneGeometry(1, 0.16);
+  segmentGeometry.rotateX(-Math.PI / 2);
+  const impactGeometry = new THREE.CircleGeometry(0.3, 20);
+  impactGeometry.rotateX(-Math.PI / 2);
+  disposables.push(segmentGeometry, impactGeometry);
+
+  const makePool = (geometry: THREE.BufferGeometry) => {
+    const pool: THREE.Mesh[] = [];
+    const borrow = (index: number) => {
+      while (pool.length <= index) {
+        const material = new THREE.MeshBasicMaterial({
+          color: '#fda4a4',
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.visible = false;
+        mesh.position.y = 0.05;
+        group.add(mesh);
+        pool.push(mesh);
+        disposables.push(material);
+      }
+      return pool[index];
+    };
+    return { pool, borrow };
+  };
+  const segments = makePool(segmentGeometry);
+  const impacts = makePool(impactGeometry);
+
+  const update = (time: number) => {
+    let segmentsUsed = 0;
+    let impactsUsed = 0;
+    for (const slash of strikeSlashesAt(replay, time)) {
+      const heat = (1 - slash.age) ** 2;
+      for (let index = 0; index < slash.points.length - 1; index++) {
+        const from = slash.points[index];
+        const to = slash.points[index + 1];
+        const dx = to.x - from.x;
+        const dz = to.y - from.y;
+        const mesh = segments.borrow(segmentsUsed++);
+        mesh.visible = true;
+        mesh.position.set(
+          (from.x + to.x) / 2 + 0.5,
+          0.05,
+          (from.y + to.y) / 2 + 0.5,
+        );
+        mesh.rotation.y = -Math.atan2(dz, dx);
+        mesh.scale.set(Math.hypot(dx, dz), 1, 1);
+        (mesh.material as THREE.MeshBasicMaterial).opacity = heat * 0.9;
+      }
+      const landed = slash.points[slash.points.length - 1];
+      const impact = impacts.borrow(impactsUsed++);
+      impact.visible = true;
+      impact.position.set(landed.x + 0.5, 0.05, landed.y + 0.5);
+      impact.scale.setScalar(0.8 + slash.age * 0.9);
+      (impact.material as THREE.MeshBasicMaterial).opacity = heat * 0.95;
+    }
+    for (
+      let index = segmentsUsed;
+      index < segments.pool.length;
+      index++
+    ) {
+      segments.pool[index].visible = false;
+    }
+    for (let index = impactsUsed; index < impacts.pool.length; index++) {
+      impacts.pool[index].visible = false;
+    }
   };
 
   return { group, update };
