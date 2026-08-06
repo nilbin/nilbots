@@ -12,6 +12,18 @@
 
 ## Generated review artifact
 
+- Sentry-color v14 roster: `concept-sheet-sentry-color-v14.png`
+- Sentry-color dimensions: 1254×1254 RGB PNG
+- Sentry-color SHA-256:
+  `e18983afa59487a6cdd19434734ea8aaa63cdebe290a5f55f677677198b60e92`
+- Sentry-color gameplay-scale proof:
+  `gameplay-scale-sentry-color-v14.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `e79ef743fc85fbd3404d76dfaef6a254240815ec890ebafb119689f5223da962`
+- Exact inputs and prompts: `sentry-color-v14/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-0a44956a-3051-4608-9873-ff0be5debdc5.png`
 - Payload-fidelity v13 roster: `concept-sheet-payload-fidelity-v13.png`
 - Payload-fidelity dimensions: 1254×1254 RGB PNG
 - Payload-fidelity SHA-256:
@@ -230,7 +242,14 @@ air gaps plus detached neutral shadows. Minesmith now carries three folded Trip
 Nodes with the approved three-prong graphite puck and triangular sensor
 language. Nest carries two folded Sentinel Seeds with the approved taupe base,
 yaw bearing, compact gun head, sensor slit, and short barrel. This is the
-current concept candidate.
+correct geometry, but the carried sentries remained too close to Nest's olive
+carrier color.
+
+The v14 material correction restores the deployed Sentinel Seed's noticeably
+lighter warm sandstone-taupe ceramic over dark gunmetal bearings and barrels,
+with restrained bronze hardware. The two payloads now remain visibly separate
+from the olive/khaki Nest carrier at the 63-pixel proof. This is the current
+concept candidate.
 
 ## Industrial-material refinement prompt
 
