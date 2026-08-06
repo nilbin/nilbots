@@ -1,8 +1,9 @@
 # Arc Relay fleet conceptual 3D v2
 
 - Status: concept review only. No Meshy task has been submitted.
-- Purpose: brighter, simpler image-to-3D targets for a possible second Arc
-  Relay fleet pass.
+- Purpose: brighter, mechanically sophisticated image-to-3D targets for a
+  possible second Arc Relay fleet pass. The v5 direction explicitly rejects
+  geometry simplification as a route to gameplay readability.
 - Canonical gameplay identity remains the sixteen `arc-*` class looks. These
   concepts may clarify depth and simplify finish, but they may not change a
   class's rule-bearing hardware or promise a new capability.
@@ -11,6 +12,55 @@
 
 ## Generated review artifact
 
+- Hover-clean v8 roster: `concept-sheet-hover-clean-v8.png`
+- Hover-clean dimensions: 1254×1254 RGB PNG
+- Hover-clean SHA-256:
+  `e80103831b569079fdbfec2058486198b5a655d90f3ec5adb4851f0833e253f3`
+- Hover-clean gameplay-scale proof:
+  `gameplay-scale-hover-clean-v8.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `5f88abb5f6df70cc2faf29b8b7a0cbcdd89b95d166826e441e1df4ed845482ab`
+- Exact input and prompt: `hover-clean-v8/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-7348dad7-42b3-4489-a21c-b8ec0725320f.png`
+- Hover-distinct v7 roster: `concept-sheet-hover-distinct-v7.png`
+- Hover-distinct dimensions: 1254×1254 RGB PNG
+- Hover-distinct SHA-256:
+  `ebf4b101f5a6b7b6dd3eec446b2e436db9187fa38e3a01a66218c2a3a24aaffd`
+- Hover-distinct gameplay-scale proof:
+  `gameplay-scale-hover-distinct-v7.png`, a 256×256 deterministic downsample
+  that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `a848ad469ec3fb36be46a954e468e77ff2ca4e1c2315a67def1de367ed4ea3c8`
+- Exact input and prompt: `hover-distinct-v7/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-18da7336-37b5-40df-ac75-b07c23e248f9.png`
+- Value-balanced complex industrial v6 roster:
+  `concept-sheet-complex-industrial-v6.png`
+- Value-balanced dimensions: 1254×1254 RGB PNG
+- Value-balanced SHA-256:
+  `b8df11cd37870352963badb6430c661d4e176f7405692516d9e282de553fab09`
+- Value-balanced gameplay-scale proof:
+  `gameplay-scale-complex-industrial-v6.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `3e1bd76c447693229afbbbe5dd48457529aa1397357afc2b5014dfe5af986e27`
+- Exact input and prompt: `complex-industrial-v6/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-61d3073e-e6da-43ad-975e-bd980b397155.png`
+- Complex industrial v5 roster: `concept-sheet-complex-industrial-v5.png`
+- Complex industrial dimensions: 1254×1254 RGB PNG
+- Complex industrial SHA-256:
+  `f195e31eace18d2c6e2dab7e3adc92b7d1915b146d54d40098ced02306635600`
+- Complex industrial gameplay-scale proof:
+  `gameplay-scale-complex-industrial-v5.png`, a 256×256 deterministic
+  downsample that presents each bot at approximately 63×63 pixels.
+- Gameplay-scale SHA-256:
+  `3bfd1ef99e0a6b2ecf0760fb7cd209747e1bc6df5fcf2e5f8f9e38ec847c3e41`
+- Exact inputs and prompt: `complex-industrial-v5/README.md`
+- Built-in image-generation output:
+  `019fc27e-33d3-7971-a896-3915521f3a0b/exec-119f98c7-f7fe-4623-a329-bf4c6744b1aa.png`
 - End-to-end Minesmith/Nest pilot inputs and exact prompts:
   `pilot-v4/README.md`
 - Industrial-color refinement: `concept-sheet-industrial-color-v4.png`
@@ -73,6 +123,36 @@ pure white with warm coated metal, and returning all functional hardware to
 graphite, steel, rubber, or bronze. Restrained abrasion and roughness variation
 remove the molded-plastic/toy read without restoring the original fleet's dark
 muddy value structure.
+
+The complex-industrial v5 pass reverses the earlier simplification direction.
+It retains the original concept roster's layered armor, mechanisms, suspension,
+negative spaces, and secondary construction while moving clear class paint onto
+large satin-enamel panels. At the 63-pixel proof, silhouettes and fixed colors
+remain distinct without relying on black outlines. Minesmith now reads as three
+flat mines in a detailed feed rack. Nest remains below the provider-input gate:
+the carrier is appropriately sophisticated, but its two folded sentry assemblies
+need a clearer omnidirectional deployment read before any paid Meshy call.
+
+The v6 value correction keeps the v5 geometry and studio exposure fixed while
+lifting broad armor on Hush, Relay, Switchback, Longshot, Veil, Nest, Mortar,
+and Repulsor. It confines near-black values to underbodies, joints, tread gaps,
+bores, vents, and narrow recesses. This is the current concept candidate. Nest's
+stored sentry hardware remains the next targeted identity correction.
+
+The v7 redesign removes the road-vehicle fleet language. Twelve classes use
+low ground-skimming hover bodies with a visible air gap and recessed field
+hardware; Palisade, Mortar, Mason, and Nest alone use tracks. The silhouette
+contract gives every class a different outer contour and negative space before
+color. At the 63-pixel proof, the split arrow, shield block, winch tug, repair
+cross, dish crescent, artillery tank, mine hex, oval band, U fork, diamond
+frame, rail needle, rotary tool tank, mast delta, emitter ring, canister
+catamaran, and sentry carrier remain separately identifiable.
+
+The v8 surface pass retains those sixteen silhouettes and functional assemblies
+while removing the high-contrast seam network. Broad enamel and pale-metal
+planes now carry the value read; dark values are confined to actual cavities,
+joints, bores, underbodies, and track gaps. The 63-pixel proof preserves the
+class distinctions without reducing them to black-lined plate mosaics.
 
 ## Industrial-material refinement prompt
 
