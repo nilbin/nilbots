@@ -4709,3 +4709,28 @@ move, owner tuning after verifying movement precedes combat on the
 resolve tick). Signature bolts (sentinel/hook) still fly untelegraphed
 as historical utility casts — flagged to the owner as the remaining
 inconsistency, ruling pending.
+
+## 214. Movement resolves by weight: carrier right-of-way lanes
+
+Owner design direction 2026-08, after watching the diagnostic pocket
+gallery and asking the right question ("we have a bunch of units that
+want different places - prioritize whose movement weighs most and
+adjust accordingly"): tile conflicts are a cooperative pathfinding
+problem, not a per-unit discipline problem. Two blocker-side plug tests
+(bank-side geometry, then whole-map path existence, then
+policy-admissible steps) all failed the same measured scene because the
+failure was interactional - the escort on the carrier's route DID try
+to move aside every tick, but a dancing teammate earlier in unit order
+claimed its escape tiles, and stole the lane tile whenever it was
+freed. The fix is priority in the existing reservation system: Claims
+carries carrier-owned lane tiles (BlockedNow blocks them for every
+other own body), and bodies standing on a lane act immediately after
+carriers so their escape choices precede lower-priority claims. This is
+windowed cooperative pathfinding in miniature - reservation table plus
+priority classes - and it removed the entire (13,7) corridor family in
+one battery (ab53 17/24 -> ab54 21/24, zero friendly-blocked runs).
+The idle-break's supply-lane plug test (#213-era) remains as a backstop
+but is expected dead; removing it is a measured follow-up. Attribution
+tooling: scripts/arc-relay-pocket-attribution.py classifies every stuck
+run (free / friendly-blocked / enemy-involved, per-unit blocker table)
+so the next pocket names itself.
