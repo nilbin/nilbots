@@ -1086,7 +1086,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             Object(distance, $"{at}.assignments.distance", ["kind", "target"],
                 ["maximum"]);
             OneOf(distance, "kind", at,
-                "none", "anchor", "own-reactor", "enemy-reactor",
+                "none", "veterancy-rank",
+                "anchor", "own-reactor", "enemy-reactor",
                 "visible-loose-core-in-zone");
             NonEmptyString(distance, "target", at, allowEmpty: true);
             if (distance.TryGetProperty("maximum", out _))
@@ -2380,7 +2381,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                     ["kind", "target"], ["maximum"]);
                 string kind = RequiredString(distance, "kind", at);
                 OneOf(distance, "kind", at,
-                    "none", "anchor", "own-reactor", "enemy-reactor",
+                    "none", "veterancy-rank",
+                    "anchor", "own-reactor", "enemy-reactor",
                     "visible-loose-core-in-zone");
                 string target = RequiredString(distance, "target", at);
                 bool needsTarget = kind is "anchor"

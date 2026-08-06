@@ -1387,6 +1387,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalTaskCandidate candidate) => assignment.Distance.Kind switch
     {
         "none" => 0,
+        // Merit promotion (owner doctrine 2026-08-07): the assassin is any
+        // body at the promotion level or above, whatever class it started
+        // as. Encoded as 10 - level so the assignment's distance maximum is
+        // the gate (maximum 7 admits level 3+) and ordering still prefers
+        // the most-leveled candidate.
+        "veterancy-rank" => 10 - (_unitLevel.TryGetValue(
+                candidate.UnitId, out (int LifeId, int Level) level)
+            && level.LifeId == candidate.ActorId.LifeId
+                ? level.Level
+                : 1),
         "anchor" => candidate.Position.ChebyshevDistance(
             package.AnchorPosition(assignment.Distance.Target)),
         "own-reactor" => candidate.Position.ChebyshevDistance(_ownReactor),

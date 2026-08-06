@@ -7,8 +7,8 @@
  },
  "composition": [
   "kestrel",
-  "kestrel",
   "patchbay",
+  "relay",
   "longshot",
   "longshot",
   "towline",
@@ -47,8 +47,8 @@
     "kestrel"
    ],
    "minimum": 0,
-   "preferred": 2,
-   "maximum": 2,
+   "preferred": 1,
+   "maximum": 1,
    "carrierPreference": "forbid",
    "deathPolicy": "hold-vacancy",
    "respawnPolicy": "rejoin",
@@ -77,6 +77,25 @@
     "vitality",
     "vitality",
     "reach"
+   ]
+  },
+  {
+   "roleId": "hauler",
+   "candidateClasses": [
+    "relay"
+   ],
+   "minimum": 0,
+   "preferred": 1,
+   "maximum": 1,
+   "carrierPreference": "prefer",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "vitality",
+    "vitality",
+    "vision",
+    "vitality"
    ]
   },
   {
@@ -162,8 +181,8 @@
     "medic"
    ],
    "minimum": 1,
-   "preferred": 3,
-   "maximum": 3,
+   "preferred": 2,
+   "maximum": 2,
    "membership": {
     "persistence": "stable-slot",
     "casualty": "hold-vacancy",
@@ -184,13 +203,14 @@
   {
    "groupId": "well-group",
    "roleIds": [
+    "hauler",
     "carrier",
     "lancer",
     "eyes"
    ],
    "minimum": 1,
-   "preferred": 5,
-   "maximum": 5,
+   "preferred": 6,
+   "maximum": 6,
    "membership": {
     "persistence": "stable-slot",
     "casualty": "hold-vacancy",
@@ -266,10 +286,6 @@
       [
        0,
        0
-      ],
-      [
-       0,
-       -1
       ]
      ]
     },
@@ -356,6 +372,16 @@
       [
        5,
        -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
       ]
      ]
     }
@@ -430,10 +456,6 @@
       [
        1,
        1
-      ],
-      [
-       2,
-       -1
       ]
      ]
     },
@@ -482,6 +504,16 @@
       [
        5,
        -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
       ]
      ]
     }
@@ -556,10 +588,6 @@
       [
        0,
        0
-      ],
-      [
-       0,
-       -1
       ]
      ]
     },
@@ -610,6 +638,16 @@
        1
       ]
      ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
     }
    ]
   }
@@ -619,7 +657,10 @@
    "engagementId": "shadow-strike",
    "participants": [
     "hunter",
-    "medic"
+    "medic",
+    "carrier",
+    "lancer",
+    "hauler"
    ],
    "targetPriorities": [
     "enemy-carrier",
@@ -667,7 +708,8 @@
    "participants": [
     "carrier",
     "lancer",
-    "eyes"
+    "eyes",
+    "hauler"
    ],
    "targetPriorities": [
     "enemy-carrier",
@@ -754,7 +796,8 @@
    "participants": [
     "carrier",
     "lancer",
-    "eyes"
+    "eyes",
+    "hauler"
    ],
    "targetPriorities": [
     "enemy-carrier",
@@ -816,6 +859,7 @@
   {
    "custodyId": "well-custody",
    "authorizedCarrierRoles": [
+    "hauler",
     "carrier",
     "lancer",
     "eyes",
@@ -1225,6 +1269,30 @@
     "fact": "phase-state-ticks",
     "operator": "at-least",
     "value": 90
+   },
+   "shadow-op": {
+    "fact": "group-max-level",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "shadow-group"
+   },
+   "well-op": {
+    "fact": "group-max-level",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "well-group"
+   },
+   "shadow-cooled": {
+    "fact": "group-max-level",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "shadow-group"
+   },
+   "well-cooled": {
+    "fact": "group-max-level",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "well-group"
    }
   },
   "conditionSets": {
@@ -1240,12 +1308,16 @@
    ],
    "apex-on": [
     [
-     "apex-reached"
+     "shadow-op"
+    ],
+    [
+     "well-op"
     ]
    ],
    "apex-off": [
     [
-     "apex-lost"
+     "shadow-cooled",
+     "well-cooled"
     ]
    ],
    "north-soon": [
@@ -1260,8 +1332,7 @@
    ],
    "carrier-sighted": [
     [
-     "carrier-known",
-     "shadow-pair-alive"
+     "carrier-known"
     ]
    ],
    "kill-window": [
@@ -1346,10 +1417,12 @@
       "assignmentId": "race-north",
       "orderId": "race-north",
       "roles": [
+       "hauler",
        "carrier",
        "lancer"
       ],
       "classes": [
+       "relay",
        "longshot",
        "towline"
       ],
@@ -1394,10 +1467,12 @@
       "assignmentId": "race-south",
       "orderId": "race-south",
       "roles": [
+       "hauler",
        "carrier",
        "lancer"
       ],
       "classes": [
+       "relay",
        "longshot",
        "towline"
       ],
@@ -1442,16 +1517,14 @@
       "assignmentId": "cutoff-strike",
       "orderId": "cutoff-strike",
       "roles": [
-       "hunter",
-       "medic"
+       "hunter"
       ],
       "classes": [
-       "kestrel",
-       "patchbay"
+       "kestrel"
       ],
-      "minimum": 2,
-      "preferred": 3,
-      "maximum": 3,
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
       "carrier": "forbid",
       "distance": {
        "kind": "anchor",
@@ -1490,11 +1563,13 @@
       "assignmentId": "surge-bank",
       "orderId": "surge-bank",
       "roles": [
+       "hauler",
        "carrier",
        "lancer",
        "eyes"
       ],
       "classes": [
+       "relay",
        "longshot",
        "towline",
        "mason"
@@ -1510,6 +1585,71 @@
      }
     ],
     "whenConditionSetId": "kill-window",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
+    "taskId": "assassin-promotion",
+    "priority": 40,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 2,
+    "minimumTicks": 10,
+    "timeoutTicks": 600,
+    "cooldownTicks": 4,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "apex-assassin",
+      "orderId": "apex-strike",
+      "roles": [
+       "hunter"
+      ],
+      "classes": [
+       "kestrel"
+      ],
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "veterancy-rank",
+       "target": "",
+       "maximum": 7
+      }
+     },
+     {
+      "assignmentId": "apex-escort",
+      "orderId": "apex-strike",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "none",
+       "target": ""
+      }
+     }
+    ],
+    "whenConditionSetId": "apex-on",
     "completeConditionSetId": "task-never-done",
     "failConditionSetId": "task-never-done",
     "reintegration": {
