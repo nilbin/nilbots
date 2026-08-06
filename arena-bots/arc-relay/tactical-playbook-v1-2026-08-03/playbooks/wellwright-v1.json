@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/wellwright-warren6-v1.json",
-  "sha256": "fcb01856af0a909ca66c06eeea44ac04fda598e58699575a5978e208ae60e53e"
+  "sha256": "254c308526072fafb92488f56900c2b87a633136908c3cea5ee4c811fc11e97d"
  },
  "perspective": "team-relative",
  "memory": {
@@ -907,7 +907,7 @@
       "formationId": "haul-line",
       "movement": {
        "kind": "route",
-       "target": "north-out",
+       "target": "north-well-loop",
        "stuckTicks": 8,
        "pace": "free"
       },
@@ -931,7 +931,7 @@
       "formationId": "haul-line",
       "movement": {
        "kind": "route",
-       "target": "centre-probe",
+       "target": "centre-well-loop",
        "stuckTicks": 8,
        "pace": "free"
       },
@@ -955,7 +955,7 @@
       "formationId": "haul-line",
       "movement": {
        "kind": "route",
-       "target": "south-out",
+       "target": "south-well-loop",
        "stuckTicks": 8,
        "pace": "free"
       },
