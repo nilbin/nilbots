@@ -858,15 +858,33 @@ public static class ArcRelayTacticalPlaybookCompiler
             string id = doctrine.Name;
             JsonElement value = doctrine.Value;
             Object(value, $"{path}.doctrines.{id}",
-                [
-                    "role", "assignmentProfileId", "custodyId",
-                    "claimAnchor", "modes",
-                ]);
+                value.TryGetProperty("claim", out _)
+                    ?
+                    [
+                        "role", "assignmentProfileId", "custodyId",
+                        "claimAnchor", "claim", "modes",
+                    ]
+                    :
+                    [
+                        "role", "assignmentProfileId", "custodyId",
+                        "claimAnchor", "modes",
+                    ]);
             string role = value.GetProperty("role").GetString()!;
             string profile = value.GetProperty("assignmentProfileId")
                 .GetString()!;
             string custody = value.GetProperty("custodyId").GetString()!;
             string claimAnchor = value.GetProperty("claimAnchor").GetString()!;
+            // Multi-unit doctrines (the well pack) override the default
+            // single-unit claim with a role list and a size.
+            string claimRolesJson = $"[\"{role}\"]";
+            int claimPreferred = 1;
+            int claimMaximum = 1;
+            if (value.TryGetProperty("claim", out JsonElement claim))
+            {
+                claimRolesJson = claim.GetProperty("roles").GetRawText();
+                claimPreferred = claim.GetProperty("preferred").GetInt32();
+                claimMaximum = claim.GetProperty("maximum").GetInt32();
+            }
             JsonElement[] modes = BoundedArray(
                 value.GetProperty("modes"), $"{path}.doctrines.{id}", 1, 8);
             for (int index = 0; index < modes.Length; index++)
@@ -941,12 +959,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                     {
                         ["assignmentId"] = name,
                         ["orderId"] = name,
-                        ["roles"] = new JsonArray(role),
+                        ["roles"] = JsonNode.Parse(claimRolesJson),
                         ["classes"] = new JsonArray(),
                         ["minimum"] = 0,
-                        ["preferred"] = 1,
-                        ["maximum"] = 1,
-                        ["carrier"] = "forbid",
+                        ["preferred"] = claimPreferred,
+                        ["maximum"] = claimMaximum,
+                        ["carrier"] = "allow",
                         ["distance"] = new JsonObject
                         {
                             ["kind"] = "anchor",
@@ -981,7 +999,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 // under 8 keeps every doctrine mode able to preempt the
                 // legacy standing tasks (8+) while home-defense-class tasks
                 // can still be authored under it if ever needed.
-                tasks.Add(new JsonObject
+                var generated = new JsonObject
                 {
                     ["taskId"] = name,
                     ["priority"] = 7 - index,
@@ -990,7 +1008,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                     ["participantLoss"] = "replace",
                     ["triggerStableTicks"] = 1,
                     ["minimumTicks"] = 8,
-                    ["timeoutTicks"] = 600,
+                    ["timeoutTicks"] = mode.TryGetProperty(
+                        "timeoutTicks", out JsonElement timeout)
+                        ? timeout.GetInt32() : 600,
                     ["cooldownTicks"] = 2,
                     ["minimumPrimaryBodies"] = 1,
                     ["eligiblePhases"] = new JsonArray(
@@ -1006,7 +1026,14 @@ public static class ArcRelayTacticalPlaybookCompiler
                         ["completeConditionSetId"] = "",
                         ["timeoutTicks"] = 0,
                     },
-                });
+                };
+                if (mode.TryGetProperty("armOn", out JsonElement armOn))
+                {
+                    generated["completionArmMode"] = armOn.GetString();
+                    generated["completionReleaseMode"] = mode
+                        .GetProperty("releaseOn").GetString();
+                }
+                tasks.Add(generated);
             }
         }
         return JsonDocument.Parse(root.ToJsonString());

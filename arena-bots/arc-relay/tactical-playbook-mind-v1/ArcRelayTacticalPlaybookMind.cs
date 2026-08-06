@@ -1769,6 +1769,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         while (index < route.Length - 1
             && body.Position.ChebyshevDistance(route[index]) <= arrival)
             index++;
+        // A route whose last waypoint is its first is a closed patrol loop:
+        // reaching the end re-arms the start, so an authored post is a beat
+        // to walk rather than a spot to stand (owner doctrine 2026-08-09 -
+        // standing posts near base read as bugs even when intended).
+        if (index == route.Length - 1
+            && route.Length > 1
+            && route[0] == route[^1]
+            && body.Position.ChebyshevDistance(route[index]) <= arrival)
+        {
+            index = 0;
+        }
         _routes[body.UnitId] = state with { Index = index };
         return route[index];
     }
