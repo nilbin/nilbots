@@ -388,7 +388,14 @@ internal sealed class TacticalTaskMachine
             BeginReintegration(tick, state, "phase-ineligible");
             return;
         }
-        if (elapsed >= state.Plan.TimeoutTicks)
+        // An ARMED task with a release mode is progressing by definition -
+        // its carrier is hauling and its exit is the release, so a timeout
+        // firing mid-haul would strand the carrier between custody and a
+        // reverted order (measured as the ab34 stuck-carrier surge,
+        // DECISIONS #212). Timeouts exist to end the UNARMED idle case.
+        if (elapsed >= state.Plan.TimeoutTicks
+            && !(state.CompletionArmed
+                && state.Plan.CompletionReleaseMode is not null))
         {
             BeginReintegration(tick, state, "timeout");
             return;
