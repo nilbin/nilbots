@@ -17,6 +17,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- A match is an allocation-heavy batch job, not an interactive app: the
+         Arc Relay evaluation cell allocates ~1 GiB in one 400-tick run. Server
+         GC (DATAS-sized, so a laptop running a sweep in parallel does not get
+         one heap per core) collects that at ~5% less wall clock than
+         workstation GC both serially and at six concurrent cells. Gameplay is
+         unaffected — the GC never observes simulation state. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />

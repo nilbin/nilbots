@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -41,9 +42,25 @@ public static class ActorContractFingerprint
                 .SerializeTopologyFingerprintPayload(topology));
     }
 
+    /// <summary>
+    /// A resolved match definition is immutable once constructed, and one
+    /// match asks for its aggregate fingerprint on every world snapshot — twice
+    /// per tick — so the canonical serialization and SHA-256 are memoized
+    /// against the instance rather than recomputed. The table holds the key
+    /// weakly, so a finished match's entry dies with its definition.
+    /// </summary>
+    private static readonly ConditionalWeakTable<
+        ActorResolvedMatchDefinition, string> MatchFingerprints = new();
+
     public static string ComputeMatch(ActorResolvedMatchDefinition match)
     {
         ArgumentNullException.ThrowIfNull(match);
+        return MatchFingerprints.GetValue(match, ComputeMatchPayload);
+    }
+
+    private static string ComputeMatchPayload(
+        ActorResolvedMatchDefinition match)
+    {
         ValidateMatch(match);
         return Hash(
             ActorContractManifestSerializer
