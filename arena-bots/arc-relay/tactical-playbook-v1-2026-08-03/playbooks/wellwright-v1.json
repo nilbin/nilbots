@@ -1033,7 +1033,7 @@
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
-    "timeoutTicks": 600,
+    "timeoutTicks": 110,
     "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
@@ -1091,7 +1091,9 @@
      "orderIds": [],
      "completeConditionSetId": "",
      "timeoutTicks": 0
-    }
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
    },
    {
     "taskId": "centre-race-task",
@@ -1101,7 +1103,7 @@
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
-    "timeoutTicks": 600,
+    "timeoutTicks": 110,
     "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
@@ -1159,7 +1161,9 @@
      "orderIds": [],
      "completeConditionSetId": "",
      "timeoutTicks": 0
-    }
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
    },
    {
     "taskId": "south-race-task",
@@ -1169,7 +1173,7 @@
     "participantLoss": "replace",
     "triggerStableTicks": 1,
     "minimumTicks": 8,
-    "timeoutTicks": 600,
+    "timeoutTicks": 110,
     "cooldownTicks": 20,
     "minimumPrimaryBodies": 1,
     "eligiblePhases": [
@@ -1227,7 +1231,9 @@
      "orderIds": [],
      "completeConditionSetId": "",
      "timeoutTicks": 0
-    }
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
    }
   ],
   "phases": [
