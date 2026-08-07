@@ -2341,7 +2341,8 @@
       "chase": {
        "leash": 14
       }
-     }
+     },
+     "patienceTicks": 12
     },
     {
      "patrol": "shadow-north-long"
