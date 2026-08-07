@@ -185,6 +185,17 @@ const PIP_SETBACK = 0.55;
 const PIP_SPACING = 0.17;
 
 /**
+ * How far in FRONT of a body its role caption sits, in tiles.
+ *
+ * The mirror of `PIP_SETBACK`. The pitched camera puts +Z lower on screen, so a caption
+ * anchored just past the body's front edge reads as hanging under it — which is where the
+ * flat renderer draws the same word (`drawRoleTag`, one tile down from the body's top).
+ * The sprite is bottom-anchored (`center.set(0.5, 0)`), so it grows up from here toward
+ * the chassis rather than down into the next body's tile.
+ */
+const ROLE_LABEL_SETBACK = 0.62;
+
+/**
  * A load riding on a body, and the colour it rides in.
  *
  * Carried scrap is the one piece of state that makes a body worth *chasing*
@@ -1107,13 +1118,29 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const context = roleCanvas.getContext('2d');
       if (!context) return;
       context.clearRect(0, 0, roleCanvas.width, roleCanvas.height);
-      context.font = `600 ${Math.round(ROLE_LABEL_HEIGHT * 0.62)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.lineJoin = 'round';
-      context.lineWidth = ROLE_LABEL_HEIGHT * 0.28;
       context.strokeStyle = 'rgba(2, 6, 12, 0.85)';
       const caption = roleTagCaption(tag);
+      // The caption is fitted to the texture rather than trusted to fit it. The tag
+      // vocabulary is the author's, `roleTagCaption` allows fourteen characters, and at
+      // the base size only about ten fit across 256px — so `ghost-patrol` rendered as
+      // `host-patro`, clipped at both ends by the texture edge, which reads as a broken
+      // label rather than a long one. Short tags keep the size they always had.
+      const font = (size: number) =>
+        `600 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      let size = Math.round(ROLE_LABEL_HEIGHT * 0.62);
+      context.font = font(size);
+      // Room for the dark stroke, which is drawn centred on the glyph outline and so
+      // spills half its width past each end of the text.
+      const available = roleCanvas.width - ROLE_LABEL_HEIGHT * 0.34;
+      const measured = context.measureText(caption).width;
+      if (measured > available) {
+        size = Math.max(16, Math.floor((size * available) / measured));
+        context.font = font(size);
+      }
+      context.lineWidth = size * 0.28;
       context.strokeText(caption, roleCanvas.width / 2, roleCanvas.height / 2);
       context.fillStyle = roleTagColor(tag);
       context.fillText(caption, roleCanvas.width / 2, roleCanvas.height / 2);
@@ -1845,6 +1872,17 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.paintRole(visibleRoleTag);
       bot.roleLabel.visible =
         bot.chassis.visible && visibleRoleTag !== null;
+      // Every rig piece here carries ABSOLUTE world coordinates, because the bots share
+      // one container rather than each owning a group that moves. The caption was the
+      // one piece that never got its x/z — it was built with a Y offset and nothing else
+      // — so all sixteen rendered on top of each other at the arena's origin corner, which
+      // in full screen is a legible pile of stacked words in the top-left and at windowed
+      // size was small enough to pass for map decal (owner review 2026-08).
+      bot.roleLabel.position.set(
+        glide.x + 0.5,
+        bot.roleLabel.position.y,
+        glide.y + 0.5 + ROLE_LABEL_SETBACK,
+      );
 
       const load = mechanics?.carriedScrap ?? 0;
       bot.carry.visible = load > 0 && bot.chassis.visible;
