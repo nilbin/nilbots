@@ -4217,6 +4217,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// aligned one in range and fires, independent of its gun state. Enemy
     /// carriers come first: a landed hook on a courier is the class's whole
     /// purpose.
+    /// <para>
+    /// Where the ruleset carries the strike lock, alignment stops being the
+    /// gate — the declare is a wedge and a NAME — but the channel is worth
+    /// keeping for exactly the same reason: it fires independent of the gun
+    /// state and it prefers couriers.
+    /// </para>
     /// </summary>
     private bool TryOpportunisticHeadingSignature(
         GenericActorResolvedMatchContract contract,
@@ -4242,8 +4248,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             foreach (GenericActorContext.ObservedEnemyState enemy in ordered)
             {
-                if (ArenaBasics.TryHeadingSignature(
-                        contract, body, kind, enemy.Position, reason))
+                if (CastLineSignature(contract, body, enemy, kind, reason))
                     return true;
             }
         }
@@ -5222,7 +5227,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private static readonly SignaturePlay[] SignaturePlays =
     [
         new("rail-line", "damage", static (c, _, b, t, _, kind, r) =>
-            ArenaBasics.TryHeadingSignature(c, b, kind, t.Position, r)),
+            CastLineSignature(c, b, t, kind, r)),
         new("falling-star", "damage", static (c, _, b, t, _, kind, r) =>
             ArenaBasics.TryPositionSignature(c, b, kind, t.Position, r)),
         // A Sentinel is a sustained gun: worth deploying while the fight is
@@ -5236,7 +5241,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new("target-paint", "control", static (c, _, b, t, _, kind, r) =>
             ArenaBasics.TryUnitSignature(c, b, kind, t.ActorId, r)),
         new("tractor-hook", "control", static (c, _, b, t, _, kind, r) =>
-            ArenaBasics.TryHeadingSignature(c, b, kind, t.Position, r)),
+            CastLineSignature(c, b, t, kind, r)),
         // A mine on the approach side only pays off when the enemy is close
         // enough to walk it; placement legality clamps to adjacent tiles.
         new("trip-node", "control", static (c, _, b, t, _, kind, r) =>
@@ -5387,27 +5392,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return false;
         return signature.ArgumentKind switch
         {
-            // A heading cast needs exact ray alignment; when the focus
-            // target is off-ray, sweep the other visible hostiles so a hook
-            // or rail fires at whoever IS aligned instead of idling (the
-            // stock mind casts ~40 hooks a game to this executor's 0-2).
-            "heading" => ArenaBasics.TryHeadingSignature(
-                contract, body, signature.Kind, target.Position, reason)
-                || mind.Enemies
-                    .Where(enemy => enemy.ActorId != target.ActorId
-                        && body.Position.ChebyshevDistance(enemy.Position)
-                            <= range)
-                    .OrderBy(enemy =>
-                        body.Position.ChebyshevDistance(enemy.Position))
-                    .ThenBy(enemy => ArenaBasics.FrameY(
-                        enemy.Position,
-                        ArenaBasics.MirroredFrame(contract, mind)))
-                    .ThenBy(enemy => ArenaBasics.FrameX(
-                        enemy.Position,
-                        ArenaBasics.MirroredFrame(contract, mind)))
-                    .Any(enemy => ArenaBasics.TryHeadingSignature(
-                        contract, body, signature.Kind, enemy.Position,
-                        reason)),
+            // A LOCKED line attack declares like a strike: the wedge covers
+            // ninety degrees, so the focus target is nearly always
+            // declarable without turning, and the NAME is what survives its
+            // step. Failing that, sweep the other hostiles in reach rather
+            // than idle. An unlocked heading cast keeps the exact-ray rule,
+            // because its line really is a line (the stock mind casts ~40
+            // hooks a game to this executor's 0-2).
+            "heading" => HeadingSignatureSweep(
+                contract, mind, body, target, range, signature.Kind, reason),
             "position" => ArenaBasics.TryPositionSignature(
                 contract, body, signature.Kind,
                 string.Equals(
@@ -5425,6 +5418,50 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, body, signature.Kind, reason),
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// One line-attack cast at one enemy: the locked strike declare where the
+    /// ruleset carries the lock, the historical exact-ray cast where it does
+    /// not.
+    /// </summary>
+    private static bool CastLineSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState enemy,
+        string kind,
+        string reason) =>
+        ArenaBasics.DeclaresLock(contract, body, kind)
+            ? ArenaBasics.TryLockedLineSignature(
+                contract, body, kind, enemy.ActorId, enemy.Position, reason)
+            : ArenaBasics.TryHeadingSignature(
+                contract, body, kind, enemy.Position, reason);
+
+    /// <summary>
+    /// Casts a heading signature at the focus target, or at whichever other
+    /// hostile in reach it can actually reach.
+    /// </summary>
+    private static bool HeadingSignatureSweep(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState target,
+        int range,
+        string kind,
+        string reason)
+    {
+        bool Cast(GenericActorContext.ObservedEnemyState enemy) =>
+            CastLineSignature(contract, body, enemy, kind, reason);
+        if (Cast(target))
+            return true;
+        bool mirrored = ArenaBasics.MirroredFrame(contract, mind);
+        return mind.Enemies
+            .Where(enemy => enemy.ActorId != target.ActorId
+                && body.Position.ChebyshevDistance(enemy.Position) <= range)
+            .OrderBy(enemy => body.Position.ChebyshevDistance(enemy.Position))
+            .ThenBy(enemy => ArenaBasics.FrameY(enemy.Position, mirrored))
+            .ThenBy(enemy => ArenaBasics.FrameX(enemy.Position, mirrored))
+            .Any(Cast);
     }
 
     private static bool TryLeadSignature(

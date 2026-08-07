@@ -333,6 +333,19 @@ public sealed record GenericActorMatchActorTurn
         ActorActionDefinition action,
         ActorActionParameterKind kind)
     {
+        // The declared LOCK is optional wherever it exists, exactly as
+        // GenericActorDecisionAdmission admits it: a declarer with nobody
+        // worth naming still fires down the lane. Evidence validation has to
+        // agree with admission or a legal nameless declare aborts the match
+        // on the way into the chronology.
+        if (kind == ActorActionParameterKind.UnitTarget
+            && (action.Kind == ActorActionKind.Attack
+                || action.ParameterKinds.Contains(
+                    ActorActionParameterKind.ProjectileHeading)))
+        {
+            return true;
+        }
+
         if (kind != ActorActionParameterKind.ShotProgram
             || action.Kind != ActorActionKind.Attack)
         {
