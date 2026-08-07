@@ -154,6 +154,97 @@ public sealed class GenericActorStrikeWindupRootingTests
         Assert.Empty(orphaned.ProjectileTraversals);
     }
 
+    [Fact]
+    public void LockIsTheTargetOnTheAimAndNotTheNearestBodyInTheWedge()
+    {
+        // The shooter aims east down the lane. The enemy it is aiming AT
+        // stands four tiles away on that ray; a second enemy stands two
+        // tiles away inside the same wedge, off the aim. The nearest body
+        // used to be the lock; the target is.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(3, 5));
+
+        duel.Step((0, 0, Shoot()));
+        duel.Step();
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(2, duel.Body(matured, 1, 0).Health);
+        Assert.Equal(3, duel.Body(matured, 1, 1).Health);
+    }
+
+    [Fact]
+    public void AimWithNoEnemyOnItLocksNothingAndKeepsTheWhiff()
+    {
+        // Same wedge, same nearest enemy, but nobody on the aim itself.
+        // There is no substitution: the strike locks nothing and fires the
+        // theatrical whiff down the centre, which hurts nobody.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(3, 5),
+            enemyTwo: new Position(7, 5));
+
+        duel.Step((0, 0, Shoot()));
+        duel.Step();
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(3, duel.Body(matured, 1, 0).Health);
+        Assert.Equal(3, duel.Body(matured, 1, 1).Health);
+    }
+
+    [Fact]
+    public void FriendlyOnTheAimIsNeverTheLock()
+    {
+        // A teammate stands on the aim at the wedge's last ring and then
+        // steps off it. A lock would have been cancelled by that step; this
+        // strike was never for the teammate, so it still fires.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 2,
+            shooter: new Position(1, 3),
+            friendly: new Position(3, 3),
+            enemyOne: new Position(7, 1),
+            enemyTwo: new Position(7, 5));
+
+        duel.Step((0, 0, Shoot()));
+        duel.Step((0, 1, Move(Direction.East)));
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Equal(new Position(4, 3), duel.Body(matured, 0, 1).Position);
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(3, duel.Body(matured, 0, 1).Health);
+    }
+
+    [Fact]
+    public void BodyStepingOntoTheFiringLineTakesTheBoltMeantForItsAlly()
+    {
+        // Bodyguarding lives at DELIVERY. The second enemy is outside the
+        // wedge at declare, so it can never have been the lock, and it walks
+        // onto the firing line during the windup: the bolt meets it first
+        // and the locked target is untouched.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(2, 5));
+
+        duel.Step((0, 0, Shoot()));
+        duel.Step((1, 1, Move(Direction.North)));
+        GenericActorMatchStepResult matured =
+            duel.Step((1, 1, Move(Direction.North)));
+
+        Assert.Equal(new Position(2, 3), duel.Body(matured, 1, 1).Position);
+        Assert.Equal(2, duel.Body(matured, 1, 1).Health);
+        Assert.Equal(3, duel.Body(matured, 1, 0).Health);
+    }
+
     private static GenericActorRuntimeDecision Wait() =>
         GenericDeathmatchSessionTestFixture.Wait();
 
@@ -179,10 +270,9 @@ public sealed class GenericActorStrikeWindupRootingTests
     {
         private readonly ActorResolvedMatchDefinition _definition;
         private readonly GenericActorMatchSession _session;
-        private GenericActorRuntimeDecision _shooter =
-            GenericDeathmatchSessionTestFixture.Wait();
-        private GenericActorRuntimeDecision _enemy =
-            GenericDeathmatchSessionTestFixture.Wait();
+        private readonly Dictionary<
+            (int TeamId, int UnitId),
+            GenericActorRuntimeDecision> _commands = [];
 
         private Duel(ActorResolvedMatchDefinition definition)
         {
@@ -192,9 +282,12 @@ public sealed class GenericActorStrikeWindupRootingTests
                 GenericDeathmatchSessionTestFixture.RecordingFactory>
                 factories = GenericDeathmatchSessionTestFixture.Factories(
                     definition,
-                    (_, observation) => observation.Self.ActorId.TeamId == 0
-                        ? _shooter
-                        : _enemy);
+                    (_, observation) => _commands.TryGetValue(
+                        (observation.Self.ActorId.TeamId,
+                            observation.Self.ActorId.UnitId),
+                        out GenericActorRuntimeDecision? command)
+                        ? command
+                        : GenericDeathmatchSessionTestFixture.Wait());
             _session = new GenericActorMatchSession(
                 definition,
                 GenericDeathmatchSessionTestFixture.Configurations(
@@ -207,16 +300,58 @@ public sealed class GenericActorStrikeWindupRootingTests
             int strikeRange,
             int visionRange,
             int maxHealth = 3) =>
-            new(Definition(strikeRange, visionRange, maxHealth));
+            new(Definition(
+                "head-to-head",
+                strikeRange,
+                visionRange,
+                maxHealth,
+                [ShooterSpawn, EnemySpawn]));
+
+        /// <summary>
+        /// Four bodies, two per team, placed exactly: the shooter (0, 0), its
+        /// friendly (0, 1), and two enemies (1, 0) and (1, 1). Only the
+        /// shooter's spawn carries a facing that matters.
+        /// </summary>
+        public static Duel CreateSquad(
+            int strikeRange,
+            Position shooter,
+            Position friendly,
+            Position enemyOne,
+            Position enemyTwo) =>
+            new(Definition(
+                "teams",
+                strikeRange,
+                visionRange: 8,
+                maxHealth: 3,
+                [shooter, friendly, enemyOne, enemyTwo]));
 
         public GenericActorMatchStepResult Step(
             GenericActorRuntimeDecision shooter,
-            GenericActorRuntimeDecision enemy)
+            GenericActorRuntimeDecision enemy) =>
+            Step((0, 0, shooter), (1, 0, enemy));
+
+        /// <summary>
+        /// Commands the named bodies for one tick; everything unnamed waits.
+        /// </summary>
+        public GenericActorMatchStepResult Step(
+            params (int TeamId, int UnitId, GenericActorRuntimeDecision Decision)[]
+                commands)
         {
-            _shooter = shooter;
-            _enemy = enemy;
+            _commands.Clear();
+            foreach ((int teamId, int unitId, GenericActorRuntimeDecision decision)
+                     in commands)
+            {
+                _commands[(teamId, unitId)] = decision;
+            }
             return _session.Step();
         }
+
+        public GenericActorWorldSnapshot.LifeSnapshot Body(
+            GenericActorMatchStepResult step,
+            int teamId,
+            int unitId) =>
+            step.PostState.ActiveLives.Single(life =>
+                life.ActorId.TeamId == teamId && life.ActorId.UnitId == unitId);
 
         public GenericActorWorldSnapshot.LifeSnapshot Shooter(
             GenericActorMatchStepResult step) =>
@@ -266,13 +401,15 @@ public sealed class GenericActorStrikeWindupRootingTests
                 diagonalCornersMustBeClear: true);
 
         private static ActorResolvedMatchDefinition Definition(
+            string formatName,
             int strikeRange,
             int visionRange,
-            int maxHealth)
+            int maxHealth,
+            IReadOnlyList<Position> spawnPositions)
         {
             ActorResolvedMatchDefinition baseline =
                 GenericDeathmatchSessionTestFixture.Definition(
-                    "head-to-head",
+                    formatName,
                     new GenericDeathmatchSessionTestFixture.Options
                     {
                         MaxTicks = 16,
@@ -330,25 +467,35 @@ public sealed class GenericActorStrikeWindupRootingTests
                 baseline.Rules.TeamPerception,
                 baseline.Rules.Collisions,
                 baseline.Rules.TickResolution);
-            var west = new InitialSpawnDefinition(
-                "west",
-                ShooterSpawn,
-                Direction.East);
-            var east = new InitialSpawnDefinition(
-                "east",
-                EnemySpawn,
-                Direction.West);
+            // The deployment hands its spawn anchors out team by team, unit
+            // by unit, in the order it declares them, so re-siting those
+            // anchors in that same order places the bodies exactly.
+            // (The deployment's own Spawns array is canonically ordered by
+            // spawn id, which is NOT the deployment order — the lives are.)
+            ImmutableArray<string> spawnIds =
+            [
+                .. baseline.InitialDeployment.Lives
+                    .OrderBy(life => life.TeamId)
+                    .ThenBy(life => life.UnitId)
+                    .Select(life => life.SpawnId),
+            ];
+            InitialSpawnDefinition[] spawns =
+            [
+                .. spawnPositions.Select((position, index) =>
+                    new InitialSpawnDefinition(
+                        spawnIds[index],
+                        position,
+                        index == 0 ? Direction.East : Direction.West)),
+            ];
             var map = new ActorMapDefinition(
                 "strike-rooting-arena",
                 version: 1,
                 baseline.Map.TileRows,
                 [
-                    new ActorMapSpawnAnchorDefinition(
-                        west,
-                        [ActorMovementLayer.Ground]),
-                    new ActorMapSpawnAnchorDefinition(
-                        east,
-                        [ActorMovementLayer.Ground]),
+                    .. spawns.Select(spawn =>
+                        new ActorMapSpawnAnchorDefinition(
+                            spawn,
+                            [ActorMovementLayer.Ground])),
                 ],
                 baseline.Map.Regions,
                 baseline.Map.TileTags);
@@ -358,7 +505,7 @@ public sealed class GenericActorStrikeWindupRootingTests
                 baseline.Format,
                 baseline.Topology,
                 new InitialDeploymentDefinition(
-                    [west, east],
+                    [.. spawns],
                     baseline.InitialDeployment.Lives),
                 baseline.LifecycleAssignments,
                 baseline.ParticipantRegionAssignments,

@@ -4901,3 +4901,40 @@ GenericActorStrikeWindupRootingTests (rooted declarer fires from its
 declare tile; move command abandons and the move proceeds; a blocked
 move abandons too; wedge exit, sight loss and a dead lock all still
 cancel).
+
+## 222. The lock is the declared target, and nothing else
+
+Owner ruling 2026-08-07: "The lock should obviously land on the target.
+The hit itself is still blockable though." Then, correcting the first
+draft of the mechanic: "Not nearest - the TARGET!"
+
+#215 locked the nearest body anywhere in the 90 degree wedge, which is
+how a strike aimed down a lane ended up locked onto something standing
+off to one side - and, because the wedge scan did not care about teams,
+onto a TEAMMATE in 285 of 1194 locks in the commitx21 audit (#221). A
+teammate lock is nonsense twice over: an allied bolt passes straight
+through an ally in this ruleset, so the strike was locked to a body it
+could never hit, and it then CANCELLED when that ally walked off.
+
+The lock is now the DECLARED TARGET: the first ENEMY standing on the
+ray the shooter actually aimed, out to the gun's reach, while inside
+the frozen wedge. There is no substitution of any kind. An aim with no
+enemy on it locks NOTHING and keeps the empty-wedge theatrical whiff -
+the strike never re-aims at a nearer body, friend or enemy. Friendlies
+are skipped rather than treated as blockers when the lock is chosen,
+because bodyguarding is a DELIVERY rule.
+
+Delivery is unchanged and re-affirmed: the bolt is an ordinary
+first-body-contact ray along the firing line under this ruleset's
+collision policy, so whoever is standing on the line when it fires is
+who it meets - a body that steps in during the windup eats the bolt
+meant for the one behind it. Cancel rules are unchanged and remain
+lock-side: the locked target dies, leaves the frozen wedge, or leaves
+the shooter's line of sight. The frozen wedge is still reach, not a
+zone: the target may be followed anywhere inside it.
+
+The viewer follows: `strikeAimsAt` now READS the wire lock instead of
+re-deriving one, so a whiff draws no tracking ray rather than pointing
+at a body the strike was never for. Pinned by
+GenericActorStrikeWindupRootingTests (target-not-nearest, no
+substitution, friendly-never-lock, interception at delivery).

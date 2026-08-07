@@ -3031,47 +3031,41 @@ public sealed class GenericActorMatchSession : IDisposable
     }
 
     /// <summary>
-    /// The body a cone strike locks when it lights: nearest in the wedge
-    /// by Chebyshev, most-central on integer-exact angle ties (cross/dot
-    /// cross-multiplied, both dots positive inside the wedge), canonical
-    /// row-major tile order last. Null over an empty wedge.
+    /// The body a cone strike locks when it lights: the DECLARED TARGET —
+    /// the first ENEMY standing on the ray the shooter actually aimed, out
+    /// to this gun's reach, and only while that body is inside the frozen
+    /// wedge (owner ruling 2026-08-07, DECISIONS #222: "The lock should
+    /// obviously land on the target"). There is no substitute. An aim with
+    /// no enemy on it locks NOTHING and keeps the theatrical whiff; the
+    /// strike never re-aims at a nearer body, friend or enemy.
+    /// <para>
+    /// Friendlies are transparent HERE and only here — they are skipped
+    /// rather than treated as blockers, because bodyguarding is a delivery
+    /// rule, not a lock rule. The bolt is still an ordinary
+    /// first-body-contact ray obeying this ruleset's collision policy, so
+    /// whoever is standing on the line when it fires is who it meets.
+    /// </para>
     /// </summary>
     private LifeState? SelectStrikeAnchor(
-        Position origin,
-        ProjectileHeading centralHeading,
+        ImmutableArray<Position> declaredRay,
         ImmutableArray<Position> coneTiles,
         ActorIdentity shooter)
     {
-        var cone = coneTiles.ToHashSet();
-        (int ux, int uy) = centralHeading.Vector();
-        LifeState[] candidates = [.. _lives.Values
-            .Where(life => life.ActorId != shooter
-                && cone.Contains(life.Position))];
-        if (candidates.Length == 0)
+        if (declaredRay.IsDefaultOrEmpty)
             return null;
-        Array.Sort(candidates, (a, b) =>
+        var cone = coneTiles.ToHashSet();
+        Dictionary<Position, LifeState> bodies = _lives.Values
+            .Where(life => life.ActorId != shooter)
+            .ToDictionary(life => life.Position);
+        foreach (Position tile in declaredRay)
         {
-            int ring = origin.ChebyshevDistance(a.Position)
-                .CompareTo(origin.ChebyshevDistance(b.Position));
-            if (ring != 0)
-                return ring;
-            int axc = Math.Abs(
-                (a.Position.X - origin.X) * uy
-                - (a.Position.Y - origin.Y) * ux);
-            int adot = (a.Position.X - origin.X) * ux
-                + (a.Position.Y - origin.Y) * uy;
-            int bxc = Math.Abs(
-                (b.Position.X - origin.X) * uy
-                - (b.Position.Y - origin.Y) * ux);
-            int bdot = (b.Position.X - origin.X) * ux
-                + (b.Position.Y - origin.Y) * uy;
-            int angle = ((long)axc * bdot).CompareTo((long)bxc * adot);
-            if (angle != 0)
-                return angle;
-            int row = a.Position.Y.CompareTo(b.Position.Y);
-            return row != 0 ? row : a.Position.X.CompareTo(b.Position.X);
-        });
-        return candidates[0];
+            if (!bodies.TryGetValue(tile, out LifeState? body))
+                continue;
+            if (body.ActorId.TeamId == shooter.TeamId)
+                continue;
+            return cone.Contains(body.Position) ? body : null;
+        }
+        return null;
     }
 
     private void LaunchMaturedStrikes(
@@ -3314,15 +3308,23 @@ public sealed class GenericActorMatchSession : IDisposable
                                 + declaredTravel),
                             profile.Projectile.DiagonalCornersMustBeClear);
                 // Lock-and-follow (owner ruling 2026-08): the strike is FOR
-                // the body the resolution rule picks when the cone lights.
-                // It follows that body anywhere inside the frozen wedge and
-                // resolves only against it; a volley profile keeps its
-                // historical per-ray resolution and locks nothing.
+                // the body it was AIMED at - the first enemy on the declared
+                // ray (#222) - and it follows that body anywhere inside the
+                // frozen wedge, resolving only against it. The ray traced
+                // here is the same one the theatrical whiff fires down when
+                // nothing is on it, so "what the strike was aimed at" and
+                // "where an unlocked strike goes" can never disagree. A
+                // volley profile keeps its historical per-ray resolution and
+                // locks nothing.
                 ActorIdentity? declaredTarget = coneTiles.IsDefaultOrEmpty
                     ? null
                     : SelectStrikeAnchor(
-                        shooter.Position,
-                        resolvedHeading,
+                        TraceProjectilePath(
+                            shooter.Position,
+                            resolvedHeading,
+                            profile,
+                            null,
+                            declaredTravel),
                         coneTiles,
                         shooter.ActorId)?.ActorId;
                 _pendingStrikes.Add(new PendingStrike(

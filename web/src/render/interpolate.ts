@@ -485,16 +485,6 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
   return poses;
 }
 
-const HEADING_VECTORS: Record<ReplayProjectileHeading, [number, number]> = {
-  north: [0, -1],
-  'north-east': [1, -1],
-  east: [1, 0],
-  'south-east': [1, 1],
-  south: [0, 1],
-  'south-west': [-1, 1],
-  west: [-1, 0],
-  'north-west': [-1, -1],
-};
 
 export interface StrikeAim {
   /** The strike's frozen apex (tile coordinates). */
@@ -513,13 +503,16 @@ export interface StrikeAim {
 
 /**
  * Tracking rays for declared strikes (owner direction 2026-08): the ray is
- * ANCHORED at declare — whoever the resolution rule would pick when the
- * cone lights — and follows that body through the windup. It does not
- * re-pick per frame; if the anchor steps off the wedge the ray reports
- * escaped (the renderers fade it) and the slash then shows who actually
- * ate the strike. The anchor mirrors the engine's single-target rule:
- * nearest body in the wedge by Chebyshev, most-central on integer-exact
- * angle ties, canonical (y, x) order last.
+ * ANCHORED at declare — the body the strike was aimed at — and follows
+ * that body through the windup. It does not re-pick per frame; if the
+ * anchor steps off the wedge the ray reports escaped (the renderers fade
+ * it) and the slash then shows who actually ate the strike.
+ *
+ * The anchor is READ off the wire, never re-derived: since #222 the lock is
+ * the declared target and nothing else, so a strike with no `target` locked
+ * nothing and draws no ray at all — it is a whiff down the centre, and
+ * inventing an anchor for it would draw a threat at a body the strike was
+ * never for.
  */
 export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
   const tickCount = replay.ticks.length;
@@ -556,47 +549,11 @@ export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
     const wedge = new Set(
       strike.tiles.map((tile) => `${tile.x},${tile.y}`),
     );
-    const heading = strike.centralHeading
-      ? HEADING_VECTORS[strike.centralHeading]
-      : null;
-    const anchor = (strike.target
-      ? declared.actors.filter((actor) =>
+    const anchor = strike.target
+      ? declared.actors.find((actor) =>
           sameIdentity(actor.identity, strike.target!),
         )
-      : declared.actors.filter(
-          (actor) =>
-            !sameIdentity(actor.identity, strike.shooter) &&
-            wedge.has(`${actor.position.x},${actor.position.y}`),
-        )
-    )
-      .sort((a, b) => {
-        const ringA = Math.max(
-          Math.abs(a.position.x - origin.x),
-          Math.abs(a.position.y - origin.y),
-        );
-        const ringB = Math.max(
-          Math.abs(b.position.x - origin.x),
-          Math.abs(b.position.y - origin.y),
-        );
-        if (ringA !== ringB) return ringA - ringB;
-        if (heading) {
-          const [ux, uy] = heading;
-          const crossA = Math.abs(
-            (a.position.x - origin.x) * uy - (a.position.y - origin.y) * ux,
-          );
-          const dotA =
-            (a.position.x - origin.x) * ux + (a.position.y - origin.y) * uy;
-          const crossB = Math.abs(
-            (b.position.x - origin.x) * uy - (b.position.y - origin.y) * ux,
-          );
-          const dotB =
-            (b.position.x - origin.x) * ux + (b.position.y - origin.y) * uy;
-          const angle = crossA * dotB - crossB * dotA;
-          if (angle !== 0) return angle;
-        }
-        if (a.position.y !== b.position.y) return a.position.y - b.position.y;
-        return a.position.x - b.position.x;
-      })[0];
+      : undefined;
     if (!anchor) {
       aims.push({ origin, urgency, target: null, escaped: false });
       continue;
