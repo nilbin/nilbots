@@ -1344,15 +1344,26 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// </summary>
     private Position? RecoverBeacon(MindContext mind, MindBody body)
     {
-        if (_healTiles.Length == 0
-            || mind.Enemies.Any(enemy =>
+        if (_healTiles.Length == 0)
+            return null;
+        // One hit from dead, every gate comes off: survival beats caution
+        // (owner ruling 2026-08-07). The caution gates exist because
+        // channelling is stationary and a watched beacon is a trap - true,
+        // but a body at 1 HP standing in a duel is already dead, and the
+        // owner's spec said it should TRY. Measured on commitx15-w-9001: the
+        // ghost held 1 HP for 17 ticks trading strikes at (26,11), reading
+        // `contact` every tick, and never once armed recover before it died.
+        bool desperate = body.Health <= 1;
+        if (!desperate
+            && mind.Enemies.Any(enemy =>
                 enemy.Position.ChebyshevDistance(body.Position)
                     <= RecoverContact))
         {
             return null;
         }
         return _healTiles
-            .Where(tile => !mind.Enemies.Any(enemy =>
+            .Where(tile => desperate
+                || !mind.Enemies.Any(enemy =>
                     enemy.Position.ChebyshevDistance(tile)
                         <= RecoverClearance)
                 && !_lastSeenEnemies.Values.Any(enemy =>
