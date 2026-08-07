@@ -405,7 +405,11 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("tellTicks", value.TellTicks);
                 break;
             case ArcRelaySignatureDefinition.RailLine value:
-                writer.WriteNumber("tellTicks", value.TellTicks);
+                // Rail's telegraph has always been on the wire as `tellTicks`
+                // and keeps that name; the ruling renamed the CONCEPT, not
+                // the contract, and every existing ruleset keeps its
+                // fingerprint.
+                writer.WriteNumber("tellTicks", value.WindupTicks);
                 writer.WriteNumber("range", value.Range);
                 writer.WriteNumber("damage", value.Damage);
                 writer.WriteNumber(
@@ -443,6 +447,11 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("durationTicks", value.DurationTicks);
                 break;
             case ArcRelaySignatureDefinition.SentinelSeed2 value:
+                // The bolt-class windup is presence-driven, exactly like the
+                // grammar-2 bolt fields beside it: a ruleset that authors no
+                // windup writes no key and keeps its fingerprint.
+                if (value.WindupTicks > 0)
+                    writer.WriteNumber("windupTicks", value.WindupTicks);
                 writer.WriteNumber("hull", value.Hull);
                 writer.WriteNumber("range", value.Range);
                 writer.WriteNumber("damage", value.Damage);
@@ -455,6 +464,8 @@ internal static class ActorRulesCanonicalWriter
                     value.BoltTilesPerAdvance);
                 break;
             case ArcRelaySignatureDefinition.TractorHook2 value:
+                if (value.WindupTicks > 0)
+                    writer.WriteNumber("windupTicks", value.WindupTicks);
                 writer.WriteNumber("range", value.Range);
                 writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
                 writer.WriteNumber(

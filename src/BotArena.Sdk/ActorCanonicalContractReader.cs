@@ -886,13 +886,19 @@ public static class ActorCanonicalContractReader
         bool hasBolt = element.TryGetProperty("boltTilesPerAdvance", out _);
         bool hasFieldTell = element.TryGetProperty("tellTicks", out _);
         bool hasMetadata = element.TryGetProperty("category", out _);
+        // The bolt-class telegraph windup (owner ruling 2026-08-08), written
+        // only by a ruleset that authors one.
+        bool hasWindup = element.TryGetProperty("windupTicks", out _);
         string[] specific = kind switch
         {
             "vector-dash" => ["tellTicks", "maxTiles"],
             "prism-wall" =>
                 ["segmentCount", "durationTicks", "contactCapacity"],
             "tractor-hook" => hasBolt
-                ? ["range", "maxPullTiles", "boltTilesPerAdvance"]
+                ? hasWindup
+                    ? ["windupTicks", "range", "maxPullTiles",
+                        "boltTilesPerAdvance"]
+                    : ["range", "maxPullTiles", "boltTilesPerAdvance"]
                 : ["range", "maxPullTiles"],
             "repair-beam" =>
                 ["range", "ticksPerRepair", "hullPerRepair",
@@ -917,8 +923,12 @@ public static class ActorCanonicalContractReader
             "kinetic-burst" => ["tellTicks", "pushTiles"],
             "smoke-canister" => ["range", "radius", "durationTicks"],
             "sentinel-seed" => hasBolt
-                ? ["hull", "range", "damage", "fireCooldownTicks",
-                    "durationTicks", "boltTilesPerAdvance"]
+                ? hasWindup
+                    ? ["windupTicks", "hull", "range", "damage",
+                        "fireCooldownTicks", "durationTicks",
+                        "boltTilesPerAdvance"]
+                    : ["hull", "range", "damage", "fireCooldownTicks",
+                        "durationTicks", "boltTilesPerAdvance"]
                 : ["hull", "range", "damage", "fireCooldownTicks",
                     "durationTicks"],
             _ => throw Unsupported("signature.kind", kind),
@@ -942,6 +952,7 @@ public static class ActorCanonicalContractReader
             Int(element, "cooldownTicks"))
         {
             TellTicks = Optional("tellTicks"),
+            WindupTicks = Optional("windupTicks"),
             Range = Optional("range"),
             MaxTiles = Optional("maxTiles"),
             SegmentCount = Optional("segmentCount"),

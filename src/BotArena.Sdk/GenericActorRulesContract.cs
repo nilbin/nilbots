@@ -389,6 +389,10 @@ public sealed class GenericActorRulesContract
         int CooldownTicks)
     {
         public int? TellTicks { get; init; }
+        /// <summary>Ticks a bolt-class signature (rail, hook, sentinel)
+        /// telegraphs its frozen line before it resolves. Null or zero is an
+        /// instant, untelegraphed cast — every utility signature.</summary>
+        public int? WindupTicks { get; init; }
         public int? Range { get; init; }
         public int? MaxTiles { get; init; }
         public int? SegmentCount { get; init; }

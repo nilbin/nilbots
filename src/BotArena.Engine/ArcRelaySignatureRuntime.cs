@@ -355,6 +355,27 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.TargetPosition!.Value));
                     Complete(operation, tick, "completed", events);
                     break;
+                case ArcRelaySignatureDefinition.TractorHook2
+                    when operation.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell:
+                    // The windup matured: the grapple bolt leaves down the
+                    // line frozen at declare, and everything downstream is
+                    // the historical instant cast.
+                    operation.Phase = ArcRelaySignatureState.SignaturePhase
+                        .Active;
+                    operation.CompletesAtTick = null;
+                    events.Add(SignatureEvent(operation, "launched"));
+                    break;
+                case ArcRelaySignatureDefinition.SentinelSeed2 seed2
+                    when operation.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell:
+                    operation.Phase = ArcRelaySignatureState.SignaturePhase
+                        .Active;
+                    operation.CompletesAtTick = null;
+                    operation.EndsAtTick = checked(
+                        tick + seed2.DurationTicks);
+                    events.Add(SignatureEvent(operation, "deployed"));
+                    break;
                 case ArcRelaySignatureDefinition.RailLine:
                     effects.Add(new Effect.RailLine(
                         operation.OperationId,
@@ -461,6 +482,42 @@ internal sealed class ArcRelaySignatureRuntime
             }
         }
     }
+
+    /// <summary>
+    /// The rooted windup, generalized to declared line attacks (owner ruling
+    /// 2026-08-08, extending DECISIONS #221): a body that COMMANDS a move
+    /// while one of its bolt-class signatures is winding up abandons that
+    /// declare outright. The frozen line is a promise the declarer stands
+    /// behind; walking away from it is the one voluntary way out, and the
+    /// mind spends it through the disengage latch. Utility signatures are
+    /// untouched — nothing about smoke asks its caster to hold still.
+    /// </summary>
+    public void AbandonWindupsOnMove(
+        int tick,
+        ActorIdentity actor,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        foreach (Operation operation in _operations.Values
+                     .Where(value => value.OwnerActorId == actor
+                         && value.Phase
+                             == ArcRelaySignatureState.SignaturePhase.Tell
+                         && IsBoltClass(value.Definition))
+                     .OrderBy(value => value.OperationId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            Remove(operation, "abandoned-move", events);
+        }
+    }
+
+    /// <summary>
+    /// The signatures the owner's telegraph ruling covers: line attacks that
+    /// damage or displace, plus the seed that plants one. Everything else is
+    /// utility and stays instant and untelegraphed.
+    /// </summary>
+    internal static bool IsBoltClass(ArcRelaySignatureDefinition definition) =>
+        definition is ArcRelaySignatureDefinition.RailLine
+            or ArcRelaySignatureDefinition.TractorHook2
+            or ArcRelaySignatureDefinition.SentinelSeed2;
 
     public void NotifyMoved(
         int tick,
@@ -682,7 +739,17 @@ internal sealed class ArcRelaySignatureRuntime
                 positions = Ray(source, heading!.Value, value.Range);
                 break;
             case ArcRelaySignatureDefinition.TractorHook2 value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
+                // A declared grapple freezes its LINE and then fires
+                // (owner ruling 2026-08-08). No lock and no follow: a line
+                // attack is not target-locked, so stepping off the frozen
+                // tiles is the whole counterplay and stepping on is the
+                // block. Zero windup keeps the historical instant cast.
+                phase = value.WindupTicks > 0
+                    ? ArcRelaySignatureState.SignaturePhase.Tell
+                    : ArcRelaySignatureState.SignaturePhase.Active;
+                completes = value.WindupTicks > 0
+                    ? checked(tick + value.WindupTicks)
+                    : null;
                 positions = Ray(source, heading!.Value, value.Range);
                 break;
             case ArcRelaySignatureDefinition.RepairBeam:
@@ -730,7 +797,7 @@ internal sealed class ArcRelaySignatureRuntime
                 break;
             case ArcRelaySignatureDefinition.RailLine value:
                 phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
+                completes = checked(tick + value.WindupTicks);
                 positions = Ray(source, heading!.Value, value.Range);
                 break;
             case ArcRelaySignatureDefinition.HardlightBlock value:
@@ -762,8 +829,17 @@ internal sealed class ArcRelaySignatureRuntime
                 positions = [targetPosition!.Value];
                 break;
             case ArcRelaySignatureDefinition.SentinelSeed2 value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
+                // The seed announces itself before it lands, on the tile it
+                // will occupy, and the declarer is rooted to it meanwhile.
+                phase = value.WindupTicks > 0
+                    ? ArcRelaySignatureState.SignaturePhase.Tell
+                    : ArcRelaySignatureState.SignaturePhase.Active;
+                completes = value.WindupTicks > 0
+                    ? checked(tick + value.WindupTicks)
+                    : null;
+                ends = value.WindupTicks > 0
+                    ? null
+                    : checked(tick + value.DurationTicks);
                 capacity = value.Hull;
                 positions = [targetPosition!.Value];
                 break;

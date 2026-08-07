@@ -445,7 +445,7 @@ public static class ArcRelayH0Definition
             fieldedSlotsPerTeam: 8,
             maxCopiesPerClass: 2,
             respawnDelayTicks: loopProfile.RespawnDelayTicks,
-            ClassesFor(loopProfile.SignatureGrammarVersion)
+            ClassesFor(loopProfile)
                 .Select(entry => entry.Signature),
             signatureGrammarVersion: loopProfile.SignatureGrammarVersion,
             wellBirthJitterTicks: loopProfile.WellBirthJitterTicks,
@@ -472,8 +472,16 @@ public static class ArcRelayH0Definition
     /// and every other signature are identical across grammars.
     /// </summary>
     private static ImmutableArray<LaunchClass> ClassesFor(
-        int signatureGrammarVersion) =>
-        signatureGrammarVersion == 1
+        ArcRelayLoopProfile loopProfile)
+    {
+        // Every bolt-class signature carries its OWN windup (owner ruling
+        // 2026-08-08), so retuning rail against hook against sentinel is a
+        // ruleset edit and never an engine edit. The default is the loop's
+        // strike windup — a beam that damages should announce itself exactly
+        // as long as a gun that damages — and zero authors an instant cast,
+        // which is what every utility signature keeps.
+        int windup = loopProfile.StrikeWindupTicks;
+        return loopProfile.SignatureGrammarVersion == 1
             ? Classes
             : [.. Classes.Select(entry => entry.Signature switch
                 {
@@ -488,7 +496,8 @@ public static class ArcRelayH0Definition
                                     fireCooldownTicks: 2,
                                     seed.DurationTicks,
                                     boltTilesPerAdvance: 2,
-                                    seed.CooldownTicks),
+                                    seed.CooldownTicks,
+                                    windupTicks: windup),
                         },
                     ArcRelaySignatureDefinition.TractorHook hook =>
                         entry with
@@ -499,7 +508,24 @@ public static class ArcRelayH0Definition
                                     hook.ActionId, hook.Range,
                                     hook.MaxPullTiles,
                                     boltTilesPerAdvance: 2,
-                                    hook.CooldownTicks),
+                                    hook.CooldownTicks,
+                                    windupTicks: windup),
+                        },
+                    // A ruleset with no strike windup at all keeps rail's
+                    // authored one: "default to the strike windup" is a
+                    // default, not an erasure, and a beam always telegraphs.
+                    ArcRelaySignatureDefinition.RailLine rail
+                        when windup > 0 && windup != rail.WindupTicks =>
+                        entry with
+                        {
+                            Signature = new ArcRelaySignatureDefinition
+                                .RailLine(
+                                    rail.SignatureId, rail.ClassId,
+                                    rail.ActionId,
+                                    windupTicks: windup,
+                                    rail.Range, rail.Damage,
+                                    rail.CancelCooldownTicks,
+                                    rail.CooldownTicks),
                         },
                     ArcRelaySignatureDefinition.NullField field =>
                         entry with
@@ -514,6 +540,7 @@ public static class ArcRelayH0Definition
                         },
                     _ => entry,
                 })];
+    }
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
     [

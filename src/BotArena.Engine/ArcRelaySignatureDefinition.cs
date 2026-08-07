@@ -220,21 +220,27 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record RailLine : ArcRelaySignatureDefinition
     {
         public RailLine(string signatureId, string classId, string actionId,
-            int tellTicks, int range, int damage, int cancelCooldownTicks,
+            int windupTicks, int range, int damage, int cancelCooldownTicks,
             int cooldownTicks)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
-            RequirePositive(tellTicks, nameof(tellTicks));
+            // A beam that fires the instant it is cast has nowhere to put
+            // its telegraph, so rail's windup is positive by construction.
+            // Hook and sentinel CAN be instant and author zero for it.
+            RequirePositive(windupTicks, nameof(windupTicks));
             RequirePositive(range, nameof(range));
             RequirePositive(damage, nameof(damage));
             RequirePositive(cancelCooldownTicks, nameof(cancelCooldownTicks));
-            TellTicks = tellTicks;
+            WindupTicks = windupTicks;
             Range = range;
             Damage = damage;
             CancelCooldownTicks = cancelCooldownTicks;
         }
         public override SignatureKind Kind => SignatureKind.RailLine;
-        public int TellTicks { get; }
+        /// <summary>Ticks between the declare that freezes this line and the
+        /// tick it fires. A ruleset balance lever (owner ruling 2026-08-08):
+        /// zero authors an instant, untelegraphed cast.</summary>
+        public int WindupTicks { get; }
         public int Range { get; }
         public int Damage { get; }
         public int CancelCooldownTicks { get; }
@@ -352,9 +358,12 @@ public abstract record ArcRelaySignatureDefinition
         public SentinelSeed2(string signatureId, string classId,
             string actionId, int hull, int range, int damage,
             int fireCooldownTicks, int durationTicks,
-            int boltTilesPerAdvance, int cooldownTicks)
+            int boltTilesPerAdvance, int cooldownTicks,
+            int windupTicks = 0)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
+            RequireNonNegative(windupTicks, nameof(windupTicks));
+            WindupTicks = windupTicks;
             RequirePositive(hull, nameof(hull));
             RequirePositive(range, nameof(range));
             RequirePositive(damage, nameof(damage));
@@ -369,6 +378,9 @@ public abstract record ArcRelaySignatureDefinition
             BoltTilesPerAdvance = boltTilesPerAdvance;
         }
         public override SignatureKind Kind => SignatureKind.SentinelSeed2;
+        /// <summary>Telegraphed windup before the seed lands (owner ruling
+        /// 2026-08-08); zero is the historical instant placement.</summary>
+        public int WindupTicks { get; }
         public int Hull { get; }
         public int Range { get; }
         public int Damage { get; }
@@ -385,9 +397,12 @@ public abstract record ArcRelaySignatureDefinition
     {
         public TractorHook2(string signatureId, string classId,
             string actionId, int range, int maxPullTiles,
-            int boltTilesPerAdvance, int cooldownTicks)
+            int boltTilesPerAdvance, int cooldownTicks,
+            int windupTicks = 0)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
+            RequireNonNegative(windupTicks, nameof(windupTicks));
+            WindupTicks = windupTicks;
             RequirePositive(range, nameof(range));
             RequirePositive(maxPullTiles, nameof(maxPullTiles));
             RequirePositive(boltTilesPerAdvance, nameof(boltTilesPerAdvance));
@@ -396,6 +411,9 @@ public abstract record ArcRelaySignatureDefinition
             BoltTilesPerAdvance = boltTilesPerAdvance;
         }
         public override SignatureKind Kind => SignatureKind.TractorHook2;
+        /// <summary>Telegraphed windup before the grapple bolt leaves (owner
+        /// ruling 2026-08-08); zero is the historical instant cast.</summary>
+        public int WindupTicks { get; }
         public int Range { get; }
         public int MaxPullTiles { get; }
         public int BoltTilesPerAdvance { get; }
@@ -427,6 +445,14 @@ public abstract record ArcRelaySignatureDefinition
     private static void RequirePositive(int value, string parameterName)
     {
         if (value <= 0)
+            throw new ArgumentOutOfRangeException(parameterName);
+    }
+
+    /// <summary>Windup lengths are non-negative: zero is the authored way to
+    /// say "instant, no telegraph".</summary>
+    private static void RequireNonNegative(int value, string parameterName)
+    {
+        if (value < 0)
             throw new ArgumentOutOfRangeException(parameterName);
     }
 

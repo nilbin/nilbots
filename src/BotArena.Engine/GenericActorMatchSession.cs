@@ -1573,6 +1573,18 @@ public sealed class GenericActorMatchSession : IDisposable
             // decision to leave was made either way.
             _pendingStrikes.RemoveAll(
                 strike => strike.Shooter == resolution.ActorId);
+            // Same rule, same tick, for a declared line attack: rail, hook
+            // and sentinel freeze a telegraph at declare and the declarer is
+            // rooted to it (owner ruling 2026-08-08). Utility signatures are
+            // untouched.
+            if (_mode is ArcRelayActorMatchModeDriver rootedSignatures)
+            {
+                var abandoned =
+                    ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+                rootedSignatures.Signatures.AbandonWindupsOnMove(
+                    Tick, resolution.ActorId, abandoned);
+                EmitModeEvents(abandoned, events);
+            }
             ProjectileHeading heading = MovementHeading(
                 resolution.ValidatedAction);
             var (dx, dy) = heading.Vector();
