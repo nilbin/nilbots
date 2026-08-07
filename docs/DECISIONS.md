@@ -4818,3 +4818,23 @@ budget, or gating on unaware/stationary prey) - a design conversation,
 not a value sweep. Gallery for the owner gate: "Ghost doctrine v3 -
 one grammar, same beast" (five wins, two honest losses, exhibits
 labeled) on the standing tunnel.
+
+## 219. Silent-underminer audit: the executor policy sheets cannot see
+
+Owner call after three consecutive replay catches traced to executor
+scaffolding no sheet authors (cooldown formation-drift, hidden-2 lock
+release, always-on concealment micro): sheets had become hard to
+troubleshoot because policy lives in three visibility classes. The
+audit (docs/EXECUTOR-SILENT-POLICY.md) catalogs them from ground truth
+- the full reason-string vocabulary of real replays plus the
+allocation paths that act with no reason at all. Class A acts by
+ABSENCE (lock release, holdFire/isolation/commit filters, attacker
+caps, returning-to-formation, the participants trap); Class B speaks
+but is hard-coded (between-shots posture, evacuation/self-preserve,
+stance micro, idle-break, heal dashes, and the v3 desugar's generated-
+engagement constants - the fight plane's remaining dark matter).
+Standing tool: scripts/arc-relay-fight-trace.py labels every fight
+interruption with its mechanism, or SILENT when an absence-class path
+ended it. Queued as owner design decisions, not drive-bys: fight-block
+homes for the load-bearing constants (chase.persistTicks first), and
+the isolation rear-exposure inversion as its own measured change.
