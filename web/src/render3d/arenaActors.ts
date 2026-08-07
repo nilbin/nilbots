@@ -239,10 +239,17 @@ const UNSELECTED_POOL = 0.72;
  * halo, and it clears the channel (0.62–0.78) and screen (0.86–0.96) rings so a body
  * that is selected *and* holding the point still reads as both.
  *
+ * **It is broken, and that is not decoration.** Every other ring on this floor is solid
+ * and every one of them reports a rules state — channelling, screening, healing,
+ * deploying. A dashed one cannot be mistaken for any of them at a glance, it is the same
+ * cue the flat renderer has always drawn for selection (`setLineDash`, `drawArena`), and
+ * at the same radius it carries about half the visual weight of a continuous stroke,
+ * which is the whole of the difference between a marker and a halo.
+ *
  * The backing is what makes it survive a theme. An additive ring vanishes on a
  * near-white floor and a flat one vanishes on a near-black one, so a dim near-black
- * disc-edge is laid under a bright accent one: whichever way the map goes, one of the
- * pair is in contrast with it.
+ * edge is laid under a bright accent one: whichever way the map goes, one of the pair is
+ * in contrast with it.
  *
  * The height is the load-bearing number. The fog mask is a plane at 0.03 that darkens
  * the floor, and every other floor cue here sits under it — correctly, because they are
@@ -252,13 +259,16 @@ const UNSELECTED_POOL = 0.72;
  * is standing on.
  */
 const SELECTION_RING_INNER = 1;
-const SELECTION_RING_OUTER = 1.1;
-const SELECTION_RING_BACKING_SPREAD = 0.05;
+const SELECTION_RING_OUTER = 1.09;
+const SELECTION_RING_BACKING_SPREAD = 0.045;
 const SELECTION_RING_HEIGHT = 0.034;
-const SELECTION_RING_OPACITY = 0.6;
-const SELECTION_RING_BACKING_OPACITY = 0.34;
+const SELECTION_RING_DASHES = 10;
+/** Share of each dash's arc that is drawn, matching the flat renderer's 4-on-3-off. */
+const SELECTION_RING_DUTY = 0.58;
+const SELECTION_RING_OPACITY = 0.5;
+const SELECTION_RING_BACKING_OPACITY = 0.38;
 /** How far the ring's accent is pulled toward white, so it reads as choice, not team. */
-const SELECTION_RING_WHITEN = 0.45;
+const SELECTION_RING_WHITEN = 0.4;
 
 /** Emission added at the peak of a hit, over whatever the material already emits. */
 const HIT_FLASH = 1.6;
@@ -849,12 +859,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     selectionRing.userData.forUnitKey = unit.unitKey;
     selectionRing.position.y = SELECTION_RING_HEIGHT;
     selectionRing.visible = false;
-    const selectionBackingGeometry = new THREE.RingGeometry(
+    const selectionBackingGeometry = dashedRingGeometry(
       size * (SELECTION_RING_INNER - SELECTION_RING_BACKING_SPREAD),
       size * (SELECTION_RING_OUTER + SELECTION_RING_BACKING_SPREAD),
-      48,
     );
-    selectionBackingGeometry.rotateX(-Math.PI / 2);
     const selectionBackingMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color('#05090d'),
       transparent: true,
@@ -871,12 +879,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // depth would put the ring under the fog on some frames and over it on others.
     selectionBacking.renderOrder = 3;
     selectionRing.add(selectionBacking);
-    const selectionGeometry = new THREE.RingGeometry(
+    const selectionGeometry = dashedRingGeometry(
       size * SELECTION_RING_INNER,
       size * SELECTION_RING_OUTER,
-      48,
     );
-    selectionGeometry.rotateX(-Math.PI / 2);
     const selectionMaterial = new THREE.MeshBasicMaterial({
       color: accent.clone().lerp(WHITE, SELECTION_RING_WHITEN),
       transparent: true,
@@ -2494,6 +2500,50 @@ function progressRing():
 
   paint(0);
   return { texture, paint };
+}
+
+/**
+ * A broken ring lying flat on the floor, as one geometry.
+ *
+ * `THREE.RingGeometry` only draws continuous annuli, so a dashed one would otherwise be a
+ * mesh per dash — twenty objects per bot, three hundred in a sixteen-body match, to draw
+ * a cue that is on screen for one of them. The dashes are emitted into a single buffer
+ * instead, so a dashed ring costs exactly what a solid one does.
+ *
+ * Built in the XZ plane rather than built in XY and rotated, because that is the plane it
+ * is read in: a caller that forgets the rotation gets a ring standing on edge, which is
+ * the mistake every other flat piece of geometry in this file has to remember not to make.
+ */
+function dashedRingGeometry(inner: number, outer: number): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const stride = (Math.PI * 2) / SELECTION_RING_DASHES;
+  const arc = stride * SELECTION_RING_DUTY;
+  const steps = 4;
+  for (let dash = 0; dash < SELECTION_RING_DASHES; dash += 1) {
+    for (let step = 0; step < steps; step += 1) {
+      const from = dash * stride + (arc * step) / steps;
+      const to = dash * stride + (arc * (step + 1)) / steps;
+      const fx = Math.cos(from);
+      const fz = Math.sin(from);
+      const tx = Math.cos(to);
+      const tz = Math.sin(to);
+      positions.push(
+        fx * inner, 0, fz * inner,
+        fx * outer, 0, fz * outer,
+        tx * outer, 0, tz * outer,
+        fx * inner, 0, fz * inner,
+        tx * outer, 0, tz * outer,
+        tx * inner, 0, tz * inner,
+      );
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /** Ease used for anything that starts and stops, matching the flat renderer's motion. */

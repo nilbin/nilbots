@@ -44,8 +44,12 @@ export function attachCameraGestures(host: CameraGestureHost): CameraGestures {
   let pinch: { distance: number; x: number; y: number } | null = null;
   let dragged = false;
 
+  // Both automatic allegiances report the override, so the chrome can stop claiming the
+  // camera is following. A follow is not the director, but it moves on its own just the
+  // same, and a toggle still showing `following` after a hand took the camera off a body
+  // is a control that lies about what it would undo.
   const took = () => {
-    if (camera.auto) host.onOverride();
+    if (camera.auto || camera.followingSelection) host.onOverride();
   };
 
   const onWheel = (event: WheelEvent) => {

@@ -923,10 +923,14 @@ test('a followed body keeps the camera until a hand takes it', () => {
     'and it is given back the moment the body stops',
   );
 
-  // The mode's director floor is wider than the follow. Clamping a gesture to it outright
-  // made the first zoom-IN out of a follow read as a zoom-out.
+  // The mode's director floor (15) is wider than the follow (14.4). Bounding a gesture by
+  // it made the first zoom-IN out of a follow come back as a zoom-out — a hand asking for
+  // a closer look is not the automatic camera and is not held to its floor.
   camera.zoom(1.4, framing);
-  assert.ok(camera.aimed.width <= opening.width + 1e-9, 'a zoom in never widens');
+  assert.ok(
+    camera.aimed.width < opening.width - 1e-9,
+    `a zoom in moves in (${camera.aimed.width.toFixed(1)} from ${opening.width.toFixed(1)})`,
+  );
   assert.equal(camera.followingSelection, false, 'and the hand ends the follow');
 });
 

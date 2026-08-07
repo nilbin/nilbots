@@ -1052,6 +1052,24 @@ test('the selected body is ringed on the floor, and only that one', () => {
   assert.ok(radii.length === 2, 'a dark backing under a bright edge, so any theme reads');
   assert.ok(Math.min(...radii) > 0.9, 'and it sits out at the tile boundary');
 
+  // Broken, not solid. Every other ring on this floor reports a rules state and every one
+  // of them is continuous; a dashed one cannot be read as any of them, and it is what the
+  // flat renderer has always drawn for selection.
+  const position = (
+    (ring.children[0] as THREE.Mesh).geometry as THREE.BufferGeometry
+  ).getAttribute('position');
+  const angles = [];
+  for (let index = 0; index < position.count; index += 1) {
+    angles.push(Math.atan2(position.getZ(index), position.getX(index)));
+  }
+  angles.sort((left, right) => left - right);
+  const widest = angles.reduce(
+    (gap, angle, index) =>
+      index === 0 ? gap : Math.max(gap, angle - angles[index - 1]!),
+    angles[0]! + Math.PI * 2 - angles[angles.length - 1]!,
+  );
+  assert.ok(widest > 0.2, `the ring is dashed (widest gap ${widest.toFixed(2)} rad)`);
+
   actors.update(2, second, false);
   assert.equal(
     selectionRingOf(actors.group, first).visible,

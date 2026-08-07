@@ -980,16 +980,14 @@ export class ArenaCamera {
   zoom(factor: number, framing: ArenaFraming): void {
     this.release();
     const full = fullArenaFrame(framing);
-    // The mode's floor stops a hand getting *closer*; it must never shove one back out.
-    // A selection follow is legitimately tighter than the director's Arc Relay floor, so
-    // clamping to that floor outright made the first zoom-in out of a follow read as a
-    // zoom-out — the one input whose meaning the camera may not invert.
-    const minSpan = Math.min(
-      framing.minSpan ?? MIN_SPAN_TILES,
-      this.target.width,
-    );
+    // **The hand's floor is the arena's, not the mode's.** `directorMinSpan` is a floor
+    // for the *automatic* camera — Arc Relay holds fifteen tiles so an unattended shot
+    // stays legible — and it used to bound a wheel as well, which said two wrong things at
+    // once. A person turning a wheel is asking for a closer look than the director would
+    // ever choose, and inside a selection follow, which is legitimately tighter than that
+    // floor, clamping to it inverted the gesture: the first zoom-IN came out a zoom-out.
     const width = Math.min(
-      Math.max(this.target.width / factor, minSpan),
+      Math.max(this.target.width / factor, MIN_SPAN_TILES),
       full.width,
     );
     this.target = {
