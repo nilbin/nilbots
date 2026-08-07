@@ -2303,7 +2303,7 @@
      "executeBelowHealth": 1
     },
     "breakOff": {
-     "threats": 4,
+     "threats": 3,
      "within": 5,
      "memoryTicks": 16,
      "recoverTicks": 24
