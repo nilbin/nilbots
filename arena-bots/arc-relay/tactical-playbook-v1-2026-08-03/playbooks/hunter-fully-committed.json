@@ -2313,6 +2313,18 @@
    "role": "hunter",
    "custody": "well-custody",
    "fight": {
+    "collect": "yield",
+    "heal": "yield",
+    "targets": {
+     "prefer": [
+      "carrier",
+      "weakest"
+     ]
+    },
+    "breakOff": {
+     "health": 1,
+     "recoverTicks": 24
+    },
     "chase": {
      "leash": 16,
      "persistTicks": 30
@@ -2333,7 +2345,10 @@
      "escort": "medic"
     },
     {
-     "patrol": "shadow-north-long"
+     "patrol": "shadow-north-long",
+     "fight": {
+      "collect": "first"
+     }
     }
    ],
    "conceal": false,

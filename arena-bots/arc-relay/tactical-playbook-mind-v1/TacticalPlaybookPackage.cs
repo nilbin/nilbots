@@ -428,7 +428,17 @@ internal sealed class TacticalPlaybookPackage
         HoldFire? HoldFire = null,
         string Posture = "committed",
         Isolation? Isolation = null,
-        Commit? Commit = null);
+        Commit? Commit = null,
+        /// <summary>Collect discipline (fight block): "yield" - a body in
+        /// contact fights or dodges and the ball keeps; "first" - a visible
+        /// loose ball outranks picking a NEW fight, though never a strike
+        /// windup, a cone dodge, or any survival layer.</summary>
+        string Collect = "yield",
+        /// <summary>Heal discipline (fight block): "yield" - a body in an
+        /// active fight finishes it before heading to the beacon; "first" -
+        /// an armed recover breaks off uncommitted fighting. One hit from
+        /// dead outranks both.</summary>
+        string Heal = "yield");
 
     /// <summary>
     /// Sheet-owned commit discipline (owner design 2026-08, ghost doctrine
@@ -480,7 +490,10 @@ internal sealed class TacticalPlaybookPackage
     internal sealed record CommitDisengageWhen(
         int Threats,
         string? WithdrawTo = null,
-        int RecoverTicks = 24);
+        int RecoverTicks = 24,
+        /// <summary>Health at or below which the body trips the same timed
+        /// break-off latch the threat count trips. Zero is off.</summary>
+        int Health = 0);
 
     /// <summary>
     /// Assassin discipline: participants only acquire targets that have no

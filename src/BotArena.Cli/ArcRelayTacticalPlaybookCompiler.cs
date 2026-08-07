@@ -24,6 +24,19 @@ public static class ArcRelayTacticalPlaybookCompiler
         "sunder", "repulsor", "veil", "nest",
     ];
 
+    /// <summary>The fight block's target vocabulary, mapped onto the
+    /// executor's existing comparators. Order in `prefer` IS priority.
+    /// </summary>
+    private static readonly Dictionary<string, string> TargetPreferences =
+        new(StringComparer.Ordinal)
+        {
+            ["carrier"] = "enemy-carrier",
+            ["weakest"] = "lowest-health",
+            ["closest"] = "closest-to-reactor",
+            ["strongest-threat"] = "highest-threat",
+            ["freshest"] = "fresh-respawn",
+        };
+
     private static readonly HashSet<string> ConditionOperators =
     ["at-least", "at-most", "equals", "less-than", "greater-than"];
 
@@ -1493,19 +1506,48 @@ public static class ArcRelayTacticalPlaybookCompiler
         int ThreatsWithin,
         int MemoryTicks,
         int RecoverTicks,
+        int BreakHealth,
         int PersistTicks,
         int DefenseRadius,
-        bool DefenseReturn);
+        bool DefenseReturn,
+        string Collect,
+        string Heal,
+        string[] Prefer);
 
     private static void ValidateDoctrineFight(JsonElement fight, string path)
     {
         Object(fight, $"{path}.fight", [],
-            ["targets", "engage", "chase", "breakOff", "defense"]);
+            ["targets", "engage", "chase", "breakOff", "defense", "collect", "heal"]);
+        // Collect discipline is a FIGHT question - when does a loose ball
+        // outrank a fight - so it lives in the fight block and overrides per
+        // mode like everything else here.
+        if (fight.TryGetProperty("collect", out _))
+            OneOf(fight, "collect", path, "yield", "first");
+        // Combat is sacred: everything else is ranked RELATIVE to it, here.
+        // heal governs an ARMED recover only - the arming predicate is its
+        // own - and the hp<=1 survival override outranks this either way.
+        if (fight.TryGetProperty("heal", out _))
+            OneOf(fight, "heal", path, "yield", "first");
         if (fight.TryGetProperty("targets", out JsonElement targets))
         {
-            Object(targets, $"{path}.fight.targets", [], ["lone"]);
+            Object(targets, $"{path}.fight.targets", [], ["lone", "prefer"]);
             if (targets.TryGetProperty("lone", out _))
                 Range(targets, "lone", path, 0, 8);
+            if (targets.TryGetProperty("prefer", out JsonElement prefer))
+            {
+                foreach (JsonElement term in BoundedArray(
+                             prefer, $"{path}.fight.targets.prefer", 1, 5))
+                {
+                    string value = StringValue(
+                        term, $"{path}.fight.targets.prefer");
+                    if (!TargetPreferences.ContainsKey(value))
+                    {
+                        throw Error(path,
+                            $"unknown target preference '{value}'; expected "
+                            + string.Join(", ", TargetPreferences.Keys));
+                    }
+                }
+            }
         }
         if (fight.TryGetProperty("engage", out JsonElement engage))
         {
@@ -1565,7 +1607,13 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (fight.TryGetProperty("breakOff", out JsonElement breakOff))
         {
             Object(breakOff, $"{path}.fight.breakOff", [],
-                ["threats", "within", "memoryTicks", "recoverTicks"]);
+                ["threats", "within", "memoryTicks", "recoverTicks",
+                 "health"]);
+            // A health trigger trips the SAME timed latch as the threat
+            // count - sticky rally, fixed window, unconditional expiry - so
+            // it inherits the proven anti-flap rather than inventing one.
+            if (breakOff.TryGetProperty("health", out _))
+                Range(breakOff, "health", path, 0, 8);
             if (breakOff.TryGetProperty("threats", out _))
                 Range(breakOff, "threats", path, 0, 8);
             if (breakOff.TryGetProperty("within", out _))
@@ -1594,6 +1642,24 @@ public static class ArcRelayTacticalPlaybookCompiler
             }
         }
         return fallback;
+    }
+
+    /// <summary>A fight key that lives at the top of the block, mode first.
+    /// </summary>
+    private static JsonElement FightKey(
+        JsonElement doctrineFight,
+        JsonElement modeFight,
+        string key)
+    {
+        foreach (JsonElement fight in (JsonElement[])[modeFight, doctrineFight])
+        {
+            if (fight.ValueKind == JsonValueKind.Object
+                && fight.TryGetProperty(key, out JsonElement found))
+            {
+                return found;
+            }
+        }
+        return default;
     }
 
     private static JsonElement FightElement(
@@ -1650,13 +1716,29 @@ public static class ArcRelayTacticalPlaybookCompiler
                 doctrineFight, modeFight, "breakOff", "memoryTicks", 0),
             RecoverTicks: FightValue(
                 doctrineFight, modeFight, "breakOff", "recoverTicks", 24),
+            BreakHealth: FightValue(
+                doctrineFight, modeFight, "breakOff", "health", 0),
             PersistTicks: FightValue(
                 doctrineFight, modeFight, "chase", "persistTicks", 0),
             DefenseRadius: FightValue(
                 doctrineFight, modeFight, "defense", "radius", 2),
             DefenseReturn: FightElement(
                     doctrineFight, modeFight, "defense", "return")
-                .ValueKind != JsonValueKind.False);
+                .ValueKind != JsonValueKind.False,
+            Collect: FightKey(doctrineFight, modeFight, "collect")
+                    is { ValueKind: JsonValueKind.String } collect
+                ? collect.GetString()!
+                : "yield",
+            Heal: FightKey(doctrineFight, modeFight, "heal")
+                    is { ValueKind: JsonValueKind.String } heal
+                ? heal.GetString()!
+                : "yield",
+            Prefer: FightElement(doctrineFight, modeFight, "targets", "prefer")
+                    is { ValueKind: JsonValueKind.Array } prefer
+                ? prefer.EnumerateArray()
+                    .Select(term => TargetPreferences[term.GetString()!])
+                    .ToArray()
+                : ["enemy-carrier", "lowest-health"]);
         if (resolved.Threats > 0
             && (resolved.ThreatsWithin == 0 || resolved.MemoryTicks == 0))
         {
@@ -1692,7 +1774,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                 .Select(participant => (JsonNode)participant)
                 .ToArray()),
             ["targetPriorities"] = new JsonArray(
-                "enemy-carrier", "lowest-health"),
+                fight.Prefer.Select(term => (JsonNode)term).ToArray()),
+            ["collect"] = fight.Collect,
+            ["heal"] = fight.Heal,
             ["tieBreakers"] = new JsonArray(
                 "distance", "health", "unit-id", "life-id"),
             ["coordinationScope"] = "shared-policy",
@@ -1735,7 +1819,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         }
         bool hasChaseGates = fight.OnlyCatchable
             || fight.ExecuteBelowHealth > 0;
-        bool hasGates = fight.KillableTicks > 0
+        bool hasGates = fight.BreakHealth > 0
+            || fight.KillableTicks > 0
             || fight.From is not null
             || hasChaseGates
             || fight.Threats > 0;
@@ -1770,21 +1855,25 @@ public static class ArcRelayTacticalPlaybookCompiler
                 chase["executeBelowHealth"] = fight.ExecuteBelowHealth;
             commit["chase"] = chase;
         }
-        if (fight.Threats > 0)
+        if (fight.Threats > 0 || fight.BreakHealth > 0)
         {
-            if (floorRoute == "traffic")
+            if (fight.Threats > 0 && floorRoute == "traffic")
             {
                 throw Error(path,
                     "an active breakOff rallies to the floor patrol route, "
                     + "but the floor patrols computed traffic; author a "
                     + "route floor or clear breakOff.threats.");
             }
-            commit["disengageWhen"] = new JsonObject
+            var disengage = new JsonObject
             {
                 ["threats"] = fight.Threats,
-                ["withdrawTo"] = floorRoute,
                 ["recoverTicks"] = fight.RecoverTicks,
             };
+            if (fight.Threats > 0)
+                disengage["withdrawTo"] = floorRoute;
+            if (fight.BreakHealth > 0)
+                disengage["health"] = fight.BreakHealth;
+            commit["disengageWhen"] = disengage;
         }
         if (fight.From is not null)
         {
@@ -3129,7 +3218,14 @@ public static class ArcRelayTacticalPlaybookCompiler
             // owns dodge judgment and the kite cadence is gone. They stay
             // accepted-and-inert so frozen clean-slate sheets keep
             // compiling byte-identically.
-            ["holdFire", "posture", "isolation", "commit", "dodgeCoverage"]);
+            ["holdFire", "posture", "isolation", "commit", "dodgeCoverage",
+             "collect", "heal"]);
+        // Collect discipline: does a loose ball outrank picking a new fight.
+        if (value.TryGetProperty("collect", out _))
+            OneOf(value, "collect", at, "yield", "first");
+        // Heal discipline: does an ARMED recover outrank picking a new fight.
+        if (value.TryGetProperty("heal", out _))
+            OneOf(value, "heal", at, "yield", "first");
         string id = Identifier(value, "engagementId", at);
         // Skirmish posture (owner direction 2026-08-06): participants fire
         // when their weapon is ready and back away from close threats on the
@@ -3197,7 +3293,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "disengageWhen", out JsonElement disengage))
             {
                 Object(disengage, $"{at}.{id}.commit.disengageWhen",
-                    ["threats"], ["withdrawTo", "recoverTicks"]);
+                    ["threats"], ["withdrawTo", "recoverTicks", "health"]);
                 Range(disengage, "threats", at, 1, 8);
                 if (disengage.TryGetProperty("recoverTicks", out _))
                     Range(disengage, "recoverTicks", at, 4, 120);

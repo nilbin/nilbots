@@ -88,6 +88,26 @@ first match wins; the unconditioned patrol at the bottom is the floor.
   trips a TIMED break (sticky rally, fixed recovery window, expires
   unconditionally — never a while-threats retirement).
 
+**Added 2026-08-07 (owner: combat is sacred, so everything else is
+ranked RELATIVE to it, inside this block):**
+
+- `targets { prefer: [...] }` — target priority, order = priority.
+  Vocabulary `carrier | weakest | closest | strongest-threat |
+  freshest`, mapped onto the executor's existing comparators. Default
+  `[carrier, weakest]`.
+- `collect { "yield" | "first" }` — does a visible loose Core outrank
+  picking a NEW fight. `yield` (default): a body in contact fights or
+  dodges and the ball keeps. `first`: break off the uncommitted part of
+  a fight and take it — never a strike windup, a cone dodge, or a
+  survival layer.
+- `heal { "yield" | "first" }` — the same question for an ARMED
+  recover. Recover's arming predicate is untouched; this only ranks it
+  against fighting. hp <= 1 outranks the knob, and a body that broke
+  off to heal takes no new fight until whole.
+- `breakOff { health: N }` — trips the EXISTING timed latch off a
+  health threshold; composes with `threats` (either trigger, one
+  latch), inheriting its sticky rally and unconditional expiry.
+
 **Deleted / not knobs:**
 
 - `whileCarrying` — carriers cannot fight; the engine decides this.

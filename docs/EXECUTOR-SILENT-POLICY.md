@@ -124,12 +124,21 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    jump" legibility item.
 6. **Opportunistic signatures** (`signature-heading`, `signature-idle`).
 7. **Formation micro** (`formation-move`, `turn for ...`, reflow).
-8. **The v3 desugar constants**: every generated engagement fixes
+8. **The v3 desugar constants**: shrinking. `targetPriorities` is now
+   authorable as `fight.targets.prefer` (carrier / weakest / closest /
+   strongest-threat / freshest, order = priority, default
+   `[carrier, weakest]` so unauthored sheets stay byte-stable), and two
+   rankings that used to be executor law are sheet policy:
+   `fight.collect` (yield | first - does a loose ball outrank picking a
+   new fight) and `fight.heal` (yield | first - does an ARMED recover).
+   `fight.breakOff.health` trips the existing timed break-off latch off
+   a health threshold, reusing the sticky rally and unconditional
+   expiry rather than inventing a second disengager. Still invisible:
    `lockTicks 4, lockPreemption urgent-carrier,
-   maximumAttackersPerTarget 2, targetPriorities
-   [enemy-carrier, lowest-health], tieBreakers, release {2,3,true,true},
-   selfDefense {true,2,true}` - chosen for ab72 parity, INVISIBLE in
-   the sheet. These are the fight plane's remaining dark matter.
+   maximumAttackersPerTarget 2, tieBreakers, release, selfDefense`.
+   Two executor-owned floors are deliberate and outrank every knob: hp
+   <= 1 arms recover regardless of caution, and a body that broke off
+   to heal takes no new fight until whole.
 
 ## What to do about it
 

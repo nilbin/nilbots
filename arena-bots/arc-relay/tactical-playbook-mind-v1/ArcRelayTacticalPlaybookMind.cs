@@ -40,6 +40,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// docs/EXECUTOR-SILENT-POLICY.md drops a target by RETURNING FALSE, so
     /// without this a declined fight reads as ordinary movement.</summary>
     private readonly Dictionary<int, string> _declines = [];
+    /// <summary>Units that broke off to heal, by life — they do not take a
+    /// new fight until whole. See <see cref="HealOutranksFighting"/>.
+    /// </summary>
+    private readonly Dictionary<int, int> _healBreak = [];
 
     private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
         _lanePlugTicks = [];
@@ -578,21 +582,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         || TryWithdraw(
                             contract, mind, package, body, engagement, claims,
                             Provenance(machine, group, order, "withdraw"))
-                        || TryDuelStand(
+                        // Collect FIRST: the ball outranks picking a new
+                        // fight. Above duel-stand and close-on-focus, below
+                        // withdraw and the survival channels - a strike
+                        // windup and a cone dodge are never interrupted.
+                        || string.Equals(engagement.Collect, "first",
+                            StringComparison.Ordinal)
+                        && order.CollectZones is { Length: > 0 }
+                        && !arc.VisibleCores.Any(core =>
+                            core.CarrierActorId == body.ActorId)
+                        && TryCollectLooseCore(
+                            contract, mind, arc, package, body, order,
+                            engagement, claims)
+                        // An ARMED recover ranked against combat. Yield lets
+                        // the fight finish; first breaks off the uncommitted
+                        // part of it. One hit from dead outranks both, which
+                        // is the standing survival ruling.
+                        || !HealOutranksFighting(contract, body, order, engagement)
+                        && TryDuelStand(
                             contract, body, focus,
                             Provenance(machine, group, order, "duel-stand"))
-                        || TryCloseOnFocus(
+                        || !HealOutranksFighting(contract, body, order, engagement)
+                        && TryCloseOnFocus(
                             contract, mind, body, focus, claims,
                             Provenance(machine, group, order, "close-on-focus"))
-                        || TryFlushHidden(
+                        || !HealOutranksFighting(contract, body, order, engagement)
+                        && TryFlushHidden(
                             contract, mind, body, order, engagement, focus,
                             role, target, claims,
                             Provenance(machine, group, order, "flush-hidden"))
                         || TryMovement(
                             contract, mind, arc, package, machine, snapshot,
                             body,
-                            role, group, order, target, targets, groups,
-                            orders,
+                            role, group, order, engagement, target, targets,
+                            groups, orders,
                             pickupAssignments, focus, claims),
                     "facing" => TryScanSweep(
                             contract, mind, body, order, target,
@@ -2235,6 +2258,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// <see cref="Hold(MindBody, string)"/> — channelling is stationary by
     /// nature, and the no-idle invariant exempts it explicitly.
     /// </summary>
+    /// <summary>
+    /// True when this body is under an armed recover and the sheet ranks
+    /// healing above picking a new fight - or when it is one hit from dead,
+    /// which outranks the knob.
+    /// </summary>
+    private bool HealOutranksFighting(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        TacticalPlaybookPackage.Engagement engagement)
+    {
+        if (!string.Equals(
+                order.Movement.Kind, "heal-beacon", StringComparison.Ordinal))
+        {
+            _healBreak.Remove(body.UnitId);
+            return false;
+        }
+        // Re-engagement hysteresis, the same shape as the handed-off Core's
+        // grace window: a body that broke off to heal does not take a NEW
+        // fight until it is whole. Without it the boundary flaps - one hit
+        // healed, an enemy still in view, back into the duel, hurt again -
+        // which is the ball drop-pickup loop wearing different clothes.
+        // Full health is the honest threshold because it is the same edge
+        // the recover predicate itself disarms on.
+        bool broken = _healBreak.TryGetValue(
+                body.UnitId, out int brokenLife)
+            && brokenLife == body.ActorId.LifeId;
+        bool outranks = body.Health <= 1
+            || string.Equals(
+                engagement.Heal, "first", StringComparison.Ordinal)
+            || broken && body.Health < MaxHealth(contract, body);
+        if (outranks)
+            _healBreak[body.UnitId] = body.ActorId.LifeId;
+        else
+            _healBreak.Remove(body.UnitId);
+        return outranks;
+    }
+
     private bool TryRecoverHold(
         MindBody body,
         TacticalPlaybookPackage.Order order,
@@ -3082,7 +3143,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // unconditionally; it can re-trip only after expiry.
         if (!active
             && commit.DisengageWhen is { } disengage
-            && threats >= disengage.Threats
+            && (disengage.Threats > 0 && threats >= disengage.Threats
+                || disengage.Health > 0 && body.Health <= disengage.Health)
             && latch.UntilTick != mind.Tick)
         {
             active = true;
@@ -3960,6 +4022,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string role,
         string group,
         TacticalPlaybookPackage.Order order,
+        TacticalPlaybookPackage.Engagement engagement,
         Position target,
         IReadOnlyDictionary<int, Position> targets,
         IReadOnlyDictionary<int, string> groups,
@@ -4110,7 +4173,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && !arc.VisibleCores.Any(core =>
                 core.CarrierActorId == body.ActorId)
             && TryCollectLooseCore(
-                contract, mind, arc, package, body, order, claims))
+                contract, mind, arc, package, body, order, engagement,
+                claims))
         {
             return true;
         }
@@ -4394,15 +4458,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage package,
         MindBody body,
         TacticalPlaybookPackage.Order order,
+        TacticalPlaybookPackage.Engagement engagement,
         ArenaBasics.Claims claims)
     {
-        // Never go shopping at knife range. Collect sits in the movement
+        // Never go shopping at knife range - unless the sheet says the ball
+        // comes FIRST, in which case breaking off an uncommitted fight for it
+        // is the whole point. Collect sits in the movement
         // channel, so on a tick where the declared-cone dodge does not fire
         // it can win against a body that is toe to toe with an enemy - and
         // then the next tick evacuation pulls the other way. The owner
         // watched that thrash read as standing still (commitx17-w-9001
         // t139-142). A body in contact fights or dodges; the ball keeps.
-        if (mind.Enemies.Any(enemy =>
+        if (!string.Equals(
+                engagement.Collect, "first", StringComparison.Ordinal)
+            && mind.Enemies.Any(enemy =>
                 enemy.Position.ChebyshevDistance(body.Position)
                     <= RecoverContact))
         {
