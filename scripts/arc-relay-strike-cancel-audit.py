@@ -334,6 +334,13 @@ def analyse(path, verbose=False):
                 and shooter_start
                 and shooter_now["facing"] != shooter_start["facing"]
             ),
+            # #221 abandons on the COMMAND, so a move that resolved Blocked
+            # spends the windup while leaving the body where it was.
+            "shooterCommandedMove": any(
+                event["kind"] in ("movement", "movement-blocked")
+                and actor_key(event["payload"]["actorId"]) == shooter_id
+                for event in resolve_tick["events"]
+            ),
         }
 
         if shooter_now is None:
@@ -344,12 +351,23 @@ def analyse(path, verbose=False):
             continue
 
         if locked is None:
-            # Empty-wedge declare: the theatrical whiff down the centre. It
-            # never cancels.
-            record["cause"] = "empty-wedge whiff"
-            counts["resolved: empty-wedge whiff" if resolved else "CANCEL: empty-wedge whiff"] += 1
-            if not resolved:
-                findings.append(("EMPTY-WEDGE-WHIFF-CANCELLED", record))
+            # An unlocked declare - no enemy on the aim (#222) - fires the
+            # theatrical whiff down the centre. The only thing that stops it
+            # is the shooter itself: dying, or walking away from its own
+            # windup (#221).
+            abandoned = not resolved and record["shooterCommandedMove"]
+            record["cause"] = (
+                "whiff abandoned by the shooter's move command"
+                if abandoned
+                else "empty-aim whiff"
+            )
+            counts[
+                "resolved: empty-aim whiff" if resolved
+                else "cancel: whiff abandoned by a move" if abandoned
+                else "CANCEL: empty-aim whiff with no cause"
+            ] += 1
+            if not resolved and not abandoned:
+                findings.append(("EMPTY-AIM-WHIFF-CANCELLED", record))
             continue
 
         lock_id = actor_key(locked)
