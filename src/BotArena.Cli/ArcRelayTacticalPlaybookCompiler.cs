@@ -1866,9 +1866,10 @@ public static class ArcRelayTacticalPlaybookCompiler
             }
             var disengage = new JsonObject
             {
-                ["threats"] = fight.Threats,
                 ["recoverTicks"] = fight.RecoverTicks,
             };
+            if (fight.Threats > 0)
+                disengage["threats"] = fight.Threats;
             if (fight.Threats > 0)
                 disengage["withdrawTo"] = floorRoute;
             if (fight.BreakHealth > 0)
@@ -3293,8 +3294,21 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "disengageWhen", out JsonElement disengage))
             {
                 Object(disengage, $"{at}.{id}.commit.disengageWhen",
-                    ["threats"], ["withdrawTo", "recoverTicks", "health"]);
-                Range(disengage, "threats", at, 1, 8);
+                    [], ["threats", "withdrawTo", "recoverTicks",
+                         "health"]);
+                // Either trigger may drive the latch, but a disengage block
+                // with neither is a policy that never fires.
+                bool hasThreats = disengage.TryGetProperty("threats", out _);
+                bool hasHealth = disengage.TryGetProperty("health", out _);
+                if (!hasThreats && !hasHealth)
+                {
+                    throw Error(at,
+                        "disengageWhen needs 'threats', 'health', or both.");
+                }
+                if (hasThreats)
+                    Range(disengage, "threats", at, 1, 8);
+                if (hasHealth)
+                    Range(disengage, "health", at, 1, 8);
                 if (disengage.TryGetProperty("recoverTicks", out _))
                     Range(disengage, "recoverTicks", at, 4, 120);
                 if (disengage.TryGetProperty("withdrawTo", out _))
