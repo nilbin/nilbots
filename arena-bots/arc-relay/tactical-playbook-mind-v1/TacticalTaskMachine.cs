@@ -496,9 +496,8 @@ internal sealed class TacticalTaskMachine
                 StringComparison.Ordinal));
             if (current >= assignment.Preferred)
                 continue;
-            TacticalPlaybookPackage.Order order = _orders[assignment.OrderId];
             TacticalTaskCandidate[] candidates = Candidates(
-                    assignment, order, live.Values)
+                    assignment, live.Values)
                 .Where(value => !claimed.Contains(value.UnitId))
                 .Where(value => !owners.TryGetValue(
                         value.UnitId,
@@ -566,9 +565,8 @@ internal sealed class TacticalTaskMachine
                 StringComparison.Ordinal));
             if (current >= target)
                 continue;
-            TacticalPlaybookPackage.Order order = _orders[assignment.OrderId];
             TacticalTaskCandidate[] candidates = Candidates(
-                    assignment, order, live.Values)
+                    assignment, live.Values)
                 .Where(value => !claimed.Contains(value.UnitId))
                 .Where(value => Claimable(
                     claimant, value.UnitId, owners, allowPreemption))
@@ -688,14 +686,22 @@ internal sealed class TacticalTaskMachine
                 StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Who a task row may claim. Cross-group claims are the point (owner
+    /// doctrine 2026-08-07, already recorded in the compiler's task
+    /// validation): a task IS an explicit detachment, so a row naming a role
+    /// takes that role wherever it currently stands. Filtering candidates by
+    /// the ORDER's group and local state — which the runtime used to do —
+    /// silently emptied every cross-group row: the ghost's `escort: medic`
+    /// never once claimed a medic (its order lives in shadow-group, every
+    /// medic in well-group), and assassin-promotion, whose min-1 row names
+    /// the towline roles, never activated in any recorded match. Role,
+    /// class, carrier and the distance selector are the eligibility gate;
+    /// priority and <see cref="Claimable"/> decide who wins a contested body.
+    /// </summary>
     private static IEnumerable<TacticalTaskCandidate> Candidates(
         TacticalPlaybookPackage.TaskAssignment assignment,
-        TacticalPlaybookPackage.Order order,
         IEnumerable<TacticalTaskCandidate> candidates) => candidates
-        .Where(value => string.Equals(
-            value.GroupId, order.GroupId, StringComparison.Ordinal))
-        .Where(value => string.Equals(
-            value.LocalState, order.LocalState, StringComparison.Ordinal))
         .Where(value => assignment.Roles.Length == 0
             || assignment.Roles.Contains(value.RoleId, StringComparer.Ordinal))
         .Where(value => assignment.Classes.Length == 0
