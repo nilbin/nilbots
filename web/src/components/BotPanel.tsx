@@ -543,8 +543,14 @@ export default function BotPanel({
                     />
                   ))}
                 </span>
+                {/* The order outranks the action here. Sixteen compact cards
+                    reading `Move eight way north…` say nothing a spectator
+                    cannot already see in the arena; sixteen reading
+                    `ghost-patrol / race-north / well-watch` are the army's
+                    orders of battle, on one screen. */}
                 <span className="min-w-0 truncate text-[9px] text-arena-dim">
-                  {displayedRole ??
+                  {orderTag ??
+                    unit.order?.action ??
                     (unit.actionId
                       ? describeAction(unit.actionId, unit.actionLaunchHeading)
                       : unit.status)}

@@ -581,12 +581,15 @@ export default function Viewer({
             <div
               aria-label="Selected unit order"
               className={clsx(
-                'val absolute right-2 bottom-2 z-[9] flex max-w-[min(320px,calc(100%-16px))] items-baseline gap-1.5 rounded-full border border-arena-edge bg-arena-bg/80 px-[9px] py-[3px] backdrop-blur-[3px] transition-opacity duration-300',
+                'val absolute right-2 bottom-2 z-[9] flex max-w-[calc(100%-16px)] items-baseline gap-1.5 rounded-full border border-arena-edge bg-arena-bg/80 px-[9px] py-[3px] backdrop-blur-[3px] transition-opacity duration-300',
                 immersive.active && !chromeVisible && 'opacity-0',
               )}
             >
+              {/* The name yields first. It is the one part the panel and the
+                  chassis label both already answer; the order and what the body
+                  is doing about it are why the chip is here at all. */}
               <span
-                className="truncate"
+                className="min-w-0 truncate"
                 style={styleVariables({
                   '--player-accent': playerAccent(selectedUnit.accent, 'panel'),
                 })}
@@ -595,13 +598,13 @@ export default function Viewer({
               </span>
               {selectedUnit.order.orderId !== null && (
                 <span
-                  className="truncate"
+                  className="shrink-0 whitespace-nowrap"
                   style={{ color: roleTagColor(selectedUnit.order.orderId) }}
                 >
                   {selectedUnit.order.orderId}
                 </span>
               )}
-              <span className="truncate text-arena-dim">
+              <span className="shrink-0 whitespace-nowrap text-arena-dim">
                 {selectedUnit.order.action}
               </span>
             </div>
