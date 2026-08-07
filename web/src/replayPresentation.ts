@@ -388,16 +388,11 @@ export interface ArcRelayStoryPresentation {
     integritySegments: number;
     accent: string;
   }[];
-  /**
-   * Declared strikes in windup (DECISIONS #212): frozen tiles from
-   * declaration until resolution, with urgency rising as the resolve tick
-   * approaches. Empty on rulesets without strike windups.
-   */
-  pendingStrikes: {
-    tiles: { x: number; y: number }[];
-    /** 0..1: how close the resolve tick is; 1 on the final windup tick. */
-    urgency: number;
-  }[];
+  // A declared strike in windup is NOT presented here any more (owner
+  // ruling 2026-08). Its cone plates were removed from both renderers once
+  // the tracking ray of DECISIONS #215 existed, and the ray is derived from
+  // the wire strike itself (`strikeAimsAt`) because it needs the anchored
+  // body's interpolated pose, which is a frame value rather than a tick one.
 }
 
 export interface TickPresentation {
@@ -1800,14 +1795,6 @@ function arcRelayAt(
         accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
       };
     }),
-    pendingStrikes: (state.pendingStrikes ?? []).map((strike) => ({
-      tiles: strike.tiles.map((tile) => ({ x: tile.x, y: tile.y })),
-      urgency:
-        strike.resolveAtTick - tick.tick <= 1
-          ? 1
-          : 1 /
-            Math.max(1, strike.resolveAtTick - tick.tick),
-    })),
     beat: latest
       ? {
           ...latest,

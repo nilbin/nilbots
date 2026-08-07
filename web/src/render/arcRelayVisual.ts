@@ -38,7 +38,6 @@ export function drawArcRelayGround(input: ArcRelayVisualContext): void {
 
   drawPulse(input, state);
   drawHealZones(input);
-  drawPendingStrikes(input, state);
   drawWells(input, state);
   drawReactors(input, state);
   drawSignatures(input, state);
@@ -46,45 +45,11 @@ export function drawArcRelayGround(input: ArcRelayVisualContext): void {
   drawHandoffCommitments(input);
 }
 
-/**
- * The lit cone (DECISIONS #212): a declared strike's frozen tiles, drawn
- * from declaration until resolution. Urgency ramps as the resolve tick
- * approaches — the spectator reads the same public warning the victim's
- * mind does, and a body still standing on the tiles at resolution visibly
- * chose to be there.
- */
-function drawPendingStrikes(
-  input: ArcRelayVisualContext,
-  state: ArcState,
-): void {
-  const strikes = state.pendingStrikes;
-  if (!strikes || strikes.length === 0) return;
-  const { ctx, tile, px, py, time } = input;
-  const tickNow = input.tick?.tick ?? 0;
-  for (const strike of strikes) {
-    const remaining = Math.max(0, strike.resolveAtTick - tickNow);
-    const urgency = remaining <= 1 ? 1 : 0.55;
-    const pulse = 0.75 + 0.25 * Math.sin(time * 0.02);
-    ctx.save();
-    ctx.globalAlpha = 0.28 * urgency * pulse;
-    ctx.fillStyle = '#f87171';
-    for (const position of strike.tiles) {
-      ctx.fillRect(px(position.x), py(position.y), tile, tile);
-    }
-    ctx.globalAlpha = 0.85 * urgency;
-    ctx.strokeStyle = '#f87171';
-    ctx.lineWidth = Math.max(1, tile * 0.06);
-    for (const position of strike.tiles) {
-      ctx.strokeRect(
-        px(position.x) + 1,
-        py(position.y) + 1,
-        tile - 2,
-        tile - 2,
-      );
-    }
-    ctx.restore();
-  }
-}
+// The lit cone (DECISIONS #212) is GONE (owner ruling 2026-08). The
+// tracking ray of #215 already says who the strike is for and how close it
+// is, so blinking the frozen wedge underneath it was noise on top of the
+// answer. `drawStrikeAims` in drawArena owns the windup read and the red
+// slash owns the landing; the wedge stays a wire fact, not a floor decal.
 
 export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
   const state = currentState(input);

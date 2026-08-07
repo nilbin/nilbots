@@ -1059,7 +1059,7 @@ export function drawArena(
 
   // A matured strike landing - deliberately NOT a projectile (owner ruling:
   // strikes must never look like regular bolts). The whole line flashes at
-  // once in the telegraph's red and burns out over the resolve tick; the
+  // once in the aim ray's red and burns out over the resolve tick; the
   // disc marks where it landed. Nothing travels, because nothing here is
   // dodgeable.
   function drawStrikeSlashes(): void {

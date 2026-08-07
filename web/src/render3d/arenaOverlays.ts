@@ -2032,34 +2032,11 @@ function buildArcRelayStory(
     return cores[index]!;
   };
 
-  // The lit cone (DECISIONS #212): pooled red tile plates for declared
-  // strikes, revealed per tick from the presentation story. Urgency drives
-  // brightness so the final windup tick reads as NOW.
-  const strikeTileGeometry = new THREE.PlaneGeometry(0.92, 0.92);
-  strikeTileGeometry.rotateX(-Math.PI / 2);
-  disposables.push(strikeTileGeometry);
-  const strikeTiles: {
-    mesh: THREE.Mesh;
-    material: THREE.MeshBasicMaterial;
-  }[] = [];
-  const strikeTile = (index: number) => {
-    while (strikeTiles.length <= index) {
-      const material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#f87171'),
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(strikeTileGeometry, material);
-      mesh.visible = false;
-      mesh.position.y = 0.024;
-      mesh.userData.cue = 'pending-strike';
-      group.add(mesh);
-      disposables.push(material);
-      strikeTiles.push({ mesh, material });
-    }
-    return strikeTiles[index]!;
-  };
+  // The declared strike's cone plates are GONE (owner ruling 2026-08): the
+  // tracking ray of #215 says the same thing without blinking a wedge of
+  // tiles at the spectator, so the windup reads as one line to one body and
+  // the red slash owns the landing. `buildStrikeAims` is the whole windup
+  // read now; the frozen wedge stays a wire fact, not a floor decal.
 
   const update = (presentation: TickPresentation, time: number) => {
     const story = presentation.arcRelay;
@@ -2070,26 +2047,6 @@ function buildArcRelayStory(
     for (const [index, material] of healPulseMaterials.entries()) {
       material.opacity =
         0.42 + 0.18 * (0.5 + 0.5 * Math.sin(time * Math.PI * 0.8 + index));
-    }
-
-    let strikeTileCount = 0;
-    for (const strike of story.pendingStrikes) {
-      const pulse = 0.7 + 0.3 * Math.sin(time * Math.PI * 4);
-      for (const tile of strike.tiles) {
-        const plate = strikeTile(strikeTileCount);
-        strikeTileCount += 1;
-        plate.mesh.visible = true;
-        plate.mesh.position.set(tile.x + 0.5, 0.024, tile.y + 0.5);
-        plate.material.opacity =
-          (0.18 + 0.4 * strike.urgency) * pulse;
-      }
-    }
-    for (
-      let index = strikeTileCount;
-      index < strikeTiles.length;
-      index++
-    ) {
-      strikeTiles[index]!.mesh.visible = false;
     }
 
     for (const [index, state] of story.wells.entries()) {
@@ -2417,9 +2374,9 @@ function buildSpentBolts(
  *
  * The whole line exists at once: a hot red blade from the shooter through
  * the impact tile, flashing on at the resolve instant and burning out over
- * the tick, plus a disc where it landed. It inherits the telegraph's red
- * so cone → slash reads as one sentence — the wedge collapsing into the
- * one line that landed — while bolts keep their team-accent spheres and
+ * the tick, plus a disc where it landed. It inherits the aim ray's red so
+ * ray → slash reads as one sentence — the line that was tracking becoming
+ * the line that landed — while bolts keep their team-accent spheres and
  * dissipation rings. Nothing here travels, because nothing here is
  * dodgeable.
  */

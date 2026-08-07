@@ -4838,3 +4838,22 @@ interruption with its mechanism, or SILENT when an absence-class path
 ended it. Queued as owner design decisions, not drive-bys: fight-block
 homes for the load-bearing constants (chase.persistTicks first), and
 the isolation rear-exposure inversion as its own measured change.
+
+## 220. The strike telegraph is the ray; the cone plates are gone
+
+Owner ruling 2026-08-07 ("remove the blinking tiles since we have the
+aim rays anyway"). #212 lit the whole frozen wedge as red floor plates
+because the wedge WAS the threat: anyone standing in it at maturation
+was hit. #215 made the strike an aimed attack that locks one body and
+follows it, so the wedge stopped being the answer to "who is about to
+be hit" and the plates became a blinking 90-degree apology under the
+line that already says it. Both renderers now draw the windup as the
+tracking ray alone (`strikeAimsAt` -> `buildStrikeAims` /
+`drawStrikeAims`), and the landing as the same red slash as before, so
+ray -> slash reads as one sentence. The frozen wedge remains an
+authoritative wire fact on the pending strike - the ray's escape read
+is exactly "the anchor is no longer on a wedge tile" - it is simply no
+longer drawn as ground. `ArcRelayStoryPresentation.pendingStrikes`
+(tiles + urgency) went with the plates: it had no other consumer, and
+the ray needs the anchor's interpolated pose, which is a frame value
+rather than a per-tick one.
