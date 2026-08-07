@@ -2302,6 +2302,9 @@
    },
    "modes": [
     {
+     "recover": "auto"
+    },
+    {
      "assault": "strike-line",
      "while": "shadow-op",
      "until": "shadow-cooled",

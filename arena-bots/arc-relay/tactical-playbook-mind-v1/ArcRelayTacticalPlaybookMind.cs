@@ -77,6 +77,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
     private Position[] _healTiles = [];
+    /// <summary>Own units the recover predicate flags this tick — see
+    /// <see cref="UpdateRecovering"/>. The recover doctrine verb's task
+    /// gates on its size and its assignment row selects from its members.
+    /// </summary>
+    private readonly HashSet<int> _recovering = [];
+    /// <summary>Why each hurt body did or did not qualify, for the debug
+    /// line — a gate nobody can see is a gate nobody can tune.</summary>
+    private readonly List<string> _recoverTrace = [];
 
     public void StartMatch(MindStart start)
     {
@@ -149,6 +157,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
 
         UpdateMemory(mind, arc, package.Source.Memory);
+        UpdateRecovering(contract, mind);
         Dictionary<int, string> roles = AllocateRoles(
             mind,
             package.Source,
@@ -532,7 +541,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             contract, mind, body, shotTarget, target,
                             engagement,
                             Provenance(machine, group, order, "signature")),
-                    "movement" => TryWithdraw(
+                    "movement" => TryRecoverHold(
+                            body, order,
+                            Provenance(machine, group, order, "recover-heal"))
+                        || TryWithdraw(
                             contract, mind, package, body, engagement, claims,
                             Provenance(machine, group, order, "withdraw"))
                         || TryDuelStand(
@@ -541,6 +553,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         || TryCloseOnFocus(
                             contract, mind, body, focus, claims,
                             Provenance(machine, group, order, "close-on-focus"))
+                        || TryFlushHidden(
+                            contract, mind, body, order, engagement, focus,
+                            role, target, claims,
+                            Provenance(machine, group, order, "flush-hidden"))
                         || TryMovement(
                             contract, mind, arc, package, machine, snapshot,
                             body,
@@ -582,6 +598,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _returningToFormation.Keys.Order()) + "; "
             + "repair=" + string.Join(",", repairs.Keys.Order()) + "; "
             + tasks.TraceSummary + "; "
+            + "recover=" + (_recoverTrace.Count == 0
+                ? "-" : string.Join(",", _recoverTrace)) + "; "
             + $"idle-breaks={_idleBreaks}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
@@ -1228,6 +1246,102 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 StringComparer.Ordinal));
     }
 
+    /// <summary>How near a beacon counts as "already there" for recover.
+    /// </summary>
+    private const int RecoverReach = 8;
+
+    /// <summary>How wide a berth a beacon (and its approach) must have from
+    /// every enemy the team can see or still believes in.</summary>
+    private const int RecoverClearance = 4;
+
+    /// <summary>What counts as enemy CONTACT for the body itself — the
+    /// executor's standing reading (TryIdleBreak): an enemy merely visible
+    /// at range is not contact, and a body is not forbidden a beacon
+    /// because someone is watching from across the map.</summary>
+    private const int RecoverContact = 2;
+
+    /// <summary>How recent a sighting has to be to still count against a
+    /// beacon. Without this the clause is archaeology, not intelligence:
+    /// the heal tiles sit on the centre line every race crosses, so the
+    /// team remembers SOMEBODY near them for the rest of the match and no
+    /// beacon is ever cold again (measured: recover armed zero times).
+    /// </summary>
+    private const int RecoverMemoryTicks = 12;
+
+    /// <summary>
+    /// The recover predicate (owner spec 2026-08-07), evaluated once per
+    /// tick for every own body. A body qualifies when it is HURT, a heal
+    /// beacon is COLD, and either that beacon is within
+    /// <see cref="RecoverReach"/> or the body is one hit from dead - which is
+    /// worth any walk. There is no separate "stop" rule: healing to full
+    /// clears the first clause and an enemy arriving clears the second, so
+    /// "hold until full or enemy contact" falls out of the predicate itself
+    /// and the generated recover task fails the tick it empties.
+    /// </summary>
+    private void UpdateRecovering(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind)
+    {
+        _recovering.Clear();
+        _recoverTrace.Clear();
+        foreach (MindBody body in mind.Bodies)
+        {
+            if (body.Health >= MaxHealth(contract, body))
+                continue;
+            if (RecoverBeacon(mind, body) is not Position beacon)
+            {
+                _recoverTrace.Add($"{body.UnitId}:"
+                    + (mind.Enemies.Any(enemy =>
+                            enemy.Position.ChebyshevDistance(body.Position)
+                                <= RecoverContact)
+                        ? "contact" : "watched"));
+                continue;
+            }
+            if (body.Position.ChebyshevDistance(beacon) > RecoverReach
+                && body.Health > 1)
+            {
+                _recoverTrace.Add($"{body.UnitId}:far");
+                continue;
+            }
+            _recovering.Add(body.UnitId);
+            _recoverTrace.Add($"{body.UnitId}:ready");
+        }
+    }
+
+    /// <summary>
+    /// The safest beacon for this body, or null when none is safe. Safe
+    /// means no enemy - seen now or remembered - within
+    /// <see cref="RecoverClearance"/> of the beacon, and no visible enemy
+    /// that close to the body itself; channelling is stationary, so a
+    /// watched beacon is a trap rather than a refuge. Among the safe tiles
+    /// the nearest wins, ties broken in the mind's own mirrored frame so
+    /// both sides of the map choose alike.
+    /// </summary>
+    private Position? RecoverBeacon(MindContext mind, MindBody body)
+    {
+        if (_healTiles.Length == 0
+            || mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position)
+                    <= RecoverContact))
+        {
+            return null;
+        }
+        return _healTiles
+            .Where(tile => !mind.Enemies.Any(enemy =>
+                    enemy.Position.ChebyshevDistance(tile)
+                        <= RecoverClearance)
+                && !_lastSeenEnemies.Values.Any(enemy =>
+                    mind.Tick - enemy.LastConfirmedTick
+                        <= RecoverMemoryTicks
+                    && enemy.Position.ChebyshevDistance(tile)
+                        <= RecoverClearance))
+            .OrderBy(tile => tile.ChebyshevDistance(body.Position))
+            .ThenBy(tile => ArenaBasics.FrameY(tile, _mirrored))
+            .ThenBy(tile => ArenaBasics.FrameX(tile, _mirrored))
+            .Select(tile => (Position?)tile)
+            .FirstOrDefault();
+    }
+
     private static int CohesionPercent(Position[] positions, int maximumSpacing)
     {
         if (positions.Length <= 1)
@@ -1279,6 +1393,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int actual = condition.Fact switch
         {
             "always" => 1,
+            // The recover verb's gate: how many own bodies the recover
+            // predicate flags right now (UpdateRecovering). Body-scoped
+            // facts - this body's health, its distance to a beacon - cannot
+            // be said in the team-level condition grammar, so the mind
+            // answers the whole question and the sheet only counts. A
+            // subject narrows the count to one role, which is what a
+            // doctrine wants: arming the ghost's recover on a wounded
+            // HAULER would trigger a task no row could ever fill.
+            "recover-ready-bodies" => condition.Subject.Length == 0
+                ? _recovering.Count
+                : _recovering.Count(unit => string.Equals(
+                    _stableRoles.GetValueOrDefault(unit),
+                    condition.Subject,
+                    StringComparison.Ordinal)),
             "tick" => snapshot.Tick,
             "phase-state-ticks" => snapshot.PhaseStateTicks,
             "live-friendlies" => snapshot.LiveFriendlies,
@@ -1454,6 +1582,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && level.LifeId == candidate.ActorId.LifeId
                 ? level.Level
                 : 1),
+        // The recover row admits only a body the recover predicate already
+        // flagged this tick; among those it takes the one nearest a beacon.
+        // A body that must not recover is unreachably far - the same idiom
+        // the loose-core selector below uses for "no such thing".
+        "heal-beacon" => _recovering.Contains(candidate.UnitId)
+            ? _healTiles
+                .Select(tile => candidate.Position.ChebyshevDistance(tile))
+                .DefaultIfEmpty(int.MaxValue)
+                .Min()
+            : int.MaxValue,
         "anchor" => candidate.Position.ChebyshevDistance(
             package.AnchorPosition(assignment.Distance.Target)),
         "own-reactor" => candidate.Position.ChebyshevDistance(_ownReactor),
@@ -1501,6 +1639,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, package, order, body),
             "secured-core" => SecuredCoreTarget(
                 package, order),
+            "heal-beacon" => RecoverBeacon(mind, body) ?? body.Position,
             "hold" => body.Position,
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
@@ -1513,6 +1652,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // engage only on its final approach; applying rear offsets to the
             // first waypoint can legitimately point a rear body back through
             // its own spawn instead of keeping the column together.
+            return anchor;
+        }
+        if (order.Movement.Kind == "heal-beacon")
+        {
+            // The beacon is a single tile that heals; a formation offset
+            // would park the body politely NEXT to the thing it came for.
             return anchor;
         }
         if (order.Movement.Kind == "enemy-carrier-cutoff"
@@ -1977,12 +2122,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body)
     {
         Position[] route = package.RoutePoints(order.Movement.Target);
+        // A reset resumes at the NEAREST waypoint, never at the entry (owner
+        // catch 2026-08-07: a mid-map body handed a new order walked the whole
+        // route backwards to its first tile before going anywhere, and the
+        // loop-back read as confusion). A fresh spawn still enters naturally -
+        // standing at the start, its nearest waypoint IS the entry.
         RouteProgress state = _routes.GetValueOrDefault(body.UnitId)
-            ?? new RouteProgress(body.ActorId, order.OrderId, 0);
+            ?? new RouteProgress(
+                body.ActorId, order.OrderId, NearestWaypoint(route, body));
         if (state.ActorId != body.ActorId
             || !string.Equals(state.OrderId, order.OrderId,
                 StringComparison.Ordinal))
-            state = new RouteProgress(body.ActorId, order.OrderId, 0);
+        {
+            state = new RouteProgress(
+                body.ActorId, order.OrderId, NearestWaypoint(route, body));
+        }
         int index = Math.Min(state.Index, route.Length - 1);
         // A route is a corridor, not a sequence of single-tile queues. A body
         // reflowed to the edge of the declared corridor has completed that
@@ -2027,6 +2181,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// and self-preservation still outrank this: stepping out of a
     /// telegraphed strike is dodging, not disengagement.
     /// </summary>
+    /// <summary>
+    /// The standing half of the recover verb: a body under a heal-beacon
+    /// order that has REACHED its beacon channels there. Commands
+    /// <see cref="MindBody.Hold"/> directly rather than the idle-breaking
+    /// <see cref="Hold(MindBody, string)"/> — channelling is stationary by
+    /// nature, and the no-idle invariant exempts it explicitly.
+    /// </summary>
+    private bool TryRecoverHold(
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        string reason)
+    {
+        if (!string.Equals(
+                order.Movement.Kind, "heal-beacon", StringComparison.Ordinal)
+            || !_healTiles.Contains(body.Position))
+        {
+            return false;
+        }
+        body.Hold(reason);
+        return true;
+    }
+
     private bool TryDuelStand(
         GenericActorResolvedMatchContract contract,
         MindBody body,
@@ -2070,6 +2246,78 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 is Position step
             && ArenaBasics.TryMoveDirect(
                 contract, mind, body, step, claims, reason);
+    }
+
+    /// <summary>
+    /// Hidden-lock pursuit — what makes chase.persistTicks honest (owner
+    /// catch 2026-08-07). Fog here is a facing CONE, so prey that rounds a
+    /// corner leaves the visible set while its engagement scope still holds
+    /// the lock for policy.Release.HiddenTicks. Focus allocation only ever
+    /// assigns VISIBLE enemies, so every one of those retained ticks used to
+    /// be spent walking back to a formation slot: the sheet said "chase for
+    /// 30" and the body said "he's gone". Now the body walks to the prey's
+    /// last-seen tile - inside the order's movement chase leash, respecting
+    /// claims and reservations exactly as TryCloseOnFocus does - and once
+    /// there sweeps its own cone, because the cone IS the sensor and turning
+    /// is the only way to re-acquire from a cold trail.
+    /// </summary>
+    private bool TryFlushHidden(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        TacticalPlaybookPackage.Engagement engagement,
+        IReadOnlyDictionary<int, FocusAssignment> focus,
+        string role,
+        Position target,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        // A live assignment always outranks a cold trail: this step exists
+        // only for the ticks where the lock is retained but unassignable.
+        if (focus.ContainsKey(body.UnitId)
+            || !engagement.Participants.Contains(
+                role, StringComparer.Ordinal))
+        {
+            return false;
+        }
+        string scopeId = string.Equals(
+            engagement.CoordinationScope, "shared-policy",
+            StringComparison.Ordinal)
+                ? engagement.EngagementId
+                : $"{engagement.EngagementId}:{order.GroupId}";
+        if (!_focusLocks.TryGetValue(scopeId, out FocusLock? held)
+            || _observedDestroyedEnemies.Contains(held.ActorId)
+            || mind.Tick - held.LastVisibleTick >= engagement.Release.HiddenTicks
+            // Visible again: allocation owns it from here.
+            || mind.Enemies.Any(enemy => enemy.ActorId == held.ActorId)
+            || !_lastSeenEnemies.TryGetValue(
+                held.ActorId.UnitId, out LastSeenEnemy? trail)
+            || trail.ActorId != held.ActorId)
+        {
+            return false;
+        }
+        // The leash is the order's, measured from the authored post - the
+        // same reading every other movement-plane chase uses.
+        if (trail.Position.ChebyshevDistance(target)
+            > Math.Max(order.Movement.ChaseLeash, 1))
+        {
+            return false;
+        }
+        if (body.Position != trail.Position
+            && ArenaBasics.StaticFirstStepAvoidingReservations(
+                contract, mind, body, trail.Position) is Position step
+            && ArenaBasics.TryMoveDirect(
+                contract, mind, body, step, claims, reason))
+        {
+            return true;
+        }
+        return body.Position.ChebyshevDistance(trail.Position) <= 1
+            && TryRotate(
+                contract,
+                body,
+                (Direction)(((mind.Tick / 2) + body.UnitId) % 4),
+                reason);
     }
 
     private static int NearestWaypoint(Position[] route, MindBody body)
@@ -3715,6 +3963,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         package.AnchorPosition(order.Movement.Target))
                     <= order.Movement.ChaseLeash),
         "secured-core" => SecuredCoreAvailable(package, order),
+        "heal-beacon" => RecoverBeacon(mind, body) is not null,
         _ => true,
     };
 
@@ -4542,29 +4791,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             return false;
         }
-        var desired = (Direction)(((mind.Tick / 8) + body.UnitId) % 4);
-        if (body.Facing == desired)
-            return false;
-        GenericActorRulesContract.ActionDefinition? definition =
-            contract.Rules.Actions.FirstOrDefault(value =>
-                value.Kind == GenericActorRulesContract.ActionKind.Rotation);
-        GenericActorActionLegality? action = definition is null
-            ? null
-            : body.Action(definition.Id);
-        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
-            directions = action?.Constraints.OfType<
-                GenericActorActionLegality.ArgumentConstraint
-                    .DirectionConstraint>().SingleOrDefault();
-        if (action is not { Available: true }
-            || directions is null
-            || !directions.AllowedValues.Contains(desired))
-        {
-            return false;
-        }
-        body.Command(action.ActionId, action.ActionCode,
-            [new GenericActorActionArgument.DirectionArgument(desired)],
+        return TryRotate(
+            contract,
+            body,
+            (Direction)(((mind.Tick / 8) + body.UnitId) % 4),
             reason);
-        return true;
     }
 
     private static bool TryFaceTarget(
@@ -4577,9 +4808,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int dy = target.Y - body.Position.Y;
         if (dx == 0 && dy == 0)
             return false;
-        Direction desired = Math.Abs(dx) >= Math.Abs(dy)
-            ? dx >= 0 ? Direction.East : Direction.West
-            : dy >= 0 ? Direction.South : Direction.North;
+        return TryRotate(
+            contract,
+            body,
+            Math.Abs(dx) >= Math.Abs(dy)
+                ? dx >= 0 ? Direction.East : Direction.West
+                : dy >= 0 ? Direction.South : Direction.North,
+            reason);
+    }
+
+    /// <summary>Turn to face <paramref name="desired"/>, if the current form
+    /// may and is not already facing it.</summary>
+    private static bool TryRotate(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Direction desired,
+        string reason)
+    {
+        if (body.Facing == desired)
+            return false;
         GenericActorRulesContract.ActionDefinition? definition =
             contract.Rules.Actions.FirstOrDefault(value =>
                 value.Kind == GenericActorRulesContract.ActionKind.Rotation);
@@ -4590,7 +4837,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 GenericActorActionLegality.ArgumentConstraint
                     .DirectionConstraint>().SingleOrDefault();
         if (action is not { Available: true } || directions is null
-            || body.Facing == desired
             || !directions.AllowedValues.Contains(desired))
             return false;
         body.Command(action.ActionId, action.ActionCode,
@@ -4670,10 +4916,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             return false;
         }
+        // Channelling on a heal tile is the one stand the invariant blesses:
+        // the pragmatist's low-health detour, or a body the recover verb
+        // sent here to sit until it is whole.
         if (_healTiles.Contains(body.Position)
-            && body.Health <= 1 + (_unitLevel.TryGetValue(
-                    body.UnitId, out (int LifeId, int Level) level)
-                && level.LifeId == body.ActorId.LifeId ? level.Level : 1))
+            && (_recovering.Contains(body.UnitId)
+                || body.Health <= 1 + (_unitLevel.TryGetValue(
+                        body.UnitId, out (int LifeId, int Level) level)
+                    && level.LifeId == body.ActorId.LifeId ? level.Level : 1)))
         {
             return false;
         }
