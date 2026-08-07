@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/warren6-hunter-v1.json",
-  "sha256": "c191f65106d59761d3615ac05cd33347c5bde4d0b1f6f64ec68f44de0fa572df"
+  "sha256": "724dbe925f1d636a8c289dfa5d0952172a83354a34ba8de9b276670ae44f2ef8"
  },
  "perspective": "team-relative",
  "memory": {
@@ -1174,7 +1174,7 @@
    "pickupReservationTicks": 8,
    "transferTimeoutTicks": 8,
    "deliveryTimeoutTicks": 120,
-   "accidentalPickup": "deliver",
+   "accidentalPickup": "transfer",
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
    "safeConversionConditionSetId": "convert-freely"
