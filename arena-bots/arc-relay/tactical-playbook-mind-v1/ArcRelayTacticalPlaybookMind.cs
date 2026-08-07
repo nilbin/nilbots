@@ -2296,6 +2296,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return outranks;
     }
 
+    /// <summary>The pragmatist heal-detour's own trigger, asked here so the
+    /// ball cannot tug against it. A full-health body is never hurt,
+    /// whatever its level says.</summary>
+    private bool HealDetourWanted(
+        GenericActorResolvedMatchContract contract,
+        MindBody body) =>
+        _healTiles.Length > 0
+        && body.Health < MaxHealth(contract, body)
+        && body.Health <= 1 + (_unitLevel.TryGetValue(
+                body.UnitId, out (int LifeId, int Level) level)
+            && level.LifeId == body.ActorId.LifeId ? level.Level : 1);
+
     private bool TryRecoverHold(
         MindBody body,
         TacticalPlaybookPackage.Order order,
@@ -4461,6 +4473,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Engagement engagement,
         ArenaBasics.Claims claims)
     {
+        // PRECEDENCE, hard rule not a knob: an ARMED recover outranks the
+        // ball. collect and heal each rank against COMBAT but said nothing
+        // about each other, so a hurt body with a Core in sight tugged
+        // between the beacon and the ball exactly the way collect tugged
+        // against the cone dodge (owner catch on commitx19-w-9001: t202 heal
+        // -> t204 collect -> t206 heal, and again at t255). A hurt body
+        // hauling a Core is a liability twice over - it cannot fight, and it
+        // loses the ball when it dies - so healing wins, and the 1-hp
+        // override already outranks everything. Not authorable: there is no
+        // sheet for which "fetch the ball while bleeding out" is the answer.
+        //
+        // The mask is sticky until WHOLE, mirroring the heal re-engage
+        // hysteresis: without it the boundary flaps the moment one hit heals.
+        // "Heading to heal" covers BOTH heal paths, because the tug the
+        // owner watched was against the pragmatist heal-detour, not the
+        // recover verb: t202 heal -> t204 collect -> t206 heal at 2 HP.
+        if (_recovering.Contains(body.UnitId)
+            || HealDetourWanted(contract, body)
+            || string.Equals(
+                order.Movement.Kind, "heal-beacon", StringComparison.Ordinal)
+            || (_healBreak.TryGetValue(body.UnitId, out int healingLife)
+                && healingLife == body.ActorId.LifeId))
+        {
+            return false;
+        }
         // Never go shopping at knife range - unless the sheet says the ball
         // comes FIRST, in which case breaking off an uncommitted fight for it
         // is the whole point. Collect sits in the movement

@@ -108,6 +108,18 @@ ranked RELATIVE to it, inside this block):**
   health threshold; composes with `threats` (either trigger, one
   latch), inheriting its sticky rally and unconditional expiry.
 
+**Precedence between them (hard rules, not knobs):**
+
+1. Survival outranks everything: hp <= 1 arms recover regardless of the
+   caution gates, and outranks both `collect` and `heal`.
+2. An ARMED recover outranks `collect`, whatever `collect` is set to. A
+   hurt body hauling a Core is a liability twice over - it cannot fight,
+   and it loses the ball when it dies. Masked until WHOLE, so the
+   boundary cannot flap on a single healed hit.
+3. A body that broke off to heal takes no new fight until whole.
+4. A strike windup, a cone dodge and every survival layer outrank
+   `collect: first`.
+
 **Deleted / not knobs:**
 
 - `whileCarrying` — carriers cannot fight; the engine decides this.
