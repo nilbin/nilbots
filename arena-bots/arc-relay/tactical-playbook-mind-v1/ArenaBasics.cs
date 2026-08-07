@@ -31,6 +31,16 @@ internal static class ArenaBasics
         private readonly HashSet<Position> _tiles = [];
         private readonly Dictionary<Position, int> _lanes = [];
 
+        private Claims(IArenaStepper stepper) => Stepper = stepper;
+
+        /// <summary>
+        /// The mind's movement seam for this tick. It rides on the claims
+        /// because every one of the six movement wrappers already takes
+        /// them, and because a static would be SHARED by both participants
+        /// of an in-process mirror cell.
+        /// </summary>
+        public IArenaStepper Stepper { get; }
+
         public IReadOnlySet<Position> Tiles => _tiles;
 
         /// <summary>Carrier right-of-way tiles, keyed to the owning
@@ -47,9 +57,22 @@ internal static class ArenaBasics
         public void ReserveLane(Position tile, int carrierUnitId) =>
             _lanes[tile] = carrierUnitId;
 
-        public static Claims ForTick(MindContext mind)
+        /// <summary>Claim a tile a body is actually stepping onto, and tell
+        /// the stepper so its own reservations match the executor's.
+        /// </summary>
+        public void Commit(MindBody body, Position tile)
         {
-            var claims = new Claims();
+            Reserve(tile);
+            Stepper.NoteCommitted(body, tile);
+        }
+
+        public static Claims ForTick(
+            GenericActorResolvedMatchContract contract,
+            MindContext mind,
+            IArenaStepper stepper)
+        {
+            stepper.BeginTick(contract, mind);
+            var claims = new Claims(stepper);
             foreach (MindBody body in mind.Bodies)
                 claims.Reserve(body.Position);
             return claims;
@@ -250,22 +273,14 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        if (goals.Count == 0 || goals.Contains(body.Position))
+        Position? chosen = claims.Stepper.Step(new StepRequest(
+            StepIntent.Toward, contract, mind, body, goals, claims));
+        if (chosen is not Position desiredDestination)
             return false;
+        ProjectileHeading heading = FromVector(
+            desiredDestination.X - body.Position.X,
+            desiredDestination.Y - body.Position.Y);
 
-        HashSet<Position> blocked = BlockedNow(contract, mind, body, claims);
-        ProjectileHeading[] routeHeadings = RouteHeadings(contract, body);
-        ProjectileHeading? desired = FindFirstStep(
-            contract.Map,
-            body.Position,
-            goals.ToHashSet(),
-            blocked,
-            routeHeadings,
-            PreferredHeadings(body, goals, MirroredFrame(contract, mind)));
-        if (desired is not ProjectileHeading heading)
-            return false;
-
-        Position desiredDestination = Step(body.Position, heading);
         GenericActorActionLegality? move = MovementAction(
             contract,
             mind,
@@ -294,7 +309,7 @@ internal static class ArenaBasics
         {
             (int dx, int dy) = heading.Vector();
             Position destination = body.Position.Offset(dx, dy);
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -316,7 +331,7 @@ internal static class ArenaBasics
         {
             (int dx, int dy) = direction.Vector();
             Position destination = body.Position.Offset(dx, dy);
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -535,51 +550,14 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        int? currentDistance = StaticDistance(
-            contract.Map,
-            body.Position,
-            goal);
-        if (currentDistance is null)
-            return false;
-        HashSet<Position> blocked = BlockedNow(contract, mind, body, claims);
-        ProjectileHeading facing =
-            (ProjectileHeading)((int)body.Facing * 2);
-        (ProjectileHeading Heading, Position Destination, int Distance)?
-            selected = RouteHeadings(contract, body)
-                .Select(heading => (
-                    Heading: heading,
-                    Destination: Step(body.Position, heading)))
-                .Where(candidate =>
-                    CanStep(
-                        contract.Map,
-                        body.Position,
-                        candidate.Destination,
-                        candidate.Heading)
-                    && !blocked.Contains(candidate.Destination))
-                .Select(candidate => (
-                    candidate.Heading,
-                    candidate.Destination,
-                    Distance: StaticDistance(
-                        contract.Map,
-                        candidate.Destination,
-                        goal)))
-                .Where(candidate => candidate.Distance is not null
-                    && candidate.Distance <= currentDistance)
-                .OrderBy(candidate => candidate.Distance)
-                .ThenBy(candidate => candidate.Heading == facing ? 0 : 1)
-                .ThenBy(candidate => FrameHeading(
-                    candidate.Heading, MirroredFrame(contract, mind)))
-                .Select(candidate => (ValueTuple<ProjectileHeading, Position, int>?) (
-                    candidate.Heading,
-                    candidate.Destination,
-                    candidate.Distance!.Value))
-                .FirstOrDefault();
-        return selected is { } step
+        return claims.Stepper.Step(new StepRequest(
+                StepIntent.Homeward, contract, mind, body, [goal], claims))
+                is Position destination
             && TryMoveDirect(
                 contract,
                 mind,
                 body,
-                step.Destination,
+                destination,
                 claims,
                 reason);
     }
@@ -605,39 +583,11 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        if (threats.Count == 0)
-            return false;
-        HashSet<Position> blocked = BlockedNow(contract, mind, body, claims);
-        int current = threats.Min(threat =>
-            threat.ChebyshevDistance(body.Position));
-        (ProjectileHeading Heading, Position Tile)? best = RouteHeadings(
-                contract, body)
-            .Select(heading => (
-                Heading: heading,
-                Tile: Step(body.Position, heading)))
-            .Where(candidate =>
-                CanStep(
-                    contract.Map,
-                    body.Position,
-                    candidate.Tile,
-                    candidate.Heading)
-                && !blocked.Contains(candidate.Tile))
-            .Select(candidate => (
-                candidate.Heading,
-                candidate.Tile,
-                Distance: threats.Min(threat =>
-                    threat.ChebyshevDistance(candidate.Tile))))
-            .Where(candidate => candidate.Distance > current)
-            .OrderByDescending(candidate => candidate.Distance)
-            .ThenBy(candidate => FrameHeading(
-                candidate.Heading, MirroredFrame(contract, mind)))
-            .Select(candidate =>
-                ((ProjectileHeading, Position)?)(
-                    candidate.Heading, candidate.Tile))
-            .FirstOrDefault();
-        return best is { } step
+        return claims.Stepper.Step(new StepRequest(
+                StepIntent.Away, contract, mind, body, threats, claims))
+                is Position destination
             && TryMoveDirect(
-                contract, mind, body, step.Item2, claims, reason);
+                contract, mind, body, destination, claims, reason);
     }
 
     public static bool TryMoveDirect(
@@ -648,16 +598,16 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        int dx = destination.X - body.Position.X;
-        int dy = destination.Y - body.Position.Y;
-        if (Math.Abs(dx) > 1 || Math.Abs(dy) > 1 || dx == 0 && dy == 0)
-            return false;
-        ProjectileHeading heading = FromVector(dx, dy);
-        if (!CanStep(contract.Map, body.Position, destination, heading)
-            || BlockedNow(contract, mind, body, claims).Contains(destination))
+        if (claims.Stepper.Step(new StepRequest(
+                StepIntent.Direct, contract, mind, body, [destination], claims))
+            is not Position admitted)
         {
             return false;
         }
+        destination = admitted;
+        ProjectileHeading heading = FromVector(
+            destination.X - body.Position.X,
+            destination.Y - body.Position.Y);
 
         GenericActorActionLegality? move = MovementAction(
             contract,
@@ -681,7 +631,7 @@ internal static class ArenaBasics
             && headings is not null
             && headings.AllowedValues.Contains(heading))
         {
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -701,7 +651,7 @@ internal static class ArenaBasics
             && directions is not null
             && directions.AllowedValues.Contains(direction))
         {
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -727,30 +677,18 @@ internal static class ArenaBasics
     {
         // A body already blocking a return lane must clear it even when the
         // only exit crosses predicted fire. Otherwise sustained covering fire
-        // can pin an unthreatened carrier behind an ally indefinitely.
-        HashSet<Position> blocked = BlockedNow(
-            contract,
-            mind,
-            body,
-            claims,
-            avoidHostileProjectiles: false);
-        ProjectileHeading? selected = RouteHeadings(contract, body)
-            .Select(heading => (Heading: heading, Tile: Step(body.Position, heading)))
-            .Where(candidate =>
-                CanStep(contract.Map, body.Position, candidate.Tile,
-                    candidate.Heading)
-                && !blocked.Contains(candidate.Tile)
-                && !forbidden.Contains(candidate.Tile))
-            .OrderByDescending(candidate => forbidden.Min(tile =>
-                candidate.Tile.ChebyshevDistance(tile)))
-            .ThenBy(candidate => FrameHeading(
-                candidate.Heading, MirroredFrame(contract, mind)))
-            .Select(candidate => (ProjectileHeading?)candidate.Heading)
-            .FirstOrDefault();
-        if (selected is not ProjectileHeading heading)
+        // can pin an unthreatened carrier behind an ally indefinitely — which
+        // is why the Aside intent reads its own obstacle set.
+        if (claims.Stepper.Step(new StepRequest(
+                StepIntent.Aside, contract, mind, body, forbidden, claims))
+            is not Position selectedDestination)
+        {
             return false;
+        }
+        ProjectileHeading heading = FromVector(
+            selectedDestination.X - body.Position.X,
+            selectedDestination.Y - body.Position.Y);
 
-        Position selectedDestination = Step(body.Position, heading);
         GenericActorActionLegality? move = MovementAction(
             contract,
             mind,
@@ -775,7 +713,7 @@ internal static class ArenaBasics
             && headings.AllowedValues.Contains(heading))
         {
             Position destination = Step(body.Position, heading);
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -797,7 +735,7 @@ internal static class ArenaBasics
         {
             (int dx, int dy) = direction.Vector();
             Position destination = body.Position.Offset(dx, dy);
-            claims.Reserve(destination);
+            claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -1495,7 +1433,7 @@ internal static class ArenaBasics
         return Math.Min(difference, 8 - difference);
     }
 
-    private static ProjectileHeading[] RouteHeadings(
+    internal static ProjectileHeading[] RouteHeadings(
         GenericActorResolvedMatchContract contract,
         MindBody body)
     {
@@ -1512,7 +1450,7 @@ internal static class ArenaBasics
             : EightWay;
     }
 
-    private static ProjectileHeading[] PreferredHeadings(
+    internal static ProjectileHeading[] PreferredHeadings(
         MindBody body,
         IReadOnlyCollection<Position> goals,
         bool mirrored)
@@ -1599,7 +1537,7 @@ internal static class ArenaBasics
             ?.Kind;
     }
 
-    private static HashSet<Position> BlockedNow(
+    internal static HashSet<Position> BlockedNow(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody moving,
@@ -1686,7 +1624,7 @@ internal static class ArenaBasics
         return blocked;
     }
 
-    private static ProjectileHeading? FindFirstStep(
+    internal static ProjectileHeading? FindFirstStep(
         GenericActorMapContract map,
         Position start,
         IReadOnlySet<Position> goals,
@@ -1788,7 +1726,7 @@ internal static class ArenaBasics
         return true;
     }
 
-    private static bool CanStep(
+    internal static bool CanStep(
         GenericActorMapContract map,
         Position from,
         Position to,
@@ -1802,20 +1740,20 @@ internal static class ArenaBasics
                 && CanEnter(map, from.Offset(0, dy));
     }
 
-    private static bool CanEnter(GenericActorMapContract map, Position tile) =>
+    internal static bool CanEnter(GenericActorMapContract map, Position tile) =>
         tile.X >= 0
         && tile.Y >= 0
         && tile.X < map.Width
         && tile.Y < map.Height
         && map.TileRows[tile.Y][tile.X] != '#';
 
-    private static Position Step(Position position, ProjectileHeading heading)
+    internal static Position Step(Position position, ProjectileHeading heading)
     {
         (int dx, int dy) = heading.Vector();
         return position.Offset(dx, dy);
     }
 
-    private static ProjectileHeading FromVector(int dx, int dy) =>
+    internal static ProjectileHeading FromVector(int dx, int dy) =>
         (dx, dy) switch
         {
             (0, -1) => ProjectileHeading.North,

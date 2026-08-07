@@ -81,6 +81,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly HashSet<int> _joiningUnits = [];
     private readonly Dictionary<int, ActorIdentity> _returningToFormation = [];
     private GenericActorResolvedMatchContract? _contract;
+    /// <summary>This mind's movement seam, chosen once at StartMatch. It is
+    /// an instance field, never a static: an in-process mirror cell runs
+    /// both participants inside one loaded assembly.</summary>
+    private IArenaStepper _stepper = new GreedyArenaStepper();
     private TacticalPlaybookPackage? _package;
     private TacticalPlaybookMachine? _machine;
     private TacticalTaskMachine? _tasks;
@@ -337,7 +341,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         CoreKey(core.CoreId)))
                     .ToArray(),
                 out HashSet<string> openSourceWells);
-        var claims = ArenaBasics.Claims.ForTick(mind);
+        var claims = ArenaBasics.Claims.ForTick(contract, mind, _stepper);
         // A live bait is a trap, not supply: no own body may stand on it on
         // any ruleset, or tick-start pickup would spring our own trap.
         foreach (GenericActorContext.ArcRelayCoreState core in loose)
