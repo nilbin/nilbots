@@ -4396,6 +4396,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Order order,
         ArenaBasics.Claims claims)
     {
+        // Never go shopping at knife range. Collect sits in the movement
+        // channel, so on a tick where the declared-cone dodge does not fire
+        // it can win against a body that is toe to toe with an enemy - and
+        // then the next tick evacuation pulls the other way. The owner
+        // watched that thrash read as standing still (commitx17-w-9001
+        // t139-142). A body in contact fights or dodges; the ball keeps.
+        if (mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position)
+                    <= RecoverContact))
+        {
+            return false;
+        }
         (int LifeId, string CoreKey, int Tick) handed =
             _handedOff.GetValueOrDefault(body.UnitId);
         bool JustHandedOff(GenericActorContext.ArcRelayCoreState core) =>
