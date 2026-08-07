@@ -74,6 +74,14 @@ public sealed class GenericActorMatchSession : IDisposable
         _visibleTilesCache = [];
     private readonly Dictionary<int, HashSet<Position>>
         _occludingSmokeCache = [];
+
+    /// <summary>
+    /// This tick's TEAM observable union of tiles — the same picture the mind
+    /// acts on — used by declared-strike lock tracking (owner ruling
+    /// 2026-08-09). Cleared with every other projection cache.
+    /// </summary>
+    private readonly Dictionary<int, HashSet<Position>>
+        _teamVisibleTilesCache = [];
     private readonly Dictionary<Position,
         GenericActorRuntimeObservation.SpawnReservation?>
         _spawnReservationCache = [];
@@ -275,8 +283,7 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             ThrowIfOperationInProgress();
             GenericActorModeState state = _mode.State;
-            if (state is GenericActorModeState.ArcRelay arcRelay
-                && _pendingStrikes.Count > 0)
+            if (state is GenericActorModeState.ArcRelay arcRelay)
             {
                 return new GenericActorModeState.ArcRelay(
                     (GenericActorRuntimeObservation.ModeObservationState
@@ -647,6 +654,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 arcRelayAfterMovement,
                 postMovementSignatures.Effects,
                 events);
+            // Matured LOCKED line attacks resolve before this tick's new
+            // declares, exactly as LaunchMaturedStrikes resolves before
+            // ResolveAttacks. That placement is the whole point of the lock
+            // ruling: a windup that matured at tick start could never be
+            // followed, because its target had not moved yet.
+            ResolveMaturedLockedLineStrikes(arcRelayAfterMovement, events);
             ResolveArcRelaySignatureActions(
                 resolutions,
                 arcRelayAfterMovement,
@@ -1880,6 +1893,37 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
+    /// <summary>
+    /// Matures the locked bolt-class line attacks whose windup ends this
+    /// tick (owner ruling 2026-08-09). The cancels are the declared strike's,
+    /// evaluated through the same <see cref="LockStaysTrackable"/> rule, so
+    /// there is exactly one answer to "is this lock still live" in the
+    /// engine.
+    /// </summary>
+    private void ResolveMaturedLockedLineStrikes(
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureRuntime.TickResult matured =
+            mode.Signatures.ResolveLockedLineStrikes(
+                Tick,
+                ArcRelaySignatureLives(),
+                LockStaysTrackable);
+        if (matured.Events.IsEmpty && matured.Effects.IsEmpty)
+            return;
+        EmitModeEvents(matured.Events, events);
+        ArcSignatureApplication application = ApplyArcRelaySignatureEffects(
+            mode,
+            matured.Effects,
+            events);
+        EmitModeEvents(
+            mode.ResolveForcedMovement(
+                Tick,
+                application.RelocatedActors,
+                ModeWorldView()),
+            events);
+    }
+
     private void ResolveArcRelaySignatureActions(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ArcRelayActorMatchModeDriver mode,
@@ -2346,6 +2390,14 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
+    /// <summary>
+    /// The rail beam PIERCES: it walks its line tile by tile and every body
+    /// standing on one takes the damage, so interposing a body SHARES the
+    /// beam rather than stopping it. A locked rail carries the frozen line it
+    /// fires down (the line to its lock, owner ruling 2026-08-09); an
+    /// unlocked one walks its declared heading from wherever its owner
+    /// stands, exactly as it always has.
+    /// </summary>
     private void ApplyRailLine(
         ArcRelayActorMatchModeDriver mode,
         ArcRelaySignatureRuntime.Effect.RailLine effect,
@@ -2356,12 +2408,22 @@ public sealed class GenericActorMatchSession : IDisposable
         ArcRelaySignatureDefinition.RailLine rule =
             (ArcRelaySignatureDefinition.RailLine)
                 mode.Signatures.DefinitionFor(effect.Owner);
-        var (dx, dy) = effect.Heading.Vector();
-        for (int step = 1; step <= rule.Range; step++)
+        ImmutableArray<Position> path = effect.Path;
+        if (path.IsDefaultOrEmpty)
         {
-            Position tile = owner.Position.Offset(dx * step, dy * step);
-            if (_definition.Map.IsWall(tile))
-                break;
+            var traced = ImmutableArray.CreateBuilder<Position>();
+            var (dx, dy) = effect.Heading.Vector();
+            for (int step = 1; step <= rule.Range; step++)
+            {
+                Position tile = owner.Position.Offset(dx * step, dy * step);
+                if (_definition.Map.IsWall(tile))
+                    break;
+                traced.Add(tile);
+            }
+            path = traced.ToImmutable();
+        }
+        foreach (Position tile in path)
+        {
             foreach (LifeState target in _lives.Values
                          .Where(value => value.Position == tile)
                          .OrderBy(value => value.ActorId)
@@ -3116,13 +3178,17 @@ public sealed class GenericActorMatchSession : IDisposable
                 // ONLY against the body it locked at declare. It follows that
                 // body anywhere inside the frozen wedge; it cancels - no
                 // bolt, like a dead shooter - when the lock is dead, has
-                // crossed the wedge boundary, or is out of the shooter's own
-                // line of sight. All three are LOCK-side: the shooter cannot
-                // drift out of its own shot, because commanding a move
-                // abandons the declare outright (#221). That line of sight is
-                // the tick's projected one, taken from the declaring tile and
-                // facing - the same place the bolt fires from.
-                // Bodyguarding is stepping onto the firing
+                // crossed the wedge boundary, when the shooter's TEAM has
+                // lost sight of it, or when a wall stands on the
+                // shooter-to-target ray. All four are LOCK-side: the shooter
+                // cannot drift out of its own shot, because commanding a move
+                // abandons the declare outright (#221).
+                // Tracking is SPOTTER doctrine (owner ruling 2026-08-09):
+                // the shooter's own facing cone no longer gates it, because
+                // a teammate watching the target is eyes enough. What the
+                // shooter still owes is physical line of sight - a clear ray
+                // from the frozen origin, walls and corners counted, facing
+                // ignored. Bodyguarding is stepping onto the firing
                 // line, never proximity: the delivery is still an ordinary
                 // first-body-contact ray. A strike declared over an empty
                 // wedge keeps its theatrical whiff down the centre. The sweep
@@ -3157,8 +3223,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 {
                     if (!_lives.TryGetValue(locked, out LifeState? target)
                         || !strike.ConeTiles.Contains(target.Position)
-                        || !VisibleTilesFor(shooter)
-                            .Contains(target.Position))
+                        || !LockStaysTrackable(
+                            strike.Shooter.TeamId,
+                            strike.Origin,
+                            target.Position))
                     {
                         continue;
                     }
@@ -4608,24 +4676,13 @@ public sealed class GenericActorMatchSession : IDisposable
             // ground underfoot, or every backstab would warn its victim. Own
             // strikes are always fully visible, and the spectator's
             // authoritative view keeps every cone.
-            PendingStrikes = _pendingStrikes
+            PendingStrikes = [.. PendingStrikeStates()
                 .Where(strike => strike.Shooter.TeamId == observingTeamId
                     || visibleTiles.Contains(
                         _lives.TryGetValue(
                             strike.Shooter, out LifeState? striker)
                             ? striker.Position
-                            : strike.Origin))
-                .OrderBy(strike => strike.Shooter)
-                .Select(strike =>
-                    new GenericActorRuntimeObservation
-                        .ArcRelayPendingStrikeState(
-                            strike.Shooter,
-                            strike.ResolveAtTick,
-                            strike.Origin,
-                            strike.CentralHeading,
-                            strike.DeclaredTarget,
-                            strike.TelegraphTiles))
-                .ToImmutableArray(),
+                            : strike.Origin))],
         };
     }
 
@@ -5463,6 +5520,67 @@ public sealed class GenericActorMatchSession : IDisposable
         return Math.Min(difference, 8 - difference);
     }
 
+    /// <summary>
+    /// Whether a declared lock is still trackable this tick (owner ruling
+    /// 2026-08-09, superseding the shooter's-own-eyes rule of #215/#234):
+    /// <c>"Team vision of course - but line of sight (ie no walls in between
+    /// or corners) the shooter and the target"</c>. Both halves must hold.
+    /// </summary>
+    /// <remarks>
+    /// TEAM VISION is the observable union the mind itself acts on, so a
+    /// spotter keeps a lock alive for a shooter facing the other way — the
+    /// facing cone stopped gating tracking, and with it the blind-flank
+    /// cancel class of DECISIONS #234. PHYSICAL LINE OF SIGHT is the
+    /// engine's canonical corner-strict supercover ray from the frozen
+    /// origin, facing-independent: a wall between the two ends the lock
+    /// whatever the team can see.
+    /// </remarks>
+    private bool LockStaysTrackable(
+        int shooterTeamId,
+        Position origin,
+        Position target) =>
+        TeamVisibleTiles(shooterTeamId).Contains(target)
+        && HasClearSightRay(origin, target);
+
+    /// <summary>
+    /// The union of every live body's sight on one team — the team observable
+    /// union, cached for the tick.
+    /// </summary>
+    private HashSet<Position> TeamVisibleTiles(int teamId)
+    {
+        if (_teamVisibleTilesCache.TryGetValue(
+                teamId,
+                out HashSet<Position>? cached))
+        {
+            return cached;
+        }
+        var union = new HashSet<Position>();
+        foreach (LifeState sensor in _lives.Values
+                     .Where(life => life.ActorId.TeamId == teamId)
+                     .OrderBy(life => life.ActorId))
+        {
+            union.UnionWith(VisibleTilesFor(sensor));
+        }
+        _teamVisibleTilesCache.Add(teamId, union);
+        return union;
+    }
+
+    /// <summary>
+    /// The engine's canonical sight ray, facing-independent: every supercover
+    /// tile strictly between the two ends must be floor, corners included.
+    /// </summary>
+    private bool HasClearSightRay(Position origin, Position target)
+    {
+        foreach (Position position in Visibility.SupercoverLine(origin, target))
+        {
+            if (position == origin || position == target)
+                continue;
+            if (_definition.Map.IsWall(position))
+                return false;
+        }
+        return true;
+    }
+
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
         if (_visibleTilesCache.TryGetValue(
@@ -5598,6 +5716,7 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         _teamProjectionCache.Clear();
         _visibleTilesCache.Clear();
+        _teamVisibleTilesCache.Clear();
         _occludingSmokeCache.Clear();
         _spawnReservationCache.Clear();
         _actionLegalitiesCache.Clear();
@@ -6962,16 +7081,37 @@ public sealed class GenericActorMatchSession : IDisposable
         WithPendingStrikes(
             GenericActorRuntimeObservation.ModeObservationState mode)
     {
-        if (_pendingStrikes.Count == 0
-            || mode is not GenericActorRuntimeObservation.ModeObservationState
+        if (mode is not GenericActorRuntimeObservation.ModeObservationState
                 .ArcRelay arcRelay)
         {
             return mode;
         }
-        return arcRelay with
-        {
-            PendingStrikes = _pendingStrikes
-                .OrderBy(strike => strike.Shooter)
+        ImmutableArray<GenericActorRuntimeObservation.ArcRelayPendingStrikeState>
+            pending = PendingStrikeStates();
+        return pending.IsEmpty
+            ? mode
+            : arcRelay with { PendingStrikes = pending };
+    }
+
+    /// <summary>
+    /// Every declare in windup on the ONE wire the viewer's tracking ray
+    /// reads: the guns' declared strikes and the locked bolt-class line
+    /// signatures, which are the same control plane and differ only in what
+    /// leaves the muzzle (owner ruling 2026-08-09).
+    /// </summary>
+    private ImmutableArray<
+        GenericActorRuntimeObservation.ArcRelayPendingStrikeState>
+        PendingStrikeStates()
+    {
+        ImmutableArray<ArcRelaySignatureRuntime.PendingLineStrike> lines =
+            _mode is ArcRelayActorMatchModeDriver arcMode
+                ? arcMode.Signatures.PendingLineStrikes()
+                : [];
+        if (_pendingStrikes.Count == 0 && lines.IsEmpty)
+            return [];
+        return
+        [
+            .. _pendingStrikes
                 .Select(strike =>
                     new GenericActorRuntimeObservation
                         .ArcRelayPendingStrikeState(
@@ -6981,8 +7121,19 @@ public sealed class GenericActorMatchSession : IDisposable
                             strike.CentralHeading,
                             strike.DeclaredTarget,
                             strike.TelegraphTiles))
-                .ToImmutableArray(),
-        };
+                .Concat(lines.Select(line =>
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            line.Shooter,
+                            line.ResolveAtTick,
+                            line.Origin,
+                            line.CentralHeading,
+                            line.Target,
+                            line.Tiles)))
+                .OrderBy(strike => strike.Shooter)
+                .ThenBy(strike => strike.ResolveAtTick)
+                .ThenBy(strike => strike.CentralHeading),
+        ];
     }
 
     private static GenericActorMatchResult ToGenericResult(

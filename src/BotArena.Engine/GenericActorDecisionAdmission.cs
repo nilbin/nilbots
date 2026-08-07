@@ -470,11 +470,17 @@ internal sealed class GenericActorDecisionAdmission
         ActorActionDefinition action,
         ActorActionParameterKind kind)
     {
-        // The strike's declared target (DECISIONS #222) is optional by
-        // construction: a shooter with nobody worth naming still fires down
-        // the lane, and that suppressive declare locks nothing.
+        // The declared LOCK (DECISIONS #222, extended to the bolt-class line
+        // signatures by the owner ruling of 2026-08-09) is optional by
+        // construction: a declarer with nobody worth naming still fires down
+        // the lane, and that suppressive declare locks nothing. The lock is
+        // the UnitTarget that rides BESIDE a ProjectileHeading — the shape
+        // only an aimed windup has. A signature whose ONLY argument is a unit
+        // (repair, exchange, paint) still requires it.
         if (kind == ActorActionParameterKind.UnitTarget
-            && action.Kind == ActorActionKind.Attack)
+            && (action.Kind == ActorActionKind.Attack
+                || action.ParameterKinds.Contains(
+                    ActorActionParameterKind.ProjectileHeading)))
         {
             return true;
         }

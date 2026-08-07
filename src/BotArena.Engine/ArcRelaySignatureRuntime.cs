@@ -24,6 +24,25 @@ internal sealed class ArcRelaySignatureRuntime
     private readonly ImmutableDictionary<int, Position> _ownReactorByTeam;
 
     /// <summary>
+    /// The bolt-class LINE signatures that declare a LOCK on this ruleset —
+    /// keyed by action id, presence-driven off the action's declared
+    /// UnitTarget parameter (owner ruling 2026-08-09). Empty on every ruleset
+    /// without the strike lock, which is what keeps their bytes and their
+    /// behaviour exactly where they were.
+    /// </summary>
+    private readonly ImmutableHashSet<string> _lockDeclaringActions;
+
+    /// <summary>
+    /// The opposing unit slots per team, in canonical order — the same mask a
+    /// windup gun publishes for its named target (DECISIONS #222).
+    /// </summary>
+    private readonly ImmutableDictionary<int,
+        ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>>
+        _opposingSlotsByTeam;
+
+    private readonly bool _diagonalCornersMustBeClear;
+
+    /// <summary>
     /// Equal-distance target ties break toward the shooter's own reactor
     /// under -03 side-fair targeting: a raw ActorId tie-break always prefers
     /// the enemy's lowest slots, which spawn on the same world side for both
@@ -71,6 +90,33 @@ internal sealed class ArcRelaySignatureRuntime
         _byAction = mode.Signatures.ToImmutableDictionary(
             value => value.ActionId,
             StringComparer.Ordinal);
+        _lockDeclaringActions = definition.Rules.Actions
+            .Where(action => action.Kind == ActorActionKind.Signature
+                && action.ParameterKinds.Contains(
+                    ActorActionParameterKind.UnitTarget)
+                && _byAction.TryGetValue(
+                    action.Id,
+                    out ArcRelaySignatureDefinition? signature)
+                && IsLineAttack(signature))
+            .Select(action => action.Id)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+        _opposingSlotsByTeam = definition.Topology.UnitSlots
+            .Select(slot => slot.TeamId)
+            .Distinct()
+            .ToImmutableDictionary(
+                teamId => teamId,
+                teamId => definition.Topology.UnitSlots
+                    .Where(slot => slot.TeamId != teamId)
+                    .OrderBy(slot => slot.TeamId)
+                    .ThenBy(slot => slot.UnitId)
+                    .Select(slot => new GenericActorRuntimeActionArgument
+                        .UnitTarget(slot.TeamId, slot.UnitId))
+                    .ToImmutableArray());
+        // The strike line's corner rule is a projectile fact, and the class
+        // guns all author it the same way; a locked beam traces the same
+        // geometry so a lit tile stays exactly a hittable tile.
+        _diagonalCornersMustBeClear = definition.Rules.AttackProfiles
+            .All(profile => profile.Projectile.DiagonalCornersMustBeClear);
         _bySlot = definition.Topology.UnitSlots.ToImmutableDictionary(
             value => (value.TeamId, value.UnitId),
             value => mode.Signatures.Single(signature => string.Equals(
@@ -148,6 +194,23 @@ internal sealed class ArcRelaySignatureRuntime
             .ToImmutableArray();
     }
 
+    /// <summary>
+    /// Whether this signature declares a LOCK on this ruleset: a bolt-class
+    /// line attack whose action carries the optional UnitTarget parameter.
+    /// </summary>
+    public bool DeclaresLock(string actionId) =>
+        _lockDeclaringActions.Contains(actionId);
+
+    /// <summary>
+    /// The signatures the lock ruling covers: LINE attacks that damage or
+    /// displace, aimed down a heading. The sentinel plants a turret on a
+    /// named TILE — it is a placement, not a line attack — so it keeps the
+    /// plain telegraph of DECISIONS #226 and locks nothing.
+    /// </summary>
+    internal static bool IsLineAttack(ArcRelaySignatureDefinition definition) =>
+        definition is ArcRelaySignatureDefinition.RailLine
+            or ArcRelaySignatureDefinition.TractorHook2;
+
     public ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
         UnitTargets(
             ActorIdentity actor,
@@ -156,6 +219,14 @@ internal sealed class ArcRelaySignatureRuntime
             IReadOnlyCollection<Life> lives)
     {
         ArcRelaySignatureDefinition signature = DefinitionFor(actor);
+        // A locked line attack names the body it is for, and only an enemy
+        // can be locked, so the mask is the opposing slots — the exact mask a
+        // windup gun publishes (DECISIONS #222). It is deliberately not
+        // narrowed to what is alive or visible: the declare is a decision the
+        // mind is allowed to get wrong, and naming nobody lockable is the
+        // theatrical whiff.
+        if (_lockDeclaringActions.Contains(signature.ActionId))
+            return _opposingSlotsByTeam[actor.TeamId];
         return lives.Where(target => signature switch
             {
                 ArcRelaySignatureDefinition.RepairBeam value =>
@@ -191,12 +262,16 @@ internal sealed class ArcRelaySignatureRuntime
         IReadOnlyCollection<Life> lives)
     {
         ArcRelaySignatureDefinition definition = _byAction[actionId];
+        bool declaresLock = _lockDeclaringActions.Contains(actionId);
         string operationId = $"arc-signature-{_nextOperationOrdinal++}";
+        // A named unit that is dead or absent is a legal declare with no
+        // lock, so the lookup must tolerate it. Every other signature's mask
+        // is built from live bodies, so its Single() never fired anyway.
         ActorIdentity? targetActor = arguments
             .OfType<GenericActorRuntimeActionArgument.UnitTargetArgument>()
-            .Select(value => lives.Single(life =>
+            .Select(value => lives.FirstOrDefault(life =>
                 life.ActorId.TeamId == value.Value.TeamId
-                && life.ActorId.UnitId == value.Value.UnitId).ActorId)
+                && life.ActorId.UnitId == value.Value.UnitId)?.ActorId)
             .SingleOrDefault();
         Position? targetPosition = arguments
             .OfType<GenericActorRuntimeActionArgument.PositionTargetArgument>()
@@ -222,6 +297,33 @@ internal sealed class ArcRelaySignatureRuntime
             targetPosition = ClipStraightLanding(source, requestedLanding);
         }
 
+        // The locked line attack (owner ruling 2026-08-09): the declare
+        // freezes the 90-degree wedge of its declared heading exactly as a
+        // strike does, and the LOCK is the body the mind named — nothing
+        // else, and only when that body is an enemy standing inside the
+        // frozen wedge at declare. Naming nobody, naming a friendly, naming
+        // the dead, or naming a body outside the wedge locks NOTHING and
+        // keeps the theatrical whiff down the declared heading.
+        ImmutableArray<Position> coneTiles = [];
+        if (declaresLock)
+        {
+            coneTiles = GenericActorStrikeCone.Tiles(
+                _map,
+                source,
+                heading!.Value,
+                LineAttackRange(definition),
+                _diagonalCornersMustBeClear);
+            Life? named = targetActor is ActorIdentity identity
+                ? lives.FirstOrDefault(life => life.ActorId == identity)
+                : null;
+            targetActor = named is not null
+                && named.ActorId.TeamId != actor.TeamId
+                && coneTiles.Contains(named.Position)
+                    ? named.ActorId
+                    : null;
+            targetPosition = targetActor is null ? null : named!.Position;
+        }
+
         Operation operation = CreateOperation(
             operationId,
             definition,
@@ -231,7 +333,9 @@ internal sealed class ArcRelaySignatureRuntime
             targetPosition,
             heading,
             direction,
-            tick);
+            tick,
+            declaresLock,
+            coneTiles);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         ReplaceOwnedConstruct(operation, events);
         _operations.Add(operationId, operation);
@@ -248,7 +352,15 @@ internal sealed class ArcRelaySignatureRuntime
                 heading!.Value));
             Complete(operation, tick, "completed", events);
         }
-        else if (definition is ArcRelaySignatureDefinition.TractorHook2 hook2)
+        // A TELEGRAPHING declare has not happened yet: it rides the wire in
+        // Tell for its windup, and nothing leaves the muzzle until it
+        // matures. Only an instant cast resolves here. (The guard is what
+        // makes DECISIONS #226's windup real for the hook and the sentinel:
+        // both used to run their instant branch on the declare tick and
+        // spend the telegraph they had just published.)
+        else if (definition is ArcRelaySignatureDefinition.TractorHook2 hook2
+                 && operation.Phase
+                    != ArcRelaySignatureState.SignaturePhase.Tell)
         {
             effects.Add(new Effect.HookBolt(
                 operationId,
@@ -260,7 +372,9 @@ internal sealed class ArcRelaySignatureRuntime
                 hook2.BoltTilesPerAdvance));
             Complete(operation, tick, "launched", events);
         }
-        else if (definition is ArcRelaySignatureDefinition.PrismWall
+        else if (operation.Phase
+                     != ArcRelaySignatureState.SignaturePhase.Tell
+                 && definition is ArcRelaySignatureDefinition.PrismWall
                  or ArcRelaySignatureDefinition.TripNode
                  or ArcRelaySignatureDefinition.NullField
                  or ArcRelaySignatureDefinition.HardlightBlock
@@ -301,6 +415,19 @@ internal sealed class ArcRelaySignatureRuntime
             if (operation.EndsAtTick == tick)
             {
                 Complete(operation, tick, "expired", events);
+                continue;
+            }
+            // A LOCKED line attack matures where a declared strike matures —
+            // in the attack phase, after this tick's movement — so its
+            // maturity is owned by ResolveLockedLineStrikes and never by this
+            // tick-start pass. What happens here is the FOLLOW: the published
+            // line re-aims at the lock's current tile every tick, so the tiles
+            // on the wire stay exactly the tiles that would resolve now.
+            if (operation.DeclaresLock
+                && operation.Phase
+                    == ArcRelaySignatureState.SignaturePhase.Tell)
+            {
+                TrackLockedLine(operation, world);
                 continue;
             }
             if (operation.CompletesAtTick != tick)
@@ -355,16 +482,22 @@ internal sealed class ArcRelaySignatureRuntime
                         operation.TargetPosition!.Value));
                     Complete(operation, tick, "completed", events);
                     break;
-                case ArcRelaySignatureDefinition.TractorHook2
+                case ArcRelaySignatureDefinition.TractorHook2 hook
                     when operation.Phase
                         == ArcRelaySignatureState.SignaturePhase.Tell:
                     // The windup matured: the grapple bolt leaves down the
                     // line frozen at declare, and everything downstream is
-                    // the historical instant cast.
-                    operation.Phase = ArcRelaySignatureState.SignaturePhase
-                        .Active;
-                    operation.CompletesAtTick = null;
-                    events.Add(SignatureEvent(operation, "launched"));
+                    // the historical instant cast. (A LOCKED hook never
+                    // reaches here — it matures with the strikes.)
+                    effects.Add(new Effect.HookBolt(
+                        operation.OperationId,
+                        operation.OwnerActorId,
+                        operation.SourcePosition,
+                        operation.Heading!.Value,
+                        hook.Range,
+                        hook.MaxPullTiles,
+                        hook.BoltTilesPerAdvance));
+                    Complete(operation, tick, "launched", events);
                     break;
                 case ArcRelaySignatureDefinition.SentinelSeed2 seed2
                     when operation.Phase
@@ -380,7 +513,8 @@ internal sealed class ArcRelaySignatureRuntime
                     effects.Add(new Effect.RailLine(
                         operation.OperationId,
                         operation.OwnerActorId,
-                        operation.Heading!.Value));
+                        operation.Heading!.Value,
+                        []));
                     Complete(operation, tick, "completed", events);
                     break;
                 case ArcRelaySignatureDefinition.NullField2 field
@@ -455,6 +589,192 @@ internal sealed class ArcRelaySignatureRuntime
         }
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
     }
+
+    /// <summary>
+    /// Matures every locked line attack whose windup ends this tick, in the
+    /// declared-strike phase and under the declared-strike rules (owner
+    /// ruling 2026-08-09: "same lock on mechanism for some signatures with
+    /// the windup etc similarly to regular striking").
+    /// </summary>
+    /// <remarks>
+    /// The four cancels are the strike's, and all four are LOCK-side: the
+    /// lock died, it left the frozen wedge, the shooter's TEAM lost sight of
+    /// it, or a wall stands on the shooter-to-target ray. The declarer cannot
+    /// drift out of its own beam, because commanding a move abandons the
+    /// declare outright (DECISIONS #221). A declare that locked nothing keeps
+    /// the theatrical whiff down its declared heading.
+    /// <para>
+    /// ONLY the delivery differs from a strike, and each signature keeps its
+    /// own: rail fires the piercing beam down the line to the lock — every
+    /// body on it takes the damage, so interposition SHARES the beam rather
+    /// than stopping it — and the hook throws its grapple bolt down the
+    /// eight-way heading that line starts on, which still catches the first
+    /// body it meets.
+    /// </para>
+    /// </remarks>
+    public TickResult ResolveLockedLineStrikes(
+        int tick,
+        IReadOnlyCollection<Life> lives,
+        Func<int, Position, Position, bool> lockStaysTrackable)
+    {
+        ArgumentNullException.ThrowIfNull(lockStaysTrackable);
+        var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        var effects = ImmutableArray.CreateBuilder<Effect>();
+        Dictionary<ActorIdentity, Life> world = lives.ToDictionary(
+            value => value.ActorId);
+        foreach (Operation operation in _operations.Values
+                     .Where(value => value.DeclaresLock
+                         && value.Phase
+                             == ArcRelaySignatureState.SignaturePhase.Tell
+                         && value.CompletesAtTick <= tick)
+                     .OrderBy(value => value.OwnerActorId)
+                     .ThenBy(value => value.OperationId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (!world.ContainsKey(operation.OwnerActorId))
+            {
+                Complete(operation, tick, "owner-destroyed", events);
+                continue;
+            }
+            Position? aim = operation.TargetActorId is ActorIdentity locked
+                ? world.TryGetValue(locked, out Life? target)
+                    && operation.ConeTiles.Contains(target.Position)
+                    && lockStaysTrackable(
+                        operation.OwnerActorId.TeamId,
+                        operation.SourcePosition,
+                        target.Position)
+                        ? target.Position
+                        : null
+                : LineAttackWhiff(operation);
+            if (aim is null)
+            {
+                Complete(operation, tick, "lock-lost", events);
+                continue;
+            }
+            ImmutableArray<Position> path = GenericActorStrikeCone.LineTo(
+                _map,
+                operation.SourcePosition,
+                aim.Value,
+                _diagonalCornersMustBeClear);
+            if (path.IsEmpty)
+            {
+                Complete(operation, tick, "lock-lost", events);
+                continue;
+            }
+            operation.Positions = path;
+            switch (operation.Definition)
+            {
+                case ArcRelaySignatureDefinition.RailLine:
+                    effects.Add(new Effect.RailLine(
+                        operation.OperationId,
+                        operation.OwnerActorId,
+                        ProjectileHeadingExtensions.Between(
+                            operation.SourcePosition,
+                            path[0]),
+                        path));
+                    Complete(operation, tick, "completed", events);
+                    break;
+                case ArcRelaySignatureDefinition.TractorHook2 hook:
+                    effects.Add(new Effect.HookBolt(
+                        operation.OperationId,
+                        operation.OwnerActorId,
+                        operation.SourcePosition,
+                        ProjectileHeadingExtensions.Between(
+                            operation.SourcePosition,
+                            path[0]),
+                        hook.Range,
+                        hook.MaxPullTiles,
+                        hook.BoltTilesPerAdvance));
+                    Complete(operation, tick, "launched", events);
+                    break;
+                default:
+                    Complete(operation, tick, "lock-lost", events);
+                    break;
+            }
+        }
+        return new TickResult(events.ToImmutable(), effects.ToImmutable());
+    }
+
+    /// <summary>
+    /// Every locked line attack still winding up, in the declared-strike wire
+    /// shape: the frozen apex, the declared heading, the frozen wedge and the
+    /// locked body. The viewer's tracking ray reads exactly this, so a
+    /// winding-up beam draws the same sentence a winding-up gun does.
+    /// </summary>
+    public ImmutableArray<PendingLineStrike> PendingLineStrikes() =>
+        [.. _operations.Values
+            .Where(value => value.DeclaresLock
+                && value.Phase == ArcRelaySignatureState.SignaturePhase.Tell)
+            .OrderBy(value => value.OwnerActorId)
+            .ThenBy(value => value.OperationId, StringComparer.Ordinal)
+            .Select(value => new PendingLineStrike(
+                value.OwnerActorId,
+                value.CompletesAtTick!.Value,
+                value.SourcePosition,
+                value.Heading!.Value,
+                value.TargetActorId,
+                value.ConeTiles))];
+
+    /// <summary>
+    /// The follow: a locked line re-publishes itself at the lock's current
+    /// tile every tick of the windup, so the announced tiles are the tiles
+    /// that would resolve now. A lock that has left the wedge or died stops
+    /// being tracked and the line falls back to its declared heading.
+    /// </summary>
+    private void TrackLockedLine(
+        Operation operation,
+        IReadOnlyDictionary<ActorIdentity, Life> world)
+    {
+        Position? aim = operation.TargetActorId is ActorIdentity locked
+            && world.TryGetValue(locked, out Life? target)
+            && operation.ConeTiles.Contains(target.Position)
+                ? target.Position
+                : LineAttackWhiff(operation);
+        if (aim is null)
+            return;
+        ImmutableArray<Position> path = GenericActorStrikeCone.LineTo(
+            _map,
+            operation.SourcePosition,
+            aim.Value,
+            _diagonalCornersMustBeClear);
+        if (!path.IsEmpty)
+            operation.Positions = path;
+    }
+
+    /// <summary>
+    /// Where a declare that locked nothing points: the far end of its own
+    /// declared heading, so the whiff is theatre down the announced lane.
+    /// </summary>
+    private Position? LineAttackWhiff(Operation operation)
+    {
+        if (operation.TargetActorId is not null)
+            return null;
+        ImmutableArray<Position> ray = Ray(
+            operation.SourcePosition,
+            operation.Heading!.Value,
+            LineAttackRange(operation.Definition));
+        return ray.IsEmpty || ray[^1] == operation.SourcePosition
+            ? null
+            : ray[^1];
+    }
+
+    private static int LineAttackRange(
+        ArcRelaySignatureDefinition definition) =>
+        definition switch
+        {
+            ArcRelaySignatureDefinition.RailLine rail => rail.Range,
+            ArcRelaySignatureDefinition.TractorHook2 hook => hook.Range,
+            _ => throw new ArgumentOutOfRangeException(nameof(definition)),
+        };
+
+    private static int LineAttackWindup(
+        ArcRelaySignatureDefinition definition) =>
+        definition switch
+        {
+            ArcRelaySignatureDefinition.RailLine rail => rail.WindupTicks,
+            ArcRelaySignatureDefinition.TractorHook2 hook => hook.WindupTicks,
+            _ => throw new ArgumentOutOfRangeException(nameof(definition)),
+        };
 
     public void NotifyDamaged(
         int tick,
@@ -714,13 +1034,48 @@ internal sealed class ArcRelaySignatureRuntime
         Position? targetPosition,
         ProjectileHeading? heading,
         Direction? direction,
-        int tick)
+        int tick,
+        bool declaresLock,
+        ImmutableArray<Position> coneTiles)
     {
         ArcRelaySignatureState.SignaturePhase phase;
         int? completes = null;
         int? ends = null;
         int capacity = 0;
         ImmutableArray<Position> positions;
+        // A locked line attack publishes the LINE it would resolve on — to
+        // its lock when it has one, down its declared heading when it does
+        // not. The frozen wedge is the reach fact and rides the pending-strike
+        // wire beside it; painting the whole 90 degrees as ground is the
+        // blinking apology DECISIONS #220 removed.
+        if (declaresLock)
+        {
+            Position aim = targetPosition
+                ?? Ray(source, heading!.Value, LineAttackRange(definition))[^1];
+            ImmutableArray<Position> line = GenericActorStrikeCone.LineTo(
+                _map,
+                source,
+                aim,
+                _diagonalCornersMustBeClear);
+            return new Operation(
+                operationId,
+                definition,
+                actor,
+                source,
+                targetActor,
+                targetPosition,
+                heading,
+                ArcRelaySignatureState.SignaturePhase.Tell,
+                tick,
+                checked(tick + LineAttackWindup(definition)),
+                endsAtTick: null,
+                line.IsEmpty ? [source] : line,
+                remainingCapacity: 0)
+            {
+                DeclaresLock = true,
+                ConeTiles = coneTiles,
+            };
+        }
         switch (definition)
         {
             case ArcRelaySignatureDefinition.VectorDash value:
@@ -1236,6 +1591,17 @@ internal sealed class ArcRelaySignatureRuntime
         ImmutableArray<GenericActorModeEvent> Events,
         ImmutableArray<Effect> Effects);
 
+    /// <summary>
+    /// One locked line attack in windup, in the declared-strike wire shape.
+    /// </summary>
+    internal sealed record PendingLineStrike(
+        ActorIdentity Shooter,
+        int ResolveAtTick,
+        Position Origin,
+        ProjectileHeading CentralHeading,
+        ActorIdentity? Target,
+        ImmutableArray<Position> Tiles);
+
     internal abstract record Effect(string OperationId, ActorIdentity Owner)
     {
         internal sealed record VectorDash(
@@ -1275,10 +1641,18 @@ internal sealed class ArcRelaySignatureRuntime
             ActorIdentity Target,
             Position SourceStart,
             Position TargetStart) : Effect(Id, Actor);
+        /// <summary>
+        /// The beam. <paramref name="Path"/> is the frozen line a LOCKED rail
+        /// fires down — the tiles the lock's own position picked at maturity;
+        /// it is empty for an unlocked rail, which still walks its declared
+        /// heading from wherever its owner stands. Either way the delivery
+        /// PIERCES: every body on the line takes the damage.
+        /// </summary>
         internal sealed record RailLine(
             string Id,
             ActorIdentity Actor,
-            ProjectileHeading Heading) : Effect(Id, Actor);
+            ProjectileHeading Heading,
+            ImmutableArray<Position> Path) : Effect(Id, Actor);
         internal sealed record KineticBurst(
             string Id,
             ActorIdentity Actor,
@@ -1352,5 +1726,19 @@ internal sealed class ArcRelaySignatureRuntime
         public int RemainingCapacity { get; set; }
         public int AppliedAmount { get; set; }
         public bool Suppressed { get; set; }
+
+        /// <summary>
+        /// Whether this operation is a LOCKED line attack: it matures in the
+        /// declared-strike phase, against the body it named, under the
+        /// strike's cancels (owner ruling 2026-08-09).
+        /// </summary>
+        public bool DeclaresLock { get; init; }
+
+        /// <summary>
+        /// The 90-degree wedge frozen at declare — reach, not a zone. The
+        /// lock may be followed anywhere inside it and cancels the moment it
+        /// steps out.
+        /// </summary>
+        public ImmutableArray<Position> ConeTiles { get; init; } = [];
     }
 }

@@ -330,7 +330,7 @@ public static class ArcRelayH0Definition
                 signature.ActionId,
                 ArcRelayActionIds.FirstSignatureCode + index,
                 ActorActionKind.Signature,
-                SignatureParameters(signature))));
+                SignatureParameters(signature, loopProfile))));
 
         return new ActorRulesDefinition(
             loopProfile.RulesetId,
@@ -610,10 +610,33 @@ public static class ArcRelayH0Definition
                 "sentinel-seed", 2, 4, 1, 3, 30, 18)),
     ];
 
+    /// <summary>
+    /// One signature's declared argument shape.
+    /// </summary>
+    /// <remarks>
+    /// The bolt-class LINE attacks — rail and the grammar-2 hook — name WHO
+    /// they are shooting at on a ruleset that carries the strike lock (owner
+    /// ruling 2026-08-09), exactly as a windup gun does since DECISIONS #222.
+    /// The parameter is optional, so a declare that names nobody stays the
+    /// theatrical whiff down the declared heading; and it is presence-driven
+    /// on <see cref="ArcRelayLoopProfile.StrikeWindupTicks"/>, so every
+    /// ruleset without the strike lock keeps its historical single-parameter
+    /// shape and its fingerprint. vector-dash is movement utility and never
+    /// locks anything.
+    /// </remarks>
     private static ImmutableArray<ActorActionParameterKind>
-        SignatureParameters(ArcRelaySignatureDefinition signature) =>
+        SignatureParameters(
+            ArcRelaySignatureDefinition signature,
+            ArcRelayLoopProfile loopProfile) =>
         signature switch
         {
+            ArcRelaySignatureDefinition.TractorHook2 or
+            ArcRelaySignatureDefinition.RailLine
+                when loopProfile.StrikeWindupTicks > 0 =>
+                [
+                    ActorActionParameterKind.ProjectileHeading,
+                    ActorActionParameterKind.UnitTarget,
+                ],
             ArcRelaySignatureDefinition.VectorDash or
             ArcRelaySignatureDefinition.TractorHook or
             ArcRelaySignatureDefinition.TractorHook2 or
