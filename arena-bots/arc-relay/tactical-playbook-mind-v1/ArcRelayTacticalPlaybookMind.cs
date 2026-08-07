@@ -535,6 +535,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "movement" => TryWithdraw(
                             contract, mind, package, body, engagement, claims,
                             Provenance(machine, group, order, "withdraw"))
+                        || TryDuelStand(
+                            contract, body, focus,
+                            Provenance(machine, group, order, "duel-stand"))
                         || TryCloseOnFocus(
                             contract, mind, body, focus, claims,
                             Provenance(machine, group, order, "close-on-focus"))
@@ -2014,6 +2017,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// Runs after the skirmish step (kite cadence keeps its say) and before
     /// formation movement (a hunt outranks a slot).
     /// </summary>
+    /// <summary>
+    /// A body in a live duel stands its ground while the gun cycles.
+    /// Without this, cooldown ticks fell through to formation movement and
+    /// the body drifted toward its slot mid-fight - the owner watched a
+    /// "fully committed" ghost walk away from an adjacent enemy between
+    /// strikes (exhibition trace 2026-08-08: 60-70% of all turn-away
+    /// moments were formation-move on cooldown). Declared-cone evacuation
+    /// and self-preservation still outrank this: stepping out of a
+    /// telegraphed strike is dodging, not disengagement.
+    /// </summary>
+    private bool TryDuelStand(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        IReadOnlyDictionary<int, FocusAssignment> focus,
+        string reason)
+    {
+        if (body.Cooldown <= 0
+            || !focus.TryGetValue(body.UnitId, out FocusAssignment? duel)
+            || duel.HoldDeclare
+            || body.Position.ChebyshevDistance(duel.Target.Position)
+                > AttackRange(contract, body))
+        {
+            return false;
+        }
+        return Hold(body, reason);
+    }
+
     private static bool TryCloseOnFocus(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -2022,9 +2052,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ArenaBasics.Claims claims,
         string reason)
     {
+        // No cooldown exclusion: a cycling gun is not a reason to let prey
+        // open the gap (owner trace 2026-08-08 - "the enemy ran off" was
+        // this: strike, four free ticks of formation drift, then the
+        // hidden-2-ticks release ended the fight). Between strikes a body
+        // in range stands (TryDuelStand, ordered just before this) and a
+        // body out of range closes.
         if (!focus.TryGetValue(body.UnitId, out FocusAssignment? assignment)
             || assignment.HoldDeclare
-            || body.Cooldown > 0
             || body.Position.ChebyshevDistance(
                 assignment.Target.Position) <= 2)
         {
