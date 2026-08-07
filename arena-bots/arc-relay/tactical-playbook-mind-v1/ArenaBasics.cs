@@ -867,6 +867,7 @@ internal static class ArenaBasics
                 : null;
         if (action is null || headings is null || attack is null)
             return false;
+        GenericActorRulesContract.VisionProfile? vision = VisionOf(contract, body);
 
         IEnumerable<GenericActorContext.ObservedEnemyState> targets =
             preferred is null
@@ -884,15 +885,11 @@ internal static class ArenaBasics
 
         foreach (GenericActorContext.ObservedEnemyState target in targets)
         {
-            if (!TryRay(body.Position, target.Position, out ProjectileHeading heading,
-                    out int distance)
-                || distance > attack.Projectile.MaxTravelTiles
-                || !headings.AllowedValues.Contains(heading)
-                || !ClearRay(
-                    contract.Map,
-                    body.Position,
-                    target.Position,
-                    attack.Projectile.DiagonalCornersMustBeClear))
+            if (!TryAimSolution(
+                    contract.Map, attack, body.Position, target.Position,
+                    headings.AllowedValues, vision, body.Facing,
+                    out ProjectileHeading heading, out int distance)
+                || distance > attack.Projectile.MaxTravelTiles)
             {
                 continue;
             }
@@ -934,15 +931,17 @@ internal static class ArenaBasics
             return false;
         foreach (GenericActorContext.ObservedEnemyState target in targets)
         {
-            if (!TryRay(body.Position, target.Position,
+            // The turn pass: only for a target this body cannot ALREADY point
+            // at. A wedge gun with a legal covering heading has nothing to
+            // prepare — it either fires or it is on cadence.
+            if (TryAimSolution(
+                    contract.Map, attack, body.Position, target.Position,
+                    headings.AllowedValues, vision, body.Facing, out _, out _)
+                || !TryAimSolution(
+                    contract.Map, attack, body.Position, target.Position,
+                    allowed: null, vision, facing: null,
                     out ProjectileHeading heading, out int distance)
-                || distance > attack.Projectile.MaxTravelTiles
-                || headings.AllowedValues.Contains(heading)
-                || !ClearRay(
-                    contract.Map,
-                    body.Position,
-                    target.Position,
-                    attack.Projectile.DiagonalCornersMustBeClear))
+                || distance > attack.Projectile.MaxTravelTiles)
             {
                 continue;
             }
@@ -989,12 +988,11 @@ internal static class ArenaBasics
         return action is { Available: true }
             && headings is not null
             && attack is not null
-            && TryRay(body.Position, target,
-                out ProjectileHeading heading, out int distance)
-            && distance <= attack.Projectile.MaxTravelTiles
-            && headings.AllowedValues.Contains(heading)
-            && ClearRay(contract.Map, body.Position, target,
-                attack.Projectile.DiagonalCornersMustBeClear);
+            && TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                headings.AllowedValues, VisionOf(contract, body), body.Facing,
+                out _, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles;
     }
 
     public static bool CanAimAt(
@@ -1015,11 +1013,14 @@ internal static class ArenaBasics
                 ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
                     candidate.Id == attackId)
                 : null;
+        // No mask: this asks whether the shot exists at all, for a body free to
+        // turn first. A wedge gun answers for its whole cone.
         return attack is not null
-            && TryRay(body.Position, target, out _, out int distance)
-            && distance <= attack.Projectile.MaxTravelTiles
-            && ClearRay(contract.Map, body.Position, target,
-                attack.Projectile.DiagonalCornersMustBeClear);
+            && TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                allowed: null, VisionOf(contract, body), facing: null,
+                out _, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles;
     }
 
     public static bool TryShootAtPosition(
@@ -1045,16 +1046,18 @@ internal static class ArenaBasics
                 ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
                     candidate.Id == attackId)
                 : null;
-        if (action is null || headings is null || attack is null
-            || !TryRay(body.Position, target,
-                out ProjectileHeading heading, out int distance)
-            || distance > attack.Projectile.MaxTravelTiles
-            || !ClearRay(contract.Map, body.Position, target,
-                attack.Projectile.DiagonalCornersMustBeClear))
-        {
+        if (action is null || headings is null || attack is null)
             return false;
-        }
-        if (action.Available && headings.AllowedValues.Contains(heading))
+        // Ask the MASK first. A wedge gun very often already has a legal
+        // heading covering the target, and that is the whole fix: the tick
+        // that used to be spent turning onto an exact ray becomes the declare.
+        GenericActorRulesContract.VisionProfile? vision = VisionOf(contract, body);
+        bool aimed = TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                headings.AllowedValues, vision, body.Facing,
+                out ProjectileHeading heading, out int distance)
+            && distance <= attack.Projectile.MaxTravelTiles;
+        if (action.Available && aimed)
         {
             body.Command(
                 action.ActionId,
@@ -1063,14 +1066,21 @@ internal static class ArenaBasics
                 $"{reason}; cover {target}");
             return true;
         }
+        // Already aimed and still not firing means the gun is on cadence, not
+        // mis-pointed; turning would only throw the tick away.
         if (CarriedCore(mind, body.ActorId) is not null
-            || headings.AllowedValues.Contains(heading))
+            || aimed
+            || !TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                allowed: null, vision, facing: null,
+                out ProjectileHeading turned, out int reach)
+            || reach > attack.Projectile.MaxTravelTiles)
         {
             return false;
         }
         return TryRotate(
             contract, body,
-            FacingForCone(body.Facing, heading, MirroredFrame(contract, mind)),
+            FacingForCone(body.Facing, turned, MirroredFrame(contract, mind)),
             $"prepare {reason}; cover {target}");
     }
 
@@ -1754,6 +1764,268 @@ internal static class ArenaBasics
         }
         heading = FromVector(Math.Sign(dx), Math.Sign(dy));
         return true;
+    }
+
+    /// <summary>
+    /// The eight headings, in canonical enum order — the candidate set when
+    /// nothing has narrowed it.
+    /// </summary>
+    private static readonly ProjectileHeading[] AllHeadings =
+        Enum.GetValues<ProjectileHeading>().Order().ToArray();
+
+    /// <summary>
+    /// Whether this gun declares a WEDGE rather than a ray.
+    /// </summary>
+    /// <remarks>
+    /// A declared strike freezes a filled 90-degree cone at declare, and since
+    /// the named-lock ruling (DECISIONS #222) it resolves against the body the
+    /// MIND named anywhere inside that cone. So "can I shoot that" is wedge
+    /// membership — and asking for exact 8-way alignment first, which is what
+    /// this executor did, was a fossil of the bolt gun it was originally
+    /// written for. It threw away all but eight rays of a 90-degree weapon and
+    /// spent the difference standing in range, rotating.
+    ///
+    /// An instant bolt gun keeps the ray test, because its bolt really does
+    /// travel the ray: a target off the line is a miss, not a lock. So does a
+    /// VOLLEY strike, which the engine resolves per frozen ray and which locks
+    /// nothing at all.
+    /// </remarks>
+    private static bool DeclaresWedge(
+        GenericActorRulesContract.AttackProfile attack) =>
+        attack.Projectile.StrikeWindupTicks > 0 && attack.Volley is null;
+
+    /// <summary>
+    /// Whether a tile lies inside the declared wedge of <paramref name="heading"/>.
+    /// </summary>
+    /// <remarks>
+    /// The exact twin of the engine's <c>GenericActorStrikeCone</c>: within
+    /// ±45° of the central heading (<c>dot >= |cross|</c>, boundary inclusive),
+    /// within Chebyshev reach, and reachable by the canonical Bresenham strike
+    /// line without crossing a wall. That line IS the delivery path at
+    /// maturation, so a covered tile is a hittable tile — the two must agree or
+    /// the mind declares strikes the engine will not lock.
+    /// </remarks>
+    private static bool WithinStrikeWedge(
+        GenericActorMapContract map,
+        Position source,
+        Position target,
+        ProjectileHeading heading,
+        int reach,
+        bool strictCorners)
+    {
+        int dx = target.X - source.X;
+        int dy = target.Y - source.Y;
+        if (dx == 0 && dy == 0)
+            return false;
+        if (Math.Max(Math.Abs(dx), Math.Abs(dy)) > reach)
+            return false;
+        (int ux, int uy) = heading.Vector();
+        if (dx * ux + dy * uy < Math.Abs(dx * uy - dy * ux))
+            return false;
+        return StrikeLineReaches(map, source, target, strictCorners);
+    }
+
+    /// <summary>
+    /// Whether the canonical integer-Bresenham strike line from
+    /// <paramref name="source"/> arrives at <paramref name="target"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ClearRay"/> cannot answer this: it walks by the sign of the
+    /// delta, which only ever lands on an exactly aligned target. The wedge is
+    /// full of tiles that are on no ray at all, and the engine reaches them by
+    /// Bresenham — so this mirrors that walk step for step, including the
+    /// cut-corner rule.
+    /// </remarks>
+    private static bool StrikeLineReaches(
+        GenericActorMapContract map,
+        Position source,
+        Position target,
+        bool strictCorners)
+    {
+        int x = source.X;
+        int y = source.Y;
+        int dx = Math.Abs(target.X - x);
+        int dy = Math.Abs(target.Y - y);
+        int sx = Math.Sign(target.X - x);
+        int sy = Math.Sign(target.Y - y);
+        int error = dx - dy;
+        while (x != target.X || y != target.Y)
+        {
+            int doubled = 2 * error;
+            int stepX = 0;
+            int stepY = 0;
+            if (doubled > -dy)
+            {
+                error -= dy;
+                stepX = sx;
+            }
+            if (doubled < dx)
+            {
+                error += dx;
+                stepY = sy;
+            }
+            var from = new Position(x, y);
+            var next = new Position(x + stepX, y + stepY);
+            if (!CanEnter(map, next)
+                || stepX != 0 && stepY != 0 && strictCorners
+                && (!CanEnter(map, from.Offset(stepX, 0))
+                    || !CanEnter(map, from.Offset(0, stepY))))
+            {
+                return false;
+            }
+            x = next.X;
+            y = next.Y;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Whether this body's OWN eyes reach a tile — the shooter's sight, not the
+    /// team's.
+    /// </summary>
+    /// <remarks>
+    /// A declared strike CANCELS at maturation when its locked body is outside
+    /// <c>VisibleTilesFor(shooter)</c> (GenericActorMatchSession), and that is a
+    /// far tighter shape than the aim mask: facing is FOUR-way and vision is the
+    /// quadrant around it (±45°), while a ±1-sector aim cone spans three
+    /// headings whose wedges union to 180°. So the outer flanks of what a body
+    /// may legally declare are exactly the tiles it cannot see, and a declare
+    /// there is a guaranteed cancel.
+    ///
+    /// The mind cannot simply ask "is this enemy visible": its observation is
+    /// the TEAM union, so a body regularly knows about prey a teammate is
+    /// looking at and it cannot shoot. Hence the geometry, mirrored: Chebyshev
+    /// range, the point-blank ring that is never blind, then the quadrant.
+    /// Occlusion is left to the strike line the caller already requires — the
+    /// engine's sight uses a supercover line rather than this one, so this is
+    /// an approximation, and deliberately the permissive way round: refusing a
+    /// shot the engine would have allowed costs a fight.
+    /// </remarks>
+    private static bool SeesTile(
+        GenericActorRulesContract.VisionProfile vision,
+        Position origin,
+        Direction facing,
+        Position tile)
+    {
+        int dx = tile.X - origin.X;
+        int dy = tile.Y - origin.Y;
+        int distance = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (distance > vision.Range)
+            return false;
+        if (distance <= Math.Max(1, vision.OmnidirectionalProximityRange))
+            return true;
+        if (!string.Equals(vision.Shape, "facing-quadrant", StringComparison.Ordinal))
+            return true;
+        (int fx, int fy) = facing.Vector();
+        int forward = dx * fx + dy * fy;
+        int lateral = Math.Abs(dx * fy) + Math.Abs(dy * fx);
+        return forward >= 0 && lateral <= forward;
+    }
+
+    private static GenericActorRulesContract.VisionProfile? VisionOf(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.Id, body.FormId, StringComparison.Ordinal));
+        return form?.VisionProfileId is string visionId
+            ? contract.Rules.VisionProfiles.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, visionId, StringComparison.Ordinal))
+            : null;
+    }
+
+    /// <summary>
+    /// The heading a shot at <paramref name="target"/> would declare, and
+    /// whether there is one at all.
+    /// </summary>
+    /// <param name="allowed">
+    /// The mask's legal headings, or null to consider all eight — which is what
+    /// "could I aim at this if I turned" means.
+    /// </param>
+    /// <remarks>
+    /// A ray gun has at most one answer. A wedge gun usually has two or three,
+    /// and picks the one whose central ray is BEARING-CLOSEST to the target:
+    /// comparing <c>cos</c> of the offset angle, kept integral as
+    /// <c>dot² · |u'|²</c> against <c>dot'² · |u|²</c> so a cardinal heading and
+    /// a diagonal one are weighed on the same scale. Ties break on canonical
+    /// heading order, because a declare is a recorded decision and two bodies
+    /// in the same situation must make the same one.
+    ///
+    /// Centring matters beyond taste: the wedge is frozen at declare and the
+    /// target is free to move inside it for the whole windup, so the most
+    /// central heading is the one that keeps the most room around the lock.
+    /// </remarks>
+    private static bool TryAimSolution(
+        GenericActorMapContract map,
+        GenericActorRulesContract.AttackProfile attack,
+        Position source,
+        Position target,
+        IReadOnlyCollection<ProjectileHeading>? allowed,
+        GenericActorRulesContract.VisionProfile? vision,
+        Direction? facing,
+        out ProjectileHeading heading,
+        out int distance)
+    {
+        heading = default;
+        distance = Math.Max(
+            Math.Abs(target.X - source.X),
+            Math.Abs(target.Y - source.Y));
+        if (!DeclaresWedge(attack))
+        {
+            return TryRay(source, target, out heading, out _)
+                && (allowed is null || allowed.Contains(heading))
+                && ClearRay(
+                    map, source, target,
+                    attack.Projectile.DiagonalCornersMustBeClear);
+        }
+        // A strike the shooter cannot SEE cancels at maturation, so sight is
+        // part of the declare gate and not a nicety. With a facing given this
+        // is the real quadrant; without one the caller is asking "could I, if I
+        // turned", and only the eyes' reach survives the turn.
+        if (vision is not null)
+        {
+            if (facing is Direction look)
+            {
+                if (!SeesTile(vision, source, look, target))
+                    return false;
+            }
+            else if (distance > vision.Range)
+            {
+                return false;
+            }
+        }
+        int dx = target.X - source.X;
+        int dy = target.Y - source.Y;
+        bool found = false;
+        long bestDot = 0;
+        long bestLengthSquared = 1;
+        foreach (ProjectileHeading candidate in allowed ?? AllHeadings)
+        {
+            if (!WithinStrikeWedge(
+                    map, source, target, candidate,
+                    attack.Projectile.MaxTravelTiles,
+                    attack.Projectile.DiagonalCornersMustBeClear))
+            {
+                continue;
+            }
+            (int ux, int uy) = candidate.Vector();
+            long dot = dx * ux + dy * uy;
+            long lengthSquared = ux * ux + uy * uy;
+            // cos(candidate) > cos(best): dot/|u| > bestDot/|best|, squared to
+            // stay in integers (both dots are non-negative inside a wedge).
+            if (found
+                && dot * dot * bestLengthSquared
+                    <= bestDot * bestDot * lengthSquared)
+            {
+                continue;
+            }
+            found = true;
+            bestDot = dot;
+            bestLengthSquared = lengthSquared;
+            heading = candidate;
+        }
+        return found;
     }
 
     private static bool ClearRay(
