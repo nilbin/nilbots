@@ -185,6 +185,31 @@ const PIP_SETBACK = 0.55;
 const PIP_SPACING = 0.17;
 
 /**
+ * The engaged mark: crossed blades above the health row, for a body that has a
+ * LIVE FIGHT.
+ *
+ * A spectator watching a warren of eight machines cannot tell who is committed
+ * and who is walking past — the arena shows shots and hulls, and neither says
+ * "this one has a target". So combat state gets the same treatment health did:
+ * always on, on the body, tiny, and the same colour the arena already uses for
+ * violence (`#f87171`, the strike aim and slash colour), so it joins a language
+ * rather than adding one.
+ *
+ * Two thin crossed bars rather than a dot, because a dot at this size is a
+ * *state* with no meaning attached and this file already spends dots on health
+ * and triangles on veterancy. An X reads at a glance and survives the fog
+ * dimming, which a hue-only cue would not.
+ *
+ * It rides in the pips group: that group is already positioned in world space
+ * each frame, already squared to the camera, and already hides with the body —
+ * so the mark cannot outlive a death or leak through fog by construction.
+ */
+const ENGAGED_MARK_LIFT = 0.23;
+const ENGAGED_MARK_REACH = 0.085;
+const ENGAGED_MARK_GAUGE = 0.028;
+const ENGAGED_MARK_COLOR = '#f87171';
+
+/**
  * How far in FRONT of a body its role caption sits, in tiles.
  *
  * The mirror of `PIP_SETBACK`. The pitched camera puts +Z lower on screen, so a caption
@@ -1051,6 +1076,34 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     }
     disposables.push(chevronGeometry, chevronMaterial);
 
+    // Crossed blades over the health row — see ENGAGED_MARK_*. Two quads in one
+    // group so the whole mark toggles with a single `visible`, and squared to
+    // the camera like everything else in this row.
+    const engagedMark = new THREE.Group();
+    engagedMark.userData.cue = 'engaged-mark';
+    engagedMark.userData.forUnitKey = unit.unitKey;
+    engagedMark.position.y = ENGAGED_MARK_LIFT;
+    engagedMark.rotation.x = -CAMERA_PITCH;
+    engagedMark.visible = false;
+    const bladeGeometry = new THREE.PlaneGeometry(
+      ENGAGED_MARK_REACH * 2,
+      ENGAGED_MARK_GAUGE,
+    );
+    const bladeMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(ENGAGED_MARK_COLOR),
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    for (const roll of [Math.PI / 4, -Math.PI / 4]) {
+      const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+      blade.rotation.z = roll;
+      blade.renderOrder = 10;
+      engagedMark.add(blade);
+    }
+    pips.add(engagedMark);
+    disposables.push(bladeGeometry, bladeMaterial);
+
     // The channel ring: this body is holding the point still, or standing off
     // it while a teammate does. Radially symmetric on purpose — it is parented
     // to the chassis, which turns with the bot's facing, and a body may aim and
@@ -1367,6 +1420,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       flash,
       pips,
       pipMeshes,
+      engagedMark,
       litPip,
       lostPip,
       levelPips,
@@ -1921,6 +1975,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const screening =
         bot.chassis.visible && mechanics?.channelRole === 'screening';
       const braced = channelling || handoffReceivers.has(pose.unitKey);
+      // Crossed blades: this body has a live fight. Always on, for every body,
+      // which is the only way a spectator can read who is committed in a
+      // warren of eight machines.
+      bot.engagedMark.visible = bot.pips.visible && mechanics?.engaged === true;
       bot.channelRing.visible = channelling;
       bot.screenRing.visible = screening;
       if (channelling) {

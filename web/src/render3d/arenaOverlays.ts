@@ -112,6 +112,11 @@ export function buildOverlays(
   const arrivals = buildArrivals(replay, disposables);
   group.add(arrivals.group);
 
+  // Last in, so the lens draws over the story it is explaining rather than
+  // under it. It is instrumentation: when it is on, it wins.
+  const pathingLens = buildPathingLens(replay, disposables);
+  group.add(pathingLens.group);
+
   let painted = '';
 
   const update = (
@@ -164,6 +169,7 @@ export function buildOverlays(
     strikeAims.update(time);
     absorptions.update(tick, fraction);
     arrivals.update(time);
+    pathingLens.update(time, presentation, selectedUnitKey);
   };
 
   /**
@@ -2520,6 +2526,138 @@ function buildStrikeAims(
     }
     for (let index = used; index < pool.length; index++) {
       pool[index].visible = false;
+    }
+  };
+
+  return { group, update };
+}
+
+/**
+ * The pathing lens: where the SELECTED body is walking, and the step it chose.
+ *
+ * Owner review 2026-08-09: "I still see a lot of pathing mistakes but can't put
+ * a finger on it." That is a legibility problem, not a hunting problem. A body
+ * walking confidently at a tile four legs behind it, and a body oscillating
+ * between two tiles, look the same from outside — both just shuffle. The
+ * destination separates them instantly, and the whole point of drawing it is to
+ * turn "something is wrong with the movement" into a scene the owner can name a
+ * tick number for.
+ *
+ * **Selected body only.** Eight of these at once would be a diagram, not an
+ * arena, and the one thing the viewer is already good at is answering questions
+ * about the body you clicked. It follows the interpolated pose rather than the
+ * tick's integer tile, so the line stays attached while the body glides.
+ *
+ * Three marks, and the third is the one that earns the feature: a hairline to
+ * the destination, a ring on it, and a small square on the tile the body's
+ * CHOSEN action steps onto. Together they say goal, plan and act — a body whose
+ * step points away from its own destination is a pathing bug you can see in one
+ * frame, which no amount of watching hulls shuffle would ever have shown.
+ *
+ * Cyan, not red: this is instrumentation, not violence, and the arena spends
+ * `#f87171` on strikes and the engaged mark.
+ */
+const LENS_COLOR = '#38bdf8';
+const LENS_HEIGHT = 0.05;
+const LENS_GAUGE = 0.05;
+const LENS_TARGET_INNER = 0.26;
+const LENS_TARGET_OUTER = 0.34;
+const LENS_STEP_SIZE = 0.3;
+
+function buildPathingLens(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (
+    time: number,
+    presentation: TickPresentation,
+    selectedUnitKey: ReplayStableUnitKey | null,
+  ) => void;
+} {
+  const group = new THREE.Group();
+  group.visible = false;
+
+  const lineGeometry = new THREE.PlaneGeometry(1, LENS_GAUGE);
+  lineGeometry.rotateX(-Math.PI / 2);
+  const targetGeometry = new THREE.RingGeometry(
+    LENS_TARGET_INNER,
+    LENS_TARGET_OUTER,
+    24,
+  );
+  targetGeometry.rotateX(-Math.PI / 2);
+  const stepGeometry = new THREE.RingGeometry(
+    LENS_STEP_SIZE * 0.62,
+    LENS_STEP_SIZE,
+    4,
+  );
+  stepGeometry.rotateX(-Math.PI / 2);
+  const material = new THREE.MeshBasicMaterial({
+    color: LENS_COLOR,
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  disposables.push(lineGeometry, targetGeometry, stepGeometry, material);
+
+  const line = new THREE.Mesh(lineGeometry, material);
+  line.userData.cue = 'pathing-lens-line';
+  line.position.y = LENS_HEIGHT;
+  const target = new THREE.Mesh(targetGeometry, material);
+  target.userData.cue = 'pathing-lens-target';
+  target.position.y = LENS_HEIGHT;
+  const step = new THREE.Mesh(stepGeometry, material);
+  step.userData.cue = 'pathing-lens-step';
+  step.position.y = LENS_HEIGHT;
+  group.add(line, target, step);
+
+  const update = (
+    time: number,
+    presentation: TickPresentation,
+    selectedUnitKey: ReplayStableUnitKey | null,
+  ) => {
+    group.visible = false;
+    line.visible = false;
+    target.visible = false;
+    step.visible = false;
+    if (selectedUnitKey === null) return;
+    const unit = presentation.units.find(
+      (candidate) => candidate.unitKey === selectedUnitKey,
+    );
+    if (!unit || unit.status !== 'active') return;
+    if (unit.destination === null && unit.nextStep === null) return;
+    const pose = posesAt(replay, time).find(
+      (candidate) => candidate.unitKey === selectedUnitKey,
+    );
+    if (!pose) return;
+    group.visible = true;
+    const fromX = pose.x + 0.5;
+    const fromZ = pose.y + 0.5;
+    if (unit.destination !== null) {
+      const toX = unit.destination.x + 0.5;
+      const toZ = unit.destination.y + 0.5;
+      target.visible = true;
+      target.position.set(toX, LENS_HEIGHT, toZ);
+      const dx = toX - fromX;
+      const dz = toZ - fromZ;
+      const length = Math.hypot(dx, dz);
+      // A body standing on its own destination gets the ring and no line: a
+      // zero-length quad renders as a smear, and "arrived" is worth reading.
+      if (length > LENS_TARGET_OUTER) {
+        line.visible = true;
+        line.position.set((fromX + toX) / 2, LENS_HEIGHT, (fromZ + toZ) / 2);
+        line.rotation.y = -Math.atan2(dz, dx);
+        line.scale.set(length, 1, 1);
+      }
+    }
+    if (unit.nextStep !== null) {
+      step.visible = true;
+      step.position.set(
+        unit.nextStep.x + 0.5,
+        LENS_HEIGHT,
+        unit.nextStep.y + 0.5,
+      );
     }
   };
 

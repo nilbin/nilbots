@@ -355,6 +355,8 @@ export function drawArena(
   // Loose scrap sits on the floor under the bodies that come to take it.
   drawScrapPiles();
   drawShadowsAndBots();
+  // After the bodies: the lens is instrumentation, and when it is on it wins.
+  drawPathingLens();
   drawArcRelayOverlay(arcRelayVisual);
   drawShots();
   drawImpacts();
@@ -1055,6 +1057,64 @@ export function drawArena(
       );
       ctx.stroke();
     }
+  }
+
+  /**
+   * The pathing lens: where the SELECTED body is walking, and the step it chose.
+   *
+   * The flat twin of `buildPathingLens` in `render3d/arenaOverlays.ts` — same
+   * three marks (hairline, destination ring, step square), same cyan, so the CLI
+   * viewer and the hosted 3D one answer the owner's question identically.
+   *
+   * Owner review 2026-08-09: "I still see a lot of pathing mistakes but can't
+   * put a finger on it." A body walking confidently at a tile four legs behind
+   * it and a body oscillating between two tiles both just shuffle from outside;
+   * the destination is the only thing that separates them. Selected body only —
+   * eight of these would be a diagram, not an arena.
+   */
+  function drawPathingLens(): void {
+    if (selectedUnitKey === null) return;
+    const unit = tickPresentation?.units.find(
+      (candidate) => candidate.unitKey === selectedUnitKey,
+    );
+    if (!unit || unit.status !== 'active') return;
+    if (unit.destination === null && unit.nextStep === null) return;
+    const pose = poses.find(
+      (candidate) => candidate.unitKey === selectedUnitKey,
+    );
+    if (!pose) return;
+    const fromX = px(pose.x) + tile / 2;
+    const fromY = py(pose.y) + tile / 2;
+    ctx.save();
+    ctx.strokeStyle = hexWithAlpha('#38bdf8', 0.62);
+    ctx.lineWidth = Math.max(1, tile * 0.05);
+    if (unit.destination !== null) {
+      const toX = px(unit.destination.x) + tile / 2;
+      const toY = py(unit.destination.y) + tile / 2;
+      // A body standing on its own destination gets the ring and no line.
+      if (Math.hypot(toX - fromX, toY - fromY) > tile * 0.34) {
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(toX, toY, tile * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (unit.nextStep !== null) {
+      const stepX = px(unit.nextStep.x) + tile / 2;
+      const stepY = py(unit.nextStep.y) + tile / 2;
+      const reach = tile * 0.26;
+      ctx.beginPath();
+      ctx.moveTo(stepX, stepY - reach);
+      ctx.lineTo(stepX + reach, stepY);
+      ctx.lineTo(stepX, stepY + reach);
+      ctx.lineTo(stepX - reach, stepY);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // A matured strike landing - deliberately NOT a projectile (owner ruling:
@@ -2226,6 +2286,16 @@ export function drawArena(
           health: pose.health,
         }),
       );
+      // Crossed blades above the health row: this body has a live fight. The
+      // 3D twin (`ENGAGED_MARK_*`, arenaActors) hangs the same X in the same
+      // red over the same row, so the two renderers say one thing.
+      if (
+        tickPresentation?.units.find(
+          (candidate) => candidate.unitKey === pose.unitKey,
+        )?.engaged === true
+      ) {
+        drawEngagedMark(cx, cy - radius - tile * 0.44);
+      }
       const veterancy = arcVeterancyFor(replay);
       const level = veterancy.levelAt(
         time,
@@ -2254,6 +2324,43 @@ export function drawArena(
         ctx.restore();
       }
     }
+  }
+
+  /**
+   * The engaged mark: crossed blades over the health row, for a body that has a
+   * LIVE FIGHT — standing a duel, closing, flanking, flushing, or shooting a
+   * declared focus.
+   *
+   * Always on, for every body, because the question it answers is a *census*
+   * one: who in this warren is committed right now. The arena already shows
+   * shots and hulls and neither of those separates a body with a target from a
+   * body walking past one.
+   *
+   * `#f87171` is the colour the strike aims and slashes are already drawn in,
+   * so violence keeps one hue. Outlined in the arena's near-black first, for
+   * the same reason the facing wedge is: it has to survive landing on a pale
+   * hull as well as on the floor.
+   */
+  function drawEngagedMark(cx: number, cy: number): void {
+    const reach = Math.max(2.5, tile * 0.16);
+    const gauge = Math.max(1, tile * 0.055);
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const [width, stroke] of [
+      [gauge + Math.max(1.4, tile * 0.05), 'rgba(2, 6, 12, 0.85)'],
+      [gauge, '#f87171'],
+    ] as const) {
+      ctx.lineWidth = width;
+      ctx.strokeStyle = stroke;
+      ctx.beginPath();
+      ctx.moveTo(cx - reach, cy - reach);
+      ctx.lineTo(cx + reach, cy + reach);
+      ctx.moveTo(cx + reach, cy - reach);
+      ctx.lineTo(cx - reach, cy + reach);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   /**
