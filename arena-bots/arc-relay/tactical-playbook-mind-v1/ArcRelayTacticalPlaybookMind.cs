@@ -4517,21 +4517,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
 
         MotionProgress motion = _motion.GetValueOrDefault(body.UnitId)
-            ?? new MotionProgress(body.ActorId, order.OrderId, body.Position, 0);
+            ?? new MotionProgress(
+                body.ActorId, order.OrderId, body.Position, body.Position, 0);
+        // Ground is made by reaching a tile neither of the last two ticks put
+        // this body on. Standing still and pacing between two tiles are the
+        // same failure and now count the same; see MotionProgress.
         int stuck = motion.ActorId == body.ActorId
             && motion.OrderId == order.OrderId
-            && motion.Position == body.Position
+            && (motion.Position == body.Position
+                || motion.Previous == body.Position)
                 ? motion.StuckTicks + 1
                 : 0;
         _motion[body.UnitId] = new MotionProgress(
-            body.ActorId, order.OrderId, body.Position, stuck);
+            body.ActorId, order.OrderId, body.Position, motion.Position, stuck);
         if (stuck >= order.Movement.StuckTicks)
         {
             switch (order.Movement.StuckRecovery)
             {
                 case "yield":
                     _motion[body.UnitId] = new MotionProgress(
-                        body.ActorId, order.OrderId, body.Position, 0);
+                        body.ActorId, order.OrderId,
+                        body.Position, body.Position, 0);
                     return Hold(body, MovementProvenance(
                         machine, group, order, "stuck-yield", target));
                 case "hold":
@@ -4571,7 +4577,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     machine, group, order, "wedge-shake", target)))
         {
             _motion[body.UnitId] = new MotionProgress(
-                body.ActorId, order.OrderId, body.Position, 0);
+                body.ActorId, order.OrderId,
+                body.Position, body.Position, 0);
             // The shake alone made dancers: the body stepped out and walked
             // straight back into the same contended slot. Blacklist the
             // approach for a while so the reflow spreads to an alternative.
@@ -5829,10 +5836,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string OrderId,
         int Index);
 
+    /// <summary>
+    /// A body's recent ground, and how long it has failed to make any.
+    /// </summary>
+    /// <remarks>
+    /// TWO tiles of history, not one. "Stuck" used to mean "standing on the
+    /// tile I stood on last tick", which cannot see the failure mode that
+    /// actually produces the dance a spectator complains about: a body stepping
+    /// A -> B -> A -> B forever. Its tile changes every tick, so every recovery
+    /// downstream of this counter — repath, reflow, the wedge shake — was blind
+    /// to it, and a body could burn a hundred ticks four tiles from its own
+    /// reactor while the machinery reported healthy progress (owner catch
+    /// 2026-08-09, e-9004 u3 at t214-t224: eleven ticks alternating between
+    /// (28,14) and (28,15) with an unchanging destination at (23,17)).
+    ///
+    /// Remembering the tile before last closes the two-cycle exactly, and it
+    /// cannot fire on real movement: a body walking A -> B -> C never returns
+    /// to A. Longer cycles are deliberately NOT chased here — a three-tile loop
+    /// is a route or a patrol as often as it is a bug, and this counter is not
+    /// the place to decide which.
+    /// </remarks>
     private sealed record MotionProgress(
         ActorIdentity ActorId,
         string OrderId,
         Position Position,
+        Position Previous,
         int StuckTicks);
 
     /// <summary>One walk to one cold trail, ended by its budget or by

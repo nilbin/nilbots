@@ -5351,3 +5351,86 @@ unoccupied. It does not cover the case that killed this ghost — exits
 exist, but every one of them stays inside an adjacent enemy's reach, and
 walking at equal speed from a body already in contact only spends the
 remaining hit point. That is a rule change, not a bug fix, so it waits.
+
+## 231. A step is not a plan: the arena says where a body is walking
+
+Owner review 2026-08-09: "I still see a lot of pathing mistakes but can't
+put a finger on it." That is a legibility problem, not a hunting problem.
+A diagnostic reading `formation-move via West` answers which way the body
+stepped and never answers where it thought it was going, so a body walking
+confidently at a tile four legs behind it and a body pacing between two
+tiles look identical from outside — both just shuffle.
+
+The movement plane now names its resolved destination in the reason
+(`formation-move@12,7`, `MovementProvenance`), the broadcast lifts it into
+its own delta column beside `orders`, and the viewer draws it for the
+SELECTED body: a hairline to the destination, a ring on that tile, and a
+diamond on the tile the body's chosen action steps onto. Goal, plan, act.
+A step pointing away from the body's own goal is now a bug visible in one
+frame.
+
+Own column rather than a wider order row, because the two move on
+different clocks: a formation slot hanging off a marching anchor changes
+most ticks while the order it serves holds for hundreds. Measured on the
+e-9004 exhibition cell it costs 4.7 KB gzip on a 144 KB broadcast.
+Only the route/formation channel publishes one — a body closing on a focus
+is walking at something the standing order's target is not.
+
+Beside it, an always-on combat pip (crossed blades, in the strike red) for
+a body with a LIVE fight: `duel-stand`, `close-on-focus`, `flank-approach`,
+`flush-hidden`, or a declared `focus`. Deliberately not `signature`,
+`repair`, `withdraw` or `scan` — those are things a body does near a fight
+without being in one, and a mark that lit for them would mean "something is
+happening", which the arena already says.
+
+## 232. Pacing between two tiles is standing still
+
+The lens (#231) was pointed at the owner's 2026-08-09 catch — three bodies
+in `well-watch` milling near their own base while a fourth sat at a well —
+and the first thing it printed was a body that had been invisible to every
+recovery the movement layer owns.
+
+**What `well-watch` is FOR.** It is the well group's standing job between
+births: the whole group (medic, hauler, two carriers, two lancers, eyes)
+walks `stage-loop` in the `well-screen` formation, disrupts any fight that
+comes to it, and keeps custody of loose Cores. `stage-loop` is authored as
+a four-corner ring AROUND ITS OWN BASE, and that is the point: a group that
+waits at a well is committed to that well, while a group that laps the
+staging ring can still reach whichever one is about to open. The races
+(`race-north` / `race-centre` / `race-south`) are what take it out. So
+"three bodies circling near their own base" is what the sheet asks for, and
+the fourth was a carrier out on custody work. That part is not a bug.
+
+**What the trio actually did.** Post-#229 the ring is walked in order — the
+corner index advanced forward on 113 of 116 advances across the six
+exhibition cells, the three exceptions being respawn re-seeds — so this is
+not #229's pendulum returning. What the lens caught instead was e-9004's
+u3 at t214-t224: eleven ticks alternating between (28,14) and (28,15), on
+its own home pads, with an unchanging destination at (23,17) it never
+stepped toward once.
+
+**The bug.** `MotionProgress` defined stuck as "standing on the tile I
+stood on last tick". A body stepping A -> B -> A -> B changes tile every
+tick, so the counter never armed and repath, reflow and the wedge shake
+were all blind to it — the one pathology they exist for. Remembering the
+tile before last closes the two-cycle exactly and cannot fire on real
+movement, because a body walking A -> B -> C never returns to A. Longer
+cycles are deliberately not chased: a three-tile loop is a patrol as often
+as it is a bug, and this counter is not the place to decide which.
+
+Measured across the six exhibition cells (greedy stepper, hunter-v1):
+two-tile flaps 6.93% -> 5.83% of body-ticks (-16%), axis reversals
+15.23% -> 13.81% (-9%), the named scene gone — u3 walks the ring. Honest
+costs: matches ran 11% longer and outcomes did not move (2 of 6 either
+way). A guard with a blind spot for the exact shape it guards against is
+worth closing on its own terms; it is not claimed as a balance improvement.
+
+**Still open, as squad-plane consolidation material.** The de-confliction
+radius is `min(formation.Reflow.SearchRadius, order.Movement.ChaseLeash)`,
+which bounds a FORMATION spacing search by an ENGAGEMENT leash — for
+`well-watch` that is 1, so seven bodies share a ±1 ring around one waypoint
+and their slots churn tick to tick. And `SelectFormationTarget` falls back
+to the authored tile when every candidate is filtered, handing two bodies
+one destination (23 occurrences in one match). Neither is the trio's cause,
+both are the pre-consolidation squad plane, and both belong to the standing
+well-scrum exhibit rather than to a point fix.
