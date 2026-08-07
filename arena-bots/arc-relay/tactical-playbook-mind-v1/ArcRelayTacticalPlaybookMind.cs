@@ -37,6 +37,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// own carrier's supply lane, and where.</summary>
     private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
         _lanePlugTicks = [];
+    /// <summary>The Core each unit last handed off, and when — so its own
+    /// collect step cannot take it straight back.</summary>
+    private readonly Dictionary<int, (int LifeId, string CoreKey, int Tick)>
+        _handedOff = [];
     private int _laneReliefs;
     private readonly Dictionary<int, (int LifeId, int UntilTick)>
         _disengaging = [];
@@ -81,6 +85,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// <summary>How long a body may plug a loaded carrier's route home
     /// before it is moved aside.</summary>
     private const int CarrierLanePatience = 2;
+
+    /// <summary>How long a handed-off Core stays off limits to the body that
+    /// put it down — comfortably longer than an adjacent receiver needs.
+    /// </summary>
+    private const int HandoffGraceTicks = 30;
 
     /// <summary>How near a cold trail has to be before walking to it counts
     /// as pursuit rather than abandoning the post.</summary>
@@ -3298,8 +3307,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         if (body.Position.ChebyshevDistance(receiver.Position) <= 1)
         {
-            return TryDropCore(body, "custody:transfer-drop")
-                || Hold(body, "custody:transfer-drop-wait");
+            if (!TryDropCore(body, "custody:transfer-drop"))
+                return Hold(body, "custody:transfer-drop-wait");
+            // A Core you just put down is not yours to pick up. Without this
+            // the collect knob walks straight back onto the tile the drop
+            // landed on and lifts it again - the ghost re-collected its own
+            // hand-off four times in eight ticks and the receiver only got it
+            // when it finally out-raced him (owner catch on commitx12-w-9001,
+            // t437-448). The hand-off needs a moment to be somebody else's.
+            _handedOff[body.UnitId] = (
+                body.ActorId.LifeId,
+                CoreKey(carried[body.ActorId].CoreId),
+                mind.Tick);
+            return true;
         }
         return ArenaBasics.StaticFirstStepAvoidingReservations(
                     contract, mind, body, receiver.Position)
@@ -4254,9 +4274,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Order order,
         ArenaBasics.Claims claims)
     {
+        (int LifeId, string CoreKey, int Tick) handed =
+            _handedOff.GetValueOrDefault(body.UnitId);
+        bool JustHandedOff(GenericActorContext.ArcRelayCoreState core) =>
+            handed.LifeId == body.ActorId.LifeId
+            && mind.Tick - handed.Tick < HandoffGraceTicks
+            && string.Equals(
+                handed.CoreKey, CoreKey(core.CoreId), StringComparison.Ordinal);
         GenericActorContext.ArcRelayCoreState? prize = arc.VisibleCores
             .Where(core => core.Disposition
                     == GenericActorContext.ArcRelayCoreDisposition.Loose
+                && !JustHandedOff(core)
                 && package.Contains(order.CollectZone, core.Position)
                 && core.Position.ChebyshevDistance(body.Position)
                     <= Math.Max(order.Movement.ChaseLeash, 1))
