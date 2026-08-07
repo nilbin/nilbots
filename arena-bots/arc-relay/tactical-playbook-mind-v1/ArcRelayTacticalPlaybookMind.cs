@@ -287,8 +287,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     party.Leader.Position,
                     party.LeaderStep,
                     party.Leader.Facing,
-                    member.Ordinal,
-                    member.Policy.Leash);
+                    member.PostureOrdinal,
+                    member.Policy.Leash,
+                    NearestThreat(mind, party.Leader.Position));
         }
         // Leader outranks follower unconditionally, and followers outrank
         // each other in the order's declared list order.
@@ -2240,6 +2241,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (leader is null)
                 continue;
             var followers = new List<EscortMember>();
+            var byPosture = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (TacticalPlaybookPackage.EscortFollower policy in
                      escort.Followers)
             {
@@ -2248,8 +2250,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                              policy.RoleId,
                              StringComparison.Ordinal)))
                 {
+                    int postureOrdinal =
+                        byPosture.GetValueOrDefault(policy.Posture);
+                    byPosture[policy.Posture] = postureOrdinal + 1;
                     followers.Add(new EscortMember(
-                        body, policy, followers.Count));
+                        body, policy, followers.Count, postureOrdinal));
                 }
             }
             if (followers.Count == 0)
@@ -5854,6 +5859,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return (value.Length <= 24 ? value : value[..24]).TrimEnd('-');
     }
 
+    /// <summary>
+    /// The nearest hostile the TEAM can see to a tile, or null when it can
+    /// see none. A mind's observation is already the team's observable union
+    /// (DECISIONS #236), so "known" needs no separate memory here — a screen
+    /// interposes against what the squad is actually looking at, and drops
+    /// back to trailing the moment nobody can see anything.
+    /// </summary>
+    private static Position? NearestThreat(MindContext mind, Position leader)
+    {
+        Position? best = null;
+        int bestRange = int.MaxValue;
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+        {
+            int range = enemy.Position.ChebyshevDistance(leader);
+            // Equal range resolves by tile, read y then x, so the screen
+            // never flickers between two hostiles the same distance away.
+            if (range < bestRange
+                || (range == bestRange && best is Position held
+                    && (enemy.Position.Y < held.Y
+                        || (enemy.Position.Y == held.Y
+                            && enemy.Position.X < held.X))))
+            {
+                bestRange = range;
+                best = enemy.Position;
+            }
+        }
+        return best;
+    }
+
     private static string CoreKey(GenericActorContext.ArcRelayCoreId id) =>
         $"{id.SourceWellId}:{id.SourceOrdinal}";
 
@@ -5863,13 +5897,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position? LeaderStep,
         EscortMember[] Followers);
 
-    /// <param name="Ordinal">Position in the order's follower list, which is
-    /// both this follower's precedence and what its posture reads to space
-    /// a file of several.</param>
+    /// <param name="Ordinal">Position in the order's follower list — this
+    /// follower's PRECEDENCE, and its place on the movement plane's one
+    /// list (followers rank 4 + ordinal).</param>
+    /// <param name="PostureOrdinal">Position among the followers sharing
+    /// this posture, which is what spaces a FILE. The two were the same
+    /// number while one posture existed; they are not the same question. A
+    /// screen that is second in the order's list is still the first screen,
+    /// and a first screen wants the tile adjacent to its leader — not the
+    /// one two tiles out because somebody trails ahead of it in a list.
+    /// </param>
     private sealed record EscortMember(
         MindBody Body,
         TacticalPlaybookPackage.EscortFollower Policy,
-        int Ordinal);
+        int Ordinal,
+        int PostureOrdinal);
 
     private sealed record LastSeenEnemy(
         ActorIdentity ActorId,

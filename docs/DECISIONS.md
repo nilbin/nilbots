@@ -5960,3 +5960,110 @@ Traffic-read over the six cells, against the #237 baseline (`b70c5163`):
 Chokes fall on both steppers (greedy 12/13 -> 7/8, coordinated 6/7 -> 5/6)
 and own-contest blockades stay at zero. hunter-v1 takes 3 of 6 under each
 stepper. Not claimed as a balance change.
+
+## 241. The screen posture, and an escort list that is finally a list
+
+Owner go, explicitly an exhibition — "just to see how it looks". Three
+pieces: the escort grammar widens, `screen` joins `trail`, and both hunter
+sheets' assault mode gets a tank on the firing line.
+
+### Grammar
+
+`escort` accepts three shapes now: `"medic"`, `["medic", "lancer"]`, and
+`[{"role": "medic"}, {"role": "lancer", "posture": "screen"}]`. Posture
+defaults to `trail`, so every sheet authored before postures existed compiles
+to the bytes it always did. `ValidateEscort` already took 1-8 followers and
+already carried a per-follower `posture` field — the compiled substrate was
+built for this in #227 and had simply never been given a second entry. The
+only validator change is `OneOf(... "trail")` becoming
+`OneOf(... "trail", "screen")`.
+
+The task rows are the part that actually needed thought. A single row listing
+every escort role with `maximum: 1` claims ONE body and leaves the rest of
+the escort authored-but-never-fielded. The compiler now emits **one row per
+escort role**, each `preferred: 1`, `maximum: 1`, `carrier: forbid`, named
+`{order}-escort-{role}` when there is more than one (a lone escort keeps
+`{order}-escort`, so single-escort sheets keep their assignment ids).
+Measured over six cells: 740 escort body-ticks wearing towline and 603
+wearing patchbay, with both escorts present together on 519 ticks.
+
+### The posture
+
+`screen` INTERPOSES: the tile on the segment between the leader and the
+nearest known threat, as close to the leader as the ordinal allows, leash
+binding. "The segment" is the eight-way ray from leader toward threat, which
+is not an approximation of the firing line — it IS the firing line in this
+arena, because projectiles fly on the eight headings and a shot that can
+reach the leader travels down exactly that ray. Nothing else is special-cased
+and nothing needed to be: standing on the line is the block, and delivery
+physics does the rest.
+
+Two fallbacks, both to `trail` at the same ordinal: no threat known (no line
+to stand on) and a threat already adjacent to the leader (no room between
+them, and the interpose tile would be the enemy's own).
+
+`TacticalEscortPrimitives` stays pure geometry — the nearest threat is passed
+in. It reads the team observable union (`mind.Enemies`), which under #236 is
+already team vision, so "known" needs no separate memory.
+
+One thing the second posture forced apart. `EscortMember.Ordinal` was doing
+two jobs — precedence in the movement plane's one list (followers rank
+4 + ordinal) and spacing within a FILE. Those are different questions the
+moment two postures coexist: a screen that is second in the order's list is
+still the FIRST screen, and a first screen wants the tile adjacent to its
+leader, not the one two tiles out because a medic trails ahead of it in a
+list. `PostureOrdinal` counts within the posture; `Ordinal` still ranks.
+
+### The sheet
+
+Both hunter sheets: `escort: [{"role": "medic"}, {"role": "lancer",
+"posture": "screen"}]`.
+
+Lancer over the alternatives, and mason is the argument worth making: mason
+is one point tougher (5 HP against towline's 4) and would be the naive tank
+pick. It is also `maximum: 1` and it is the team's EYES — spending it as a
+body-shield strips the squad's vision to buy the ghost a hit. Lancer is
+`preferred: 2`, so the screen costs one of two, leaving one on the line; it
+is the second-toughest chassis in the composition; and its `medium-steady`
+gun is the right weapon for a body that stands and holds ground rather than
+kites, which is exactly what a screen does.
+
+### What it looks like
+
+`greedy-w-9002`, team 0 — the clean interception:
+
+```
+t417  ghost u0 (17,10)   screen u6 (20,11) hold        enemy u5 (21,11)
+t418  ghost u0 (18,11)   screen u6 (20,11) duel-stand  enemy u5 (21,11)
+      >> DAMAGE 1:5 -> 0:6 amount 1 -> hp 2 at (20,11)
+```
+
+At t418 the ghost, the screen and the shooter are all on row 11. The shot
+flies west, hits the towline at (20,11), and the ray it was on continues
+through (19,11) into the ghost at (18,11). The screen ate it.
+
+`coordinated-e-9009` t300 is the same shape and the harder version: screen u6
+at (15,11), ghost at (15,14), shooter at (15,10) — one column, the screen
+between them. It takes the hit and dies at 0 HP while the ghost, three tiles
+further down the same ray, is untouched. Its own command that tick was
+`prepare focus 0:2:3` against the very body that killed it.
+
+Of 14 hits taken by a towline wearing `ghost-assault-escort`, 2 are
+verifiable interceptions by the strict test (the hit tile lies on a ray that
+continues into the ghost). The rest are a screen being shot at directly —
+which is what a screen is for, but is not the money shot and is not claimed
+as one.
+
+### Cost
+
+hunter-v1 takes 2 of 6 greedy and 1 of 6 coordinated, down from 3 and 3. The
+screen spends one of two towlines standing in front of the ghost instead of
+shooting, and six cells is not a measurement. This landed as an EXHIBITION on
+the owner's word and is not claimed as a balance change; the mechanism is
+what is being shown.
+
+Traffic-read over the same six cells: flaps 6.54%/7.57% (greedy t0/t1) and
+8.52%/7.78% (coordinated), reversals 10.12%/11.28% and 12.88%/12.49% —
+still well under the #237 baseline of 8.69/9.58% and 13.68/14.58%, with the
+coordinated pair a little above where #240 left it. Own-contest blockades
+stay at zero.

@@ -1624,11 +1624,33 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             order.TryGetProperty("escort", out _));
         JsonElement escort = escorted.GetProperty("escort");
         Assert.Equal("hunter", escort.GetProperty("leaderRole").GetString());
-        JsonElement follower = Assert.Single(
-            escort.GetProperty("followers").EnumerateArray());
-        Assert.Equal("medic", follower.GetProperty("roleId").GetString());
-        Assert.Equal("trail", follower.GetProperty("posture").GetString());
-        Assert.Equal(2, follower.GetProperty("leash").GetInt32());
+        // hunter-v1's assault runs a two-body escort: the medic trails, the
+        // lancer screens. The list order IS the follower precedence.
+        JsonElement[] followers = escort.GetProperty("followers")
+            .EnumerateArray()
+            .ToArray();
+        Assert.Equal(2, followers.Length);
+        Assert.Equal("medic", followers[0].GetProperty("roleId").GetString());
+        Assert.Equal("trail", followers[0].GetProperty("posture").GetString());
+        Assert.Equal("lancer", followers[1].GetProperty("roleId").GetString());
+        Assert.Equal("screen", followers[1].GetProperty("posture").GetString());
+        foreach (JsonElement follower in followers)
+            Assert.Equal(2, follower.GetProperty("leash").GetInt32());
+
+        // Each escort role claims its OWN body: one row with both roles and
+        // maximum 1 would author a two-body screen and field one.
+        string[] escortRows = playbook.RootElement
+            .GetProperty("coordination")
+            .GetProperty("tasks")
+            .EnumerateArray()
+            .SelectMany(task => task.GetProperty("assignments").EnumerateArray())
+            .Select(row => row.GetProperty("assignmentId").GetString()!)
+            .Where(id => id.StartsWith("ghost-assault-escort", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(
+            ["ghost-assault-escort-lancer", "ghost-assault-escort-medic"],
+            escortRows);
     }
 
     [Fact]

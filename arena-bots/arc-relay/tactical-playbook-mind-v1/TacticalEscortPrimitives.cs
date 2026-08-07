@@ -22,15 +22,22 @@ internal static class TacticalEscortPrimitives
     /// or null when it is not moving.</param>
     /// <param name="leaderFacing">Fallback heading when the leader is
     /// standing still: a stationary body's back is behind its face.</param>
+    /// <param name="threat">The nearest KNOWN hostile to the leader, from
+    /// the team picture, or null when the team can see none. Only the
+    /// screen posture reads it; passing it in rather than looking it up is
+    /// what keeps this file pure geometry.</param>
     internal static Position DesiredTile(
         string posture,
         Position leader,
         Position? leaderStep,
         Direction leaderFacing,
         int ordinal,
-        int leash) => posture switch
+        int leash,
+        Position? threat = null) => posture switch
         {
             "trail" => Trail(leader, leaderStep, leaderFacing, ordinal, leash),
+            "screen" => Screen(
+                leader, leaderStep, leaderFacing, ordinal, leash, threat),
             _ => throw new InvalidDataException(
                 $"Unknown escort posture '{posture}'."),
         };
@@ -61,5 +68,46 @@ internal static class TacticalEscortPrimitives
             };
         int back = Math.Min(ordinal + 1, Math.Max(leash, 1));
         return leader.Offset(-dx * back, -dy * back);
+    }
+
+    /// <summary>
+    /// INTERPOSE: stand on the segment between the leader and the nearest
+    /// known threat, as close to the leader as the ordinal allows, and never
+    /// further out than the leash.
+    ///
+    /// <para>"The segment" is the eight-way ray from the leader toward the
+    /// threat — sign of the offset on each axis. That is not an
+    /// approximation of the firing line, it IS the firing line in this
+    /// arena's geometry: projectiles fly on the eight headings, so a shot
+    /// that can reach the leader travels down exactly this ray. Nothing
+    /// else is special-cased, because nothing else has to be — the body
+    /// standing on the line is what blocks it, and delivery physics does
+    /// the rest.</para>
+    ///
+    /// <para>Two ways out, both falling back to <see cref="Trail"/> at the
+    /// same ordinal: the team knows of no threat, so there is no line to
+    /// stand on; or the threat is already adjacent to the leader, so there
+    /// is no room between them and a screen would be asking for the
+    /// enemy's own tile.</para>
+    /// </summary>
+    private static Position Screen(
+        Position leader,
+        Position? leaderStep,
+        Direction leaderFacing,
+        int ordinal,
+        int leash,
+        Position? threat)
+    {
+        if (threat is not Position hostile)
+            return Trail(leader, leaderStep, leaderFacing, ordinal, leash);
+        int dx = hostile.X - leader.X;
+        int dy = hostile.Y - leader.Y;
+        int range = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (range <= 1)
+            return Trail(leader, leaderStep, leaderFacing, ordinal, leash);
+        int forward = Math.Min(
+            Math.Min(ordinal + 1, Math.Max(leash, 1)),
+            range - 1);
+        return leader.Offset(Math.Sign(dx) * forward, Math.Sign(dy) * forward);
     }
 }

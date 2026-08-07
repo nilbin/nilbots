@@ -2342,7 +2342,15 @@
      "assault": "strike-line",
      "while": "shadow-op",
      "until": "shadow-cooled",
-     "escort": "medic",
+     "escort": [
+      {
+       "role": "medic"
+      },
+      {
+       "role": "lancer",
+       "posture": "screen"
+      }
+     ],
      "fight": {
       "collect": "first"
      }

@@ -993,13 +993,13 @@ public static class ArcRelayTacticalPlaybookCompiler
                 verbs[index] = verb;
                 verbCounts[verb] = verbCounts.GetValueOrDefault(verb) + 1;
                 if (TryDoctrineEscort(modes[index], at,
-                        out string[] modeEscorts))
+                        out DoctrineEscort[] modeEscorts))
                 {
-                    foreach (string escortRole in modeEscorts)
+                    foreach (DoctrineEscort escortEntry in modeEscorts)
                     {
-                        if (!escortRoles.Contains(escortRole,
+                        if (!escortRoles.Contains(escortEntry.RoleId,
                                 StringComparer.Ordinal))
-                            escortRoles.Add(escortRole);
+                            escortRoles.Add(escortEntry.RoleId);
                     }
                 }
             }
@@ -1103,9 +1103,11 @@ public static class ArcRelayTacticalPlaybookCompiler
                         : default,
                     modeAt);
                 bool hasEscort = TryDoctrineEscort(
-                    mode, modeAt, out string[] escorts);
+                    mode, modeAt, out DoctrineEscort[] escorts);
                 engagements.Add(DoctrineEngagement(
-                    name, role, escorts, fight, floorRoute, modeAt));
+                    name, role,
+                    escorts.Select(entry => entry.RoleId).ToArray(),
+                    fight, floorRoute, modeAt));
 
                 var assignment = new JsonObject
                 {
@@ -1149,17 +1151,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                 };
                 if (hasEscort)
                 {
-                    // One posture ships ("trail"); the substrate is a list
-                    // because tank and utility escorts are coming and the
-                    // mechanism must not learn 1-ness from this sheet.
+                    // Two postures ship: trail follows, screen interposes.
+                    // The list was always the substrate — it is the sheet
+                    // that finally uses more than one entry of it.
                     track["escort"] = new JsonObject
                     {
                         ["leaderRole"] = role,
                         ["followers"] = new JsonArray(escorts
-                            .Select(escortRole => (JsonNode)new JsonObject
+                            .Select(entry => (JsonNode)new JsonObject
                             {
-                                ["roleId"] = escortRole,
-                                ["posture"] = "trail",
+                                ["roleId"] = entry.RoleId,
+                                ["posture"] = entry.Posture,
                                 ["leash"] = 2,
                             })
                             .ToArray()),
@@ -1205,15 +1207,20 @@ public static class ArcRelayTacticalPlaybookCompiler
                             },
                     },
                 };
-                if (hasEscort)
+                // ONE ROW PER ESCORT ROLE. A single row with every escort
+                // role in it and maximum 1 claims one body and leaves the
+                // rest of the escort unassigned - the second escort would be
+                // authored and never appear. Each role claims its own body,
+                // and none of them may carry.
+                foreach (DoctrineEscort entry in escorts)
                 {
                     rows.Add(new JsonObject
                     {
-                        ["assignmentId"] = $"{name}-escort",
+                        ["assignmentId"] = escorts.Length == 1
+                            ? $"{name}-escort"
+                            : $"{name}-escort-{entry.RoleId}",
                         ["orderId"] = name,
-                        ["roles"] = new JsonArray(escorts
-                            .Select(escortRole => (JsonNode)escortRole)
-                            .ToArray()),
+                        ["roles"] = new JsonArray(entry.RoleId),
                         ["classes"] = new JsonArray(),
                         ["minimum"] = 0,
                         ["preferred"] = 1,
@@ -1369,20 +1376,72 @@ public static class ArcRelayTacticalPlaybookCompiler
         return groups;
     }
 
+    /// <summary>One authored escort: which role follows, and how it stands.
+    /// </summary>
+    private readonly record struct DoctrineEscort(
+        string RoleId,
+        string Posture);
+
+    /// <summary>
+    /// A mode's escort, in any of the three shapes the grammar accepts:
+    /// <c>"medic"</c>, <c>["medic", "lancer"]</c>, or
+    /// <c>[{"role": "medic"}, {"role": "lancer", "posture": "screen"}]</c>.
+    /// Posture defaults to <c>trail</c>, so every sheet authored before
+    /// postures existed compiles to exactly the bytes it always did.
+    /// </summary>
     private static bool TryDoctrineEscort(
         JsonElement mode,
         string path,
-        out string[] escortRoles)
+        out DoctrineEscort[] escorts)
     {
-        escortRoles = [];
+        escorts = [];
         if (!mode.TryGetProperty("escort", out JsonElement escort))
             return false;
-        if (escort.ValueKind != JsonValueKind.String
-            || escort.GetString() is not { Length: > 0 } escortRole)
+        var parsed = new List<DoctrineEscort>();
+        if (escort.ValueKind == JsonValueKind.String)
         {
-            throw Error(path, "'escort' must name a single role.");
+            if (escort.GetString() is not { Length: > 0 } single)
+                throw Error(path, "'escort' must name a role.");
+            IdentifierValue(single, path, "escort");
+            parsed.Add(new DoctrineEscort(single, "trail"));
         }
-        escortRoles = [escortRole];
+        else if (escort.ValueKind == JsonValueKind.Array)
+        {
+            string at = $"{path}.escort";
+            foreach (JsonElement entry in BoundedArray(escort, at, 1, 8))
+            {
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    if (entry.GetString() is not { Length: > 0 } named)
+                        throw Error(at, "an escort entry must name a role.");
+                    IdentifierValue(named, at, "role");
+                    parsed.Add(new DoctrineEscort(named, "trail"));
+                    continue;
+                }
+                Object(entry, at, ["role"], ["posture"]);
+                string roleId = Identifier(entry, "role", at);
+                string posture = "trail";
+                if (entry.TryGetProperty("posture", out _))
+                {
+                    OneOf(entry, "posture", at, "trail", "screen");
+                    posture = entry.GetProperty("posture").GetString()!;
+                }
+                parsed.Add(new DoctrineEscort(roleId, posture));
+            }
+        }
+        else
+        {
+            throw Error(path,
+                "'escort' must be a role, or a list of roles or "
+                + "{role, posture} objects.");
+        }
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (DoctrineEscort entry in parsed)
+        {
+            if (!seen.Add(entry.RoleId))
+                throw Error(path, $"escort role '{entry.RoleId}' is listed twice.");
+        }
+        escorts = [.. parsed];
         return true;
     }
 
@@ -1463,7 +1522,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(follower, $"{at}.followers", ["roleId", "posture", "leash"]);
             string roleId = Identifier(follower, "roleId", $"{at}.followers");
-            OneOf(follower, "posture", $"{at}.followers", "trail");
+            OneOf(follower, "posture", $"{at}.followers", "trail", "screen");
             Range(follower, "leash", $"{at}.followers", 1, 8);
             if (roleIds is not null)
                 Reference(follower, "roleId", roleIds, $"{at}.followers");
