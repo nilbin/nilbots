@@ -343,12 +343,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     claims.Reserve(well.Position);
             }
         }
+        // The reserved lane must aim where the carrier will actually step,
+        // routed deliveries included - a lane reserved toward the reactor
+        // while the body walks a corridor is a lane nobody uses.
         Dictionary<int, Position> carrierSteps = mind.Bodies
             .Where(body => carried.ContainsKey(body.ActorId))
             .Select(body => (
                 Body: body,
                 Step: ArenaBasics.StaticFirstStep(
-                    contract, mind, body, _ownReactor)))
+                    contract, mind, body,
+                    CarrierDestination(package, orders, body))))
             .Where(value => value.Step is not null)
             .ToDictionary(value => value.Body.UnitId, value => value.Step!.Value);
         HashSet<Position> carrierClearance = carrierSteps.Values.ToHashSet();
@@ -946,7 +950,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string coreKey = CoreKey(core.CoreId);
             CustodyProgress prior = _custodyProgress.GetValueOrDefault(actorId)
                 ?? new CustodyProgress(
-                    actorId, coreKey, tick, body.Position, 0);
+                    actorId, coreKey, tick, body.Position, 0, body.Position);
             bool sameCustody = string.Equals(
                 prior.CoreKey, coreKey, StringComparison.Ordinal);
             _custodyProgress[actorId] = new CustodyProgress(
@@ -956,7 +960,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.Position,
                 sameCustody && prior.Position == body.Position
                     ? prior.StagnantTicks + 1
-                    : 0);
+                    : 0,
+                sameCustody ? prior.PickupPosition : body.Position);
         }
     }
 
@@ -3243,8 +3248,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     progress.StagnantTicks,
                     custody.DeliveryTimeoutTicks)
                 ? ActUnreachableCustodyFallback(
-                    contract, mind, body, custody, claims)
-                : ActCarrier(contract, mind, body, custody, claims);
+                    contract, mind, package, body, custody, claims)
+                : ActCarrier(contract, mind, package, body, custody, claims);
             // Carrying is an exclusive tactical state. On movement-cooldown
             // ticks ActCarrier may have no legal action; falling through
             // would let the prior formation rotate or steer the carrier away
@@ -3259,8 +3264,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     progress.StagnantTicks,
                     custody.DeliveryTimeoutTicks)
                 ? ActUnreachableCustodyFallback(
-                    contract, mind, body, custody, claims)
-                : ActCarrier(contract, mind, body, custody, claims);
+                    contract, mind, package, body, custody, claims)
+                : ActCarrier(contract, mind, package, body, custody, claims);
             return acted || Hold(body, "custody:committed-delivery-wait");
         }
 
@@ -3274,52 +3279,65 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     custody.TransferTimeoutTicks)
                 ? ArenaBasics.TryEvade(contract, mind, body, claims)
                     || Hold(body, "custody:await-safe-drop")
-                : ActCarrier(contract, mind, body, custody, claims);
+                : ActCarrier(contract, mind, package, body, custody, claims);
         }
 
-        GenericActorActionLegality? handoff = body.Action("handoff-core");
-        GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
-            targets = handoff?.Constraints.OfType<
-                GenericActorActionLegality.ArgumentConstraint
-                    .UnitTargetConstraint>().SingleOrDefault();
-        MindBody? runner = mind.Bodies
-            .Where(candidate => !carried.ContainsKey(candidate.ActorId)
-                && custody.AuthorizedCarrierRoles.Contains(
-                    _stableRoles.GetValueOrDefault(candidate.UnitId),
-                    StringComparer.Ordinal))
-            .OrderBy(candidate => candidate.Position.ChebyshevDistance(
-                body.Position))
+        // Transfer, per the owner's spec: give the Core to the closest ally
+        // in the OWN-BASE direction - any own body strictly nearer our
+        // reactor than this one - by walking to it and dropping. The engine
+        // puts a voluntary drop on the dropper's homeward neighbour, which is
+        // the receiver's side, so they collect it at the next tick start and
+        // carry on home. With no such ally there is nobody to hand to and the
+        // honest answer is to courier it home yourself. The old handoff /
+        // await / drop dance is gone: it was the transfer loop.
+        MindBody? receiver = TransferReceiver(mind, body, carried);
+        if (receiver is null)
+        {
+            return ActCarrier(contract, mind, package, body, custody, claims)
+                || Hold(body, "custody:transfer-none-courier");
+        }
+        if (body.Position.ChebyshevDistance(receiver.Position) <= 1)
+        {
+            return TryDropCore(body, "custody:transfer-drop")
+                || Hold(body, "custody:transfer-drop-wait");
+        }
+        return ArenaBasics.StaticFirstStepAvoidingReservations(
+                    contract, mind, body, receiver.Position)
+                is Position toReceiver
+            && ArenaBasics.TryMoveDirect(
+                contract, mind, body, toReceiver, claims,
+                "custody:transfer-approach")
+            || Hold(body, "custody:transfer-approach-wait");
+    }
+
+    /// <summary>
+    /// The closest own body that is strictly closer to our reactor than the
+    /// carrier and is not already carrying something. Nearest to the CARRIER
+    /// wins, because the point is to hand off quickly, not to find the body
+    /// furthest along.
+    /// </summary>
+    private MindBody? TransferReceiver(
+        MindContext mind,
+        MindBody body,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried)
+    {
+        int carrierDistance = body.Position.ChebyshevDistance(_ownReactor);
+        return mind.Bodies
+            .Where(candidate => candidate.UnitId != body.UnitId
+                && !carried.ContainsKey(candidate.ActorId)
+                && candidate.Position.ChebyshevDistance(_ownReactor)
+                    < carrierDistance)
+            .OrderBy(candidate =>
+                candidate.Position.ChebyshevDistance(body.Position))
             .ThenBy(candidate => candidate.UnitId)
             .FirstOrDefault();
-        GenericActorActionArgument.UnitTarget? target = runner is null
-            ? null
-            : new GenericActorActionArgument.UnitTarget(
-                runner.ActorId.TeamId, runner.UnitId);
-        if (handoff is { Available: true }
-            && target is not null
-            && targets?.AllowedValues.Contains(target.Value) == true)
-        {
-            body.Command(handoff.ActionId, handoff.ActionCode,
-                [new GenericActorActionArgument.UnitTargetArgument(target.Value)],
-                "custody:accidental-pickup-transfer");
-            return true;
-        }
-        if (runner is not null
-            && TacticalCustodyPrimitives.TransferWindowOpen(
-                mind.Tick - progress.StartedTick,
-                custody.TransferTimeoutTicks))
-        {
-            return Hold(body, "custody:await-authorized-transfer");
-        }
-        // Expiry deliberately becomes delivery, not a voluntary drop/re-pickup
-        // loop. A temporarily unavailable runner must not strand the Core.
-        return ActCarrier(contract, mind, body, custody, claims)
-            || Hold(body, "custody:committed-delivery-wait");
     }
 
     private bool ActUnreachableCustodyFallback(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        TacticalPlaybookPackage package,
         MindBody body,
         TacticalPlaybookPackage.CustodyPolicy custody,
         ArenaBasics.Claims claims) => custody.UnreachableFallback switch
@@ -3329,7 +3347,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             || Hold(body, "custody:delivery-timeout-guard"),
         "alternate-core" => IsSafeToDrop(mind, body) && TryDropCore(body)
             || Hold(body, "custody:delivery-timeout-alternate-core"),
-        "regroup" => ActCarrier(contract, mind, body, custody, claims),
+        "regroup" => ActCarrier(contract, mind, package, body, custody, claims),
         _ => throw new InvalidDataException(
             $"Unknown custody fallback '{custody.UnreachableFallback}'."),
     };
@@ -3450,6 +3468,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private bool ActCarrier(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        TacticalPlaybookPackage package,
         MindBody body,
         TacticalPlaybookPackage.CustodyPolicy custody,
         ArenaBasics.Claims claims)
@@ -3463,20 +3482,101 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 StringComparison.Ordinal)
             && TryTossToForwardCatcher(contract, mind, body))
             return true;
+        // Where a delivery started decides how it comes home. A Core lifted
+        // inside a zone the custody names walks that zone's route corridor
+        // instead of the shortest line - the ghost's ball found deep in enemy
+        // ground comes back along the top corridor rather than straight
+        // through the middle of their team.
+        Position destination = DeliveryDestination(package, custody, body)
+            ?? _ownReactor;
+        string reason = destination == _ownReactor
+            ? "custody:committed-delivery"
+            : "custody:delivery-route";
         Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
-            contract, mind, body, _ownReactor);
+            contract, mind, body, destination);
         if (step is Position committed
             && ArenaBasics.TryMoveDirect(
-                contract, mind, body, committed, claims,
-                "custody:committed-delivery"))
+                contract, mind, body, committed, claims, reason))
             return true;
-        if (TryAdvanceSignature(contract, body, _ownReactor))
+        if (TryAdvanceSignature(contract, body, destination))
             return true;
         if (ArenaBasics.TryMoveHomeward(
-                contract, mind, body, _ownReactor, claims,
+                contract, mind, body, destination, claims,
                 "custody:delivery"))
             return true;
         return false;
+    }
+
+    /// <summary>Where this carrier is heading right now: its custody's
+    /// delivery route when one applies, otherwise the reactor.</summary>
+    private Position CarrierDestination(
+        TacticalPlaybookPackage package,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        MindBody body)
+    {
+        if (!orders.TryGetValue(
+                body.UnitId, out TacticalPlaybookPackage.Order? order)
+            || string.IsNullOrEmpty(order.CustodyId))
+        {
+            return _ownReactor;
+        }
+        TacticalPlaybookPackage.CustodyPolicy custody = package.Source
+            .CustodyPolicies.Single(value =>
+                value.CustodyId == order.CustodyId);
+        return DeliveryDestination(package, custody, body) ?? _ownReactor;
+    }
+
+    /// <summary>
+    /// The next corridor waypoint for a routed delivery, or null when this
+    /// custody names no route for where the Core was lifted - or when the
+    /// corridor no longer helps, which is when the body is already closer to
+    /// home than the waypoint would take it. Direction along the route is
+    /// whichever way leads home, so one route serves both orientations of the
+    /// map and both ends of a loop.
+    /// </summary>
+    private Position? DeliveryDestination(
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.CustodyPolicy custody,
+        MindBody body)
+    {
+        if (custody.DeliveryRoutes is not { Length: > 0 } rules
+            || !_custodyProgress.TryGetValue(
+                body.ActorId, out CustodyProgress? progress))
+        {
+            return null;
+        }
+        TacticalPlaybookPackage.DeliveryRoute? rule = rules.FirstOrDefault(
+            value => package.Contains(value.Zone, progress.PickupPosition));
+        if (rule is null)
+            return null;
+        Position[] route = package.RoutePoints(rule.Route);
+        if (route.Length < 2)
+            return null;
+        int nearest = 0;
+        for (int index = 1; index < route.Length; index++)
+        {
+            if (body.Position.ChebyshevDistance(route[index])
+                < body.Position.ChebyshevDistance(route[nearest]))
+                nearest = index;
+        }
+        int forward = route[(nearest + 1) % route.Length]
+                .ChebyshevDistance(_ownReactor)
+            <= route[(nearest - 1 + route.Length) % route.Length]
+                .ChebyshevDistance(_ownReactor)
+                ? 1
+                : -1;
+        int homeDistance = body.Position.ChebyshevDistance(_ownReactor);
+        for (int step = 0; step < route.Length; step++)
+        {
+            Position waypoint = route[
+                ((nearest + (forward * step)) % route.Length
+                    + route.Length) % route.Length];
+            if (waypoint.ChebyshevDistance(_ownReactor) >= homeDistance)
+                continue;
+            if (body.Position.ChebyshevDistance(waypoint) > 2)
+                return waypoint;
+        }
+        return null;
     }
 
     /// <summary>
@@ -3855,6 +3955,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return true;
         }
 
+        // Opportunistic collection (owner direction 2026-08-07): a ball lying
+        // loose in the named zone is worth breaking the order for, whatever
+        // the custody roster says about who is a courier. The ghost is not an
+        // authorized carrier - its role forbids it, so the normal pickup
+        // allocation never offers it a Core - but a Core it can SEE on the
+        // enemy half is free tempo, and standing on it collects it by rule.
+        // What happens next is ordinary: an unauthorized carrier follows its
+        // custody's accidental-pickup policy, which for a transfer custody
+        // means handing off homeward or couriering it home by the route.
+        if (!string.IsNullOrEmpty(order.CollectZone)
+            && !arc.VisibleCores.Any(core =>
+                core.CarrierActorId == body.ActorId)
+            && TryCollectLooseCore(
+                contract, mind, arc, package, body, order, claims))
+        {
+            return true;
+        }
+
         MotionProgress motion = _motion.GetValueOrDefault(body.UnitId)
             ?? new MotionProgress(body.ActorId, order.OrderId, body.Position, 0);
         int stuck = motion.ActorId == body.ActorId
@@ -4119,6 +4237,39 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 [accidental.Position],
                 claims,
                 "custody:reach-accidental-carrier");
+    }
+
+    /// <summary>
+    /// Walk to the nearest visible loose Core inside the order's collect
+    /// zone, within the order's chase leash of the body. Reserved and bait
+    /// Cores are already excluded from the claim set by the caller's tick
+    /// setup, so this only ever diverts for a Core nobody else is owed.
+    /// </summary>
+    private bool TryCollectLooseCore(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        TacticalPlaybookPackage package,
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        ArenaBasics.Claims claims)
+    {
+        GenericActorContext.ArcRelayCoreState? prize = arc.VisibleCores
+            .Where(core => core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Loose
+                && package.Contains(order.CollectZone, core.Position)
+                && core.Position.ChebyshevDistance(body.Position)
+                    <= Math.Max(order.Movement.ChaseLeash, 1))
+            .OrderBy(core => core.Position.ChebyshevDistance(body.Position))
+            .ThenBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
+            .ThenBy(core => core.CoreId.SourceOrdinal)
+            .FirstOrDefault();
+        if (prize is null)
+            return false;
+        if (TryAdvanceSignature(contract, body, prize.Position))
+            return true;
+        return ArenaBasics.TryMoveToward(
+            contract, mind, body, [prize.Position], claims, "collect-core");
     }
 
     private bool TryCollectCore(
@@ -5052,7 +5203,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string CoreKey,
         int StartedTick,
         Position Position,
-        int StagnantTicks);
+        int StagnantTicks,
+        /// <summary>Where this custody BEGAN — the tile the Core was lifted
+        /// from. The delivery-route rules key off it, so a Core taken deep on
+        /// the enemy half keeps its safe way home for the whole run.</summary>
+        Position PickupPosition = default);
 
     private sealed record FriendlyDroppedCore(
         ActorIdentity SourceCarrier,

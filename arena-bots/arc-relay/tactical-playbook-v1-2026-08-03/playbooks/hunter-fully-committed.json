@@ -1174,7 +1174,17 @@
    "pickupReservationTicks": 8,
    "transferTimeoutTicks": 8,
    "deliveryTimeoutTicks": 120,
-   "accidentalPickup": "deliver",
+   "accidentalPickup": "transfer",
+  "deliveryRoutes": [
+   {
+    "zone": "north-farm",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "enemy-backfield",
+    "route": "shadow-north-long"
+   }
+  ],
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
    "safeConversionConditionSetId": "convert-freely"
@@ -2314,7 +2324,8 @@
      "patrol": "shadow-north-long"
     }
    ],
-   "conceal": false
+   "conceal": false,
+   "collect": "north-farm"
   }
  }
 }

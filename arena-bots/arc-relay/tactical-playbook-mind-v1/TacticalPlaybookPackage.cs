@@ -553,6 +553,11 @@ internal sealed class TacticalPlaybookPackage
         string? EmergencyRecoveryDisposition = null,
         string? EmergencyDisplacementTarget = null,
         int EmergencyDisplacementReleaseRadius = 0,
+        /// <summary>Where a delivery that STARTED inside a named zone should
+        /// walk home: the named route's corridor instead of the shortest
+        /// path. A Core lifted deep on the enemy half comes back the way the
+        /// sheet says is safe.</summary>
+        DeliveryRoute[]? DeliveryRoutes = null,
         string ForwardPass = "none",
         BaitDrop? BaitDrop = null);
 
@@ -592,7 +597,15 @@ internal sealed class TacticalPlaybookPackage
         string LocalState,
         Fallback Fallback,
         string Stance = "",
-        int PatienceTicks = 0);
+        int PatienceTicks = 0,
+        /// <summary>Loose Cores seen inside this zone are worth breaking the
+        /// order for: the body collects one and carries it home. Empty means
+        /// this order never diverts.</summary>
+        string CollectZone = "");
+
+    /// <summary>One "pickups inside this zone come home along this route"
+    /// rule.</summary>
+    internal sealed record DeliveryRoute(string Zone, string Route);
 
     internal sealed record MemberSelection(
         string Kind,

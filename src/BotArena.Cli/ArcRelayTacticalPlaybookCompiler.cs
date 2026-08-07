@@ -831,6 +831,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             expanded["patienceTicks"] = patienceTicks.GetInt32();
         }
+        if (assignment.TryGetProperty(
+                "collectZone", out JsonElement collectZone))
+        {
+            expanded["collectZone"] = collectZone.GetString();
+        }
         return expanded;
     }
 
@@ -895,7 +900,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             string at = $"{path}.doctrines.{id}";
             JsonElement value = doctrine.Value;
             Object(value, at, ["role", "custody", "modes"],
-                ["fight", "conceal"]);
+                ["fight", "conceal", "collect"]);
             string role = value.GetProperty("role").GetString()!;
             string custody = value.GetProperty("custody").GetString()!;
             // Concealment micro (slip out of seen facing cones, skip the
@@ -906,6 +911,13 @@ public static class ArcRelayTacticalPlaybookCompiler
             bool conceal = !value.TryGetProperty(
                     "conceal", out JsonElement concealValue)
                 || concealValue.ValueKind != JsonValueKind.False;
+            // `collect: <zone>` — loose Cores seen in that zone are worth
+            // breaking any mode for. The doctrine's own role need not be an
+            // authorized courier: standing on a Core collects it by rule, and
+            // what happens next is the custody's accidental-pickup policy.
+            string collectZone = value.TryGetProperty("collect", out _)
+                ? Identifier(value, "collect", at)
+                : "";
             JsonElement doctrineFight = value.TryGetProperty(
                 "fight", out JsonElement fightValue)
                 ? fightValue
@@ -1071,6 +1083,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 };
                 if (conceal)
                     assignment["stance"] = "ambush";
+                if (collectZone.Length > 0)
+                    assignment["collectZone"] = collectZone;
                 if (mode.TryGetProperty(
                         "patienceTicks", out JsonElement patience))
                 {
@@ -1979,7 +1993,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                         "assignmentProfileId", "arrivalRadius", "completion",
                         "chaseLeash", "engagementId", "custodyId",
                         "fallbackId",
-                    ], ["stance", "patienceTicks"]);
+                    ], ["stance", "patienceTicks", "collectZone"]);
+                if (assignment.Value.TryGetProperty("collectZone", out _))
+                    Identifier(assignment.Value, "collectZone", path);
                 if (assignment.Value.TryGetProperty("stance", out _))
                     OneOf(assignment.Value, "stance", path, "ambush");
                 if (assignment.Value.TryGetProperty("patienceTicks", out _))
@@ -2294,6 +2310,40 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "custody policy references unknown emergency "
                     + "displacement anchor "
                     + $"'{displacementTarget.GetString()}'.");
+            }
+            if (custody.TryGetProperty(
+                    "deliveryRoutes", out JsonElement rules))
+            {
+                foreach (JsonElement rule in rules.EnumerateArray())
+                {
+                    string zone = rule.GetProperty("zone").GetString()!;
+                    string route = rule.GetProperty("route").GetString()!;
+                    if (!zones.Contains(zone))
+                    {
+                        throw Error(path,
+                            "custody policy delivery route references "
+                            + $"unknown zone '{zone}'.");
+                    }
+                    if (!routes.Contains(route))
+                    {
+                        throw Error(path,
+                            "custody policy delivery route references "
+                            + $"unknown route '{route}'.");
+                    }
+                }
+            }
+        }
+        // A collect zone names ground worth breaking an order for.
+        foreach (JsonElement order in playbook.GetProperty("orders")
+                     .EnumerateArray())
+        {
+            if (order.TryGetProperty("collectZone", out JsonElement collect)
+                && collect.GetString() is { Length: > 0 } collectZone
+                && !zones.Contains(collectZone))
+            {
+                throw Error(path,
+                    "order '" + order.GetProperty("orderId").GetString()
+                    + $"' references unknown collect zone '{collectZone}'.");
             }
         }
         foreach (JsonElement task in playbook.GetProperty("coordination")
@@ -3238,8 +3288,22 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "emergencyRecoveryDisposition",
                 "emergencyDisplacementTarget",
                 "emergencyDisplacementReleaseRadius",
-                "forwardPass", "baitDrop",
+                "forwardPass", "baitDrop", "deliveryRoutes",
             ]);
+        // Where a delivery that STARTED inside a zone walks home: that zone's
+        // route corridor instead of the shortest line. Opt-in, so frozen
+        // sheets keep their exact executor behavior.
+        if (value.TryGetProperty(
+                "deliveryRoutes", out JsonElement deliveryRoutes))
+        {
+            foreach (JsonElement rule in BoundedArray(
+                         deliveryRoutes, $"{at}.deliveryRoutes", 1, 8))
+            {
+                Object(rule, $"{at}.deliveryRoutes", ["zone", "route"]);
+                Identifier(rule, "zone", $"{at}.deliveryRoutes");
+                Identifier(rule, "route", $"{at}.deliveryRoutes");
+            }
+        }
         // forwardPass is opt-in so frozen sheets keep their exact executor
         // behavior: absent means the carrier never volunteers a pass.
         if (value.TryGetProperty("forwardPass", out _))
@@ -3687,7 +3751,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "formationId", "engagementId", "custodyId", "localState",
                 "fallback",
             ],
-            ["supportId", "stance", "patienceTicks"]);
+            ["supportId", "stance", "patienceTicks", "collectZone"]);
+        if (value.TryGetProperty("collectZone", out _))
+            Identifier(value, "collectZone", at);
         if (value.TryGetProperty("stance", out _))
             OneOf(value, "stance", at, "ambush");
         if (value.TryGetProperty("patienceTicks", out _))
