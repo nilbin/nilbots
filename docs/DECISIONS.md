@@ -5159,9 +5159,195 @@ channel: `TryStrikeEvacuation` now unions the telegraphing signatures'
 tiles into the same lit set as the pending strikes, because to a body
 standing underfoot they are the same fact — this tile is announced.
 
-One consequence found while pinning it: on a ruleset whose movement
-cadence is two ticks, a ONE-tick windup is unabandonable by construction —
-the declarer physically cannot act again before it matures. The rooting
-rule only starts to bite when a profile buys a longer telegraph, which is
-precisely the lever the owner asked for. The test pins abandonment on
-rail's two-tick windup for that reason.
+One consequence found while pinning it: a ONE-tick windup is unabandonable
+by construction — the declarer physically cannot act again before it
+matures. The rooting rule only starts to bite when a profile buys a longer
+telegraph, which is precisely the lever the owner asked for. The test pins
+abandonment on rail's two-tick windup for that reason.
+
+CORRECTED 2026-08-09 (owner: "the 2-tick move cadence isn't true"). The
+paragraph above originally blamed "a ruleset whose movement cadence is two
+ticks". THERE IS NO SUCH CADENCE. `ActorMovementProfileDefinition`
+(src/BotArena.Engine/ActorMovementProfileDefinition.cs) carries a movement
+LAYER and a facing COUPLING and nothing else; the move action
+(`ArcRelayH0Definition.cs:282`, `new(MoveActionId, 1,
+ActorActionKind.Movement, [ProjectileHeading])`) has no cooldown field to
+set, because `ActorActionDefinition` has none; and `ResolveMovement`
+(`GenericActorMatchSession.cs:1531`) runs every tick, gating only on walls,
+tick-start occupancy, reservations and facing lock. Every body may step
+every tick.
+
+What is true, and what the claim was a garbled version of, is TWO separate
+things. Per-class: the `deliberate` handling binds
+`ActorMovementFacingCoupling.FacingLocked`
+(`ArcRelayH0Definition.cs:235`), so those bodies step only along their
+current facing and a direction change costs a rotate tick — one tile per
+two ticks WHEN TURNING, for those classes, which is a facing coupling and
+not a cadence. And per-situation: a carrier waiting out a handoff
+alternates wait/step, which reads like a cadence in a trace and is not one.
+
+The real reason a one-tick windup cannot be abandoned is the PHASE ORDER,
+and it holds on every ruleset. `Signatures.Advance`
+(`GenericActorMatchSession.cs:418`) runs at TICK START, before
+`CollectMindTickDecisions` (line 584) and before `ResolveMovement` (line
+609) — and an operation fires when `CompletesAtTick == tick`. A declare on
+tick D with `windupTicks: 1` completes at D+1, which arrives before the
+declarer is asked for a D+1 decision at all: there is no move to abandon
+it with. At `windupTicks: 2` the mind gets exactly one decision inside the
+telegraph, and a move there reaches `AbandonWindupsOnMove` first. So the
+abandonment lever opens at two, for reasons of tick ordering, on every
+profile.
+
+## 227. Escorts follow a body, not a slot on the map
+
+Owner ruling 2026-08-09, from a corridor: the ghost turned around and its
+medic was standing in the doorway. The medic was not lost — it was
+perfectly obedient. Its formation slot was `(2, 0)` measured off the
+order's DESTINATION, and when the destination is behind you, the trailing
+slot is the tile you are trying to walk through.
+
+The doctrine plane now has NO formations. Generated orders carry
+`formationId: ""`: no slot, no cohesion lifecycle, no pace gate (pace was
+the other half of the same idea — "do not outrun the column" — and there
+is no column). The leader walks its movement target directly.
+
+An escorted mode instead puts an `escort` block on the generated order:
+
+```json
+"escort": { "leaderRole": "hunter",
+            "followers": [ { "roleId": "medic",
+                             "posture": "trail", "leash": 2 } ] }
+```
+
+Three properties were required and all three are structural rather than
+special-cased. FOLLOWERS ARE A LIST: the array is the precedence order,
+and `TacticalEscortPrimitives` reads a follower's ordinal rather than
+assuming there is one — a file of three escorts resolves through the same
+code. POSTURE IS A FUNCTION: `DesiredTile` switches on a name and only
+`trail` is implemented, so `screen` and `flank` join by extending a switch
+and a `OneOf` in the compiler, not by rewriting the mechanism. And
+POSTURE READS THE LEADER, not the destination: trail is "behind the leader
+along its own line of travel", so the instant the leader turns around, the
+wanted ground turns around with it.
+
+The yielding is said entirely in machinery that already existed — the
+carrier lane (DECISIONS #205's right-of-way). The tile the leader is
+stepping into is `ReserveLane`d to the leader, which blocks every other
+own body including its followers; a follower caught standing in it gets
+the carrier-blocker precedence tier and clears that tick, preferring to
+step straight on so a reversing pair walks the corridor out escort-first
+instead of arguing over one tile. Leader outranks follower unconditionally
+in the body order; followers outrank each other by list position. Nothing
+in the engine changed and no new movement channel exists; the reasons read
+`escort-follow` and `escort-yield`, and the escort's role tag reads
+`<order>-escort` so two bodies on one order stop reading as two ghosts.
+
+The retired convention — the desugar REQUIRING each sheet to author
+`{id}-solo` and `{id}-escort` — is gone from the compiler. Sheets may keep
+those records; nothing reads them. SPEC-GHOST-DOCTRINE-V3 always claimed
+`formationId` was gone from the ghost's plane; only now is that true.
+
+Measured on the six exhibition cells (hunter-v1 vs wellwright-v1,
+ambush-warren-11): over the ticks the ghost and its medic shared an order,
+the escort occupied the leader's backstep tile on 13 ticks -> 3, and steps
+the leader commanded and did not get fell 22 -> 2. The wedge that produced
+the ruling (e-9004, ghost pinned at (15,16) for eight ticks while the
+medic re-formed onto its exit twice) does not recur.
+
+## 228. The hand-off goes to the cheapest receiver for the BALL
+
+Owner refinement 2026-08-09: "closest to base sometimes makes the passer
+run too far." The transfer rule picked, among own bodies strictly nearer
+home than the passer, the one NEAREST THE PASSER. That is a different
+question from the one that matters. A body four tiles away and barely
+ahead of the passer beats a body eight tiles away and half the map ahead,
+so the passer walked to the first one and the ball gained almost nothing.
+
+The receiver is now the one minimising the ball's TOTAL remaining journey:
+`walk(passer -> ally) + walk(ally -> own reactor)`, over own bodies that
+are alive, not already carrying, reachable, and strictly nearer home than
+the passer. Ties go to the receiver the passer reaches soonest, then to
+the lower unit id. With no such ally, the passer couriers it home, as
+before.
+
+Both legs are MAP distances, not Chebyshev. "Nearer home" had been a
+Chebyshev test, which in a warren calls a body one tile away across a wall
+the obvious receiver, and which cannot be summed with anything meaningful.
+`ArenaBasics.StaticDistance` caches its flood per GOAL, so the two legs
+cost two floods for the whole match: one from the reactor, one from the
+passer's tile.
+
+The scene, exact (w-9001 t38, team 0, passer u0 at (16,10), home 15):
+the old rule found u5 at (16,9) INELIGIBLE — Chebyshev-to-reactor 14 for
+both bodies, not strictly nearer — and picked u4 at (11,15), eleven tiles
+away. The passer then walked six tiles over nineteen ticks and dropped at
+(10,8). Under the new rule u5's map distance home is 14 against the
+passer's 15, so it is eligible, and its total is `1 + 14 = 15` — tied with
+u7's `8 + 7`, and the tie-break gives it to the body one step away. The
+hand-off completes on the next tick without the passer moving at all.
+
+## 229. A patrol waypoint is reached one at a time
+
+Owner catch 2026-08-09 on the v3 greedy gallery, game 1 (w-9001): "a west
+unit dances at its own base around t300". It was u7, the mason on `eyes`,
+under `well-watch-apex` — a `route` order on `stage-loop`, the four-corner
+ring around the west base `[(6,9), (10,11), (10,15), (6,17), (6,9)]`. From
+t~280 to the end it marched up and down the column x=8 between y=10 and
+y=15, period 12, and never walked the ring.
+
+The mechanism is in `RouteTarget`'s advance. A waypoint counts as reached
+within `arrival = max(max(1, arrivalRadius), corridorWidth)` — here 2 —
+and the advance was a `while`, so several waypoints could be consumed in
+one evaluation. This ring's legs are four tiles apart, so a tile at x=8
+is within 2 of BOTH the x=6 leg and the x=10 leg. Standing at (8,15) the
+index consumed (10,15) and then (6,17) in a single tick and settled on
+(6,9) — six tiles NORTH — so the body turned around; arriving near (6,9)
+it consumed (6,9) and the wall-tile waypoint (10,11) together and settled
+on (10,15), five tiles south, so it turned around again. It "completed"
+every corner without ever approaching one. (The layout does not help: the
+authored waypoint (10,11) is a wall tile, reachable only to within 2.)
+
+The fix is one word: the advance is an `if`, not a `while` — at most one
+waypoint per tick. That is sufficient because a single advance can never
+carry the target from one leg past the near corner to the leg behind; the
+body must actually walk to the next waypoint before the one after it can
+be considered. Catch-up for a displaced body costs a few ticks and cannot
+oscillate, since the index only moves forward and the closed-loop reset
+only re-indexes the duplicated first waypoint.
+
+Measured on w-9001: u7's axis reversals 109 -> 36, and its share of the
+match spent within eight tiles of its own reactor 99% -> 31%. Across the
+six exhibition cells, the hunter team's total axis reversals fell 2398 ->
+1727.
+
+## 230. Audit verdict: the ghost that would not fight at 1 HP is the sheet
+
+Owner catch 2026-08-09, same gallery, game 2 (w-9002) around t400: the
+ghost ignores a lone enemy walking in from the right and then dies to a
+different one without ever engaging. Traced; NEITHER is a bug, and the
+decline instrumentation named both without ambiguity. Recorded because
+"working as authored" is a finding, not a non-answer.
+
+(a) The ghost took a hit to 1 HP at t384. hunter-v1 authors
+`breakOff: { health: 1, recoverTicks: 24 }`, so `CommitAllowsEngaging`
+armed the disengage latch until t408 and every tick from t384 to t407
+declines with `commit-engage` — including t392-t404, exactly the window in
+which enemy u7 walked in alone from (22,11) to (15,10). At t408, the tick
+the latch expires, the ghost engages on its own: `prepare focus 1:4:4`.
+The latch is doing precisely what DECISIONS #216's timed break says.
+
+(b) It was NOT rooted. It commanded a move on each of t422, t423 and t424,
+so no windup was in progress to root it. It died because the second 1-HP
+event (t421, after the transfer drop) re-armed the same latch until t445,
+and an armed recover outranks fighting (spec precedence 1 and 2) — so at
+1 HP with enemy u3 standing adjacent at (16,9) it walked (15,9) -> (16,8)
+toward a cold heal tile and was killed at t425. The `cornered` suspension
+did not apply: it had exit steps, which is the condition the owner's own
+ruling names.
+
+The one honest question this raises for the owner, left unchanged here:
+`cornered` suspends the break only when NO adjacent tile is walkable and
+unoccupied. It does not cover the case that killed this ghost — exits
+exist, but every one of them stays inside an adjacent enemy's reach, and
+walking at equal speed from a body already in contact only spends the
+remaining hit point. That is a rule change, not a bug fix, so it waits.

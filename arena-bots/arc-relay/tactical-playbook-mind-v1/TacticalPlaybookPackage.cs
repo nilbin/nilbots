@@ -275,13 +275,39 @@ internal sealed class TacticalPlaybookPackage
         return route.CorridorWidth;
     }
 
+    /// <summary>
+    /// The formation plane an order moves under. An EMPTY formationId is
+    /// the explicit "this order has none" (the doctrine plane, owner ruling
+    /// 2026-08-09): the body walks its own movement target and any escort
+    /// follows it. <see cref="NoFormation"/> is what that reads as
+    /// downstream, so every caller keeps one code path instead of learning
+    /// a null.
+    /// </summary>
     internal Formation ResolveFormation(Playbook playbook, string formationId)
     {
+        if (formationId.Length == 0)
+            return NoFormation;
         string resolved = _formationAliases.GetValueOrDefault(
             formationId, formationId);
         return playbook.Formations.Single(value => string.Equals(
             value.FormationId, resolved, StringComparison.Ordinal));
     }
+
+    /// <summary>
+    /// No slots (swarm), no placements, no cohesion gate that can ever fire
+    /// - the absence of a formation, written down. The orientation is the
+    /// doctrine plane's own character: a hunter watches the enemy reactor
+    /// when nothing nearer has its attention, which is exactly what the
+    /// retired `{id}-solo` / `{id}-escort` formations said.
+    /// </summary>
+    internal static readonly Formation NoFormation = new(
+        FormationId: "",
+        Shape: "swarm",
+        Orientation: "enemy-reactor",
+        Spacing: new Spacing("chebyshev", 1, 2, 4),
+        Placements: [],
+        Cohesion: new Cohesion(0, 0, 1, 1, "free"),
+        Reflow: new Reflow("nearest-legal", "compress", 3, 0));
 
     internal Position FormationPosition(Position anchor, int[] offset)
     {
@@ -641,7 +667,30 @@ internal sealed class TacticalPlaybookPackage
         /// <summary>Loose Cores seen inside ANY of these zones are worth
         /// breaking the order for: the body collects one and carries it home.
         /// Empty or absent means this order never diverts.</summary>
-        string[]? CollectZones = null);
+        string[]? CollectZones = null,
+        /// <summary>Who leads this order and who follows it. Absent on every
+        /// squad order; present on a doctrine order that rides escorts.
+        /// </summary>
+        Escort? Escort = null);
+
+    /// <summary>
+    /// An order's follower structure: one leader role and an ORDERED list of
+    /// followers. The order of the list IS the followers' precedence — the
+    /// first picks its tile before the second — and each follower names the
+    /// posture function that decides where it wants to stand. There is
+    /// nothing here that knows there is exactly one follower, or that the
+    /// one posture shipped is "trail".
+    /// </summary>
+    internal sealed record Escort(
+        string LeaderRole,
+        EscortFollower[] Followers);
+
+    /// <param name="Leash">How far from the leader this follower may want to
+    /// be, in tiles.</param>
+    internal sealed record EscortFollower(
+        string RoleId,
+        string Posture,
+        int Leash);
 
     /// <summary>One "pickups inside this zone come home along this route"
     /// rule.</summary>

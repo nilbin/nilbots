@@ -275,6 +275,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body => Target(
                 contract, mind, package, machine, roles, groups, orders,
                 carried, orders[body.UnitId], body));
+        // Escorts, not formations (owner ruling 2026-08-09). A doctrine
+        // order names a leader and its followers; the leader keeps the
+        // target it was given and each follower's ground is a posture
+        // function of where the leader IS and where it is about to step.
+        EscortParty[] escorts = ResolveEscorts(
+            contract, mind, roles, orders, authoredTargets);
+        foreach (EscortParty party in escorts)
+        foreach (EscortMember member in party.Followers)
+        {
+            authoredTargets[member.Body.UnitId] =
+                TacticalEscortPrimitives.DesiredTile(
+                    member.Policy.Posture,
+                    party.Leader.Position,
+                    party.LeaderStep,
+                    party.Leader.Facing,
+                    member.Ordinal,
+                    member.Policy.Leash);
+        }
+        // Leader outranks follower unconditionally, and followers outrank
+        // each other in the order's declared list order.
+        Dictionary<int, int> escortRank = escorts
+            .SelectMany(party => party.Followers
+                .Select(member => (member.Body.UnitId, Rank: member.Ordinal + 1))
+                .Prepend((party.Leader.UnitId, Rank: 0)))
+            .ToDictionary(value => value.UnitId, value => value.Rank);
         Dictionary<int, Position> targets = ResolveFormationTargets(
             contract,
             mind,
@@ -391,6 +416,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     claims.Reserve(well.Position);
             }
         }
+        // Escort right-of-way, said in the same machinery the carrier lane
+        // already uses: the tile the leader is stepping into is reserved
+        // against every other own body, its own followers first. A follower
+        // caught standing in it yields this tick (escort-yield below) - the
+        // leader never negotiates with its escort for the ground it wants,
+        // which is the whole of "a reversal makes followers yield".
+        var escortYield = new Dictionary<int, EscortParty>();
+        foreach (EscortParty party in escorts)
+        {
+            if (party.LeaderStep is not Position leaderStep)
+                continue;
+            claims.ReserveLane(leaderStep, party.Leader.UnitId);
+            foreach (EscortMember member in party.Followers)
+            {
+                if (member.Body.Position == leaderStep)
+                    escortYield[member.Body.UnitId] = party;
+            }
+        }
         // The reserved lane must aim where the carrier will actually step,
         // routed deliveries included - a lane reserved toward the reactor
         // while the body walks a corridor is a lane nobody uses.
@@ -423,6 +466,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      .ThenByDescending(body =>
                          !carried.ContainsKey(body.ActorId)
                          && carrierClearance.Contains(body.Position))
+                     // The same tier for an escort caught in its leader's
+                     // doorway: it picks its exit before free traffic
+                     // takes the tiles it could have used.
+                     .ThenByDescending(body =>
+                         escortYield.ContainsKey(body.UnitId))
                      // Under a cooperative stepper the tier the greedy
                      // order never needed: a body in contact settles its
                      // tile before free traffic reserves it out from
@@ -433,6 +481,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                              enemy.Position.ChebyshevDistance(body.Position)
                                  <= 2))
                      .ThenBy(body => orders[body.UnitId].Priority)
+                     // Leader before its own followers, followers in the
+                     // order's declared list order. Everyone else ranks 0
+                     // and keeps the historical unit-id tie-break.
+                     .ThenBy(body => escortRank.GetValueOrDefault(body.UnitId))
                      .ThenBy(body => body.UnitId))
         {
             string role = roles[body.UnitId];
@@ -453,7 +505,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _ownReactor,
                 _enemyReactor,
                 focus.GetValueOrDefault(body.UnitId)?.Target.Position);
-            body.SetRole(RoleTag(machine.PhaseId, group, role, order.OrderId));
+            body.SetRole(RoleTag(
+                machine.PhaseId, group, role, order.OrderId,
+                escortRank.GetValueOrDefault(body.UnitId) > 0));
+
+            // Escort yield. Standing where the leader is going is the one
+            // thing an escort may never do; the preferred exit is straight
+            // on, so a reversing pair walks the corridor out escort-first
+            // instead of arguing over one tile.
+            if (escortYield.TryGetValue(body.UnitId, out EscortParty? yielding))
+            {
+                Position onward = body.Position.Offset(
+                    body.Position.X - yielding.Leader.Position.X,
+                    body.Position.Y - yielding.Leader.Position.Y);
+                string yieldReason = Provenance(
+                    machine, group, order, "escort-yield");
+                if (ArenaBasics.TryMoveDirect(
+                        contract, mind, body, onward, claims, yieldReason)
+                    || ArenaBasics.TryMoveAside(
+                        contract, mind, body, claims,
+                        new HashSet<Position>
+                        {
+                            body.Position,
+                            yielding.Leader.Position,
+                        },
+                        yieldReason))
+                {
+                    continue;
+                }
+            }
 
             if (!carried.ContainsKey(body.ActorId)
                 && carrierClearance.Contains(body.Position)
@@ -604,7 +684,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             body,
                             role, group, order, engagement, target, targets,
                             groups, orders,
-                            pickupAssignments, focus, claims),
+                            pickupAssignments, focus, claims,
+                            // A follower is not marching a formation; it is
+                            // following someone. The trace says which.
+                            escortRank.GetValueOrDefault(body.UnitId) > 0
+                                ? "escort-follow"
+                                : "formation-move"),
                     "facing" => TryScanSweep(
                             contract, mind, body, order, target,
                             Provenance(machine, group, order, "scan"))
@@ -1775,6 +1860,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return package.FormationPosition(anchor, placement.Offset);
     }
 
+    /// <summary>The slot this body stands on. An order with no formation
+    /// plane has no slots at all: the body stands on its own target, which
+    /// is offset zero.</summary>
     private TacticalPlaybookPackage.Placement FormationPlacement(
         TacticalPlaybookPackage.Formation formation,
         IReadOnlyDictionary<int, string> roles,
@@ -1784,6 +1872,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Placement[] placements = formation.Placements
             .Where(value => value.RoleId == role)
             .OrderBy(value => value.Order).ToArray();
+        if (placements.Length == 0)
+            return new TacticalPlaybookPackage.Placement(role, "centre", 0, [0, 0]);
         int ordinal = TacticalFormationPrimitives.FormationOrdinal(
             unitId,
             role,
@@ -2077,6 +2167,62 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     value.PreviousPosition)))
         .DistinctBy(value => value.ActorId);
 
+    /// <summary>
+    /// The escorted orders that are actually live this tick: for each, the
+    /// leader body, the tile the leader is about to step into, and its
+    /// followers in the order's declared precedence. Nothing here counts
+    /// followers or knows what a posture does — an order listing three
+    /// escorts under three postures resolves the same way this one does.
+    /// An order whose leader is dead has no party at all, and its would-be
+    /// followers simply walk the order's own target, which is exactly what
+    /// a leaderless escort should do.
+    /// </summary>
+    private static EscortParty[] ResolveEscorts(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        IReadOnlyDictionary<int, string> roles,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        IReadOnlyDictionary<int, Position> authoredTargets)
+    {
+        var parties = new List<EscortParty>();
+        foreach (IGrouping<string, MindBody> party in mind.Bodies
+                     .Where(body => orders[body.UnitId].Escort is not null)
+                     .OrderBy(body => body.UnitId)
+                     .GroupBy(body => orders[body.UnitId].OrderId,
+                         StringComparer.Ordinal))
+        {
+            TacticalPlaybookPackage.Escort escort =
+                orders[party.First().UnitId].Escort!;
+            MindBody? leader = party.FirstOrDefault(body => string.Equals(
+                roles[body.UnitId],
+                escort.LeaderRole,
+                StringComparison.Ordinal));
+            if (leader is null)
+                continue;
+            var followers = new List<EscortMember>();
+            foreach (TacticalPlaybookPackage.EscortFollower policy in
+                     escort.Followers)
+            {
+                foreach (MindBody body in party.Where(body => string.Equals(
+                             roles[body.UnitId],
+                             policy.RoleId,
+                             StringComparison.Ordinal)))
+                {
+                    followers.Add(new EscortMember(
+                        body, policy, followers.Count));
+                }
+            }
+            if (followers.Count == 0)
+                continue;
+            parties.Add(new EscortParty(
+                leader,
+                ArenaBasics.StaticFirstStep(
+                    contract, mind, leader, authoredTargets[leader.UnitId]),
+                followers.ToArray()));
+        }
+        return parties.ToArray();
+    }
+
     private Dictionary<int, Position> ResolveFormationTargets(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -2244,7 +2390,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int arrival = Math.Max(
             Math.Max(1, order.Movement.ArrivalRadius),
             package.RouteCorridorWidth(order.Movement.Target));
-        while (index < route.Length - 1
+        // ONE waypoint per tick. Advancing greedily let a body "complete"
+        // waypoints it never approached: on a loop whose legs sit closer
+        // together than the arrival ring, a tile between two legs satisfies
+        // BOTH, so the index raced past the near corner and re-targeted the
+        // leg behind the body — which then walked back, satisfied that
+        // corner, and raced forward again. The measured shape was a
+        // six-tile pendulum on the west base's stage-loop, period 12, all
+        // match (owner catch 2026-08-09, w-9001 u7 at t297-t316). Catching
+        // up one waypoint per tick costs a displaced body a few ticks and
+        // cannot oscillate, because the index only ever moves forward.
+        if (index < route.Length - 1
             && body.Position.ChebyshevDistance(route[index]) <= arrival)
             index++;
         // A route whose last waypoint is its first is a closed patrol loop:
@@ -3567,15 +3723,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : ActCarrier(contract, mind, package, body, custody, claims);
         }
 
-        // Transfer, per the owner's spec: give the Core to the closest ally
-        // in the OWN-BASE direction - any own body strictly nearer our
-        // reactor than this one - by walking to it and dropping. The engine
-        // puts a voluntary drop on the dropper's homeward neighbour, which is
-        // the receiver's side, so they collect it at the next tick start and
-        // carry on home. With no such ally there is nobody to hand to and the
-        // honest answer is to courier it home yourself. The old handoff /
-        // await / drop dance is gone: it was the transfer loop.
-        MindBody? receiver = TransferReceiver(mind, body, carried);
+        // Transfer, per the owner's spec: give the Core to an ally in the
+        // OWN-BASE direction - any own body strictly nearer our reactor than
+        // this one - by walking to it and dropping. WHICH ally is the
+        // cheapest for the BALL, not the nearest to the passer (see
+        // TransferReceiver). The engine puts a voluntary drop on the
+        // dropper's homeward neighbour, which is the receiver's side, so
+        // they collect it at the next tick start and carry on home. With no
+        // such ally there is nobody to hand to and the honest answer is to
+        // courier it home yourself. The old handoff / await / drop dance is
+        // gone: it was the transfer loop.
+        MindBody? receiver = TransferReceiver(contract, mind, body, carried);
         if (receiver is null)
         {
             return ActCarrier(contract, mind, package, body, custody, claims)
@@ -3607,26 +3765,54 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// The closest own body that is strictly closer to our reactor than the
-    /// carrier and is not already carrying something. Nearest to the CARRIER
-    /// wins, because the point is to hand off quickly, not to find the body
-    /// furthest along.
+    /// Who to hand the ball to: among own bodies strictly nearer home than
+    /// the passer, walkable-from-here and not already carrying, the one that
+    /// minimises the BALL'S remaining journey — the walk out to the receiver
+    /// plus the receiver's walk home.
+    ///
+    /// <para>The old rule picked the eligible body nearest the PASSER, and
+    /// "nearest to me" is not the same question as "cheapest for the ball":
+    /// it sent a passer trekking a long way to a receiver that was barely
+    /// ahead of it, past nearer bodies that were much further along (owner
+    /// catch 2026-08-09). Summing the two legs balances the two by
+    /// construction — a receiver one tile away that is one tile ahead is
+    /// worth no more than the trip it saves.</para>
+    ///
+    /// <para>Distances are MAP distances, not Chebyshev: "nearer home" and
+    /// "close by" both have to mean walking, or a body one tile away across
+    /// a wall reads as the obvious receiver. An unreachable candidate has no
+    /// cost and is not a candidate. The fields are goal-keyed and cached, so
+    /// both legs are lookups against two floods.</para>
     /// </summary>
     private MindBody? TransferReceiver(
+        GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        int carrierDistance = body.Position.ChebyshevDistance(_ownReactor);
+        int? carrierHome = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, _ownReactor);
+        if (carrierHome is null)
+            return null;
         return mind.Bodies
             .Where(candidate => candidate.UnitId != body.UnitId
-                && !carried.ContainsKey(candidate.ActorId)
-                && candidate.Position.ChebyshevDistance(_ownReactor)
-                    < carrierDistance)
+                && !carried.ContainsKey(candidate.ActorId))
+            .Select(candidate => (
+                Body: candidate,
+                ToReceiver: ArenaBasics.StaticDistance(
+                    contract.Map, candidate.Position, body.Position),
+                Home: ArenaBasics.StaticDistance(
+                    contract.Map, candidate.Position, _ownReactor)))
+            .Where(candidate => candidate.ToReceiver is not null
+                && candidate.Home is not null
+                && candidate.Home < carrierHome)
             .OrderBy(candidate =>
-                candidate.Position.ChebyshevDistance(body.Position))
-            .ThenBy(candidate => candidate.UnitId)
+                candidate.ToReceiver!.Value + candidate.Home!.Value)
+            // Same total journey: the passer walks the shorter half.
+            .ThenBy(candidate => candidate.ToReceiver!.Value)
+            .ThenBy(candidate => candidate.Body.UnitId)
+            .Select(candidate => candidate.Body)
             .FirstOrDefault();
     }
 
@@ -4180,7 +4366,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<int,
             GenericActorContext.ArcRelayCoreState> pickupAssignments,
         IReadOnlyDictionary<int, FocusAssignment> focus,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        string moveChannel)
     {
         TacticalPlaybookPackage.Group groupPolicy = package.Source.Groups
             .Single(value => value.GroupId == group);
@@ -4440,7 +4627,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Provenance(machine, group, order,
                 stuck >= order.Movement.StuckTicks
                     ? $"{order.Movement.StuckRecovery}-reflow"
-                    : "formation-move")))
+                    : moveChannel)))
         {
             return true;
         }
@@ -5548,19 +5735,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string phase,
         string group,
         string role,
-        string order)
+        string order,
+        bool escorting)
     {
         _ = phase;
         _ = group;
         _ = role;
         // The arena badge truncates past 14 characters, and every order id
-        // is shorter than that: the order alone is the whole caption.
+        // is shorter than that: the order alone is the whole caption. A
+        // body riding someone else's order says so — "ghost-assault" on two
+        // units reads as two ghosts. The suffix survives the 24-byte tag
+        // cap; the ORDER gives way, because "-escort" is the new fact.
+        // (Tags are lowercase-kebab semantic ids, so the separator is a
+        // dash rather than a space.)
         string value = order.ToLowerInvariant();
+        const string suffix = "-escort";
+        if (escorting)
+        {
+            if (value.Length + suffix.Length > 24)
+                value = value[..(24 - suffix.Length)];
+            value = value.TrimEnd('-') + suffix;
+        }
         return (value.Length <= 24 ? value : value[..24]).TrimEnd('-');
     }
 
     private static string CoreKey(GenericActorContext.ArcRelayCoreId id) =>
         $"{id.SourceWellId}:{id.SourceOrdinal}";
+
+    /// <summary>One escorted order's live cast for one tick.</summary>
+    private sealed record EscortParty(
+        MindBody Leader,
+        Position? LeaderStep,
+        EscortMember[] Followers);
+
+    /// <param name="Ordinal">Position in the order's follower list, which is
+    /// both this follower's precedence and what its posture reads to space
+    /// a file of several.</param>
+    private sealed record EscortMember(
+        MindBody Body,
+        TacticalPlaybookPackage.EscortFollower Policy,
+        int Ordinal);
 
     private sealed record LastSeenEnemy(
         ActorIdentity ActorId,

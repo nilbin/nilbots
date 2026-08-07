@@ -1597,6 +1597,75 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Contains("defined by both the library", error.Message);
     }
 
+    [Fact]
+    public void DoctrineOrdersCarryAnEscortInsteadOfAFormation()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement[] doctrineOrders = playbook.RootElement
+            .GetProperty("orders")
+            .EnumerateArray()
+            .Where(order => order.GetProperty("orderId").GetString()!
+                .StartsWith("ghost-", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(doctrineOrders);
+
+        // No formation plane on the doctrine plane: no slot, no pace gate.
+        foreach (JsonElement order in doctrineOrders)
+        {
+            Assert.Equal("", order.GetProperty("formationId").GetString());
+            Assert.Equal("free",
+                order.GetProperty("movement").GetProperty("pace").GetString());
+        }
+
+        JsonElement escorted = doctrineOrders.Single(order =>
+            order.TryGetProperty("escort", out _));
+        JsonElement escort = escorted.GetProperty("escort");
+        Assert.Equal("hunter", escort.GetProperty("leaderRole").GetString());
+        JsonElement follower = Assert.Single(
+            escort.GetProperty("followers").EnumerateArray());
+        Assert.Equal("medic", follower.GetProperty("roleId").GetString());
+        Assert.Equal("trail", follower.GetProperty("posture").GetString());
+        Assert.Equal(2, follower.GetProperty("leash").GetInt32());
+    }
+
+    [Fact]
+    public void ARoleMayNotEscortItself()
+    {
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        source["doctrines"]!["ghost"]!["modes"]!.AsArray()
+            .Single(value => value!.AsObject().ContainsKey("escort"))!
+            .AsObject()["escort"] = "hunter";
+
+        // Written beside the original so the relative layout reference and
+        // its pinned hash still resolve.
+        string path = Path.Combine(
+            Path.GetDirectoryName(HunterV1())!,
+            $"hunter-v1-self-escort-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, source.ToJsonString());
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains("cannot escort itself", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static string HunterV1() => Path.Combine(
+        FindRepoRoot(),
+        "arena-bots",
+        "arc-relay",
+        "tactical-playbook-v1-2026-08-03",
+        "playbooks",
+        "hunter-v1.json");
+
     private static string HomeSiegeV3Library() => Path.Combine(
         FindRepoRoot(),
         "arena-bots",

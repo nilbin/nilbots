@@ -852,6 +852,10 @@ public static class ArcRelayTacticalPlaybookCompiler
                     .Select(zone => (JsonNode)zone.GetString()!)
                     .ToArray());
         }
+        // The escort rides the TRACK, beside the movement it follows: the
+        // leader and its followers share one order by construction.
+        if (track.TryGetProperty("escort", out JsonElement escort))
+            expanded["escort"] = JsonNode.Parse(escort.GetRawText());
         return expanded;
     }
 
@@ -882,11 +886,20 @@ public static class ArcRelayTacticalPlaybookCompiler
     /// Everything the v2 grammar authored explicitly is now derived: the
     /// group and local state from the role, the assignment profile
     /// (priority 20, members all, repath), support from the escort roles'
-    /// kit, the withdraw rally from the floor patrol route, formations by
-    /// convention (`{id}-solo`, and `{id}-escort` when any mode rides an
-    /// escort), and stance - concealment is the doctrine plane's character,
-    /// every generated assignment is an ambusher (backstab physics live in
-    /// the engine; there is no sheet knob).
+    /// kit, the withdraw rally from the floor patrol route, and stance -
+    /// concealment is the doctrine plane's character, every generated
+    /// assignment is an ambusher (backstab physics live in the engine;
+    /// there is no sheet knob).
+    ///
+    /// THE DOCTRINE PLANE HAS NO FORMATIONS (owner ruling 2026-08-09).
+    /// Generated orders carry `formationId: ""`: the doctrine body walks
+    /// its movement target directly, and an escort follows through the
+    /// order's `escort` block rather than through a slot measured off the
+    /// destination. A slot is a place on the map; a trailing one sits on
+    /// the leader's reversal path, which is exactly how the medic was
+    /// found plugging the ghost's way back out of a corridor. Sheets may
+    /// still author `{id}-solo` / `{id}-escort` formations - nothing reads
+    /// them any more.
     /// Returns null when the playbook authors no doctrines.
     /// </summary>
     private static JsonDocument? DesugarDoctrines(
@@ -968,10 +981,9 @@ public static class ArcRelayTacticalPlaybookCompiler
 
             // Pre-scan the modes for the derivations that need the whole
             // list: the floor route (withdraw rally), the escort union
-            // (support kit + escort formation requirement), and per-verb
+            // (the support kit the generated orders carry), and per-verb
             // occurrence counts for stable generated names.
             var escortRoles = new List<string>();
-            bool anyEscort = false;
             var verbCounts = new Dictionary<string, int>(
                 StringComparer.Ordinal);
             string[] verbs = new string[modes.Length];
@@ -983,7 +995,6 @@ public static class ArcRelayTacticalPlaybookCompiler
                 if (TryDoctrineEscort(modes[index], at,
                         out string[] modeEscorts))
                 {
-                    anyEscort = true;
                     foreach (string escortRole in modeEscorts)
                     {
                         if (!escortRoles.Contains(escortRole,
@@ -1002,11 +1013,6 @@ public static class ArcRelayTacticalPlaybookCompiler
                     + "floor the body always falls back to.");
             }
             string floorRoute = floor.GetProperty("patrol").GetString()!;
-            string soloFormation = $"{id}-solo";
-            RequireFormation(root, soloFormation, at);
-            string escortFormation = $"{id}-escort";
-            if (anyEscort)
-                RequireFormation(root, escortFormation, at);
             string supportId = DoctrineSupport(root, role, escortRoles, at);
 
             profiles[$"{id}-doctrine"] = new JsonObject
@@ -1130,23 +1136,38 @@ public static class ArcRelayTacticalPlaybookCompiler
                 {
                     assignment["patienceTicks"] = patience.GetInt32();
                 }
+                var track = new JsonObject
+                {
+                    // No formation on the doctrine plane: the body walks
+                    // its movement target, full stop.
+                    ["formationId"] = "",
+                    ["movement"] = DoctrineMovement(mode, verb),
+                    ["assignments"] = new JsonObject
+                    {
+                        [name] = assignment,
+                    },
+                };
+                if (hasEscort)
+                {
+                    // One posture ships ("trail"); the substrate is a list
+                    // because tank and utility escorts are coming and the
+                    // mechanism must not learn 1-ness from this sheet.
+                    track["escort"] = new JsonObject
+                    {
+                        ["leaderRole"] = role,
+                        ["followers"] = new JsonArray(escorts
+                            .Select(escortRole => (JsonNode)new JsonObject
+                            {
+                                ["roleId"] = escortRole,
+                                ["posture"] = "trail",
+                                ["leash"] = 2,
+                            })
+                            .ToArray()),
+                    };
+                }
                 maneuvers[$"{name}-set"] = new JsonObject
                 {
-                    ["tracks"] = new JsonObject
-                    {
-                        ["main"] = new JsonObject
-                        {
-                            ["formationId"] = hasEscort
-                                ? escortFormation
-                                : soloFormation,
-                            ["movement"] = DoctrineMovement(
-                                mode, verb, hasEscort),
-                            ["assignments"] = new JsonObject
-                            {
-                                [name] = assignment,
-                            },
-                        },
-                    },
+                    ["tracks"] = new JsonObject { ["main"] = track },
                 };
 
                 var rows = new JsonArray
@@ -1416,28 +1437,56 @@ public static class ArcRelayTacticalPlaybookCompiler
         return matching.Length == 1 ? matching[0] : "";
     }
 
-    private static void RequireFormation(
-        JsonObject root,
-        string formationId,
-        string path)
+    /// <summary>
+    /// The escort block: one named leader role and an ORDERED list of
+    /// follower roles, each with a posture and a leash. The list is the
+    /// substrate's precedence order - follower 0 picks its tile before
+    /// follower 1 - and the posture names the function that says where a
+    /// follower wants to stand. Only "trail" is implemented; the grammar is
+    /// a list of postures precisely so screen/flank can join it without
+    /// touching the mechanism.
+    /// </summary>
+    private static void ValidateEscort(
+        JsonElement escort,
+        string path,
+        IReadOnlySet<string>? roleIds = null)
     {
-        bool exists = root["formations"]!.AsArray()
-            .Any(formation => formation!["formationId"]!
-                .GetValue<string>() == formationId);
-        if (!exists)
+        string at = $"{path}.escort";
+        Object(escort, at, ["leaderRole", "followers"]);
+        Identifier(escort, "leaderRole", at);
+        string leader = escort.GetProperty("leaderRole").GetString()!;
+        if (roleIds is not null)
+            Reference(escort, "leaderRole", roleIds, at);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (JsonElement follower in BoundedArray(
+                     escort.GetProperty("followers"), $"{at}.followers", 1, 8))
         {
-            throw Error(path,
-                $"doctrine formations are conventional: author "
-                + $"'{formationId}' in the formations section.");
+            Object(follower, $"{at}.followers", ["roleId", "posture", "leash"]);
+            string roleId = Identifier(follower, "roleId", $"{at}.followers");
+            OneOf(follower, "posture", $"{at}.followers", "trail");
+            Range(follower, "leash", $"{at}.followers", 1, 8);
+            if (roleIds is not null)
+                Reference(follower, "roleId", roleIds, $"{at}.followers");
+            if (string.Equals(roleId, leader, StringComparison.Ordinal))
+            {
+                throw Error(at,
+                    $"role '{roleId}' cannot escort itself.");
+            }
+            if (!seen.Add(roleId))
+                throw Error(at, $"role '{roleId}' is listed twice.");
         }
     }
 
     private static JsonObject DoctrineMovement(
         JsonElement mode,
-        string verb,
-        bool hasEscort)
+        string verb)
     {
-        string pace = hasEscort ? "slowest" : "free";
+        // Always free. Pace is a FORMATION gate - "do not outrun the
+        // column" - and the doctrine plane has no column: the leader walks
+        // its own target and its escort follows it (owner ruling
+        // 2026-08-09). A leader that waits for its escort is a leader the
+        // escort can strand.
+        const string pace = "free";
         switch (verb)
         {
             case "patrol":
@@ -2076,8 +2125,13 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             Object(track.Value,
                 $"{path}.maneuvers.{maneuverId}.tracks.{track.Id}",
-                ["formationId", "movement", "assignments"]);
-            Identifier(track.Value, "formationId", path);
+                ["formationId", "movement", "assignments"],
+                ["escort"]);
+            // An empty formationId is the explicit "this track has no
+            // formation plane" - the doctrine shape. Squad tracks name one.
+            NonEmptyString(track.Value, "formationId", path, allowEmpty: true);
+            if (track.Value.TryGetProperty("escort", out JsonElement escort))
+                ValidateEscort(escort, $"{path}.maneuvers.{maneuverId}");
             JsonElement movement = track.Value.GetProperty("movement");
             Object(movement, $"{path}.maneuvers.tracks.movement",
                 ["kind", "target", "stuckTicks", "pace"],
@@ -2724,8 +2778,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement order in orders)
         {
             ValidateOrder(order, groupIds, formationIds, engagementIds,
-                supportIds, custodyIds, phaseIds, path);
+                supportIds, custodyIds, phaseIds, roleIds, path);
             string formationId = order.GetProperty("formationId").GetString()!;
+            // No formation, no pace contract to agree with.
+            if (formationId.Length == 0)
+                continue;
             string formationPace = formations.Single(formation =>
                     string.Equals(
                         formation.GetProperty("formationId").GetString(),
@@ -3888,6 +3945,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> supportIds,
         IReadOnlySet<string> custodyIds,
         IReadOnlySet<string> phaseIds,
+        IReadOnlySet<string> roleIds,
         string path)
     {
         string at = $"{path}.coordination.orders";
@@ -3897,7 +3955,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "formationId", "engagementId", "custodyId", "localState",
                 "fallback",
             ],
-            ["supportId", "stance", "patienceTicks", "collectZones"]);
+            ["supportId", "stance", "patienceTicks", "collectZones", "escort"]);
+        if (value.TryGetProperty("escort", out JsonElement orderEscort))
+            ValidateEscort(orderEscort, at, roleIds);
         if (value.TryGetProperty("collectZones", out JsonElement orderCollect))
         {
             foreach (JsonElement zone in BoundedArray(orderCollect, at, 1, 8))
@@ -3911,7 +3971,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         Reference(value, "groupId", groupIds, at);
         Range(value, "priority", at, 0, 1000);
         ValidateMemberSelection(value.GetProperty("members"), at);
-        Reference(value, "formationId", formationIds, at);
+        // Empty means "no formation plane" (the doctrine shape).
+        Reference(value, "formationId", formationIds, at, allowEmpty: true);
         Reference(value, "engagementId", engagementIds, at);
         if (value.TryGetProperty("supportId", out _))
             Reference(value, "supportId", supportIds, at, allowEmpty: false);

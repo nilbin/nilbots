@@ -155,6 +155,7 @@ silently-false gate.
 | `commit.*` | `fight.*` (renamed, flattened) |
 | `chaseLeash` (x3 homes) | `fight.chase.leash` |
 | `formationId` on ghost modes | gone; `escort: <role>`; solo default |
+| (2026-08-09) the DESUGAR's convention formations | gone too — see below |
 | lock/aim/tie-break arithmetic | deleted for ghost; trimmed for squads |
 | `dodgeCoverage`, `posture` | deleted everywhere |
 
@@ -287,3 +288,36 @@ for later, untouched to protect parity: the isolation rear-exposure
 override in AllocateFocus reads inverted vs its comment (rank==1
 keeps NOT-rear-exposed targets); the strike-line assault pocket is
 the assault verb's character and predates v3.
+
+## Escorts follow; the doctrine plane has no formations (2026-08-09)
+
+The grammar above always said `formationId` was gone from ghost modes.
+The DESUGAR did not honour it: it required the sheet to author
+`{id}-solo` and `{id}-escort` by convention and pointed every generated
+order at one of them, so the doctrine plane kept a formation after all —
+and with it a trailing slot at `(2, 0)` measured off the DESTINATION,
+which is a tile on the leader's way back out of a corridor. The medic
+plugged the ghost's reversal with it (owner ruling).
+
+Doctrine-generated orders now carry `formationId: ""` — no slot, no
+cohesion gate, no pace gate; the body walks its own movement target. A
+mode with `escort: <role>` puts an `escort` block on the generated
+order instead:
+
+```json
+"escort": {
+  "leaderRole": "hunter",
+  "followers": [ { "roleId": "medic", "posture": "trail", "leash": 2 } ]
+}
+```
+
+The follower's ground is a posture function of where the LEADER is and
+which way it is about to step, the leader's next tile is reserved
+against its own followers through the carrier-lane machinery, and a
+follower caught standing in it yields that tick (`escort-yield`) before
+free traffic can take its exits. Reasons read `escort-follow` /
+`escort-yield`, and the escort's role tag reads `<order>-escort`.
+
+Sheets may keep their now-unused `{id}-solo` / `{id}-escort` formation
+records; nothing reads them. Squad orders are untouched and still name
+a formation.
