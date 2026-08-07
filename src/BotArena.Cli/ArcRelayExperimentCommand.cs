@@ -29,6 +29,7 @@ public static class ArcRelayExperimentCommand
             "classes0",
             "classes1",
             "loop-profile",
+            "mind-stepper",
             "screen",
             "print-contract");
 
@@ -36,16 +37,19 @@ public static class ArcRelayExperimentCommand
         bool screen = OptionalFlag(options, "screen");
         ArcRelayLoopProfile loopProfile = ArcRelayLoopProfile.Resolve(
             options.GetValueOrDefault("loop-profile", "h0"));
+        string stepper = MindStepper(options);
         SheetSelection teamZero = Sheet(
             options,
             "sheet0",
             "classes0",
-            DefaultTeamZero());
+            DefaultTeamZero(),
+            stepper);
         SheetSelection teamOne = Sheet(
             options,
             "sheet1",
             "classes1",
-            DefaultTeamOne());
+            DefaultTeamOne(),
+            stepper);
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             teamZero.Classes,
             teamOne.Classes,
@@ -336,11 +340,53 @@ public static class ArcRelayExperimentCommand
             LayoutPath = sheet.LayoutPath,
         };
 
+    /// <summary>
+    /// Which movement seam a tactical-playbook mind runs this match.
+    ///
+    /// <para>A mind gets no environment: MindStart carries the contract and
+    /// the evaluation data, nothing else. The contract is not available as
+    /// a channel — a tactical layout binds to its EXACT match-contract
+    /// fingerprint, so adding a field there would unbind every sheet — so
+    /// the option travels in the evaluation data, appended AFTER the
+    /// compiled sheet rather than inside it. The authored sheet stays
+    /// byte-identical under both steppers, which is the whole point when
+    /// the two runs are meant to differ in one thing only. Absent, the
+    /// bytes are exactly what they always were and the mind defaults to
+    /// greedy.</para>
+    /// </summary>
+    private static string MindStepper(
+        IReadOnlyDictionary<string, string> options)
+    {
+        string value = options.GetValueOrDefault("mind-stepper", "greedy");
+        if (value is not ("greedy" or "coordinated"))
+        {
+            throw new InvalidOperationException(
+                $"Unknown --mind-stepper '{value}' "
+                + "(use greedy or coordinated).");
+        }
+        return value;
+    }
+
+    private static byte[] WithMindStepper(byte[] linked, string stepper)
+    {
+        if (string.Equals(stepper, "greedy", StringComparison.Ordinal))
+            return linked;
+        using var stream = new MemoryStream();
+        stream.Write(linked);
+        using var writer = new BinaryWriter(
+            stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        writer.Write(0x50455453); // STEP, little-endian.
+        writer.Write(stepper);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     private static SheetSelection Sheet(
         IReadOnlyDictionary<string, string> options,
         string sheetOption,
         string classesOption,
-        string[] fallback)
+        string[] fallback,
+        string stepper)
     {
         bool hasSheet = options.TryGetValue(sheetOption, out string? sheetPath);
         bool hasClasses = options.TryGetValue(classesOption, out string? raw);
@@ -376,7 +422,7 @@ public static class ArcRelayExperimentCommand
                     compilation.Composition,
                     compilation.PlaybookSha256,
                     compilation.PlaybookPath,
-                    compilation.LinkedData,
+                    WithMindStepper(compilation.LinkedData, stepper),
                     compilation.LayoutSha256,
                     compilation.LayoutPath);
             }

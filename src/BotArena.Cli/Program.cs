@@ -139,7 +139,7 @@ static int Help(int exitCode = 1)
                         [--sheet0 <json> --sheet1 <json>]
                         [--classes0 a,b,... --classes1 a,b,...]
                         [--seed <n>] [--runtime wasm|in-process] [--out <dir>]
-                        [--screen]
+                        [--screen] [--mind-stepper greedy|coordinated]
                                                   LOCAL H0 EVALUATION: native
                                                   mind match, gzip canonical
                                                   replay, and run receipt;

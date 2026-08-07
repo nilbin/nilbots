@@ -168,6 +168,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : 1;
         _package = TacticalPlaybookPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
+        _stepper = string.Equals(
+            _package.StepperMode, "coordinated", StringComparison.Ordinal)
+            ? new CoordinatedArenaStepper()
+            : new GreedyArenaStepper();
         ValidateComposition(start.Contract, start.TeamId, _package.Source);
         AssertSignatureCoverage(start.Contract, start.TeamId);
         _machine = new TacticalPlaybookMachine(_package.Source);
@@ -400,6 +404,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      .ThenByDescending(body =>
                          !carried.ContainsKey(body.ActorId)
                          && carrierClearance.Contains(body.Position))
+                     // Under a cooperative stepper the tier the greedy
+                     // order never needed: a body in contact settles its
+                     // tile before free traffic reserves it out from
+                     // under the fight. Greedy stepping leaves this key
+                     // false for everyone, so its order is unchanged.
+                     .ThenByDescending(body => _stepper.WantsFightPrecedence
+                         && mind.Enemies.Any(enemy =>
+                             enemy.Position.ChebyshevDistance(body.Position)
+                                 <= 2))
                      .ThenBy(body => orders[body.UnitId].Priority)
                      .ThenBy(body => body.UnitId))
         {

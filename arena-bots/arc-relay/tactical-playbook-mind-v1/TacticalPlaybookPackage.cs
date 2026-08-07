@@ -6,6 +6,8 @@ using BotArena.Sdk;
 internal sealed class TacticalPlaybookPackage
 {
     private const int EnvelopeMagic = 0x31505441;
+    private const int OptionsMagic = 0x50455453; // STEP, little-endian.
+    internal const string DefaultStepperMode = "greedy";
     private const int MaximumPayloadBytes = 64 * 1024;
     private const string PlaybookSchema = "arc-relay-tactical-playbook-v1";
     private const string LayoutSchema = "arc-relay-tactical-layout-v1";
@@ -47,6 +49,11 @@ internal sealed class TacticalPlaybookPackage
     }
 
     internal Playbook Source { get; }
+
+    /// <summary>Which movement seam this run selected. Runner-owned, not
+    /// sheet-owned: the same authored sheet plays under either.</summary>
+    internal string StepperMode { get; private init; } = DefaultStepperMode;
+
     internal Layout LayoutSource { get; }
     internal string PlaybookSha256 { get; }
     internal string LayoutSha256 { get; }
@@ -69,6 +76,23 @@ internal sealed class TacticalPlaybookPackage
         string layoutSha256 = ReadHash(reader, "layout");
         byte[] playbookJson = ReadPayload(reader, "playbook");
         byte[] layoutJson = ReadPayload(reader, "layout");
+        // Optional runner block. MindStart carries no environment, and the
+        // contract is off limits (a layout binds to its exact match
+        // fingerprint), so the ONE channel for a runner-selected execution
+        // option is the evaluation data — appended beside the sheet, never
+        // inside it, so the same authored sheet runs under either stepper.
+        string stepperMode = DefaultStepperMode;
+        if (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
+            if (reader.ReadInt32() != OptionsMagic)
+                throw new InvalidDataException("Trailing tactical playbook data.");
+            stepperMode = reader.ReadString();
+            if (stepperMode is not ("greedy" or "coordinated"))
+            {
+                throw new InvalidDataException(
+                    $"Unknown mind stepper '{stepperMode}'.");
+            }
+        }
         if (reader.BaseStream.Position != reader.BaseStream.Length)
             throw new InvalidDataException("Trailing tactical playbook data.");
 
@@ -128,7 +152,10 @@ internal sealed class TacticalPlaybookPackage
             playbook, layout, playbookSha256, layoutSha256, transform,
             contract.Map.Width, contract.Map.Height, binding.RouteAliases,
             binding.FormationAliases ?? new Dictionary<string, string>(
-                StringComparer.Ordinal));
+                StringComparer.Ordinal))
+        {
+            StepperMode = stepperMode,
+        };
     }
 
     private static byte[] ApplyParameterOverrides(
