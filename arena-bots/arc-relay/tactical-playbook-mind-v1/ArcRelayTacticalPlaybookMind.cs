@@ -1647,7 +1647,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         Position anchor = order.Movement.Kind switch
         {
-            "route" => RouteTarget(package, order, body),
+            "route" => RouteTarget(contract, package, order, body),
             "zone" => package.ZoneCenter(order.Movement.Target),
             "anchor" => package.AnchorPosition(order.Movement.Target),
             "reactor" => order.Movement.Target == "own"
@@ -2142,25 +2142,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     private Position RouteTarget(
+        GenericActorResolvedMatchContract contract,
         TacticalPlaybookPackage package,
         TacticalPlaybookPackage.Order order,
         MindBody body)
     {
         Position[] route = package.RoutePoints(order.Movement.Target);
-        // A reset resumes at the NEAREST waypoint, never at the entry (owner
-        // catch 2026-08-07: a mid-map body handed a new order walked the whole
-        // route backwards to its first tile before going anywhere, and the
-        // loop-back read as confusion). A fresh spawn still enters naturally -
-        // standing at the start, its nearest waypoint IS the entry.
+        // A reset rejoins at the nearest waypoint by WALKED distance, so a
+        // checkpoint behind a wall no longer looks close, and ties go
+        // forward so a body finishing its circuit is never snapped back to
+        // the start.
         RouteProgress state = _routes.GetValueOrDefault(body.UnitId)
             ?? new RouteProgress(
-                body.ActorId, order.OrderId, NearestWaypoint(route, body));
+                body.ActorId, order.OrderId,
+                RejoinWaypoint(contract, route, body));
         if (state.ActorId != body.ActorId
             || !string.Equals(state.OrderId, order.OrderId,
                 StringComparison.Ordinal))
         {
             state = new RouteProgress(
-                body.ActorId, order.OrderId, NearestWaypoint(route, body));
+                body.ActorId, order.OrderId,
+                RejoinWaypoint(contract, route, body));
         }
         int index = Math.Min(state.Index, route.Length - 1);
         // A route is a corridor, not a sequence of single-tile queues. A body
@@ -2372,26 +2374,42 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             reason);
     }
 
-    private static int NearestWaypoint(Position[] route, MindBody body)
+    /// <summary>
+    /// Where to rejoin a route: the waypoint whose WALK is shortest, walls
+    /// counted - a real static path, not a straight line, so a checkpoint
+    /// behind a wall stops looking close. Ties go to the LATER waypoint,
+    /// which is forward progress: routes double back on themselves, and
+    /// taking the first minimum snapped a body finishing its circuit back to
+    /// the start.
+    ///
+    /// It deliberately does NOT weigh "route still ahead of this waypoint"
+    /// (owner suggestion 2026-08-07). That objective is written for an open
+    /// route and degenerates on a closed loop: shadow-north-long ends where
+    /// it starts, so its last waypoint has ZERO route ahead of it and wins
+    /// from every position on the map - and that waypoint is (8,1), the
+    /// north-west checkpoint whose up-left detour prompted the request. The
+    /// measured table is in the commit message. A loop has no "remaining",
+    /// so the honest fixes are route-shaped, not executor-shaped.
+    /// </summary>
+    private static int RejoinWaypoint(
+        GenericActorResolvedMatchContract contract,
+        Position[] route,
+        MindBody body)
     {
-        // Ties go to the LATER waypoint, which is forward progress. Routes
-        // double back on themselves - shadow-north-long passes (15,1) on the
-        // way out and (15,3) on the way home, two tiles apart - so taking
-        // the first minimum snapped a body finishing its circuit back to the
-        // start and made it walk the whole loop again (owner catch: the
-        // ping-pong between the west entry and the enemy half).
-        int nearest = 0;
-        int best = int.MaxValue;
+        int best = 0;
+        int bestWalk = int.MaxValue;
         for (int index = 0; index < route.Length; index++)
         {
-            int distance = body.Position.ChebyshevDistance(route[index]);
-            if (distance <= best)
+            int walk = ArenaBasics.StaticDistance(
+                    contract.Map, body.Position, route[index])
+                ?? body.Position.ChebyshevDistance(route[index]);
+            if (walk <= bestWalk)
             {
-                best = distance;
-                nearest = index;
+                bestWalk = walk;
+                best = index;
             }
         }
-        return nearest;
+        return best;
     }
 
     private Dictionary<int, FocusAssignment> AllocateFocus(
