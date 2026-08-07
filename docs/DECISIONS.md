@@ -6067,3 +6067,82 @@ Traffic-read over the same six cells: flaps 6.54%/7.57% (greedy t0/t1) and
 still well under the #237 baseline of 8.69/9.58% and 13.68/14.58%, with the
 coordinated pair a little above where #240 left it. Own-contest blockades
 stay at zero.
+
+## 242. Covered fire: a lit tile is an announcement, not a sentence
+
+Owner ruling 2026-08-10. Declared-strike evacuation (#212) moved every body
+off every lit tile, whatever else was true. That is one tick of fighting
+spent, and often for a shot that was never going to land on it.
+
+A declared strike delivers ONE bolt, from the shooter's frozen origin to the
+body it LOCKED, and it stops at the first hostile body on that line — hostile
+to the shooter, which means one of ours. The engine says so itself at the
+matured-strike path (`GenericActorMatchSession.cs:3191`): *"Bodyguarding is
+stepping onto the firing line, never proximity: the delivery is still an
+ordinary first-body-contact ray."* So a body inside the lit wedge that is not
+the first of ours on the delivery line is not in danger, and standing is
+correct.
+
+`TryStrikeEvacuation` now walks the engine's canonical strike line from each
+lighting strike's origin to its lock and asks who our first body on it is. If
+every strike lighting this tile answers "somebody else", the body holds and
+the tick goes to `_covered`, which the debug line publishes.
+
+Two deliberate refusals. A SIGNATURE tell is never covered: the rail damages
+every tile of its path rather than stopping at a body, so there is nothing to
+hide behind. And a strike whose lock we cannot locate is treated as
+uncovered — the cheap mistake is dodging a shot that would have missed, not
+standing in one that lands. It is recomputed from the wire every tick and
+latches nothing, so the moment the shield moves the body evacuates normally.
+
+Measured over six cells: 551 covered-stand decisions greedy, 599
+coordinated. `greedy-e-9004` t21, team 0 — u4 stands on (15,8) inside the
+wedge while the strike from (19,11) is locked on u3 at (16,10):
+
+```
+delivery line (19,11) -> (18,11) (17,10) (16,10)
+first own body on it: (16,10), which is u3, not u4
+u4: haul-watch:hold
+```
+
+## 243. Clean lines: the rail only, and why the rest is moot
+
+Owner-surfaced gap, and the verification changed its scope. The concern was
+that the screen posture puts a body ON the leader's firing line by
+construction, so the ghost would shoot its own screen in the back.
+
+**It cannot.** Arc Relay sets
+`ActorCollisionDefinition.AlliedProjectileContactKind.PassThrough`
+(`ArcRelayH0Definition.cs:388`), and `Contact()`
+(`GenericActorMatchSession.cs:6089-6101`) branches on team first: a body of
+another team returns `Damage`/`Deflect`, a body of the OWNER's team falls to
+the allied policy and returns `ProjectileContact.Pass`. Bolts and matured
+strikes fly through their own team untouched. Delivery is first-contact
+against enemies and transparent to allies — not symmetric.
+
+So there is no strike/bolt declare gate here and there should not be: it
+would refuse good declares and send bodies repositioning away from a hazard
+that does not exist. Recorded so the question does not come back.
+
+**The rail is the exception and it is real.** `ApplyRailLine`
+(`GenericActorMatchSession.cs:2425-2434`) walks its whole path and damages
+every life on every tile with no team filter — compare `ApplySentinelFire`
+twenty lines down, which explicitly requires
+`target.ActorId.TeamId != effect.Owner.TeamId`. Measured at `b70c5163` over
+six cells: **31 of 125 rail damage events (greedy) and 22 of 92
+(coordinated) landed on the caster's own team.** `greedy-e-9004` t26, team 1:
+u4's rail hits enemy 0:7 and its own u3 for 2 in the same resolution.
+
+The cast gate now requires no own body anywhere on the segment the rail would
+damage — the whole segment, not "between me and the target", because a
+piercing line hits the ally standing one tile PAST the enemy too.
+`PiercingSignatures` names `rail-line` as a rules fact the contract does not
+publish, with the engine cite beside it.
+
+After: 25 of 114 (greedy) and 13 of 75 (coordinated). Reduced, **not
+eliminated, and the residual has one honest mechanism**: the rail carries
+`tellTicks: 1`, so the line is declared a tick before it resolves and an ally
+that walks onto it during the windup is hit by a cast that was clean when it
+was made. Closing that needs the declared line reserved on the movement plane
+for the windup — the plane already has the vocabulary (a lane nobody may
+enter) and that is the natural next bite, deliberately not taken here.

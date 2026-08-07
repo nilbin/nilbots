@@ -1238,13 +1238,17 @@ internal static class ArenaBasics
     /// not publish a UnitTarget is not a lock signature and falls through to
     /// the plain heading cast.
     /// </remarks>
+    /// <param name="pierceBlockers">When non-null this cast PIERCES: the
+    /// whole segment it would damage must be clear of these tiles. Null for
+    /// a signature that stops at its target.</param>
     public static bool TryLockedLineSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         string signatureKind,
         ActorIdentity targetActor,
         Position target,
-        string reason)
+        string reason,
+        IReadOnlySet<Position>? pierceBlockers = null)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -1278,6 +1282,12 @@ internal static class ArenaBasics
                 reach,
                 strictCorners: true,
                 out ProjectileHeading heading))
+        {
+            return false;
+        }
+        if (pierceBlockers is not null
+            && FriendlyOnPierceLine(
+                contract.Map, body.Position, heading, reach, pierceBlockers))
         {
             return false;
         }
@@ -1316,12 +1326,15 @@ internal static class ArenaBasics
                 .ArgumentConstraint.UnitTargetConstraint>().Any();
     }
 
+    /// <param name="pierceBlockers">When non-null this cast PIERCES: the
+    /// whole segment it would damage must be clear of these tiles.</param>
     public static bool TryHeadingSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         string signatureKind,
         Position target,
-        string reason)
+        string reason,
+        IReadOnlySet<Position>? pierceBlockers = null)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -1341,6 +1354,16 @@ internal static class ArenaBasics
             || signature?.Range is int range && distance > range
             || !headings.AllowedValues.Contains(heading)
             || !ClearRay(contract.Map, body.Position, target, true))
+        {
+            return false;
+        }
+        if (pierceBlockers is not null
+            && FriendlyOnPierceLine(
+                contract.Map,
+                body.Position,
+                heading,
+                signature?.Range ?? distance,
+                pierceBlockers))
         {
             return false;
         }
@@ -2295,6 +2318,108 @@ internal static class ArenaBasics
             heading = candidate;
         }
         return found;
+    }
+
+    /// <summary>
+    /// Every own body a shot could meet, as tiles. Other participants on the
+    /// same team count: a cast that kills an ally is a cast that killed an
+    /// ally, whoever was driving it.
+    /// </summary>
+    internal static HashSet<Position> Friendlies(MindContext mind)
+    {
+        var friends = new HashSet<Position>();
+        foreach (MindBody body in mind.Bodies)
+            friends.Add(body.Position);
+        foreach (GenericActorContext.ObservedAllyState ally in mind.Allies)
+            friends.Add(ally.Position);
+        return friends;
+    }
+
+    /// <summary>
+    /// Whether an own body stands anywhere on the segment a PIERCING line
+    /// would damage: from the caster out along the declared heading to the
+    /// signature's reach, stopping at the first wall.
+    ///
+    /// <para>Ordinary fire needs no such test on this ruleset — Arc Relay
+    /// sets <c>AlliedProjectileContactKind.PassThrough</c>
+    /// (<c>ArcRelayH0Definition.cs:388</c>), so a bolt or a matured strike
+    /// flies THROUGH its own team untouched. The rail is the exception and
+    /// the reason this exists: <c>ApplyRailLine</c>
+    /// (<c>GenericActorMatchSession.cs:2425</c>) damages every life on every
+    /// tile of its path with no team filter at all — compare
+    /// <c>ApplySentinelFire</c> two methods down, which explicitly requires
+    /// <c>target.ActorId.TeamId != effect.Owner.TeamId</c>. The rail does not
+    /// stop at first contact either, so "is a teammate between me and the
+    /// target" is the wrong question for it: everything on the line is hit,
+    /// including the ally standing one tile PAST the enemy.</para>
+    /// </summary>
+    internal static bool FriendlyOnPierceLine(
+        GenericActorMapContract map,
+        Position source,
+        ProjectileHeading heading,
+        int reach,
+        IReadOnlySet<Position> friendlies)
+    {
+        if (friendlies.Count == 0)
+            return false;
+        (int dx, int dy) = heading.Vector();
+        Position cursor = source;
+        for (int step = 0; step < reach; step++)
+        {
+            Position next = cursor.Offset(dx, dy);
+            if (!CanEnter(map, next))
+                return false;
+            if (friendlies.Contains(next))
+                return true;
+            cursor = next;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Who eats a declared bolt first: walking the engine's canonical strike
+    /// line from the shooter's frozen origin to the tile it locked, the first
+    /// OWN-TEAM body met. Null when the line reaches the lock without meeting
+    /// one.
+    ///
+    /// <para>This is the reading that makes bodyguarding real. Delivery is
+    /// first-body-contact against the shooter's enemies — which is us — and
+    /// the engine says so itself at the matured-strike path
+    /// (<c>GenericActorMatchSession.cs:3191</c>): "Bodyguarding is stepping
+    /// onto the firing line, never proximity". So a body standing on a lit
+    /// tile is only actually in danger if it is the FIRST of ours on that
+    /// line.</para>
+    /// </summary>
+    internal static Position? FirstOwnBodyOnLine(
+        Position origin,
+        Position lockTile,
+        IReadOnlySet<Position> friendlies)
+    {
+        int x = origin.X;
+        int y = origin.Y;
+        int dx = Math.Abs(lockTile.X - x);
+        int dy = Math.Abs(lockTile.Y - y);
+        int sx = Math.Sign(lockTile.X - x);
+        int sy = Math.Sign(lockTile.Y - y);
+        int error = dx - dy;
+        while (x != lockTile.X || y != lockTile.Y)
+        {
+            int doubled = 2 * error;
+            if (doubled > -dy)
+            {
+                error -= dy;
+                x += sx;
+            }
+            if (doubled < dx)
+            {
+                error += dx;
+                y += sy;
+            }
+            var tile = new Position(x, y);
+            if (friendlies.Contains(tile))
+                return tile;
+        }
+        return null;
     }
 
     private static bool ClearRay(

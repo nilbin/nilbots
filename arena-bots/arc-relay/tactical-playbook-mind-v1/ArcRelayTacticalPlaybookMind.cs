@@ -124,6 +124,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// line — a gate nobody can see is a gate nobody can tune.</summary>
     private readonly List<string> _recoverTrace = [];
 
+    /// <summary>Units that held their ground on a lit tile this tick because
+    /// a teammate is on the firing line ahead of them. Rebuilt every tick —
+    /// cover is a fact about right now, never a latch.</summary>
+    private readonly HashSet<int> _covered = [];
+
     public void StartMatch(MindStart start)
     {
         _contract = start.Contract;
@@ -198,6 +203,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _queuedFallbackPhase = null;
         }
 
+        _covered.Clear();
         UpdateMemory(mind, arc, package.Source.Memory);
         UpdateRecovering(contract, mind);
         Dictionary<int, string> roles = AllocateRoles(
@@ -772,6 +778,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
             + $"make-ways={_makeWays}; "
+            + "covered=" + (_covered.Count == 0
+                ? "-" : string.Join(",", _covered.Order())) + "; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -4297,7 +4305,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             foreach (GenericActorContext.ObservedEnemyState enemy in ordered)
             {
-                if (CastLineSignature(contract, body, enemy, kind, reason))
+                if (CastLineSignature(
+                        contract, mind, body, enemy, kind, reason))
                     return true;
             }
         }
@@ -4346,29 +4355,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// signature that is not telegraphing lights nothing.
     /// </para>
     /// </summary>
-    private static bool TryStrikeEvacuation(
+    private bool TryStrikeEvacuation(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
         MindBody body,
         ArenaBasics.Claims claims)
     {
-        var lit = arc.PendingStrikes.IsDefaultOrEmpty
-            ? []
-            : arc.PendingStrikes
-                .Where(strike => strike.Shooter != body.ActorId)
-                .SelectMany(strike => strike.Tiles)
-                .ToHashSet();
+        GenericActorContext.ArcRelayPendingStrike[] strikes =
+            arc.PendingStrikes.IsDefaultOrEmpty
+                ? []
+                : [.. arc.PendingStrikes
+                    .Where(strike => strike.Shooter != body.ActorId)];
+        var lit = strikes
+            .SelectMany(strike => strike.Tiles)
+            .ToHashSet();
+        bool tellLit = false;
         if (!arc.VisibleSignatures.IsDefaultOrEmpty)
         {
-            lit.UnionWith(arc.VisibleSignatures
+            HashSet<Position> tells = arc.VisibleSignatures
                 .Where(signature => signature.Phase
                         == GenericActorContext.ArcRelaySignaturePhase.Tell
                     && signature.OwnerActorId != body.ActorId)
-                .SelectMany(signature => signature.Positions));
+                .SelectMany(signature => signature.Positions)
+                .ToHashSet();
+            tellLit = tells.Contains(body.Position);
+            lit.UnionWith(tells);
         }
         if (!lit.Contains(body.Position))
             return false;
+        if (!tellLit && IsCovered(mind, strikes, body))
+        {
+            _covered.Add(body.UnitId);
+            return false;
+        }
         bool mirrored = ArenaBasics.MirroredFrame(contract, mind);
         foreach (Position candidate in new (int Dx, int Dy)[]
                  {
@@ -4390,6 +4410,59 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Whether every declared strike lighting this body's tile would hit
+    /// SOMEBODY ELSE OF OURS first.
+    ///
+    /// <para>Owner ruling 2026-08-10. A lit tile is an announcement, not a
+    /// sentence: the delivery is one bolt from the shooter's frozen origin to
+    /// the body it LOCKED, and it stops at the first hostile body on that
+    /// line — hostile to the shooter, which means one of ours. So a body
+    /// standing behind a teammate on that line is not the one who gets hit,
+    /// and evacuating costs it a tick of fighting for a shot that was never
+    /// going to land on it. The engine states the rule itself at the matured
+    /// strike (<c>GenericActorMatchSession.cs:3191</c>): "Bodyguarding is
+    /// stepping onto the firing line, never proximity."</para>
+    ///
+    /// <para>Two deliberate refusals. A SIGNATURE tell is never covered — the
+    /// rail damages every tile of its path rather than stopping at a body, so
+    /// there is nothing to hide behind. And a strike whose lock we cannot
+    /// locate is treated as uncovered: the cheap mistake is dodging a shot
+    /// that would have missed, not standing in one that lands.</para>
+    ///
+    /// <para>It is recomputed every tick from the current wire, so the moment
+    /// the shield moves, or the lock changes, the body evacuates normally.
+    /// </para>
+    /// </summary>
+    private static bool IsCovered(
+        MindContext mind,
+        IReadOnlyCollection<GenericActorContext.ArcRelayPendingStrike> strikes,
+        MindBody body)
+    {
+        if (strikes.Count == 0)
+            return false;
+        HashSet<Position> friends = ArenaBasics.Friendlies(mind);
+        bool anyLighting = false;
+        foreach (GenericActorContext.ArcRelayPendingStrike strike in strikes)
+        {
+            if (!strike.Tiles.Contains(body.Position))
+                continue;
+            anyLighting = true;
+            if (strike.Target is not ActorIdentity locked)
+                return false;
+            MindBody? lockedBody = mind.Bodies.FirstOrDefault(
+                other => other.ActorId.TeamId == locked.TeamId
+                    && other.ActorId.UnitId == locked.UnitId);
+            if (lockedBody is null)
+                return false;
+            Position? first = ArenaBasics.FirstOwnBodyOnLine(
+                strike.Origin, lockedBody.Position, friends);
+            if (first is null || first == body.Position)
+                return false;
+        }
+        return anyLighting;
     }
 
     private bool TrySelfPreservation(
@@ -5275,8 +5348,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private static readonly SignaturePlay[] SignaturePlays =
     [
-        new("rail-line", "damage", static (c, _, b, t, _, kind, r) =>
-            CastLineSignature(c, b, t, kind, r)),
+        new("rail-line", "damage", static (c, m, b, t, _, kind, r) =>
+            CastLineSignature(c, m, b, t, kind, r)),
         new("falling-star", "damage", static (c, _, b, t, _, kind, r) =>
             ArenaBasics.TryPositionSignature(c, b, kind, t.Position, r)),
         // A Sentinel is a sustained gun: worth deploying while the fight is
@@ -5289,8 +5362,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && ArenaBasics.TryParameterlessSignature(c, b, kind, r)),
         new("target-paint", "control", static (c, _, b, t, _, kind, r) =>
             ArenaBasics.TryUnitSignature(c, b, kind, t.ActorId, r)),
-        new("tractor-hook", "control", static (c, _, b, t, _, kind, r) =>
-            CastLineSignature(c, b, t, kind, r)),
+        new("tractor-hook", "control", static (c, m, b, t, _, kind, r) =>
+            CastLineSignature(c, m, b, t, kind, r)),
         // A mine on the approach side only pays off when the enemy is close
         // enough to walk it; placement legality clamps to adjacent tiles.
         new("trip-node", "control", static (c, _, b, t, _, kind, r) =>
@@ -5474,17 +5547,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// ruleset carries the lock, the historical exact-ray cast where it does
     /// not.
     /// </summary>
+    /// <summary>
+    /// Line signatures that do NOT stop at their target — they share their
+    /// damage down the whole segment, allies included.
+    ///
+    /// <para>The rules contract does not publish a pierce flag, so this is a
+    /// named rules fact rather than a derived one, and it is checked against
+    /// the engine: <c>ApplyRailLine</c>
+    /// (<c>GenericActorMatchSession.cs:2425</c>) damages every life on every
+    /// tile of the path with no team filter, where every other offensive
+    /// signature either targets one actor or filters by team. If a piercing
+    /// signature is ever added, it belongs in this set on the same day.</para>
+    /// </summary>
+    private static readonly HashSet<string> PiercingSignatures =
+        new(StringComparer.Ordinal) { "rail-line" };
+
     private static bool CastLineSignature(
         GenericActorResolvedMatchContract contract,
+        MindContext mind,
         MindBody body,
         GenericActorContext.ObservedEnemyState enemy,
         string kind,
-        string reason) =>
-        ArenaBasics.DeclaresLock(contract, body, kind)
+        string reason)
+    {
+        // A piercing cast may not be fired through our own people. Ordinary
+        // fire needs no such gate on this ruleset - Arc Relay sets
+        // AlliedProjectileContactKind.PassThrough, so bolts and matured
+        // strikes fly through their own team untouched - which is exactly why
+        // this one does (DECISIONS #243).
+        IReadOnlySet<Position>? blockers = PiercingSignatures.Contains(kind)
+            ? ArenaBasics.Friendlies(mind)
+            : null;
+        return ArenaBasics.DeclaresLock(contract, body, kind)
             ? ArenaBasics.TryLockedLineSignature(
-                contract, body, kind, enemy.ActorId, enemy.Position, reason)
+                contract, body, kind, enemy.ActorId, enemy.Position, reason,
+                blockers)
             : ArenaBasics.TryHeadingSignature(
-                contract, body, kind, enemy.Position, reason);
+                contract, body, kind, enemy.Position, reason, blockers);
+    }
 
     /// <summary>
     /// Casts a heading signature at the focus target, or at whichever other
@@ -5500,7 +5600,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string reason)
     {
         bool Cast(GenericActorContext.ObservedEnemyState enemy) =>
-            CastLineSignature(contract, body, enemy, kind, reason);
+            CastLineSignature(contract, mind, body, enemy, kind, reason);
         if (Cast(target))
             return true;
         bool mirrored = ArenaBasics.MirroredFrame(contract, mind);
