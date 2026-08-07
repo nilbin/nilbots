@@ -990,7 +990,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 sameCustody && prior.Position == body.Position
                     ? prior.StagnantTicks + 1
                     : 0,
-                sameCustody ? prior.PickupPosition : body.Position);
+                sameCustody ? prior.PickupPosition : body.Position,
+                // The walked corridor survives the tick; a new Core is a new
+                // run and starts its route from scratch.
+                sameCustody ? prior.RouteWaypoint : -1,
+                sameCustody ? prior.RouteForward : 0);
         }
     }
 
@@ -3818,13 +3822,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return DeliveryDestination(package, custody, body) ?? _ownReactor;
     }
 
+    /// <summary>How close a routed carrier has to get before a corridor
+    /// waypoint counts as reached and the walk moves on to the next.</summary>
+    private const int DeliveryWaypointArrivalRadius = 2;
+
     /// <summary>
-    /// The next corridor waypoint for a routed delivery, or null when this
-    /// custody names no route for where the Core was lifted - or when the
-    /// corridor no longer helps, which is when the body is already closer to
-    /// home than the waypoint would take it. Direction along the route is
+    /// The corridor waypoint a routed delivery is walking to, or null when
+    /// this custody names no route for where the Core was lifted - or when
+    /// the corridor no longer helps, which is when the body is already closer
+    /// to home than the waypoint would take it. Direction along the route is
     /// whichever way leads home, so one route serves both orientations of the
     /// map and both ends of a loop.
+    /// <para>
+    /// A corridor is WALKED, so the choice is sticky: the committed waypoint
+    /// and direction are remembered on the custody and only ever advance -
+    /// once the body has been within the arrival radius of a waypoint, that
+    /// waypoint is spent for the rest of the run. Re-deriving the nearest
+    /// waypoint every tick is what produced the w-9002 dance: at a wall pinch
+    /// two consecutive waypoints' shortest paths leave in OPPOSITE
+    /// directions, so a body straddling the arrival radius chose the far
+    /// waypoint, stepped away, un-reached the near one, chose it again, and
+    /// traded the same two tiles for forty ticks with a Core in its hands.
+    /// </para>
     /// </summary>
     private Position? DeliveryDestination(
         TacticalPlaybookPackage package,
@@ -3844,30 +3863,57 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position[] route = package.RoutePoints(rule.Route);
         if (route.Length < 2)
             return null;
-        int nearest = 0;
-        for (int index = 1; index < route.Length; index++)
+        int from;
+        int forward;
+        if (progress.RouteForward != 0
+            && progress.RouteWaypoint >= 0
+            && progress.RouteWaypoint < route.Length)
         {
-            if (body.Position.ChebyshevDistance(route[index])
-                < body.Position.ChebyshevDistance(route[nearest]))
-                nearest = index;
+            from = progress.RouteWaypoint;
+            forward = progress.RouteForward;
         }
-        int forward = route[(nearest + 1) % route.Length]
-                .ChebyshevDistance(_ownReactor)
-            <= route[(nearest - 1 + route.Length) % route.Length]
-                .ChebyshevDistance(_ownReactor)
-                ? 1
-                : -1;
+        else
+        {
+            int nearest = 0;
+            for (int index = 1; index < route.Length; index++)
+            {
+                if (body.Position.ChebyshevDistance(route[index])
+                    < body.Position.ChebyshevDistance(route[nearest]))
+                    nearest = index;
+            }
+            from = nearest;
+            forward = route[(nearest + 1) % route.Length]
+                    .ChebyshevDistance(_ownReactor)
+                <= route[(nearest - 1 + route.Length) % route.Length]
+                    .ChebyshevDistance(_ownReactor)
+                    ? 1
+                    : -1;
+        }
         int homeDistance = body.Position.ChebyshevDistance(_ownReactor);
         for (int step = 0; step < route.Length; step++)
         {
-            Position waypoint = route[
-                ((nearest + (forward * step)) % route.Length
-                    + route.Length) % route.Length];
+            int index = ((from + (forward * step)) % route.Length
+                + route.Length) % route.Length;
+            Position waypoint = route[index];
             if (waypoint.ChebyshevDistance(_ownReactor) >= homeDistance)
                 continue;
-            if (body.Position.ChebyshevDistance(waypoint) > 2)
-                return waypoint;
+            if (body.Position.ChebyshevDistance(waypoint)
+                <= DeliveryWaypointArrivalRadius)
+            {
+                continue;
+            }
+            _custodyProgress[body.ActorId] = progress with
+            {
+                RouteWaypoint = index,
+                RouteForward = forward,
+            };
+            return waypoint;
         }
+        _custodyProgress[body.ActorId] = progress with
+        {
+            RouteWaypoint = -1,
+            RouteForward = 0,
+        };
         return null;
     }
 
@@ -5563,7 +5609,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         /// <summary>Where this custody BEGAN — the tile the Core was lifted
         /// from. The delivery-route rules key off it, so a Core taken deep on
         /// the enemy half keeps its safe way home for the whole run.</summary>
-        Position PickupPosition = default);
+        Position PickupPosition = default,
+        /// <summary>The corridor waypoint this routed delivery is currently
+        /// walking to, as an index into the resolved route, and the direction
+        /// it is walking the loop. Sticky: a corridor is walked forward, so
+        /// this only ever advances past waypoints the body has reached.
+        /// <c>-1</c>/<c>0</c> mean nothing is committed yet.</summary>
+        int RouteWaypoint = -1,
+        int RouteForward = 0);
 
     private sealed record FriendlyDroppedCore(
         ActorIdentity SourceCarrier,

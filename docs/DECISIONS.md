@@ -5067,3 +5067,55 @@ six cells is an exhibition, not a measurement): the greedy stepper went
 1/6 to 4/6 and broke the east shutout (e-9009), west 3/3. The coordinated
 stepper stayed 1/6 and east stayed 0/3, so a residual east skew survives
 both fixes and is NOT explained.
+
+## 225. A corridor is walked forward: the routed delivery stops dancing
+
+Owner catch on the game-2 tab of the coordinated exhibit: a WEST carrier
+stuck with a ball on the EAST side, dancing back and forth. Traced to
+team 0 unit 6 in coordinated w-9002, which lifted centre#0 at tick 57 and
+still had it at tick 107 - fifty-one ticks inside x[21,22], forty of them
+trading exactly two tiles, twenty tiles from a reactor it never reached.
+
+The mechanism is `DeliveryDestination`, and it is neither planner ties nor
+tile contention: every one of those moves resolved `success`, and the
+command reason was `custody:delivery-route` throughout. The routed
+corridor waypoint was re-derived FROM SCRATCH every tick - nearest
+waypoint, forward direction, then skip anything within the arrival radius
+of 2 - with no memory of what had already been walked. At a wall pinch
+that is unstable. Reproduced exactly from the layout and the map:
+
+  at (22,9): waypoint (19,8) is 3 away -> targeted; first step NW -> (21,8)
+  at (21,8): waypoint (19,8) is 2 away -> "arrived", skipped; the next
+             waypoint (15,7) is 10 steps away AROUND the wall block at
+             x18-20/y5-7, so its first step is SE -> (22,9)
+
+Two consecutive corridor waypoints whose shortest paths leave in OPPOSITE
+directions, and a body straddling the arrival radius, is a two-tile
+oscillator with a Core in its hands. The authored route makes this easy to
+hit: the (15,7)->(19,8) leg is 4 tiles apart but TWELVE steps of walking.
+
+A corridor is walked, so the choice is now sticky. `CustodyProgress`
+carries the committed waypoint index and the direction, they survive the
+tick, they reset on a new Core, and they only ever ADVANCE - once the body
+has been inside the arrival radius of a waypoint, that waypoint is spent
+for the rest of the run. Same trace after the fix: one SE step at tick 67
+instead of forty, then S, S, W, W, W, NW along the corridor to (15,7) at
+t86 and `custody:committed-delivery` home, banked at x3 by t110.
+
+The reason this ran forty ticks unpoliced is worth recording separately:
+the delivery watchdog counts `StagnantTicks` by POSITION IDENTITY, so a
+body that moves every tick is never stagnant however little it achieves. A
+two-tile dance is invisible to it. Not fixed here - measuring stagnation
+as progress toward home would break the corridor routes, which
+deliberately walk away from home - but named.
+
+Scope, measured on the same six cells (no battery - owner rule): the
+greedy exhibit is IDENTICAL in all six results, and five of the six
+coordinated cells are identical to the tick. Only coordinated w-9002
+changed, where team 0's A->B->A cycle count fell 514 -> 372. The change
+is inert unless the flip actually occurs. The scoreline moved the other
+way, though: hunter-v1 held that cell before and loses it now (wellwright
+at t398), taking the coordinated record from 1/6 to 0/6 while the greedy
+record stays 4/6. Six cells is an exhibition, not a measurement, and a
+deterministic sim reshuffles wholesale under any change - but the honest
+statement is that fixing the dance did not buy a win here.
