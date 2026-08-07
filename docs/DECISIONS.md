@@ -5119,3 +5119,49 @@ at t398), taking the coordinated record from 1/6 to 0/6 while the greedy
 record stays 4/6. Six cells is an exhibition, not a measurement, and a
 deterministic sim reshuffles wholesale under any change - but the honest
 statement is that fixing the dance did not buy a win here.
+
+## 226. A beam announces itself: the telegraphed bolt signature
+
+Owner ruling 2026-08-08, with the beam as the motivating case ("that kind
+of signature"): damaging and bolt-class signatures — rail, hook and
+sentinel, the line attacks that damage or displace — gain a strike-style
+WINDUP and a wire telegraph. Utility signatures stay instant with no
+telegraph; smoke is untouched.
+
+The shape mirrors the declared strike (#212/#221/#222) with one deliberate
+difference. At declare the LINE freezes — origin plus heading — and the
+operation rides the wire in `tell` for its windup. There is NO lock and no
+follow: a line attack is not target-locked, so the tiles published at
+declare are the tiles that resolve, stepping off them is the dodge and
+stepping onto them is the block. The declarer is ROOTED: commanding a move
+abandons the declare outright (`abandoned-move`), the disengage latch being
+the mind's only voluntary way to spend it. Declarer death already
+cancelled a telegraphing operation and still does.
+
+WINDUP LENGTH IS DATA (owner addendum). Each bolt signature carries its
+own `windupTicks` in the ruleset, defaulting to that ruleset's strike
+windup, so retuning rail against hook against sentinel is a ruleset edit
+and never an engine edit. Zero authors an instant, untelegraphed cast —
+which is exactly what every ruleset WITHOUT a strike windup keeps, so
+ambush-10's hook and sentinel are unchanged. Rail is the one exception:
+its telegraph is positive by construction, because a beam that fires on
+cast has nowhere to put one, and a ruleset with no strike windup leaves
+rail's authored two alone. The key is presence-driven on the canonical
+wire, so not one existing ruleset's fingerprint moved; ambush-11 is the
+only ruleset that changed, and it changed because it was meant to.
+
+Two things came out free, and both are worth recording because they say
+the earlier work generalized correctly. The viewer needed NO change: both
+the Canvas2D floor and the 3D renderer already key the `tell` phase
+generically, so a winding-up hook draws its pulsing dashed ghost the same
+way a rail always did. And the mind needed one predicate, not a new
+channel: `TryStrikeEvacuation` now unions the telegraphing signatures'
+tiles into the same lit set as the pending strikes, because to a body
+standing underfoot they are the same fact — this tile is announced.
+
+One consequence found while pinning it: on a ruleset whose movement
+cadence is two ticks, a ONE-tick windup is unabandonable by construction —
+the declarer physically cannot act again before it matures. The rooting
+rule only starts to bite when a profile buys a longer telegraph, which is
+precisely the lever the owner asked for. The test pins abandonment on
+rail's two-tick windup for that reason.

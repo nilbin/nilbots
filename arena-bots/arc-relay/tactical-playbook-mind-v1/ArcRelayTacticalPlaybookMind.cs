@@ -4068,6 +4068,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// shooter is exempt on its own ray (it starts underfoot), and the step
     /// prefers un-lit tiles in the canonical frame so both sides evacuate
     /// mirror-fairly.
+    /// <para>
+    /// A declared LINE ATTACK lights tiles the same way (owner ruling
+    /// 2026-08-08): a rail, hook or sentinel winding up publishes the tiles
+    /// it will resolve on, and stepping off them is the dodge. One channel
+    /// answers both, because to a body underfoot they are the same fact —
+    /// this tile is announced. A telegraph the caster owns is exempt, and a
+    /// signature that is not telegraphing lights nothing.
+    /// </para>
     /// </summary>
     private static bool TryStrikeEvacuation(
         GenericActorResolvedMatchContract contract,
@@ -4076,12 +4084,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         ArenaBasics.Claims claims)
     {
-        if (arc.PendingStrikes.IsDefaultOrEmpty)
-            return false;
-        var lit = arc.PendingStrikes
-            .Where(strike => strike.Shooter != body.ActorId)
-            .SelectMany(strike => strike.Tiles)
-            .ToHashSet();
+        var lit = arc.PendingStrikes.IsDefaultOrEmpty
+            ? []
+            : arc.PendingStrikes
+                .Where(strike => strike.Shooter != body.ActorId)
+                .SelectMany(strike => strike.Tiles)
+                .ToHashSet();
+        if (!arc.VisibleSignatures.IsDefaultOrEmpty)
+        {
+            lit.UnionWith(arc.VisibleSignatures
+                .Where(signature => signature.Phase
+                        == GenericActorContext.ArcRelaySignaturePhase.Tell
+                    && signature.OwnerActorId != body.ActorId)
+                .SelectMany(signature => signature.Positions));
+        }
         if (!lit.Contains(body.Position))
             return false;
         bool mirrored = ArenaBasics.MirroredFrame(contract, mind);
