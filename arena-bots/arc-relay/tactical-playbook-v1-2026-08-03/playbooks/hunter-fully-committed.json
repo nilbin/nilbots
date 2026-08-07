@@ -2292,7 +2292,12 @@
    "custody": "well-custody",
    "fight": {
     "chase": {
-     "leash": 16
+     "leash": 16,
+     "persistTicks": 30
+    },
+    "defense": {
+     "radius": 2,
+     "return": false
     }
    },
    "modes": [
@@ -2311,7 +2316,8 @@
     {
      "patrol": "shadow-north-long"
     }
-   ]
+   ],
+   "conceal": false
   }
  }
 }

@@ -886,9 +886,18 @@ public static class ArcRelayTacticalPlaybookCompiler
             string id = doctrine.Name;
             string at = $"{path}.doctrines.{id}";
             JsonElement value = doctrine.Value;
-            Object(value, at, ["role", "custody", "modes"], ["fight"]);
+            Object(value, at, ["role", "custody", "modes"],
+                ["fight", "conceal"]);
             string role = value.GetProperty("role").GetString()!;
             string custody = value.GetProperty("custody").GetString()!;
+            // Concealment micro (slip out of seen facing cones, skip the
+            // flank walk, long ambush patience) is the doctrine's default
+            // character; `"conceal": false` turns the ghost into an open
+            // fighter. Exposed 2026-08-08 (owner: the sheet mechanism must
+            // own its behavior; collapse is acceptable, opacity is not).
+            bool conceal = !value.TryGetProperty(
+                    "conceal", out JsonElement concealValue)
+                || concealValue.ValueKind != JsonValueKind.False;
             JsonElement doctrineFight = value.TryGetProperty(
                 "fight", out JsonElement fightValue)
                 ? fightValue
@@ -1010,8 +1019,9 @@ public static class ArcRelayTacticalPlaybookCompiler
                     ["custodyId"] = custody,
                     ["fallbackId"] = "continue-with-alternate",
                     ["assignmentProfileId"] = $"{id}-doctrine",
-                    ["stance"] = "ambush",
                 };
+                if (conceal)
+                    assignment["stance"] = "ambush";
                 if (mode.TryGetProperty(
                         "patienceTicks", out JsonElement patience))
                 {
@@ -1351,7 +1361,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         int Threats,
         int ThreatsWithin,
         int MemoryTicks,
-        int RecoverTicks);
+        int RecoverTicks,
+        int PersistTicks,
+        int DefenseRadius,
+        bool DefenseReturn);
 
     private static void ValidateDoctrineFight(JsonElement fight, string path)
     {
@@ -1381,9 +1394,17 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (fight.TryGetProperty("chase", out JsonElement chase))
         {
             Object(chase, $"{path}.fight.chase", [],
-                ["leash", "onlyCatchable", "executeBelowHealth"]);
+                ["leash", "onlyCatchable", "executeBelowHealth",
+                 "persistTicks"]);
             if (chase.TryGetProperty("leash", out _))
                 Range(chase, "leash", path, 0, 16);
+            // How long a chase survives the prey being hidden or
+            // unreachable before the focus lock releases. The old silent
+            // constants (hidden 2, unreachable 3) ended most warren chases
+            // the moment prey crossed a wall - the owner's "the enemy ran
+            // off" catch.
+            if (chase.TryGetProperty("persistTicks", out _))
+                Range(chase, "persistTicks", path, 1, 120);
             if (chase.TryGetProperty("onlyCatchable", out JsonElement catchable)
                 && catchable.ValueKind is not JsonValueKind.True
                     and not JsonValueKind.False)
@@ -1392,6 +1413,23 @@ public static class ArcRelayTacticalPlaybookCompiler
             }
             if (chase.TryGetProperty("executeBelowHealth", out _))
                 Range(chase, "executeBelowHealth", path, 0, 8);
+        }
+        // Self-preservation: the radius at which a body may fight back
+        // outside its gates, and whether it is pulled back to formation
+        // afterwards (the pull was a silent disengager - Class A in
+        // docs/EXECUTOR-SILENT-POLICY.md).
+        if (fight.TryGetProperty("defense", out JsonElement defense))
+        {
+            Object(defense, $"{path}.fight.defense", [],
+                ["radius", "return"]);
+            if (defense.TryGetProperty("radius", out _))
+                Range(defense, "radius", path, 0, 16);
+            if (defense.TryGetProperty("return", out JsonElement ret)
+                && ret.ValueKind is not JsonValueKind.True
+                    and not JsonValueKind.False)
+            {
+                throw Error(path, "'return' must be a boolean.");
+            }
         }
         if (fight.TryGetProperty("breakOff", out JsonElement breakOff))
         {
@@ -1480,7 +1518,14 @@ public static class ArcRelayTacticalPlaybookCompiler
             MemoryTicks: FightValue(
                 doctrineFight, modeFight, "breakOff", "memoryTicks", 0),
             RecoverTicks: FightValue(
-                doctrineFight, modeFight, "breakOff", "recoverTicks", 24));
+                doctrineFight, modeFight, "breakOff", "recoverTicks", 24),
+            PersistTicks: FightValue(
+                doctrineFight, modeFight, "chase", "persistTicks", 0),
+            DefenseRadius: FightValue(
+                doctrineFight, modeFight, "defense", "radius", 2),
+            DefenseReturn: FightElement(
+                    doctrineFight, modeFight, "defense", "return")
+                .ValueKind != JsonValueKind.False);
         if (resolved.Threats > 0
             && (resolved.ThreatsWithin == 0 || resolved.MemoryTicks == 0))
         {
@@ -1529,16 +1574,18 @@ public static class ArcRelayTacticalPlaybookCompiler
             ["signatureCoordination"] = "damage-first",
             ["release"] = new JsonObject
             {
-                ["hiddenTicks"] = 2,
-                ["unreachableTicks"] = 3,
+                ["hiddenTicks"] = fight.PersistTicks > 0
+                    ? fight.PersistTicks : 2,
+                ["unreachableTicks"] = fight.PersistTicks > 0
+                    ? fight.PersistTicks : 3,
                 ["outsideLeash"] = true,
                 ["destroyed"] = true,
             },
             ["selfDefense"] = new JsonObject
             {
-                ["enabled"] = true,
-                ["threatDistance"] = 2,
-                ["returnToFormation"] = true,
+                ["enabled"] = fight.DefenseRadius > 0,
+                ["threatDistance"] = fight.DefenseRadius,
+                ["returnToFormation"] = fight.DefenseReturn,
             },
         };
         if (fight.Within > 0)
