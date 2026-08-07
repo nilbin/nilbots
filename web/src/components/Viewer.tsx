@@ -95,6 +95,8 @@ export default function Viewer({
     useState(false);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
+  // Whether that touch was the one that brought it back. See `selectFromArena`.
+  const chromeWasHidden = useRef(false);
   // The WebGL renderer arrives as its own chunk and then builds a scene, and neither of
   // those is an asset the counter can see. Until the first frame has been drawn there is
   // nothing on screen, so readiness has to include it — otherwise the button lights while
@@ -179,6 +181,29 @@ export default function Viewer({
   const selectUnit = (unitKey: ReplayStableUnitKey | null) => {
     setSelectedUnitKey(unitKey);
     if (unitKey !== null) setSelectedPlayKey(null);
+  };
+  /**
+   * A tap on the arena, which in immersive mode is TWO answers to one gesture.
+   *
+   * The chrome is hidden and the arena is the whole screen, so the only way to
+   * see the transport again is to touch the arena — and that same touch used to
+   * clear the selection. Checking the controls therefore cost you the body you
+   * were following, every time, which is exactly the complaint (owner,
+   * 2026-08-09: "I lose my selection just checking the UI").
+   *
+   * So the first tap after the chrome went away only WAKES it. The second acts.
+   * Selecting a different body is never swallowed — that is an unambiguous
+   * instruction and it wins whatever the chrome is doing — and outside immersive
+   * mode nothing changes at all, because the chrome is never hidden there.
+   *
+   * `chromeWasHidden` has to be a ref read at gesture time, not `chromeVisible`:
+   * the shell's `onPointerDown` is an ancestor of the canvas, so by the time the
+   * canvas's own click/pointerup runs, the chrome has ALREADY been revealed and
+   * the state says so.
+   */
+  const selectFromArena = (unitKey: ReplayStableUnitKey | null) => {
+    if (unitKey === null && chromeWasHidden.current) return;
+    selectUnit(unitKey);
   };
   const soundEffects = useReplaySoundEffects({
     replay,
@@ -365,6 +390,9 @@ export default function Viewer({
       onPointerDown={
         immersive.active
           ? () => {
+              // Recorded BEFORE the reveal, because the arena's own handler runs
+              // after this one and would otherwise only ever see "visible".
+              chromeWasHidden.current = !chromeVisible;
               setChromeVisible(true);
               immersive.promote(shell.current);
             }
@@ -511,7 +539,7 @@ export default function Viewer({
                 selectedUnitKey={selectedUnitKey}
                 highlightedUnitKeys={highlightedUnitKeys}
                 showVisibility={showVisibility}
-                onSelectUnit={selectUnit}
+                onSelectUnit={selectFromArena}
                 onUnavailable={() => setDimensional(false)}
                 onReady={() => setSceneReady(true)}
                 autoFit={autoFit}
@@ -528,7 +556,7 @@ export default function Viewer({
               selectedUnitKey={selectedUnitKey}
               highlightedUnitKeys={highlightedUnitKeys}
               showVisibility={showVisibility}
-              onSelectUnit={selectUnit}
+              onSelectUnit={selectFromArena}
               autoFit={autoFit}
               onManualCamera={() => setAutoFit(false)}
               entrants={entrants}
