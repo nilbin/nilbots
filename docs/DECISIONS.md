@@ -4769,3 +4769,32 @@ and migration guardrails (parity-first, ghost-scope only, strict sugar
 validation) are frozen in docs/SPEC-GHOST-DOCTRINE-V3.md. Execution
 awaits the owner's go; hunter-v1 stays on the ab72 configuration
 meanwhile.
+
+## 217. Ghost doctrine v3 shipped: parity adjudicated at ab74
+
+The consolidation of #216 is implemented (commit ee5e2970) and the
+translation battery adjudicated. Grammar: verb-keyed modes with an
+unconditioned patrol floor, boolean condition strings, one fight block
+desugaring to generated per-mode engagements, formations by convention,
+everything else derived; commit.approach (get-behind with a position
+budget) and order patienceTicks exist behind the grammar, unauthored in
+the translation. ab74 (v3 translation vs wellwright): 12-12, 23/24
+bars-clean (the trip is the OPPONENT parking), zero unresolved streaks.
+Adjudication: 7/24 cells STATE-IDENTICAL to ab72 whole-match (proving
+the schema deletions and new mind fields byte-inert, and the
+translation exact wherever the one-leash reinterpretation never binds);
+the four outcome flips show equal-or-better ghost intent metrics
+(enemy-share 0.63-0.83, lone conversion up), so they are downstream
+squad chaos; the two CONFINED ghost cells are the strike-line assault
+pocket at (26,13) that ab72 exhibits identically (its w-9012 is
+state-identical at 117t) - the pocket's frequency rose because looser
+chase room means more kills, faster leveling, more assault-mode time.
+The -2 record swing is seed noise correlated with that mode shift.
+Verified by scripts/arc-relay-state-digest.py (promoted from the
+adjudication). Suspected latent inversion noted, untouched for parity:
+the isolation rear-exposure override in AllocateFocus keeps rank==1
+(NOT rear-exposed) targets, the opposite of its comment - measure as
+its own change. Next: migrate values to the spec's target artifact one
+battery at a time (patience, assault gates, breakOff, approach,
+killable) - any value that measures worse stays at translation with the
+data cited for the owner's call.
