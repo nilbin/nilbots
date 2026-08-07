@@ -2295,7 +2295,10 @@
      "lone": 4
     },
     "engage": {
-     "within": 4
+     "within": 4,
+     "from": "behind",
+     "positionTicks": 16,
+     "else": "strike"
     },
     "chase": {
      "leash": 6,
