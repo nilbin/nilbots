@@ -127,34 +127,81 @@ export function fullArenaFrame(framing: ArenaFraming): ArenaFrame {
 }
 
 /**
- * Arc Relay's manual overview: all three theaters, without spending pixels on both deep
- * home aprons when the viewport does not require them.
+ * Clear ground left around the arena by the overview, in tiles.
  *
- * The Wells are the stable visual definition of the theaters. They are read from the
- * first causal mode state carried by the replay rather than reconstructed from a map id,
- * so a later Arc Relay map gets the same behavior without a renderer-side map registry.
- * Other modes keep the historical whole-arena overview.
+ * Small on purpose. The overview's job is to show the board, and a board with a wide
+ * frame of background around it is a board nobody can read the far side of.
+ */
+const OVERVIEW_MARGIN_TILES = 0.5;
+
+/**
+ * How much room the strategic anchors keep around them before the overview refuses to
+ * crop any further, in tiles.
+ */
+const OVERVIEW_ANCHOR_MARGIN_TILES = 1.5;
+
+/**
+ * Arc Relay's overview: **the map, filling the view**.
+ *
+ * This used to be a fit of the three Wells, and before that `fullArenaFrame`, and both
+ * had the same failure for the same reason — they CONTAIN rather than COVER. A frame is
+ * grown to the viewport's shape (`focusFrame`, `fullArenaFrame`), so containing a 31×27
+ * warren in a 16:10 hole asks for 43.8 tiles of width to hold 27 of height, and a third
+ * of the screen goes to background on either side of the arena. On the initial frame,
+ * which is what a viewer opens on, that reads as a camera parked much too far back
+ * (owner review 2026-08).
+ *
+ * So the span is now taken from the *map's own bounds* plus a small margin, and where the
+ * viewport's shape disagrees the LONG axis is cropped instead of the short one padded:
+ * the warren meets the left and right edges of a landscape viewport, and only its outer
+ * apron leaves the frame. Cropping is bounded — the frame widens back out until every
+ * strategic anchor the mode names is inside it, which for Arc Relay is all three Wells
+ * and both Reactors, the whole reason a strategic overview exists. It never exceeds
+ * `fullArenaFrame`, so a portrait phone still gets the whole board rather than a
+ * pathological zoom.
+ *
+ * The anchors are read from the first causal mode state the replay carries rather than
+ * reconstructed from a map id, so a later Arc Relay map gets the same behavior without a
+ * renderer-side map registry. Other modes keep the historical whole-arena overview: an
+ * overview that crops is a mode's decision, not a default.
  */
 export function strategicOverviewFrame(
   replay: ReplayModel,
   framing: ArenaFraming,
 ): ArenaFrame {
-  const wells = arcRelayModeState(replay, 0)?.wells ?? [];
+  const mode = arcRelayModeState(replay, 0);
+  const wells = mode?.wells ?? [];
   if (wells.length < 2) return fullArenaFrame(framing);
-  return focusFrame(
-    wells.map((well) => ({
-      x: well.position.x + 0.5,
-      y: well.position.y + 0.5,
-    })),
-    {
-      ...framing,
-      // A theater overview needs a little approach around the outer Wells, not the whole
-      // home apron. At Counterflow's 31x23 shape this crops about two tiles at each deep
-      // end while retaining north, centre, and south at once.
-      margin: 1.5,
-      minSpan: 18,
-    },
+  const anchors = [
+    ...wells.map((well) => well.position),
+    ...(mode?.reactors ?? []).map((reactor) => reactor.position),
+  ].map((position) => ({ x: position.x + 0.5, y: position.y + 0.5 }));
+
+  const full = fullArenaFrame(framing);
+  // Cover: the smaller of the two aspect-grown spans, which is the one that puts the map
+  // against the edges of the viewport instead of inside a border of background.
+  let width = Math.min(
+    framing.mapWidth + OVERVIEW_MARGIN_TILES * 2,
+    (framing.mapHeight + OVERVIEW_MARGIN_TILES * 2) * framing.aspect,
   );
+  if (anchors.length > 0) {
+    const left = Math.min(...anchors.map((point) => point.x));
+    const right = Math.max(...anchors.map((point) => point.x));
+    const top = Math.min(...anchors.map((point) => point.y));
+    const bottom = Math.max(...anchors.map((point) => point.y));
+    width = Math.max(
+      width,
+      right - left + OVERVIEW_ANCHOR_MARGIN_TILES * 2,
+      (bottom - top + OVERVIEW_ANCHOR_MARGIN_TILES * 2) * framing.aspect,
+    );
+  }
+  width = Math.min(Math.max(width, framing.minSpan ?? MIN_SPAN_TILES), full.width);
+  return {
+    x: framing.mapWidth / 2,
+    y: framing.mapHeight / 2,
+    width,
+    height: width / framing.aspect,
+  };
 }
 
 /**
@@ -784,6 +831,25 @@ export class ArenaCamera {
   showFrame(frame: ArenaFrame): void {
     this.following = false;
     this.target = { ...frame };
+  }
+
+  /**
+   * Open held on a frame: not following, and already there.
+   *
+   * **This is what a viewer that starts in overview needs, and the reason it exists.**
+   * The camera constructs itself following, because the director is the default
+   * everywhere it is wanted; a viewer whose chrome says `▦ overview` before anyone has
+   * touched it then had a camera that disagreed with its own toggle, and the first frames
+   * of every replay were spent springing from the whole arena down onto the opening
+   * skirmish — an intro zoom nobody asked for, over the establishing shot the overview is
+   * *for* (owner review 2026-08). Reacting to the mismatch inside the draw loop is not
+   * the fix: the loop deliberately acts on the toggle CHANGING, so that a gesture is not
+   * undone a frame after it is made. The camera simply has to be born in the state it was
+   * asked for.
+   */
+  hold(frame: ArenaFrame): void {
+    this.following = false;
+    this.settle(frame);
   }
 
   /**

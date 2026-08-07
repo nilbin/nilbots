@@ -1,4 +1,4 @@
-import type { ReplayModel } from './replayModel';
+import type { ReplayModel, ReplayPublishedUnitOrder } from './replayModel';
 import {
   decodeReplay,
   decodeReplayJson,
@@ -65,6 +65,20 @@ function loadArcRelayBroadcast(
         teamId,
         visibleTiles: tiles.map(([x, y]) => ({ x, y })),
       }));
+    }
+  }
+  if (input.orders !== undefined) {
+    // The column carries CHANGES. Replaying them forward here — once, at
+    // ingress — is what lets every consumer read one tick and get the whole
+    // standing table, the same way it would from a canonical replay's turns.
+    const standing = new Map<string, ReplayPublishedUnitOrder>();
+    for (const [tickIndex, rows] of input.orders.entries()) {
+      const tick = replay.ticks[tickIndex];
+      for (const [teamId, unitId, orderId, action] of rows) {
+        standing.set(`${teamId}:${unitId}`, { teamId, unitId, orderId, action });
+      }
+      if (!tick) continue;
+      tick.publishedUnitOrders = [...standing.values()];
     }
   }
   return {

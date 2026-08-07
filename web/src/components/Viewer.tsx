@@ -28,6 +28,7 @@ import EventFeed from './EventFeed';
 import Logo from './Logo';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
+import { roleTagColor } from '../presentation/roleTag';
 import LiveStatus, { LiveDot } from './LiveStatus';
 import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
 import ClassIcon from './ClassIcon';
@@ -154,13 +155,18 @@ export default function Viewer({
   const time = isLive ? liveTime : playback.time;
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
   const presenter = useMemo(() => createPresenter(replay), [replay]);
-  const arcStanding = presenter.at(tick).arcRelay;
+  const standing = presenter.at(tick);
+  const arcStanding = standing.arcRelay;
   const playTimeline = useMemo(() => playAwarenessTimeline(replay), [replay]);
   const activePlays = playsAt(replay, tick);
   const selectedActivePlay = selectedPlayKey === null
     ? null
     : activePlays.find((play) => play.activationKey === selectedPlayKey) ?? null;
   const selectedUnitPlay = playForUnit(replay, tick, selectedUnitKey);
+  const selectedUnit =
+    selectedUnitKey === null
+      ? null
+      : standing.units.find((unit) => unit.unitKey === selectedUnitKey) ?? null;
   const perspectiveTeamId = teamVisionAt(
     replay,
     replay.ticks[tick],
@@ -561,6 +567,43 @@ export default function Viewer({
             >
               <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
                 reactors={arcStanding.reactors} />
+            </div>
+          )}
+          {/* WHAT THE SELECTED BODY IS DOING, over the arena itself.
+              The 3D renderer draws the order tag under a chassis, which says
+              what a body is FOR; it has nowhere to put what the body is doing
+              about it this tick, and the panel is off-screen on a phone and
+              behind the arena in immersive mode. So the selection answers
+              itself where the selection was made. Bottom right: the tick chip
+              owns top left, the score bug top right, the tactics lens bottom
+              left. */}
+          {selectedUnit?.order && (
+            <div
+              aria-label="Selected unit order"
+              className={clsx(
+                'val absolute right-2 bottom-2 z-[9] flex max-w-[min(320px,calc(100%-16px))] items-baseline gap-1.5 rounded-full border border-arena-edge bg-arena-bg/80 px-[9px] py-[3px] backdrop-blur-[3px] transition-opacity duration-300',
+                immersive.active && !chromeVisible && 'opacity-0',
+              )}
+            >
+              <span
+                className="truncate"
+                style={styleVariables({
+                  '--player-accent': playerAccent(selectedUnit.accent, 'panel'),
+                })}
+              >
+                <span className="player-accent-text">{selectedUnit.name}</span>
+              </span>
+              {selectedUnit.order.orderId !== null && (
+                <span
+                  className="truncate"
+                  style={{ color: roleTagColor(selectedUnit.order.orderId) }}
+                >
+                  {selectedUnit.order.orderId}
+                </span>
+              )}
+              <span className="truncate text-arena-dim">
+                {selectedUnit.order.action}
+              </span>
             </div>
           )}
           {isArcRelay && !playback.atEnd && playTimeline.activations.length > 0 && (

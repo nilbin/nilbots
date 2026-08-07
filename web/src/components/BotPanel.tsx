@@ -429,6 +429,10 @@ export default function BotPanel({
         // made authored guards unreadable from bugs (owner review): always
         // fall back to the raw tag.
         const displayedRole = playRoleSummary(unit.roleTag) ?? unit.roleTag;
+        // A published order id outranks the sticky tag only when there is one:
+        // the tag is what a coordinated play summarises, and losing that
+        // summary would undo the play-awareness reading.
+        const orderTag = displayedRole ?? unit.order?.orderId ?? null;
         const controllerName = replay.participants.find(
           (participant) => participant.participantId === unit.participantId,
         )?.name;
@@ -653,21 +657,33 @@ export default function BotPanel({
                 </>
               )}
 
-              {displayedRole !== null && (
+              {/* The live order: the standing job, and what the body is doing
+                  about it this tick. The tag alone answered "what is this for"
+                  and left "what is it doing right now" to a debug line the
+                  gallery transport does not carry — so a selected body in a
+                  broadcast said `race-north` and nothing else, all match. */}
+              {(orderTag !== null || unit.order !== null) && (
                 <>
-                  <dt className="lab">Role</dt>
-                  <dd className="t-body col-span-2">
-                    <span
-                      className="pill"
-                      style={{
-                        // Coloured by a stable hash of the tag, so `channeler`
-                        // is the same colour all match and across matches.
-                        color: roleTagColor(displayedRole),
-                        borderColor: roleTagColor(displayedRole),
-                      }}
-                    >
-                      {displayedRole}
-                    </span>
+                  <dt className="lab">Order</dt>
+                  <dd className="t-body col-span-2 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1">
+                    {orderTag !== null && (
+                      <span
+                        className="pill"
+                        style={{
+                          // Coloured by a stable hash of the tag, so `channeler`
+                          // is the same colour all match and across matches.
+                          color: roleTagColor(orderTag),
+                          borderColor: roleTagColor(orderTag),
+                        }}
+                      >
+                        {orderTag}
+                      </span>
+                    )}
+                    {unit.order !== null && (
+                      <span className="val min-w-0 break-words text-arena-dim">
+                        {unit.order.action}
+                      </span>
+                    )}
                   </dd>
                 </>
               )}

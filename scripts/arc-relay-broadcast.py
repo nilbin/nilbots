@@ -19,11 +19,16 @@ import argparse
 import gzip
 import hashlib
 import json
+import re
 from pathlib import Path
 
 KEEP_EVENTS = {"arc-relay", "damage", "destruction"}
 DEFAULT_MAX_GZIP_BYTES = 300 * 1024
 TARGET_GZIP_BYTES = 100 * 1024
+
+# The longest reason text the broadcast will carry per body. A diagnostic is
+# free-form author vocabulary; the panel showing it has one line.
+REASON_MAX_CHARS = 48
 
 
 def read_json(path: Path) -> dict:
@@ -195,6 +200,71 @@ def compact_turns(tick: dict, signature_ids: set[str]) -> list:
     return result
 
 
+def command_reason(message: object) -> tuple[str | None, str] | None:
+    """Split one body's per-tick diagnostic into (order id, action tail).
+
+    The canonical replay's debug text is dropped by this projection on purpose,
+    but "what is this body doing right now" is the one thing in it a spectator
+    needs, and a selected body with no answer to that question reads as a bug.
+
+    The tactical playbook writes ``tp:<phase>:<group>:<order>:<action>``, often
+    behind a qualifier (``idle-break:tp:...``, ``turn for tp:...``) and usually
+    with a ``via <Direction>`` suffix the arena already shows by pointing the
+    body that way. Anything the shape does not match is carried WHOLE as the
+    action: a transport must not decide that a vocabulary it has not been
+    taught is not worth showing.
+    """
+    if not isinstance(message, str):
+        return None
+    text = message.split(" via ")[0].strip()
+    if not text:
+        return None
+    marker = text.find("tp:")
+    if marker < 0:
+        return (None, text[:REASON_MAX_CHARS])
+    parts = text[marker:].split(":")
+    if len(parts) < 5:
+        return (None, text[:REASON_MAX_CHARS])
+    # "turn for idle-break:tp:..." is two stacked qualifiers and a preposition.
+    # Keep the words, drop the grammar, and join them the way the tail reads.
+    qualifier = "/".join(
+        word
+        for word in re.split(r"[\s:]+", text[:marker])
+        if word and word != "for"
+    )
+    action = ":".join(parts[4:])
+    if qualifier:
+        action = f"{qualifier}/{action}"
+    return (parts[3] or None, action[:REASON_MAX_CHARS])
+
+
+def turn_reasons(tick: dict) -> list[tuple[int, int, int, tuple[str | None, str]]]:
+    """Every (teamId, unitId, lifeId, reason) this tick recorded, in order."""
+    result = []
+    for mind in tick.get("mindTurns") or []:
+        team_id = mind["teamId"]
+        for command in mind.get("commands") or []:
+            reason = command_reason(command.get("debugMessage"))
+            if reason is not None:
+                result.append(
+                    (team_id, command["unitId"], command["lifeId"], reason)
+                )
+    for turn in tick.get("actorTurns") or []:
+        submitted = turn.get("submittedDecision") or {}
+        reason = command_reason(submitted.get("debugMessage"))
+        if reason is not None:
+            actor_id = turn["actorId"]
+            result.append(
+                (
+                    actor_id["teamId"],
+                    actor_id["unitId"],
+                    actor_id["lifeId"],
+                    reason,
+                )
+            )
+    return result
+
+
 def project(replay: dict) -> dict:
     header = replay.get("header")
     if not isinstance(header, dict) or header.get("replayVersion") != 3:
@@ -217,6 +287,12 @@ def project(replay: dict) -> dict:
     traversals_by_tick = []
     births_by_tick = []
     vision_by_tick = []
+    orders_by_tick = []
+    # Last reason PUBLISHED per body, so the column carries changes rather than
+    # a full table 600 times. Keyed by life, not by unit: a respawned body
+    # restates its order even when it happens to resume the same one, which is
+    # what keeps the viewer's running state honest across a death.
+    published_reasons: dict[tuple[int, int, int], tuple[str | None, str]] = {}
     previous_actor_ids = {
         tuple(actor(item["actorId"]))
         for item in replay["initialFrame"]["state"]["activeLives"]
@@ -235,6 +311,14 @@ def project(replay: dict) -> dict:
         # the H0 all-signatures stress replay without changing one fact.
         worlds.append(world(tick["postState"]))
         turns.append(compact_turns(tick, signature_ids))
+        orders = []
+        for team_id, unit_id, life_id, reason in turn_reasons(tick):
+            key = (team_id, unit_id, life_id)
+            if published_reasons.get(key) == reason:
+                continue
+            published_reasons[key] = reason
+            orders.append([team_id, unit_id, reason[0], reason[1]])
+        orders_by_tick.append(orders)
         start_events_by_tick.append(start_events)
         events_by_tick.append(events)
         traversals_by_tick.append(tick["traversals"])
@@ -282,6 +366,9 @@ def project(replay: dict) -> dict:
         "traversals": traversals_by_tick,
         "births": births_by_tick,
         "vision": vision_by_tick,
+        # Changes only. The viewer carries the running table forward, so a body
+        # holding one order for 200 ticks costs one row, not two hundred.
+        "orders": orders_by_tick,
         "result": replay["result"],
     }
 

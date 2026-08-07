@@ -54,6 +54,17 @@ type WorldTuple = [
 ];
 type ActionTuple = [string, number, V3.ReplayV3ActionArgument[]];
 type TeamVisionTuple = [number, PositionTuple[]];
+/**
+ * `[teamId, unitId, orderId, action]` — what a body was told to do, and what it
+ * did about it this tick.
+ *
+ * A CHANGE, not a state: the projection publishes a row only when a body's
+ * reason differs from the one already published for it, and the viewer carries
+ * the table forward. A body holding one order for two hundred ticks costs one
+ * row rather than two hundred, which is the only reason this fits inside a
+ * transport that also drops every other word of debug text.
+ */
+type UnitOrderTuple = [number, number, string | null, string];
 type TurnTuple = [
   ActorTuple,
   number,
@@ -78,6 +89,8 @@ export interface ArcRelayBroadcastV1 {
   turns: TurnTuple[][];
   /** Additive: absent on archived broadcasts written before team-perspective fog. */
   vision?: TeamVisionTuple[][];
+  /** Additive: absent on archived broadcasts written before published orders. */
+  orders?: UnitOrderTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -100,6 +113,8 @@ export interface ArcRelayBroadcastV2 {
   turns: TurnTuple[][];
   /** Additive: absent on stored broadcasts written before team-perspective fog. */
   vision?: TeamVisionTuple[][];
+  /** Additive: absent on stored broadcasts written before published orders. */
+  orders?: UnitOrderTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -131,6 +146,7 @@ export function expandArcRelayBroadcastV1(
   if (
     broadcast.turns.length !== count ||
     (broadcast.vision !== undefined && broadcast.vision.length !== count) ||
+    (broadcast.orders !== undefined && broadcast.orders.length !== count) ||
     broadcast.startEvents.length !== count ||
     broadcast.events.length !== count ||
     broadcast.traversals.length !== count ||

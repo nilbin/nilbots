@@ -209,6 +209,83 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
   assert.ok(overview.width < full.width * 0.9, `${overview.width} is a closer overview than ${full.width}`);
   for (const y of [4.5, 11.5, 18.5])
     assert.ok(Math.abs(y - overview.y) < overview.height / 2, `theater ${y} remains visible`);
+
+  // The overview COVERS the map rather than containing it: a 31-wide warren reaches both
+  // edges of a landscape viewport, give or take the margin, instead of sitting inside a
+  // third of a screen of background — which is what `fullArenaFrame` asks for and what an
+  // opening frame used to look like (owner review 2026-08).
+  assert.ok(
+    overview.width >= framing.mapWidth &&
+      overview.width <= framing.mapWidth + 2,
+    `a ${framing.mapWidth}-wide map fills a ${overview.width}-tile overview`,
+  );
+  assert.ok(
+    Math.abs(overview.x - framing.mapWidth / 2) < 1e-9 &&
+      Math.abs(overview.y - framing.mapHeight / 2) < 1e-9,
+    'the board is centred on the board',
+  );
+
+  // Cropping the long axis is bounded by the mode's own anchors. Push the Wells out to
+  // the map's ends and the frame widens again rather than losing a theater.
+  const stretched = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (stretched.contract.kind !== 'v3-generic') return;
+  stretched.contract.modeKind = 'arc-relay';
+  stretched.ticks[0]!.after.mode = {
+    ...arc.ticks[0]!.after.mode,
+    wells: [
+      { wellId: 'well-north', position: { x: 15, y: 1 }, nextScheduledBirthTick: 10, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-south', position: { x: 15, y: 21 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+    ],
+  } as typeof arc.ticks[0]['after']['mode'];
+  const wide = strategicOverviewFrame(stretched, framing);
+  assert.ok(wide.width > overview.width, 'outer theaters widen the overview');
+  for (const y of [1.5, 21.5])
+    assert.ok(Math.abs(y - wide.y) < wide.height / 2, `theater ${y} stays framed`);
+  assert.ok(wide.width <= full.width + 1e-9, 'and never past the whole arena');
+});
+
+test('a camera opened in overview holds it, with no intro zoom', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  assert.equal(arc.contract.kind, 'v3-generic');
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  arc.ticks[0]!.after.mode = {
+    kind: 'arc-relay',
+    modeId: 'arc-relay',
+    wells: [
+      { wellId: 'well-north', position: { x: 15, y: 4 }, nextScheduledBirthTick: 10, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-centre', position: { x: 15, y: 11 }, nextScheduledBirthTick: 20, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      { wellId: 'well-south', position: { x: 15, y: 18 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+    ],
+    reactors: [],
+    visibleCores: [],
+    visibleSignatures: [],
+    latestPulseTeamId: null,
+    latestPulseTick: null,
+  };
+  const framing = {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    minSpan: directorMinSpan(arc),
+  };
+  const overview = strategicOverviewFrame(arc, framing);
+  const camera = new ArenaCamera(framing);
+  camera.hold(overview);
+
+  assert.equal(camera.auto, false, 'a held camera is not following');
+  assert.deepEqual(camera.frame, overview, 'and is already there');
+  // The renderers' loop offers the director's fit every frame. A held camera must refuse
+  // it, or "overview" is a label on a camera that zooms in the moment the match starts.
+  for (let step = 0; step < 30; step += 1) {
+    camera.aim(focusFrame(focusPointsAt(arc, step / 6, null), framing), step / 6);
+    camera.advance(1 / 60);
+  }
+  assert.deepEqual(camera.frame, overview, 'and stays there while the match runs');
 });
 
 test('an unthreatened bank run does not outrank cross-team play', () => {

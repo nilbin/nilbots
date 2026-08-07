@@ -177,8 +177,14 @@ export default function ArenaCanvas({
           aspect: width / logicalArenaHeight(height),
           minSpan: directorMinSpan(replay),
         };
-        const camera =
-          cameraRef.current ?? (cameraRef.current = new ArenaCamera(framingRef.current));
+        let camera = cameraRef.current;
+        if (camera === null) {
+          camera = cameraRef.current = new ArenaCamera(framingRef.current);
+          // Born in the state the chrome already claims — see ArenaCamera.hold. The two
+          // renderers must open on the same frame or a device that loses its WebGL
+          // context swaps between two different opening shots.
+          if (!fit) camera.hold(strategicOverviewFrame(replay, framingRef.current));
+        }
         // A resized or rotated viewport re-shapes the frame rather than re-deciding it.
         if (aspect !== 0 && Math.abs(aspect - framingRef.current.aspect) > 1e-6)
           camera.reframe(framingRef.current);

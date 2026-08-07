@@ -206,8 +206,13 @@ export default function ArenaCanvas3D({
         aspect: width / height,
         minSpan: directorMinSpan(replay),
       };
-      if (camera === null) camera = new ArenaCamera(framing);
-      else camera.reframe(framing);
+      if (camera === null) {
+        camera = new ArenaCamera(framing);
+        // Born in the state the chrome already claims. A viewer that opens on the
+        // overview holds it — no intro zoom across the establishing shot.
+        if (!frameState.current.autoFit)
+          camera.hold(strategicOverviewFrame(replay, framing));
+      } else camera.reframe(framing);
       look(camera.frame);
     };
 

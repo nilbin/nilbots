@@ -1563,6 +1563,19 @@ export interface ReplayTick {
    * replays and compact broadcasts that predate team-perspective fog.
    */
   publishedTeamVision?: ReplayPublishedTeamVision[];
+  /**
+   * What each unit was ordered to do at this tick, as the mind itself said it.
+   *
+   * A compact spectator transport drops every body's diagnostic text, which is
+   * correct — it is private reasoning — except for the one clause a spectator
+   * is actually asking about while watching: what this body is doing right
+   * now. That clause is published back as a per-tick table.
+   *
+   * Undefined on canonical replays, where the same fact is read straight off
+   * the turn's own debug message, and on broadcasts written before the column
+   * existed.
+   */
+  publishedUnitOrders?: ReplayPublishedUnitOrder[];
   events: ReplayCausalEvent[];
   projectileTraversals: ReplayProjectileTraversal[];
   after: ReplayWorldSnapshot;
@@ -1571,6 +1584,20 @@ export interface ReplayTick {
 export interface ReplayPublishedTeamVision {
   teamId: number;
   visibleTiles: ReplayPosition[];
+}
+
+/**
+ * One body's live order: the standing assignment, and what it is doing about it.
+ *
+ * `orderId` is the mind's own name for the job — `race-north`, `ghost-patrol` —
+ * and is null where the reason names no order. `action` is the tail of the same
+ * sentence: `formation-move`, `duel-stand`, `idle-break/streak`.
+ */
+export interface ReplayPublishedUnitOrder {
+  teamId: number;
+  unitId: number;
+  orderId: string | null;
+  action: string;
 }
 
 export interface ReplayTeamResult {

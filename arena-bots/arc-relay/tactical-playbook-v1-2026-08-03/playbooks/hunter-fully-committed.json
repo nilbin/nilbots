@@ -1174,7 +1174,7 @@
    "pickupReservationTicks": 8,
    "transferTimeoutTicks": 8,
    "deliveryTimeoutTicks": 120,
-   "accidentalPickup": "transfer",
+   "accidentalPickup": "deliver",
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
    "safeConversionConditionSetId": "convert-freely"

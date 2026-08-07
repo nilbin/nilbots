@@ -11,6 +11,10 @@ import type {
   ReplayWorldSnapshot,
 } from './replayModel';
 import { playerAccent } from './presentation/playerAccent';
+import {
+  parseCommandReason,
+  type CommandReason,
+} from './presentation/commandReason';
 import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
 import {
@@ -275,6 +279,22 @@ export interface UnitPresentation {
   actionLaunchHeading: ReplayProjectileHeading | null;
   actionResult: string | null;
   debug: string | null;
+  /**
+   * What this body is DOING: its live order, and what it is doing about it.
+   *
+   * `roleTag` beside it is the label the mind published *for the body* — a
+   * standing job title that is sticky for many ticks and is drawn under the
+   * chassis. This is the live half: the order the reason names and the action
+   * tail of the reason itself, so a selected body reads
+   * `race-north · formation-move` rather than only `race-north`.
+   *
+   * Read from the broadcast's published order table where there is one, and
+   * split out of the turn's own debug message where the replay is canonical —
+   * the two are the same split, so a gallery and a local replay of one match
+   * say the same thing. Null wherever neither exists, which is every replay
+   * whose author published no diagnostic at all.
+   */
+  order: CommandReason | null;
   visibleTiles: number;
   visibleEnemies: { x: number; y: number }[];
   /**
@@ -547,6 +567,11 @@ function presentUnit(
         ),
       )
     : null;
+  const publishedOrder = replay.ticks[tickIndex]?.publishedUnitOrders?.find(
+    (entry) => entry.teamId === unit.teamId && entry.unitId === unit.unitId,
+  );
+  const reason = parseCommandReason(turn?.runtimeReply.debugMessage);
+  const roleTag = turn?.observation.self?.roleTag ?? null;
 
   return {
     unitKey,
@@ -594,6 +619,18 @@ function presentUnit(
       turn?.actionResolution.chosenPayload?.launchHeading ?? null,
     actionResult: turn?.actionResolution.result ?? null,
     debug: turn?.runtimeReply.debugMessage ?? null,
+    // The published table first, because a broadcast has no debug text left to
+    // read; the turn's own message otherwise, split the same way. Both fall
+    // back to the sticky role tag for the order id, which is what a mind
+    // publishes when the body's job outlives the sentence that set it.
+    order: publishedOrder
+      ? {
+          orderId: publishedOrder.orderId ?? roleTag,
+          action: publishedOrder.action,
+        }
+      : reason
+        ? { orderId: reason.orderId ?? roleTag, action: reason.action }
+        : null,
     visibleTiles:
       publishedVision?.visibleTiles.length ??
       turn?.observation.visibleTiles.length ??
@@ -625,7 +662,7 @@ function presentUnit(
     // From this body's own observation of itself, which under the mind is the
     // mind's published label for it. Absent renders as nothing at all: an
     // unlabelled body should look unlabelled, not broken.
-    roleTag: turn?.observation.self?.roleTag ?? null,
+    roleTag,
     // A trap, and under the mind a trap is a different kind of event: the
     // Store is discarded, so the participant loses its whole match-long memory
     // rather than one body's private fields — and under the shipped Labs
