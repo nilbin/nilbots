@@ -4857,3 +4857,47 @@ longer drawn as ground. `ArcRelayStoryPresentation.pendingStrikes`
 (tiles + urgency) went with the plates: it had no other consumer, and
 the ray needs the anchor's interpolated pose, which is a frame value
 rather than a per-tick one.
+
+## 221. The windup is rooted: declare-then-move is an abandonment
+
+Owner ruling 2026-08-07, taken together with the strike-cancel audit
+that preceded it (sandbox/strike-cancel-audit.py over the six
+commitx21 cells: 1243 declared strikes, 669 resolutions, 42
+empty-wedge whiffs, 531 cancels - 476 lock-left-the-wedge, 33
+lock-left-LOS, 16 lock-dead, 6 shooter-dead). The audit recomputed
+both #215 tests from replay state and found ZERO cancels with no rule
+behind them, ZERO resolutions a rule should have stopped, and 1194
+frozen wedges byte-identical to a recomputed boundary-inclusive 90
+degree cone - so no strike was ever cancelled unlawfully. What it did
+surface is that rule (c) is evaluated from the tick's PROJECTED line
+of sight, which is the shooter's declare tile and declare facing (the
+same tile the bolt fires from), not a post-movement one: 83 strikes
+resolved that a post-movement LOS would have cancelled and 7
+cancelled that it would have kept, and the engine was consistent with
+the declare-time reading in 90 out of 90 cases.
+
+The ruling settles what that ambiguity was really about. A declared
+strike is a COMMITMENT, and a body in windup is ROOTED. The engine
+states this as one mutually-exclusive rule rather than a movement
+prohibition: an accepted move or strafe command from the declarer
+during its own windup ABANDONS the declare - no bolt, the
+dead-shooter precedent - and the move itself proceeds untouched. The
+COMMAND is the abandonment, not the displacement, so a move that then
+resolves Blocked has still spent the windup: the decision to leave
+was made either way. Involuntary displacement (knockback, dash, hook)
+is not a command and abandons nothing; the bolt still fires from the
+frozen origin. Consequence: the shooter-moved-LOS cancel class
+disappears - a shooter can no longer drift out of its own shot, only
+deliberately walk away from it - and all three surviving cancels are
+LOCK-side (the lock died, left the frozen wedge, or left the
+shooter's declare-time sight).
+
+The engine holds no policy about WHEN abandoning is wise. That lives
+in the mind: only a disengage latch may issue movement during a
+windup, and an incoming cone is explicitly NOT a reason to abandon -
+a body committed under fire trades its hit for the other one's, which
+is the whole point of a commitment. Pinned by
+GenericActorStrikeWindupRootingTests (rooted declarer fires from its
+declare tile; move command abandons and the move proceeds; a blocked
+move abandons too; wedge exit, sight loss and a dead lock all still
+cancel).

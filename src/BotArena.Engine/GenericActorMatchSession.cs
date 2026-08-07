@@ -1562,6 +1562,17 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             LifeState life = _lives[resolution.ActorId];
+            // Rooted windup (DECISIONS #221): a declarer that commands a move
+            // or strafe during its own windup ABANDONS the declare. No bolt —
+            // the dead-shooter precedent — and the move itself proceeds
+            // untouched. The engine holds no policy about when abandoning is
+            // wise; it only makes the two mutually exclusive, so a strike can
+            // never be a free rider on a body that walked away from it. The
+            // COMMAND is the abandonment, not the displacement: a move that
+            // then resolves Blocked has still spent the windup, because the
+            // decision to leave was made either way.
+            _pendingStrikes.RemoveAll(
+                strike => strike.Shooter == resolution.ActorId);
             ProjectileHeading heading = MovementHeading(
                 resolution.ValidatedAction);
             var (dx, dy) = heading.Vector();
@@ -2971,6 +2982,9 @@ public sealed class GenericActorMatchSession : IDisposable
     /// so events, traversals, deflections, and damage all behave exactly
     /// like a same-tick shot. A strike whose exact declaring LIFE is gone
     /// at maturation is cancelled: the windup was that fighter's own effort.
+    /// The windup is also ROOTED (DECISIONS #221): the declarer commanding a
+    /// move or strafe abandons it on the spot, so a pending strike always
+    /// fires from the tile its declarer is still standing on.
     /// </summary>
     private sealed record PendingStrike(
         ActorIdentity Shooter,
@@ -3094,7 +3108,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 // body anywhere inside the frozen wedge; it cancels - no
                 // bolt, like a dead shooter - when the lock is dead, has
                 // crossed the wedge boundary, or is out of the shooter's own
-                // line of sight. Bodyguarding is stepping onto the firing
+                // line of sight. All three are LOCK-side: the shooter cannot
+                // drift out of its own shot, because commanding a move
+                // abandons the declare outright (#221). That line of sight is
+                // the tick's projected one, taken from the declaring tile and
+                // facing - the same place the bolt fires from.
+                // Bodyguarding is stepping onto the firing
                 // line, never proximity: the delivery is still an ordinary
                 // first-body-contact ray. A strike declared over an empty
                 // wedge keeps its theatrical whiff down the centre. The sweep
