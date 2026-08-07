@@ -47,19 +47,29 @@ are the parts already working, and they are load-bearing.
 
 Attack beat: **declare → windup → resolve.**
 
-1. **Declare.** A committed attacker locks its heading and the threatened
-   cone becomes public state (the viewer draws it; the victim's mind sees
-   it). The cone is the REAL filled wedge (DECISIONS #213): every
-   wall-reachable tile within ±45° of the heading out to the gun's
-   Chebyshev reach. A lit tile is exactly a hittable tile.
+1. **Declare.** A committed attacker locks its heading AND names the body it
+   is shooting at; the threatened cone becomes public state (the viewer
+   draws it; the victim's mind sees it). The cone is the REAL filled wedge
+   (DECISIONS #213): every wall-reachable tile within ±45° of the heading
+   out to the gun's Chebyshev reach. A lit tile is exactly a hittable tile.
+   The strike LOCKS the named body when that body stands inside the wedge at
+   declare — the lock is the mind's target and nothing else (DECISIONS #222
+   and its owner correction): not the nearest body, not the first enemy on
+   the ray, never a friendly, never a substitute. Naming nobody, or naming a
+   body outside the wedge, locks nothing.
 2. **Windup** (1 tick — owner tuning; movement precedes combat on the
    resolve tick, so this is exactly one honest move). Counterplay is
-   positional only: leave the wedge, break reach, or interpose a body.
-3. **Resolve.** Single-target: the nearest body anywhere in the wedge eats
-   the one hit (most-central on ties), delivered along the canonical
-   strike line so **the first body on the line eats the hit**
-   (bodyguarding, screening, and wrong-victim scrums all emerge from this
-   clause). No body in the wedge: theatrical whiff down the centre. Damage = class base × facing multiplier
+   positional only: leave the wedge, break the shooter's sight, or interpose
+   a body. The lock follows its target anywhere INSIDE the frozen wedge; it
+   cancels when that body dies, crosses the wedge boundary, or leaves the
+   shooter's line of sight. The declarer is rooted: commanding a move
+   abandons its own declare (DECISIONS #221).
+3. **Resolve.** Single-target: the bolt is delivered along the canonical
+   strike line from the frozen origin to the locked body, and **the first
+   body on that line eats the hit** (bodyguarding, screening, and
+   wrong-victim scrums all emerge from this clause — interposition is a
+   delivery rule, never a lock rule). An unlocked strike fires the
+   theatrical whiff down the centre. Damage = class base × facing multiplier
    (front ×1, rear ×2 — existing rule) × level track. Whiff still pays the
    cooldown.
 

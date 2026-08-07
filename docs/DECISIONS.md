@@ -4939,6 +4939,48 @@ at a body the strike was never for. Pinned by
 GenericActorStrikeWindupRootingTests (target-not-nearest, no
 substitution, friendly-never-lock, interception at delivery).
 
+### 222b. Correction, 2026-08-08: the lock is the MIND's target
+
+Owner, correcting the implementation above: "the lock is the target
+picked by the MIND and nothing else."
+
+The first draft inferred the lock from geometry - the first ENEMY on the
+declared ray - because the ray was the only thing on the wire. It is not
+any more. A windup gun's attack action now carries an OPTIONAL UnitTarget
+beside its heading, and the engine locks exactly that unit's live body,
+provided it stands inside the frozen wedge at declare. Naming nobody, or
+naming a body outside the wedge, locks nothing and keeps the theatrical
+whiff. There is no substitution of any kind: not the nearest body, not the
+first enemy on the ray, not an interposed one, never a friendly (the mask
+publishes opposing slots only). Interposition is a DELIVERY rule and is
+untouched - the bolt is still an ordinary first-body-contact ray along the
+firing line, so a bodyguard who was never the lock still eats it.
+
+This is also the real diagnosis of the 29% whiff rate the aim-alignment
+brief blamed on misaimed rays. The rays were not misaimed. Movement
+resolves BEFORE attacks inside a tick, so the body a mind aimed at from
+the tick's opening state has usually already taken its step by the time
+its own declare is read: in the graduated exhibits 279 of 283 whiffs had
+an enemy exactly on the aimed ray at tick start and one tile off it at the
+attack phase (the other 4 were wedge-corner occlusion). No amount of aim
+selection closes a gap that opens after the decision is made. A NAME
+survives it. Measured over the same six cells: declares that lock rose
+from 691/974 (71%) to 919/1020 (90%) greedy and 1032/1119 (92%)
+coordinated; whiff share fell 29% -> 9.9% / 7.8%. What is left is almost
+entirely the target stepping out of the reach wedge altogether (95 of 101
+greedy), which is exactly the counterplay the wedge is supposed to be.
+
+The mind still aims its ray through its target - a misaligned ray with a
+valid in-wedge target now locks anyway, but delivery is a line, so
+alignment is still how a strike usually reaches. Rules schema 3 gained one
+allowance for this: an Attack action may declare ProjectileHeading plus
+UnitTarget when its profile actually winds up. An instant gun keeps its
+single-parameter shape and its fingerprint. Pinned by
+GenericActorStrikeWindupRootingTests (named-not-nearest,
+named-not-interposed, target-steps-off-the-ray-and-is-still-locked,
+names-nobody, outside-the-wedge, friendly-never-blocks-the-lock,
+interception at delivery).
+
 ## 223. Graduation: the committed sheet IS hunter-v1, and the loop turns around
 
 Two owner rulings, 2026-08-08, both in velocity mode (battery parked,
@@ -4981,3 +5023,43 @@ whole matches). So `shadow-north-long-reverse` and
 closed - are aliased on BOTH bindings. The mid-map leg now runs
 outward (0.27 -> 0.50 -> 0.63 -> 0.73 -> 0.83) and the top run becomes
 the way home, so a mid-map rejoin continues toward the enemy half.
+
+## 224. East's routes mirror like its zones: the double flip is gone
+
+#223 called arc-relay-ambush-warren-06 exactly 180-degree symmetric with
+mirrored bindings and concluded nothing about the terrain justifies a
+per-side difference. The map half was right. The bindings half was not,
+and it is where both fresh exhibits were losing every east cell.
+
+The east binding does two things on the same axis. It applies
+`rotate-180`, and its `routeAliases` ALSO swap north for south
+(`north-out`<->`south-out`, and since #223
+`shadow-north-long`->`shadow-south-long-reverse` and back). Two flips is
+no flip. East's `shadow-north-long` resolved to the authored SOUTH loop,
+which rotate-180 rendered back at WORLD north - the same corridor west's
+ghost walks - instead of the mirrored south one. Rendered coordinates on
+the 31x27 canvas: west's ghost loop x[8,27] y[1,10]; east's x[3,22]
+y[1,10]; the mirror-correct east loop is x[3,22] y[16,25]. NONE of the
+twelve routes in the hunter layout was the 180-rotation of its west
+counterpart. All twelve are now.
+
+The tell is inside the layout itself, which is why this is a bug and not
+a vocabulary choice. Zones were never aliased, so for an east team
+`north-farm` sat at world y19 while `north-out` ran at world y6-8: one
+layout, two contradictory norths, on ONE side only. A sheet that collects
+at north-farm and leaves by north-out therefore walked the map diagonally
+as east and straight as west. West was consistent throughout.
+
+The swap has ridden along with `rotate-180` since the first binding
+resolver (d4a2c81c) and was inherited by every warren layout; #223's
+symmetry check compared map tiles and missed it. Fixed for the two
+layouts under exhibition (hunter, wellwright) - wellwright never
+referenced north-out/south-out, so that half is consistency only. The
+same double flip is still present in the other layouts and is a standing
+cleanup.
+
+Effect on the six exhibit cells (with 222b, no battery - owner rule, and
+six cells is an exhibition, not a measurement): the greedy stepper went
+1/6 to 4/6 and broke the east shutout (e-9009), west 3/3. The coordinated
+stepper stayed 1/6 and east stayed 0/3, so a residual east skew survives
+both fixes and is NOT explained.
