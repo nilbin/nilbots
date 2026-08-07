@@ -59,11 +59,15 @@ Attack beat: **declare → windup → resolve.**
    body outside the wedge, locks nothing.
 2. **Windup** (1 tick — owner tuning; movement precedes combat on the
    resolve tick, so this is exactly one honest move). Counterplay is
-   positional only: leave the wedge, break the shooter's sight, or interpose
-   a body. The lock follows its target anywhere INSIDE the frozen wedge; it
-   cancels when that body dies, crosses the wedge boundary, or leaves the
-   shooter's line of sight. The declarer is rooted: commanding a move
-   abandons its own declare (DECISIONS #221).
+   positional only: leave the wedge, break the tracking, or interpose a
+   body. The lock follows its target anywhere INSIDE the frozen wedge; it
+   cancels when that body dies, crosses the wedge boundary, when the
+   shooter's TEAM loses sight of it, or when a wall stands on the
+   shooter-to-target ray. Tracking is spotter doctrine (DECISIONS #235): a
+   teammate's eyes are eyes enough, and the shooter's own facing quadrant
+   does not gate it — what the shooter still owes is physical line of
+   sight. The declarer is rooted: commanding a move abandons its own
+   declare (DECISIONS #221).
 3. **Resolve.** Single-target: the bolt is delivered along the canonical
    strike line from the frozen origin to the locked body, and **the first
    body on that line eats the hit** (bodyguarding, screening, and
@@ -76,3 +80,18 @@ Attack beat: **declare → windup → resolve.**
 Class identity comes from the windup/reach/cooldown triangle. Single-target
 only in v1; any area sweep is a future deliberate class trait, hitting
 friend and foe alike.
+
+**Bolt-class signatures share the beat.** `rail-line` and the grammar-2
+`tractor-hook` — the LINE attacks — declare, wind up and cancel by exactly
+the rules above: a named target, the frozen wedge of their declared heading,
+a lock that follows inside it, the same four cancels, the same rooting, and
+the same `pendingStrikes` telegraph on the wire (DECISIONS #235). Their
+declare gains an optional `UnitTarget` beside its heading on any ruleset with
+a strike windup. Only DELIVERY differs: rail's beam **pierces** the line to
+its lock, so every body standing on it takes the damage and interposing
+SHARES the beam rather than stopping it, while the hook throws its grapple
+bolt down the eight-way heading that line starts on. `sentinel-seed` plants a
+turret on a named TILE rather than down a line, so it keeps the plain
+telegraph of DECISIONS #226 and locks nothing; every utility signature —
+smoke, prism-wall, the position-target family — and the `vector-dash`
+movement utility are untouched.

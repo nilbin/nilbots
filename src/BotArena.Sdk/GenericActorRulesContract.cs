@@ -390,8 +390,16 @@ public sealed class GenericActorRulesContract
     {
         public int? TellTicks { get; init; }
         /// <summary>Ticks a bolt-class signature (rail, hook, sentinel)
-        /// telegraphs its frozen line before it resolves. Null or zero is an
-        /// instant, untelegraphed cast — every utility signature.</summary>
+        /// telegraphs before it resolves. Null or zero is an instant,
+        /// untelegraphed cast — every utility signature.
+        /// <para>
+        /// Where the action ALSO publishes a UnitTarget beside its heading,
+        /// the line attack declares a LOCK: name the enemy you are shooting
+        /// at, and the declare freezes the ninety-degree wedge of its
+        /// heading and follows that body inside it, exactly as a windup gun
+        /// does. Naming nobody is a legal suppressive declare that locks
+        /// nothing.
+        /// </para></summary>
         public int? WindupTicks { get; init; }
         public int? Range { get; init; }
         public int? MaxTiles { get; init; }

@@ -5188,7 +5188,7 @@ alternates wait/step, which reads like a cadence in a trace and is not one.
 
 The real reason a one-tick windup cannot be abandoned is the PHASE ORDER,
 and it holds on every ruleset. `Signatures.Advance`
-(`GenericActorMatchSession.cs:418`) runs at TICK START, before
+(`GenericActorMatchSession.cs:425`) runs at TICK START, before
 `CollectMindTickDecisions` (line 584) and before `ResolveMovement` (line
 609) — and an operation fires when `CompletesAtTick == tick`. A declare on
 tick D with `windupTicks: 1` completes at D+1, which arrives before the
@@ -5517,3 +5517,116 @@ Resolved SHARE back at baseline, declares +7.6%, landed strikes 248 -> 270,
 mean declare latency -28%, silent contact windows -16%. "Lock died" holds
 steady near 30% throughout and is deliberately not counted as a miss — it is
 a kill.
+
+## 235. A beam locks on: the bolt-class signature IS a strike
+
+Owner ruling 2026-08-09, closing the proposal left open at the end of #233:
+**"same lock on mechanism for some signatures with the windup etc similarly
+to regular striking."**
+
+#226 gave rail, hook and sentinel a WINDUP and a wire telegraph and said
+explicitly that there was no lock and no follow, because "a line attack is
+not target-locked". That reading is now superseded for the two signatures
+that really are aimed down a heading. `rail-line` and the grammar-2
+`tractor-hook` take the declared strike's control plane WHOLE: the declare
+carries the mind's NAMED TARGET as an optional `UnitTarget` beside its
+heading (the #222b shape), it freezes the ±45° wedge of that heading through
+the same `GenericActorStrikeCone`, it locks the named enemy standing inside
+that wedge and follows it anywhere within it, it cancels under the same
+rules, and the declarer is ROOTED with the disengage-abandon of #221. The
+windup length stays the per-signature ruleset field #226 minted.
+
+`sentinel-seed` was checked against the ruleset and is NOT a line attack: its
+argument is a POSITION and it plants a turret on an adjacent tile
+(`SignatureParameters`, `ArcRelayH0Definition.cs:628`). It keeps #226's plain
+telegraph and locks nothing. `vector-dash` is movement utility; smoke,
+prism-wall and the whole position-target family are untouched.
+
+ONLY DELIVERY DIFFERS, and each signature keeps its own. Rail's beam PIERCES
+(`ApplyRailLine`, `GenericActorMatchSession.cs:2401`): it walks the line from
+the frozen origin to the lock's tile and every body standing on one takes the
+damage, so interposition SHARES the beam instead of stopping it — the exact
+opposite of the gun's first-body-contact ray, and the pre-existing rail
+semantics preserved. The hook throws its grapple bolt down the eight-way
+heading that same line starts on, and still catches the first body it meets.
+
+MATURITY MOVED, and it had to. `Signatures.Advance` runs at TICK START
+(`GenericActorMatchSession.cs:418`), before decisions and before movement, so
+a windup-1 signature used to resolve before its target had taken a single
+step — following was unobservable by construction. Locked line attacks now
+mature in the ATTACK phase beside `LaunchMaturedStrikes`
+(`ResolveMaturedLockedLineStrikes`, `GenericActorMatchSession.cs:1903`),
+after this tick's movement, which is what makes the follow and the cancels
+mean anything.
+
+The telegraph rides the pending-strike wire. `PendingStrikeStates`
+(`GenericActorMatchSession.cs:7104`) merges the guns' `_pendingStrikes` with
+`ArcRelaySignatureRuntime.PendingLineStrikes()` into one
+`ArcRelayPendingStrikeState` list, so the viewer's tracking ray, its wedge
+escape read, and the mind's `TryStrikeEvacuation` and windup rooting all work
+on a winding-up beam with NO change to any of them. The web build was not
+touched.
+
+Presence-driven, so nothing else moved: the `UnitTarget` parameter is minted
+only where `ArcRelayLoopProfile.StrikeWindupTicks > 0`, exactly as the shoot
+action's is, so ambush-10 and every historical ruleset keep their bytes and
+their fire-and-forget lines.
+
+### 235a. Two latent bugs the wiring surfaced
+
+Both are #226 telegraphs that were never real, and both are fixed here.
+`ArcRelaySignatureRuntime.Start` ran its INSTANT branch unconditionally: a
+telegraphing hook launched its bolt and `Complete`d on the declare tick, and
+a telegraphing sentinel overwrote its own `Tell` phase with `Active` one line
+after publishing it. Only rail ever actually waited. `NothingResolvesBefore
+TheTelegraphMatures` pins all three. The suite could not have caught it
+before — one mind lambda served both participants through a `cast` set keyed
+on `(unit, life)` without the TEAM, so only team 0 ever cast a signature and
+rail and sentinel were never exercised.
+
+Separately, `GenericActorMatchActorTurn` required a `UnitTarget` that
+`GenericActorDecisionAdmission` has always treated as optional, so the
+engine's own nameless "theatrical whiff" declare would have aborted the
+chronology. Evidence validation now mirrors admission.
+
+## 236. Tracking is what the TEAM sees, plus a clear ray
+
+Owner ruling 2026-08-09, in his words: **"Team vision of course - but line of
+sight (ie no walls in between or corners) the shooter and the target"** —
+spotter doctrine, and it governs declared strikes and locked signatures
+alike.
+
+A lock now stays alive while BOTH hold: (1) some body on the shooter's TEAM
+currently sees the target — the team observable union, the same picture the
+mind acts on; and (2) a clear physical ray joins shooter and target, walls
+and corners counted, FACING-INDEPENDENT. The cancels are therefore: the lock
+dies, it leaves the frozen wedge, the team loses sight of it, or a wall
+blocks the ray. `LockStaysTrackable`
+(`GenericActorMatchSession.cs:5538`) is the one answer in the engine, and the
+matured-strike and matured-signature paths both ask it.
+
+What this replaces is `VisibleTilesFor(shooter)` — the shooter's own ±45°
+facing quadrant. That was the whole content of #234: the aim mask spans 180°
+while the shooter's sight is 90°, so the outer flanks of a legal declare were
+exactly the tiles it could not see, and the executor had to carry the
+shooter's own eyes as declare geometry to stop feeding the engine guaranteed
+cancels. The blind-flank quirk is RESOLVED rather than worked around:
+declaring into your own blind flank is now legal AND trackable, provided a
+teammate is watching and nothing solid is in the way. The mind's declare gate
+lost its `SeesTile` quadrant and its `VisionOf` lookup with it, because a
+mind's observation IS team vision — the only half left to check is the ray
+(`ArenaBasics.HasClearSightRay`).
+
+One structural note recorded so it is not rediscovered: on a wedge frozen
+from the shooter's own tile, clause (2) is IMPLIED by wedge membership, since
+the wedge admits only tiles the canonical strike line reaches from that same
+origin. The wall clause is not therefore decoration — it is what makes the
+rule stated rather than emergent, and it is the half that would bite first if
+a profile ever stopped requiring clear diagonals. Clause (1) is the half that
+changed behaviour, and it is pinned both ways: a teammate beside the target
+keeps a blind shooter's lock alive, and the identical scene with that
+teammate removed cancels.
+
+Pinned by `GenericActorStrikeWindupRootingTests` (spotter pair, wall case,
+and the renamed "nobody on the team could see it" cancel) and
+`ArcRelaySignatureLockTests` (the same three for a locked beam).
