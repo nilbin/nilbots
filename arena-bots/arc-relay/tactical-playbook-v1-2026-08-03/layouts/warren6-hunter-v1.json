@@ -8,10 +8,8 @@
    "ownReactorSide": "east",
    "transform": "rotate-180",
    "routeAliases": {
-    "north-out": "south-out",
-    "south-out": "north-out",
-    "shadow-north-long": "shadow-south-long-reverse",
-    "shadow-south-long": "shadow-north-long-reverse"
+    "shadow-north-long": "shadow-north-long-reverse",
+    "shadow-south-long": "shadow-south-long-reverse"
    },
    "formationAliases": {}
   },

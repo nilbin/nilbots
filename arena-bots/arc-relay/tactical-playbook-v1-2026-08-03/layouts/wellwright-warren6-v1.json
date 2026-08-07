@@ -7,10 +7,7 @@
    "matchContractFingerprint": "any-composition",
    "ownReactorSide": "east",
    "transform": "rotate-180",
-   "routeAliases": {
-    "north-out": "south-out",
-    "south-out": "north-out"
-   },
+   "routeAliases": {},
    "formationAliases": {}
   },
   {
