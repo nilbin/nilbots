@@ -2342,7 +2342,10 @@
      "assault": "strike-line",
      "while": "shadow-op",
      "until": "shadow-cooled",
-     "escort": "medic"
+     "escort": "medic",
+     "fight": {
+      "collect": "first"
+     }
     },
     {
      "patrol": "shadow-north-long",
