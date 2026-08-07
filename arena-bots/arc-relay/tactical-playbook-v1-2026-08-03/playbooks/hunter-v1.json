@@ -2295,7 +2295,8 @@
      "lone": 4
     },
     "engage": {
-     "within": 4
+     "within": 4,
+     "killableTicks": 12
     },
     "chase": {
      "leash": 6,
