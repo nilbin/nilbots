@@ -65,6 +65,16 @@ type TeamVisionTuple = [number, PositionTuple[]];
  * transport that also drops every other word of debug text.
  */
 type UnitOrderTuple = [number, number, string | null, string];
+/**
+ * `[teamId, unitId, x, y]` — the tile this body is walking toward, `null, null`
+ * once it stops naming one.
+ *
+ * The sibling delta of the order column, and separate from it on purpose: a
+ * destination hanging off a marching formation anchor changes most ticks while
+ * the order it serves holds for hundreds, so folding the two together would
+ * cost the order column its compression and gain nothing.
+ */
+type UnitDestinationTuple = [number, number, number | null, number | null];
 type TurnTuple = [
   ActorTuple,
   number,
@@ -91,6 +101,8 @@ export interface ArcRelayBroadcastV1 {
   vision?: TeamVisionTuple[][];
   /** Additive: absent on archived broadcasts written before published orders. */
   orders?: UnitOrderTuple[][];
+  /** Additive: absent on archived broadcasts written before the pathing lens. */
+  destinations?: UnitDestinationTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -115,6 +127,8 @@ export interface ArcRelayBroadcastV2 {
   vision?: TeamVisionTuple[][];
   /** Additive: absent on stored broadcasts written before published orders. */
   orders?: UnitOrderTuple[][];
+  /** Additive: absent on stored broadcasts written before the pathing lens. */
+  destinations?: UnitDestinationTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -147,6 +161,8 @@ export function expandArcRelayBroadcastV1(
     broadcast.turns.length !== count ||
     (broadcast.vision !== undefined && broadcast.vision.length !== count) ||
     (broadcast.orders !== undefined && broadcast.orders.length !== count) ||
+    (broadcast.destinations !== undefined &&
+      broadcast.destinations.length !== count) ||
     broadcast.startEvents.length !== count ||
     broadcast.events.length !== count ||
     broadcast.traversals.length !== count ||

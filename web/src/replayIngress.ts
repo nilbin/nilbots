@@ -1,4 +1,8 @@
-import type { ReplayModel, ReplayPublishedUnitOrder } from './replayModel';
+import type {
+  ReplayModel,
+  ReplayPublishedUnitDestination,
+  ReplayPublishedUnitOrder,
+} from './replayModel';
 import {
   decodeReplay,
   decodeReplayJson,
@@ -79,6 +83,25 @@ function loadArcRelayBroadcast(
       }
       if (!tick) continue;
       tick.publishedUnitOrders = [...standing.values()];
+    }
+  }
+  if (input.destinations !== undefined) {
+    // The same delta, carried forward the same way. A row of `null, null` is a
+    // published fact — "this body is no longer walking anywhere it can name" —
+    // and must clear the standing entry rather than be skipped, or the lens
+    // leaves a marker standing over a body that has moved on.
+    const standing = new Map<string, ReplayPublishedUnitDestination>();
+    for (const [tickIndex, rows] of input.destinations.entries()) {
+      const tick = replay.ticks[tickIndex];
+      for (const [teamId, unitId, x, y] of rows) {
+        standing.set(`${teamId}:${unitId}`, {
+          teamId,
+          unitId,
+          destination: x === null || y === null ? null : { x, y },
+        });
+      }
+      if (!tick) continue;
+      tick.publishedUnitDestinations = [...standing.values()];
     }
   }
   return {

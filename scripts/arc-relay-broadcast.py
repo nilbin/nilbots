@@ -200,8 +200,13 @@ def compact_turns(tick: dict, signature_ids: set[str]) -> list:
     return result
 
 
-def command_reason(message: object) -> tuple[str | None, str] | None:
-    """Split one body's per-tick diagnostic into (order id, action tail).
+DESTINATION_TAIL = re.compile(r"@(\d+),(\d+)$")
+
+
+def command_reason(
+    message: object,
+) -> tuple[str | None, str, tuple[int, int] | None] | None:
+    """Split a body's per-tick diagnostic into (order id, action, destination).
 
     The canonical replay's debug text is dropped by this projection on purpose,
     but "what is this body doing right now" is the one thing in it a spectator
@@ -213,6 +218,12 @@ def command_reason(message: object) -> tuple[str | None, str] | None:
     body that way. Anything the shape does not match is carried WHOLE as the
     action: a transport must not decide that a vocabulary it has not been
     taught is not worth showing.
+
+    A movement action additionally carries the RESOLVED destination as an
+    ``@x,y`` tail (``formation-move@12,7``). It is split off here rather than
+    shown, because "where is it going" is a place on the map and belongs on the
+    map — the viewer draws it for the selected body while the order chip keeps
+    reading ``formation-move``.
     """
     if not isinstance(message, str):
         return None
@@ -221,10 +232,10 @@ def command_reason(message: object) -> tuple[str | None, str] | None:
         return None
     marker = text.find("tp:")
     if marker < 0:
-        return (None, text[:REASON_MAX_CHARS])
+        return (None, text[:REASON_MAX_CHARS], None)
     parts = text[marker:].split(":")
     if len(parts) < 5:
-        return (None, text[:REASON_MAX_CHARS])
+        return (None, text[:REASON_MAX_CHARS], None)
     # "turn for idle-break:tp:..." is two stacked qualifiers and a preposition.
     # Keep the words, drop the grammar, and join them the way the tail reads.
     qualifier = "/".join(
@@ -233,12 +244,21 @@ def command_reason(message: object) -> tuple[str | None, str] | None:
         if word and word != "for"
     )
     action = ":".join(parts[4:])
+    # Strip the destination BEFORE the length cap, so a long action tail can
+    # never silently eat the coordinates off the end of the lens.
+    destination = None
+    found = DESTINATION_TAIL.search(action)
+    if found is not None:
+        destination = (int(found.group(1)), int(found.group(2)))
+        action = action[: found.start()]
     if qualifier:
         action = f"{qualifier}/{action}"
-    return (parts[3] or None, action[:REASON_MAX_CHARS])
+    return (parts[3] or None, action[:REASON_MAX_CHARS], destination)
 
 
-def turn_reasons(tick: dict) -> list[tuple[int, int, int, tuple[str | None, str]]]:
+def turn_reasons(
+    tick: dict,
+) -> list[tuple[int, int, int, tuple[str | None, str, tuple[int, int] | None]]]:
     """Every (teamId, unitId, lifeId, reason) this tick recorded, in order."""
     result = []
     for mind in tick.get("mindTurns") or []:
@@ -288,11 +308,19 @@ def project(replay: dict) -> dict:
     births_by_tick = []
     vision_by_tick = []
     orders_by_tick = []
+    destinations_by_tick = []
     # Last reason PUBLISHED per body, so the column carries changes rather than
     # a full table 600 times. Keyed by life, not by unit: a respawned body
     # restates its order even when it happens to resume the same one, which is
     # what keeps the viewer's running state honest across a death.
     published_reasons: dict[tuple[int, int, int], tuple[str | None, str]] = {}
+    # The destination moves on its own clock — a formation slot hanging off a
+    # marching anchor changes most ticks while the order holds for hundreds —
+    # so it gets its own delta column rather than widening the order row and
+    # costing that column its compression.
+    published_destinations: dict[
+        tuple[int, int, int], tuple[int, int] | None
+    ] = {}
     previous_actor_ids = {
         tuple(actor(item["actorId"]))
         for item in replay["initialFrame"]["state"]["activeLives"]
@@ -312,13 +340,24 @@ def project(replay: dict) -> dict:
         worlds.append(world(tick["postState"]))
         turns.append(compact_turns(tick, signature_ids))
         orders = []
+        destinations = []
         for team_id, unit_id, life_id, reason in turn_reasons(tick):
             key = (team_id, unit_id, life_id)
-            if published_reasons.get(key) == reason:
-                continue
-            published_reasons[key] = reason
-            orders.append([team_id, unit_id, reason[0], reason[1]])
+            order_id, action, destination = reason
+            if published_reasons.get(key) != (order_id, action):
+                published_reasons[key] = (order_id, action)
+                orders.append([team_id, unit_id, order_id, action])
+            # A body that stops naming a destination publishes that too: a
+            # stale marker left standing over a body now doing something else
+            # is worse than no marker at all.
+            if (key not in published_destinations
+                    or published_destinations[key] != destination):
+                published_destinations[key] = destination
+                destinations.append(
+                    [team_id, unit_id, *(destination or (None, None))]
+                )
         orders_by_tick.append(orders)
+        destinations_by_tick.append(destinations)
         start_events_by_tick.append(start_events)
         events_by_tick.append(events)
         traversals_by_tick.append(tick["traversals"])
@@ -369,6 +408,9 @@ def project(replay: dict) -> dict:
         # Changes only. The viewer carries the running table forward, so a body
         # holding one order for 200 ticks costs one row, not two hundred.
         "orders": orders_by_tick,
+        # Where each body is walking, on the same delta pattern. `[x, y]` is
+        # null when the body's reason names no destination.
+        "destinations": destinations_by_tick,
         "result": replay["result"],
     }
 

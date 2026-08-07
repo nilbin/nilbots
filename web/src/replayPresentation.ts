@@ -5,6 +5,7 @@ import type {
   ReplayFormTransition,
   ReplayModeState,
   ReplayModel,
+  ReplayPosition,
   ReplayProjectileHeading,
   ReplayStableUnitKey,
   ReplayUnitLifecycleStatus,
@@ -12,9 +13,10 @@ import type {
 } from './replayModel';
 import { playerAccent } from './presentation/playerAccent';
 import {
+  isEngagedAction,
   parseCommandReason,
-  type CommandReason,
 } from './presentation/commandReason';
+import { headingStep } from './render/interpolate';
 import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
 import {
@@ -244,6 +246,43 @@ export interface ScrapEconomyPresentation {
  */
 const PURCHASE_BEAT_TICKS = 4;
 
+/**
+ * The actions that displace a body one tile along an absolute heading.
+ *
+ * Named rather than inferred from "it carries a heading": a shot, a hook and a
+ * rail line all carry one too, and a lens that drew a step for them would put a
+ * marker on the tile a body is shooting at.
+ */
+const STEPPING_ACTION_IDS = new Set([
+  'move-eight-way',
+  'strafe-eight-way',
+  'vector-dash',
+]);
+
+function nextStepFor(
+  position: ReplayPosition | null,
+  actionId: string | null,
+  heading: ReplayProjectileHeading | null,
+): ReplayPosition | null {
+  if (position === null || heading === null) return null;
+  if (actionId === null || !STEPPING_ACTION_IDS.has(actionId)) return null;
+  const step = headingStep[heading];
+  return { x: position.x + step[0], y: position.y + step[1] };
+}
+
+/**
+ * A body's live order as the arena shows it: the standing job, and the tail of
+ * the sentence that set it.
+ *
+ * Deliberately narrower than the parser's `CommandReason` — the destination the
+ * same sentence may carry is a place on the map, so it is a field of its own on
+ * the unit rather than a word inside its order.
+ */
+export interface UnitOrderPresentation {
+  orderId: string | null;
+  action: string;
+}
+
 export interface UnitPresentation {
   unitKey: ReplayStableUnitKey;
   actorKey: ReplayActorLifeKey | null;
@@ -294,7 +333,36 @@ export interface UnitPresentation {
    * say the same thing. Null wherever neither exists, which is every replay
    * whose author published no diagnostic at all.
    */
-  order: CommandReason | null;
+  order: UnitOrderPresentation | null;
+  /**
+   * Whether this body has a LIVE FIGHT right now — it is standing a duel,
+   * closing, flanking, flushing, or shooting a declared focus.
+   *
+   * Derived from the order's action tail, which is the one combat-state fact a
+   * spectator transport already carries for every body. It is deliberately not
+   * "an enemy is nearby" and not "it fired": both of those are things the arena
+   * shows already, and neither separates a body that has committed to a fight
+   * from one that happens to be beside one.
+   */
+  engaged: boolean;
+  /**
+   * The tile this body is walking toward, when its order names one.
+   *
+   * The pathing lens. Only route/formation movement publishes a destination; a
+   * body fighting, holding or carrying reads null and the arena draws nothing.
+   */
+  destination: ReplayPosition | null;
+  /**
+   * The tile this body's CHOSEN action steps it onto, or null when it chose
+   * something that is not a step.
+   *
+   * The step and the destination answer different questions, which is exactly
+   * why the lens draws both: a body can be walking correctly at the wrong tile,
+   * or at the right tile by an absurd route, and one marker alone cannot tell
+   * those apart. Chosen rather than achieved — a step the world refused is the
+   * more interesting frame, not the less.
+   */
+  nextStep: ReplayPosition | null;
   visibleTiles: number;
   visibleEnemies: { x: number; y: number }[];
   /**
@@ -565,8 +633,21 @@ function presentUnit(
   const publishedOrder = replay.ticks[tickIndex]?.publishedUnitOrders?.find(
     (entry) => entry.teamId === unit.teamId && entry.unitId === unit.unitId,
   );
+  const publishedDestination = replay.ticks[tickIndex]
+    ?.publishedUnitDestinations?.find(
+      (entry) => entry.teamId === unit.teamId && entry.unitId === unit.unitId,
+    );
   const reason = parseCommandReason(turn?.runtimeReply.debugMessage);
   const roleTag = turn?.observation.self?.roleTag ?? null;
+  // The published table first, because a broadcast has no debug text left to
+  // read; the turn's own message otherwise, split the same way. Both fall back
+  // to the sticky role tag for the order id, which is what a mind publishes
+  // when the body's job outlives the sentence that set it.
+  const order: UnitOrderPresentation | null = publishedOrder
+    ? { orderId: publishedOrder.orderId ?? roleTag, action: publishedOrder.action }
+    : reason
+      ? { orderId: reason.orderId ?? roleTag, action: reason.action }
+      : null;
 
   return {
     unitKey,
@@ -618,14 +699,20 @@ function presentUnit(
     // read; the turn's own message otherwise, split the same way. Both fall
     // back to the sticky role tag for the order id, which is what a mind
     // publishes when the body's job outlives the sentence that set it.
-    order: publishedOrder
-      ? {
-          orderId: publishedOrder.orderId ?? roleTag,
-          action: publishedOrder.action,
-        }
-      : reason
-        ? { orderId: reason.orderId ?? roleTag, action: reason.action }
-        : null,
+    order,
+    engaged: status === 'active' && isEngagedAction(order?.action),
+    // The published column first, for the same reason the order table is: a
+    // broadcast has no debug text left to read. A canonical replay carries the
+    // destination inside the reason it already split.
+    destination:
+      (publishedDestination
+        ? publishedDestination.destination
+        : (reason?.destination ?? null)) ?? null,
+    nextStep: nextStepFor(
+      position,
+      turn?.actionResolution.chosenActionId ?? null,
+      turn?.actionResolution.chosenPayload?.launchHeading ?? null,
+    ),
     visibleTiles:
       publishedVision?.visibleTiles.length ??
       turn?.observation.visibleTiles.length ??

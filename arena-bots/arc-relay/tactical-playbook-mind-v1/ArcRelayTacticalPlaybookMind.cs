@@ -4532,15 +4532,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 case "yield":
                     _motion[body.UnitId] = new MotionProgress(
                         body.ActorId, order.OrderId, body.Position, 0);
-                    return Hold(body, Provenance(
-                        machine, group, order, "stuck-yield"));
+                    return Hold(body, MovementProvenance(
+                        machine, group, order, "stuck-yield", target));
                 case "hold":
-                    return Hold(body, Provenance(
-                        machine, group, order, "stuck-hold"));
+                    return Hold(body, MovementProvenance(
+                        machine, group, order, "stuck-hold", target));
                 case "regroup":
                     QueueFallbackPhase(order);
-                    return Hold(body, Provenance(
-                        machine, group, order, "stuck-fallback"));
+                    return Hold(body, MovementProvenance(
+                        machine, group, order, "stuck-fallback", target));
                 case "repath":
                     // Keep the body's monotonic route progress. Repath widens
                     // the local goal search below; resetting the route index
@@ -4567,7 +4567,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (stuck >= order.Movement.StuckTicks * 3
             && ArenaBasics.TryStepAway(
                 contract, mind, body, [body.Position, _ownReactor], claims,
-                Provenance(machine, group, order, "wedge-shake")))
+                MovementProvenance(
+                    machine, group, order, "wedge-shake", target)))
         {
             _motion[body.UnitId] = new MotionProgress(
                 body.ActorId, order.OrderId, body.Position, 0);
@@ -4601,8 +4602,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 leaderDistance,
                 furthestDistance))
         {
-            return Hold(body, Provenance(
-                machine, group, order, "formation-pace"));
+            return Hold(body, MovementProvenance(
+                machine, group, order, "formation-pace", target));
         }
         bool targetBlocked = !TacticalFormationPrimitives.IsEnterable(
             contract.Map.Width,
@@ -4624,18 +4625,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return true;
         if (ArenaBasics.TryMoveToward(
             contract, mind, body, goals, claims,
-            Provenance(machine, group, order,
+            MovementProvenance(machine, group, order,
                 stuck >= order.Movement.StuckTicks
                     ? $"{order.Movement.StuckRecovery}-reflow"
-                    : moveChannel)))
+                    : moveChannel,
+                target)))
         {
             return true;
         }
         return order.Fallback.OnNoPath switch
         {
             "reflow" => false,
-            "hold" => Hold(body, Provenance(
-                machine, group, order, "no-path-hold")),
+            "hold" => Hold(body, MovementProvenance(
+                machine, group, order, "no-path-hold", target)),
             "regroup" => QueueFallbackPhaseAndHold(
                 body, machine, group, order, "no-path-fallback"),
             _ => throw new InvalidDataException(
@@ -5725,6 +5727,39 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.Order order,
         string channel) =>
         $"tp:{machine.PhaseId}:{group}:{order.OrderId}:{channel}";
+
+    /// <summary>
+    /// A movement diagnostic, with the RESOLVED destination attached.
+    /// </summary>
+    /// <remarks>
+    /// Owner review 2026-08-09: "I still see a lot of pathing mistakes but
+    /// can't put a finger on it." A reason that says <c>formation-move via
+    /// West</c> answers which way the body stepped and never answers where it
+    /// believed it was going — so a body walking confidently at the wrong tile
+    /// and a body oscillating between two tiles read identically. Naming the
+    /// destination turns both into something a spectator can point at.
+    ///
+    /// The <c>@x,y</c> tail is machine-readable ON PURPOSE and is the only
+    /// structured suffix the vocabulary has besides <c>via</c>: the broadcast
+    /// projection lifts it into its own delta column
+    /// (<c>scripts/arc-relay-broadcast.py</c>) and the viewer draws it for the
+    /// SELECTED body only. It goes on the channel rather than after
+    /// <c>via</c> because both reason parsers cut the string at <c>' via '</c>
+    /// and would drop anything behind it.
+    ///
+    /// Only the route/formation movement plane carries it. A body closing on a
+    /// focus or slipping into ambush cover is walking at something this
+    /// destination is not, and publishing the order's target there would be a
+    /// confident lie.
+    /// </remarks>
+    private static string MovementProvenance(
+        TacticalPlaybookMachine machine,
+        string group,
+        TacticalPlaybookPackage.Order order,
+        string channel,
+        Position destination) =>
+        $"{Provenance(machine, group, order, channel)}"
+        + $"@{destination.X},{destination.Y}";
 
     // The tag is the spectator's answer to "what does this unit think it is
     // doing" (owner review 2026-08-09: a guard reading as a bug because

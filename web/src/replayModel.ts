@@ -1576,6 +1576,19 @@ export interface ReplayTick {
    * existed.
    */
   publishedUnitOrders?: ReplayPublishedUnitOrder[];
+  /**
+   * Where each unit was walking at this tick — the resolved destination tile of
+   * its movement order, not the step it took to get there.
+   *
+   * The sibling of `publishedUnitOrders` and published on the same terms. It
+   * exists because a step is not a plan: a body walking confidently at the
+   * wrong tile and a body oscillating between two look identical from the
+   * outside, and only the destination separates them.
+   *
+   * Undefined on canonical replays (read off the turn's debug message instead)
+   * and on broadcasts written before the column existed.
+   */
+  publishedUnitDestinations?: ReplayPublishedUnitDestination[];
   events: ReplayCausalEvent[];
   projectileTraversals: ReplayProjectileTraversal[];
   after: ReplayWorldSnapshot;
@@ -1598,6 +1611,16 @@ export interface ReplayPublishedUnitOrder {
   unitId: number;
   orderId: string | null;
   action: string;
+}
+
+/**
+ * One body's live movement destination, or null while it is not walking at a
+ * tile it can name (fighting, holding, carrying).
+ */
+export interface ReplayPublishedUnitDestination {
+  teamId: number;
+  unitId: number;
+  destination: ReplayPosition | null;
 }
 
 export interface ReplayTeamResult {
