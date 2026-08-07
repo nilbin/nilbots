@@ -77,6 +77,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
     private Position[] _healTiles = [];
+    /// <summary>The tile each unit's last idle-break stepped off and when,
+    /// so a CONSECUTIVE break cannot step straight back onto it.</summary>
+    private readonly Dictionary<int, (int LifeId, int Tick, Position Tile)>
+        _idleBreakFrom = [];
+
     /// <summary>How near a cold trail has to be before walking to it counts
     /// as pursuit rather than abandoning the post.</summary>
     private const int FlushReach = 6;
@@ -453,6 +458,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // any pragmatist; each level raises the trigger by one. Only
             // when quiet - no enemy inside 6 - because the heal tiles are
             // deliberately contested ground and channelling is stationary.
+            //
+            // A body at FULL health is not hurt, whatever its level says.
+            // Without that floor the ladder overtakes the bar: a kestrel
+            // maxes at 3 HP, so at level 2 the trigger is "3 or less" and at
+            // level 3 "4 or less" - permanently true. The body then walks to
+            // a beacon it cannot benefit from while its route pulls the other
+            // way, and the two vectors cancel into a one-tile dance (owner
+            // catch on commitx9-w-9001, measured 97 of 123 heal acts at full
+            // health).
             if (_healTiles.Length > 0
                 && !carried.ContainsKey(body.ActorId))
             {
@@ -462,7 +476,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && levelEntry.LifeId == body.ActorId.LifeId
                         ? levelEntry.Level
                         : 1;
-                if (body.Health <= 1 + bodyLevel
+                if (body.Health < MaxHealth(contract, body)
+                    && body.Health <= 1 + bodyLevel
                     && mind.Enemies.All(enemy =>
                         enemy.Position.ChebyshevDistance(body.Position) > 6))
                 {
@@ -4962,8 +4977,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         // Channelling on a heal tile is the one stand the invariant blesses:
         // the pragmatist's low-health detour, or a body the recover verb
-        // sent here to sit until it is whole.
+        // sent here to sit until it is whole. A body at full health is doing
+        // neither - it is camping a beacon, which is exactly what the
+        // invariant exists to break.
         if (_healTiles.Contains(body.Position)
+            && body.Health < MaxHealth(context.Contract, body)
             && (_recovering.Contains(body.UnitId)
                 || body.Health <= 1 + (_unitLevel.TryGetValue(
                         body.UnitId, out (int LifeId, int Level) level)
@@ -5008,23 +5026,47 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             return false;
         }
+        // A break never steps back onto the tile the LAST break left. The
+        // step toward an unreachable objective flips direction with the
+        // body - north from here, south from there - so without this the
+        // watchdog paces a wedged body between two tiles forever and becomes
+        // the oscillator it exists to prevent (owner catch on commitx9: 102
+        // of 113 confined ticks were consecutive `streak` breaks). Same
+        // remedy as the sticky withdraw rally, which was the same bug.
+        // Only within a pacing sequence: a break that landed last tick still
+        // owns the tile it left. Once the body gets a tick of its own the
+        // memory lapses, so an old excursion never blocks honest ground.
+        (int LifeId, int Tick, Position Tile) vacated =
+            _idleBreakFrom.GetValueOrDefault(body.UnitId);
+        Position? forbidden = vacated.LifeId == body.ActorId.LifeId
+            && vacated.Tick == context.Mind.Tick - 1
+                ? vacated.Tile
+                : null;
         if (ArenaBasics.StaticFirstStepAvoidingReservations(
                     context.Contract, context.Mind, body, destination)
                 is Position step
+            && step != forbidden
             && ArenaBasics.TryMoveDirect(
                 context.Contract, context.Mind, body, step,
                 context.Claims, $"idle-break:{reason}"))
         {
+            _idleBreakFrom[body.UnitId] =
+                (body.ActorId.LifeId, context.Mind.Tick, body.Position);
             _idleBreaks++;
             return true;
         }
-        // Boxed in with no legal step toward the objective: displace like
-        // the wedge-shake does so the deadlock cannot absorb the body.
+        // Boxed in, or the only step toward the objective is the one that
+        // would resume the pacing: displace like the wedge-shake does so the
+        // deadlock cannot absorb the body.
         if (ArenaBasics.TryStepAway(
                 context.Contract, context.Mind, body,
-                [body.Position, _ownReactor],
+                forbidden is Position back
+                    ? [body.Position, _ownReactor, back]
+                    : [body.Position, _ownReactor],
                 context.Claims, $"idle-break:{reason}"))
         {
+            _idleBreakFrom[body.UnitId] =
+                (body.ActorId.LifeId, context.Mind.Tick, body.Position);
             _idleBreaks++;
             return true;
         }
