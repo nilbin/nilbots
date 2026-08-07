@@ -35,6 +35,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _slotHold = [];
     /// <summary>How many consecutive ticks each unit has stood still on an
     /// own carrier's supply lane, and where.</summary>
+    /// <summary>Why each own body got no focus this tick, keyed by unit —
+    /// the allocation plane's only voice. Every Class-A filter in
+    /// docs/EXECUTOR-SILENT-POLICY.md drops a target by RETURNING FALSE, so
+    /// without this a declined fight reads as ordinary movement.</summary>
+    private readonly Dictionary<int, string> _declines = [];
+
     private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
         _lanePlugTicks = [];
     /// <summary>The Core each unit last handed off, and when — so its own
@@ -623,6 +629,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _returningToFormation.Keys.Order()) + "; "
             + "repair=" + string.Join(",", repairs.Keys.Order()) + "; "
             + tasks.TraceSummary + "; "
+            + "declines=" + string.Join(",", _declines
+                .OrderBy(value => value.Key)
+                .Select(value => $"{value.Key}:{value.Value}")) + "; "
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
             + $"lane-reliefs={_laneReliefs}; "
@@ -2423,6 +2432,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return best;
     }
 
+    /// <summary>
+    /// Which filter dropped this body's best candidate. Predicates are asked
+    /// in the same order the allocator asks them, and the answer is for the
+    /// NEAREST enemy in the scope's target order - the one a spectator would
+    /// have expected it to fight.
+    /// </summary>
+    private string DeclineReason(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorContext.ObservedEnemyState[] targetOrder,
+        Position post,
+        TacticalPlaybookPackage.Engagement policy,
+        IReadOnlyDictionary<ActorIdentity, int> attackerCounts,
+        IReadOnlyDictionary<ActorIdentity, int> committedDamage)
+    {
+        GenericActorContext.ObservedEnemyState? nearest = targetOrder
+            .OrderBy(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position))
+            .ThenBy(enemy => enemy.ActorId.UnitId)
+            .FirstOrDefault();
+        if (nearest is null)
+            return "no-target";
+        int gap = nearest.Position.ChebyshevDistance(body.Position);
+        if (attackerCounts.GetValueOrDefault(nearest.ActorId)
+            >= policy.MaximumAttackersPerTarget)
+            return $"cap@{gap}";
+        if (!NeedsFocusAssignment(
+                policy, nearest,
+                committedDamage.GetValueOrDefault(nearest.ActorId)))
+            return $"overkill@{gap}";
+        if (!WithinEngagementLeash(body, post, nearest, policy))
+            return $"leash@{gap}";
+        if (!CommitAllowsTarget(contract, body, nearest, policy))
+            return $"commit-target@{gap}";
+        if (!CanContributeToTarget(
+                contract, body, nearest, requireFireReady: false))
+            return $"unreachable@{gap}";
+        return $"other@{gap}";
+    }
+
     private Dictionary<int, FocusAssignment> AllocateFocus(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -2436,6 +2485,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlySet<int> unavailableParticipants)
     {
         var allocations = new Dictionary<int, FocusAssignment>();
+        _declines.Clear();
+        foreach (MindBody idle in mind.Bodies)
+        {
+            _declines[idle.UnitId] = unavailableParticipants.Contains(
+                idle.UnitId) ? "busy" : "no-scope";
+        }
         HashSet<ActorIdentity> carriers = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
@@ -2467,8 +2522,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && policy.Participants.Contains(
                             roles[body.UnitId], StringComparer.Ordinal))
                     .OrderBy(body => body.UnitId).ToArray();
-                if (participants.Length == 0 || mind.Enemies.Length == 0)
+                foreach (MindBody inScope in participants)
+                    _declines[inScope.UnitId] = "no-target";
+                if (participants.Length == 0)
                     continue;
+                if (mind.Enemies.Length == 0)
+                {
+                    foreach (MindBody blind in participants)
+                        _declines[blind.UnitId] = "none-visible";
+                    continue;
+                }
                 GenericActorContext.ObservedEnemyState[] enemies = mind.Enemies
                     // The isolation gate keeps a fragile predator from diving
                     // escorted prey - but a target whose BACK is to one of our
@@ -2506,6 +2569,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         .ToArray();
                     if (enemies.Length == 0)
                     {
+                        foreach (MindBody held in participants)
+                            _declines[held.UnitId] = "hold-fire";
                         _focusLocks.Remove(scopeId);
                         continue;
                     }
@@ -2609,6 +2674,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         enemy.ActorId != primary.ActorId)];
                 if (!carriers.Contains(primary.ActorId))
                 {
+                    foreach (MindBody going in participants.Where(body =>
+                                 _returningToFormation.ContainsKey(
+                                     body.UnitId)))
+                    {
+                        _declines[going.UnitId] = "returning";
+                    }
                     participants = participants.Where(body =>
                             !_returningToFormation.ContainsKey(body.UnitId))
                         .ToArray();
@@ -2630,6 +2701,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         && CommitAppliesTo(commitPolicy, body)
                         && !CommitAllowsEngaging(mind, body, commitPolicy))
                     {
+                        _declines[body.UnitId] = "commit-engage";
                         continue;
                     }
                     GenericActorContext.ObservedEnemyState? selected =
@@ -2663,7 +2735,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 contract, body, enemy,
                                 requireFireReady: false));
                     if (selected is null)
+                    {
+                        _declines[body.UnitId] = DeclineReason(
+                            contract, body, targetOrder, targets[body.UnitId],
+                            policy, attackerCounts, committedDamage);
                         continue;
+                    }
+                    _declines.Remove(body.UnitId);
                     // Approach discipline (ghost doctrine v3): a body told
                     // to strike from behind holds its declare and maneuvers
                     // toward the target's blind rear while the position
@@ -2792,13 +2870,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         .FirstOrDefault(action => action is { Available: true })
         ?.ActionId;
 
+    /// <summary>
+    /// Whether this body can contribute to killing that target. The strict
+    /// pass asks whether it could fire RIGHT NOW; the lenient pass is meant
+    /// to ask whether it could contribute at all - and used to answer with
+    /// CanAimAtPosition, which is still ray-exact. An enemy two tiles away
+    /// but off the eight rays therefore read as unreachable, so allocation
+    /// refused to assign it, so the body never got close-on-focus,
+    /// duel-stand or the flush machinery and simply walked past (owner
+    /// catch: "it doesn't chase or engage nearby fights"; measured on
+    /// commitx16-w-9001, `unreachable@1` and `unreachable@2` were the modal
+    /// decline). A body that can WALK to its prey can contribute; the
+    /// engagement leash is what bounds how far, and it is asked first.
+    /// </summary>
     private static bool CanContributeToTarget(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         GenericActorContext.ObservedEnemyState target,
         bool requireFireReady) => requireFireReady
         ? ArenaBasics.CanFireAtPosition(contract, body, target.Position)
-        : ArenaBasics.CanAimAtPosition(contract, body, target.Position);
+        : ArenaBasics.CanAimAtPosition(contract, body, target.Position)
+            || ArenaBasics.StaticDistance(
+                contract.Map, body.Position, target.Position) is not null;
 
     private int CompareTargets(
         TacticalPlaybookPackage.Engagement policy,

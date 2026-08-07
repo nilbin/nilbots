@@ -52,25 +52,34 @@ def trace(replay: dict, team: int, unit: int, near_limit: int,
                      if l['actorId']['teamId'] == team
                      and l['actorId']['unitId'] == unit), None)
         reason = ''
+        decline = ''
         for turn in tick.get('mindTurns', []) or []:
             if turn['teamId'] != team:
                 continue
+            # The allocation plane's voice (see EXECUTOR-SILENT-POLICY.md):
+            # which filter dropped this body's best candidate this tick.
+            found = re.search(r'declines=([^;]*);',
+                              turn.get('debugMessage') or '')
+            if found:
+                for entry in found.group(1).split(','):
+                    if entry.startswith(f'{unit}:'):
+                        decline = entry.split(':', 1)[1]
             for cmd in turn.get('commands', []) or []:
                 if cmd['unitId'] == unit:
                     reason = cmd.get('debugMessage') or ''
         if body is None:
-            rows.append((tick['tick'], None, 99, reason))
+            rows.append((tick['tick'], None, 99, reason, decline))
             continue
         pos = (body['position']['x'], body['position']['y'])
         near = min((max(abs(l['position']['x'] - pos[0]),
                         abs(l['position']['y'] - pos[1]))
                     for l in lives if l['actorId']['teamId'] != team),
                    default=99)
-        rows.append((tick['tick'], pos, near, reason))
+        rows.append((tick['tick'], pos, near, reason, decline))
 
     if show_timeline:
         run_start, run_reason = None, None
-        for tick_number, _, near, reason in rows:
+        for tick_number, _, near, reason, _decline in rows:
             label = short(reason) or '(no command)'
             if label != run_reason:
                 if run_reason is not None:
@@ -82,18 +91,19 @@ def trace(replay: dict, team: int, unit: int, near_limit: int,
 
     interruptions = []
     for index in range(1, len(rows)):
-        _, _, _, prev_reason = rows[index - 1]
-        tick_number, _, near, reason = rows[index]
+        _, _, _, prev_reason, _ = rows[index - 1]
+        tick_number, _, near, reason, decline = rows[index]
         was = any(k in prev_reason for k in FIGHT)
         now = any(k in reason for k in FIGHT)
         if was and not now and near <= near_limit:
             label = short(reason) if reason else \
                 'SILENT (lock release / allocation filter)'
-            interruptions.append((tick_number, near, label))
+            interruptions.append((tick_number, near, label, decline))
     print(f'\n{len(interruptions)} fight interruptions '
           f'(enemy <= {near_limit} tiles):')
-    for tick_number, near, label in interruptions:
-        print(f'  t{tick_number} (enemy at {near}): {label}')
+    for tick_number, near, label, decline in interruptions:
+        why = f'   [allocation: {decline}]' if decline else ''
+        print(f'  t{tick_number} (enemy at {near}): {label}{why}')
 
 
 def main() -> None:

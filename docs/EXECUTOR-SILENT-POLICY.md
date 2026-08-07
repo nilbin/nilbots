@@ -34,11 +34,52 @@ first.
 5. **Commit gates** (`CommitAllowsEngaging` / `CommitAllowsTarget`):
    a gated body silently skips allocation. The v2 bisect took five
    batteries to find this; the trace tool now flags gated-idle ticks.
+   Reasons `commit-engage` / `commit-target@N`.
+5b. **Contribution test** (`CanContributeToTarget`): the strict pass asks
+   "can I fire now"; the lenient pass was supposed to ask "can I
+   contribute at all" but answered with `CanAimAtPosition`, which is
+   ray-exact. Prey two tiles away and off the eight rays read as
+   unreachable, allocation refused it, and the body never got
+   close-on-focus, duel-stand or the flush machinery - it walked past.
+   FIXED 2026-08-07: the lenient pass now also accepts "a walkable path
+   exists", which is what contributing means; the leash still bounds
+   how far. Reason `unreachable@N`.
 6. **maximumAttackersPerTarget / overkill accounting**: a body denied
    its target because two allies claimed it first - silent.
 7. **Participants trap**: an order pointing at an engagement whose
    `participants` excludes the role = no fight policy at all
    (documented in the tuning skill; still the quietest failure here).
+
+### Class A now speaks (2026-08-07)
+
+The whole class above was silent by construction: every one of these
+filters drops a target by RETURNING FALSE, so the body's next command
+read as ordinary movement and no trace could tell you which gate shut.
+`AllocateFocus` now records, per body per tick, WHICH filter dropped its
+best candidate, and publishes it on the mind's debug surface as
+`declines=<unit>:<reason>,...`. The vocabulary:
+
+| reason | meaning |
+|---|---|
+| `busy` | carrier or repairer — excluded from allocation entirely |
+| `no-scope` | no engagement lists this body's role as a participant |
+| `no-target` / `none-visible` | scope has no candidates; the team sees nothing |
+| `hold-fire` | `engage.within` filtered every enemy out |
+| `returning` | returning-to-formation strip (#2 above) |
+| `commit-engage` | `CommitAllowsEngaging` closed the threat gate |
+| `cap@N` | `maximumAttackersPerTarget` already met, prey N tiles off |
+| `overkill@N` | committed damage already lethal |
+| `leash@N` | outside the engagement leash, measured from the POST |
+| `commit-target@N` | `CommitAllowsTarget` (catchable / execute-health) |
+| `unreachable@N` | `CanContributeToTarget` said it cannot contribute |
+| `other@N` | every predicate passed — allocation ran out of capacity |
+
+`scripts/arc-relay-fight-trace.py` prints the reason beside each
+ignored-enemy episode, so "why did this unit walk past that fight" is
+now one command. It found its first bug immediately: `unreachable@1`
+and `unreachable@2` were the modal decline on the committed sheet,
+because the LENIENT contribution pass still demanded an exact firing
+ray. See the entry below.
 
 ## Class B - speaks, but the sheet cannot author it
 
