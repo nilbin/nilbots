@@ -5434,3 +5434,86 @@ to the authored tile when every candidate is filtered, handing two bodies
 one destination (23 occurrences in one match). Neither is the trio's cause,
 both are the pre-consolidation squad plane, and both belong to the standing
 well-scrum exhibit rather than to a point fix.
+
+## 233. A strike declares a wedge; facing stays four-way
+
+Owner ruling 2026-08-09, recorded because the asymmetry looks like an
+oversight and is not: **bodies face in four directions and strikes angle in
+eight, deliberately.** Vision, concealment and the rear arc all want crisp
+quadrant geometry and stay on the cardinal facing; the attack is free to
+angle. The engine already models exactly this and nothing had to change for
+the ruling — what changed is the mind, which was not using it.
+
+The coupling, with cites, because it was asked twice:
+
+- `ActorAttackProfileDefinition.AimInterpretation` (lines 133-137) resolves to
+  `AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged` whenever
+  `FacingAimHalfWidthSectors > 0`. Absolute, submitted, **facing unchanged** —
+  declaring a diagonal has no facing side-effect whatsoever.
+- `GenericActorMatchSession.AllowedProjectileHeadings` (5445-5453) publishes
+  the mask as every heading within `FacingAimHalfWidthSectors` sectors of
+  `life.Facing.ToProjectileHeading()`. Arc Relay's three guns author 1, so a
+  body facing East may declare NE, E or SE.
+- `ResolveLaunchHeading` (5912-5921) takes that submitted heading verbatim.
+
+So there is no "two adjacent four-way wedges" ambiguity to resolve: the
+diagonal is a first-class declarable heading. And because each declared
+heading freezes a ±45° wedge, those three headings cover a 180° union of
+tiles — while `VisibleTilesFor` (5466-5482) is the ±45° quadrant around the
+same four-way facing. **A body may legally declare into its own blind
+flanks**, and DECISIONS #234 is what that cost.
+
+### The signature heading domain, as it actually stands
+
+Asked and answered factually; NOT changed, and no ruling is recorded here.
+`AllowedProjectileHeadings` special-cases only Movement (FacingLocked) and
+Attack (facing cone); every other action kind falls through to
+`Enum.GetValues<ProjectileHeading>()` (line 5454). So today:
+
+- Heading-argument signatures — `rail-line`, `tractor-hook`, `vector-dash` —
+  are **free eight-way and entirely unconstrained by facing**.
+- `prism-wall` takes a Direction, and `AllowedDirections` (5425-5433)
+  constrains only FacingLocked movement, so it too offers all four cardinals
+  regardless of facing.
+- Position-argument signatures (`survey-flare`, `hardlight-block`,
+  `trip-node`, `falling-star`, `sentinel-seed`, `arc-toss`,
+  `smoke-canister`) never see a heading at all: their domain is the mode's
+  computed tile set, `ArcRelaySignaturePositionTargets` (5404-5411).
+
+A proposal to give bolt-class signatures the strike's declare/lock/cancel
+machinery with a piercing delivery is open and unimplemented at this commit.
+
+## 234. Declaring into your own blind flank is a cancelled strike
+
+The executor asked for exact eight-way alignment before it would declare a
+strike — a fossil of the bolt gun it was first written for, and by #233 a
+weapon eight rays wide standing in for one ninety degrees wide. Bodies stood
+in range rotating onto a ray they did not need.
+
+Replacing it with wedge membership (mirroring `GenericActorStrikeCone`
+exactly, choosing the bearing-closest heading by `dot²/|u|²` so cardinals and
+diagonals weigh the same, ties on canonical order) bought the latency and
+promptly gave a chunk of it back: resolved share fell 54.1% -> 47.7% and
+outside-vision cancels went 0.4% -> 2.8%.
+
+The reason is the second half of #233. The aim mask spans 180°; the shooter's
+own sight is the 90° facing quadrant. The outer flanks of what a body may
+legally declare are exactly the tiles it cannot see, and
+`LaunchMaturedStrikes` cancels a lock outside `VisibleTilesFor(shooter)`.
+The mind cannot simply ask whether the enemy is visible — its observation is
+the TEAM union, so it routinely knows about prey a teammate is watching — so
+the declare gate carries the shooter's own eyes as geometry.
+
+Measured, six exhibition cells, greedy, hunter-v1
+(`scripts/arc-relay-declare-read.py`):
+
+|                        | mean latency | silent windows | declares | resolved |
+|---|---|---|---|---|
+| exact ray (before)     | 5.84t | 753 | 458 | 54.1% |
+| wedge only             | 4.59t | 681 | 572 | 47.7% |
+| wedge + own-vision     | 4.22t | 629 | 493 | 54.8% |
+
+Resolved SHARE back at baseline, declares +7.6%, landed strikes 248 -> 270,
+mean declare latency -28%, silent contact windows -16%. "Lock died" holds
+steady near 30% throughout and is deliberately not counted as a miss — it is
+a kill.
