@@ -30,6 +30,7 @@ internal static class ArenaBasics
     {
         private readonly HashSet<Position> _tiles = [];
         private readonly Dictionary<Position, int> _lanes = [];
+        private readonly HashSet<int> _rooted = [];
 
         private Claims(IArenaStepper stepper) => Stepper = stepper;
 
@@ -53,6 +54,17 @@ internal static class ArenaBasics
         public IReadOnlyDictionary<Position, int> Lanes => _lanes;
 
         public bool Reserve(Position tile) => _tiles.Add(tile);
+
+        /// <summary>
+        /// Root a unit for this tick: no movement wrapper may give it a
+        /// step, whatever channel asks. One unit is rooted for one reason
+        /// — it is winding up its own declared strike and has not latched
+        /// disengage — and the guard lives at the seam precisely so no
+        /// channel, present or future, can route around it.
+        /// </summary>
+        public void Root(int unitId) => _rooted.Add(unitId);
+
+        public bool IsRooted(int unitId) => _rooted.Contains(unitId);
 
         public void ReserveLane(Position tile, int carrierUnitId) =>
             _lanes[tile] = carrierUnitId;
@@ -253,6 +265,19 @@ internal static class ArenaBasics
             .ToArray()
         ?? [];
 
+    /// <summary>
+    /// The one gate every movement wrapper passes through before a tile is
+    /// chosen. A rooted body gets nothing — not an evacuation step, not a
+    /// formation step, not a lane clearance — because "rooted shooter,
+    /// committed unless disengage triggers" has to hold against channels
+    /// that have not been written yet, and a policy spelled out six times
+    /// is a policy with five places to forget it.
+    /// </summary>
+    private static Position? ChooseStep(StepRequest request) =>
+        request.Claims.IsRooted(request.Body.ActorId.UnitId)
+            ? null
+            : request.Claims.Stepper.Step(request);
+
     public static bool IsLegalTerrainStep(
         GenericActorMapContract map,
         Position from,
@@ -273,7 +298,7 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        Position? chosen = claims.Stepper.Step(new StepRequest(
+        Position? chosen = ChooseStep(new StepRequest(
             StepIntent.Toward, contract, mind, body, goals, claims));
         if (chosen is not Position desiredDestination)
             return false;
@@ -550,7 +575,7 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        return claims.Stepper.Step(new StepRequest(
+        return ChooseStep(new StepRequest(
                 StepIntent.Homeward, contract, mind, body, [goal], claims))
                 is Position destination
             && TryMoveDirect(
@@ -583,7 +608,7 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        return claims.Stepper.Step(new StepRequest(
+        return ChooseStep(new StepRequest(
                 StepIntent.Away, contract, mind, body, threats, claims))
                 is Position destination
             && TryMoveDirect(
@@ -598,7 +623,7 @@ internal static class ArenaBasics
         Claims claims,
         string reason)
     {
-        if (claims.Stepper.Step(new StepRequest(
+        if (ChooseStep(new StepRequest(
                 StepIntent.Direct, contract, mind, body, [destination], claims))
             is not Position admitted)
         {
@@ -679,7 +704,7 @@ internal static class ArenaBasics
         // only exit crosses predicted fire. Otherwise sustained covering fire
         // can pin an unthreatened carrier behind an ally indefinitely — which
         // is why the Aside intent reads its own obstacle set.
-        if (claims.Stepper.Step(new StepRequest(
+        if (ChooseStep(new StepRequest(
                 StepIntent.Aside, contract, mind, body, forbidden, claims))
             is not Position selectedDestination)
         {

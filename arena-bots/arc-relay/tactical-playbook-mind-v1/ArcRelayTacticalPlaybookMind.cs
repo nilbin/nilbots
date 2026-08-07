@@ -346,6 +346,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .ToArray(),
                 out HashSet<string> openSourceWells);
         var claims = ArenaBasics.Claims.ForTick(contract, mind, _stepper);
+        // Rooted shooter, committed unless disengage triggers (owner ruling
+        // 2026-08-07). A body winding up its OWN declared strike does not
+        // move — any move abandons the declare, so a dodge, a formation
+        // step or a lane clearance mid-windup spends the whole commitment
+        // for nothing. Incoming declared cones are not an exception: eating
+        // a cone to land yours is the trade the mechanic is for. The one
+        // exception is the disengage latch, which is the body deciding the
+        // fight itself is lost; the abandoning move then reads as the
+        // withdraw it is. Cornered composes untouched — a latched body with
+        // no exit step still has nowhere to go, so it keeps swinging.
+        foreach (MindBody body in mind.Bodies)
+        {
+            if (arc.PendingStrikes.Any(strike =>
+                    strike.Shooter == body.ActorId)
+                && !DisengageLatched(mind, body))
+            {
+                claims.Root(body.UnitId);
+            }
+        }
         // A live bait is a trap, not supply: no own body may stand on it on
         // any ruleset, or tick-start pickup would spring our own trap.
         foreach (GenericActorContext.ArcRelayCoreState core in loose)
@@ -3168,6 +3187,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// body breaks off (and withdraws, when the sheet names where) until
     /// the picture thins back to the engage gate.
     /// </summary>
+    /// <summary>
+    /// Whether this body's break-off latch is running right now. Read by
+    /// the engage gate that trips it, and by the windup root: a body that
+    /// has decided the fight is lost may still walk away from its own
+    /// declare, and nothing else may.
+    /// </summary>
+    private bool DisengageLatched(MindContext mind, MindBody body)
+    {
+        (int LifeId, int UntilTick) latch =
+            _disengaging.GetValueOrDefault(body.UnitId);
+        return latch.LifeId == body.ActorId.LifeId
+            && mind.Tick < latch.UntilTick;
+    }
+
     private bool CommitAllowsEngaging(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -3177,8 +3210,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int threats = AwarenessThreats(mind, body, commit);
         (int LifeId, int UntilTick) latch =
             _disengaging.GetValueOrDefault(body.UnitId);
-        bool active = latch.LifeId == body.ActorId.LifeId
-            && mind.Tick < latch.UntilTick;
+        bool active = DisengageLatched(mind, body);
         // Disengagement is a BREAK, never a retirement (the ab70 lesson:
         // a while-threats-persist latch parked the ghost for 250 ticks at
         // a hot home front, because a losing side's home always has
