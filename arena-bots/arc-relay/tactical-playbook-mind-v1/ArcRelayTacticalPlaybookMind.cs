@@ -2400,17 +2400,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // match (owner catch 2026-08-09, w-9001 u7 at t297-t316). Catching
         // up one waypoint per tick costs a displaced body a few ticks and
         // cannot oscillate, because the index only ever moves forward.
+        // ...and NEARER to this waypoint than to the one after it. The `if`
+        // above stopped the index consuming several corners in a tick; it did
+        // not stop it consuming one every tick forever, which on this ring is
+        // the same disease one gear down. `stage-loop`'s legs are four tiles
+        // long and the arrival ring is two, so the MIDDLE of every leg sits
+        // inside both ends: the index advanced on each tick from a tile that
+        // had approached nothing, lapped the body, and handed it a different
+        // corner every few ticks. The body walked each one dutifully and the
+        // result was a closed eleven-tick circuit beside its own base — owner
+        // catch 2026-08-09 on the engagement-lens gallery, w-9001 team 0 u1,
+        // t150-t250, boxed in x 8..9, y 10..15, never once reaching a corner.
+        //
+        // The lens is what settled it: the STEPS were right every tick and the
+        // DESTINATION was wrong, so none of the blockade suspects (carrier lane
+        // reservations, step ties, ally-occupied tiles) were involved at all —
+        // the body was never blocked and moved every single tick.
+        //
+        // Comparing against the next waypoint rather than clamping the radius
+        // keeps the corridor generous where it was meant to be and still lets a
+        // body pass an unreachable waypoint: standing one tile off a walled
+        // corner is nearer to it than to the following one, so the index moves
+        // on exactly as it did before.
         if (index < route.Length - 1
-            && body.Position.ChebyshevDistance(route[index]) <= arrival)
+            && body.Position.ChebyshevDistance(route[index]) <= arrival
+            && body.Position.ChebyshevDistance(route[index])
+                < body.Position.ChebyshevDistance(route[index + 1]))
             index++;
         // A route whose last waypoint is its first is a closed patrol loop:
         // reaching the end re-arms the start, so an authored post is a beat
         // to walk rather than a spot to stand (owner doctrine 2026-08-09 -
         // standing posts near base read as bugs even when intended).
+        // The same nearness test on the seam. `route[^1]` IS `route[0]`, so the
+        // waypoint after it is `route[1]`; comparing against the duplicate
+        // would compare a tile with itself and re-arm the loop from anywhere.
         if (index == route.Length - 1
-            && route.Length > 1
+            && route.Length > 2
             && route[0] == route[^1]
-            && body.Position.ChebyshevDistance(route[index]) <= arrival)
+            && body.Position.ChebyshevDistance(route[index]) <= arrival
+            && body.Position.ChebyshevDistance(route[index])
+                < body.Position.ChebyshevDistance(route[1]))
         {
             index = 0;
         }
