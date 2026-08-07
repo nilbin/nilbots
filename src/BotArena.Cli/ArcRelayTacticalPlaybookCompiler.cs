@@ -1369,7 +1369,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static void ValidateDoctrineFight(JsonElement fight, string path)
     {
         Object(fight, $"{path}.fight", [],
-            ["targets", "engage", "chase", "breakOff"]);
+            ["targets", "engage", "chase", "breakOff", "defense"]);
         if (fight.TryGetProperty("targets", out JsonElement targets))
         {
             Object(targets, $"{path}.fight.targets", [], ["lone"]);
