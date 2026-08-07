@@ -32,7 +32,7 @@ public sealed class GenericActorStrikeWindupRootingTests
     {
         using Duel duel = Duel.Create(strikeRange: 6, visionRange: 8);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         duel.Step(shooter: Wait(), enemy: Wait());
         GenericActorMatchStepResult matured =
             duel.Step(shooter: Wait(), enemy: Wait());
@@ -49,7 +49,7 @@ public sealed class GenericActorStrikeWindupRootingTests
     {
         using Duel duel = Duel.Create(strikeRange: 6, visionRange: 8);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         GenericActorMatchStepResult walked =
             duel.Step(shooter: Move(Direction.North), enemy: Wait());
         GenericActorMatchStepResult wouldHaveMatured =
@@ -72,7 +72,7 @@ public sealed class GenericActorStrikeWindupRootingTests
     {
         using Duel duel = Duel.Create(strikeRange: 6, visionRange: 8);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         // West of the shooter's spawn is the arena wall, so this move is
         // accepted, attempted and blocked. The decision to leave was still
         // made, and the windup is spent on it.
@@ -99,7 +99,7 @@ public sealed class GenericActorStrikeWindupRootingTests
         // while sight range 8 keeps it in plain view the whole time.
         using Duel duel = Duel.Create(strikeRange: 4, visionRange: 8);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         duel.Step(shooter: Wait(), enemy: Move(Direction.East));
         GenericActorMatchStepResult matured =
             duel.Step(shooter: Wait(), enemy: Wait());
@@ -117,7 +117,7 @@ public sealed class GenericActorStrikeWindupRootingTests
         // the shooter can no longer see the tile it would fire at.
         using Duel duel = Duel.Create(strikeRange: 6, visionRange: 4);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         duel.Step(shooter: Wait(), enemy: Move(Direction.East));
         GenericActorMatchStepResult matured =
             duel.Step(shooter: Wait(), enemy: Wait());
@@ -140,8 +140,8 @@ public sealed class GenericActorStrikeWindupRootingTests
             visionRange: 8,
             maxHealth: 1);
 
-        duel.Step(shooter: Shoot(), enemy: Wait());
-        duel.Step(shooter: Shoot(), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
+        duel.Step(shooter: Shoot(1, 0), enemy: Wait());
         GenericActorMatchStepResult killed =
             duel.Step(shooter: Wait(), enemy: Wait());
         GenericActorMatchStepResult orphaned =
@@ -155,12 +155,11 @@ public sealed class GenericActorStrikeWindupRootingTests
     }
 
     [Fact]
-    public void LockIsTheTargetOnTheAimAndNotTheNearestBodyInTheWedge()
+    public void LockIsTheNamedTargetAndNotTheNearestBodyInTheWedge()
     {
-        // The shooter aims east down the lane. The enemy it is aiming AT
-        // stands four tiles away on that ray; a second enemy stands two
-        // tiles away inside the same wedge, off the aim. The nearest body
-        // used to be the lock; the target is.
+        // The shooter names the enemy four tiles down the lane. A second
+        // enemy stands two tiles away inside the same wedge. The nearest
+        // body used to be the lock; the NAMED target is.
         using Duel duel = Duel.CreateSquad(
             strikeRange: 6,
             shooter: new Position(1, 3),
@@ -168,7 +167,7 @@ public sealed class GenericActorStrikeWindupRootingTests
             enemyOne: new Position(5, 3),
             enemyTwo: new Position(3, 5));
 
-        duel.Step((0, 0, Shoot()));
+        duel.Step((0, 0, Shoot(1, 0)));
         duel.Step();
         GenericActorMatchStepResult matured = duel.Step();
 
@@ -178,11 +177,63 @@ public sealed class GenericActorStrikeWindupRootingTests
     }
 
     [Fact]
-    public void AimWithNoEnemyOnItLocksNothingAndKeepsTheWhiff()
+    public void LockIsTheNamedTargetAndNotTheInterposedEnemyOnTheRay()
     {
-        // Same wedge, same nearest enemy, but nobody on the aim itself.
-        // There is no substitution: the strike locks nothing and fires the
-        // theatrical whiff down the centre, which hurts nobody.
+        // Owner correction 2026-08-08: "the lock is the target picked by the
+        // MIND and nothing else." A second enemy stands ON the aimed ray,
+        // nearer than the named one — the first-enemy-on-the-ray rule would
+        // have locked IT — and then steps aside during the windup. Under the
+        // named lock the strike still belongs to the far target, so the bolt
+        // flies down the vacated line and hits the body it was declared for.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(3, 3));
+
+        duel.Step((0, 0, Shoot(1, 0)));
+        duel.Step((1, 1, Move(Direction.North)));
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Equal(new Position(3, 2), duel.Body(matured, 1, 1).Position);
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(2, duel.Body(matured, 1, 0).Health);
+        Assert.Equal(3, duel.Body(matured, 1, 1).Health);
+    }
+
+    [Fact]
+    public void TargetSteppingOffTheAimedRayOnTheDeclareTickIsStillLocked()
+    {
+        // Movement resolves before attacks inside one tick, so the body a
+        // mind aimed at from the tick's opening state has usually already
+        // taken its step by the time the declare is read. Aim alignment
+        // cannot survive that; the NAME can. The target steps north out of
+        // the aimed lane on the declare tick itself and is locked anyway,
+        // because it is still inside the frozen wedge.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(7, 5));
+
+        GenericActorMatchStepResult declared =
+            duel.Step((0, 0, Shoot(1, 0)), (1, 0, Move(Direction.North)));
+        duel.Step();
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Equal(new Position(5, 2), duel.Body(declared, 1, 0).Position);
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(2, duel.Body(matured, 1, 0).Health);
+    }
+
+    [Fact]
+    public void DeclareThatNamesNobodyLocksNothingAndKeepsTheWhiff()
+    {
+        // A suppressive declare down an empty lane. There is no
+        // substitution: it locks nothing and fires the theatrical whiff
+        // down the centre, which hurts nobody.
         using Duel duel = Duel.CreateSquad(
             strikeRange: 6,
             shooter: new Position(1, 3),
@@ -200,25 +251,49 @@ public sealed class GenericActorStrikeWindupRootingTests
     }
 
     [Fact]
-    public void FriendlyOnTheAimIsNeverTheLock()
+    public void TargetOutsideTheFrozenWedgeAtDeclareLocksNothing()
     {
-        // A teammate stands on the aim at the wedge's last ring and then
-        // steps off it. A lock would have been cancelled by that step; this
-        // strike was never for the teammate, so it still fires.
+        // The wedge is still the boundary of what a strike may be for. Reach
+        // 2 leaves the named enemy far outside it at declare, so the strike
+        // locks nothing and whiffs instead of reaching across the map.
         using Duel duel = Duel.CreateSquad(
             strikeRange: 2,
             shooter: new Position(1, 3),
-            friendly: new Position(3, 3),
-            enemyOne: new Position(7, 1),
+            friendly: new Position(1, 1),
+            enemyOne: new Position(7, 3),
             enemyTwo: new Position(7, 5));
 
-        duel.Step((0, 0, Shoot()));
-        duel.Step((0, 1, Move(Direction.East)));
+        duel.Step((0, 0, Shoot(1, 0)));
+        duel.Step();
         GenericActorMatchStepResult matured = duel.Step();
 
-        Assert.Equal(new Position(4, 3), duel.Body(matured, 0, 1).Position);
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(3, duel.Body(matured, 1, 0).Health);
+        Assert.Equal(3, duel.Body(matured, 1, 1).Health);
+    }
+
+    [Fact]
+    public void FriendlyOnTheAimIsNeverTheLock()
+    {
+        // A teammate stands on the aimed line between shooter and target and
+        // then steps off it. A lock would have been cancelled by that step;
+        // this strike was declared for the enemy behind it, so it still
+        // fires and still hits.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(3, 3),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(7, 5));
+
+        duel.Step((0, 0, Shoot(1, 0)));
+        duel.Step((0, 1, Move(Direction.North)));
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Assert.Equal(new Position(3, 2), duel.Body(matured, 0, 1).Position);
         Assert.Single(matured.ProjectileTraversals);
         Assert.Equal(3, duel.Body(matured, 0, 1).Health);
+        Assert.Equal(2, duel.Body(matured, 1, 0).Health);
     }
 
     [Fact]
@@ -235,7 +310,7 @@ public sealed class GenericActorStrikeWindupRootingTests
             enemyOne: new Position(5, 3),
             enemyTwo: new Position(2, 5));
 
-        duel.Step((0, 0, Shoot()));
+        duel.Step((0, 0, Shoot(1, 0)));
         duel.Step((1, 1, Move(Direction.North)));
         GenericActorMatchStepResult matured =
             duel.Step((1, 1, Move(Direction.North)));
@@ -248,6 +323,11 @@ public sealed class GenericActorStrikeWindupRootingTests
     private static GenericActorRuntimeDecision Wait() =>
         GenericDeathmatchSessionTestFixture.Wait();
 
+    /// <summary>
+    /// A strike declared east. Naming a unit is what LOCKS it (DECISIONS
+    /// #222, owner correction); the parameterless overload is the
+    /// suppressive declare that names nobody and locks nothing.
+    /// </summary>
     private static GenericActorRuntimeDecision Shoot() =>
         new(
             "shoot",
@@ -255,6 +335,20 @@ public sealed class GenericActorStrikeWindupRootingTests
             [
                 new GenericActorRuntimeActionArgument
                     .ProjectileHeadingArgument(ProjectileHeading.East),
+            ],
+            null);
+
+    private static GenericActorRuntimeDecision Shoot(int teamId, int unitId) =>
+        new(
+            "shoot",
+            4,
+            [
+                new GenericActorRuntimeActionArgument
+                    .ProjectileHeadingArgument(ProjectileHeading.East),
+                new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                    new GenericActorRuntimeActionArgument.UnitTarget(
+                        teamId,
+                        unitId)),
             ],
             null);
 
@@ -459,7 +553,10 @@ public sealed class GenericActorStrikeWindupRootingTests
                         "shoot",
                         4,
                         ActorActionKind.Attack,
-                        [ActorActionParameterKind.ProjectileHeading]),
+                        [
+                            ActorActionParameterKind.ProjectileHeading,
+                            ActorActionParameterKind.UnitTarget,
+                        ]),
                 ],
                 baseline.Rules.FabricationTransitions,
                 baseline.Rules.SameLifeTransitions,

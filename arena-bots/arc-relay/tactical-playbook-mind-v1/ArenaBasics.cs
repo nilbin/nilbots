@@ -809,6 +809,37 @@ internal static class ArenaBasics
             "evading carrier-lane fire");
     }
 
+    /// <summary>
+    /// The payload of one declared shot: the heading its ray flies down and,
+    /// when the gun winds up, the identity that windup LOCKS (DECISIONS #222,
+    /// owner correction — "the lock is the target picked by the MIND and
+    /// nothing else"). Naming the focus is what makes a strike follow the body
+    /// it was fired at instead of whiffing the moment that body steps a tile
+    /// off the aimed line; an unnamed declare stays a lane-suppression shot.
+    /// The mask is consulted so an instant gun, which offers no UnitTarget,
+    /// keeps its historical single-argument shape.
+    /// </summary>
+    private static GenericActorActionArgument[] AttackArguments(
+        GenericActorActionLegality action,
+        ProjectileHeading heading,
+        ActorIdentity? declaredTarget)
+    {
+        GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
+            targets = action.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .UnitTargetConstraint>()
+                .SingleOrDefault();
+        var heading_ = new GenericActorActionArgument
+            .ProjectileHeadingArgument(heading);
+        if (declaredTarget is not ActorIdentity target || targets is null)
+            return [heading_];
+        var named = new GenericActorActionArgument.UnitTarget(
+            target.TeamId, target.UnitId);
+        return targets.AllowedValues.Contains(named)
+            ? [heading_, new GenericActorActionArgument.UnitTargetArgument(named)]
+            : [heading_];
+    }
+
     public static bool TryShoot(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -871,8 +902,7 @@ internal static class ArenaBasics
                 body.Command(
                     action.ActionId,
                     action.ActionCode,
-                    [new GenericActorActionArgument
-                        .ProjectileHeadingArgument(heading)],
+                    AttackArguments(action, heading, target.ActorId),
                     $"focus fire on {target.ActorId}");
                 return true;
             }
@@ -997,7 +1027,8 @@ internal static class ArenaBasics
         MindContext mind,
         MindBody body,
         Position target,
-        string reason)
+        string reason,
+        ActorIdentity? declaredTarget = null)
     {
         GenericActorActionLegality? action = AvailableAction(
             contract, body, GenericActorRulesContract.ActionKind.Attack,
@@ -1028,8 +1059,7 @@ internal static class ArenaBasics
             body.Command(
                 action.ActionId,
                 action.ActionCode,
-                [new GenericActorActionArgument
-                    .ProjectileHeadingArgument(heading)],
+                AttackArguments(action, heading, declaredTarget),
                 $"{reason}; cover {target}");
             return true;
         }

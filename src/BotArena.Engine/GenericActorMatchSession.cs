@@ -3031,41 +3031,44 @@ public sealed class GenericActorMatchSession : IDisposable
     }
 
     /// <summary>
-    /// The body a cone strike locks when it lights: the DECLARED TARGET —
-    /// the first ENEMY standing on the ray the shooter actually aimed, out
-    /// to this gun's reach, and only while that body is inside the frozen
-    /// wedge (owner ruling 2026-08-07, DECISIONS #222: "The lock should
-    /// obviously land on the target"). There is no substitute. An aim with
-    /// no enemy on it locks NOTHING and keeps the theatrical whiff; the
-    /// strike never re-aims at a nearer body, friend or enemy.
+    /// The body a cone strike locks when it lights: the target the MIND
+    /// declared, and nothing else (owner correction 2026-08-08 to
+    /// DECISIONS #222 — "the lock is the target picked by the MIND and
+    /// nothing else"). The shooter names a unit in the attack's UnitTarget
+    /// argument; that unit's live body locks when it stands inside the frozen
+    /// wedge at declare. There is no substitution of any kind: not the
+    /// nearest body, not the first enemy on the ray, not an interposed one.
+    /// A declare that names nobody — or names a unit that is dead, absent,
+    /// friendly, or outside the wedge — locks NOTHING and keeps the
+    /// theatrical whiff down the central heading.
     /// <para>
-    /// Friendlies are transparent HERE and only here — they are skipped
-    /// rather than treated as blockers, because bodyguarding is a delivery
-    /// rule, not a lock rule. The bolt is still an ordinary
-    /// first-body-contact ray obeying this ruleset's collision policy, so
-    /// whoever is standing on the line when it fires is who it meets.
+    /// Interposition is a DELIVERY rule and is untouched: the bolt is an
+    /// ordinary first-body-contact ray along the firing line, so whoever
+    /// stands on that line when it flies is who it meets — including a
+    /// bodyguard who never was the lock.
     /// </para>
     /// </summary>
     private LifeState? SelectStrikeAnchor(
-        ImmutableArray<Position> declaredRay,
+        GenericActorRuntimeActionResolution.ResolvedAction declaredAction,
         ImmutableArray<Position> coneTiles,
         ActorIdentity shooter)
     {
-        if (declaredRay.IsDefaultOrEmpty)
+        if (coneTiles.IsDefaultOrEmpty)
             return null;
-        var cone = coneTiles.ToHashSet();
-        Dictionary<Position, LifeState> bodies = _lives.Values
-            .Where(life => life.ActorId != shooter)
-            .ToDictionary(life => life.Position);
-        foreach (Position tile in declaredRay)
-        {
-            if (!bodies.TryGetValue(tile, out LifeState? body))
-                continue;
-            if (body.ActorId.TeamId == shooter.TeamId)
-                continue;
-            return cone.Contains(body.Position) ? body : null;
-        }
-        return null;
+        GenericActorRuntimeActionArgument.UnitTarget? named = declaredAction
+            .Arguments
+            .OfType<GenericActorRuntimeActionArgument.UnitTargetArgument>()
+            .Select(argument => (GenericActorRuntimeActionArgument.UnitTarget?)
+                argument.Value)
+            .SingleOrDefault();
+        if (named is not { } target || target.TeamId == shooter.TeamId)
+            return null;
+        LifeState? body = _lives.Values.FirstOrDefault(life =>
+            life.ActorId.TeamId == target.TeamId
+            && life.ActorId.UnitId == target.UnitId);
+        if (body is null || !coneTiles.Contains(body.Position))
+            return null;
+        return body;
     }
 
     private void LaunchMaturedStrikes(
@@ -3307,26 +3310,18 @@ public sealed class GenericActorMatchSession : IDisposable
                             checked(profile.Projectile.MaxTravelTiles
                                 + declaredTravel),
                             profile.Projectile.DiagonalCornersMustBeClear);
-                // Lock-and-follow (owner ruling 2026-08): the strike is FOR
-                // the body it was AIMED at - the first enemy on the declared
-                // ray (#222) - and it follows that body anywhere inside the
-                // frozen wedge, resolving only against it. The ray traced
-                // here is the same one the theatrical whiff fires down when
-                // nothing is on it, so "what the strike was aimed at" and
-                // "where an unlocked strike goes" can never disagree. A
+                // Lock-and-follow (owner ruling 2026-08, corrected
+                // 2026-08-08): the strike is FOR the body the MIND named,
+                // and it follows that body anywhere inside the frozen wedge,
+                // resolving only against it. The geometry no longer picks the
+                // lock — an interposed body between shooter and target is
+                // irrelevant here and matters only when the bolt flies. A
                 // volley profile keeps its historical per-ray resolution and
                 // locks nothing.
-                ActorIdentity? declaredTarget = coneTiles.IsDefaultOrEmpty
-                    ? null
-                    : SelectStrikeAnchor(
-                        TraceProjectilePath(
-                            shooter.Position,
-                            resolvedHeading,
-                            profile,
-                            null,
-                            declaredTravel),
-                        coneTiles,
-                        shooter.ActorId)?.ActorId;
+                ActorIdentity? declaredTarget = SelectStrikeAnchor(
+                    resolution.ValidatedAction,
+                    coneTiles,
+                    shooter.ActorId)?.ActorId;
                 _pendingStrikes.Add(new PendingStrike(
                     shooter.ActorId,
                     profile,
@@ -5338,6 +5333,21 @@ public sealed class GenericActorMatchSession : IDisposable
                                         action.Id)
                                 : action.Kind == ActorActionKind.Objective
                                     ? ArcRelayHandoffTargets(life)
+                                // A strike names the body it locks
+                                // (DECISIONS #222), and only an enemy can be
+                                // locked, so the mask is the opposing slots.
+                                : action.Kind == ActorActionKind.Attack
+                                    ? [.. _definition.Topology.UnitSlots
+                                        .Where(slot =>
+                                            slot.TeamId
+                                                != life.ActorId.TeamId)
+                                        .OrderBy(slot => slot.TeamId)
+                                        .ThenBy(slot => slot.UnitId)
+                                        .Select(slot =>
+                                            new GenericActorRuntimeActionArgument
+                                                .UnitTarget(
+                                                    slot.TeamId,
+                                                    slot.UnitId))]
                                 : _definition.Topology.UnitSlots
                                     .OrderBy(slot => slot.TeamId)
                                     .ThenBy(slot => slot.UnitId)

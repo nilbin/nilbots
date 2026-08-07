@@ -470,6 +470,15 @@ internal sealed class GenericActorDecisionAdmission
         ActorActionDefinition action,
         ActorActionParameterKind kind)
     {
+        // The strike's declared target (DECISIONS #222) is optional by
+        // construction: a shooter with nobody worth naming still fires down
+        // the lane, and that suppressive declare locks nothing.
+        if (kind == ActorActionParameterKind.UnitTarget
+            && action.Kind == ActorActionKind.Attack)
+        {
+            return true;
+        }
+
         if (kind != ActorActionParameterKind.ShotProgram
             || action.Kind != ActorActionKind.Attack)
         {

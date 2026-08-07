@@ -283,8 +283,21 @@ public static class ArcRelayH0Definition
                 [ActorActionParameterKind.ProjectileHeading]),
             new(RotateActionId, 2, ActorActionKind.Rotation,
                 [ActorActionParameterKind.Direction]),
+            // A windup gun names WHO it is shooting at (DECISIONS #222,
+            // owner correction): the strike locks the target the mind
+            // declared, so the identity has to reach the engine. The
+            // parameter is optional — a declare with no named target is the
+            // deliberate suppressive whiff down the lane — and it exists only
+            // on a loop profile that actually has a windup, so an instant gun
+            // keeps its historical single-parameter shape and fingerprint.
             new(ShootActionId, 4, ActorActionKind.Attack,
-                [ActorActionParameterKind.ProjectileHeading]),
+                loopProfile.StrikeWindupTicks > 0
+                    ?
+                    [
+                        ActorActionParameterKind.ProjectileHeading,
+                        ActorActionParameterKind.UnitTarget,
+                    ]
+                    : [ActorActionParameterKind.ProjectileHeading]),
             new(ArcRelayActionIds.DropCore, ArcRelayActionIds.DropCoreCode,
                 ActorActionKind.Objective, []),
             new(ArcRelayActionIds.HandoffCore,

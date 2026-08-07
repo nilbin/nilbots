@@ -726,7 +726,8 @@ public static class ActorRulesDefinitionValidator
                             ActorActionParameterKind.ShotProgram)
                         && !HasExactly(
                             action.ParameterKinds,
-                            ActorActionParameterKind.ProjectileHeading):
+                            ActorActionParameterKind.ProjectileHeading)
+                        && !HasAimedTargetPayload(action.ParameterKinds):
                     errors.Add(
                         $"Attack action '{action.Id}' has no supported schema-3 " +
                         "payload shape.");
@@ -744,25 +745,27 @@ public static class ActorRulesDefinitionValidator
         ActorShotProgramDefinition shotProgram = attackProfile.ShotProgram;
         bool valid;
         string expected;
+        // A declared strike additionally names its lock (DECISIONS #222), so
+        // a windup profile accepts heading+UnitTarget wherever the same
+        // profile without a windup accepts the heading alone.
+        bool aimPayload = HasExactly(
+                action.ParameterKinds,
+                ActorActionParameterKind.ProjectileHeading)
+            || attackProfile.Projectile.StrikeWindupTicks > 0
+                && HasAimedTargetPayload(action.ParameterKinds);
         if (attackProfile.OmnidirectionalAim)
         {
-            valid = !shotProgram.Enabled
-                && HasExactly(
-                    action.ParameterKinds,
-                    ActorActionParameterKind.ProjectileHeading);
+            valid = !shotProgram.Enabled && aimPayload;
             expected =
                 "an omnidirectional profile with disabled shot programs and " +
-                "exactly ProjectileHeading";
+                "exactly ProjectileHeading (plus UnitTarget when it winds up)";
         }
         else if (attackProfile.FacingAimHalfWidthSectors > 0)
         {
-            valid = !shotProgram.Enabled
-                && HasExactly(
-                    action.ParameterKinds,
-                    ActorActionParameterKind.ProjectileHeading);
+            valid = !shotProgram.Enabled && aimPayload;
             expected =
                 "a facing-cone profile with disabled shot programs and " +
-                "exactly ProjectileHeading";
+                "exactly ProjectileHeading (plus UnitTarget when it winds up)";
         }
         else if (shotProgram.Enabled)
         {
@@ -1310,6 +1313,18 @@ public static class ActorRulesDefinitionValidator
         IReadOnlyList<ActorActionParameterKind> parameters,
         ActorActionParameterKind expected) =>
         parameters.Count == 1 && parameters[0] == expected;
+
+    /// <summary>
+    /// The aimed-and-named payload of a declared strike: the heading the ray
+    /// flies down plus the identity the windup locks (DECISIONS #222). Only a
+    /// windup profile may carry it — an instant gun has nothing to lock, so
+    /// its payload stays exactly the heading.
+    /// </summary>
+    private static bool HasAimedTargetPayload(
+        IReadOnlyList<ActorActionParameterKind> parameters) =>
+        parameters.Count == 2
+        && parameters.Contains(ActorActionParameterKind.ProjectileHeading)
+        && parameters.Contains(ActorActionParameterKind.UnitTarget);
 
     private static void ValidateCanonicalId(
         string? value,

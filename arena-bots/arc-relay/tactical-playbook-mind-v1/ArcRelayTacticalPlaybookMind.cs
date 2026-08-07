@@ -5180,7 +5180,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             || (mayPrepareAim || mayFireNow)
             && ArenaBasics.TryShootAtPosition(
                 contract, mind, body, focus.AimPosition,
-                $"focus {focus.Target.ActorId}")
+                $"focus {focus.Target.ActorId}",
+                declaredTarget: focus.Target.ActorId)
             || policy.SignatureCoordination != "none"
             && (mayPrepareAim || mayFireNow)
             && TryCombatSignature(
