@@ -44,6 +44,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// new fight until whole. See <see cref="HealOutranksFighting"/>.
     /// </summary>
     private readonly Dictionary<int, int> _healBreak = [];
+    /// <summary>Units fighting on because they have no exit step.</summary>
+    private readonly HashSet<int> _cornered = [];
 
     private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
         _lanePlugTicks = [];
@@ -461,71 +463,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             }
 
-            // Heal discipline (owner direction 2026-08-06): a levelled body
-            // is carried progression, so the more levels it holds the more
-            // eagerly it detours to a heal zone. Level 1 heals at 2 HP like
-            // any pragmatist; each level raises the trigger by one. Only
-            // when quiet - no enemy inside 6 - because the heal tiles are
-            // deliberately contested ground and channelling is stationary.
-            //
-            // A body at FULL health is not hurt, whatever its level says.
-            // Without that floor the ladder overtakes the bar: a kestrel
-            // maxes at 3 HP, so at level 2 the trigger is "3 or less" and at
-            // level 3 "4 or less" - permanently true. The body then walks to
-            // a beacon it cannot benefit from while its route pulls the other
-            // way, and the two vectors cancel into a one-tile dance (owner
-            // catch on commitx9-w-9001, measured 97 of 123 heal acts at full
-            // health).
-            if (_healTiles.Length > 0
-                && !carried.ContainsKey(body.ActorId))
-            {
-                int bodyLevel = _unitLevel.TryGetValue(
-                        body.UnitId,
-                        out (int LifeId, int Level) levelEntry)
-                    && levelEntry.LifeId == body.ActorId.LifeId
-                        ? levelEntry.Level
-                        : 1;
-                if (body.Health < MaxHealth(contract, body)
-                    && body.Health <= 1 + bodyLevel
-                    && mind.Enemies.All(enemy =>
-                        enemy.Position.ChebyshevDistance(body.Position) > 6))
-                {
-                    bool healMirrored = ArenaBasics.MirroredFrame(
-                        contract, mind);
-                    Position healTile = _healTiles
-                        .OrderBy(tile =>
-                            tile.ChebyshevDistance(body.Position))
-                        .ThenBy(tile => ArenaBasics.FrameY(tile, healMirrored))
-                        .ThenBy(tile => ArenaBasics.FrameX(tile, healMirrored))
-                        .First();
-                    if (body.Position == healTile)
-                    {
-                        body.Hold(Provenance(
-                            machine, group, order, "heal-channel"));
-                        continue;
-                    }
-                    if (body.Position.ChebyshevDistance(healTile) <= 8
-                        && ArenaBasics.TryMoveToward(
-                            contract,
-                            mind,
-                            body,
-                            [healTile],
-                            claims,
-                            Provenance(
-                                machine, group, order, "heal-detour")))
-                    {
-                        continue;
-                    }
-                }
-            }
+            // The pragmatist heal path is GONE (owner ruling 2026-08-07):
+            // the `recover` verb is the only road to a beacon now, so heal
+            // priority is settled by mode order like every other intent. A
+            // sheet with no recover mode simply never detours - the sheet
+            // owns it. (The medic's beam is the separate `repair` channel
+            // and is untouched.)
 
             // Clearing a plugged carrier lane runs BEFORE the channels: a
             // body can act every tick without displacing (facing scans,
             // in-place micro) and those paths never reach Hold at all.
             bool acted = TryCarrierLaneRelief(
                 contract, mind, body, carrierUnitIds,
-                repairs.Keys.ToHashSet(), claims,
-                Provenance(machine, group, order, "carrier-lane"));
+                repairs.Keys.ToHashSet(), targets, focus.Keys.ToHashSet(),
+                claims,
+                Provenance(machine, group, order, "choke-relief"));
             foreach (string channel in package.Source.Arbitration.Channels)
             {
                 if (acted)
@@ -2296,17 +2248,41 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return outranks;
     }
 
-    /// <summary>The pragmatist heal-detour's own trigger, asked here so the
-    /// ball cannot tug against it. A full-health body is never hurt,
-    /// whatever its level says.</summary>
-    private bool HealDetourWanted(
+    /// <summary>
+    /// Whether any adjacent tile is a legal, unoccupied step. Walls, the map
+    /// edge and every live body (ours and theirs) block; a body with none of
+    /// these free is cornered.
+    /// </summary>
+    private static bool HasExitStep(
         GenericActorResolvedMatchContract contract,
-        MindBody body) =>
-        _healTiles.Length > 0
-        && body.Health < MaxHealth(contract, body)
-        && body.Health <= 1 + (_unitLevel.TryGetValue(
-                body.UnitId, out (int LifeId, int Level) level)
-            && level.LifeId == body.ActorId.LifeId ? level.Level : 1);
+        MindContext mind,
+        MindBody body)
+    {
+        GenericActorMapContract map = contract.Map;
+        foreach ((int dx, int dy) in EightWay)
+        {
+            var tile = new Position(body.Position.X + dx, body.Position.Y + dy);
+            if (tile.X < 0 || tile.Y < 0
+                || tile.X >= map.Width || tile.Y >= map.Height
+                || map.TileRows[tile.Y][tile.X] == '#')
+            {
+                continue;
+            }
+            if (mind.Bodies.Any(other => other.Position == tile)
+                || mind.Enemies.Any(enemy => enemy.Position == tile))
+            {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static readonly (int Dx, int Dy)[] EightWay =
+    [
+        (0, -1), (1, -1), (1, 0), (1, 1),
+        (0, 1), (-1, 1), (-1, 0), (-1, -1),
+    ];
 
     private bool TryRecoverHold(
         MindBody body,
@@ -2772,7 +2748,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     // a lone hunter's discretion, not the pack's rules.
                     if (policy.Commit is { } commitPolicy
                         && CommitAppliesTo(commitPolicy, body)
-                        && !CommitAllowsEngaging(mind, body, commitPolicy))
+                        && !CommitAllowsEngaging(contract, mind, body, commitPolicy))
                     {
                         _declines[body.UnitId] = "commit-engage";
                         continue;
@@ -3139,6 +3115,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// the picture thins back to the engage gate.
     /// </summary>
     private bool CommitAllowsEngaging(
+        GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
         TacticalPlaybookPackage.Commit commit)
@@ -3164,6 +3141,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.ActorId.LifeId,
                 mind.Tick + disengage.RecoverTicks);
         }
+        // Cornered (owner design 2026-08-07): "fighting until there's an
+        // exit path is the way." A latched body with nowhere to step is not
+        // breaking off, it is dying politely - the t256-263 death-pin, eight
+        // ticks refusing every fight at 1 HP with an enemy adjacent and every
+        // neighbour blocked. While no exit step exists the break is
+        // SUSPENDED and the body fights; the tick the wall opens it resumes.
+        // The latch itself keeps running, so this buys swings, not a reset.
+        if (active && !HasExitStep(contract, mind, body))
+        {
+            _cornered.Add(body.UnitId);
+            return true;
+        }
+        _cornered.Remove(body.UnitId);
         if (!active)
             _withdrawRallies.Remove(body.UnitId);
         if (active)
@@ -4486,11 +4476,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         //
         // The mask is sticky until WHOLE, mirroring the heal re-engage
         // hysteresis: without it the boundary flaps the moment one hit heals.
-        // "Heading to heal" covers BOTH heal paths, because the tug the
-        // owner watched was against the pragmatist heal-detour, not the
-        // recover verb: t202 heal -> t204 collect -> t206 heal at 2 HP.
         if (_recovering.Contains(body.UnitId)
-            || HealDetourWanted(contract, body)
             || string.Equals(
                 order.Movement.Kind, "heal-beacon", StringComparison.Ordinal)
             || (_healBreak.TryGetValue(body.UnitId, out int healingLife)
@@ -5337,22 +5323,39 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         IReadOnlySet<int> carrierUnitIds,
         IReadOnlySet<int> repairerUnitIds,
+        IReadOnlyDictionary<int, Position> targets,
+        IReadOnlySet<int> focusUnitIds,
         ArenaBasics.Claims claims,
         string reason)
     {
-        if (carrierUnitIds.Contains(body.UnitId)
-            || repairerUnitIds.Contains(body.UnitId)
-            || body.Cooldown > 0)
-        {
+        if (repairerUnitIds.Contains(body.UnitId) || body.Cooldown > 0)
             return false;
-        }
-        MindBody[] carriersBeside = mind.Bodies
-            .Where(other => carrierUnitIds.Contains(other.UnitId)
-                && other.Position.ChebyshevDistance(body.Position) <= 1)
+        // Who yields to whom: a carrier outranks everyone, a body in a fight
+        // outranks an idler, and equal ranks yield to the higher unit id so
+        // exactly one of a mutual pair moves. Carriers never yield.
+        int Rank(int unit) => carrierUnitIds.Contains(unit) ? 0
+            : focusUnitIds.Contains(unit) ? 1
+            : 2;
+        if (Rank(body.UnitId) == 0)
+            return false;
+        // Whose way is it standing in: an adjacent own body that WANTS this
+        // tile - its own next step toward its own target lands here - and
+        // that outranks this one. That is the whole trigger. It is not the
+        // no-idle watchdog reborn: a body standing anywhere nobody needs is
+        // left alone forever, which is the sheet's business.
+        MindBody[] blocked = mind.Bodies
+            .Where(other => other.UnitId != body.UnitId
+                && other.Position.ChebyshevDistance(body.Position) <= 1
+                && (Rank(other.UnitId) < Rank(body.UnitId)
+                    || (Rank(other.UnitId) == Rank(body.UnitId)
+                        && other.UnitId < body.UnitId))
+                && targets.TryGetValue(other.UnitId, out Position goal)
+                && ArenaBasics.StaticFirstStep(contract, mind, other, goal)
+                    == body.Position)
             .ToArray();
         (int LifeId, Position Tile, int Ticks) plug =
             _lanePlugTicks.GetValueOrDefault(body.UnitId);
-        if (carriersBeside.Length == 0)
+        if (blocked.Length == 0)
         {
             _lanePlugTicks.Remove(body.UnitId);
             return false;
@@ -5363,14 +5366,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : 1;
         _lanePlugTicks[body.UnitId] =
             (body.ActorId.LifeId, body.Position, ticks);
-        // Standing beside a loaded carrier IS standing on the supply lane,
-        // and the measured patience for that is two ticks. Actually PLUGGING
-        // the carrier's only homeward step is worse, so it clears a tick
-        // sooner.
-        bool plugging = carriersBeside.Any(other =>
-            ArenaBasics.PlugsCarrierRoute(
-                contract, mind, other, body, _ownReactor));
-        if (ticks < (plugging ? 1 : CarrierLanePatience))
+        // A loaded carrier's lane clears a tick sooner - that was the
+        // measured ab51 harm and it keeps its priority.
+        bool carrierWaiting = blocked.Any(other =>
+            carrierUnitIds.Contains(other.UnitId));
+        if (ticks < (carrierWaiting ? 1 : CarrierLanePatience))
             return false;
         if (!ArenaBasics.TryStepAway(
                 contract, mind, body, [body.Position, _ownReactor],

@@ -119,9 +119,15 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    the numbers describe nothing. Both stay in the grammar so frozen
    clean-slate sheets keep compiling byte-identically. `stance` still
    drives concealment micro and flank-approach suppression.
-5. **Heal behavior** (`heal-detour`, `heal-channel`): a wounded body
-   vector-dashes to heal tiles regardless of orders - the "random
-   jump" legibility item.
+5. **Heal behavior** - **REMOVED 2026-08-07 by owner ruling.** The
+   pragmatist executor heal path (`heal-detour` and its channel hold)
+   is gone: a wounded body no longer dashes to a beacon regardless of
+   orders, which was both the "random jump" legibility item and a
+   silent competitor to the sheet's own intents. The `recover` verb is
+   the sheet-side replacement and now the ONLY road to a beacon, so
+   heal priority is settled by mode order like everything else. A sheet
+   with no recover mode simply never detours. NOTE: the medic's beam is
+   the separate `repair` channel and is untouched.
 6. **Opportunistic signatures** (`signature-heading`, `signature-idle`).
 7. **Formation micro** (`formation-move`, `turn for ...`, reflow).
 8. **The v3 desugar constants**: shrinking. `targetPriorities` is now

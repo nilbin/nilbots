@@ -117,6 +117,11 @@ ranked RELATIVE to it, inside this block):**
    and it loses the ball when it dies. Masked until WHOLE, so the
    boundary cannot flap on a single healed hit.
 3. A body that broke off to heal takes no new fight until whole.
+3b. CORNERED: a body whose disengage latch is active still FIGHTS while
+   it has no exit step - no adjacent tile is walkable and unoccupied.
+   The latch keeps running underneath, so this buys swings, not a
+   reset; the tick an exit opens, the break resumes. Owner design:
+   "fighting until there's an exit path is the way."
 4. A strike windup, a cone dodge and every survival layer outrank
    `collect: first`.
 
