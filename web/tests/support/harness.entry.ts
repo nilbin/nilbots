@@ -23,6 +23,8 @@ export {
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
+  selectedUnitPointAt,
+  selectionFollowFrame,
   strategicOverviewFrame,
 } from '../../src/render/arenaCamera';
 export { arcOriginAccent, createPresenter } from '../../src/replayPresentation';

@@ -11,6 +11,8 @@ import {
   directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
+  selectedUnitPointAt,
+  selectionFollowFrame,
   strategicOverviewFrame,
   type ArenaFrame,
   type ArenaFraming,
@@ -293,6 +295,7 @@ export default function ArenaCanvas3D({
     const framePacer = createArenaFramePacer();
     let announced = false;
     let lastFit = frameState.current.autoFit;
+    let lastSelected = frameState.current.selectedUnitKey;
     const draw = (stamp: number) => {
       const framesPerSecond = frameState.current.active
         ? renderProfile.activeFramesPerSecond
@@ -325,7 +328,29 @@ export default function ArenaCanvas3D({
         if (fit !== lastFit) {
           lastFit = fit;
           if (fit) camera.engage();
-          else camera.showFrame(strategicOverviewFrame(replay, framing));
+          // A gesture reports itself upward as auto-fit turning *off*, and the camera has
+          // already released and is sitting where the hand left it — so answering that
+          // report with the overview would undo the gesture one frame after it was made.
+          // Only a camera still on an automatic allegiance is being spoken to here.
+          else if (camera.auto || camera.followingSelection)
+            camera.showFrame(strategicOverviewFrame(replay, framing));
+        }
+        // Selecting a body is a camera command: it takes the mid shot and holds it on that
+        // machine. Deselecting hands the camera back to whichever mode it was taken from,
+        // and a gesture ends the follow like it ends the director's — through `release`,
+        // which is why staying in the follow is conditioned on the camera's own allegiance
+        // rather than on the selection still being set.
+        const reselected = followed !== lastSelected;
+        if (reselected) {
+          lastSelected = followed;
+          if (followed === null) {
+            if (fit) camera.engage();
+            else camera.showFrame(strategicOverviewFrame(replay, framing));
+          }
+        }
+        if (followed !== null && (reselected || camera.followingSelection)) {
+          const point = selectedUnitPointAt(replay, now, followed);
+          camera.track(point ? selectionFollowFrame(point, framing) : null);
         }
         if (camera.auto)
           camera.aim(

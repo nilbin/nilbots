@@ -329,6 +329,66 @@ export function frameEscapes(
 }
 
 /**
+ * How much clear ground a deliberately followed body keeps around it, in tiles.
+ *
+ * **The mid shot**, and the whole of what "follow this one" means as a number. A
+ * selection is a question about one machine — where it is going, what it is about to run
+ * into — and neither end of the existing range answers it. The strategic overview shows a
+ * 31-tile warren, where a body is four percent of the width; the closest shot the fit will
+ * ever take (`MIN_SPAN_TILES`) frames a duel and no arena at all. Four and a half tiles of
+ * floor past the body on its tight axis leaves roughly a squad's worth of ground around
+ * it: far enough to see what it is walking toward, close enough that the machine is the
+ * subject rather than a dot the camera happens to contain.
+ *
+ * It reads as a margin rather than a span because that is what `focusFrame` takes, and
+ * because the frame is then grown to the viewport's shape — a 16:10 window gets about
+ * fourteen tiles across and nine down, which is the picture this number is chosen for.
+ */
+export const SELECTION_FOLLOW_MARGIN_TILES = 4.5;
+
+/**
+ * The mid frame that follows one deliberately selected body.
+ *
+ * Deliberately **not** the automatic director's shot. `directorMinSpan` is a mode's floor
+ * for an *unattended* camera — Arc Relay keeps fifteen tiles so a rotation stays legible
+ * to someone who asked for nothing in particular — and honouring it here would answer
+ * "show me this one" with a frame barely tighter than the overview the viewer just left.
+ * A selection is a request, and the request is for a closer look.
+ */
+export function selectionFollowFrame(
+  point: { x: number; y: number },
+  framing: ArenaFraming,
+): ArenaFrame {
+  return focusFrame([point], {
+    ...framing,
+    margin: SELECTION_FOLLOW_MARGIN_TILES,
+    minSpan: undefined,
+  });
+}
+
+/**
+ * Where a selected body is standing at this instant, or `null` if it is not on the board.
+ *
+ * Interpolated, like everything else the camera reads, so the follow glides with the body
+ * rather than stepping with the tick. `null` covers every way a selection can outlive its
+ * machine — destroyed, not yet fabricated, between lives — and the caller's answer to it
+ * is to leave the camera where it is rather than to aim at nothing.
+ */
+export function selectedUnitPointAt(
+  replay: ReplayModel,
+  time: number,
+  unitKey: ReplayStableUnitKey | null,
+): { x: number; y: number } | null {
+  if (unitKey === null) return null;
+  const pose = posesAt(replay, time).find(
+    (candidate) =>
+      candidate.unitKey === unitKey && candidate.status === 'active',
+  );
+  // A tile's centre, which is where both renderers draw the body standing on it.
+  return pose ? { x: pose.x + 0.5, y: pose.y + 0.5 } : null;
+}
+
+/**
  * Where the camera should be looking at this instant, before any smoothing.
  *
  * Interpolated poses rather than the tick's snapped positions, because the camera is
@@ -689,6 +749,21 @@ export function arenaViewport(
 const SPRING = 3.1;
 
 /**
+ * Who the camera is currently obeying.
+ *
+ * This used to be one boolean — following the action, or not — and a selection follow does
+ * not fit in it. A followed body is *automatic*, in that the camera keeps moving on its
+ * own; it is not the director, because the director is free to cut to whatever the match
+ * is doing and a follow must never leave the machine that was asked for. Two booleans
+ * would have made "director and selection at once" expressible, which is a state with no
+ * meaning; one allegiance cannot.
+ *
+ * `hand` is the terminal one: a gesture takes the camera and only an explicit command —
+ * the chrome's toggle, or a new selection — gives it back.
+ */
+type CameraAllegiance = 'director' | 'selection' | 'hand';
+
+/**
  * The camera itself: a frame, a target, and the rule for getting from one to the other.
  *
  * Deliberately not a React hook and deliberately DOM-free — the 3D renderer drives it from
@@ -701,7 +776,7 @@ export class ArenaCamera {
   /** What it is heading toward. Only replaced when the fit escapes it. */
   private target: ArenaFrame;
   private velocity = { x: 0, y: 0, span: 0 };
-  private following = true;
+  private allegiance: CameraAllegiance = 'director';
   /** Replay-time shot lock: ordinary Arc Relay beats cannot make the director channel-hop. */
   private heldUntil = -Infinity;
   private lastAimTime = -Infinity;
@@ -715,7 +790,20 @@ export class ArenaCamera {
 
   /** True while the camera is fitting the action rather than obeying a gesture. */
   get auto(): boolean {
-    return this.following;
+    return this.allegiance === 'director';
+  }
+
+  /**
+   * True while one chosen body is being followed.
+   *
+   * The renderers read it to decide whether to keep aiming at that body: entering the
+   * follow is a decision made when the selection *changes*, and staying in it is this.
+   * Without the distinction a gesture could not end a follow — the next frame would put
+   * the camera straight back on the machine, which is precisely the camera-fights-the-hand
+   * failure the whole override contract exists to prevent.
+   */
+  get followingSelection(): boolean {
+    return this.allegiance === 'selection';
   }
 
   /** The frame the camera is converging on, for tests and for gesture arithmetic. */
@@ -728,7 +816,7 @@ export class ArenaCamera {
    * Returns whether it was taken, which is what makes the deadband observable.
    */
   aim(candidate: ArenaFrame, time?: number, holdTicks = 0): boolean {
-    if (!this.following) return false;
+    if (this.allegiance !== 'director') return false;
     if (time !== undefined && time < this.lastAimTime) {
       // A seek or restart is a new watch from that point; a future shot lock must not leak
       // backward and pin the camera to a scene that has not happened yet.
@@ -804,6 +892,26 @@ export class ArenaCamera {
   }
 
   /**
+   * Follow one chosen body: take this frame, and expect another one next frame.
+   *
+   * No deadband, deliberately — `aim` has one because the *director's* fit reshapes itself
+   * every time a life is born or dies, and re-aiming on each of those is the zoom hunt.
+   * A follow has a fixed span and a target that moves continuously, so every frame's
+   * candidate is the same picture translated a little; the spring is the smoothing, and a
+   * deadband on top of it would only add a stutter as the body walked out of the slack
+   * and the frame snapped to catch up.
+   *
+   * `null` keeps the allegiance without moving the target. A body that is dead, not yet
+   * fabricated, or otherwise off the board leaves the camera where it was standing rather
+   * than sending it to an arbitrary corner of the map — the selection outlives the
+   * machine, and so should the shot.
+   */
+  track(frame: ArenaFrame | null): void {
+    this.allegiance = 'selection';
+    if (frame) this.target = { ...frame };
+  }
+
+  /**
    * Stop following, without moving.
    *
    * What every gesture below does implicitly: someone who just aimed the camera by hand
@@ -811,7 +919,7 @@ export class ArenaCamera {
    * "look here" are two statements rather than one with a zero argument.
    */
   release(): void {
-    this.following = false;
+    this.allegiance = 'hand';
   }
 
   /**
@@ -823,13 +931,13 @@ export class ArenaCamera {
    * last skirmish happened to leave — with no wheel to undo it.
    */
   showEverything(framing: ArenaFraming): void {
-    this.following = false;
+    this.allegiance = 'hand';
     this.target = fullArenaFrame(framing);
   }
 
   /** Stop following and head toward a mode-owned strategic overview. */
   showFrame(frame: ArenaFrame): void {
-    this.following = false;
+    this.allegiance = 'hand';
     this.target = { ...frame };
   }
 
@@ -848,7 +956,7 @@ export class ArenaCamera {
    * asked for.
    */
   hold(frame: ArenaFrame): void {
-    this.following = false;
+    this.allegiance = 'hand';
     this.settle(frame);
   }
 
@@ -872,7 +980,14 @@ export class ArenaCamera {
   zoom(factor: number, framing: ArenaFraming): void {
     this.release();
     const full = fullArenaFrame(framing);
-    const minSpan = framing.minSpan ?? MIN_SPAN_TILES;
+    // The mode's floor stops a hand getting *closer*; it must never shove one back out.
+    // A selection follow is legitimately tighter than the director's Arc Relay floor, so
+    // clamping to that floor outright made the first zoom-in out of a follow read as a
+    // zoom-out — the one input whose meaning the camera may not invert.
+    const minSpan = Math.min(
+      framing.minSpan ?? MIN_SPAN_TILES,
+      this.target.width,
+    );
     const width = Math.min(
       Math.max(this.target.width / factor, minSpan),
       full.width,
@@ -887,7 +1002,7 @@ export class ArenaCamera {
 
   /** Hand the camera back to the action. The next `aim` is always taken. */
   engage(): void {
-    this.following = true;
+    this.allegiance = 'director';
     // Whatever a gesture left behind must not act as a deadband against the first fit
     // after re-engaging, or re-engaging on a frame that happens to contain everybody
     // would look like the control did nothing.

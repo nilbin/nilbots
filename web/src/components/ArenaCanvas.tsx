@@ -12,6 +12,8 @@ import {
   directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
+  selectedUnitPointAt,
+  selectionFollowFrame,
   strategicOverviewFrame,
   type ArenaFraming,
 } from '../render/arenaCamera';
@@ -107,6 +109,7 @@ export default function ArenaCanvas({
     const framePacer = createArenaFramePacer();
     let aspect = 0;
     let lastFit = stateRef.current.autoFit;
+    let lastSelected = stateRef.current.selectedUnitKey;
     // A new replay is a new match: the camera must not open framed on the last one's fight.
     cameraRef.current = null;
 
@@ -197,7 +200,28 @@ export default function ArenaCanvas({
         if (fit !== lastFit) {
           lastFit = fit;
           if (fit) camera.engage();
-          else camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
+          // A gesture reports itself upward as auto-fit turning *off*, and the camera has
+          // already released and is sitting where the hand left it — so answering that
+          // report with the overview would undo the gesture one frame after it was made.
+          else if (camera.auto || camera.followingSelection)
+            camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
+        }
+        // Selection follow, decided in `arenaCamera` and mirrored here exactly as the 3D
+        // renderer runs it — a device that loses its WebGL context mid-replay must not
+        // also change its mind about what the camera is doing.
+        const reselected = followed !== lastSelected;
+        if (reselected) {
+          lastSelected = followed;
+          if (followed === null) {
+            if (fit) camera.engage();
+            else camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
+          }
+        }
+        if (followed !== null && (reselected || camera.followingSelection)) {
+          const point = selectedUnitPointAt(replay, now, followed);
+          camera.track(
+            point ? selectionFollowFrame(point, framingRef.current) : null,
+          );
         }
         if (camera.auto)
           camera.aim(

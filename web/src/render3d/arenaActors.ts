@@ -230,6 +230,36 @@ const SELECTED_TINT = 0.12;
 const SELECTED_POOL = 1;
 const UNSELECTED_POOL = 0.72;
 
+/**
+ * The ring of ground that belongs to the selected body.
+ *
+ * Radii are in chassis widths and sit at the tile boundary — **outside the silhouette,
+ * never across it**, which is the failure the first attempt at a ring had. The band is
+ * a tenth of a chassis wide, so at the mid follow shot it is a hairline rather than a
+ * halo, and it clears the channel (0.62–0.78) and screen (0.86–0.96) rings so a body
+ * that is selected *and* holding the point still reads as both.
+ *
+ * The backing is what makes it survive a theme. An additive ring vanishes on a
+ * near-white floor and a flat one vanishes on a near-black one, so a dim near-black
+ * disc-edge is laid under a bright accent one: whichever way the map goes, one of the
+ * pair is in contrast with it.
+ *
+ * The height is the load-bearing number. The fog mask is a plane at 0.03 that darkens
+ * the floor, and every other floor cue here sits under it — correctly, because they are
+ * things happening on ground the fog is entitled to hide. This one is the viewer's own
+ * state rather than the match's, so it goes above: a body at the soft edge of its team's
+ * vision keeps a ring at full strength instead of being dimmed along with the ground it
+ * is standing on.
+ */
+const SELECTION_RING_INNER = 1;
+const SELECTION_RING_OUTER = 1.1;
+const SELECTION_RING_BACKING_SPREAD = 0.05;
+const SELECTION_RING_HEIGHT = 0.034;
+const SELECTION_RING_OPACITY = 0.6;
+const SELECTION_RING_BACKING_OPACITY = 0.34;
+/** How far the ring's accent is pulled toward white, so it reads as choice, not team. */
+const SELECTION_RING_WHITEN = 0.45;
+
 /** Emission added at the peak of a hit, over whatever the material already emits. */
 const HIT_FLASH = 1.6;
 
@@ -802,7 +832,84 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       modelMotion?.bind(model);
     });
 
-    // Following a bot lights *the bot*, not a ring drawn near it.
+    // The ring of ground under the selected body — a pair of flat discs, dark under
+    // bright, laid on the floor at the tile boundary.
+    //
+    // A ring was tried in the first pass at selection and dropped; the note below still
+    // records why, and it is worth keeping, because this one only works by not repeating
+    // either half of it. It is on the FLOOR at the tile boundary rather than hugging the
+    // machine, so it cannot read as drawn across a chassis the depth buffer has correctly
+    // behind it. And it is not carrying selection on its own — the pool still brightens
+    // and the trim still lifts — so it has no reason to be loud enough to become the halo
+    // that got the first one removed. It exists because the camera now flies down to the
+    // body you picked (owner request 2026-08), and at that shot "which of these is mine"
+    // is a question the arena should answer on the ground rather than only in the paint.
+    const selectionRing = new THREE.Group();
+    selectionRing.userData.cue = 'selection-ring';
+    selectionRing.userData.forUnitKey = unit.unitKey;
+    selectionRing.position.y = SELECTION_RING_HEIGHT;
+    selectionRing.visible = false;
+    const selectionBackingGeometry = new THREE.RingGeometry(
+      size * (SELECTION_RING_INNER - SELECTION_RING_BACKING_SPREAD),
+      size * (SELECTION_RING_OUTER + SELECTION_RING_BACKING_SPREAD),
+      48,
+    );
+    selectionBackingGeometry.rotateX(-Math.PI / 2);
+    const selectionBackingMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#05090d'),
+      transparent: true,
+      opacity: SELECTION_RING_BACKING_OPACITY,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const selectionBacking = new THREE.Mesh(
+      selectionBackingGeometry,
+      selectionBackingMaterial,
+    );
+    // Ordered past the fog plane, which is a map-sized quad whose distance to the camera
+    // says nothing about what it covers — leaving the transparent pass to sort these by
+    // depth would put the ring under the fog on some frames and over it on others.
+    selectionBacking.renderOrder = 3;
+    selectionRing.add(selectionBacking);
+    const selectionGeometry = new THREE.RingGeometry(
+      size * SELECTION_RING_INNER,
+      size * SELECTION_RING_OUTER,
+      48,
+    );
+    selectionGeometry.rotateX(-Math.PI / 2);
+    const selectionMaterial = new THREE.MeshBasicMaterial({
+      color: accent.clone().lerp(WHITE, SELECTION_RING_WHITEN),
+      transparent: true,
+      opacity: SELECTION_RING_OPACITY,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const selectionEdge = new THREE.Mesh(selectionGeometry, selectionMaterial);
+    selectionEdge.renderOrder = 4;
+    selectionRing.add(selectionEdge);
+    chassis.add(selectionRing);
+    disposables.push(
+      selectionBackingGeometry,
+      selectionBackingMaterial,
+      selectionGeometry,
+      selectionMaterial,
+    );
+    // Enrolled in the fade like every other cue, so a selected body that is collapsing or
+    // still coming up out of the floor takes its ring with it.
+    fading.push(
+      {
+        material: selectionBackingMaterial,
+        base: SELECTION_RING_BACKING_OPACITY,
+        alwaysTransparent: true,
+      },
+      {
+        material: selectionMaterial,
+        base: SELECTION_RING_OPACITY,
+        alwaysTransparent: true,
+      },
+    );
+
+    // Following a bot lights *the bot* as well as the ground under it.
     //
     // A marker beside the thing is a marker you have to look away to read; the bot itself
     // carrying the state is one glance. A ring was tried first and it was never the right
@@ -838,6 +945,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const highlight = (on: boolean) => {
       if (on === highlighted) return;
       highlighted = on;
+      selectionRing.visible = on;
       paintPool();
       repaint();
     };

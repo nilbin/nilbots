@@ -989,3 +989,74 @@ test('the volley stance is fully out on the tick it fires, and never pops', () =
 
   actors.dispose();
 });
+
+/** The floor ring belonging to one unit, found by its cue like the health pips are. */
+function selectionRingOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.cue === 'selection-ring' &&
+      node.userData.forUnitKey === unitKey
+    ) {
+      found = node;
+    }
+  });
+  assert.ok(found, `no selection ring for unit ${unitKey}`);
+  return found;
+}
+
+/**
+ * The ring under the selected body.
+ *
+ * Three things about it are decisions rather than styling, and all three are invisible in
+ * a screenshot of a dark map: it belongs to exactly one bot at a time, it sits outside
+ * the chassis silhouette rather than across it, and it is above the fog plane so a body
+ * standing at the edge of its own team's vision keeps it.
+ */
+test('the selected body is ringed on the floor, and only that one', () => {
+  const actors = buildActors(replay);
+  const [first, second] = replay.units.map((unit) => unit.unitKey);
+  assert.ok(first && second && first !== second);
+
+  actors.update(2, null, false);
+  assert.equal(
+    selectionRingOf(actors.group, first).visible,
+    false,
+    'nothing is ringed until something is picked',
+  );
+
+  actors.update(2, first, false);
+  const ring = selectionRingOf(actors.group, first);
+  assert.equal(ring.visible, true);
+  assert.equal(
+    selectionRingOf(actors.group, second).visible,
+    false,
+    'selection is one bot at a time',
+  );
+
+  // Above the fog mask (0.03), which is the whole of "readable in fog": every other floor
+  // cue sits under it because the fog is entitled to hide what is happening on that
+  // ground, and this one is the viewer's own state rather than the match's.
+  assert.ok(ring.position.y > 0.03, 'the ring clears the fog plane');
+
+  // Outside the machine, not drawn across it. The first attempt at a selection ring was
+  // removed for reading as painted over the chassis, and the fix is geometric.
+  const radii = ring.children.map((child) => {
+    const geometry = (child as THREE.Mesh).geometry as THREE.BufferGeometry;
+    geometry.computeBoundingSphere();
+    return geometry.boundingSphere!.radius;
+  });
+  assert.ok(radii.length === 2, 'a dark backing under a bright edge, so any theme reads');
+  assert.ok(Math.min(...radii) > 0.9, 'and it sits out at the tile boundary');
+
+  actors.update(2, second, false);
+  assert.equal(
+    selectionRingOf(actors.group, first).visible,
+    false,
+    'picking another bot gives the ground back',
+  );
+  assert.equal(selectionRingOf(actors.group, second).visible, true);
+});

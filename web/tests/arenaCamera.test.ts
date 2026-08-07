@@ -22,6 +22,8 @@ import {
   frameEscapes,
   fullArenaFrame,
   posesAt,
+  selectedUnitPointAt,
+  selectionFollowFrame,
   strategicOverviewFrame,
 } from './.harness/harness.entry.js';
 
@@ -822,5 +824,136 @@ test('camera targets consume continuous rendered poses rather than snapped tiles
     { x: samples[0]!.x, y: samples[0]!.y },
     { x: samples[2]!.x, y: samples[2]!.y },
     'the target moves within a tick instead of waiting for its boundary',
+  );
+});
+
+/**
+ * Selecting a body is a camera command.
+ *
+ * The three properties the follow lives or dies by, and none of them is judgeable from a
+ * screenshot: the shot is genuinely between the overview and the closest the fit will go,
+ * it pans without breathing, and the hand still wins.
+ */
+test('a selection follow is the mid shot, between the overview and the closest', () => {
+  const framing = {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    // Arc Relay's director floor. A follow deliberately ignores it: that number exists so
+    // an UNATTENDED camera keeps a rotation legible, and honouring it here would answer
+    // "show me this one" with a frame barely tighter than the board.
+    minSpan: 15,
+  };
+  const body = { x: 10.5, y: 8.5 };
+  const follow = selectionFollowFrame(body, framing);
+  const full = fullArenaFrame(framing);
+  const closest = focusFrame([body], { ...framing, minSpan: undefined });
+
+  assert.ok(
+    follow.width < full.width * 0.5,
+    `clearly closer than the board (${follow.width.toFixed(1)} of ${full.width.toFixed(1)})`,
+  );
+  assert.ok(
+    follow.width > closest.width * 1.5,
+    `and clearly wider than point blank (${follow.width.toFixed(1)} of ${closest.width.toFixed(1)})`,
+  );
+  // A handful of tiles of floor past the body on the tight axis, which is what the shot
+  // is chosen for — enough to see what it is walking into.
+  assert.ok(
+    follow.height / 2 > 4 && follow.height / 2 < 6,
+    `a handful of tiles of clear ground (${(follow.height / 2).toFixed(1)})`,
+  );
+  assert.ok(
+    Math.abs(follow.x - body.x) < 1e-9 && Math.abs(follow.y - body.y) < 1e-9,
+    'centred on the body, not on the map',
+  );
+});
+
+test('a followed body keeps the camera until a hand takes it', () => {
+  const framing = {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    minSpan: 15,
+  };
+  const camera = new ArenaCamera(framing);
+  const opening = selectionFollowFrame({ x: 5.5, y: 5.5 }, framing);
+  camera.track(opening);
+  assert.equal(camera.followingSelection, true);
+  assert.equal(camera.auto, false, 'a follow is not the director');
+  assert.equal(
+    camera.aim(fullArenaFrame(framing)),
+    false,
+    'and the director cannot cut away from the body that was asked for',
+  );
+
+  const settle = () => {
+    for (let step = 0; step < 240; step += 1) camera.advance(1 / 60);
+  };
+  settle();
+  assert.ok(Math.abs(camera.frame.x - 5.5) < 0.02, 'it arrives on the body');
+
+  // Walk the body across the arena the way a sprinting one actually moves — a tile a
+  // tick, at the 2.5 ticks a second playback runs at — offering a fresh frame each time,
+  // which is what the renderers do.
+  let x = 5.5;
+  for (let step = 1; step <= 180; step += 1) {
+    x += 2.5 / 60;
+    camera.track(selectionFollowFrame({ x, y: 5.5 }, framing));
+    camera.advance(1 / 60);
+    assert.ok(
+      Math.abs(camera.frame.width - opening.width) < 0.01,
+      'a follow pans; it does not breathe',
+    );
+  }
+  // The spring trails a running body rather than riding it, which is the feel — but it
+  // must trail by less than the clear ground the shot keeps, or "follow" would mean
+  // watching a machine leave the frame it was framed in.
+  const lag = x - camera.frame.x;
+  assert.ok(
+    lag > 0 && lag < opening.height / 2,
+    `a sprinting body stays in frame (${lag.toFixed(2)} tiles behind centre)`,
+  );
+  for (let step = 0; step < 240; step += 1) {
+    camera.track(selectionFollowFrame({ x, y: 5.5 }, framing));
+    camera.advance(1 / 60);
+  }
+  assert.ok(
+    Math.abs(camera.frame.x - x) < 0.02,
+    'and it is given back the moment the body stops',
+  );
+
+  // The mode's director floor is wider than the follow. Clamping a gesture to it outright
+  // made the first zoom-IN out of a follow read as a zoom-out.
+  camera.zoom(1.4, framing);
+  assert.ok(camera.aimed.width <= opening.width + 1e-9, 'a zoom in never widens');
+  assert.equal(camera.followingSelection, false, 'and the hand ends the follow');
+});
+
+test('a followed body that leaves the board leaves the camera where it stood', () => {
+  const framing = { mapWidth: 31, mapHeight: 23, aspect: 16 / 10 };
+  const camera = new ArenaCamera(framing);
+  camera.track(selectionFollowFrame({ x: 7.5, y: 9.5 }, framing));
+  const held = camera.aimed;
+  // Destroyed, or not yet fabricated. The selection outlives the machine.
+  camera.track(null);
+  assert.equal(camera.followingSelection, true, 'the selection is still the camera');
+  assert.deepEqual(camera.aimed, held, 'and it does not go looking at nothing');
+});
+
+test('a selected body is read at the same fractional position both renderers draw', () => {
+  const pose = posesAt(frontline, 3.5).find(
+    (candidate) => candidate.status === 'active',
+  );
+  assert.ok(pose);
+  assert.deepEqual(
+    selectedUnitPointAt(frontline, 3.5, pose.unitKey),
+    { x: pose.x + 0.5, y: pose.y + 0.5 },
+  );
+  assert.equal(selectedUnitPointAt(frontline, 3.5, null), null);
+  assert.equal(
+    selectedUnitPointAt(frontline, 3.5, 'no-such:unit' as never),
+    null,
+    'a selection with no body on the board is not a point',
   );
 });
