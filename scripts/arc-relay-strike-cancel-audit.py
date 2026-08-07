@@ -218,6 +218,62 @@ def strike_key(s):
     return (actor_key(s["shooter"]), s["resolveAtTick"])
 
 
+def whiff_cause(arena, ticks, entry, strike, shooter_id, wedge):
+    """Why a declare locked nothing, read at the tick it was DECLARED.
+
+    Movement resolves before attacks inside a tick, so the mind decides from
+    the tick's opening state and the engine reads the declare after everyone
+    has stepped. That one phase is where a whiff is usually born, and the
+    answers are different problems: the aimed body left the reach wedge
+    entirely (the counterplay working), it died mid-tick, nothing was ever
+    aimed at (a suppressive declare down an empty lane), or it was STILL
+    inside the wedge - which under the named lock (#222b) is a lock that
+    should have landed, and on a pre-#222b replay is one the old
+    first-enemy-on-the-ray geometry threw away.
+    """
+    tick = ticks.get(entry["declaredAt"])
+    if tick is None or not wedge:
+        return "declare tick unavailable"
+    origin = pos(strike["origin"])
+    rng = max(chebyshev(origin, tile) for tile in wedge)
+    ux, uy = HEADINGS[strike["centralHeading"]]
+    ray = []
+    x, y = origin
+    for _ in range(rng):
+        x, y = x + ux, y + uy
+        if arena.is_wall((x, y)):
+            break
+        ray.append((x, y))
+    opening = {
+        actor_key(life["actorId"]): pos(life["position"])
+        for life in tick["tickStart"]["state"]["activeLives"]
+    }
+    current = dict(opening)
+    for event in tick["events"]:
+        if event["kind"] == "movement":
+            who = actor_key(event["payload"]["actorId"])
+            if who in current:
+                current[who] = pos(event["payload"]["to"])
+        elif event["kind"] == "destruction":
+            current.pop(actor_key(event["payload"]["actorId"]), None)
+    aimed = next(
+        (
+            who
+            for tile in ray
+            for who, where in opening.items()
+            if where == tile and who[0] != shooter_id[0]
+        ),
+        None,
+    )
+    if aimed is None:
+        return "nothing was on the aim at the declare tick's opening state"
+    if aimed not in current:
+        return "the aimed body died inside the declare tick"
+    if current[aimed] in wedge:
+        return "the aimed body was still inside the frozen wedge"
+    return "the aimed body left the reach wedge inside the declare tick"
+
+
 def analyse(path, verbose=False):
     doc = json.load(gzip.open(path))
     arena = Arena(doc)
@@ -351,10 +407,13 @@ def analyse(path, verbose=False):
             continue
 
         if locked is None:
-            # An unlocked declare - no enemy on the aim (#222) - fires the
+            # An unlocked declare - the mind named nobody the engine could
+            # lock (#222 and its 2026-08-08 correction) - fires the
             # theatrical whiff down the centre. The only thing that stops it
             # is the shooter itself: dying, or walking away from its own
             # windup (#221).
+            counts["whiff cause: " + whiff_cause(
+                arena, ticks, entry, strike, shooter_id, wedge)] += 1
             abandoned = not resolved and record["shooterCommandedMove"]
             record["cause"] = (
                 "whiff abandoned by the shooter's move command"

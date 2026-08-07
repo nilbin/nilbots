@@ -4966,9 +4966,13 @@ attack phase (the other 4 were wedge-corner occlusion). No amount of aim
 selection closes a gap that opens after the decision is made. A NAME
 survives it. Measured over the same six cells: declares that lock rose
 from 691/974 (71%) to 919/1020 (90%) greedy and 1032/1119 (92%)
-coordinated; whiff share fell 29% -> 9.9% / 7.8%. What is left is almost
-entirely the target stepping out of the reach wedge altogether (95 of 101
-greedy), which is exactly the counterplay the wedge is supposed to be.
+coordinated; whiff share fell 29% -> 9.8% / 7.8%. The audit's new
+whiff-cause read says the same thing from the other side: BEFORE, 200 of
+279 whiffs had the aimed body still standing INSIDE the frozen wedge -
+locks the geometry rule threw away - against 74 that had genuinely left
+it. AFTER, 98 of 100 (greedy) and 82 of 87 (coordinated) are the target
+leaving the reach wedge altogether, which is exactly the counterplay the
+wedge is supposed to be.
 
 The mind still aims its ray through its target - a misaligned ray with a
 valid in-wedge target now locks anyway, but delivery is a line, so
