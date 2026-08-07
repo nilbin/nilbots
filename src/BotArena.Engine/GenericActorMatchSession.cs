@@ -2424,8 +2424,18 @@ public sealed class GenericActorMatchSession : IDisposable
         }
         foreach (Position tile in path)
         {
+            // Own-team bodies are TRANSPARENT to the rail (owner consistency
+            // ruling 2026-08-10). Every other delivery on this ruleset already
+            // spares its own side - projectiles carry
+            // AlliedProjectileContactKind.PassThrough and every other
+            // signature either names one actor or filters by team, as
+            // ApplySentinelFire does twenty lines down - and the rail was the
+            // single exception, by omission rather than by design. Pierce
+            // semantics against ENEMIES are untouched: the line still does not
+            // stop at the first body it meets.
             foreach (LifeState target in _lives.Values
-                         .Where(value => value.Position == tile)
+                         .Where(value => value.Position == tile
+                             && value.ActorId.TeamId != effect.Owner.TeamId)
                          .OrderBy(value => value.ActorId)
                          .ToArray())
             {

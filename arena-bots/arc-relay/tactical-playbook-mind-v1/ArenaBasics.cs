@@ -1238,17 +1238,13 @@ internal static class ArenaBasics
     /// not publish a UnitTarget is not a lock signature and falls through to
     /// the plain heading cast.
     /// </remarks>
-    /// <param name="pierceBlockers">When non-null this cast PIERCES: the
-    /// whole segment it would damage must be clear of these tiles. Null for
-    /// a signature that stops at its target.</param>
     public static bool TryLockedLineSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         string signatureKind,
         ActorIdentity targetActor,
         Position target,
-        string reason,
-        IReadOnlySet<Position>? pierceBlockers = null)
+        string reason)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -1285,13 +1281,6 @@ internal static class ArenaBasics
         {
             return false;
         }
-        if (pierceBlockers is not null
-            && FriendlyOnPierceLine(
-                contract.Map, body.Position, heading, reach, pierceBlockers))
-        {
-            return false;
-        }
-
         body.Command(
             action.ActionId,
             action.ActionCode,
@@ -1326,15 +1315,12 @@ internal static class ArenaBasics
                 .ArgumentConstraint.UnitTargetConstraint>().Any();
     }
 
-    /// <param name="pierceBlockers">When non-null this cast PIERCES: the
-    /// whole segment it would damage must be clear of these tiles.</param>
     public static bool TryHeadingSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         string signatureKind,
         Position target,
-        string reason,
-        IReadOnlySet<Position>? pierceBlockers = null)
+        string reason)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -1357,17 +1343,6 @@ internal static class ArenaBasics
         {
             return false;
         }
-        if (pierceBlockers is not null
-            && FriendlyOnPierceLine(
-                contract.Map,
-                body.Position,
-                heading,
-                signature?.Range ?? distance,
-                pierceBlockers))
-        {
-            return false;
-        }
-
         body.Command(
             action.ActionId,
             action.ActionCode,
@@ -2333,47 +2308,6 @@ internal static class ArenaBasics
         foreach (GenericActorContext.ObservedAllyState ally in mind.Allies)
             friends.Add(ally.Position);
         return friends;
-    }
-
-    /// <summary>
-    /// Whether an own body stands anywhere on the segment a PIERCING line
-    /// would damage: from the caster out along the declared heading to the
-    /// signature's reach, stopping at the first wall.
-    ///
-    /// <para>Ordinary fire needs no such test on this ruleset — Arc Relay
-    /// sets <c>AlliedProjectileContactKind.PassThrough</c>
-    /// (<c>ArcRelayH0Definition.cs:388</c>), so a bolt or a matured strike
-    /// flies THROUGH its own team untouched. The rail is the exception and
-    /// the reason this exists: <c>ApplyRailLine</c>
-    /// (<c>GenericActorMatchSession.cs:2425</c>) damages every life on every
-    /// tile of its path with no team filter at all — compare
-    /// <c>ApplySentinelFire</c> two methods down, which explicitly requires
-    /// <c>target.ActorId.TeamId != effect.Owner.TeamId</c>. The rail does not
-    /// stop at first contact either, so "is a teammate between me and the
-    /// target" is the wrong question for it: everything on the line is hit,
-    /// including the ally standing one tile PAST the enemy.</para>
-    /// </summary>
-    internal static bool FriendlyOnPierceLine(
-        GenericActorMapContract map,
-        Position source,
-        ProjectileHeading heading,
-        int reach,
-        IReadOnlySet<Position> friendlies)
-    {
-        if (friendlies.Count == 0)
-            return false;
-        (int dx, int dy) = heading.Vector();
-        Position cursor = source;
-        for (int step = 0; step < reach; step++)
-        {
-            Position next = cursor.Offset(dx, dy);
-            if (!CanEnter(map, next))
-                return false;
-            if (friendlies.Contains(next))
-                return true;
-            cursor = next;
-        }
-        return false;
     }
 
     /// <summary>

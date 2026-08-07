@@ -85,6 +85,13 @@ internal sealed class TacticalTaskMachine
 
     internal TacticalTaskStateView State(string taskId) => View(_states[taskId]);
 
+    /// <summary>Whether a task exists and is running right now. Safe on an
+    /// unknown id: a ladder rung naming an order this sheet never generated
+    /// is simply not a rung you can stand on.</summary>
+    internal bool IsActive(string taskId) =>
+        _states.TryGetValue(taskId, out Runtime? state)
+        && state.Phase == TacticalTaskPhase.Active;
+
     internal string TraceSummary => _plans.Length == 0
         ? "tasks=none"
         : "tasks=" + string.Join(";", _plans.Select(plan =>

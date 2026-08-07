@@ -1175,28 +1175,28 @@
    "transferTimeoutTicks": 8,
    "deliveryTimeoutTicks": 120,
    "accidentalPickup": "transfer",
-  "deliveryRoutes": [
-   {
-    "zone": "north-farm",
-    "route": "shadow-north-long"
-   },
-   {
-    "zone": "enemy-backfield",
-    "route": "shadow-north-long"
-   },
-   {
-    "zone": "midfield",
-    "route": "shadow-north-long"
-   },
-   {
-    "zone": "north-perch",
-    "route": "shadow-north-long"
-   },
-   {
-    "zone": "south-perch",
-    "route": "shadow-north-long"
-   }
-  ],
+   "deliveryRoutes": [
+    {
+     "zone": "north-farm",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "enemy-backfield",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "midfield",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "north-perch",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "south-perch",
+     "route": "shadow-north-long"
+    }
+   ],
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
    "safeConversionConditionSetId": "convert-freely"
@@ -1745,6 +1745,18 @@
     "value": 0,
     "zone": "enemy-backfield",
     "freshnessTicks": 30
+   },
+   "ghost-hurt": {
+    "fact": "role-health",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "hunter"
+   },
+   "ghost-whole": {
+    "fact": "role-health",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "hunter"
    }
   },
   "conditionSets": {
@@ -2354,6 +2366,11 @@
      "fight": {
       "collect": "first"
      }
+    },
+    {
+     "patrol": "stage-loop",
+     "while": "ghost-hurt",
+     "until": "ghost-whole"
     },
     {
      "patrol": "shadow-north-long",

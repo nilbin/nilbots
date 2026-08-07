@@ -540,9 +540,21 @@ internal sealed class TacticalPlaybookPackage
     /// <summary>Break off when the picture reaches Threats, withdrawing
     /// toward the named route or zone until it thins back to the engage
     /// gate.</summary>
+    /// <summary>One rung of the patrol ladder a break-off may rally to: the
+    /// generated order whose task must be ACTIVE for this rung to count, and
+    /// the route it walks.</summary>
+    internal sealed record WithdrawRung(
+        string OrderId,
+        string Route);
+
     internal sealed record CommitDisengageWhen(
         int Threats,
         string? WithdrawTo = null,
+        /// <summary>The patrol ladder, strongest first, floor last. A
+        /// break-off rallies to the highest rung whose task is actually
+        /// running, and falls down the list to the floor when it is not.
+        /// </summary>
+        WithdrawRung[]? WithdrawRoutes = null,
         int RecoverTicks = 24,
         /// <summary>Health at or below which the body trips the same timed
         /// break-off latch the threat count trips. Zero is off.</summary>

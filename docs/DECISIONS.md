@@ -6235,3 +6235,107 @@ Over six cells the muster tasks are active 299 ticks (greedy) and 242
 (coordinated), yielding 417 and 291 escort body-ticks. Pinned by four tests:
 call-answer into the caller's order, rung-outranks-call, no-muster-not-
 recruitable, and two-callers-highest-first.
+
+### 243a. Amendment, 2026-08-10: the rail joins PassThrough, and the gate goes
+
+Owner consistency ruling. #243 built a cast gate because the rail was the one
+delivery on this ruleset that damaged its own team. The owner's answer is to
+fix the inconsistency rather than to route around it: **the rail is no longer
+friendly fire.**
+
+`ApplyRailLine` (`GenericActorMatchSession.cs:2425`) now carries the same
+own-team filter `ApplySentinelFire` has twenty lines below it — it damages
+every ENEMY life on the path and its own side is transparent. Pierce
+semantics against enemies are untouched: the beam still does not stop at the
+first body it meets, which is the whole reason rail's delivery is not the
+gun's first-body-contact ray.
+
+With allies transparent the cast gate withholds casts for a hazard that no
+longer exists, so it is **removed** — `PiercingSignatures`, the
+`pierceBlockers` parameters on both signature wrappers, and
+`FriendlyOnPierceLine` are all gone. The `tellTicks: 1` walk-on residual #243
+reported honestly dissolves with it; there is nothing left to reserve a lane
+for.
+
+Re-pinned in `ArcRelaySignatureLockTests`: `TheBeamSparesItsOwnTeamAndStill\
+ReachesTheLock` (a teammate squarely on the beam takes nothing AND the lock
+behind it is still hit) beside the unchanged
+`TheBeamPiercesAndEveryBodyOnTheLineTakesIt`, which now reads as the ENEMY
+interposition case it always was.
+
+This is a gameplay change to a shipped-adjacent experimental mode: the
+measured friendly-rail damage at `b70c5163` (31 of 125 events greedy, 22 of
+92 coordinated) is now zero by construction rather than by mind policy.
+
+## 245. Break-off rallies to the highest ACTIVE patrol
+
+Owner ruling 2026-08-10. A break-off latch used to rally to the FLOOR patrol
+route by construction — `withdrawTo` was `floorRoute`, full stop. A doctrine
+whose ladder carries a safer patrol above the floor should fall back onto
+THAT while it is running.
+
+The compiled engagement now carries a `withdrawRoutes` **ladder**: every
+patrol-verb mode's generated order and the route it walks, strongest first,
+floor last. At latch trip the mind walks the ladder and takes the first rung
+whose task is actually `Active`, falling down the list to the floor when none
+of the conditional patrols are. The choice stays sticky exactly as before
+(#225's lesson: re-picking per tick made the ghost pace two tiles).
+
+Two things fell out of doing it properly:
+
+**A health break-off had nowhere to go.** `withdrawTo` was only emitted when
+`breakOff.threats > 0`, so a doctrine with only `breakOff.health` latched
+into nothing — the body decided to leave the fight and then stood in it.
+Both triggers now get the ladder.
+
+**`traffic` floors are still rejected**, now for either trigger: a computed
+traffic patrol is not a place you can rally to.
+
+## 246. `role-health`: the weakest body of a role
+
+A team-level condition fact — the minimum current health among live bodies of
+the subject role — so a sheet can say "my hunter is hurt" without the grammar
+learning to talk about individual bodies. **9999 when the role has no live
+body**, the same "absent reads as unreachable" convention
+`well-ticks-until-birth` uses, so a mode gated on hurt does not switch itself
+on the moment the role dies.
+
+Subject is a role id and is validated as one, exactly like `role-live-count`.
+
+### Demonstrated on the committed sheet
+
+Both hunter sheets gain a SAFE-ROADS patrol above the floor:
+
+```json
+{ "patrol": "stage-loop", "while": "ghost-hurt", "until": "ghost-whole" }
+```
+
+with `ghost-hurt` = `role-health hunter at-most 2` and `ghost-whole` =
+`role-health hunter at-least 3` (a kestrel's maximum is 3, so "hurt" is "has
+taken a hit"). `stage-loop` is a tight home-side loop — `[[6,9],[10,11],
+[10,15],[6,17]]` — against the floor's `shadow-north-long`, which runs to
+x=27 in enemy ground. **Note on honesty:** the layout was not authored with a
+"safe route" in mind; `stage-loop` is an existing route that happens to be
+home-side, used here as proof of mechanism rather than as a tuned choice.
+
+The ghost's ladder therefore compiles to
+`[ghost-patrol-1 -> stage-loop, ghost-patrol-2 -> shadow-north-long]`.
+
+Mode flip, `greedy-e-9004` t84 team 1 — ghost u0 at (15,7) drops to health 2
+and `ghost-patrol-1` goes active. Over six cells the safe-roads patrol is
+active 649 ticks (greedy) and 1277 (coordinated).
+
+A break-off rallying to it, same cell, team 1:
+
+```
+t145 (19,19) hp3  ghost-patrol-2:duel-stand
+t146 (19,19) hp1  ghost-recover:withdraw via North
+t147 (19,18) hp1  ghost-recover:withdraw via NorthEast
+...
+t154 (22,11) hp1  ghost-recover:withdraw via NorthEast
+```
+
+The body's own mode is `recover`; the RALLY is `stage-loop` because
+`ghost-patrol-1` is the highest active patrol — it walks toward the mirrored
+home-side loop rather than toward the mirrored `shadow-north-long`. 229
+withdraw commands were issued while the safe road was active.

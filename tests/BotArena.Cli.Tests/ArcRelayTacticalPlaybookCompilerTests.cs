@@ -1773,8 +1773,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Equal(2, lancerMusters.Length);
         // Canonical order puts the stronger caller (lower number) first.
         Assert.Equal(
-            ["lancer-support-muster-5-ghost-assault-1",
-             "lancer-support-muster-6-ghost-assault-2"],
+            ["lancer-support-muster-4-ghost-assault-1",
+             "lancer-support-muster-5-ghost-assault-2"],
             lancerMusters);
     }
 
@@ -1804,6 +1804,67 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(path));
             Assert.Contains("cannot escort itself", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>The break-off ladder: every patrol-verb mode's order and
+    /// route, strongest first, floor last — so a latched body can rally to
+    /// the highest one that is actually running.</summary>
+    [Fact]
+    public void ABreakOffCarriesThePatrolLadderNotJustTheFloor()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement disengage = playbook.RootElement
+            .GetProperty("engagements")
+            .EnumerateArray()
+            .Single(value => value.GetProperty("engagementId").GetString()
+                == "ghost-patrol-2")
+            .GetProperty("commit")
+            .GetProperty("disengageWhen");
+        Assert.Equal(
+            "shadow-north-long",
+            disengage.GetProperty("withdrawTo").GetString());
+        (string Order, string Route)[] ladder = disengage
+            .GetProperty("withdrawRoutes")
+            .EnumerateArray()
+            .Select(rung => (
+                rung.GetProperty("orderId").GetString()!,
+                rung.GetProperty("route").GetString()!))
+            .ToArray();
+        Assert.Equal(
+            [("ghost-patrol-1", "stage-loop"),
+             ("ghost-patrol-2", "shadow-north-long")],
+            ladder);
+    }
+
+    /// <summary>`role-health` is the weakest live body of a role, and it is
+    /// a role-subject fact like `role-live-count`.</summary>
+    [Fact]
+    public void RoleHealthIsAKnownFactAndItsSubjectMustBeARole()
+    {
+        // The committed sheet gates its safe-roads patrol on it, so a clean
+        // compile is the positive case: an unknown fact is a hard error.
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        Assert.NotEmpty(compilation.NormalizedPlaybook);
+
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        source["authoring"]!["predicates"]!["ghost-hurt"]!
+            .AsObject()["subject"] = "not-a-role";
+        string path = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains("unknown role 'not-a-role'", failure.Message);
         }
         finally
         {

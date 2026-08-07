@@ -1376,6 +1376,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             roles.Values.GroupBy(value => value, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Count(),
                     StringComparer.Ordinal),
+            mind.Bodies
+                .GroupBy(body => roles[body.UnitId], StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Min(body => body.Health),
+                    StringComparer.Ordinal),
             groupLive,
             groupJoining,
             groupCohesion,
@@ -1698,6 +1704,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     snapshot.Tick - value.StartedTick),
             "role-live-count" => snapshot.RoleLive
                 .GetValueOrDefault(condition.Subject),
+            // The weakest live body of the role. 9999 when the role has no
+            // live body at all, so a mode gated on "hurt" does not switch
+            // itself on the moment the role dies - the same "absent reads as
+            // unreachable" convention well-ticks-until-birth uses.
+            "role-health" => snapshot.RoleHealth
+                .GetValueOrDefault(condition.Subject, 9999),
             "group-max-level" => snapshot.GroupMaxLevel
                 .GetValueOrDefault(condition.Subject),
             // Threefold sockets: subjects are the contract's absolute well
@@ -5547,21 +5559,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// ruleset carries the lock, the historical exact-ray cast where it does
     /// not.
     /// </summary>
-    /// <summary>
-    /// Line signatures that do NOT stop at their target — they share their
-    /// damage down the whole segment, allies included.
-    ///
-    /// <para>The rules contract does not publish a pierce flag, so this is a
-    /// named rules fact rather than a derived one, and it is checked against
-    /// the engine: <c>ApplyRailLine</c>
-    /// (<c>GenericActorMatchSession.cs:2425</c>) damages every life on every
-    /// tile of the path with no team filter, where every other offensive
-    /// signature either targets one actor or filters by team. If a piercing
-    /// signature is ever added, it belongs in this set on the same day.</para>
-    /// </summary>
-    private static readonly HashSet<string> PiercingSignatures =
-        new(StringComparer.Ordinal) { "rail-line" };
-
     private static bool CastLineSignature(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -5570,20 +5567,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string kind,
         string reason)
     {
-        // A piercing cast may not be fired through our own people. Ordinary
-        // fire needs no such gate on this ruleset - Arc Relay sets
-        // AlliedProjectileContactKind.PassThrough, so bolts and matured
-        // strikes fly through their own team untouched - which is exactly why
-        // this one does (DECISIONS #243).
-        IReadOnlySet<Position>? blockers = PiercingSignatures.Contains(kind)
-            ? ArenaBasics.Friendlies(mind)
-            : null;
+        _ = mind;
         return ArenaBasics.DeclaresLock(contract, body, kind)
             ? ArenaBasics.TryLockedLineSignature(
-                contract, body, kind, enemy.ActorId, enemy.Position, reason,
-                blockers)
+                contract, body, kind, enemy.ActorId, enemy.Position, reason)
             : ArenaBasics.TryHeadingSignature(
-                contract, body, kind, enemy.Position, reason, blockers);
+                contract, body, kind, enemy.Position, reason);
     }
 
     /// <summary>
@@ -5721,8 +5710,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ArenaBasics.Claims claims,
         string reason)
     {
-        if (engagement.Commit?.DisengageWhen?.WithdrawTo is not string named)
+        if (engagement.Commit?.DisengageWhen is not
+                TacticalPlaybookPackage.CommitDisengageWhen disengage
+            || disengage.WithdrawTo is not string floorNamed)
+        {
             return false;
+        }
+        // Rally to the highest ACTIVE patrol, not to the floor by
+        // construction (owner ruling 2026-08-10). A doctrine whose ladder
+        // carries a safe-roads patrol above the floor should fall back onto
+        // THAT while it is running; when it is not, the walk down the list
+        // ends at the floor, which is what the ladder's last rung is.
+        string named = floorNamed;
+        foreach (TacticalPlaybookPackage.WithdrawRung rung in
+                 disengage.WithdrawRoutes ?? [])
+        {
+            if (_tasks?.IsActive(rung.OrderId) == true)
+            {
+                named = rung.Route;
+                break;
+            }
+        }
         (int LifeId, int UntilTick) latch =
             _disengaging.GetValueOrDefault(body.UnitId);
         if (latch.LifeId != body.ActorId.LifeId
@@ -6125,6 +6133,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int ReactorIntegrity,
         int ReactorCharge,
         IReadOnlyDictionary<string, int> RoleLive,
+        IReadOnlyDictionary<string, int> RoleHealth,
         IReadOnlyDictionary<string, int> GroupLive,
         IReadOnlyDictionary<string, int> GroupJoining,
         IReadOnlyDictionary<string, int> GroupCohesion,

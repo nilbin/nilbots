@@ -8,8 +8,9 @@ namespace BotArena.Engine.Tests;
 /// striking"). Rail and the grammar-2 hook declare exactly as a windup gun
 /// does — a named target, a frozen 90° wedge, a lock that follows inside it,
 /// and the strike's cancels — and differ ONLY in what leaves the muzzle: the
-/// rail beam PIERCES its line, so interposition shares it instead of stopping
-/// it.
+/// rail beam PIERCES its line, so ENEMY interposition shares it instead of
+/// stopping it. Its own team is transparent to it, like every other delivery
+/// on this ruleset (owner consistency ruling 2026-08-10).
 /// <para>
 /// Tracking follows the same spotter rule as a gun strike: the lock lives
 /// while the shooter's TEAM sees it and a clear physical ray joins the two.
@@ -40,12 +41,34 @@ public sealed class ArcRelaySignatureLockTests
     }
 
     [Fact]
+    public void TheBeamSparesItsOwnTeamAndStillReachesTheLock()
+    {
+        // Owner consistency ruling 2026-08-10: the rail joins the ruleset it
+        // lives in. Projectiles carry AlliedProjectileContactKind.PassThrough
+        // and every other signature either names one actor or filters by
+        // team; the rail damaging its own side was an omission, not a design.
+        // A teammate parked squarely on the beam takes nothing, and the beam
+        // does not stop on it either — the lock behind it is still hit.
+        using Arena arena = Arena.Create(
+            Zero(Shooter, new Position(5, 4)),
+            One(new Position(8, 4)));
+
+        GenericActorMatchStepResult declared =
+            arena.Step((0, 0, arena.Rail(ProjectileHeading.East, target: 0)));
+        int allyBefore = arena.Body(declared, 0, 1).Health;
+        GenericActorMatchStepResult matured = arena.Step();
+
+        Assert.Equal(allyBefore, arena.Body(matured, 0, 1).Health);
+        Assert.Equal(3, arena.Body(matured, 1, 0).Health);
+    }
+
+    [Fact]
     public void TheBeamPiercesAndEveryBodyOnTheLineTakesIt()
     {
-        // Interposition SHARES a beam rather than stopping it — the whole
-        // reason rail's delivery is not the gun's first-body-contact ray.
-        // Two bodies stand between the shooter and its lock; all three are
-        // hit by the one cast.
+        // Interposition by an ENEMY shares a beam rather than stopping it —
+        // the whole reason rail's delivery is not the gun's first-body-contact
+        // ray. Two bodies stand between the shooter and its lock; all three
+        // are hit by the one cast.
         using Arena arena = Arena.Create(
             Zero(Shooter),
             One(new Position(8, 4), new Position(5, 4), new Position(6, 4)));

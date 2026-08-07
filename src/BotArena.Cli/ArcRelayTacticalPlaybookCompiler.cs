@@ -58,6 +58,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         "reactor-integrity", "reactor-charge", "formation-established-ticks",
         "group-formation-broken", "movement-complete", "custody-state-ticks",
         "role-live-count", "group-max-level",
+        // The weakest body of a role, by current health. Team-level and
+        // honest: a sheet can gate a mode on "my hunter is hurt" without the
+        // grammar learning to talk about individual bodies. 9999 when the
+        // role has no live body, so "hurt" is never true of the dead.
+        "role-health",
         // Threefold sockets (subject = the contract's absolute well id).
         "own-socket-filled", "enemy-socket-filled",
         "own-filled-sockets", "enemy-filled-sockets",
@@ -1011,6 +1016,30 @@ public static class ArcRelayTacticalPlaybookCompiler
                     }
                 }
             }
+            // The PATROL LADDER, in mode order: every patrol-verb mode's
+            // generated order and the route it walks, strongest first, floor
+            // last. A break-off rallies to the highest one that is actually
+            // active (owner ruling 2026-08-10), so the list has to travel
+            // with the engagement rather than being collapsed to the floor.
+            var patrolLadder = new JsonArray();
+            var ladderSeen = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int index = 0; index < modes.Length; index++)
+            {
+                if (verbs[index] != "patrol")
+                    continue;
+                int occurrence = ladderSeen.GetValueOrDefault("patrol") + 1;
+                ladderSeen["patrol"] = occurrence;
+                string route = modes[index].GetProperty("patrol").GetString()!;
+                if (route == "traffic")
+                    continue;
+                patrolLadder.Add(new JsonObject
+                {
+                    ["orderId"] = verbCounts["patrol"] > 1
+                        ? $"{id}-patrol-{occurrence}"
+                        : $"{id}-patrol",
+                    ["route"] = route,
+                });
+            }
             JsonElement floor = modes[^1];
             if (verbs[^1] is not ("patrol" or "squad")
                 || floor.TryGetProperty("while", out _)
@@ -1142,7 +1171,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 engagements.Add(DoctrineEngagement(
                     name, role,
                     escorts.Select(entry => entry.RoleId).ToArray(),
-                    fight, floorRoute, modeAt));
+                    fight, floorRoute, patrolLadder, modeAt));
 
                 var assignment = new JsonObject
                 {
@@ -2030,6 +2059,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlyCollection<string> escortRoles,
         ResolvedFight fight,
         string floorRoute,
+        JsonArray patrolLadder,
         string path)
     {
         var engagement = new JsonObject
@@ -2123,7 +2153,13 @@ public static class ArcRelayTacticalPlaybookCompiler
         }
         if (fight.Threats > 0 || fight.BreakHealth > 0)
         {
-            if (fight.Threats > 0 && floorRoute == "traffic")
+            // A break-off LATCHES on either trigger, and a latched body that
+            // has nowhere to rally just stands in the fight it decided to
+            // leave. So both triggers get the ladder (owner ruling
+            // 2026-08-10: rally at latch trip); before this only the threat
+            // count did, and `breakOff.health` latched into nothing.
+            bool rallies = fight.Threats > 0 || fight.BreakHealth > 0;
+            if (rallies && floorRoute == "traffic")
             {
                 throw Error(path,
                     "an active breakOff rallies to the floor patrol route, "
@@ -2136,8 +2172,18 @@ public static class ArcRelayTacticalPlaybookCompiler
             };
             if (fight.Threats > 0)
                 disengage["threats"] = fight.Threats;
-            if (fight.Threats > 0)
+            if (rallies)
+            {
                 disengage["withdrawTo"] = floorRoute;
+                disengage["withdrawRoutes"] = new JsonArray(
+                    patrolLadder.Select(entry =>
+                        (JsonNode)new JsonObject
+                        {
+                            ["orderId"] = entry!["orderId"]!
+                                .GetValue<string>(),
+                            ["route"] = entry!["route"]!.GetValue<string>(),
+                        }).ToArray());
+            }
             if (fight.BreakHealth > 0)
                 disengage["health"] = fight.BreakHealth;
             commit["disengageWhen"] = disengage;
@@ -3568,7 +3614,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "disengageWhen", out JsonElement disengage))
             {
                 Object(disengage, $"{at}.{id}.commit.disengageWhen",
-                    [], ["threats", "withdrawTo", "recoverTicks",
+                    [], ["threats", "withdrawTo", "withdrawRoutes",
+                        "recoverTicks",
                          "health"]);
                 // Either trigger may drive the latch, but a disengage block
                 // with neither is a policy that never fires.
@@ -3587,6 +3634,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                     Range(disengage, "recoverTicks", at, 4, 120);
                 if (disengage.TryGetProperty("withdrawTo", out _))
                     Identifier(disengage, "withdrawTo", at);
+                if (disengage.TryGetProperty(
+                        "withdrawRoutes", out JsonElement ladder))
+                {
+                    foreach (JsonElement rung in ladder.EnumerateArray())
+                    {
+                        Object(rung, $"{at}.withdrawRoutes",
+                            ["orderId", "route"]);
+                        Identifier(rung, "orderId", $"{at}.withdrawRoutes");
+                        Identifier(rung, "route", $"{at}.withdrawRoutes");
+                    }
+                }
             }
             // Approach discipline (ghost doctrine v3): suppress frontal
             // declares and maneuver to the target's blind rear inside a
@@ -4344,7 +4402,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             throw Error(path, $"unknown condition fact '{fact}'.");
         var variantFields = new List<string>();
         if (GroupSubjectFacts.Contains(fact)
-            || fact is "role-live-count" or "well-has-outstanding"
+            || fact is "role-live-count" or "role-health"
+                or "well-has-outstanding"
                 or "own-socket-filled" or "enemy-socket-filled"
                 or "well-ticks-until-birth" or "recover-ready-bodies")
             variantFields.Add("subject");
@@ -4373,7 +4432,8 @@ public static class ArcRelayTacticalPlaybookCompiler
             Range(value, "freshnessTicks", path, 1, 600);
         if (GroupSubjectFacts.Contains(fact) && !groupIds.Contains(subject))
             throw Error(path, $"condition references unknown group '{subject}'.");
-        if ((fact is "role-live-count" or "recover-ready-bodies")
+        if ((fact is "role-live-count" or "recover-ready-bodies"
+                or "role-health")
             && !roleIds.Contains(subject))
             throw Error(path, $"condition references unknown role '{subject}'.");
         if (OrderSubjectFacts.Contains(fact) && !orderIds.Contains(subject))
