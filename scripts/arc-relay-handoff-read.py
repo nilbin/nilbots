@@ -3,10 +3,12 @@
 
 An episode is a run of `custody:transfer-approach*` ticks ending in a
 `custody:transfer-drop`. Each line reports the passer, the ticks it spent
-approaching, and how far it actually walked - the cost the combined-cost
-receiver rule (DECISIONS #228) exists to cut. A long approach means the
-chosen receiver was expensive to reach; read it beside the ball's total
-journey, not alone.
+approaching, and how far it actually walked - which IS the cost the
+receiver rule is now chosen to cut. Owner ruling 2026-08-10 (DECISIONS
+#238) replaced the combined-cost rule of #228 with "the closest ally that
+is towards the own base": nearest to the PASSER among the bodies strictly
+nearer home. So a long approach is no longer a trade the rule accepted -
+it is the rule failing, and worth reading.
 
 Usage: arc-relay-handoff-read.py REPLAY.json.gz TEAM
 """

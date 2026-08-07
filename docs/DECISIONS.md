@@ -5762,3 +5762,84 @@ new to the lens, defined in its docstring):
 Own-contest blockades stay at zero on both steppers, which is the claim the
 lanes were always making; what changed is that the mind no longer pays for
 them with a dance.
+
+## 238. A deep ball outranks a ghost assault
+
+Owner ruling 2026-08-10: **"picking up balls close to the enemy's base
+should be more important than ghost assault"**.
+
+The ghost's assault mode inherited the doctrine-level `fight.collect:
+"yield"` — deliberately authored, and the reasoning was sound as far as it
+went: finish the kill, step over the ball. What it missed is WHERE an assault
+happens. The ghost's collect zones are `midfield`, `enemy-backfield` and the
+two perches; a ball loose inside them is a ball the enemy is about to bank,
+and the enemy half is exactly the ground the assault is standing on. Yielding
+there is not "finish the fight", it is "walk past the most valuable object on
+the map".
+
+Both hunter sheets' assault mode now carries its own
+`"fight": {"collect": "first"}`. This is a per-mode override of the same key
+the patrol mode already sets, so no mechanism moved — the compiler resolves
+mode fight keys over doctrine fight keys and always did. Verified through the
+compiled package: `ghost-assault` collect goes `yield` -> `first`, while
+`ghost-recover` stays `yield` and `ghost-patrol` stays `first`.
+
+Collect-first semantics are unchanged and they are what makes this safe: it
+breaks off the UNCOMMITTED part of a fight only. A strike windup is rooted
+(#221), a cone dodge and the one-hit-from-dead survival channel both outrank
+it, and withdraw still comes first. What it spends is the ghost's free ticks.
+
+Live at seed 9103, team 0, ghost u0, own reactor (2,13), enemy reactor
+(28,13) — a ball at (20,18) is eighteen tiles from home and eight from
+theirs:
+
+```
+t 85 (21,15) ghost-recover  loose=[(20,18)]  veterancy-invest
+t 86 (21,15) ghost-assault  loose=[(20,18)]  collect-core via South
+t 87 (21,16) ghost-assault  loose=[(20,18)]  collect-core via SouthWest
+t 88 (20,17) ghost-assault  loose=[(20,18)]  collect-core via South
+t 89 (20,18) ghost-assault  carrying         custody:transfer-approach-wait
+```
+
+Three ticks from noticing to holding it, then straight into a hand-off. 126
+such commands across twelve probe seeds; zero before the edit.
+
+## 239. The hand-off goes to the nearest ally that is on the way home
+
+Owner ruling 2026-08-10: **"whom to pass to should be pretty much the closest
+ally that is towards the own base"**. This replaces #228.
+
+`TransferReceiver` now filters to own bodies that are alive, not carrying,
+reachable, and STRICTLY nearer home than the passer by map distance — and
+then takes the one CLOSEST TO THE PASSER, ties broken by the shorter walk
+home and then by unit id.
+
+#228 minimised the ball's whole remaining journey, passer-leg plus
+receiver-leg. That sum is a defensible answer to a question nobody asked: it
+treats ten ticks of approach as free if the receiver is ten tiles further
+along, and a hand-off that takes ten ticks to set up is one the defence has
+already answered. Nearness is the point of a pass; "towards the own base" is
+the filter, not the score.
+
+Seed 9103, tick 90 — passer u0 at (20,18), own reactor (2,13), every live
+ally strictly nearer home:
+
+```
+u1 (15, 8)  to-passer 10  to-home 13
+u2 (17,19)  to-passer  3  to-home 15   <- chosen
+u3 ( 9,15)  to-passer 11  to-home  7
+u4 (10,15)  to-passer 10  to-home  8
+u5 ( 9,10)  to-passer 11  to-home  7
+u6 (12,16)  to-passer  8  to-home 10
+u7 (13,15)  to-passer  7  to-home 11
+```
+
+u0 drops at t91, u2 has it at t92 and is delivering at t93. Under the
+combined-cost rule five of those seven scored identically to u2, and the
+choice fell to a tie-break rather than to the rule.
+
+Across the six exhibition cells, greedy: 15 hand-offs at a mean 6.13 approach
+ticks before, 16 at a mean 5.31 after — measured together with #237, so the
+split is not attributed. `scripts/arc-relay-handoff-read.py` states the new
+rule in its docstring: a long approach used to be a trade the rule accepted
+and is now the rule failing.

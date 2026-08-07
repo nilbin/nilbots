@@ -3788,18 +3788,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// Who to hand the ball to: among own bodies strictly nearer home than
-    /// the passer, walkable-from-here and not already carrying, the one that
-    /// minimises the BALL'S remaining journey — the walk out to the receiver
-    /// plus the receiver's walk home.
+    /// Who to hand the ball to, per the owner's rule 2026-08-10: **"whom to
+    /// pass to should be pretty much the closest ally that is towards the
+    /// own base"**. Among own bodies that are alive, not already carrying,
+    /// reachable, and STRICTLY nearer home than the passer, take the one
+    /// CLOSEST TO THE PASSER; ties go to the shorter walk home, then to the
+    /// lower unit id.
     ///
-    /// <para>The old rule picked the eligible body nearest the PASSER, and
-    /// "nearest to me" is not the same question as "cheapest for the ball":
-    /// it sent a passer trekking a long way to a receiver that was barely
-    /// ahead of it, past nearer bodies that were much further along (owner
-    /// catch 2026-08-09). Summing the two legs balances the two by
-    /// construction — a receiver one tile away that is one tile ahead is
-    /// worth no more than the trip it saves.</para>
+    /// <para>This replaces the combined-cost rule of #228, which minimised
+    /// the ball's whole remaining journey (walk out to the receiver plus the
+    /// receiver's walk home). That sum is the right answer to a question
+    /// nobody was asking: it happily sent a passer on a long trek to a body
+    /// far down the field, and a hand-off that takes ten ticks to set up is
+    /// a hand-off the defence has already answered. Nearness is the whole
+    /// point of a pass; "towards the own base" is the filter, not the score.
+    /// </para>
     ///
     /// <para>Distances are MAP distances, not Chebyshev: "nearer home" and
     /// "close by" both have to mean walking, or a body one tile away across
@@ -3830,10 +3833,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Where(candidate => candidate.ToReceiver is not null
                 && candidate.Home is not null
                 && candidate.Home < carrierHome)
-            .OrderBy(candidate =>
-                candidate.ToReceiver!.Value + candidate.Home!.Value)
-            // Same total journey: the passer walks the shorter half.
-            .ThenBy(candidate => candidate.ToReceiver!.Value)
+            .OrderBy(candidate => candidate.ToReceiver!.Value)
+            // Equally close: the one that is further along.
+            .ThenBy(candidate => candidate.Home!.Value)
             .ThenBy(candidate => candidate.Body.UnitId)
             .Select(candidate => candidate.Body)
             .FirstOrDefault();
