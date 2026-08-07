@@ -2316,19 +2316,11 @@
      "until": "shadow-cooled",
      "escort": "medic",
      "fight": {
-      "targets": {
-       "lone": 0
-      },
       "engage": {
-       "within": 0
+       "within": 6
       },
       "chase": {
-       "leash": 14,
-       "onlyCatchable": false,
-       "executeBelowHealth": 0
-      },
-      "breakOff": {
-       "threats": 0
+       "leash": 14
       }
      }
     },
