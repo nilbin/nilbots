@@ -1,14 +1,26 @@
 using BotArena.Sdk;
 
 /// <summary>
-/// The mind's ONE movement seam. Every displacing command in the executor
-/// goes through one of six <see cref="ArenaBasics"/> wrappers
-/// (TryMoveDirect, TryMoveToward, TryMoveHomeward, TryEvade, TryStepAway,
-/// TryMoveAside); each of those keeps its name, its legality handling and
-/// its reason strings — traces read them — and asks a stepper the single
-/// question "which adjacent tile does this body take". Distance and
-/// reachability stay free functions on <see cref="ArenaBasics"/>: the
-/// flow field is the heuristic, never the chooser.
+/// The mind's ONE movement arbiter. Every displacing command in the
+/// executor goes through an <see cref="ArenaBasics"/> wrapper
+/// (TryMoveDirect, TryMoveToward, TryMoveHomeward, TryMoveRouted, TryEvade,
+/// TryStepAway, TryVacate); each of those keeps its name, its legality
+/// handling and its reason strings — traces read them — and asks the
+/// stepper the single question "which adjacent tile does this body take".
+/// Distance and reachability stay free functions on
+/// <see cref="ArenaBasics"/>: the flow field is the heuristic, never the
+/// chooser.
+///
+/// <para><b>Nothing else displaces a body.</b> Carrier lanes, escort
+/// right-of-way and a routed delivery's committed corridor are all
+/// RESERVATIONS on the per-tick <see cref="ArenaBasics.Claims"/> plane,
+/// which the arbiter reads BEFORE it chooses a tile — they are inputs, not
+/// vetoes applied after the fact. A body that ends up standing on ground
+/// the plane owes a stronger body is stepped aside by the arbiter itself,
+/// through <see cref="StepIntent.Vacate"/>, with one reason string naming
+/// one author. (Owner scene 2026-08-10: "a brief dance that was
+/// unwarranted just because the carrier was close" was three authorities —
+/// the wall, the shove, and the replan — disagreeing about one tile.)</para>
 ///
 /// <para>The stepper instance belongs to ONE mind (one participant). It is
 /// carried on the per-tick <see cref="ArenaBasics.Claims"/> rather than a
@@ -18,11 +30,13 @@ using BotArena.Sdk;
 internal interface IArenaStepper
 {
     /// <summary>
-    /// Whether the executor should widen its per-tick body order with the
-    /// "in a fight" tier. Greedy stepping keeps the historical order
-    /// exactly; a cooperative planner wants contact resolved before free
-    /// traffic, because a body in contact is the one whose tile everybody
-    /// else must route around.
+    /// Whether the plane's precedence list carries its "in a fight" tier
+    /// into the executor's per-tick body order. Greedy stepping keeps the
+    /// historical order exactly (fighters collapse into <c>rest</c>); a
+    /// cooperative planner wants contact resolved before free traffic,
+    /// because a body in contact is the one whose tile everybody else must
+    /// route around. Right-of-way itself always reads the full list —
+    /// this knob is about plan ORDER, not about who yields.
     /// </summary>
     bool WantsFightPrecedence { get; }
 
@@ -55,6 +69,26 @@ internal enum StepIntent
     /// <summary>TryMoveHomeward: one goal, never lengthening the route.</summary>
     Homeward,
 
+    /// <summary>
+    /// TryMoveRouted: a carrier's own COMMITTED plan — the sticky delivery
+    /// corridor waypoint, or the reactor — walked as one goal with visible
+    /// spawn reservations treated as durable obstacles for the whole route
+    /// rather than for one step. It is the carrier's plan expressed through
+    /// this seam instead of beside it, which is what lets a cooperative
+    /// planner reserve the corridor the carrier is going to walk.
+    /// </summary>
+    Routed,
+
+    /// <summary>
+    /// The plane owes this body's tile to a stronger body: leave it. The
+    /// ONE displacement the movement plane authors on its own — carrier
+    /// lane relief, escort yield and return-lane clearance are all this
+    /// question, asked once. <see cref="StepRequest.Positions"/> is the
+    /// owed ground and <see cref="StepRequest.Anchor"/> the body it is
+    /// owed to.
+    /// </summary>
+    Vacate,
+
     /// <summary>TryStepAway: open the range from the threat tiles.</summary>
     Away,
 
@@ -68,14 +102,20 @@ internal enum StepIntent
 /// <summary>One movement question, tightly coupled to
 /// <see cref="IArenaStepper"/> and colocated with it.</summary>
 /// <param name="Positions">Goals for <see cref="StepIntent.Toward"/>, the
-/// single goal for <see cref="StepIntent.Homeward"/>, the threats for
+/// single goal for <see cref="StepIntent.Homeward"/> and
+/// <see cref="StepIntent.Routed"/>, the threats for
 /// <see cref="StepIntent.Away"/>, the forbidden tiles for
-/// <see cref="StepIntent.Aside"/>, the single destination for
-/// <see cref="StepIntent.Direct"/>.</param>
+/// <see cref="StepIntent.Aside"/> and <see cref="StepIntent.Vacate"/>, the
+/// single destination for <see cref="StepIntent.Direct"/>.</param>
+/// <param name="Anchor">Only <see cref="StepIntent.Vacate"/> uses it: the
+/// tile of the body the ground is owed to, so "straight on, away from
+/// whoever wants through" is expressible as a preference instead of as a
+/// second mover.</param>
 internal sealed record StepRequest(
     StepIntent Intent,
     GenericActorResolvedMatchContract Contract,
     MindContext Mind,
     MindBody Body,
     IReadOnlyCollection<Position> Positions,
-    ArenaBasics.Claims Claims);
+    ArenaBasics.Claims Claims,
+    Position? Anchor = null);

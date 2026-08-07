@@ -18,12 +18,26 @@ every movement destination submitted that tick:
   occupied       the tile already held a live body at tick start
   other          neither - a reservation, a pad, a mid-tick arrival
 
-Plus the two shapes that read as bad pathing on screen:
+Plus the shapes that read as bad pathing on screen:
 
   chokes   runs of >= 3 consecutive ticks where a body commanded a move
            and did not end up anywhere else - stuck, not stepping
   cycles   A->B->A position loops inside 4 ticks, the signature of two
            bodies trading one tile back and forth
+
+  flaps    the tight version of a cycle, and the one the movement layer
+           can act on: the body stands where it stood two ticks ago and
+           somewhere else last tick (A->B->A, both legs single steps).
+           Reported as a share of BODY-TICKS, so a long match and a
+           short one compare.
+  reverse  axis reversals: two consecutive single-step displacements
+           whose dot product is negative - the body took back ground it
+           had just walked. Strictly wider than a flap (a diagonal
+           A->B->C that doubles back counts), and the aggregate the
+           dance shows up in first. Also a share of body-ticks.
+
+Both dance measures skip any pair of frames that is not a legal single
+step, so a respawn teleport is never counted as movement.
 
 Everything is per SCORING TEAM, because a mirror cell runs one mind on
 both sides and a total would hide which side did the grinding.
@@ -160,18 +174,40 @@ def read(path: Path, only_team):
                         and frames[index][0] != frames[index - 1][0]):
                     stats[team]['cycles'] += 1
                     break
+        stats[team]['body-ticks'] += len(frames)
+        for index in range(2, len(frames)):
+            here = frames[index][0]
+            last = frames[index - 1][0]
+            before = frames[index - 2][0]
+            first = (last[0] - before[0], last[1] - before[1])
+            second = (here[0] - last[0], here[1] - last[1])
+            if max(abs(first[0]), abs(first[1])) > 1:
+                continue
+            if max(abs(second[0]), abs(second[1])) > 1:
+                continue
+            if here == before and here != last:
+                stats[team]['flaps'] += 1
+            if first == (0, 0) or second == (0, 0):
+                continue
+            if first[0] * second[0] + first[1] * second[1] < 0:
+                stats[team]['reverse'] += 1
     return stats
 
 
 def line(label, row):
     share = 100.0 * row['blockades'] / row['moves'] if row['moves'] else 0.0
+    ticks = row['body-ticks']
+    flap = 100.0 * row['flaps'] / ticks if ticks else 0.0
+    reverse = 100.0 * row['reverse'] / ticks if ticks else 0.0
     return (
         f'{label}: moves {row["moves"]} '
         f'blockades {row["blockades"]} ({share:.2f}%) '
         f'[own-contest {row["own-contest"]}, '
         f'enemy-contest {row["enemy-contest"]}, '
         f'occupied {row["occupied"]}, other {row["other"]}] '
-        f'chokes {row["chokes"]} cycles {row["cycles"]}')
+        f'chokes {row["chokes"]} cycles {row["cycles"]} '
+        f'flaps {row["flaps"]}/{ticks} ({flap:.2f}%) '
+        f'reverse {row["reverse"]} ({reverse:.2f}%)')
 
 
 def main() -> None:

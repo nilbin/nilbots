@@ -140,15 +140,37 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
 
     public Position? Step(StepRequest request)
     {
-        // Kiting, lane-clearing and already-chosen steps stay exactly as
-        // they were: each is a single reactive tile with its own obstacle
-        // rules, and routing them through a route planner would only make
-        // a dodge into a commitment. The route plane — Toward (which
-        // TryEvade also rides) and Homeward — is where coordination pays.
+        // Kiting, yielding and already-chosen steps stay exactly as they
+        // were: each is a single reactive tile with its own obstacle rules,
+        // and routing them through a route planner would only make a dodge
+        // into a commitment. The route plane — Toward, which TryEvade also
+        // rides, and Homeward — is where coordination pays.
         if (request.Intent is StepIntent.Away or StepIntent.Aside
-            or StepIntent.Direct)
+            or StepIntent.Vacate or StepIntent.Direct)
         {
             return _greedy.Step(request);
+        }
+
+        // A routed delivery is the one plan this stepper does not get to
+        // make. The corridor is the CARRIER'S commitment — sticky by
+        // construction, chosen against durable spawn reservations for its
+        // whole length — and a five-tick window that re-decides it every
+        // tick is exactly the re-derivation that produced the w-9002 dance.
+        // So the arbiter takes the committed step and PUBLISHES the
+        // corridor: committing it reserves the ground the Core is going to
+        // walk, and the rest of the team plans around where it will be.
+        if (request.Intent is StepIntent.Routed)
+        {
+            Position? committed = _greedy.Step(request);
+            if (committed is Position first)
+            {
+                _plans[request.Body.UnitId] = Corridor(
+                    request.Contract,
+                    request.Body,
+                    first,
+                    request.Positions.First());
+            }
+            return committed;
         }
 
         IReadOnlyCollection<Position> goals = request.Positions;
@@ -295,6 +317,51 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
         return bestLeaf is Node best
             ? Commit(unit, best, origin, body.Position, goalSet)
             : null;
+    }
+
+    /// <summary>
+    /// The tiles a committed delivery is about to walk: the first step it
+    /// actually chose, then a descent of the flow field toward the same
+    /// goal, one tile per tick, for the length of the window. It is a
+    /// PROJECTION of somebody else's plan rather than a plan of our own —
+    /// traffic is deliberately ignored, because what the rest of the team
+    /// needs to know is where the Core is heading, not who is in its way.
+    /// </summary>
+    private static Position[] Corridor(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position first,
+        Position goal)
+    {
+        GenericActorMapContract map = contract.Map;
+        ProjectileHeading[] headings = ArenaBasics.RouteHeadings(contract, body);
+        var route = new List<Position> { first };
+        Position cursor = first;
+        for (int tick = 1; tick < Window && cursor != goal; tick++)
+        {
+            int? here = ArenaBasics.StaticDistance(map, cursor, goal);
+            Position? best = null;
+            int bestDistance = int.MaxValue;
+            foreach (ProjectileHeading heading in headings)
+            {
+                Position next = ArenaBasics.Step(cursor, heading);
+                if (!ArenaBasics.CanStep(map, cursor, next, heading)
+                    || ArenaBasics.StaticDistance(map, next, goal)
+                        is not int distance
+                    || distance >= here
+                    || distance >= bestDistance)
+                {
+                    continue;
+                }
+                bestDistance = distance;
+                best = next;
+            }
+            if (best is not Position step)
+                break;
+            route.Add(step);
+            cursor = step;
+        }
+        return [.. route];
     }
 
     private static IEnumerable<Position> Successors(

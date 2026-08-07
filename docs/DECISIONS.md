@@ -5630,3 +5630,135 @@ teammate removed cancels.
 Pinned by `GenericActorStrikeWindupRootingTests` (spotter pair, wall case,
 and the renamed "nobody on the team could see it" cancel) and
 `ArcRelaySignatureLockTests` (the same three for a locked beam).
+
+## 237. Movement-plane consolidation: the stepper seam is the ONE arbiter
+
+Owner scene 2026-08-10: **"a brief dance that was unwarranted just because
+the carrier was close"**. The diagnosis was structural, not local — the mind
+had FOUR movement authorities and they argued about one tile:
+
+1. the stepper (greedy / WHCA* behind `IArenaStepper`) planned the step;
+2. `Claims.ReserveLane` walled the tile afterwards, indistinguishably from
+   terrain, so the planner's answer was refused rather than informed;
+3. `TryCarrierLaneRelief`, `escort-yield` and `clear-custody-return-lane`
+   were three separate movers that displaced the loser after the fact, each
+   with its own trigger, its own patience, its own precedence and its own
+   reason vocabulary;
+4. a routed delivery computed its own next tile with
+   `StaticFirstStepAvoidingReservations` and handed the seam a fait accompli.
+
+The measured shape of the argument, `greedy-e-9004` team 0 unit 6, an
+UNCHANGED destination `@16,8` throughout, a loaded carrier parked at (15,11):
+
+```
+t117 (14,11) formation-move@16,8 via SouthEast
+t118 (15,12) formation-move@16,8 via NorthWest
+t119 (14,11) formation-move@16,8 via SouthEast
+t120 (15,12) formation-move@16,8 via NorthWest
+t121 (14,11) formation-move@16,8 via SouthEast
+t122 (15,12) formation-move@16,8 via North
+```
+
+Six ticks, three steps directly away from its own stated goal, zero progress,
+no enemy involved. `greedy-w-9012` team 1 unit 2 shows the same scene with
+the shove included: walled at t58 and t60, externally displaced at t62 by
+`lane-relief:...:choke-relief`, back where it started at t63.
+
+### What landed
+
+**Reservations are inputs.** `ArenaBasics.Claims` is now the per-tick
+MOVEMENT PLANE and carries lanes, ranks and roots into the arbiter before the
+first body is asked anything. `BlockedNow` additionally returns the QUEUE —
+the part of the refusal that is one-tick traffic (a right-of-way lane, a tile
+somebody has committed to entering) as opposed to a wall. A teammate standing
+still is a wall; a teammate walking through is a queue.
+
+**One precedence list**, documented on `ArenaBasics.Claims` and used for lane
+ownership, for every yield, and for the executor's plan order:
+
+```
+0            carriers            (never yield; the walk home is the match)
+1            escort leaders      (never negotiate with their own escort)
+2            fighters            (focus assignment or contact within 2)
+3            rest
+4 + ordinal  escort followers    (declared list order)
+```
+
+Equal weight NEVER yields — `YieldsTo` is strictly better rank. The first
+implementation tie-broke equals by unit id, exactly as the old lane relief
+did, and it walled the higher-numbered of two carriers out of its own bank:
+six coordinated cells, one to max-ticks, 564 `delivery-timeout-guard`
+commands in a single match. A mutual yield between equals is a stalemate, not
+a courtesy. A body the plane owes ground is promoted to rank 1 for the plan
+order only, which is the old "carriers heaviest, their blockers next" tier
+said once instead of three times. The fighter tier reaches the plan order
+only under `WantsFightPrecedence`, so greedy stepping keeps the order it
+measured its history with.
+
+**Queue, don't detour.** When the step a body wants is queued rather than
+walled, and the traffic-aware alternative makes no progress toward the goal,
+the arbiter answers "wait" instead of "go backwards". Waiting one tick beats
+trading two, and where the detour IS progress nothing changed at all.
+
+**One displacement, one author, one reason.** `StepIntent.Vacate` replaces
+all three shoves; `ArenaBasics.TryVacate` is its single call site and emits
+`...:lane-vacate:u<owner>`. The 2-tick `CarrierLanePatience` and the
+`_lanePlugTicks` ledger are gone: a lane is owed the moment it is reserved.
+`ArenaBasics.PlugsCarrierRoute` — dead code since the relief switched to its
+own adjacency test — becomes the COST SPIKE, expressed as a reservation: a
+body standing on an admissible homeward step while every such step is taken
+has its tile reserved for the carrier, so the arbiter clears it this tick.
+
+**The delivery corridor speaks through the seam.** `StepIntent.Routed` is a
+carrier's own committed plan. Greedy answers it with exactly the old
+computation, so the carrier's route policy is byte-identical; the cooperative
+stepper does NOT re-decide it — a five-tick window re-choosing a sticky
+corridor every tick is the re-derivation #225 removed — it takes the
+committed step and PUBLISHES the corridor into the space-time table, so the
+rest of the team plans around where the Core is going. Publishing rather than
+re-planning was worth 3 of 6 cells: re-planning it lost every cell and pushed
+one to max-ticks.
+
+`ArenaBasics.Submit` is now the only place a movement command is emitted;
+`TryMoveToward`, `TryMoveDirect`, `TryMoveRouted` and `TryVacate` share it.
+`TryMoveAside` is gone as a public wrapper — nothing outside the plane needs
+to shove anybody.
+
+### What it cost and what it bought
+
+Six exhibition cells, hunter-v1 vs wellwright-v1, both steppers. State
+digests all differ: the plan order and the queue rule change bytes wherever
+traffic was contested, which is most ticks of most matches — byte-stability
+was the ideal and it is not what happened, and the mechanisms are named
+above. Outcomes: hunter-v1 takes 2 of 6 greedy (was 1) and 3 of 6
+coordinated (unchanged). This is not claimed as a balance improvement.
+
+The owner's scene class — a non-carrier two-tile flap with an own carrier
+within 2 — as a share of beside-a-carrier body-ticks:
+
+| stepper     | before | after  |
+|-------------|--------|--------|
+| greedy      | 15.72% | 7.63%  |
+| coordinated | 15.00% | 13.06% |
+
+Beside a carrier with an UNCHANGED destination, steps taken directly away
+from that destination: greedy 14.16% -> 4.52%; coordinated 11.59% ->
+12.13% (flat, with "toward" up 44.27% -> 46.92% — the cooperative planner
+spends the difference waiting, which is the answer it is supposed to give).
+Beside-carrier windows of four ticks or more, greedy: 80 windows carrying 52
+away-steps before, 47 windows carrying 13 after, and the worst surviving
+window has 2 away-steps in 5 ticks against the six-tick standstill above.
+
+Traffic-read aggregates over the same six cells (the two dance measures are
+new to the lens, defined in its docstring):
+
+| stepper / team    | flaps before | after  | reversals before | after  |
+|-------------------|--------------|--------|------------------|--------|
+| greedy t0         | 8.69%        | 8.24%  | 13.68%           | 12.13% |
+| greedy t1         | 9.58%        | 8.66%  | 14.58%           | 11.97% |
+| coordinated t0    | 8.91%        | 8.72%  | 13.80%           | 13.62% |
+| coordinated t1    | 9.65%        | 8.78%  | 15.00%           | 13.95% |
+
+Own-contest blockades stay at zero on both steppers, which is the claim the
+lanes were always making; what changed is that the mind no longer pays for
+them with a dance.

@@ -26,8 +26,10 @@ internal sealed class GreedyArenaStepper : IArenaStepper
     {
         StepIntent.Toward => Toward(request),
         StepIntent.Homeward => Homeward(request),
+        StepIntent.Routed => Routed(request),
         StepIntent.Away => Away(request),
         StepIntent.Aside => Aside(request),
+        StepIntent.Vacate => Vacate(request),
         StepIntent.Direct => Direct(request),
         _ => null,
     };
@@ -46,20 +48,91 @@ internal sealed class GreedyArenaStepper : IArenaStepper
         }
 
         HashSet<Position> blocked = ArenaBasics.BlockedNow(
-            request.Contract, request.Mind, body, request.Claims);
+            request.Contract, request.Mind, body, request.Claims,
+            out HashSet<Position> queued);
+        HashSet<Position> goals = request.Positions.ToHashSet();
+        ProjectileHeading[] preference = ArenaBasics.PreferredHeadings(
+            body,
+            request.Positions,
+            ArenaBasics.MirroredFrame(request.Contract, request.Mind));
         ProjectileHeading? desired = ArenaBasics.FindFirstStep(
             request.Contract.Map,
             body.Position,
-            request.Positions.ToHashSet(),
+            goals,
             blocked,
             ArenaBasics.RouteHeadings(request.Contract, body),
-            ArenaBasics.PreferredHeadings(
-                body,
-                request.Positions,
-                ArenaBasics.MirroredFrame(request.Contract, request.Mind)));
-        return desired is ProjectileHeading heading
-            ? ArenaBasics.Step(body.Position, heading)
-            : null;
+            preference);
+        if (desired is not ProjectileHeading heading)
+            return null;
+        Position chosen = ArenaBasics.Step(body.Position, heading);
+        return Queues(request, goals, blocked, queued, preference, chosen)
+            ? null
+            : chosen;
+    }
+
+    /// <summary>
+    /// Whether the chosen step is only a detour AROUND a teammate, and a
+    /// detour that buys nothing.
+    ///
+    /// <para>A right-of-way lane and a committed destination are one-tick
+    /// reservations: the tile is free again next tick. Treating them like
+    /// walls is what produced the owner's scene — a body beside a passing
+    /// carrier finds its step reserved, the breadth-first search happily
+    /// returns a route that starts by walking BACKWARDS, and the tick after
+    /// that the wall is gone and the body walks back. Two wasted ticks and
+    /// an unchanged destination: "a brief dance that was unwarranted just
+    /// because the carrier was close".</para>
+    ///
+    /// <para>So the arbiter asks the counterfactual: where would this body
+    /// go if no teammate were in the way? If that answer is one of the
+    /// queued tiles and the step actually chosen makes no progress toward
+    /// the goal, waiting one tick is strictly better than trading two. When
+    /// the detour DOES make progress it is taken exactly as before, which is
+    /// why nothing changes anywhere the systems already agreed.</para>
+    /// </summary>
+    private static bool Queues(
+        StepRequest request,
+        IReadOnlySet<Position> goals,
+        IReadOnlySet<Position> blocked,
+        IReadOnlySet<Position> queued,
+        ProjectileHeading[] preference,
+        Position chosen)
+    {
+        if (queued.Count == 0 || queued.Contains(chosen))
+            return false;
+        GenericActorMapContract map = request.Contract.Map;
+        int? here = Nearest(map, request.Body.Position, goals);
+        int? taken = Nearest(map, chosen, goals);
+        if (here is null || taken is null || taken < here)
+            return false;
+        var free = new HashSet<Position>(blocked);
+        free.ExceptWith(queued);
+        ProjectileHeading? unobstructed = ArenaBasics.FindFirstStep(
+            map,
+            request.Body.Position,
+            goals,
+            free,
+            ArenaBasics.RouteHeadings(request.Contract, request.Body),
+            preference);
+        return unobstructed is ProjectileHeading heading
+            && queued.Contains(ArenaBasics.Step(request.Body.Position, heading));
+    }
+
+    private static int? Nearest(
+        GenericActorMapContract map,
+        Position from,
+        IReadOnlySet<Position> goals)
+    {
+        int? best = null;
+        foreach (Position goal in goals)
+        {
+            if (ArenaBasics.StaticDistance(map, from, goal) is int distance
+                && (best is null || distance < best))
+            {
+                best = distance;
+            }
+        }
+        return best;
     }
 
     /// <summary>
@@ -77,7 +150,36 @@ internal sealed class GreedyArenaStepper : IArenaStepper
         if (currentDistance is null)
             return null;
         HashSet<Position> blocked = ArenaBasics.BlockedNow(
-            request.Contract, request.Mind, body, request.Claims);
+            request.Contract, request.Mind, body, request.Claims,
+            out HashSet<Position> queued);
+        Position? chosen = Homeward(request, goal, currentDistance, blocked);
+        if (chosen is null || queued.Count == 0)
+            return chosen;
+        // The same queue rule the route plane uses, asked in this plane's
+        // own vocabulary: an EQUAL-distance sidestep taken only because a
+        // teammate has the strictly-better tile for one tick is the first
+        // half of a two-tile flap. Wait for the tile instead.
+        if (ArenaBasics.StaticDistance(request.Contract.Map, chosen.Value, goal)
+                is not int taken
+            || taken < currentDistance)
+        {
+            return chosen;
+        }
+        var free = new HashSet<Position>(blocked);
+        free.ExceptWith(queued);
+        return Homeward(request, goal, currentDistance, free) is Position better
+            && queued.Contains(better)
+            ? null
+            : chosen;
+    }
+
+    private static Position? Homeward(
+        StepRequest request,
+        Position goal,
+        int? currentDistance,
+        IReadOnlySet<Position> blocked)
+    {
+        MindBody body = request.Body;
         ProjectileHeading facing = (ProjectileHeading)((int)body.Facing * 2);
         bool mirrored = ArenaBasics.MirroredFrame(
             request.Contract, request.Mind);
@@ -104,6 +206,62 @@ internal sealed class GreedyArenaStepper : IArenaStepper
                 candidate.Heading, mirrored))
             .Select(candidate => (Position?)candidate.Destination)
             .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// A carrier's own committed plan: the terrain-shortest step toward the
+    /// one goal, with visible spawn reservations treated as obstacles for
+    /// the WHOLE route rather than for one step — a reservation beside a
+    /// reactor has to select one deterministic way around it, or equal
+    /// local choices bounce between adjacent tiles. The chosen tile is then
+    /// admitted exactly like a Direct step, so traffic still refuses it and
+    /// the caller falls through to its own alternatives.
+    /// </summary>
+    private static Position? Routed(StepRequest request)
+    {
+        MindBody body = request.Body;
+        Position goal = request.Positions.First();
+        if (ArenaBasics.StaticFirstStepAvoidingReservations(
+                request.Contract, request.Mind, body, goal)
+            is not Position committed)
+        {
+            return null;
+        }
+        return Direct(request with
+        {
+            Intent = StepIntent.Direct,
+            Positions = [committed],
+        });
+    }
+
+    /// <summary>
+    /// The plane owes this body's tile to somebody stronger, so it leaves —
+    /// the ONE displacement the movement plane authors. Preference, in
+    /// order: straight on, continuing away from whoever wants through (the
+    /// escort's "walk the corridor out ahead of your leader" answer, which
+    /// keeps a reversing file walking instead of arguing over one tile);
+    /// otherwise the legal step that puts the most ground between this body
+    /// and the tiles it owes.
+    /// </summary>
+    private static Position? Vacate(StepRequest request)
+    {
+        MindBody body = request.Body;
+        if (request.Anchor is Position anchor)
+        {
+            var onward = new Position(
+                body.Position.X + (body.Position.X - anchor.X),
+                body.Position.Y + (body.Position.Y - anchor.Y));
+            if (Direct(request with
+                {
+                    Intent = StepIntent.Direct,
+                    Positions = [onward],
+                }) is Position ahead
+                && !request.Positions.Contains(ahead))
+            {
+                return ahead;
+            }
+        }
+        return Aside(request);
     }
 
     /// <summary>

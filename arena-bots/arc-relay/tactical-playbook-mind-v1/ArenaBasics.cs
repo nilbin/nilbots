@@ -26,30 +26,85 @@ internal static class ArenaBasics
         ProjectileHeading.West,
     ];
 
+    /// <summary>
+    /// The per-tick MOVEMENT PLANE: every reservation the arbiter reads
+    /// before it chooses a tile, plus the one precedence list that says who
+    /// gets the tile when two bodies want it.
+    ///
+    /// <para>It used to be a bag of tile claims that other systems consulted
+    /// afterwards; the reservations were walls discovered on collision and
+    /// the losers were shoved by separate movers. Now the plane is the
+    /// arbiter's INPUT: lanes, ranks and roots all arrive before the first
+    /// body is asked where it wants to go.</para>
+    /// </summary>
     internal sealed class Claims
     {
+        /// <summary>
+        /// THE precedence list. One ordering, used for every contested tile
+        /// — lane ownership, who yields to whom, and the executor's per-tick
+        /// plan order:
+        ///
+        /// <list type="number">
+        /// <item><description><b>0 carriers</b> — a body holding a Core.
+        /// Its walk home is the match; nothing outranks it and it never
+        /// yields.</description></item>
+        /// <item><description><b>1 escort leaders</b> — a leader never
+        /// negotiates with its own escort for the ground it wants.
+        /// </description></item>
+        /// <item><description><b>2 fighters</b> — a body holding a focus
+        /// assignment or standing in contact. Its tile is the one everyone
+        /// else must route around, so it settles first.</description></item>
+        /// <item><description><b>3 rest</b> — free traffic.</description>
+        /// </item>
+        /// <item><description><b>4 + ordinal followers</b> — escort
+        /// followers, in their order's declared list order. Last, and among
+        /// themselves ordered, so a file walks a corridor as a file.
+        /// </description></item>
+        /// </list>
+        ///
+        /// Equal ranks resolve by lower unit id, so exactly one of a mutual
+        /// pair ever moves. The fighter tier reaches the executor's plan
+        /// ORDER only under a stepper that asks for it
+        /// (<see cref="IArenaStepper.WantsFightPrecedence"/>) — right-of-way
+        /// always reads the full list.
+        /// </summary>
+        public const int CarrierRank = 0;
+        public const int LeaderRank = 1;
+        public const int FighterRank = 2;
+        public const int RestRank = 3;
+        public const int FollowerRank = 4;
+
         private readonly HashSet<Position> _tiles = [];
+        private readonly HashSet<Position> _committed = [];
         private readonly Dictionary<Position, int> _lanes = [];
+        private readonly Dictionary<int, int> _ranks = [];
         private readonly HashSet<int> _rooted = [];
 
         private Claims(IArenaStepper stepper) => Stepper = stepper;
 
         /// <summary>
-        /// The mind's movement seam for this tick. It rides on the claims
-        /// because every one of the six movement wrappers already takes
-        /// them, and because a static would be SHARED by both participants
-        /// of an in-process mirror cell.
+        /// The mind's movement arbiter for this tick. It rides on the plane
+        /// because every movement wrapper already takes it, and because a
+        /// static would be SHARED by both participants of an in-process
+        /// mirror cell.
         /// </summary>
         public IArenaStepper Stepper { get; }
 
         public IReadOnlySet<Position> Tiles => _tiles;
 
-        /// <summary>Carrier right-of-way tiles, keyed to the owning
-        /// carrier's unit. A loaded carrier's next route step is reserved
-        /// for that carrier alone: no other own body may step into it
-        /// this tick, so an orbiting escort can never steal the lane the
-        /// moment its blocker finally yields (owner direction 2026-08:
-        /// prioritize whose movement weighs most and adjust the rest).
+        /// <summary>Tiles a body has actually committed to ENTERING this
+        /// tick, as opposed to the tiles everyone merely occupies. The
+        /// difference is what separates a queue from a wall.</summary>
+        public IReadOnlySet<Position> Committed => _committed;
+
+        /// <summary>Right-of-way tiles, keyed to the owning unit. A loaded
+        /// carrier's next route step and an escort leader's next step are
+        /// reserved for that body alone: no LOWER-PRECEDENCE own body may
+        /// step into one this tick, so an orbiting escort can never steal
+        /// the lane the moment its blocker finally yields (owner direction
+        /// 2026-08: prioritize whose movement weighs most and adjust the
+        /// rest). A stronger body is never walled by a weaker body's lane —
+        /// that mutual wall was one of the fights.
         /// </summary>
         public IReadOnlyDictionary<Position, int> Lanes => _lanes;
 
@@ -66,15 +121,57 @@ internal static class ArenaBasics
 
         public bool IsRooted(int unitId) => _rooted.Contains(unitId);
 
-        public void ReserveLane(Position tile, int carrierUnitId) =>
-            _lanes[tile] = carrierUnitId;
+        /// <summary>Place a unit on the precedence list for this tick.
+        /// </summary>
+        public void Rank(int unitId, int rank) => _ranks[unitId] = rank;
+
+        /// <summary>Where a unit sits on the precedence list; anything the
+        /// executor did not classify is free traffic.</summary>
+        public int RankOf(int unitId) =>
+            _ranks.TryGetValue(unitId, out int rank) ? rank : RestRank;
+
+        /// <summary>
+        /// Whether <paramref name="unitId"/> gives way to
+        /// <paramref name="otherUnitId"/>: STRICTLY better rank, nothing
+        /// else. Every yield in the mind asks exactly this question.
+        ///
+        /// <para>Equal weight never yields. Two carriers walking the same
+        /// corridor are settled by the plan order and the tile claims — a
+        /// mutual yield between equals is how a second carrier ends up
+        /// walled out of its own bank by the first one's lane, which is a
+        /// stalemate rather than a courtesy.</para>
+        /// </summary>
+        public bool YieldsTo(int unitId, int otherUnitId) =>
+            unitId != otherUnitId
+            && RankOf(otherUnitId) < RankOf(unitId);
+
+        public void ReserveLane(Position tile, int ownerUnitId) =>
+            _lanes[tile] = ownerUnitId;
+
+        /// <summary>
+        /// The lane tiles this body is standing on that belong to a body it
+        /// yields to, with the strongest such owner. Empty means the plane
+        /// owes nothing and the body keeps its ground.
+        /// </summary>
+        public bool Owes(MindBody body, out int ownerUnitId)
+        {
+            ownerUnitId = -1;
+            if (!_lanes.TryGetValue(body.Position, out int owner)
+                || !YieldsTo(body.UnitId, owner))
+            {
+                return false;
+            }
+            ownerUnitId = owner;
+            return true;
+        }
 
         /// <summary>Claim a tile a body is actually stepping onto, and tell
-        /// the stepper so its own reservations match the executor's.
+        /// the arbiter so its own reservations match the executor's.
         /// </summary>
         public void Commit(MindBody body, Position tile)
         {
             Reserve(tile);
+            _committed.Add(tile);
             Stepper.NoteCommitted(body, tile);
         }
 
@@ -296,22 +393,44 @@ internal static class ArenaBasics
         MindBody body,
         IReadOnlyCollection<Position> goals,
         Claims claims,
+        string reason) =>
+        Submit(
+            contract,
+            mind,
+            body,
+            ChooseStep(new StepRequest(
+                StepIntent.Toward, contract, mind, body, goals, claims)),
+            claims,
+            reason);
+
+    /// <summary>
+    /// Submit the arbiter's answer. The ONE place a movement command is
+    /// emitted: the arbiter picks the tile, this turns it into the legal
+    /// action for the body's current mask (heading form, cardinal form, or
+    /// the preparation turn a facing-locked body needs first) and claims the
+    /// tile. Every wrapper shares it, so "who moved this body and why" has
+    /// exactly one answer and exactly one reason string.
+    /// </summary>
+    private static bool Submit(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position? chosen,
+        Claims claims,
         string reason)
     {
-        Position? chosen = ChooseStep(new StepRequest(
-            StepIntent.Toward, contract, mind, body, goals, claims));
-        if (chosen is not Position desiredDestination)
+        if (chosen is not Position destination)
             return false;
         ProjectileHeading heading = FromVector(
-            desiredDestination.X - body.Position.X,
-            desiredDestination.Y - body.Position.Y);
+            destination.X - body.Position.X,
+            destination.Y - body.Position.Y);
 
         GenericActorActionLegality? move = MovementAction(
             contract,
             mind,
             body,
             heading,
-            desiredDestination,
+            destination,
             requireAvailable: false);
         if (move is null)
         {
@@ -332,8 +451,6 @@ internal static class ArenaBasics
             && headings is not null
             && headings.AllowedValues.Contains(heading))
         {
-            (int dx, int dy) = heading.Vector();
-            Position destination = body.Position.Offset(dx, dy);
             claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
@@ -354,8 +471,6 @@ internal static class ArenaBasics
             && directions is not null
             && directions.AllowedValues.Contains(direction))
         {
-            (int dx, int dy) = direction.Vector();
-            Position destination = body.Position.Offset(dx, dy);
             claims.Commit(body, destination);
             body.Command(
                 move.ActionId,
@@ -365,9 +480,8 @@ internal static class ArenaBasics
             return true;
         }
 
-        if (cardinal is Direction turn)
-            return TryRotate(contract, body, turn, $"turn for {reason}");
-        return false;
+        return cardinal is Direction turn
+            && TryRotate(contract, body, turn, $"turn for {reason}");
     }
 
     /// <summary>
@@ -588,10 +702,70 @@ internal static class ArenaBasics
     }
 
     /// <summary>
-    /// Attempt one already-selected terrain-shortest step without inventing a
-    /// lateral detour around transient traffic. Core carriers use this so a
-    /// one-tick reservation cannot turn into an endless two-tile orbit.
+    /// Walk a carrier's OWN committed plan — its sticky delivery corridor
+    /// waypoint, or the reactor — through the arbiter instead of beside it.
+    /// The carrier used to compute this step itself and hand the arbiter a
+    /// fait accompli, which made the delivery a second movement authority;
+    /// asking for it as an intent is what lets a cooperative planner reserve
+    /// the whole corridor the Core is about to walk.
     /// </summary>
+    public static bool TryMoveRouted(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position goal,
+        Claims claims,
+        string reason) =>
+        Submit(
+            contract,
+            mind,
+            body,
+            ChooseStep(new StepRequest(
+                StepIntent.Routed, contract, mind, body, [goal], claims)),
+            claims,
+            reason);
+
+    /// <summary>
+    /// The movement plane's own displacement: this body is standing on
+    /// ground reserved for somebody it yields to, so the arbiter moves it
+    /// off. One author, one reason string, one precedence list — carrier
+    /// lane relief, escort yield and return-lane clearance were three
+    /// movers with three triggers and three vocabularies, and a body caught
+    /// by two of them at once danced.
+    ///
+    /// <para>Returns false when the plane owes nothing, which is the common
+    /// case and costs one dictionary lookup.</para>
+    /// </summary>
+    public static bool TryVacate(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Claims claims,
+        string reason)
+    {
+        if (!claims.Owes(body, out int ownerUnitId))
+            return false;
+        MindBody? owner = mind.Bodies.FirstOrDefault(
+            other => other.UnitId == ownerUnitId);
+        var owed = new HashSet<Position> { body.Position };
+        foreach ((Position tile, int lane) in claims.Lanes)
+        {
+            if (claims.YieldsTo(body.UnitId, lane))
+                owed.Add(tile);
+        }
+        if (owner is not null)
+            owed.Add(owner.Position);
+        return Submit(
+            contract,
+            mind,
+            body,
+            ChooseStep(new StepRequest(
+                StepIntent.Vacate, contract, mind, body, owed, claims,
+                owner?.Position)),
+            claims,
+            $"{reason}:u{ownerUnitId}");
+    }
+
     /// <summary>
     /// One kiting backstep: the legal step that most improves the body's
     /// distance to the given threats, taken without turning - movement never
@@ -621,156 +795,15 @@ internal static class ArenaBasics
         MindBody body,
         Position destination,
         Claims claims,
-        string reason)
-    {
-        if (ChooseStep(new StepRequest(
-                StepIntent.Direct, contract, mind, body, [destination], claims))
-            is not Position admitted)
-        {
-            return false;
-        }
-        destination = admitted;
-        ProjectileHeading heading = FromVector(
-            destination.X - body.Position.X,
-            destination.Y - body.Position.Y);
-
-        GenericActorActionLegality? move = MovementAction(
+        string reason) =>
+        Submit(
             contract,
             mind,
             body,
-            heading,
-            destination,
-            requireAvailable: false);
-        if (move is null)
-        {
-            Direction? routeFacing = ToDirection(heading);
-            return routeFacing is Direction routeTurn
-                && TryRotate(contract, body, routeTurn, $"turn for {reason}");
-        }
-        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
-            headings = move.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .ProjectileHeadingConstraint>()
-                .SingleOrDefault();
-        if (move.Available
-            && headings is not null
-            && headings.AllowedValues.Contains(heading))
-        {
-            claims.Commit(body, destination);
-            body.Command(
-                move.ActionId,
-                move.ActionCode,
-                [new GenericActorActionArgument.ProjectileHeadingArgument(heading)],
-                $"{reason} via {heading}");
-            return true;
-        }
-
-        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
-            directions = move.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .DirectionConstraint>()
-                .SingleOrDefault();
-        Direction? cardinal = ToDirection(heading);
-        if (move.Available
-            && cardinal is Direction direction
-            && directions is not null
-            && directions.AllowedValues.Contains(direction))
-        {
-            claims.Commit(body, destination);
-            body.Command(
-                move.ActionId,
-                move.ActionCode,
-                [new GenericActorActionArgument.DirectionArgument(direction)],
-                $"{reason} via {direction}");
-            return true;
-        }
-        return cardinal is Direction turn
-            && TryRotate(contract, body, turn, $"turn for {reason}");
-    }
-
-    /// <summary>
-    /// Move one allied non-carrier out of a reserved carrier lane. This is a
-    /// one-tick traffic command, not a teleport or a special game action.
-    /// </summary>
-    public static bool TryMoveAside(
-        GenericActorResolvedMatchContract contract,
-        MindContext mind,
-        MindBody body,
-        Claims claims,
-        IReadOnlySet<Position> forbidden,
-        string reason)
-    {
-        // A body already blocking a return lane must clear it even when the
-        // only exit crosses predicted fire. Otherwise sustained covering fire
-        // can pin an unthreatened carrier behind an ally indefinitely — which
-        // is why the Aside intent reads its own obstacle set.
-        if (ChooseStep(new StepRequest(
-                StepIntent.Aside, contract, mind, body, forbidden, claims))
-            is not Position selectedDestination)
-        {
-            return false;
-        }
-        ProjectileHeading heading = FromVector(
-            selectedDestination.X - body.Position.X,
-            selectedDestination.Y - body.Position.Y);
-
-        GenericActorActionLegality? move = MovementAction(
-            contract,
-            mind,
-            body,
-            heading,
-            selectedDestination,
-            requireAvailable: false);
-        if (move is null)
-        {
-            Direction? routeFacing = ToDirection(heading);
-            return routeFacing is Direction routeTurn
-                && TryRotate(contract, body, routeTurn, $"turn for {reason}");
-        }
-
-        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
-            headings = move.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .ProjectileHeadingConstraint>()
-                .SingleOrDefault();
-        if (move.Available
-            && headings is not null
-            && headings.AllowedValues.Contains(heading))
-        {
-            Position destination = Step(body.Position, heading);
-            claims.Commit(body, destination);
-            body.Command(
-                move.ActionId,
-                move.ActionCode,
-                [new GenericActorActionArgument.ProjectileHeadingArgument(heading)],
-                $"{reason} via {heading}");
-            return true;
-        }
-
-        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
-            directions = move.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .DirectionConstraint>()
-                .SingleOrDefault();
-        Direction? cardinal = ToDirection(heading);
-        if (move.Available
-            && cardinal is Direction direction
-            && directions is not null
-            && directions.AllowedValues.Contains(direction))
-        {
-            (int dx, int dy) = direction.Vector();
-            Position destination = body.Position.Offset(dx, dy);
-            claims.Commit(body, destination);
-            body.Command(
-                move.ActionId,
-                move.ActionCode,
-                [new GenericActorActionArgument.DirectionArgument(direction)],
-                $"{reason} via {direction}");
-            return true;
-        }
-        return cardinal is Direction turn
-            && TryRotate(contract, body, turn, reason);
-    }
+            ChooseStep(new StepRequest(
+                StepIntent.Direct, contract, mind, body, [destination], claims)),
+            claims,
+            reason);
 
     public static bool TryEvade(
         GenericActorResolvedMatchContract contract,
@@ -1695,18 +1728,58 @@ internal static class ArenaBasics
         MindContext mind,
         MindBody moving,
         Claims claims,
+        bool avoidHostileProjectiles = true) =>
+        BlockedNow(
+            contract, mind, moving, claims, out _, avoidHostileProjectiles);
+
+    /// <summary>
+    /// Everything this body may not step onto right now, and — separately —
+    /// the part of it that is only a QUEUE.
+    /// </summary>
+    /// <param name="queued">Tiles blocked purely because a teammate holds
+    /// or has reserved them for this one tick. They are walkable ground
+    /// that will be free again next tick, which is exactly why the arbiter
+    /// must not treat them like walls: routing around a teammate that is
+    /// about to leave is how a body ends up taking back the tile it just
+    /// walked (owner scene 2026-08-10, the dance beside a passing carrier).
+    /// </param>
+    internal static HashSet<Position> BlockedNow(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody moving,
+        Claims claims,
+        out HashSet<Position> queued,
         bool avoidHostileProjectiles = true)
     {
+        // The queue is exactly the ground a teammate is walking THROUGH:
+        // a reserved right-of-way lane, and a tile somebody has already
+        // committed to entering this tick. A teammate standing still is a
+        // wall like any other — it is not going anywhere.
+        queued = [];
+        foreach (Position tile in claims.Committed)
+            queued.Add(tile);
+        foreach ((Position lane, int owner) in claims.Lanes)
+        {
+            // Right-of-way runs down ONE precedence list: a lane walls the
+            // bodies that yield to its owner and nobody else. A carrier is
+            // never routed around its own escort's reservation.
+            if (claims.YieldsTo(moving.UnitId, owner))
+                queued.Add(lane);
+        }
+        queued.Remove(moving.Position);
         var blocked = new HashSet<Position>(claims.Tiles);
         blocked.Remove(moving.Position);
         foreach ((Position lane, int owner) in claims.Lanes)
         {
-            if (owner != moving.ActorId.UnitId)
+            if (claims.YieldsTo(moving.UnitId, owner))
                 blocked.Add(lane);
         }
-        blocked.UnionWith(mind.Allies.Select(ally => ally.Position));
-        blocked.UnionWith(mind.Enemies.Select(enemy => enemy.Position));
-        blocked.UnionWith(mind.VisibleTiles
+        // Durable refusals, kept apart so the queue can be subtracted from
+        // them at the end: a lane that is also a mine is still a mine.
+        var durable = new HashSet<Position>();
+        durable.UnionWith(mind.Allies.Select(ally => ally.Position));
+        durable.UnionWith(mind.Enemies.Select(enemy => enemy.Position));
+        durable.UnionWith(mind.VisibleTiles
             .Where(tile => tile.SpawnReservation is not null)
             .Select(tile => tile.Position));
         // An armed hostile mine is a visible kill tile; walk around it the
@@ -1714,7 +1787,7 @@ internal static class ArenaBasics
         if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay
             arcMode)
         {
-            blocked.UnionWith(arcMode.VisibleSignatures
+            durable.UnionWith(arcMode.VisibleSignatures
                 .Where(signature => string.Equals(
                         signature.SignatureId, "trip-node",
                         StringComparison.Ordinal)
@@ -1730,7 +1803,7 @@ internal static class ArenaBasics
         {
             if (projectile.OwnerTeamId == moving.ActorId.TeamId)
                 continue;
-            blocked.Add(projectile.Position);
+            durable.Add(projectile.Position);
             Position cursor = projectile.Position;
             int remaining = Math.Min(
                 projectile.RemainingTiles,
@@ -1739,7 +1812,7 @@ internal static class ArenaBasics
             for (int step = 0; step < remaining; step++)
             {
                 cursor = cursor.Offset(dx, dy);
-                blocked.Add(cursor);
+                durable.Add(cursor);
             }
         }
 
@@ -1759,7 +1832,7 @@ internal static class ArenaBasics
                         StringComparison.Ordinal))
                 .Select(assignment => assignment.MapRegionId)
                 .ToHashSet(StringComparer.Ordinal);
-            blocked.UnionWith(contract.Map.Regions
+            durable.UnionWith(contract.Map.Regions
                 .Where(region => protectedRegions.Contains(region.RegionId))
                 .SelectMany(region => region.Tiles));
         }
@@ -1772,8 +1845,12 @@ internal static class ArenaBasics
                 .SingleOrDefault() is { } oldMove)
         {
             (int dx, int dy) = oldMove.Value.Vector();
-            blocked.Add(moving.Position.Offset(dx, dy));
+            durable.Add(moving.Position.Offset(dx, dy));
         }
+        // Anything ALSO refused for a durable reason is a wall, not a
+        // queue: waiting for it to clear would be waiting forever.
+        queued.ExceptWith(durable);
+        blocked.UnionWith(durable);
         return blocked;
     }
 

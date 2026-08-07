@@ -47,13 +47,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// <summary>Units fighting on because they have no exit step.</summary>
     private readonly HashSet<int> _cornered = [];
 
-    private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
-        _lanePlugTicks = [];
     /// <summary>The Core each unit last handed off, and when — so its own
     /// collect step cannot take it straight back.</summary>
     private readonly Dictionary<int, (int LifeId, string CoreKey, int Tick)>
         _handedOff = [];
-    private int _laneReliefs;
+    /// <summary>How many times the movement plane took back ground it was
+    /// owed this match — the one displacement it authors.</summary>
+    private int _laneVacates;
     private readonly Dictionary<int, (int LifeId, int UntilTick)>
         _disengaging = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
@@ -98,10 +98,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
     private Position[] _healTiles = [];
-    /// <summary>How long a body may plug a loaded carrier's route home
-    /// before it is moved aside.</summary>
-    private const int CarrierLanePatience = 2;
-
     /// <summary>How long a handed-off Core stays off limits to the body that
     /// put it down — comfortably longer than an adjacent receiver needs.
     /// </summary>
@@ -416,23 +412,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     claims.Reserve(well.Position);
             }
         }
+        // THE precedence list, placed on the plane once (ArenaBasics.Claims
+        // documents it): carriers, escort leaders, fighters, rest, then
+        // followers by their declared ordinal. Everything that used to
+        // decide right-of-way with its own private ranking - the lane
+        // relief's carrier/focus/idler triple, the escort's leader-beats-
+        // follower rule, the executor's body order - now reads this one.
+        foreach (MindBody body in mind.Bodies)
+        {
+            int rank;
+            if (carried.ContainsKey(body.ActorId))
+                rank = ArenaBasics.Claims.CarrierRank;
+            else if (escortRank.TryGetValue(body.UnitId, out int escort))
+            {
+                rank = escort == 0
+                    ? ArenaBasics.Claims.LeaderRank
+                    : ArenaBasics.Claims.FollowerRank + escort - 1;
+            }
+            else if (focus.ContainsKey(body.UnitId)
+                || mind.Enemies.Any(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) <= 2))
+            {
+                rank = ArenaBasics.Claims.FighterRank;
+            }
+            else
+                rank = ArenaBasics.Claims.RestRank;
+            claims.Rank(body.UnitId, rank);
+        }
         // Escort right-of-way, said in the same machinery the carrier lane
         // already uses: the tile the leader is stepping into is reserved
-        // against every other own body, its own followers first. A follower
-        // caught standing in it yields this tick (escort-yield below) - the
-        // leader never negotiates with its escort for the ground it wants,
-        // which is the whole of "a reversal makes followers yield".
-        var escortYield = new Dictionary<int, EscortParty>();
+        // against its own followers and every other body that yields to it.
+        // The leader never negotiates with its escort for the ground it
+        // wants, which is the whole of "a reversal makes followers yield" -
+        // and the follower caught standing in it is now moved by the
+        // arbiter, not by a second mover with its own vocabulary.
         foreach (EscortParty party in escorts)
         {
-            if (party.LeaderStep is not Position leaderStep)
-                continue;
-            claims.ReserveLane(leaderStep, party.Leader.UnitId);
-            foreach (EscortMember member in party.Followers)
-            {
-                if (member.Body.Position == leaderStep)
-                    escortYield[member.Body.UnitId] = party;
-            }
+            if (party.LeaderStep is Position leaderStep)
+                claims.ReserveLane(leaderStep, party.Leader.UnitId);
         }
         // The reserved lane must aim where the carrier will actually step,
         // routed deliveries included - a lane reserved toward the reactor
@@ -446,45 +463,56 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     CarrierDestination(package, orders, body))))
             .Where(value => value.Step is not null)
             .ToDictionary(value => value.Body.UnitId, value => value.Step!.Value);
-        HashSet<Position> carrierClearance = carrierSteps.Values.ToHashSet();
-        if (carrierSteps.Count > 0)
-            carrierClearance.Add(_ownReactor);
         // Right-of-way: the carrier's next route step belongs to the
-        // carrier. Reserving it as a lane keeps every other own body out
+        // carrier. Reserving it as a lane keeps every yielding own body out
         // of it for the tick, so clearing it is durable - the measured
         // failure (w-9003, 114 ticks) was an escort that finally stepped
         // aside while a dancing teammate claimed the freed tile first.
         foreach ((int carrierUnit, Position step) in carrierSteps)
             claims.ReserveLane(step, carrierUnit);
+        if (carrierSteps.Count > 0)
+        {
+            int bankOwner = carrierSteps.Keys.Min();
+            claims.ReserveLane(_ownReactor, bankOwner);
+            // The cost SPIKE, said as a reservation rather than as a
+            // separate mover: ArenaBasics.PlugsCarrierRoute asks the
+            // carrier's own movement policy its own question - is this body
+            // standing on an admissible homeward step while every such step
+            // is taken - and a body that answers yes is standing on ground
+            // the carrier cannot route around at all. Reserving that tile
+            // makes it owed ground like any other, so the arbiter clears it
+            // this tick instead of a watchdog clearing it in two.
+            foreach (MindBody carrier in mind.Bodies
+                         .Where(body => carrierSteps.ContainsKey(body.UnitId)))
+            {
+                Position bank = CarrierDestination(package, orders, carrier);
+                foreach (MindBody candidate in mind.Bodies)
+                {
+                    if (candidate.UnitId != carrier.UnitId
+                        && !claims.Lanes.ContainsKey(candidate.Position)
+                        && ArenaBasics.PlugsCarrierRoute(
+                            contract, mind, carrier, candidate, bank))
+                    {
+                        claims.ReserveLane(
+                            candidate.Position, carrier.UnitId);
+                    }
+                }
+            }
+        }
         foreach (MindBody body in mind.Bodies
-                     .OrderByDescending(body => carried.ContainsKey(body.ActorId))
-                     // A body standing on a carrier's lane acts before the
-                     // rest of the team: its escape tiles must be chosen
-                     // before lower-priority escorts claim them (owner
-                     // direction 2026-08 - cooperative movement resolves
-                     // by weight, carriers heaviest, their blockers next).
-                     .ThenByDescending(body =>
-                         !carried.ContainsKey(body.ActorId)
-                         && carrierClearance.Contains(body.Position))
-                     // The same tier for an escort caught in its leader's
-                     // doorway: it picks its exit before free traffic
-                     // takes the tiles it could have used.
-                     .ThenByDescending(body =>
-                         escortYield.ContainsKey(body.UnitId))
-                     // Under a cooperative stepper the tier the greedy
-                     // order never needed: a body in contact settles its
-                     // tile before free traffic reserves it out from
-                     // under the fight. Greedy stepping leaves this key
-                     // false for everyone, so its order is unchanged.
-                     .ThenByDescending(body => _stepper.WantsFightPrecedence
-                         && mind.Enemies.Any(enemy =>
-                             enemy.Position.ChebyshevDistance(body.Position)
-                                 <= 2))
+                     // The one list. Under greedy stepping the fighter tier
+                     // folds back into free traffic, so its historical plan
+                     // order is untouched; a cooperative planner wants
+                     // contact settled before free traffic reserves the
+                     // fight's ground out from under it.
+                     .OrderBy(body => PlanRank(claims, body))
+                     // A body the plane owes ground acts before the rest of
+                     // the team: its exit tiles must be chosen before lower
+                     // precedence claims them (owner direction 2026-08 -
+                     // cooperative movement resolves by weight, carriers
+                     // heaviest, their blockers next).
+                     .ThenByDescending(body => claims.Owes(body, out _))
                      .ThenBy(body => orders[body.UnitId].Priority)
-                     // Leader before its own followers, followers in the
-                     // order's declared list order. Everyone else ranks 0
-                     // and keeps the historical unit-id tie-break.
-                     .ThenBy(body => escortRank.GetValueOrDefault(body.UnitId))
                      .ThenBy(body => body.UnitId))
         {
             string role = roles[body.UnitId];
@@ -508,42 +536,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body.SetRole(RoleTag(
                 machine.PhaseId, group, role, order.OrderId,
                 escortRank.GetValueOrDefault(body.UnitId) > 0));
-
-            // Escort yield. Standing where the leader is going is the one
-            // thing an escort may never do; the preferred exit is straight
-            // on, so a reversing pair walks the corridor out escort-first
-            // instead of arguing over one tile.
-            if (escortYield.TryGetValue(body.UnitId, out EscortParty? yielding))
-            {
-                Position onward = body.Position.Offset(
-                    body.Position.X - yielding.Leader.Position.X,
-                    body.Position.Y - yielding.Leader.Position.Y);
-                string yieldReason = Provenance(
-                    machine, group, order, "escort-yield");
-                if (ArenaBasics.TryMoveDirect(
-                        contract, mind, body, onward, claims, yieldReason)
-                    || ArenaBasics.TryMoveAside(
-                        contract, mind, body, claims,
-                        new HashSet<Position>
-                        {
-                            body.Position,
-                            yielding.Leader.Position,
-                        },
-                        yieldReason))
-                {
-                    continue;
-                }
-            }
-
-            if (!carried.ContainsKey(body.ActorId)
-                && carrierClearance.Contains(body.Position)
-                && ArenaBasics.TryMoveAside(
-                    contract, mind, body, claims, carrierClearance,
-                    Provenance(machine, group, order,
-                        "clear-custody-return-lane")))
-            {
-                continue;
-            }
 
             // Veterancy: spend a queued skill point the first quiet tick.
             if (_pendingInvest.GetValueOrDefault(body.UnitId) > 0
@@ -586,14 +578,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // owns it. (The medic's beam is the separate `repair` channel
             // and is untouched.)
 
-            // Clearing a plugged carrier lane runs BEFORE the channels: a
+            // Giving back ground the plane owes runs BEFORE the channels: a
             // body can act every tick without displacing (facing scans,
-            // in-place micro) and those paths never reach Hold at all.
-            bool acted = TryCarrierLaneRelief(
-                contract, mind, body, carrierUnitIds,
-                repairs.Keys.ToHashSet(), targets, focus.Keys.ToHashSet(),
-                claims,
-                Provenance(machine, group, order, "choke-relief"));
+            // in-place micro) and those paths never reach Hold at all. This
+            // is the ONE displacement the movement plane authors, and the
+            // arbiter chooses its tile like any other step.
+            bool acted = ArenaBasics.TryVacate(
+                contract, mind, body, claims,
+                Provenance(machine, group, order, "lane-vacate"));
+            if (acted)
+                _laneVacates++;
             foreach (string channel in package.Source.Arbitration.Channels)
             {
                 if (acted)
@@ -730,7 +724,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .Select(value => $"{value.Key}:{value.Value}")) + "; "
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
-            + $"lane-reliefs={_laneReliefs}; "
+            + $"lane-vacates={_laneVacates}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -4003,11 +3997,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string reason = destination == _ownReactor
             ? "custody:committed-delivery"
             : "custody:delivery-route";
-        Position? step = ArenaBasics.StaticFirstStepAvoidingReservations(
-            contract, mind, body, destination);
-        if (step is Position committed
-            && ArenaBasics.TryMoveDirect(
-                contract, mind, body, committed, claims, reason))
+        // The committed plan asks the ARBITER for its step rather than
+        // computing one and handing it over: same tile under greedy
+        // stepping, and under a cooperative planner the whole corridor
+        // enters the space-time table so the rest of the team routes around
+        // where this Core is going instead of where it is.
+        if (ArenaBasics.TryMoveRouted(
+                contract, mind, body, destination, claims, reason))
             return true;
         if (TryAdvanceSignature(contract, body, destination))
             return true;
@@ -5712,86 +5708,29 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// Carrier-lane relief - all that remains of the no-idle watchdog (owner
-    /// ruling 2026-08-07: the general invariant is removed, standing is sheet
-    /// policy again). This is not about idling. It is about BLOCKING: the
-    /// ab51 pocket family (owner replay finding, "it's friendly bodies
-    /// blocking it") was an escort whose post resolved onto a loaded
-    /// carrier's only bankward corridor tile - on post forever, corridor
-    /// plugged 114 ticks with no enemy in sight. Whole-map path existence was
-    /// tried and measured wrong (ab53): winding detours exist, but the
-    /// carrier's movement policy refuses distance-increasing steps, so it
-    /// never takes them. The plug test asks the policy's own question - is
-    /// this body standing on an admissible homeward step while every such
-    /// step is taken - and after two ticks of that the plug displaces away
-    /// from the own reactor, which is exactly off the carrier's route.
-    /// Fires ONLY beside an own carrier whose route this body plugs; a body
-    /// standing anywhere else is the sheet's business now.
+    /// Where a body sits in the executor's per-tick plan order: THE
+    /// precedence list (<see cref="ArenaBasics.Claims"/>), with the fighter
+    /// tier folded back into free traffic under a stepper that does not ask
+    /// for it. Right-of-way always reads the full list; only the order in
+    /// which bodies are asked is negotiable, and greedy stepping keeps the
+    /// order it measured its history with.
     /// </summary>
-    private bool TryCarrierLaneRelief(
-        GenericActorResolvedMatchContract contract,
-        MindContext mind,
-        MindBody body,
-        IReadOnlySet<int> carrierUnitIds,
-        IReadOnlySet<int> repairerUnitIds,
-        IReadOnlyDictionary<int, Position> targets,
-        IReadOnlySet<int> focusUnitIds,
-        ArenaBasics.Claims claims,
-        string reason)
+    private int PlanRank(ArenaBasics.Claims claims, MindBody body)
     {
-        if (repairerUnitIds.Contains(body.UnitId) || body.Cooldown > 0)
-            return false;
-        // Who yields to whom: a carrier outranks everyone, a body in a fight
-        // outranks an idler, and equal ranks yield to the higher unit id so
-        // exactly one of a mutual pair moves. Carriers never yield.
-        int Rank(int unit) => carrierUnitIds.Contains(unit) ? 0
-            : focusUnitIds.Contains(unit) ? 1
-            : 2;
-        if (Rank(body.UnitId) == 0)
-            return false;
-        // Whose way is it standing in: an adjacent own body that WANTS this
-        // tile - its own next step toward its own target lands here - and
-        // that outranks this one. That is the whole trigger. It is not the
-        // no-idle watchdog reborn: a body standing anywhere nobody needs is
-        // left alone forever, which is the sheet's business.
-        MindBody[] blocked = mind.Bodies
-            .Where(other => other.UnitId != body.UnitId
-                && other.Position.ChebyshevDistance(body.Position) <= 1
-                && (Rank(other.UnitId) < Rank(body.UnitId)
-                    || (Rank(other.UnitId) == Rank(body.UnitId)
-                        && other.UnitId < body.UnitId))
-                && targets.TryGetValue(other.UnitId, out Position goal)
-                && ArenaBasics.StaticFirstStep(contract, mind, other, goal)
-                    == body.Position)
-            .ToArray();
-        (int LifeId, Position Tile, int Ticks) plug =
-            _lanePlugTicks.GetValueOrDefault(body.UnitId);
-        if (blocked.Length == 0)
+        int rank = claims.RankOf(body.UnitId);
+        if (!_stepper.WantsFightPrecedence
+            && rank == ArenaBasics.Claims.FighterRank)
         {
-            _lanePlugTicks.Remove(body.UnitId);
-            return false;
+            rank = ArenaBasics.Claims.RestRank;
         }
-        int ticks = plug.LifeId == body.ActorId.LifeId
-            && plug.Tile == body.Position
-                ? plug.Ticks + 1
-                : 1;
-        _lanePlugTicks[body.UnitId] =
-            (body.ActorId.LifeId, body.Position, ticks);
-        // A loaded carrier's lane clears a tick sooner - that was the
-        // measured ab51 harm and it keeps its priority.
-        bool carrierWaiting = blocked.Any(other =>
-            carrierUnitIds.Contains(other.UnitId));
-        if (ticks < (carrierWaiting ? 1 : CarrierLanePatience))
-            return false;
-        if (!ArenaBasics.TryStepAway(
-                contract, mind, body, [body.Position, _ownReactor],
-                claims, $"lane-relief:{reason}"))
-        {
-            return false;
-        }
-        _lanePlugTicks.Remove(body.UnitId);
-        _laneReliefs++;
-        return true;
+        // A body holding up a carrier IS, for this tick, the second
+        // heaviest thing on the plane: its exit tiles have to be chosen
+        // before anyone lighter claims them (owner direction 2026-08 —
+        // carriers heaviest, their blockers next). Same list, read with
+        // the tick's own urgency.
+        return claims.Owes(body, out _)
+            ? Math.Min(rank, ArenaBasics.Claims.LeaderRank)
+            : rank;
     }
 
     private static string Provenance(
