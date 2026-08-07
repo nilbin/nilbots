@@ -77,6 +77,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
     private Position[] _healTiles = [];
+    /// <summary>How near a cold trail has to be before walking to it counts
+    /// as pursuit rather than abandoning the post.</summary>
+    private const int FlushReach = 6;
+
+    /// <summary>How long one sighting's excursion may last.</summary>
+    private const int FlushTicks = 6;
+
+    /// <summary>Live hidden-lock excursions per engagement scope.</summary>
+    private readonly Dictionary<string, HiddenFlush> _flushes =
+        new(StringComparer.Ordinal);
+
     /// <summary>Own units the recover predicate flags this tick — see
     /// <see cref="UpdateRecovering"/>. The recover doctrine verb's task
     /// gates on its size and its assignment row selects from its members.
@@ -2260,6 +2271,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// claims and reservations exactly as TryCloseOnFocus does - and once
     /// there sweeps its own cone, because the cone IS the sensor and turning
     /// is the only way to re-acquire from a cold trail.
+    ///
+    /// A flush is an EXCURSION, not a career (owner catch 2026-08-07:
+    /// "patrol seems broken"). Unbounded, it ate 25-45% of the ghost's ticks
+    /// - 30 to 48 separate interruptions per match, because cone vision
+    /// drops and regains a target every few ticks in a warren and each drop
+    /// started a fresh hunt - and the authored circuit never ran again.
+    /// Three bounds keep the beat: the trail must be CLOSE (a corner turned,
+    /// not a rumour across the map), one sighting buys one short walk, and
+    /// arriving on cold ground spends it. Re-acquiring the prey for real
+    /// refreshes the lock and buys the next excursion honestly.
     /// </summary>
     private bool TryFlushHidden(
         GenericActorResolvedMatchContract contract,
@@ -2298,36 +2319,59 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return false;
         }
         // The leash is the order's, measured from the authored post - the
-        // same reading every other movement-plane chase uses.
+        // same reading every other movement-plane chase uses - and the trail
+        // must be within arm's reach of the body, or this is desertion
+        // dressed as pursuit.
         if (trail.Position.ChebyshevDistance(target)
-            > Math.Max(order.Movement.ChaseLeash, 1))
+                > Math.Max(order.Movement.ChaseLeash, 1)
+            || body.Position.ChebyshevDistance(trail.Position) > FlushReach)
         {
             return false;
         }
-        if (body.Position != trail.Position
-            && ArenaBasics.StaticFirstStepAvoidingReservations(
-                contract, mind, body, trail.Position) is Position step
-            && ArenaBasics.TryMoveDirect(
-                contract, mind, body, step, claims, reason))
+        // One sighting, one excursion. A lock whose LastVisibleTick has
+        // advanced is a fresh sighting and starts a fresh budget.
+        HiddenFlush? excursion = _flushes.GetValueOrDefault(scopeId);
+        if (excursion is null
+            || excursion.Target != held.ActorId
+            || excursion.LastVisibleTick != held.LastVisibleTick)
         {
-            return true;
+            excursion = new HiddenFlush(
+                held.ActorId, held.LastVisibleTick, mind.Tick, Spent: false);
+            _flushes[scopeId] = excursion;
         }
-        return body.Position.ChebyshevDistance(trail.Position) <= 1
-            && TryRotate(
-                contract,
-                body,
-                (Direction)(((mind.Tick / 2) + body.UnitId) % 4),
-                reason);
+        if (excursion.Spent || mind.Tick - excursion.StartTick >= FlushTicks)
+            return false;
+        if (body.Position.ChebyshevDistance(trail.Position) > 1)
+        {
+            return ArenaBasics.StaticFirstStepAvoidingReservations(
+                        contract, mind, body, trail.Position) is Position step
+                && ArenaBasics.TryMoveDirect(
+                    contract, mind, body, step, claims, reason);
+        }
+        // Standing on the trail with nothing on it: one sweep of the cone,
+        // then this scent is spent and the body goes back to work.
+        _flushes[scopeId] = excursion with { Spent = true };
+        return TryRotate(
+            contract,
+            body,
+            (Direction)(((mind.Tick / 2) + body.UnitId) % 4),
+            reason);
     }
 
     private static int NearestWaypoint(Position[] route, MindBody body)
     {
+        // Ties go to the LATER waypoint, which is forward progress. Routes
+        // double back on themselves - shadow-north-long passes (15,1) on the
+        // way out and (15,3) on the way home, two tiles apart - so taking
+        // the first minimum snapped a body finishing its circuit back to the
+        // start and made it walk the whole loop again (owner catch: the
+        // ping-pong between the west entry and the enemy half).
         int nearest = 0;
         int best = int.MaxValue;
         for (int index = 0; index < route.Length; index++)
         {
             int distance = body.Position.ChebyshevDistance(route[index]);
-            if (distance < best)
+            if (distance <= best)
             {
                 best = distance;
                 nearest = index;
@@ -5040,6 +5084,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string OrderId,
         Position Position,
         int StuckTicks);
+
+    /// <summary>One walk to one cold trail, ended by its budget or by
+    /// arriving on ground the prey has already left.</summary>
+    private sealed record HiddenFlush(
+        ActorIdentity Target,
+        int LastVisibleTick,
+        int StartTick,
+        bool Spent);
 
     private sealed record FocusLock(
         ActorIdentity ActorId,
