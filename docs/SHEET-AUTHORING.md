@@ -399,3 +399,83 @@ commander-sheet module above as the working precedent):
 - **Do not** couple a stored tactical sheet to `ArcRelayEntrant` or any ladder
   admission. Storage is a drafting convenience; admission is a separate,
   deliberate decision.
+
+---
+
+## 6. Legacy surfaces to remove
+
+**The editor build REMOVES the surfaces below.** They are the previous
+generation of sheet editing and are not to be carried forward, migrated from,
+or kept behind a flag. This section is a located-and-verified inventory, not a
+deletion — the deletion is part of the editor work.
+
+### 6.1 No Frontline sheet editor exists
+
+Searched and found nothing to remove. `find web/src mobile/src -iname
+"*frontline*"` returns exactly one file, `web/src/render/frontlineCaptureVisual.ts`,
+which is a renderer. Every other `frontline` hit under `web/src` is
+replay/render/audio/bridge code (`replayWireV2.ts`, `replayModel.ts`,
+`replayNormalize.ts`, `hostedBridge.ts`, `render/drawArena.ts`, …) — match
+viewing and runtime, explicitly **out of scope and to be left alone**. No
+Frontline authoring UI, no Frontline sheet endpoints.
+
+### 6.2 The arc-relay commander-sheet editor — remove
+
+This is the real one. It edits the `slots`/`zones`/`rallyLines`/`policies`/
+`gambits` document of §5.1, which the new grammar replaces.
+
+**Frontend**
+
+| path | what |
+| --- | --- |
+| `web/src/site/pages/ArcRelayPage.tsx` | the editor (784 lines). **Not a whole-file delete** — the same page also launches matches (`launch.mutate({ entrantId, opponentEntrantId, seed })`) and lists entrants/ladder. Remove the editing half; keep or relocate the launcher. |
+| `web/src/site/Site.tsx:22, 57, 105` | import and the two mount points |
+| `web/src/site/api.ts:159-163, 175` | `ArcRelaySheet`, `ArcRelaySheetDocument`, `ArcRelaySheetSlot`, `ArcRelaySheetPoint`, `ArcRelaySheetGambit`, `SaveArcRelaySheetRequest` type aliases |
+| `web/src/site/api.ts:224, 260-263` | `arcRelaySheets`, `createArcRelaySheet`, `updateArcRelaySheet` |
+| `web/src/site/queries.ts:17, 56, 177, 505` | `SaveArcRelaySheetRequest` import, `keys.arcRelaySheets`, `useArcRelaySheets`, `useSaveArcRelaySheet` |
+
+`web/CLAUDE.md` rules still apply to whatever remains, and
+`web/src/site/structure.test.ts` plus the web test suite must be green after
+the removal.
+
+**Backend** (`src/BotArena.App`)
+
+| path | what |
+| --- | --- |
+| `ArcRelay/ArcRelayEndpoints.cs:74` | `GET /api/arc-relay/sheets` |
+| `ArcRelay/ArcRelayEndpoints.cs:101` | `POST /api/arc-relay/sheets` |
+| `ArcRelay/ArcRelayEndpoints.cs:147` | `PUT /api/arc-relay/sheets/{sheetId:guid}` |
+| `ArcRelay/ArcRelaySheet.cs` | entity + `ArcRelaySheetDocument` and its record tree |
+| `ArcRelay/ArcRelayPlayerSheetCodec.cs` | canonical codec, `SchemaVersion = 1`; also feeds `GET /catalog` (`ArcRelayEndpoints.cs:44-52`), so that response shrinks rather than disappears |
+| `Shared/AppDbContext.cs:35, 227` | `DbSet<ArcRelaySheet>` and its entity configuration; needs an EF migration to drop the table |
+
+**Generated clients — mandatory follow-up.** Removing App endpoints changes
+the HTTP contract, so after the deletion run `bash scripts/generate-api-clients.sh`
+and commit the regenerated `contracts/BotArena.App.json`,
+`web/src/api/schema.d.ts`, `mobile/src/api/schema.d.ts` and
+`src/BotArena.Cli/Generated/ApiContracts.cs` in the same change. Never
+hand-edit them. CI's `contract-drift` job regenerates and fails on any diff.
+
+### 6.3 The one coupling to decide before deleting
+
+`POST /sheets` does two things: it saves a document **and** it creates an
+`ArcRelayEntrant` with `Kind = ArcRelayEntrantKind.Sheet`
+(`ArcRelay/ArcRelayEndpoints.cs:127`). That enum has exactly two values
+(`ArcRelay/ArcRelayEntrant.cs:3-7`) and entrants are created in exactly two
+places — `:127` (sheet) and `:228` (custom mind).
+
+So deleting the sheet-editing surface removes **one of the two ways anything
+reaches the arc-relay ladder**. That is match-admission territory and the
+scope guard fences it. Decide explicitly, before deleting:
+
+- if the arc-relay ladder is to keep running on custom-mind entrants alone,
+  the `Sheet` enum member and any pairing/projection code that switches on it
+  come out too (`ArcRelayEntrantProjector.cs`, `ArcRelayLadderPairingService.cs`,
+  `ArcRelayMatchAdmissionService.cs` all read entrant kind); or
+- if tactical sheets are meant to become ladder entrants eventually, leave the
+  entrant model alone and delete only the editing half — but then a stored
+  tactical sheet still must not silently become an entrant (§5.3).
+
+Existing rows are player data. Dropping the table is a destructive migration;
+if the ladder holds live `Sheet` entrants, they need retiring or migrating
+first.
