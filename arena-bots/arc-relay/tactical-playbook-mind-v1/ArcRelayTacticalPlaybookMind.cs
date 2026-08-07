@@ -1330,30 +1330,42 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             }
             _recovering.Add(body.UnitId);
-            _recoverTrace.Add($"{body.UnitId}:ready");
+            // Name the beacon and its heat. A choice nobody can see is a
+            // choice nobody can check, and this exact line is the evidence
+            // that a desperate body still walks to the COLD one.
+            _recoverTrace.Add(
+                $"{body.UnitId}:ready@{beacon.X}-{beacon.Y}"
+                + $"h{BeaconHeat(mind, beacon)}"
+                + $"/{string.Join("|", _healTiles
+                    .Select(tile => $"{tile.X}-{tile.Y}h{BeaconHeat(mind, tile)}"))}");
         }
     }
 
     /// <summary>
-    /// The safest beacon for this body, or null when none is safe. Safe
-    /// means no enemy - seen now or remembered - within
-    /// <see cref="RecoverClearance"/> of the beacon, and no visible enemy
-    /// that close to the body itself; channelling is stationary, so a
-    /// watched beacon is a trap rather than a refuge. Among the safe tiles
-    /// the nearest wins, ties broken in the mind's own mirrored frame so
-    /// both sides of the map choose alike.
+    /// The safest beacon for this body, or null when none is safe.
+    ///
+    /// <para>Two separate questions live here and used to be one. ARMING
+    /// asks whether recover may fire at all: normally no, while an enemy
+    /// is within <see cref="RecoverContact"/> of the body or every beacon
+    /// is hot, because channelling is stationary and a watched beacon is a
+    /// trap rather than a refuge. One hit from dead, every arming gate
+    /// comes off (owner ruling 2026-08-07): a body at 1 HP standing in a
+    /// duel is already dead, so it should TRY.</para>
+    ///
+    /// <para>CHOICE is the other question, and desperation never relaxed
+    /// it — it only ever picked the NEAREST beacon (owner catch
+    /// 2026-08-07: a recovering ghost walked to the north beacon with five
+    /// enemies around it while a clean one stood open). Choice weighs
+    /// safety first, always: fewest enemies known near the beacon — seen
+    /// now or remembered fresh — then the shortest WALK to it, then the
+    /// mind's mirrored frame so both sides of the map choose alike. A
+    /// beacon the map cannot reach is not a choice at all. Nearest-hot
+    /// wins only when every beacon is equally hot.</para>
     /// </summary>
     private Position? RecoverBeacon(MindContext mind, MindBody body)
     {
-        if (_healTiles.Length == 0)
+        if (_healTiles.Length == 0 || _contract is not { } contract)
             return null;
-        // One hit from dead, every gate comes off: survival beats caution
-        // (owner ruling 2026-08-07). The caution gates exist because
-        // channelling is stationary and a watched beacon is a trap - true,
-        // but a body at 1 HP standing in a duel is already dead, and the
-        // owner's spec said it should TRY. Measured on commitx15-w-9001: the
-        // ghost held 1 HP for 17 ticks trading strikes at (26,11), reading
-        // `contact` every tick, and never once armed recover before it died.
         bool desperate = body.Health <= 1;
         if (!desperate
             && mind.Enemies.Any(enemy =>
@@ -1363,20 +1375,45 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return null;
         }
         return _healTiles
-            .Where(tile => desperate
-                || !mind.Enemies.Any(enemy =>
-                    enemy.Position.ChebyshevDistance(tile)
-                        <= RecoverClearance)
-                && !_lastSeenEnemies.Values.Any(enemy =>
-                    mind.Tick - enemy.LastConfirmedTick
-                        <= RecoverMemoryTicks
-                    && enemy.Position.ChebyshevDistance(tile)
-                        <= RecoverClearance))
-            .OrderBy(tile => tile.ChebyshevDistance(body.Position))
-            .ThenBy(tile => ArenaBasics.FrameY(tile, _mirrored))
-            .ThenBy(tile => ArenaBasics.FrameX(tile, _mirrored))
-            .Select(tile => (Position?)tile)
+            .Select(tile => (
+                Tile: tile,
+                Heat: BeaconHeat(mind, tile),
+                Walk: ArenaBasics.StaticDistance(
+                    contract.Map, body.Position, tile)))
+            .Where(candidate => candidate.Walk is not null
+                && (desperate || candidate.Heat == 0))
+            .OrderBy(candidate => candidate.Heat)
+            .ThenBy(candidate => candidate.Walk)
+            .ThenBy(candidate => ArenaBasics.FrameY(candidate.Tile, _mirrored))
+            .ThenBy(candidate => ArenaBasics.FrameX(candidate.Tile, _mirrored))
+            .Select(candidate => (Position?)candidate.Tile)
             .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// How many distinct enemy units the team places within
+    /// <see cref="RecoverClearance"/> of a beacon — visible right now, or
+    /// remembered from a sighting no older than
+    /// <see cref="RecoverMemoryTicks"/>. Zero is COLD. Counting units
+    /// rather than sources keeps one enemy that is both seen and
+    /// remembered from reading as a crowd.
+    /// </summary>
+    private int BeaconHeat(MindContext mind, Position tile)
+    {
+        var near = mind.Enemies
+            .Where(enemy => enemy.Position.ChebyshevDistance(tile)
+                <= RecoverClearance)
+            .Select(enemy => enemy.ActorId.UnitId)
+            .ToHashSet();
+        foreach ((int unit, LastSeenEnemy enemy) in _lastSeenEnemies)
+        {
+            if (mind.Tick - enemy.LastConfirmedTick <= RecoverMemoryTicks
+                && enemy.Position.ChebyshevDistance(tile) <= RecoverClearance)
+            {
+                near.Add(unit);
+            }
+        }
+        return near.Count;
     }
 
     private static int CohesionPercent(Position[] positions, int maximumSpacing)

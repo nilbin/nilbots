@@ -23,6 +23,11 @@
 #   EXHIBIT_CARDS   optional curated cards JSON; without it the script
 #                   writes honest minimal cards (win/loss, end tick, the
 #                   sheet-under-test unit-0 audit line)
+#   EXHIBIT_MATCH_ARGS
+#                   extra flags passed verbatim to every cell's
+#                   `experiment arc-relay` invocation, e.g.
+#                   "--mind-stepper coordinated". Word-split, so keep
+#                   each token space-separated and unquoted.
 #
 # Timing on the reference machine: ~2s per match, ~10s per broadcast
 # (parallel), one gallery build ~20s. Six cells land in ~1 minute.
@@ -48,6 +53,7 @@ if [ ! -x "$PUB/botarena" ]; then
 fi
 
 echo "running ${#CELLS[@]} cells..."
+read -r -a MATCH_ARGS <<< "${EXHIBIT_MATCH_ARGS:-}"
 pids=()
 for cell in "${CELLS[@]}"; do
   side=${cell%%-*}; seed=${cell##*-}
@@ -58,6 +64,7 @@ for cell in "${CELLS[@]}"; do
     --bot "$MIND" --opponent "$MIND" --runtime in-process \
     --loop-profile ambush-warren-11 --seed "$seed" \
     --sheet0 "$S0" --sheet1 "$S1" --out "$OUT" \
+    ${MATCH_ARGS[@]+"${MATCH_ARGS[@]}"} \
     > "$OUTDIR/$NAME-$cell.log" 2>&1 &
   pids+=($!)
 done
