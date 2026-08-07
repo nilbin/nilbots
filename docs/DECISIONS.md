@@ -4798,3 +4798,23 @@ its own change. Next: migrate values to the spec's target artifact one
 battery at a time (patience, assault gates, breakOff, approach,
 killable) - any value that measures worse stays at translation with the
 data cited for the owner's call.
+
+## 218. Ghost v3 value migration: the translation IS the tune
+
+Every illustrative value in the spec's target artifact was measured as
+its own battery against the ab74 translation, per the sheet-tuning
+skill: patience 12 (ab75, worse everywhere), breakOff 3 (ab76, 9-15
+latch pacifism), gated assault (ab77, a 233-tick base-camp pocket the
+parked bar cannot see), strike-from-behind (ab78, 7-17 - per-target
+hold windows nearly stop the ghost firing against live prey), and
+killableTicks 12 (ab79, 24/24 state-identical - a no-op at kestrel
+damage). All five reverted with the data in their revert commits. The
+ab72-translation values stand as the frozen v3 config: they were tuned
+by five batteries once already, and the consolidation's win is the
+grammar, not new numbers. The from-behind MACHINERY (commit.approach,
+order patienceTicks) stays shipped and unauthored: the owner's
+positioning intent needs a different mechanization (per-engagement
+budget, or gating on unaware/stationary prey) - a design conversation,
+not a value sweep. Gallery for the owner gate: "Ghost doctrine v3 -
+one grammar, same beast" (five wins, two honest losses, exhibits
+labeled) on the standing tunnel.

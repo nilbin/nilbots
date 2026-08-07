@@ -2,9 +2,10 @@
 
 Owner-approved shape 2026-08-07 (this document is the contract; the
 conversation that produced it is summarized in DECISIONS #216). Status:
-awaiting the owner's final go. The ghost stays FROZEN on the ab72
-configuration (14-10, 23/24 bars-clean, audit-green) until parity
-proves out.
+EXECUTED 2026-08-08 (owner go; DECISIONS #217/#218). The grammar below
+shipped exactly; the target artifact's illustrative VALUES were then
+measured one battery at a time and mostly refuted - see "Measured
+migration" at the end for the frozen result.
 
 ## Why
 
@@ -149,3 +150,56 @@ silently-false gate.
 - Open exhibits: well-scrum staticness on BOTH teams (~10% lone-kill
   conversion, 80-100 confined units per battery) — next campaign
   after this one.
+
+## Measured migration (2026-08-08, post-execution)
+
+The grammar shipped as specified (commit ee5e2970). Parity: ab74
+12-12, 23/24 bars-clean, zero unresolved streaks, 7/24 cells
+STATE-IDENTICAL to ab72 whole-match; every diff traced to the one-leash
+reinterpretation; the two CONFINED ghost cells are the strike-line
+assault pocket ab72 already exhibits (its own w-9012 is
+state-identical at 117t). Then each target value ran as its own
+battery against the translation:
+
+| value | battery | verdict |
+|---|---|---|
+| `patienceTicks: 12` (intercept) | ab75 11-13, bars 21/24, hunter-side trips | REVERTED — worse on every gate |
+| `breakOff.threats: 3` | ab76 9-15, latch pacifism (ab70 family) | REVERTED — 4 stays |
+| assault `{within: 6, leash: 14}` inherit | ab77 12-12 but a 233-tick base-camp pocket | REVERTED — gate-free assault is load-bearing |
+| `engage.from: "behind"` (16, strike) | ab78 7-17, 2 shots/match where 22 fired | REVERTED — per-target hold windows pacify vs live prey; machinery stays, needs per-engagement budget or unaware-prey gating |
+| `engage.killableTicks: 12` | ab79 24/24 state-identical to ab74 | REVERTED — proven no-op at kestrel damage |
+
+FROZEN ghost (hunter-v1, the ab72 translation):
+
+```json
+"ghost": {
+  "role": "hunter",
+  "custody": "well-custody",
+  "fight": {
+    "targets":  { "lone": 4 },
+    "engage":   { "within": 4 },
+    "chase":    { "leash": 6, "onlyCatchable": true, "executeBelowHealth": 1 },
+    "breakOff": { "threats": 4, "within": 5, "memoryTicks": 16, "recoverTicks": 24 }
+  },
+  "modes": [
+    { "assault": "strike-line", "while": "shadow-op", "until": "shadow-cooled",
+      "escort": "medic",
+      "fight": { "targets": { "lone": 0 }, "engage": { "within": 0 },
+                 "chase": { "leash": 14, "onlyCatchable": false,
+                            "executeBelowHealth": 0 },
+                 "breakOff": { "threats": 0 } } },
+    { "intercept": "enemy-carriers", "from": "perch-north",
+      "while": "carrier-known or enemy-remembered-deep",
+      "until": "carriers-none and backfield-cold",
+      "fight": { "chase": { "leash": 14 } } },
+    { "patrol": "shadow-north-long" }
+  ]
+}
+```
+
+Owner gallery: "Ghost doctrine v3 — one grammar, same beast" (ab74
+cells, five wins + two honest losses) on the standing tunnel. Noted
+for later, untouched to protect parity: the isolation rear-exposure
+override in AllocateFocus reads inverted vs its comment (rank==1
+keeps NOT-rear-exposed targets); the strike-line assault pocket is
+the assault verb's character and predates v3.
