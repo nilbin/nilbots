@@ -210,6 +210,34 @@ public sealed class ArcRelayCoreInvariantTests
         Assert.Null(rearmed.RearmCompletesAtTick);
     }
 
+    /// <summary>
+    /// A voluntary drop must land BESIDE the dropper, on a walkable tile no
+    /// farther from its own reactor than the tile it left. Dropping underfoot
+    /// is re-collected at the next tick start, which is what made every
+    /// transfer loop forever (owner catch 2026-08-07).
+    /// </summary>
+    [Fact]
+    public void VoluntaryDropLandsOnAWalkableHomewardNeighbour()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+        var driver = new ArcRelayActorMatchModeDriver(definition, matchSeed: 0);
+        driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
+        Position reactor = State(driver).Reactors.Single(value =>
+            value.TeamId == Carrier.TeamId).Position;
+
+        Assert.True(driver.TryDrop(27, Carrier, out GenericActorModeEvent? _));
+
+        ArcRelayCoreState core = State(driver).VisibleCores.Single();
+        Assert.Null(core.CarrierActorId);
+        Assert.NotEqual(CentreWell, core.Position);
+        Assert.Equal(1, core.Position.ChebyshevDistance(CentreWell));
+        Assert.False(definition.Map.IsWall(core.Position));
+        Assert.True(
+            core.Position.ChebyshevDistance(reactor)
+                < CentreWell.ChebyshevDistance(reactor),
+            "a drop should nudge the Core homeward");
+    }
+
     private static ArcRelayEvent[] Facts(
         IEnumerable<GenericActorModeEvent> events) =>
         events.Select(value => Assert.IsType<

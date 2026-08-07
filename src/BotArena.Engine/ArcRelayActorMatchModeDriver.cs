@@ -507,6 +507,17 @@ internal sealed class ArcRelayActorMatchModeDriver
             modeEvent = null;
             return false;
         }
+        // A voluntary drop lands BESIDE the dropper, never underfoot. Pickup
+        // is automatic for a body standing on a loose Core at tick start, so
+        // dropping on your own tile means collecting it again immediately -
+        // that self-tile re-collection is what made every transfer loop
+        // forever (owner catch 2026-08-07). The tile is the adjacent one
+        // nearest the dropper's own reactor, so a drop is also a nudge
+        // HOMEWARD: hand-off partners stand between the carrier and home, and
+        // the Core lands on their side. Walls and the map edge are excluded;
+        // if a body is somehow sealed in, the old underfoot behavior is the
+        // only remaining answer.
+        core.Position = VoluntaryDropTile(sourceActorId, core.Position);
         core.CarrierActorId = null;
         core.LooseTicks = 0;
         core.ResumeDebt = _gameMode.RipenResumeTicks;
@@ -520,6 +531,50 @@ internal sealed class ArcRelayActorMatchModeDriver
             core.Position);
         return true;
     }
+
+    /// <summary>
+    /// Where a voluntary drop puts the Core: the adjacent (8-way) in-bounds
+    /// non-wall tile nearest the dropper's own reactor, ties broken
+    /// canonically so both orientations of a map behave alike. Falls back to
+    /// the dropper's own tile only when every neighbour is a wall.
+    /// </summary>
+    private Position VoluntaryDropTile(
+        ActorIdentity sourceActorId,
+        Position from)
+    {
+        Position home = _reactors.TryGetValue(
+            sourceActorId.TeamId, out ReactorRuntime? reactor)
+                ? reactor.Position
+                : from;
+        Position? best = null;
+        int bestDistance = int.MaxValue;
+        foreach ((int dx, int dy) in VoluntaryDropOffsets)
+        {
+            var candidate = new Position(from.X + dx, from.Y + dy);
+            if (candidate.X < 0 || candidate.Y < 0
+                || candidate.X >= _definition.Map.Width
+                || candidate.Y >= _definition.Map.Height
+                || _definition.Map.IsWall(candidate))
+            {
+                continue;
+            }
+            int distance = candidate.ChebyshevDistance(home);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+        return best ?? from;
+    }
+
+    /// <summary>Neighbour scan order — canonical, so a distance tie always
+    /// resolves the same way.</summary>
+    private static readonly (int Dx, int Dy)[] VoluntaryDropOffsets =
+    [
+        (0, -1), (1, -1), (1, 0), (1, 1),
+        (0, 1), (-1, 1), (-1, 0), (-1, -1),
+    ];
 
     public bool TryHandoff(
         int tick,
