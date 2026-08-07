@@ -568,6 +568,17 @@ internal sealed class TacticalPlaybookPackage
         string Zone,
         ConditionGroup[] ReclaimAll);
 
+    /// <param name="Stance">Drives concealment micro (ambush-conceal) and the
+    /// flank-approach suppression. Its former third reading - how long a post
+    /// may stand before the no-idle watchdog displaced the body - is INERT
+    /// since the watchdog was removed (owner ruling 2026-08-07).</param>
+    /// <param name="PatienceTicks">ACCEPTED BUT INERT since the no-idle
+    /// watchdog was removed (owner ruling 2026-08-07). It bounded how long a
+    /// perch could hold before the executor shoved the body off it; nothing
+    /// shoves now, so standing is the sheet's own business and a mode ends
+    /// when its while/until says so. The field stays in the grammar so frozen
+    /// sheets keep compiling byte-identically. See
+    /// docs/EXECUTOR-SILENT-POLICY.md.</param>
     internal sealed record Order(
         string OrderId,
         string GroupId,

@@ -54,10 +54,30 @@ Visible in traces (reason string in parentheses), policy hard-coded:
 3. **Ambush concealment** (`ambush-conceal`) and **flank approach**
    (`flank-approach`): stance-driven; the v3 desugar emits
    `stance: "ambush"` for every doctrine order unconditionally.
-4. **Idle-break family** (`streak`, `wedge-shake`, supply-lane 2-tick
-   patience, the carrier-plug test): the no-idle invariant. Patience is
-   now partially authorable (`patienceTicks`); the rest is invariant by
-   design (camping protection) and should stay.
+4. **Idle-break family** — **REMOVED 2026-08-07 by owner ruling.** He
+   asked "is it even a good idea" and called it: the no-idle invariant
+   was the last big silent mover, and the sheets now own standing
+   intent themselves (modes with `while`/`until`, `patienceTicks`,
+   the `recover` verb, `duel-stand`). Gone: the `streak` displacement,
+   the wedge-shake pacing, and all idle-watch bookkeeping. Standing
+   still is sheet policy again — **camping can return, and that is the
+   accepted trade**; the `unitParked` bar is now the only thing that
+   flags it, so watch that bar rather than trusting the executor to
+   prevent it.
+
+   What REMAINS is one narrow check, `lane-relief` (was the supply-lane
+   2-tick patience + `PlugsCarrierRoute` backstop). It is not about
+   idling but about BLOCKING others: it fires only when a body stands
+   beside an own loaded carrier ON an admissible homeward step while
+   every such step is taken, and after two ticks of that it displaces
+   away from the own reactor. That was a measured fix for real harm
+   (the ab51 pocket family, owner-confirmed) and survives the ruling.
+
+   Consequence: `patienceTicks` and `stance`'s idle-limit reading are
+   now **accepted but inert** — nothing displaces a patient body, so
+   the numbers describe nothing. Both stay in the grammar so frozen
+   clean-slate sheets keep compiling byte-identically. `stance` still
+   drives concealment micro and flank-approach suppression.
 5. **Heal behavior** (`heal-detour`, `heal-channel`): a wounded body
    vector-dashes to heal tiles regardless of orders - the "random
    jump" legibility item.

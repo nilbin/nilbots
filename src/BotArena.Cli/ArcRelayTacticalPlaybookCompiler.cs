@@ -1210,6 +1210,11 @@ public static class ArcRelayTacticalPlaybookCompiler
         string[] optional = verb switch
         {
             "patrol" => ["while", "until", "fight"],
+            // patienceTicks is ACCEPTED BUT INERT since the no-idle watchdog
+            // was removed (owner ruling 2026-08-07): it bounded how long a
+            // perch could hold before the executor displaced the body, and
+            // nothing displaces now. Kept in the grammar so frozen sheets
+            // compile byte-identically. See docs/EXECUTOR-SILENT-POLICY.md.
             "intercept" =>
                 ["from", "while", "until", "fight", "patienceTicks"],
             // Recover is condition-driven INTERNALLY (owner spec): its

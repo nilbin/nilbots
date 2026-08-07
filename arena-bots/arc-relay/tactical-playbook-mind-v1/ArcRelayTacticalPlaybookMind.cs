@@ -33,10 +33,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, (int LifeId, int Spent)> _investSpent = [];
     private readonly Dictionary<int, (int LifeId, int Level)> _unitLevel = [];
     private readonly Dictionary<int, int> _slotHold = [];
-    private readonly Dictionary<int, (int LifeId, Position Anchor, int Streak)>
-        _idleWatch = [];
-    private IdleContext? _idleContext;
-    private int _idleBreaks;
+    /// <summary>How many consecutive ticks each unit has stood still on an
+    /// own carrier's supply lane, and where.</summary>
+    private readonly Dictionary<int, (int LifeId, Position Tile, int Ticks)>
+        _lanePlugTicks = [];
+    private int _laneReliefs;
     private readonly Dictionary<int, (int LifeId, int UntilTick)>
         _disengaging = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
@@ -77,10 +78,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _lastObjectiveProgressTick;
     private int _lastOwnCharge;
     private Position[] _healTiles = [];
-    /// <summary>The tile each unit's last idle-break stepped off and when,
-    /// so a CONSECUTIVE break cannot step straight back onto it.</summary>
-    private readonly Dictionary<int, (int LifeId, int Tick, Position Tile)>
-        _idleBreakFrom = [];
+    /// <summary>How long a body may plug a loaded carrier's route home
+    /// before it is moved aside.</summary>
+    private const int CarrierLanePatience = 2;
 
     /// <summary>How near a cold trail has to be before walking to it counts
     /// as pursuit rather than abandoning the post.</summary>
@@ -361,20 +361,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // aside while a dancing teammate claimed the freed tile first.
         foreach ((int carrierUnit, Position step) in carrierSteps)
             claims.ReserveLane(step, carrierUnit);
-        foreach (MindBody watched in mind.Bodies)
-        {
-            (int LifeId, Position Anchor, int Streak) idle =
-                _idleWatch.GetValueOrDefault(watched.UnitId);
-            _idleWatch[watched.UnitId] =
-                idle.LifeId != watched.ActorId.LifeId
-                    || watched.Position.ChebyshevDistance(idle.Anchor) > 1
-                ? (watched.ActorId.LifeId, watched.Position, 0)
-                : (idle.LifeId, idle.Anchor, idle.Streak + 1);
-        }
-        _idleContext = new IdleContext(
-            contract, mind, orders, targets, carrierUnitIds,
-            repairs.Keys.ToHashSet(), focus.Keys.ToHashSet(), claims);
-
         foreach (MindBody body in mind.Bodies
                      .OrderByDescending(body => carried.ContainsKey(body.ActorId))
                      // A body standing on a carrier's lane acts before the
@@ -510,13 +496,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 }
             }
 
-            // The no-idle invariant runs BEFORE the channels, not only under
-            // Hold: a camper can act every tick without displacing (facing
-            // scans, in-place micro), and those paths never reach Hold at
-            // all. Exemptions inside TryIdleBreak keep fights, repairs, heal
-            // channels, carriers, and settled ambush posts authored.
-            bool acted = TryIdleBreak(
-                body, Provenance(machine, group, order, "streak"));
+            // Clearing a plugged carrier lane runs BEFORE the channels: a
+            // body can act every tick without displacing (facing scans,
+            // in-place micro) and those paths never reach Hold at all.
+            bool acted = TryCarrierLaneRelief(
+                contract, mind, body, carrierUnitIds,
+                repairs.Keys.ToHashSet(), claims,
+                Provenance(machine, group, order, "carrier-lane"));
             foreach (string channel in package.Source.Arbitration.Channels)
             {
                 if (acted)
@@ -626,7 +612,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + tasks.TraceSummary + "; "
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
-            + $"idle-breaks={_idleBreaks}; "
+            + $"lane-reliefs={_laneReliefs}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }
@@ -1280,10 +1266,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// every enemy the team can see or still believes in.</summary>
     private const int RecoverClearance = 4;
 
-    /// <summary>What counts as enemy CONTACT for the body itself — the
-    /// executor's standing reading (TryIdleBreak): an enemy merely visible
-    /// at range is not contact, and a body is not forbidden a beacon
-    /// because someone is watching from across the map.</summary>
+    /// <summary>What counts as enemy CONTACT for the body itself: an enemy
+    /// merely visible at range is not contact, and a body is not forbidden a
+    /// beacon because someone is watching from across the map.</summary>
     private const int RecoverContact = 2;
 
     /// <summary>How recent a sighting has to be to still count against a
@@ -4903,174 +4888,79 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return true;
     }
 
-    private sealed record IdleContext(
-        GenericActorResolvedMatchContract Contract,
-        MindContext Mind,
-        Dictionary<int, TacticalPlaybookPackage.Order> Orders,
-        Dictionary<int, Position> Targets,
-        HashSet<int> CarrierUnitIds,
-        HashSet<int> RepairerUnitIds,
-        HashSet<int> FocusUnitIds,
-        ArenaBasics.Claims Claims);
-
     private bool Hold(MindBody body, string reason)
     {
-        if (TryIdleBreak(body, reason))
-            return true;
         body.Hold(reason);
         return true;
     }
 
-    // The no-idle invariant (owner doctrine 2026-08-08): standing still is
-    // never a strategy outside an ambush post, a live fight, or a heal
-    // channel. Four layers can each independently conclude "hold" — task,
-    // order movement, formation, engagement — and any predicate gap between
-    // them used to absorb a unit into permanent camping (the parked ghost the
-    // owner caught on replay twice). A hold that has already lasted the limit
-    // converts into motion toward the authored objective instead; when the
-    // objective itself is the parking spot, the body displaces the way the
-    // wedge-shake does, away from here and from the own reactor, which is
-    // where camps collect.
-    private bool TryIdleBreak(MindBody body, string reason)
+    /// <summary>
+    /// Carrier-lane relief - all that remains of the no-idle watchdog (owner
+    /// ruling 2026-08-07: the general invariant is removed, standing is sheet
+    /// policy again). This is not about idling. It is about BLOCKING: the
+    /// ab51 pocket family (owner replay finding, "it's friendly bodies
+    /// blocking it") was an escort whose post resolved onto a loaded
+    /// carrier's only bankward corridor tile - on post forever, corridor
+    /// plugged 114 ticks with no enemy in sight. Whole-map path existence was
+    /// tried and measured wrong (ab53): winding detours exist, but the
+    /// carrier's movement policy refuses distance-increasing steps, so it
+    /// never takes them. The plug test asks the policy's own question - is
+    /// this body standing on an admissible homeward step while every such
+    /// step is taken - and after two ticks of that the plug displaces away
+    /// from the own reactor, which is exactly off the carrier's route.
+    /// Fires ONLY beside an own carrier whose route this body plugs; a body
+    /// standing anywhere else is the sheet's business now.
+    /// </summary>
+    private bool TryCarrierLaneRelief(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        IReadOnlySet<int> carrierUnitIds,
+        IReadOnlySet<int> repairerUnitIds,
+        ArenaBasics.Claims claims,
+        string reason)
     {
-        if (_idleContext is not { } context)
-            return false;
-        (int LifeId, Position Anchor, int Streak) idle =
-            _idleWatch.GetValueOrDefault(body.UnitId);
-        if (idle.LifeId != body.ActorId.LifeId)
-            return false;
-        if (!context.Orders.TryGetValue(
-                body.UnitId, out TacticalPlaybookPackage.Order? order))
-            return false;
-        // Standing beside an own carrier is standing on the supply lane
-        // (owner replay review, measured again as the ab35 stuck-carrier
-        // wall): a fight nearby is no excuse - the combat exemption does
-        // not apply there and the patience is a quarter of the usual.
-        bool onSupplyLane = !context.CarrierUnitIds.Contains(body.UnitId)
-            && context.Mind.Bodies.Any(other =>
-                context.CarrierUnitIds.Contains(other.UnitId)
-                && other.Position.ChebyshevDistance(body.Position) <= 1);
-        // The sheet may bound a perch's patience directly (patienceTicks,
-        // ghost doctrine v3 intercept); otherwise ambushers wait long and
-        // everyone else briefly.
-        int limit = onSupplyLane
-            ? 2
-            : order.PatienceTicks > 0
-                ? order.PatienceTicks
-                : string.Equals(
-                    order.Stance, "ambush", StringComparison.Ordinal) ? 32 : 8;
-        if (idle.Streak < limit
-            || body.Cooldown > 0
-            || context.CarrierUnitIds.Contains(body.UnitId)
-            || context.RepairerUnitIds.Contains(body.UnitId)
-            // "In combat" means ENGAGED - a focus target, a cycling gun,
-            // or an enemy at arm's length. An enemy merely visible at range
-            // is not a licence to stand (the ab36 residual: race clusters
-            // frozen mid-approach by a lurker five tiles off).
-            || !onSupplyLane
-                && (context.FocusUnitIds.Contains(body.UnitId)
-                    || context.Mind.Enemies.Any(enemy =>
-                        enemy.Position.ChebyshevDistance(body.Position)
-                            <= 2)))
+        if (carrierUnitIds.Contains(body.UnitId)
+            || repairerUnitIds.Contains(body.UnitId)
+            || body.Cooldown > 0)
         {
             return false;
         }
-        // Channelling on a heal tile is the one stand the invariant blesses:
-        // the pragmatist's low-health detour, or a body the recover verb
-        // sent here to sit until it is whole. A body at full health is doing
-        // neither - it is camping a beacon, which is exactly what the
-        // invariant exists to break.
-        if (_healTiles.Contains(body.Position)
-            && body.Health < MaxHealth(context.Contract, body)
-            && (_recovering.Contains(body.UnitId)
-                || body.Health <= 1 + (_unitLevel.TryGetValue(
-                        body.UnitId, out (int LifeId, int Level) level)
-                    && level.LifeId == body.ActorId.LifeId ? level.Level : 1)))
+        MindBody[] carriersBeside = mind.Bodies
+            .Where(other => carrierUnitIds.Contains(other.UnitId)
+                && other.Position.ChebyshevDistance(body.Position) <= 1)
+            .ToArray();
+        (int LifeId, Position Tile, int Ticks) plug =
+            _lanePlugTicks.GetValueOrDefault(body.UnitId);
+        if (carriersBeside.Length == 0)
+        {
+            _lanePlugTicks.Remove(body.UnitId);
+            return false;
+        }
+        int ticks = plug.LifeId == body.ActorId.LifeId
+            && plug.Tile == body.Position
+                ? plug.Ticks + 1
+                : 1;
+        _lanePlugTicks[body.UnitId] =
+            (body.ActorId.LifeId, body.Position, ticks);
+        // Standing beside a loaded carrier IS standing on the supply lane,
+        // and the measured patience for that is two ticks. Actually PLUGGING
+        // the carrier's only homeward step is worse, so it clears a tick
+        // sooner.
+        bool plugging = carriersBeside.Any(other =>
+            ArenaBasics.PlugsCarrierRoute(
+                contract, mind, other, body, _ownReactor));
+        if (ticks < (plugging ? 1 : CarrierLanePatience))
+            return false;
+        if (!ArenaBasics.TryStepAway(
+                contract, mind, body, [body.Position, _ownReactor],
+                claims, $"lane-relief:{reason}"))
         {
             return false;
         }
-        // A body standing AT its resolved target is on post - staging,
-        // guarding, perching are authored intents and the sheet's business
-        // (the unitParked bar still flags true degeneracy). The invariant
-        // breaks only the STRANDED case: far from the objective and not
-        // moving, which is where every camping bug lived.
-        //
-        // EXCEPT when this body is THE plug in an adjacent loaded
-        // carrier's route home. The ab51 pocket family (owner replay
-        // finding: "it's friendly bodies blocking it") was an escort whose
-        // post resolved onto the carrier's only bankward corridor tile -
-        // on-post forever, corridor plugged for 114 ticks with no enemy in
-        // sight. Whole-map path existence was tried and measured wrong
-        // (ab53): winding detours exist, but the carrier's movement policy
-        // deliberately refuses distance-increasing steps, so it never
-        // takes them. The plug test asks the policy's own question: is
-        // the body standing on an admissible homeward step while every
-        // such step is taken. The streak-2 supply-lane break then
-        // displaces the plug (TryStepAway pushes away from the own
-        // reactor, which is exactly off the carrier's route).
-        bool plugsBankLane = onSupplyLane
-            && context.Mind.Bodies.Any(other =>
-                context.CarrierUnitIds.Contains(other.UnitId)
-                && other.Position.ChebyshevDistance(body.Position) <= 1
-                && ArenaBasics.PlugsCarrierRoute(
-                    context.Contract,
-                    context.Mind,
-                    other,
-                    body,
-                    _ownReactor));
-        Position destination = context.Targets.GetValueOrDefault(
-            body.UnitId, body.Position);
-        if (!plugsBankLane
-            && body.Position.ChebyshevDistance(destination)
-            <= order.Movement.ArrivalRadius + 2)
-        {
-            return false;
-        }
-        // A break never steps back onto the tile the LAST break left. The
-        // step toward an unreachable objective flips direction with the
-        // body - north from here, south from there - so without this the
-        // watchdog paces a wedged body between two tiles forever and becomes
-        // the oscillator it exists to prevent (owner catch on commitx9: 102
-        // of 113 confined ticks were consecutive `streak` breaks). Same
-        // remedy as the sticky withdraw rally, which was the same bug.
-        // Only within a pacing sequence: a break that landed last tick still
-        // owns the tile it left. Once the body gets a tick of its own the
-        // memory lapses, so an old excursion never blocks honest ground.
-        (int LifeId, int Tick, Position Tile) vacated =
-            _idleBreakFrom.GetValueOrDefault(body.UnitId);
-        Position? forbidden = vacated.LifeId == body.ActorId.LifeId
-            && vacated.Tick == context.Mind.Tick - 1
-                ? vacated.Tile
-                : null;
-        if (ArenaBasics.StaticFirstStepAvoidingReservations(
-                    context.Contract, context.Mind, body, destination)
-                is Position step
-            && step != forbidden
-            && ArenaBasics.TryMoveDirect(
-                context.Contract, context.Mind, body, step,
-                context.Claims, $"idle-break:{reason}"))
-        {
-            _idleBreakFrom[body.UnitId] =
-                (body.ActorId.LifeId, context.Mind.Tick, body.Position);
-            _idleBreaks++;
-            return true;
-        }
-        // Boxed in, or the only step toward the objective is the one that
-        // would resume the pacing: displace like the wedge-shake does so the
-        // deadlock cannot absorb the body.
-        if (ArenaBasics.TryStepAway(
-                context.Contract, context.Mind, body,
-                forbidden is Position back
-                    ? [body.Position, _ownReactor, back]
-                    : [body.Position, _ownReactor],
-                context.Claims, $"idle-break:{reason}"))
-        {
-            _idleBreakFrom[body.UnitId] =
-                (body.ActorId.LifeId, context.Mind.Tick, body.Position);
-            _idleBreaks++;
-            return true;
-        }
-        return false;
+        _lanePlugTicks.Remove(body.UnitId);
+        _laneReliefs++;
+        return true;
     }
 
     private static string Provenance(
