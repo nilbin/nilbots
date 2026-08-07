@@ -2308,12 +2308,6 @@
      "escort": "medic"
     },
     {
-     "intercept": "enemy-carriers",
-     "from": "perch-north",
-     "while": "carrier-known or enemy-remembered-deep",
-     "until": "carriers-none and backfield-cold"
-    },
-    {
      "patrol": "shadow-north-long"
     }
    ],
