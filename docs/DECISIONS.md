@@ -5843,3 +5843,120 @@ ticks before, 16 at a mean 5.31 after — measured together with #237, so the
 split is not attributed. `scripts/arc-relay-handoff-read.py` states the new
 rule in its docstring: a long approach used to be a trade the rule accepted
 and is now the rule failing.
+
+## 240. The politeness rule: that bot could just move out of the way
+
+Owner follow-up to #237, watching a walker curve around a parked teammate
+with open ground beside it: **"that bot could just move out of the way"**.
+
+#237 gave the movement plane one displacement, but it only fired on a
+RESERVED tile — a carrier lane, an escort leader's step, a plugged homeward
+ring. Everywhere else the plane still had nothing to say, so a body standing
+in a doorway nobody had reserved was walked around.
+
+### The rule
+
+Any body whose exact tile is wanted this tick by a mover it does not outrank
+steps aside to a free adjacent tile that is not itself wanted or reserved,
+reason `...:make-way:u<mover>`, and drifts back toward its post afterwards
+through ordinary movement. It is one generalization of one mechanism:
+`Claims.Owes` now answers from two sources — a reserved LANE and a REQUEST —
+and `StepIntent.Vacate` became `StepIntent.MakeWay`.
+
+Three properties are load-bearing and each cost something to get right:
+
+**Request-driven, never a watchdog.** Nobody asks, nobody moves. A body
+parked where no one needs it stays parked for the whole match, because
+standing is sheet policy and #232 removed the no-idle invariant on purpose.
+There is no patience counter, no idle timer, and no notion of a body being in
+the wrong place — only of a body being in somebody's way THIS TICK.
+
+**Equals never yield**, in the planner exactly as everywhere else — the
+absolute from #237, and the thing that keeps the rule from becoming a shoving
+match between peers. A parked FIGHTER is therefore never moved by free
+traffic; only a carrier, a leader or a fighter can ask a resting body for its
+ground.
+
+**Parked is read, not inferred.** `MindBody.MovedLastTick` is the whole test.
+The first cut asked instead whether the body had a first step toward its
+target left, which classified a body standing on a duel, sweeping a facing or
+stuck as "a mover" and refused to ask it — clearance rose only 9.8% -> 12.1%
+because the rule was declining to fire in exactly the cases the owner was
+pointing at. One tick of history the observation already carries answers it
+without the mind predicting which channel a body is about to take.
+
+### Composition with the queue rule
+
+A body that is already walking is never asked: its tile clears within the
+tick anyway, and the cheap answer is for the mover to wait one tick rather
+than for a third body to be moved. And a request the plane grants becomes a
+QUEUE tile for the asker in `BlockedNow`, so the mover waits for the ground
+it just asked for instead of detouring around the teammate it asked. Ask,
+wait, walk through — never ask and then go the long way.
+
+### Politeness in the planner (owner amendment)
+
+Reactive politeness is not enough for a cooperative stepper: its window
+refused an occupied tile outright at tick 0, so the PLAN committed to the
+long way round before anybody was ever asked. In `CoordinatedArenaStepper` a
+tile held by a DISPLACEABLE body — strictly outranked, not rooted, and
+holding at least one free non-reserved adjacent tile at that slice — is now
+traversable at `DisplaceCost = 5` on top of the step's 2. The arithmetic is
+deliberate against `StepCost`: a two-step detour costs 4 and still wins, a
+three-step detour costs 6 and still wins, a four-step detour costs 8 and
+loses. Plans route through polite bodies exactly when going round is longer
+than about three tiles, and the request fires when the plan arrives. Greedy
+needs nothing: its direct tile ask IS the request.
+
+That amendment surfaced a latent bug of its own. `Step` did
+`chosen ??= _greedy.Step(request)`, which handed a plan's deliberate WAIT to
+the greedy chooser and got a detour back — so `WaitsChosen` had been counting
+yields that never happened since the stepper was written. A `_yielded` flag
+now separates "the plan chose to wait" from "no legal step exists"; only the
+second falls back.
+
+### Measured
+
+Six exhibition cells, hunter-v1 vs wellwright-v1. Volume is bounded — 316
+make-way commands (greedy) and 224 (coordinated) across six full matches,
+roughly one every eight ticks of one team's play, which is what
+request-driven looks like against a watchdog.
+
+Of those commands, the mover took the vacated tile within three ticks 54.7%
+(greedy) and 46.9% (coordinated) of the time; the remainder are lane-driven,
+where the carrier's route may move on. Where a walker was blocked by a
+teammate that had held its tile for three ticks, it got through within three
+ticks 9.8% -> 12.6% (greedy) and 10.6% -> 16.3% (coordinated).
+
+The scene, `coordinated-e-9004` team 1 — a ghost parked on a heal beacon at
+(15,16), which is where carrier u5 is walking:
+
+```
+t52  u0 (15,16) recover-heal          u5 (16,15) formation-move@15,16 via West
+t53  u0 (15,16) make-way:u5 via South u5 (15,15) committed-delivery-wait
+t54  u0 (15,17) formation-move@15,16  u5 (15,15) committed-delivery via South
+t55  u0 (14,17) formation-move@15,16  u5 (15,16) turn for committed-delivery
+```
+
+Request, sidestep, the carrier WAITS rather than detours, walks through at
+t55 — and the ghost is already drifting back to @15,16 on its own movement
+channel. Nothing in that sequence is a special mover.
+
+Escort leaders' rank 1 is exercised: 725 ticks carry a live escort party, and
+24 make-way commands name the escort leader as the mover — including its own
+follower yielding to it (`greedy-e-9004` t395, u1 `ghost-assault-escort`
+making way for leader u0) and a rest-tier body doing the same
+(`greedy-e-9005` t299, u2 `surge-bank`).
+
+Traffic-read over the six cells, against the #237 baseline (`b70c5163`):
+
+| stepper / team | flaps | reversals |
+|---|---|---|
+| greedy t0      | 8.69% -> 6.47% | 13.68% -> 10.12% |
+| greedy t1      | 9.58% -> 7.35% | 14.58% -> 10.93% |
+| coordinated t0 | 8.91% -> 7.72% | 13.80% -> 12.03% |
+| coordinated t1 | 9.65% -> 6.83% | 15.00% -> 11.42% |
+
+Chokes fall on both steppers (greedy 12/13 -> 7/8, coordinated 6/7 -> 5/6)
+and own-contest blockades stay at zero. hunter-v1 takes 3 of 6 under each
+stepper. Not claimed as a balance change.

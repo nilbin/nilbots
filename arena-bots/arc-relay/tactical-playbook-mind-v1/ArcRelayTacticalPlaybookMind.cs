@@ -51,9 +51,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// collect step cannot take it straight back.</summary>
     private readonly Dictionary<int, (int LifeId, string CoreKey, int Tick)>
         _handedOff = [];
-    /// <summary>How many times the movement plane took back ground it was
-    /// owed this match — the one displacement it authors.</summary>
-    private int _laneVacates;
+    /// <summary>How many times a body stepped aside for somebody who wanted
+    /// its tile this match — the one displacement the plane authors.
+    /// </summary>
+    private int _makeWays;
     private readonly Dictionary<int, (int LifeId, int UntilTick)>
         _disengaging = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
@@ -499,6 +500,50 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 }
             }
         }
+        // THE POLITENESS RULE (owner ruling 2026-08-10: "that bot could just
+        // move out of the way"). Every body that is going somewhere says
+        // where its next step lands. A mover whose step lands on a PARKED
+        // body it outranks REQUESTS that tile, and the arbiter steps the
+        // parked body aside — instead of the mover curving around a teammate
+        // with open ground beside it.
+        //
+        // Parked is read off the body, not inferred: `MovedLastTick` is
+        // false. That covers every way of standing still — on post, holding
+        // a duel, sweeping a facing, stuck — without the mind having to
+        // predict which channel a body is about to take, and it is one tick
+        // of history the observation already carries rather than a counter
+        // the mind keeps.
+        //
+        // Request-driven and nothing else: a parked body nobody needs is
+        // never touched, which is what keeps this from becoming the no-idle
+        // watchdog #232 removed. And it COMPOSES with the queue rule instead
+        // of competing with it — a body that is already walking is never
+        // asked, because its tile clears within the tick anyway and the
+        // cheap answer is for the mover to wait one tick rather than for a
+        // third body to be moved.
+        var wants = new Dictionary<int, Position>();
+        foreach (MindBody body in mind.Bodies)
+        {
+            Position? step = carrierSteps.TryGetValue(
+                body.UnitId, out Position carrierStep)
+                ? carrierStep
+                : ArenaBasics.StaticFirstStep(
+                    contract, mind, body, targets[body.UnitId]);
+            if (step is Position tile)
+                wants[body.UnitId] = tile;
+        }
+        foreach (MindBody body in mind.Bodies.OrderBy(body => body.UnitId))
+        {
+            if (!wants.TryGetValue(body.UnitId, out Position wanted))
+                continue;
+            MindBody? parked = mind.Bodies.FirstOrDefault(other =>
+                other.UnitId != body.UnitId
+                && other.Position == wanted
+                && !other.MovedLastTick
+                && claims.YieldsTo(other.UnitId, body.UnitId));
+            if (parked is not null)
+                claims.Demand(wanted, body.UnitId);
+        }
         foreach (MindBody body in mind.Bodies
                      // The one list. Under greedy stepping the fighter tier
                      // folds back into free traffic, so its historical plan
@@ -578,16 +623,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // owns it. (The medic's beam is the separate `repair` channel
             // and is untouched.)
 
-            // Giving back ground the plane owes runs BEFORE the channels: a
-            // body can act every tick without displacing (facing scans,
-            // in-place micro) and those paths never reach Hold at all. This
-            // is the ONE displacement the movement plane authors, and the
-            // arbiter chooses its tile like any other step.
-            bool acted = ArenaBasics.TryVacate(
+            // Making way runs BEFORE the channels: a body can act every tick
+            // without displacing (facing scans, in-place micro) and those
+            // paths never reach Hold at all, so a body that only ever shoots
+            // would never notice it was standing in the doorway. This is the
+            // ONE displacement the movement plane authors, and the arbiter
+            // chooses its tile like any other step.
+            bool acted = ArenaBasics.TryMakeWay(
                 contract, mind, body, claims,
-                Provenance(machine, group, order, "lane-vacate"));
+                Provenance(machine, group, order, "make-way"));
             if (acted)
-                _laneVacates++;
+                _makeWays++;
             foreach (string channel in package.Source.Arbitration.Channels)
             {
                 if (acted)
@@ -724,7 +770,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .Select(value => $"{value.Key}:{value.Value}")) + "; "
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
-            + $"lane-vacates={_laneVacates}; "
+            + $"make-ways={_makeWays}; "
             + $"sheet={package.PlaybookSha256[..8]}; layout="
             + package.LayoutSha256[..8]);
     }

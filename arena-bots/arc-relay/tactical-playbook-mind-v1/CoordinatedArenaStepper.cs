@@ -40,6 +40,22 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
     private const int StepCost = 2;
     private const int WaitCost = 3;
 
+    /// <summary>
+    /// What it costs to route THROUGH a body that would step aside — the
+    /// politeness rule made visible to the planner (owner amendment
+    /// 2026-08-10: politeness must be a plan input, not only a reaction).
+    ///
+    /// <para>Five on top of the step's two is deliberate arithmetic against
+    /// <see cref="StepCost"/>: a detour of two extra steps costs 4 and still
+    /// wins, three extra steps costs 6 and still wins, four costs 8 and
+    /// loses. So a body walks around a parked teammate whenever going around
+    /// is genuinely short, and asks it to move the moment the way round
+    /// costs more than about three tiles. Without this the window refuses
+    /// the occupied tile outright at tick 0 and the plan commits to the long
+    /// way before anybody is ever asked.</para>
+    /// </summary>
+    private const int DisplaceCost = 5;
+
     private readonly GreedyArenaStepper _greedy = new();
 
     /// <summary>Space-time reservations: which unit owns a tile at a tick
@@ -67,9 +83,19 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
     private HashSet<Position> _enemies = [];
     private bool _mirrored;
 
+    /// <summary>Set when a plan's answer is "wait", so the caller does not
+    /// hand the question to the greedy chooser and get a detour back. A
+    /// deliberate yield and "no legal step exists" are different answers and
+    /// only the second one wants a fallback.</summary>
+    private bool _yielded;
+
     public int Replans { get; private set; }
 
     public int WaitsChosen { get; private set; }
+
+    /// <summary>How many times a plan asked a polite body for its tile.
+    /// </summary>
+    public int Requests { get; private set; }
 
     public bool WantsFightPrecedence => true;
 
@@ -146,7 +172,7 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
         // into a commitment. The route plane — Toward, which TryEvade also
         // rides, and Homeward — is where coordination pays.
         if (request.Intent is StepIntent.Away or StepIntent.Aside
-            or StepIntent.Vacate or StepIntent.Direct)
+            or StepIntent.MakeWay or StepIntent.Direct)
         {
             return _greedy.Step(request);
         }
@@ -184,11 +210,17 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
         if (_memo.TryGetValue(key, out Position? cached))
             return cached;
 
+        _yielded = false;
         Position? chosen = Plan(request, goals);
         // A plan that cannot see its goal at all falls back to the greedy
         // chooser rather than standing still: coordination is an
-        // improvement on the answer, never a veto on moving.
-        chosen ??= _greedy.Step(request);
+        // improvement on the answer, never a veto on moving. A plan that
+        // CHOSE to wait is a different answer and keeps it — handing a
+        // deliberate yield to greedy gets the detour the yield exists to
+        // avoid, which also silently undid every wait this stepper has ever
+        // counted.
+        if (chosen is null && !_yielded)
+            chosen = _greedy.Step(request);
         _memo[key] = chosen;
         return chosen;
     }
@@ -220,13 +252,85 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
     /// (tile, tick) with tick bounded by the window; the search returns the
     /// first step of the best path it found, or of the best leaf when the
     /// goal lies beyond the window. Null means "no legal first step at
-    /// all", which hands the question back to greedy.
+    /// all", which hands the question back to greedy — unless
+    /// <see cref="_yielded"/> says the plan chose to wait.
+    ///
+    /// <para>A tile held by a DISPLACEABLE teammate is traversable here at
+    /// <see cref="DisplaceCost"/>. When the plan's first step lands on one,
+    /// the answer is a REQUEST plus a wait: the plane records the demand,
+    /// the polite body steps aside later this tick, and the walk goes
+    /// through next tick. That is strictly better than the detour the
+    /// planner used to be forced into, and it is the same request greedy
+    /// makes directly.</para>
     /// </summary>
     private Position? Plan(
         StepRequest request,
         IReadOnlyCollection<Position> goals)
     {
+        Position? step = Search(request, goals, out HashSet<Position> polite);
+        if (step is not Position first || !polite.Contains(first))
+            return step;
+        request.Claims.Demand(first, request.Body.UnitId);
+        Requests++;
+        _yielded = true;
+        return null;
+    }
+
+    /// <summary>
+    /// Bodies whose tile the planning mover may route through: strictly
+    /// outranked on the one precedence list (equals NEVER yield, in the
+    /// planner exactly as everywhere else), not rooted, and holding at
+    /// least one free adjacent tile of their own to step into. A body with
+    /// nowhere to go is not displaceable, and planning through it would be
+    /// planning through a wall.
+    /// </summary>
+    private HashSet<Position> Displaceable(StepRequest request)
+    {
+        var polite = new HashSet<Position>();
+        foreach (MindBody other in request.Mind.Bodies)
+        {
+            if (other.UnitId == request.Body.UnitId
+                || !request.Claims.YieldsTo(other.UnitId, request.Body.UnitId)
+                || request.Claims.IsRooted(other.UnitId)
+                || _windowObstacles.Contains(other.Position)
+                || !HasFreeNeighbour(request, other))
+            {
+                continue;
+            }
+            polite.Add(other.Position);
+        }
+        return polite;
+    }
+
+    private bool HasFreeNeighbour(StepRequest request, MindBody body)
+    {
+        foreach (ProjectileHeading heading in ArenaBasics.RouteHeadings(
+                     request.Contract, body))
+        {
+            Position next = ArenaBasics.Step(body.Position, heading);
+            if (!ArenaBasics.CanStep(
+                    request.Contract.Map, body.Position, next, heading)
+                || _windowObstacles.Contains(next)
+                || _enemies.Contains(next)
+                || request.Claims.Tiles.Contains(next)
+                || request.Claims.Demands.ContainsKey(next)
+                || (request.Claims.Lanes.TryGetValue(next, out int owner)
+                    && request.Claims.YieldsTo(body.UnitId, owner)))
+            {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private Position? Search(
+        StepRequest request,
+        IReadOnlyCollection<Position> goals,
+        out HashSet<Position> polite)
+    {
         Replans++;
+        polite = Displaceable(request);
         MindBody body = request.Body;
         GenericActorMapContract map = request.Contract.Map;
         HashSet<Position> goalSet = goals.ToHashSet();
@@ -276,9 +380,10 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
             {
                 bool waiting = next == node.Tile;
                 int tick = node.Tick + 1;
+                bool displaceable = !waiting && polite.Contains(next);
                 if (node.Tick == 0)
                 {
-                    if (!waiting && blockedNow.Contains(next))
+                    if (!waiting && blockedNow.Contains(next) && !displaceable)
                         continue;
                 }
                 else if (_windowObstacles.Contains(next)
@@ -298,7 +403,9 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
                 }
 
                 var candidate = new Node(next, tick);
-                int through = here + (waiting ? WaitCost : StepCost);
+                int through = here
+                    + (waiting ? WaitCost : StepCost)
+                    + (displaceable ? DisplaceCost : 0);
                 if (cost.TryGetValue(candidate, out int known)
                     && known <= through)
                 {
@@ -413,6 +520,7 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
             if (!goals.Contains(route[^1]))
                 return null;
             WaitsChosen++;
+            _yielded = true;
             return null;
         }
         return route[0];

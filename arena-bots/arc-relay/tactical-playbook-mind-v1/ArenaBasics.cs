@@ -77,6 +77,7 @@ internal static class ArenaBasics
         private readonly HashSet<Position> _tiles = [];
         private readonly HashSet<Position> _committed = [];
         private readonly Dictionary<Position, int> _lanes = [];
+        private readonly Dictionary<Position, int> _demands = [];
         private readonly Dictionary<int, int> _ranks = [];
         private readonly HashSet<int> _rooted = [];
 
@@ -149,20 +150,51 @@ internal static class ArenaBasics
             _lanes[tile] = ownerUnitId;
 
         /// <summary>
-        /// The lane tiles this body is standing on that belong to a body it
-        /// yields to, with the strongest such owner. Empty means the plane
-        /// owes nothing and the body keeps its ground.
+        /// Tiles a mover WANTS this tick that a parked teammate is sitting
+        /// on. Unlike a lane this reserves nothing and blocks nobody — it is
+        /// a REQUEST, and the only thing it does is oblige the body standing
+        /// there to step aside (owner ruling 2026-08-10: "that bot could
+        /// just move out of the way").
         /// </summary>
-        public bool Owes(MindBody body, out int ownerUnitId)
+        public IReadOnlyDictionary<Position, int> Demands => _demands;
+
+        /// <summary>
+        /// Ask for a tile. The strongest asker wins it — lower rank first,
+        /// then lower unit id — so two movers wanting one parked body's
+        /// ground produce one request with one author, and the body is not
+        /// pulled in two directions.
+        /// </summary>
+        public void Demand(Position tile, int moverUnitId)
         {
-            ownerUnitId = -1;
-            if (!_lanes.TryGetValue(body.Position, out int owner)
-                || !YieldsTo(body.UnitId, owner))
+            if (!_demands.TryGetValue(tile, out int held)
+                || RankOf(moverUnitId) < RankOf(held)
+                || (RankOf(moverUnitId) == RankOf(held) && moverUnitId < held))
             {
-                return false;
+                _demands[tile] = moverUnitId;
             }
-            ownerUnitId = owner;
-            return true;
+        }
+
+        /// <summary>
+        /// Whether the plane owes this body's tile to somebody, and to whom.
+        /// Two sources, one question: a reserved right-of-way LANE it is
+        /// standing in, and a REQUEST from a mover whose own next step lands
+        /// exactly here. The stronger claimant wins.
+        /// </summary>
+        public bool Owes(MindBody body, out int moverUnitId)
+        {
+            moverUnitId = -1;
+            if (_lanes.TryGetValue(body.Position, out int owner)
+                && YieldsTo(body.UnitId, owner))
+            {
+                moverUnitId = owner;
+            }
+            if (_demands.TryGetValue(body.Position, out int mover)
+                && YieldsTo(body.UnitId, mover)
+                && (moverUnitId < 0 || RankOf(mover) < RankOf(moverUnitId)))
+            {
+                moverUnitId = mover;
+            }
+            return moverUnitId >= 0;
         }
 
         /// <summary>Claim a tile a body is actually stepping onto, and tell
@@ -726,44 +758,68 @@ internal static class ArenaBasics
             reason);
 
     /// <summary>
-    /// The movement plane's own displacement: this body is standing on
-    /// ground reserved for somebody it yields to, so the arbiter moves it
-    /// off. One author, one reason string, one precedence list — carrier
-    /// lane relief, escort yield and return-lane clearance were three
-    /// movers with three triggers and three vocabularies, and a body caught
-    /// by two of them at once danced.
+    /// THE POLITENESS RULE, and the movement plane's only displacement:
+    /// this body is standing on ground somebody stronger needs this tick, so
+    /// the arbiter steps it aside. Owner ruling 2026-08-10, watching a
+    /// walker curve around a parked teammate with open ground beside it —
+    /// <b>"that bot could just move out of the way"</b>.
+    ///
+    /// <para>Two things can owe the ground, and they are the same question
+    /// asked at two distances: a reserved right-of-way LANE (a carrier's
+    /// next route step, an escort leader's, a plugged homeward ring), and a
+    /// REQUEST from any mover whose own next step lands exactly on this
+    /// tile. One precedence list decides both, equals never yield, and the
+    /// reason string names the mover: <c>...:make-way:u&lt;mover&gt;</c>.</para>
+    ///
+    /// <para>It is REQUEST-DRIVEN and nothing else. Nobody asks, nobody
+    /// moves: a body parked where no one needs it stays parked forever,
+    /// because standing is sheet policy (#232 removed the no-idle watchdog
+    /// and this must not smuggle it back). There is no patience counter, no
+    /// idle timer and no notion of a body being in the wrong place — only of
+    /// a body being in somebody's way THIS TICK.</para>
+    ///
+    /// <para>The sidestep goes to a free adjacent tile that is not itself
+    /// wanted or reserved, so making way for one body never puts this one in
+    /// front of another. Afterwards nothing drags it back: its target is
+    /// unchanged, so ordinary movement drifts it home next tick.</para>
     ///
     /// <para>Returns false when the plane owes nothing, which is the common
-    /// case and costs one dictionary lookup.</para>
+    /// case and costs two dictionary lookups.</para>
     /// </summary>
-    public static bool TryVacate(
+    public static bool TryMakeWay(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
         Claims claims,
         string reason)
     {
-        if (!claims.Owes(body, out int ownerUnitId))
+        if (!claims.Owes(body, out int moverUnitId))
             return false;
-        MindBody? owner = mind.Bodies.FirstOrDefault(
-            other => other.UnitId == ownerUnitId);
+        MindBody? mover = mind.Bodies.FirstOrDefault(
+            other => other.UnitId == moverUnitId);
+        // Ground this body must not step INTO: its own tile, the mover's,
+        // every lane it yields to, and every tile any mover has asked for.
+        // Stepping out of one body's way and into another's is how a
+        // courtesy turns into a shuffle.
         var owed = new HashSet<Position> { body.Position };
         foreach ((Position tile, int lane) in claims.Lanes)
         {
             if (claims.YieldsTo(body.UnitId, lane))
                 owed.Add(tile);
         }
-        if (owner is not null)
-            owed.Add(owner.Position);
+        foreach (Position tile in claims.Demands.Keys)
+            owed.Add(tile);
+        if (mover is not null)
+            owed.Add(mover.Position);
         return Submit(
             contract,
             mind,
             body,
             ChooseStep(new StepRequest(
-                StepIntent.Vacate, contract, mind, body, owed, claims,
-                owner?.Position)),
+                StepIntent.MakeWay, contract, mind, body, owed, claims,
+                mover?.Position)),
             claims,
-            $"{reason}:u{ownerUnitId}");
+            $"{reason}:u{moverUnitId}");
     }
 
     /// <summary>
@@ -1765,6 +1821,15 @@ internal static class ArenaBasics
             // never routed around its own escort's reservation.
             if (claims.YieldsTo(moving.UnitId, owner))
                 queued.Add(lane);
+        }
+        // A request this body made and the plane granted: the parked body
+        // standing there is stepping aside this tick, so the ground is a
+        // queue rather than a wall. This is what stops the mover detouring
+        // around the teammate it just asked to move.
+        foreach ((Position tile, int mover) in claims.Demands)
+        {
+            if (mover == moving.UnitId)
+                queued.Add(tile);
         }
         queued.Remove(moving.Position);
         var blocked = new HashSet<Position>(claims.Tiles);

@@ -29,7 +29,7 @@ internal sealed class GreedyArenaStepper : IArenaStepper
         StepIntent.Routed => Routed(request),
         StepIntent.Away => Away(request),
         StepIntent.Aside => Aside(request),
-        StepIntent.Vacate => Vacate(request),
+        StepIntent.MakeWay => MakeWay(request),
         StepIntent.Direct => Direct(request),
         _ => null,
     };
@@ -243,7 +243,7 @@ internal sealed class GreedyArenaStepper : IArenaStepper
     /// otherwise the legal step that puts the most ground between this body
     /// and the tiles it owes.
     /// </summary>
-    private static Position? Vacate(StepRequest request)
+    private static Position? MakeWay(StepRequest request)
     {
         MindBody body = request.Body;
         if (request.Anchor is Position anchor)

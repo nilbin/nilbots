@@ -4,7 +4,7 @@ using BotArena.Sdk;
 /// The mind's ONE movement arbiter. Every displacing command in the
 /// executor goes through an <see cref="ArenaBasics"/> wrapper
 /// (TryMoveDirect, TryMoveToward, TryMoveHomeward, TryMoveRouted, TryEvade,
-/// TryStepAway, TryVacate); each of those keeps its name, its legality
+/// TryStepAway, TryMakeWay); each of those keeps its name, its legality
 /// handling and its reason strings — traces read them — and asks the
 /// stepper the single question "which adjacent tile does this body take".
 /// Distance and reachability stay free functions on
@@ -17,7 +17,7 @@ using BotArena.Sdk;
 /// which the arbiter reads BEFORE it chooses a tile — they are inputs, not
 /// vetoes applied after the fact. A body that ends up standing on ground
 /// the plane owes a stronger body is stepped aside by the arbiter itself,
-/// through <see cref="StepIntent.Vacate"/>, with one reason string naming
+/// through <see cref="StepIntent.MakeWay"/>, with one reason string naming
 /// one author. (Owner scene 2026-08-10: "a brief dance that was
 /// unwarranted just because the carrier was close" was three authorities —
 /// the wall, the shove, and the replan — disagreeing about one tile.)</para>
@@ -80,14 +80,16 @@ internal enum StepIntent
     Routed,
 
     /// <summary>
-    /// The plane owes this body's tile to a stronger body: leave it. The
-    /// ONE displacement the movement plane authors on its own — carrier
-    /// lane relief, escort yield and return-lane clearance are all this
-    /// question, asked once. <see cref="StepRequest.Positions"/> is the
-    /// owed ground and <see cref="StepRequest.Anchor"/> the body it is
-    /// owed to.
+    /// The politeness rule: somebody stronger wants the exact tile this
+    /// body is standing on, so it steps aside. The ONE displacement the
+    /// movement plane authors on its own — carrier lane relief, escort
+    /// yield, return-lane clearance and "that bot could just move out of
+    /// the way" are all this question, asked once.
+    /// <see cref="StepRequest.Positions"/> is the ground it may not take
+    /// (its own tile, the lanes it yields to, every requested tile) and
+    /// <see cref="StepRequest.Anchor"/> is the mover it is making way for.
     /// </summary>
-    Vacate,
+    MakeWay,
 
     /// <summary>TryStepAway: open the range from the threat tiles.</summary>
     Away,
@@ -105,9 +107,9 @@ internal enum StepIntent
 /// single goal for <see cref="StepIntent.Homeward"/> and
 /// <see cref="StepIntent.Routed"/>, the threats for
 /// <see cref="StepIntent.Away"/>, the forbidden tiles for
-/// <see cref="StepIntent.Aside"/> and <see cref="StepIntent.Vacate"/>, the
+/// <see cref="StepIntent.Aside"/> and <see cref="StepIntent.MakeWay"/>, the
 /// single destination for <see cref="StepIntent.Direct"/>.</param>
-/// <param name="Anchor">Only <see cref="StepIntent.Vacate"/> uses it: the
+/// <param name="Anchor">Only <see cref="StepIntent.MakeWay"/> uses it: the
 /// tile of the body the ground is owed to, so "straight on, away from
 /// whoever wants through" is expressible as a preference instead of as a
 /// second mover.</param>
