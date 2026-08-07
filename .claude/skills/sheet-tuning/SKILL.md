@@ -81,3 +81,18 @@ replay.
 - `scripts/build-review-gallery.py` — owner review gallery (gate
   enforced; `--skip-arc-relay-eligibility` only for labeled
   diagnostics).
+
+## Exhibitions (owner: "change X and show me" — no battery)
+
+`scripts/arc-relay-exhibit.sh NAME SHEET_A SHEET_B SITE_DIR CELL...`
+runs hand-picked cells in parallel off the reused published binary,
+broadcasts in parallel, builds the gallery ONCE, and swaps it into the
+served site directory — the standing tunnel URL just starts serving
+the new exhibition. Six cells land in ~17 seconds. Auto-cards carry
+win/loss, end tick, and the unit-0 audit row; pass `EXHIBIT_CARDS` for
+curated copy (with `--index-cards` the gallery builder keeps MANIFEST
+ids — write cards up front, never build-and-inspect). Swap the
+DIAGNOSTIC site only; an owner gallery awaiting review keeps its URL
+and content untouched. Batteries remain the instrument for VERDICTS —
+an exhibition proves what something looks like, never that it is
+better.

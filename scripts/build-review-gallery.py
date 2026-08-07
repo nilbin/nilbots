@@ -57,10 +57,11 @@ progress markers and the export button:
       "watch": "commit t25, hook t26, Core loose t31"}, ...]
 
 (a bare list, or an object with ``cards`` plus optional ``intro``/``title``;
-``win`` only picks the win colour). Card order is the index order. Note the
-per-sample ids come from the builder's deterministic hash shuffle of the
-manifest, not from the manifest's own order — build once and read the
-mapping out of the output before writing curated copy.
+``win`` only picks the win colour). Card order is the index order. With
+``--index-cards`` the per-sample ids keep MANIFEST order (sample-01 is the
+manifest's first replay) — write curated copy directly against the
+manifest, no build-and-inspect round trip. The deterministic hash shuffle
+applies only to blind galleries, where ordering must not leak arms.
 
 Example:
     python3 scripts/build-review-gallery.py \
