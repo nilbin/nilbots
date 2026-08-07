@@ -10,8 +10,8 @@
    "routeAliases": {
     "north-out": "south-out",
     "south-out": "north-out",
-    "shadow-north-long": "shadow-south-long",
-    "shadow-south-long": "shadow-north-long"
+    "shadow-north-long": "shadow-south-long-reverse",
+    "shadow-south-long": "shadow-north-long-reverse"
    },
    "formationAliases": {}
   },
@@ -19,7 +19,10 @@
    "matchContractFingerprint": "any-composition",
    "ownReactorSide": "west",
    "transform": "identity",
-   "routeAliases": {},
+   "routeAliases": {
+    "shadow-north-long": "shadow-north-long-reverse",
+    "shadow-south-long": "shadow-south-long-reverse"
+   },
    "formationAliases": {}
   }
  ],
@@ -211,6 +214,64 @@
    ]
   },
   {
+   "routeId": "shadow-north-long-reverse",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     8,
+     1
+    ],
+    [
+     15,
+     3
+    ],
+    [
+     15,
+     7
+    ],
+    [
+     19,
+     8
+    ],
+    [
+     22,
+     8
+    ],
+    [
+     25,
+     10
+    ],
+    [
+     26,
+     8
+    ],
+    [
+     27,
+     4
+    ],
+    [
+     27,
+     1
+    ],
+    [
+     24,
+     1
+    ],
+    [
+     21,
+     1
+    ],
+    [
+     15,
+     1
+    ],
+    [
+     8,
+     1
+    ]
+   ]
+  },
+  {
    "routeId": "shadow-south-long",
    "corridorWidth": 2,
    "waypoints": [
@@ -261,6 +322,64 @@
     [
      15,
      23
+    ],
+    [
+     8,
+     25
+    ]
+   ]
+  },
+  {
+   "routeId": "shadow-south-long-reverse",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     8,
+     25
+    ],
+    [
+     15,
+     23
+    ],
+    [
+     15,
+     19
+    ],
+    [
+     19,
+     18
+    ],
+    [
+     22,
+     18
+    ],
+    [
+     25,
+     16
+    ],
+    [
+     26,
+     18
+    ],
+    [
+     27,
+     22
+    ],
+    [
+     27,
+     25
+    ],
+    [
+     24,
+     25
+    ],
+    [
+     21,
+     25
+    ],
+    [
+     15,
+     25
     ],
     [
      8,

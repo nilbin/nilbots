@@ -175,6 +175,8 @@ silently-false gate.
 
 ## State at freeze
 
+- (Superseded 2026-08-08 — see "Measured migration" below: hunter-v1 is
+  now the graduated fully-committed config, not the ab72 one.)
 - hunter-v1 = ab72 config: circuit patrol + scan, commit(chase +
   timed breakOff, no engage gate), stalk keeps ambush stance
   (load-bearing: ab73 measured 7-17 without it).
@@ -206,7 +208,52 @@ battery against the translation:
 | `engage.from: "behind"` (16, strike) | ab78 7-17, 2 shots/match where 22 fired | REVERTED — per-target hold windows pacify vs live prey; machinery stays, needs per-engagement budget or unaware-prey gating |
 | `engage.killableTicks: 12` | ab79 24/24 state-identical to ab74 | REVERTED — proven no-op at kestrel damage |
 
-FROZEN ghost (hunter-v1, the ab72 translation):
+SUPERSEDED — the ab72 translation below was the frozen config until
+the owner ruling of 2026-08-08 graduated the fully-committed sheet:
+`hunter-fully-committed.json` REPLACED `hunter-v1.json` wholesale (same
+`playbookId`, same squad machinery, everything else ported). The
+committed config IS the doctrine now, and it is UNMEASURED BY DESIGN —
+velocity mode, the battery is parked. Nothing below was re-run against
+it; the table above still records what those five values measured
+against the translation, which is history rather than the standing
+config. The graduated ghost is:
+
+```json
+"ghost": {
+  "role": "hunter",
+  "custody": "well-custody",
+  "fight": {
+    "collect": "yield", "heal": "yield",
+    "targets":  { "prefer": ["carrier", "weakest"] },
+    "breakOff": { "health": 1, "recoverTicks": 24 },
+    "chase":    { "leash": 16, "persistTicks": 30 },
+    "defense":  { "radius": 2, "return": false }
+  },
+  "modes": [
+    { "recover": "auto" },
+    { "assault": "strike-line", "while": "shadow-op",
+      "until": "shadow-cooled", "escort": "medic" },
+    { "patrol": "shadow-north-long", "fight": { "collect": "first" } }
+  ],
+  "conceal": false,
+  "collect": ["north-farm", "centre-farm", "south-farm", "midfield",
+              "enemy-backfield", "north-perch", "south-perch"]
+}
+```
+
+Custody moved with it: `accidentalPickup: "transfer"` and explicit
+`deliveryRoutes` sending every zone's delivery down
+`shadow-north-long`. And the patrol loop itself was reversed on BOTH
+sides (owner ruling, same date): the warren-06 map is EXACTLY
+180-degree symmetric, so the two sides' bindings are geometric mirrors
+and no per-side direction difference is justified by terrain — what
+was wrong was the loop's direction on both, whose mid-map leg walked
+HOME. `shadow-north-long-reverse` / `shadow-south-long-reverse` are
+aliased on both bindings so the mid-map leg runs toward the enemy half
+and a hunter rejoining after a fight continues outward instead of
+detouring back to its own corner.
+
+The historical ab72 translation, kept for the record:
 
 ```json
 "ghost": {

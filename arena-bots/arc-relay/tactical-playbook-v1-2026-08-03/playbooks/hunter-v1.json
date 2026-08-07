@@ -17,7 +17,7 @@
  ],
  "layout": {
   "path": "../layouts/warren6-hunter-v1.json",
-  "sha256": "c457ea775ca9491760600885ef94550b1468d1456e14678e7b70a23a529ca88c"
+  "sha256": "bb0048d321aa91871d492958be47eb2c70d7e358d5875201ff893f9ecd241ada"
  },
  "perspective": "team-relative",
  "memory": {
@@ -1174,7 +1174,29 @@
    "pickupReservationTicks": 8,
    "transferTimeoutTicks": 8,
    "deliveryTimeoutTicks": 120,
-   "accidentalPickup": "deliver",
+   "accidentalPickup": "transfer",
+  "deliveryRoutes": [
+   {
+    "zone": "north-farm",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "enemy-backfield",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "midfield",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "north-perch",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "south-perch",
+    "route": "shadow-north-long"
+   }
+  ],
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
    "safeConversionConditionSetId": "convert-freely"
@@ -2291,61 +2313,53 @@
    "role": "hunter",
    "custody": "well-custody",
    "fight": {
+    "collect": "yield",
+    "heal": "yield",
     "targets": {
-     "lone": 4
-    },
-    "engage": {
-     "within": 4
-    },
-    "chase": {
-     "leash": 6,
-     "onlyCatchable": true,
-     "executeBelowHealth": 1
+     "prefer": [
+      "carrier",
+      "weakest"
+     ]
     },
     "breakOff": {
-     "threats": 4,
-     "within": 5,
-     "memoryTicks": 16,
+     "health": 1,
      "recoverTicks": 24
+    },
+    "chase": {
+     "leash": 16,
+     "persistTicks": 30
+    },
+    "defense": {
+     "radius": 2,
+     "return": false
     }
    },
    "modes": [
     {
+     "recover": "auto"
+    },
+    {
      "assault": "strike-line",
      "while": "shadow-op",
      "until": "shadow-cooled",
-     "escort": "medic",
-     "fight": {
-      "targets": {
-       "lone": 0
-      },
-      "engage": {
-       "within": 0
-      },
-      "chase": {
-       "leash": 14,
-       "onlyCatchable": false,
-       "executeBelowHealth": 0
-      },
-      "breakOff": {
-       "threats": 0
-      }
-     }
+     "escort": "medic"
     },
     {
-     "intercept": "enemy-carriers",
-     "from": "perch-north",
-     "while": "carrier-known or enemy-remembered-deep",
-     "until": "carriers-none and backfield-cold",
+     "patrol": "shadow-north-long",
      "fight": {
-      "chase": {
-       "leash": 14
-      }
+      "collect": "first"
      }
-    },
-    {
-     "patrol": "shadow-north-long"
     }
+   ],
+   "conceal": false,
+   "collect": [
+    "north-farm",
+    "centre-farm",
+    "south-farm",
+    "midfield",
+    "enemy-backfield",
+    "north-perch",
+    "south-perch"
    ]
   }
  }

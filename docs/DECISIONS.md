@@ -4938,3 +4938,46 @@ re-deriving one, so a whiff draws no tracking ray rather than pointing
 at a body the strike was never for. Pinned by
 GenericActorStrikeWindupRootingTests (target-not-nearest, no
 substitution, friendly-never-lock, interception at delivery).
+
+## 223. Graduation: the committed sheet IS hunter-v1, and the loop turns around
+
+Two owner rulings, 2026-08-08, both in velocity mode (battery parked,
+unmeasured by design).
+
+GRADUATION. `hunter-fully-committed.json` stopped being a variant and
+REPLACED the real sheet: `hunter-v1.json` is now that file byte for
+byte apart from its `playbookId`, and the committed variant stays on
+disk as scratch. What moved: the ghost doctrine (prefer
+carrier/weakest instead of a lone-count gate; breakOff on health 1
+instead of a threat count; chase leash 16 with persistTicks 30 instead
+of leash 6 catchable-only; a defense radius; collect/heal yield; a
+`recover: auto` mode ahead of assault; the intercept mode dropped for
+a plain reversed patrol that collects first), custody
+(`accidentalPickup: "transfer"` plus explicit `deliveryRoutes` for all
+five zones), `conceal: false`, and the seven-zone `collect` list. The
+squad machinery - roles, groups, formations, engagements, maneuvers -
+was already identical and was not touched.
+docs/SPEC-GHOST-DOCTRINE-V3.md's freeze section now says the ab72
+translation is history: the five value batteries recorded there
+measured the translation, not this.
+
+PATROL DIRECTION. The owner asked whether the patrol loop should turn
+a different way per side, "given the map's asymmetric balance". The
+honest answer measured out as NO, and the question found a real bug
+anyway. arc-relay-ambush-warren-06 is EXACTLY 180-degree
+rotationally symmetric (zero differing tiles), and the layout binds
+east with `rotate-180` plus a north/south route swap, so the two sides
+are perfect geometric mirrors - the advance profile of the walked
+waypoints is identical to two decimals on both. Nothing about the
+terrain justifies a per-side direction. What the owner actually saw -
+the up-left detour, on the side he happened to be watching - is on
+BOTH sides: the loop's mid-map leg ran HOME. A hunter that broke off a
+fight in midfield rejoined the route at its nearest waypoint, which is
+on the return leg, and then walked all the way back to its own corner
+before it could go out again (traced: waypoint advances 0.83 -> 0.73
+-> 0.63 -> 0.50 -> 0.27, and the hunter oscillating around 0.50 for
+whole matches). So `shadow-north-long-reverse` and
+`shadow-south-long-reverse` - same waypoints, reversed, loop still
+closed - are aliased on BOTH bindings. The mid-map leg now runs
+outward (0.27 -> 0.50 -> 0.63 -> 0.73 -> 0.83) and the top run becomes
+the way home, so a mid-map rejoin continues toward the enemy half.
