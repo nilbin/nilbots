@@ -598,10 +598,10 @@ internal sealed class TacticalPlaybookPackage
         Fallback Fallback,
         string Stance = "",
         int PatienceTicks = 0,
-        /// <summary>Loose Cores seen inside this zone are worth breaking the
-        /// order for: the body collects one and carries it home. Empty means
-        /// this order never diverts.</summary>
-        string CollectZone = "");
+        /// <summary>Loose Cores seen inside ANY of these zones are worth
+        /// breaking the order for: the body collects one and carries it home.
+        /// Empty or absent means this order never diverts.</summary>
+        string[]? CollectZones = null);
 
     /// <summary>One "pickups inside this zone come home along this route"
     /// rule.</summary>

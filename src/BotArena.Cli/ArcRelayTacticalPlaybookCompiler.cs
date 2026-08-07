@@ -832,9 +832,12 @@ public static class ArcRelayTacticalPlaybookCompiler
             expanded["patienceTicks"] = patienceTicks.GetInt32();
         }
         if (assignment.TryGetProperty(
-                "collectZone", out JsonElement collectZone))
+                "collectZones", out JsonElement collectZones))
         {
-            expanded["collectZone"] = collectZone.GetString();
+            expanded["collectZones"] = new JsonArray(
+                collectZones.EnumerateArray()
+                    .Select(zone => (JsonNode)zone.GetString()!)
+                    .ToArray());
         }
         return expanded;
     }
@@ -915,9 +918,29 @@ public static class ArcRelayTacticalPlaybookCompiler
             // breaking any mode for. The doctrine's own role need not be an
             // authorized courier: standing on a Core collects it by rule, and
             // what happens next is the custody's accidental-pickup policy.
-            string collectZone = value.TryGetProperty("collect", out _)
-                ? Identifier(value, "collect", at)
-                : "";
+            // `collect` names the ground worth breaking a mode for: one zone
+            // or a list of them. A ball dropped by a dying carrier lands
+            // wherever the fight was, so a doctrine that only watches its own
+            // farm walks past the deep ones (owner catch on commitx13-w-9001:
+            // a Core sat loose at (27,12) in enemy-backfield for 24 ticks
+            // with the ghost one tile away).
+            var collectZones = new JsonArray();
+            if (value.TryGetProperty("collect", out JsonElement collectValue))
+            {
+                if (collectValue.ValueKind == JsonValueKind.String)
+                {
+                    collectZones.Add((JsonNode)Identifier(value, "collect", at));
+                }
+                else
+                {
+                    foreach (JsonElement zone in BoundedArray(
+                                 collectValue, $"{at}.collect", 1, 8))
+                    {
+                        collectZones.Add((JsonNode)StringValue(
+                            zone, $"{at}.collect"));
+                    }
+                }
+            }
             JsonElement doctrineFight = value.TryGetProperty(
                 "fight", out JsonElement fightValue)
                 ? fightValue
@@ -1083,8 +1106,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                 };
                 if (conceal)
                     assignment["stance"] = "ambush";
-                if (collectZone.Length > 0)
-                    assignment["collectZone"] = collectZone;
+                if (collectZones.Count > 0)
+                {
+                    assignment["collectZones"] = new JsonArray(
+                        collectZones.Select(zone =>
+                            (JsonNode)zone!.GetValue<string>()).ToArray());
+                }
                 if (mode.TryGetProperty(
                         "patienceTicks", out JsonElement patience))
                 {
@@ -1993,9 +2020,14 @@ public static class ArcRelayTacticalPlaybookCompiler
                         "assignmentProfileId", "arrivalRadius", "completion",
                         "chaseLeash", "engagementId", "custodyId",
                         "fallbackId",
-                    ], ["stance", "patienceTicks", "collectZone"]);
-                if (assignment.Value.TryGetProperty("collectZone", out _))
-                    Identifier(assignment.Value, "collectZone", path);
+                    ], ["stance", "patienceTicks", "collectZones"]);
+                if (assignment.Value.TryGetProperty(
+                        "collectZones", out JsonElement authoredCollect))
+                {
+                    foreach (JsonElement zone in BoundedArray(
+                                 authoredCollect, path, 1, 8))
+                        StringValue(zone, path);
+                }
                 if (assignment.Value.TryGetProperty("stance", out _))
                     OneOf(assignment.Value, "stance", path, "ambush");
                 if (assignment.Value.TryGetProperty("patienceTicks", out _))
@@ -2337,13 +2369,17 @@ public static class ArcRelayTacticalPlaybookCompiler
         foreach (JsonElement order in playbook.GetProperty("orders")
                      .EnumerateArray())
         {
-            if (order.TryGetProperty("collectZone", out JsonElement collect)
-                && collect.GetString() is { Length: > 0 } collectZone
-                && !zones.Contains(collectZone))
+            if (!order.TryGetProperty("collectZones", out JsonElement collect))
+                continue;
+            foreach (JsonElement zone in collect.EnumerateArray())
             {
-                throw Error(path,
-                    "order '" + order.GetProperty("orderId").GetString()
-                    + $"' references unknown collect zone '{collectZone}'.");
+                if (!zones.Contains(zone.GetString()!))
+                {
+                    throw Error(path,
+                        "order '" + order.GetProperty("orderId").GetString()
+                        + "' references unknown collect zone "
+                        + $"'{zone.GetString()}'.");
+                }
             }
         }
         foreach (JsonElement task in playbook.GetProperty("coordination")
@@ -3751,9 +3787,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "formationId", "engagementId", "custodyId", "localState",
                 "fallback",
             ],
-            ["supportId", "stance", "patienceTicks", "collectZone"]);
-        if (value.TryGetProperty("collectZone", out _))
-            Identifier(value, "collectZone", at);
+            ["supportId", "stance", "patienceTicks", "collectZones"]);
+        if (value.TryGetProperty("collectZones", out JsonElement orderCollect))
+        {
+            foreach (JsonElement zone in BoundedArray(orderCollect, at, 1, 8))
+                StringValue(zone, at);
+        }
         if (value.TryGetProperty("stance", out _))
             OneOf(value, "stance", at, "ambush");
         if (value.TryGetProperty("patienceTicks", out _))

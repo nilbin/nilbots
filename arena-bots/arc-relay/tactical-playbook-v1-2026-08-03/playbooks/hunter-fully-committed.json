@@ -1183,6 +1183,14 @@
    {
     "zone": "enemy-backfield",
     "route": "shadow-north-long"
+   },
+   {
+    "zone": "north-perch",
+    "route": "shadow-north-long"
+   },
+   {
+    "zone": "south-perch",
+    "route": "shadow-north-long"
    }
   ],
    "dropRecovery": "nearest-authorized",
@@ -2325,7 +2333,14 @@
     }
    ],
    "conceal": false,
-   "collect": "north-farm"
+   "collect": [
+    "north-farm",
+    "centre-farm",
+    "south-farm",
+    "enemy-backfield",
+    "north-perch",
+    "south-perch"
+   ]
   }
  }
 }

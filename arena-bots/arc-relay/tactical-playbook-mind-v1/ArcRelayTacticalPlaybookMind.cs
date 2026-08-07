@@ -3984,7 +3984,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // What happens next is ordinary: an unauthorized carrier follows its
         // custody's accidental-pickup policy, which for a transfer custody
         // means handing off homeward or couriering it home by the route.
-        if (!string.IsNullOrEmpty(order.CollectZone)
+        if (order.CollectZones is { Length: > 0 }
             && !arc.VisibleCores.Any(core =>
                 core.CarrierActorId == body.ActorId)
             && TryCollectLooseCore(
@@ -4260,8 +4260,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// Walk to the nearest visible loose Core inside the order's collect
-    /// zone, within the order's chase leash of the body. Reserved and bait
+    /// Walk to the nearest visible loose Core inside any of the order's
+    /// collect zones, within the order's chase leash of the body. Reserved and bait
     /// Cores are already excluded from the claim set by the caller's tick
     /// setup, so this only ever diverts for a Core nobody else is owed.
     /// </summary>
@@ -4285,7 +4285,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Where(core => core.Disposition
                     == GenericActorContext.ArcRelayCoreDisposition.Loose
                 && !JustHandedOff(core)
-                && package.Contains(order.CollectZone, core.Position)
+                && order.CollectZones!.Any(zone =>
+                    package.Contains(zone, core.Position))
                 && core.Position.ChebyshevDistance(body.Position)
                     <= Math.Max(order.Movement.ChaseLeash, 1))
             .OrderBy(core => core.Position.ChebyshevDistance(body.Position))
