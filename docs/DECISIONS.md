@@ -6146,3 +6146,92 @@ that walks onto it during the windup is hit by a cast that was clean when it
 was made. Closing that needs the declared line reserved on the movement plane
 for the windup — the plane already has the vocabulary (a lane nobody may
 enter) and that is the natural next bite, deliberately not taken here.
+
+## 244. Muster: recruitment is a two-sided contract
+
+Owner ruling 2026-08-10, in his words — a role is **"available for group up
+... only activates when a leader calls but may lose to some other mode if the
+unit has something better to do"**.
+
+Escort recruitment used to be one-sided: the leader's task carried a row for
+each escort role and simply took a body. The role had no say, and no way to
+say it. Now there are two sides and they have to agree.
+
+**Leader side — the escort block is a CALL.** It publishes role, posture and,
+by sitting on a mode, the calling task's priority. It claims nobody. The
+leader-side rows are gone; a row would be the old conscription with extra
+steps.
+
+**Recruit side — the new doctrine verb `{"muster": "escort"}`** (or a
+specific order id). Condition-driven internally, exactly like `recover`:
+authoring a `while` on it is an error, because its window is "a leader is
+calling for my role" and no team-level condition can name that. It emits no
+order, no engagement and no maneuver — the recruit is claimed INTO THE
+CALLER'S ORDER, so it inherits the leader's engagement, custody and escort
+block exactly as the old row did. All it needs is a task.
+
+**Its RUNG is the whole policy.** A muster task sits at the recruit's own
+mode priority, so above the floor means "answer when free" and below
+`recover` means "not while hurt". Nothing new had to be invented for that:
+the doctrine plane already turns mode order into task priority, and the task
+machine already preempts by priority and holds bodies through
+`minimumTicks`. That last one is what makes "muster wins idle ticks, never
+rips combat" true rather than aspirational.
+
+**Two calls, one role:** one task per (recruit, call) pair, all at the
+recruit's rung, with the CALLER's priority carried in the task id
+(`{doctrine}-muster-{callerPriority}-{orderId}`) so the machine's own
+`(priority, taskId)` sort answers the stronger caller first. Ties below that
+are canonical by order id.
+
+**Explicit default, owner-ruled: NO MUSTER MODE = NOT RECRUITABLE.** Both
+directions are hard compiler errors — a muster that answers no call, and a
+call no role may answer. A leader waiting forever for an escort its sheet
+never made recruitable is exactly the silent failure the contract exists to
+prevent. (A role calling ITSELF is a different mistake and keeps its own
+message.)
+
+That default is what forces the enabling shape: a squad role needs a mode
+list to be recruitable at all. So `{"squad": true}` — a floor verb meaning
+"do my ordinary squad-plane job" that **emits nothing whatsoever** and lets
+the body fall through to the legacy standing tasks at priority 8+. It is the
+first bite of squad-plane consolidation and it is deliberately one word; the
+floor rule now admits an unconditioned `patrol` or a `squad`.
+
+### Authored and measured
+
+Both hunter sheets gain `medic-support` and `lancer-support`:
+`[{"recover": "auto"}, {"muster": "escort"}, {"squad": true}]` for the medic
+and `[{"muster": "escort"}, {"squad": true}]` for the lancer — so today's
+escorts keep working, through the new contract instead of around it. The
+medic's recover rung is the owner's own example of losing the call to
+something better.
+
+Wellwright is untouched and **compiles byte-identically** (playbook
+`684d17e9…`, package `fbd7f07f…`, 18756 bytes before and after): no escorts,
+no muster, and never recruitable is the right answer for it.
+
+A call answered, `greedy-e-9004` t148 team 1:
+
+```
+ghost-assault  active [triggered]  claims=-
+medic  muster  active [triggered]  claims=1:medic-support-muster-ghost-assault
+lancer muster  active [triggered]  claims=5:lancer-support-muster-ghost-assault
+```
+
+A call declined, `greedy-e-9009` t287 team 1 — the medic is recovering:
+
+```
+ghost-assault          active  [active]              claims=0:ghost-assault
+medic  recover (rung5) active  [triggered]           claims=1:medic-support-recover
+medic  muster  (rung6) dormant [cooldown-until-289]  claims=-
+lancer muster  (rung6) active  [active]              claims=5:lancer-...-ghost-assault
+```
+
+The higher rung holds the medic; the lancer still answers. That is the whole
+ruling in four lines.
+
+Over six cells the muster tasks are active 299 ticks (greedy) and 242
+(coordinated), yielding 417 and 291 escort body-ticks. Pinned by four tests:
+call-answer into the caller's order, rung-outranks-call, no-muster-not-
+recruitable, and two-callers-highest-first.

@@ -1637,20 +1637,145 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         foreach (JsonElement follower in followers)
             Assert.Equal(2, follower.GetProperty("leash").GetInt32());
 
-        // Each escort role claims its OWN body: one row with both roles and
-        // maximum 1 would author a two-body screen and field one.
-        string[] escortRows = playbook.RootElement
+        // The escort block is a CALL and claims nobody: the caller's own
+        // task holds one row, for the leader.
+        JsonElement callerTask = playbook.RootElement
             .GetProperty("coordination")
             .GetProperty("tasks")
             .EnumerateArray()
-            .SelectMany(task => task.GetProperty("assignments").EnumerateArray())
-            .Select(row => row.GetProperty("assignmentId").GetString()!)
-            .Where(id => id.StartsWith("ghost-assault-escort", StringComparison.Ordinal))
+            .Single(task => task.GetProperty("taskId").GetString()
+                == "ghost-assault");
+        JsonElement leaderRow = Assert.Single(
+            callerTask.GetProperty("assignments").EnumerateArray());
+        Assert.Equal("hunter", Assert.Single(
+            leaderRow.GetProperty("roles").EnumerateArray()).GetString());
+    }
+
+    /// <summary>The recruit side of the muster contract: a call is answered
+    /// by the recruit's OWN task, at the recruit's own rung, claiming it into
+    /// the CALLER's order.</summary>
+    [Fact]
+    public void AMusterModeAnswersTheCallIntoTheCallersOrder()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement[] tasks = playbook.RootElement
+            .GetProperty("coordination")
+            .GetProperty("tasks")
+            .EnumerateArray()
+            .ToArray();
+        foreach (string role in new[] { "medic", "lancer" })
+        {
+            JsonElement muster = tasks.Single(task =>
+                task.GetProperty("taskId").GetString()!
+                    .StartsWith($"{role}-support-muster", StringComparison.Ordinal));
+            JsonElement row = Assert.Single(
+                muster.GetProperty("assignments").EnumerateArray());
+            Assert.Equal("ghost-assault", row.GetProperty("orderId").GetString());
+            Assert.Equal(role, Assert.Single(
+                row.GetProperty("roles").EnumerateArray()).GetString());
+            Assert.Equal("forbid", row.GetProperty("carrier").GetString());
+            Assert.Equal(1, row.GetProperty("maximum").GetInt32());
+        }
+    }
+
+    /// <summary>The rung IS the policy: a mode above muster outranks the
+    /// call, so a hurt medic recovers instead of answering.</summary>
+    [Fact]
+    public void AHigherRungOutranksTheCall()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement[] tasks = playbook.RootElement
+            .GetProperty("coordination")
+            .GetProperty("tasks")
+            .EnumerateArray()
+            .ToArray();
+        int recover = tasks
+            .Single(task => task.GetProperty("taskId").GetString()
+                == "medic-support-recover")
+            .GetProperty("priority").GetInt32();
+        int muster = tasks
+            .Single(task => task.GetProperty("taskId").GetString()!
+                .StartsWith("medic-support-muster", StringComparison.Ordinal))
+            .GetProperty("priority").GetInt32();
+        Assert.True(recover < muster,
+            $"recover ({recover}) must outrank muster ({muster})");
+    }
+
+    /// <summary>The owner's explicit default: no muster mode means not
+    /// recruitable, and a call nobody may answer is an authoring error rather
+    /// than a leader waiting forever.</summary>
+    [Fact]
+    public void ARoleWithNoMusterModeIsNotRecruitable()
+    {
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        source["doctrines"]!.AsObject().Remove("lancer-support");
+        string path = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains("not recruitable", failure.Message);
+            Assert.Contains("lancer", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>Two calls for one role: the higher CALLER priority is
+    /// answered first, and the ordering is carried canonically in the task
+    /// id so the machine's own (priority, taskId) sort produces it.</summary>
+    [Fact]
+    public void TwoCallsAreAnsweredHighestCallerFirst()
+    {
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        JsonArray modes = source["doctrines"]!["ghost"]!["modes"]!.AsArray();
+        // A second assault, ABOVE the existing one, calling the lancer too.
+        // Two callers, two caller priorities, one recruit role.
+        modes.Insert(1, new JsonObject
+        {
+            ["assault"] = "strike-line",
+            ["while"] = "shadow-op",
+            ["until"] = "shadow-cooled",
+            ["escort"] = new JsonArray(
+                new JsonObject { ["role"] = "lancer" }),
+        });
+        string path = Write(source);
+        TacticalPlaybookCompilation compilation;
+        try
+        {
+            compilation = ArcRelayTacticalPlaybookCompiler.Compile(path);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        string[] lancerMusters = playbook.RootElement
+            .GetProperty("coordination")
+            .GetProperty("tasks")
+            .EnumerateArray()
+            .Select(task => task.GetProperty("taskId").GetString()!)
+            .Where(id => id.StartsWith(
+                "lancer-support-muster", StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToArray();
+        Assert.Equal(2, lancerMusters.Length);
+        // Canonical order puts the stronger caller (lower number) first.
         Assert.Equal(
-            ["ghost-assault-escort-lancer", "ghost-assault-escort-medic"],
-            escortRows);
+            ["lancer-support-muster-5-ghost-assault-1",
+             "lancer-support-muster-6-ghost-assault-2"],
+            lancerMusters);
     }
 
     [Fact]
@@ -1658,9 +1783,15 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         JsonObject source = JsonNode.Parse(
             File.ReadAllBytes(HunterV1()))!.AsObject();
+        // Keep the medic call (so its muster still answers something) and add
+        // the leader to its own escort list; drop the lancer's doctrine with
+        // the lancer call it answered.
         source["doctrines"]!["ghost"]!["modes"]!.AsArray()
             .Single(value => value!.AsObject().ContainsKey("escort"))!
-            .AsObject()["escort"] = "hunter";
+            .AsObject()["escort"] = new JsonArray(
+                new JsonObject { ["role"] = "medic" },
+                new JsonObject { ["role"] = "hunter" });
+        source["doctrines"]!.AsObject().Remove("lancer-support");
 
         // Written beside the original so the relative layout reference and
         // its pinned hash still resolve.
@@ -1678,6 +1809,17 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             File.Delete(path);
         }
+    }
+
+    /// <summary>Write a modified sheet BESIDE the original so its relative
+    /// layout reference and pinned hash still resolve.</summary>
+    private static string Write(JsonObject source)
+    {
+        string path = Path.Combine(
+            Path.GetDirectoryName(HunterV1())!,
+            $"hunter-v1-case-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, source.ToJsonString());
+        return path;
     }
 
     private static string HunterV1() => Path.Combine(

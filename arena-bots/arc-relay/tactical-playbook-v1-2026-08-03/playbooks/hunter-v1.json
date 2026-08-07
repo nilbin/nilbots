@@ -2372,6 +2372,33 @@
     "north-perch",
     "south-perch"
    ]
+  },
+  "medic-support": {
+   "role": "medic",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "recover": "auto"
+    },
+    {
+     "muster": "escort"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "lancer-support": {
+   "role": "lancer",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "muster": "escort"
+    },
+    {
+     "squad": true
+    }
+   ]
   }
  }
 }

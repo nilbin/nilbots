@@ -923,6 +923,14 @@ public static class ArcRelayTacticalPlaybookCompiler
             .Select(phase => phase!["phaseId"]!.GetValue<string>())
             .ToArray();
 
+        // The two sides of the muster contract, collected across every
+        // doctrine and joined after the loop: a recruit's muster mode may be
+        // compiled before the leader whose call it answers.
+        var calls = new List<(string OrderId, string EscortRole,
+            string LeaderRole, int CallerPriority, string WhenSet,
+            string FailSet, string[] Phases, string At)>();
+        var musters = new List<(string DoctrineId, string Role, string Target,
+            int Rung, string At)>();
         foreach (JsonProperty doctrine in doctrines.EnumerateObject())
         {
             string id = doctrine.Name;
@@ -1004,15 +1012,23 @@ public static class ArcRelayTacticalPlaybookCompiler
                 }
             }
             JsonElement floor = modes[^1];
-            if (verbs[^1] != "patrol"
+            if (verbs[^1] is not ("patrol" or "squad")
                 || floor.TryGetProperty("while", out _)
                 || floor.TryGetProperty("until", out _))
             {
                 throw Error(at,
-                    "the last mode must be an unconditioned 'patrol' - the "
-                    + "floor the body always falls back to.");
+                    "the last mode must be an unconditioned 'patrol' or "
+                    + "'squad' - the floor the body always falls back to.");
             }
-            string floorRoute = floor.GetProperty("patrol").GetString()!;
+            // `squad: true` is the thinnest possible floor: it emits nothing
+            // at all and the body falls through to the legacy standing tasks
+            // (priority 8+). It exists so a squad role can carry a mode list
+            // - which is what makes it recruitable - without the doctrine
+            // plane taking over its ordinary job. First bite of squad-plane
+            // consolidation, kept to one word on purpose.
+            string floorRoute = verbs[^1] == "patrol"
+                ? floor.GetProperty("patrol").GetString()!
+                : "";
             string supportId = DoctrineSupport(root, role, escortRoles, at);
 
             profiles[$"{id}-doctrine"] = new JsonObject
@@ -1096,6 +1112,25 @@ public static class ArcRelayTacticalPlaybookCompiler
                         + "later mode, never back to an earlier one.");
                 }
 
+                int rung = 8 - modes.Length + index;
+                if (verb == "squad")
+                {
+                    // Nothing. That is the whole verb.
+                    continue;
+                }
+                if (verb == "muster")
+                {
+                    // A muster mode emits no order, no engagement and no
+                    // maneuver: the recruit is claimed INTO THE CALLER'S
+                    // order, so it inherits the leader's engagement, custody
+                    // and escort block exactly as a hand-authored escort row
+                    // used to. All it needs is a task, and it needs one per
+                    // call, which cannot be built until every doctrine has
+                    // been read.
+                    musters.Add((id, role,
+                        mode.GetProperty("muster").GetString()!, rung, modeAt));
+                    continue;
+                }
                 ResolvedFight fight = ResolveFight(
                     doctrineFight,
                     mode.TryGetProperty("fight", out JsonElement modeFight)
@@ -1207,31 +1242,16 @@ public static class ArcRelayTacticalPlaybookCompiler
                             },
                     },
                 };
-                // ONE ROW PER ESCORT ROLE. A single row with every escort
-                // role in it and maximum 1 claims one body and leaves the
-                // rest of the escort unassigned - the second escort would be
-                // authored and never appear. Each role claims its own body,
-                // and none of them may carry.
+                // The escort block is now a CALL and claims nobody. Under
+                // the muster contract recruitment is two-sided: the leader
+                // publishes what it wants and at what priority, and a body
+                // answers only if its own doctrine says it may. A leader-side
+                // row would be the old one-sided conscription with extra
+                // steps.
                 foreach (DoctrineEscort entry in escorts)
                 {
-                    rows.Add(new JsonObject
-                    {
-                        ["assignmentId"] = escorts.Length == 1
-                            ? $"{name}-escort"
-                            : $"{name}-escort-{entry.RoleId}",
-                        ["orderId"] = name,
-                        ["roles"] = new JsonArray(entry.RoleId),
-                        ["classes"] = new JsonArray(),
-                        ["minimum"] = 0,
-                        ["preferred"] = 1,
-                        ["maximum"] = 1,
-                        ["carrier"] = "forbid",
-                        ["distance"] = new JsonObject
-                        {
-                            ["kind"] = "own-reactor",
-                            ["target"] = "",
-                        },
-                    });
+                    calls.Add((name, entry.RoleId, role, rung, whenSet,
+                        failSet, phaseIds, modeAt));
                 }
                 // First mode outranks by construction (lower number wins in
                 // the task band); the band stays under 8 so every doctrine
@@ -1239,7 +1259,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 tasks.Add(new JsonObject
                 {
                     ["taskId"] = name,
-                    ["priority"] = 8 - modes.Length + index,
+                    ["priority"] = rung,
                     ["activation"] = "while-true",
                     ["preemption"] = "higher-priority",
                     ["participantLoss"] = "replace",
@@ -1264,6 +1284,114 @@ public static class ArcRelayTacticalPlaybookCompiler
                 });
             }
         }
+        // Join the two sides of the muster contract. One task per (recruit,
+        // call) pair: the task sits at the RECRUIT's rung, so its own mode
+        // list decides whether answering outranks whatever else it might be
+        // doing, and it opens and closes on the CALLER's own condition sets,
+        // so a call is open exactly while the calling mode is running.
+        //
+        // Two calls for one role produce two tasks at the same rung; the
+        // machine breaks that tie on taskId, so the caller's priority goes
+        // into the name and the higher caller is answered first. Ties below
+        // that are canonical by order id.
+        foreach ((string doctrineId, string role, string target, int rung,
+                     string musterAt) in musters)
+        {
+            (string OrderId, string EscortRole, string LeaderRole,
+                int CallerPriority, string WhenSet, string FailSet,
+                string[] Phases, string At)[] matched = [.. calls
+                    .Where(call => string.Equals(
+                            call.EscortRole, role, StringComparison.Ordinal)
+                        && (target == "escort"
+                            || string.Equals(
+                                call.OrderId, target,
+                                StringComparison.Ordinal)))
+                    .OrderBy(call => call.CallerPriority)
+                    .ThenBy(call => call.OrderId, StringComparer.Ordinal)];
+            if (matched.Length == 0)
+            {
+                throw Error(musterAt,
+                    $"muster '{target}' answers no call: no order asks role "
+                    + $"'{role}' to escort it. A mode that can never activate "
+                    + "is an authoring mistake, not a no-op.");
+            }
+            foreach ((string orderId, _, _, int callerPriority,
+                         string whenSet, string failSet, string[] phases, _)
+                     in matched)
+            {
+                tasks.Add(new JsonObject
+                {
+                    ["taskId"] =
+                        $"{doctrineId}-muster-{callerPriority}-{orderId}",
+                    ["priority"] = rung,
+                    ["activation"] = "while-true",
+                    ["preemption"] = "higher-priority",
+                    ["participantLoss"] = "replace",
+                    ["triggerStableTicks"] = 1,
+                    // The anti-flap minimum is what makes "muster wins idle
+                    // ticks, never rips combat" true: a body already inside
+                    // another task keeps it for its minimum, and a body that
+                    // answers holds the escort long enough to walk somewhere.
+                    ["minimumTicks"] = 8,
+                    ["timeoutTicks"] = 600,
+                    ["cooldownTicks"] = 2,
+                    ["minimumPrimaryBodies"] = 1,
+                    ["eligiblePhases"] = new JsonArray(
+                        phases.Select(phase => (JsonNode)phase!).ToArray()),
+                    ["assignments"] = new JsonArray
+                    {
+                        new JsonObject
+                        {
+                            ["assignmentId"] =
+                                $"{doctrineId}-muster-{orderId}",
+                            ["orderId"] = orderId,
+                            ["roles"] = new JsonArray(role),
+                            ["classes"] = new JsonArray(),
+                            ["minimum"] = 0,
+                            ["preferred"] = 1,
+                            ["maximum"] = 1,
+                            ["carrier"] = "forbid",
+                            ["distance"] = new JsonObject
+                            {
+                                ["kind"] = "own-reactor",
+                                ["target"] = "",
+                            },
+                        },
+                    },
+                    ["whenConditionSetId"] = whenSet,
+                    ["completeConditionSetId"] = "task-never-done",
+                    ["failConditionSetId"] = failSet,
+                    ["reintegration"] = new JsonObject
+                    {
+                        ["mode"] = "primary-order",
+                        ["orderIds"] = new JsonArray(),
+                        ["completeConditionSetId"] = "",
+                        ["timeoutTicks"] = 0,
+                    },
+                });
+            }
+        }
+        // The other direction of strict: a call nobody may answer is a
+        // leader waiting forever for an escort its sheet never made
+        // recruitable. NO MUSTER MODE = NOT RECRUITABLE is the owner's
+        // explicit default, so this has to be loud.
+        foreach ((string orderId, string escortRole, string leaderRole, _, _,
+                     _, _, string callAt) in calls)
+        {
+            // A role calling ITSELF is a different mistake with its own
+            // message, raised by ValidateEscort on the compiled track. Let
+            // that one speak rather than blaming recruitability.
+            if (string.Equals(escortRole, leaderRole, StringComparison.Ordinal))
+                continue;
+            if (!musters.Any(muster => string.Equals(
+                    muster.Role, escortRole, StringComparison.Ordinal)))
+            {
+                throw Error(callAt,
+                    $"order '{orderId}' calls role '{escortRole}' to escort "
+                    + "it, but that role has no 'muster' mode and so is not "
+                    + "recruitable. Give it one, or drop the call.");
+            }
+        }
         return JsonDocument.Parse(root.ToJsonString());
     }
 
@@ -1271,14 +1399,15 @@ public static class ArcRelayTacticalPlaybookCompiler
     /// </summary>
     private static string DoctrineVerb(JsonElement mode, string path)
     {
-        string[] present = new[] { "patrol", "intercept", "assault", "recover" }
+        string[] present = new[]
+            { "patrol", "intercept", "assault", "recover", "muster", "squad" }
             .Where(verb => mode.TryGetProperty(verb, out _))
             .ToArray();
         if (present.Length != 1)
         {
             throw Error(path,
                 "each doctrine mode must carry exactly one of 'patrol', "
-                + "'intercept', 'assault', or 'recover'.");
+                + "'intercept', 'assault', 'recover', 'muster', or 'squad'.");
         }
         return present[0];
     }
@@ -1304,12 +1433,41 @@ public static class ArcRelayTacticalPlaybookCompiler
             // no team-level 'while' can name. Authoring one is an error, not
             // an override.
             "recover" => ["fight"],
+            // Muster is condition-driven INTERNALLY, exactly like recover:
+            // its window is "a leader is calling for my role", which no
+            // team-level 'while' can name. Its RUNG in the mode list is the
+            // whole policy (owner: "available for group up ... only
+            // activates when a leader calls but may lose to some other mode
+            // if the unit has something better to do").
+            "muster" => ["fight"],
+            // The squad floor takes nothing: it IS "no doctrine here".
+            "squad" => [],
             _ => ["while", "until", "fight", "escort"],
         };
         Object(mode, path, [verb], optional);
-        NonEmptyString(mode, verb, path);
+        if (verb == "squad")
+        {
+            if (mode.GetProperty("squad").ValueKind != JsonValueKind.True)
+                throw Error(path, "'squad' must be true.");
+            if (!isFloor)
+            {
+                throw Error(path,
+                    "'squad' is a floor: nothing may sit below it, because "
+                    + "it is the body doing its ordinary squad-plane job.");
+            }
+        }
+        else
+        {
+            NonEmptyString(mode, verb, path);
+        }
         if (verb == "recover")
             OneOf(mode, "recover", path, "auto");
+        if (verb == "muster")
+        {
+            string call = mode.GetProperty("muster").GetString()!;
+            if (call != "escort")
+                IdentifierValue(call, path, "muster");
+        }
         if (verb == "intercept")
         {
             OneOf(mode, "intercept", path, "enemy-carriers", "inbound");
@@ -1328,7 +1486,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             throw Error(path, "'until' must be a boolean condition string.");
         }
-        if (!isFloor && verb != "recover"
+        if (!isFloor && verb is not ("recover" or "muster")
             && !mode.TryGetProperty("while", out _))
         {
             throw Error(path,
