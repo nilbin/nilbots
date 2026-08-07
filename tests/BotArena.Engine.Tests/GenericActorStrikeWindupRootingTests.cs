@@ -110,11 +110,13 @@ public sealed class GenericActorStrikeWindupRootingTests
     }
 
     [Fact]
-    public void LockLeavingTheShootersSightStillCancels()
+    public void LockNoBodyOnTheTeamCanSeeStillCancels()
     {
         // The same step, with the two numbers swapped around it: reach 6
         // keeps the enemy inside the frozen wedge, and sight range 4 means
-        // the shooter can no longer see the tile it would fire at.
+        // NOBODY on the shooter's team can see the tile it would fire at —
+        // in this duel the shooter is the whole team, which is exactly what
+        // makes it the negative half of the spotter pair below.
         using Duel duel = Duel.Create(strikeRange: 6, visionRange: 4);
 
         duel.Step(shooter: Shoot(1, 0), enemy: Wait());
@@ -127,6 +129,71 @@ public sealed class GenericActorStrikeWindupRootingTests
         Assert.Contains(escaped, duel.Wedge(ShooterSpawn, 6));
         Assert.Empty(matured.ProjectileTraversals);
         Assert.Equal(3, duel.Enemy(matured).Health);
+    }
+
+    [Fact]
+    public void ATeammatesEyesKeepTheLockAliveForABlindShooter()
+    {
+        // Spotter doctrine (owner ruling 2026-08-09): tracking is TEAM
+        // vision plus a clear physical ray, so a teammate standing next to
+        // the target keeps a lock alive for a shooter that cannot see it.
+        // Same numbers as the cancel above — reach 6, sight 4, the enemy
+        // steps to distance 5 — with one body added.
+        using Duel duel = Duel.CreateSquad(
+            strikeRange: 6,
+            visionRange: 4,
+            shooter: new Position(1, 3),
+            friendly: new Position(5, 4),
+            enemyOne: new Position(5, 3),
+            enemyTwo: new Position(7, 5));
+
+        duel.Step((0, 0, Shoot(1, 0)));
+        duel.Step((1, 0, Move(Direction.East)));
+        GenericActorMatchStepResult matured = duel.Step();
+
+        Position escaped = EnemySpawn.Offset(1, 0);
+        Assert.Equal(escaped, duel.Body(matured, 1, 0).Position);
+        Assert.Single(matured.ProjectileTraversals);
+        Assert.Equal(2, duel.Body(matured, 1, 0).Health);
+    }
+
+    [Fact]
+    public void AWallBetweenTheShooterAndTheLockCancelsTheStrike()
+    {
+        // The physical half of the tracking rule. The lock steps north
+        // behind a pillar; a teammate beside it still watches it, so team
+        // vision is satisfied and the strike dies on the ray alone. The
+        // control below is the identical scene with the pillar removed.
+        using Duel walled = Duel.CreateWalledSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(5, 1),
+            enemyOne: EnemySpawn,
+            enemyTwo: new Position(7, 5));
+
+        walled.Step((0, 0, Shoot(1, 0)));
+        walled.Step((1, 0, Move(Direction.North)));
+        GenericActorMatchStepResult blocked = walled.Step();
+
+        Assert.Equal(
+            EnemySpawn.Offset(0, -1),
+            walled.Body(blocked, 1, 0).Position);
+        Assert.Empty(blocked.ProjectileTraversals);
+        Assert.Equal(3, walled.Body(blocked, 1, 0).Health);
+
+        using Duel open = Duel.CreateSquad(
+            strikeRange: 6,
+            shooter: new Position(1, 3),
+            friendly: new Position(5, 1),
+            enemyOne: EnemySpawn,
+            enemyTwo: new Position(7, 5));
+
+        open.Step((0, 0, Shoot(1, 0)));
+        open.Step((1, 0, Move(Direction.North)));
+        GenericActorMatchStepResult landed = open.Step();
+
+        Assert.Single(landed.ProjectileTraversals);
+        Assert.Equal(2, open.Body(landed, 1, 0).Health);
     }
 
     [Fact]
@@ -412,12 +479,50 @@ public sealed class GenericActorStrikeWindupRootingTests
             Position friendly,
             Position enemyOne,
             Position enemyTwo) =>
+            CreateSquad(
+                strikeRange, visionRange: 8, shooter, friendly, enemyOne,
+                enemyTwo);
+
+        public static Duel CreateSquad(
+            int strikeRange,
+            int visionRange,
+            Position shooter,
+            Position friendly,
+            Position enemyOne,
+            Position enemyTwo) =>
+            new(Definition(
+                "teams",
+                strikeRange,
+                visionRange,
+                maxHealth: 3,
+                [shooter, friendly, enemyOne, enemyTwo]));
+
+        /// <summary>
+        /// The same four-body squad with one interior pillar at (3, 2) — the
+        /// tile that stands between the shooter's spawn and the ground its
+        /// lock steps onto.
+        /// </summary>
+        public static Duel CreateWalledSquad(
+            int strikeRange,
+            Position shooter,
+            Position friendly,
+            Position enemyOne,
+            Position enemyTwo) =>
             new(Definition(
                 "teams",
                 strikeRange,
                 visionRange: 8,
                 maxHealth: 3,
-                [shooter, friendly, enemyOne, enemyTwo]));
+                [shooter, friendly, enemyOne, enemyTwo],
+                [
+                    "#########",
+                    "#.......#",
+                    "#..#....#",
+                    "#.......#",
+                    "#.......#",
+                    "#.......#",
+                    "#########",
+                ]));
 
         public GenericActorMatchStepResult Step(
             GenericActorRuntimeDecision shooter,
@@ -499,7 +604,8 @@ public sealed class GenericActorStrikeWindupRootingTests
             int strikeRange,
             int visionRange,
             int maxHealth,
-            IReadOnlyList<Position> spawnPositions)
+            IReadOnlyList<Position> spawnPositions,
+            IReadOnlyList<string>? tileRows = null)
         {
             ActorResolvedMatchDefinition baseline =
                 GenericDeathmatchSessionTestFixture.Definition(
@@ -587,7 +693,7 @@ public sealed class GenericActorStrikeWindupRootingTests
             var map = new ActorMapDefinition(
                 "strike-rooting-arena",
                 version: 1,
-                baseline.Map.TileRows,
+                tileRows is null ? baseline.Map.TileRows : [.. tileRows],
                 [
                     .. spawns.Select(spawn =>
                         new ActorMapSpawnAnchorDefinition(

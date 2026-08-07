@@ -15,6 +15,13 @@ namespace BotArena.Engine.Tests;
 /// is a data edit, never an engine edit; it defaults to the ruleset's strike
 /// windup, and zero authors an instant cast.
 /// </para>
+/// <para>
+/// What the telegraph MEANS to the two line attacks moved on with the lock
+/// ruling of 2026-08-09 — see <see cref="ArcRelaySignatureLockTests"/>. This
+/// file keeps the telegraph itself: which signatures have one, where the
+/// number comes from, that nothing leaves the muzzle before it matures, and
+/// that a longer one can be abandoned by walking.
+/// </para>
 /// </summary>
 public sealed class ArcRelaySignatureWindupTests
 {
@@ -88,9 +95,10 @@ public sealed class ArcRelaySignatureWindupTests
     [Fact]
     public void BoltSignaturesTelegraphAndUtilitySignaturesDoNot()
     {
-        ArcRelayEvent.SignatureChanged[] started = Cast(moveAfterCasting: false)
-            .Where(value => value.Reason == "started")
-            .ToArray();
+        ArcRelayEvent.SignatureChanged[] started =
+            [.. Cast(moveAfterCasting: false)
+                .Select(value => value.Fact)
+                .Where(value => value.Reason == "started")];
 
         string[] bolts =
             ["rail-line", "tractor-hook", "sentinel-seed"];
@@ -111,26 +119,36 @@ public sealed class ArcRelaySignatureWindupTests
     }
 
     [Fact]
-    public void ADeclaredHookWindsUpAndThenLaunchesDownItsFrozenLine()
+    public void NothingResolvesBeforeTheTelegraphMatures()
     {
-        // The telegraph is the ray from the declaring tile down the declared
-        // heading, and it is a LINE, not a lock: no phase between declare and
-        // launch re-aims it, so the tiles published at declare are the tiles
-        // that resolve. Stepping off them is the whole dodge; stepping on is
-        // the block.
-        ArcRelayEvent.SignatureChanged[] hook = Cast(moveAfterCasting: false)
-            .Where(value => value.SignatureId == "tractor-hook")
-            .ToArray();
-        string operation = hook.First(value => value.Reason == "started")
-            .OperationId;
-        ArcRelayEvent.SignatureChanged[] life = [.. hook
-            .Where(value => value.OperationId == operation)];
+        // A telegraph that resolves on the tick it was published is not a
+        // telegraph. Both grammar-2 line casts used to run their INSTANT
+        // branch on the declare tick and spend the windup they had just
+        // announced. Every bolt-class declare now publishes Tell and says
+        // nothing more until a strictly later tick, whatever it then says.
+        (int Tick, ArcRelayEvent.SignatureChanged Fact)[] facts =
+            Cast(moveAfterCasting: false);
 
-        Assert.Equal(
-            ArcRelaySignatureState.SignaturePhase.Tell,
-            life[0].Phase);
-        Assert.Equal("started", life[0].Reason);
-        Assert.Contains(life, value => value.Reason == "launched");
+        foreach (string signature in
+                 new[] { "rail-line", "tractor-hook", "sentinel-seed" })
+        {
+            (int Tick, ArcRelayEvent.SignatureChanged Fact)[] declares =
+                [.. facts.Where(value => value.Fact.SignatureId == signature
+                    && value.Fact.Reason == "started")];
+            Assert.NotEmpty(declares);
+            foreach ((int tick, ArcRelayEvent.SignatureChanged fact) in
+                     declares)
+            {
+                Assert.Equal(
+                    ArcRelaySignatureState.SignaturePhase.Tell,
+                    fact.Phase);
+                Assert.DoesNotContain(
+                    facts,
+                    value => value.Fact.OperationId == fact.OperationId
+                        && value.Fact.Reason != "started"
+                        && value.Tick <= tick);
+            }
+        }
     }
 
     [Fact]
@@ -145,7 +163,7 @@ public sealed class ArcRelaySignatureWindupTests
         // one tick: rail's two on the -10 warren, here. That is itself worth knowing — a
         // one-tick declare is unabandonable by construction, and the latch
         // only starts mattering when a profile buys a longer telegraph.
-        ArcRelayEvent.SignatureChanged[] facts = Cast(
+        ArcRelayEvent.SignatureChanged[] facts = [.. Cast(
             moveAfterCasting: true,
             ArcRelayLoopProfile.AmbushWarren10,
             [
@@ -157,7 +175,7 @@ public sealed class ArcRelaySignatureWindupTests
                 ArcRelayLaunchClassIds.Mortar,
                 ArcRelayLaunchClassIds.Minesmith,
                 ArcRelayLaunchClassIds.Hush,
-            ]);
+            ]).Select(value => value.Fact)];
 
         Assert.Contains(
             facts,
@@ -176,7 +194,7 @@ public sealed class ArcRelaySignatureWindupTests
     /// as soon as the mask offers it, and optionally walks on the very next
     /// tick — which is the abandonment case.
     /// </summary>
-    private static ArcRelayEvent.SignatureChanged[] Cast(
+    private static (int Tick, ArcRelayEvent.SignatureChanged Fact)[] Cast(
         bool moveAfterCasting,
         ArcRelayLoopProfile? profile = null,
         IReadOnlyList<string>? classes = null)
@@ -189,7 +207,10 @@ public sealed class ArcRelaySignatureWindupTests
             value => value.Kind == ActorActionKind.Wait);
         ActorActionDefinition move = definition.Rules.Actions.First(
             value => value.Kind == ActorActionKind.Movement);
-        var cast = new HashSet<(int Unit, int Life)>();
+        // Keyed by TEAM as well as unit: one mind lambda serves both
+        // participants, so a set keyed on the unit alone silently let only
+        // the first team cast anything.
+        var cast = new HashSet<(int Team, int Unit, int Life)>();
 
         Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
             factories = GenericMindSessionTestFixture.Factories(
@@ -198,7 +219,10 @@ public sealed class ArcRelaySignatureWindupTests
                 [
                     .. observation.Bodies.Select(body =>
                     {
-                        var key = (body.ActorId.UnitId, body.ActorId.LifeId);
+                        var key = (
+                            body.ActorId.TeamId,
+                            body.ActorId.UnitId,
+                            body.ActorId.LifeId);
                         GenericActorRuntimeActionLegality? signature =
                             cast.Contains(key)
                                 ? null
@@ -246,11 +270,19 @@ public sealed class ArcRelaySignatureWindupTests
             session.Step();
 
         return [.. session.Chronology.Ticks
-            .SelectMany(value => value.Events.Concat(value.TickStart.Events))
-            .Select(value => value.Payload)
-            .OfType<GenericActorRuntimeObservation.EventPayload.ArcRelay>()
-            .Select(value => value.Fact)
-            .OfType<ArcRelayEvent.SignatureChanged>()];
+            .SelectMany(value => value.Events
+                .Concat(value.TickStart.Events)
+                .Select(item => (value.Tick, item.Payload)))
+            .Where(value => value.Payload
+                is GenericActorRuntimeObservation.EventPayload.ArcRelay
+                {
+                    Fact: ArcRelayEvent.SignatureChanged,
+                })
+            .Select(value => (
+                value.Tick,
+                (ArcRelayEvent.SignatureChanged)
+                    ((GenericActorRuntimeObservation.EventPayload.ArcRelay)
+                        value.Payload).Fact))];
     }
 
     private static ImmutableArray<GenericActorRuntimeActionArgument>
