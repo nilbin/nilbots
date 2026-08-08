@@ -26,6 +26,7 @@
     <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../BotArena.TacticalPlaybooks/BotArena.TacticalPlaybooks.csproj" />
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />

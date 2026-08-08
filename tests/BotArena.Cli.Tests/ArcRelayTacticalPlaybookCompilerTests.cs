@@ -85,6 +85,27 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void InMemoryCompilationIsByteIdenticalToCliFileCompilation()
+    {
+        string playbookPath = HomeSiege();
+        TacticalPlaybookCompilation fromFile =
+            ArcRelayTacticalPlaybookCompiler.Compile(playbookPath);
+
+        TacticalPlaybookCompilation fromMemory =
+            ArcRelayTacticalPlaybookCompiler.Compile(
+                File.ReadAllBytes(playbookPath),
+                File.ReadAllBytes(fromFile.LayoutPath),
+                playbookPath,
+                fromFile.LayoutPath);
+
+        Assert.Equal(fromFile.PlaybookSha256, fromMemory.PlaybookSha256);
+        Assert.Equal(fromFile.LayoutSha256, fromMemory.LayoutSha256);
+        Assert.Equal(fromFile.NormalizedPlaybook, fromMemory.NormalizedPlaybook);
+        Assert.Equal(fromFile.NormalizedLayout, fromMemory.NormalizedLayout);
+        Assert.Equal(fromFile.LinkedData, fromMemory.LinkedData);
+    }
+
+    [Fact]
     public void HomeSiegeV3BindsTheForwardRingOnlyToTheWestApproach()
     {
         TacticalPlaybookCompilation compilation =

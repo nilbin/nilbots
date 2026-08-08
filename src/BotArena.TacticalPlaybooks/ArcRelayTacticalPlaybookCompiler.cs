@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace BotArena.Cli;
+namespace BotArena.TacticalPlaybooks;
 
 /// <summary>
 /// Strict source compiler for the provisional Arc Relay tactical-playbook
@@ -121,6 +121,59 @@ public static class ArcRelayTacticalPlaybookCompiler
                     $"{fullPlaybookPath}: playbook has no parent directory."),
             relativeLayoutPath));
         byte[] layoutSource = File.ReadAllBytes(fullLayoutPath);
+        return CompileValidated(
+            playbookSource,
+            fullPlaybookPath,
+            playbookDocument,
+            parameterRanges,
+            layoutSource,
+            fullLayoutPath);
+    }
+
+    /// <summary>
+    /// Compiles an in-memory playbook/layout pair through the exact same
+    /// validation, normalization, and linking path as the CLI file command.
+    /// The names are diagnostic labels only; the playbook's pinned layout
+    /// hash remains the binding between the two documents.
+    /// </summary>
+    public static TacticalPlaybookCompilation Compile(
+        byte[] playbookSource,
+        byte[] layoutSource,
+        string playbookName = "playbook.json",
+        string layoutName = "layout.json")
+    {
+        ArgumentNullException.ThrowIfNull(playbookSource);
+        ArgumentNullException.ThrowIfNull(layoutSource);
+        ArgumentException.ThrowIfNullOrWhiteSpace(playbookName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(layoutName);
+
+        using JsonDocument sourceDocument = Parse(
+            playbookSource, playbookName);
+        using JsonDocument playbookDocument = ExpandAuthoring(
+            sourceDocument.RootElement,
+            playbookName,
+            out Dictionary<string, (int Minimum, int Maximum)>
+                parameterRanges);
+        ValidatePlaybook(playbookDocument.RootElement, playbookName);
+        return CompileValidated(
+            playbookSource,
+            playbookName,
+            playbookDocument,
+            parameterRanges,
+            layoutSource,
+            layoutName);
+    }
+
+    private static TacticalPlaybookCompilation CompileValidated(
+        byte[] playbookSource,
+        string playbookPath,
+        JsonDocument playbookDocument,
+        Dictionary<string, (int Minimum, int Maximum)> parameterRanges,
+        byte[] layoutSource,
+        string layoutPath)
+    {
+        JsonElement playbook = playbookDocument.RootElement;
+        JsonElement layoutReference = playbook.GetProperty("layout");
         string layoutSha256 = Sha256(layoutSource);
         string expectedLayoutSha256 = RequiredString(
             layoutReference, "sha256", "playbook.layout");
@@ -130,14 +183,14 @@ public static class ArcRelayTacticalPlaybookCompiler
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"{fullPlaybookPath}: layout hash mismatch; expected "
+                $"{playbookPath}: layout hash mismatch; expected "
                 + $"{expectedLayoutSha256}, found {layoutSha256}.");
         }
 
-        using JsonDocument layoutDocument = Parse(layoutSource, fullLayoutPath);
+        using JsonDocument layoutDocument = Parse(layoutSource, layoutPath);
         JsonElement layout = layoutDocument.RootElement;
-        ValidateLayout(layout, fullLayoutPath, parameterRanges);
-        ValidateLayoutReferences(playbook, layout, fullPlaybookPath);
+        ValidateLayout(layout, layoutPath, parameterRanges);
+        ValidateLayoutReferences(playbook, layout, playbookPath);
 
         byte[] canonicalPlaybook = NormalizePlaybook(playbook);
         byte[] canonicalLayout = Canonicalize(layout);
@@ -152,9 +205,9 @@ public static class ArcRelayTacticalPlaybookCompiler
             .Select(value => value.GetString()!)
             .ToArray();
         return new TacticalPlaybookCompilation(
-            fullPlaybookPath,
+            playbookPath,
             playbookSha256,
-            fullLayoutPath,
+            layoutPath,
             layoutSha256,
             composition,
             canonicalPlaybook,

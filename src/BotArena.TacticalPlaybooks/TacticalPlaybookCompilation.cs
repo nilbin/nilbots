@@ -1,4 +1,4 @@
-namespace BotArena.Cli;
+namespace BotArena.TacticalPlaybooks;
 
 /// <summary>
 /// Canonical, bounded runtime package produced from one editable tactical
