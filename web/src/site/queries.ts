@@ -11,8 +11,6 @@ import {
   type MatchSetDetail,
   type MatchSummary,
   type AssignBotClassRequest,
-  type CreateArcRelayMindRequest,
-  type ReviseArcRelayMindRequest,
   type SaveTacticalSheetRequest,
   type TrialTacticalSheetRequest,
   type SubmitVersionRequest,
@@ -564,45 +562,6 @@ export function useTrialTacticalSheet() {
     }) => endpoints.trialTacticalSheet(sheetId, body),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['matches'] });
-    },
-  });
-}
-
-export function useCreateArcRelayMind() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (body: CreateArcRelayMindRequest) => endpoints.createArcRelayMind(body),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
-      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
-    },
-  });
-}
-
-export function useLoadArcRelayMind() {
-  return useMutation({ mutationFn: (entrantId: string) => endpoints.arcRelayMind(entrantId) });
-}
-
-export function useReviseArcRelayMind() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({ entrantId, body }: { entrantId: string; body: ReviseArcRelayMindRequest }) =>
-      endpoints.reviseArcRelayMind(entrantId, body),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
-      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
-      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
-    },
-  });
-}
-
-export function useArcRelayPreflight() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (entrantId: string) => endpoints.preflightArcRelayMind(entrantId),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
-      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }

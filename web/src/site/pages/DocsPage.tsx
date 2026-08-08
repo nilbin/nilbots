@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import Markdown from '../components/Markdown';
-import arcRelayGlossary from '../../../../docs/ARC-RELAY-GLOSSARY.md?raw';
 import playerGuide from '../../../../docs/PLAYER-GUIDE.md?raw';
 
 // Retained for the read-only Duel archive and pinned by DocDriftTests.
@@ -12,23 +11,23 @@ export default function DocsPage() {
       <section>
         <h1 className="mb-2 type-display text-[26px]">Arc Relay field guide</h1>
         <p className="text-arena-dim">
-          Your competitive identity is an entrant: either a tactical sheet executed by
-          the frozen tactical-playbook mind, or your own submitted mind. Both get the same crest,
-          eight-body composition, match history and persistent rating.
+          Your competitive identity is a tactical sheet: eight bodies, one authored plan,
+          a crest, match history and persistent Season rating.
         </p>
       </section>
 
       <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
           <li><Link to="/login?mode=register" className="text-link">Create an account</Link>.</li>
-          <li>Open the <Link to="/entrants/sheets/new" className="text-link">sheet workshop</Link> and save an eight-slot sheet, or submit a C# custom mind from <Link to="/entrants" className="text-link">Entrants</Link>.</li>
-          <li>Pick a crest. A custom mind must finish its controlled build and complete one hosted preflight before entering ranked play.</li>
-          <li>Field up to three entrants in Season 1. Passive pairing finds similarly rated entrants from other accounts; your own scrimmages are always unrated.</li>
+          <li>Open the <Link to="/entrants/sheets/new" className="text-link">sheet workshop</Link> and save an eight-slot sheet.</li>
+          <li>Pick a crest and field up to three sheets in Season 1.</li>
+          <li>Ranked play is automatic. The Season finds similarly rated sheets from other accounts and schedules up to six games per sheet in a rolling 24 hours.</li>
+          <li>For an immediate unranked game, use <b>Practice &amp; watch</b> in the sheet workshop. Choose a stock opponent and seed, then return to the same draft.</li>
           <li>Watch the causal broadcast. The score strip shows only integrity, charge and time already reached by the playhead.</li>
         </ol>
       </Doc>
 
-      <Doc title="Sheets and minds">
+      <Doc title="Tactical sheets">
         <p>
           A sheet is two hash-pinned JSON documents: eight unlocked classes under the
           two-copy cap, ordered role doctrines, named conditions, custody policy and
@@ -45,16 +44,6 @@ export default function DocsPage() {
           first public eight-week competition on v8: every entrant starts at 1200 with a
           zero-match record. Earlier development ladders are not presented as Season history.
         </p>
-        <p className="mt-2">
-          A custom mind submits source files through the controlled toolchain and runs only
-          as sandboxed WASM with fuel and memory limits. Every revision declares and
-          snapshots its eight classes. A runtime fault or a post-match felt-degeneracy bar
-          suspends pairing until a corrected revision passes preflight.
-        </p>
-      </Doc>
-
-      <Doc title="One vocabulary">
-        <Markdown source={arcRelayGlossary} headingOffset={2} />
       </Doc>
 
       <Doc title="Facing and basic fire">
@@ -73,34 +62,12 @@ export default function DocsPage() {
         </p>
       </Doc>
 
-      <Doc title="Custom mind shape">
-        <pre className="term">{`using BotArena.Sdk;
-
-public sealed class MyRelayMind : IGenericMindBot
-{
-    public void StartMatch(MindStart start) { }
-
-    public void Think(MindContext mind)
-    {
-        foreach (MindBody body in mind.Bodies)
-            body.Hold("choose an action from the visible Arc Relay state");
-    }
-
-    public void EndMatch(MindEnd end) { }
-}`}</pre>
-        <p className="mt-2 text-arena-dim">
-          The browser submission form is the supported hosted path for this launch slice.
-          Composition and entitlements are validated again on the server; client controls
-          are guidance, never authority.
-        </p>
-      </Doc>
-
       <Doc title="Ratings, secrecy and determinism">
         <p>
           Ranked Arc Relay uses exact-compatible Elo attached to entrant identity. Each
-          match records the precise sheet revision or mind artifact and composition hashes,
-          while revisions keep the rating. Pairing avoids recent opponents, bounds daily
-          volume and never pairs two entrants owned by the same account.
+          match records the precise sheet revision and composition hashes while revisions
+          keep the rating. Pairing avoids recent opponents, bounds daily volume and never
+          pairs two sheets owned by the same account.
         </p>
         <p className="mt-2">
           Match and Season surfaces follow the broadcast clock: results and rating changes

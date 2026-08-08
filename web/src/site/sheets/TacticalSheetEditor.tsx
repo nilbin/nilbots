@@ -237,10 +237,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         changes: describeTrialChanges(previous?.snapshot, snapshot),
         snapshot,
       };
-      setTrialHistory((current) => saveTrialHistory([
+      const updatedHistory = saveTrialHistory([
         recorded,
-        ...current.filter((run) => run.matchId !== recorded.matchId),
-      ]));
+        ...trialHistory.filter((run) => run.matchId !== recorded.matchId),
+      ]);
+      setTrialHistory(updatedHistory);
       setSelectedRunId(recorded.matchId);
       navigate(`/matches/${match.id}`, {
         state: { returnTo: `/entrants/sheets/${saved.id}/edit`, returnLabel: saved.name },
@@ -353,9 +354,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           )}
         </div>
         <div className="border-t border-arena-edge p-2">
-          <p className="lab px-1 pb-2">Recent trials</p>
+          <p className="lab px-1 pb-2">Recent practice</p>
           {runsForSheet.length === 0 ? (
-            <p className="t-micro px-1 pb-1">Run this draft once to compare revisions and plot its actual tracks.</p>
+            <p className="t-micro px-1 pb-1">Practice with this draft once to compare revisions and plot its actual tracks.</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto xl:block xl:max-h-[260px] xl:overflow-y-auto">
               {runsForSheet.slice(0, 8).map((run) => (
@@ -423,7 +424,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="btn btn-on min-h-11 flex-1"
+                className="btn btn-primary min-h-11 flex-1"
                 disabled={save.isPending || blocking.length > 0}
                 onClick={() => void saveDraft(false).catch(() => undefined)}
               >
@@ -458,21 +459,22 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           setSection(sectionForIssue(issue.path));
           window.requestAnimationFrame(() => scrollToIssue(issue.path));
         }} />
-        <section id="trial-run" className="panel pad border-arena-ok/35 scroll-mt-16">
+        <section id="trial-run" className="panel panel-feature pad scroll-mt-16">
           <div className="flex flex-wrap items-start gap-3">
             <div className="mr-auto max-w-2xl">
-              <p className="lab text-arena-ok">Change → run → watch → change</p>
-              <h2 className="type-display mt-1 text-[22px]">Trial this draft</h2>
+              <p className="lab text-arena-material">Change → practice → watch → change</p>
+              <h2 className="type-display mt-1 text-[22px]">Practice with this draft</h2>
               <p className="t-meta mt-1">
-                The draft is saved locally first, compiled on the server, then opened in the replay viewer.
-                Return here to compare the run and overlay its actual movement on your map.
+                Practice is immediate and unranked. The draft is saved locally first,
+                compiled on the server, then opened in the replay viewer. Return here to
+                compare the run and overlay its actual movement on your map.
               </p>
             </div>
             <span className="pill">local draft safe</span>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end">
             <label>
-              <span className="t-micro mb-1 block">Stock sheet opponent</span>
+              <span className="t-micro mb-1 block">Practice opponent</span>
               <select className="field min-h-11" value={stockId} onChange={(event) => setStockId(event.target.value)}>
                 {catalog.stockOpponents.map((stock) => (
                   <option key={stock.id} value={stock.id}>{stock.name}</option>
@@ -484,10 +486,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               <input className="field min-h-11 font-mono" inputMode="numeric" value={seed}
                 onChange={(event) => setSeed(event.target.value)} />
             </label>
-            <button type="button" className="btn btn-on min-h-11"
+            <button type="button" className="btn btn-primary min-h-11"
               disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
               onClick={() => void runTrial()}>
-              {trial.isPending ? 'Starting trial…' : runsForSheet.length ? 'Run again & watch' : 'Run & watch'}
+              {trial.isPending ? 'Starting practice…' : runsForSheet.length ? 'Practice again & watch' : 'Practice & watch'}
             </button>
           </div>
           {catalog.stockOpponents.find((stock) => stock.id === stockId) && (
@@ -532,10 +534,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         )}
       </section>
       <div className="fixed inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] z-30 flex gap-2 rounded-sm border border-arena-edge bg-arena-panel p-2 min-[640px]:hidden">
-        <button type="button" className="btn btn-on min-h-12 flex-1"
+        <button type="button" className="btn btn-primary min-h-12 flex-1"
           disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
           onClick={() => void runTrial()}>
-          {trial.isPending ? 'Starting trial…' : 'Run & watch'}
+          {trial.isPending ? 'Starting practice…' : 'Practice & watch'}
         </button>
         <button type="button" className="btn min-h-12" onClick={() =>
           document.getElementById('trial-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -1213,7 +1215,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
         <div className="mr-auto">
           <p className="lab">Map plotting</p>
           <h2 className="type-display mt-1 text-[21px]">Draw tactics on the hosted map</h2>
-          <p className="t-meta mt-1">Drag waypoints, zone rectangles and anchor pins. Actual tracks from a selected trial sit behind the authored geometry.</p>
+          <p className="t-meta mt-1">Drag waypoints, zone rectangles and anchor pins. Actual tracks from selected practice sit behind the authored geometry.</p>
         </div>
         <div className="flex rounded-sm border border-arena-edge p-1" aria-label="Binding preview">
           {(['west', 'east'] as const).map((value) => (
@@ -1366,7 +1368,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
             <span>Drag · zone rectangle</span>
             <span>Arrow keys · nudge selected geometry</span>
             {trackLabel && <span>Cyan/coral · actual tracks · {trackLabel}</span>}
-            {!trackLabel && <span>select a recent trial to compare actual tracks</span>}
+            {!trackLabel && <span>select recent practice to compare actual tracks</span>}
             {side === 'east' && <span>rotated preview{previewRoute ? ` · ${previewRoute}` : ''}</span>}
             {side === 'east' && <span>switch west to edit geometry</span>}
           </div>

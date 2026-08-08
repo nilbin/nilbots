@@ -18,24 +18,26 @@ export default function SeasonPage() {
 
   const data = season.data;
   const mine = data.standings.filter((standing) =>
-    standing.entrant.isOwner && standing.entrant.ladderOptedIn);
+    standing.entrant.isOwner && standing.entrant.ladderOptedIn &&
+    standing.entrant.kind === 'sheet');
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
-      <header className="panel pad overflow-hidden">
+      <header className="panel panel-feature pad overflow-hidden">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="lab mb-2">Current competition</p>
             <h1 className="type-display text-[32px]">{data.name}</h1>
             <p className="t-meta mt-2 max-w-2xl">
-              Eight weeks of ranked Arc Relay. Sheets and custom minds share one
-              table; every settled match moves the entrant, never its latest revision.
+              Eight weeks of ranked Arc Relay. Field a tactical sheet once and the
+              Season finds its matches automatically; revisions keep one record and rating.
             </p>
           </div>
           <SeasonClock status={data.status} startsAt={data.startsAt} endsAt={data.endsAt} />
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-arena-edge pt-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-arena-edge pt-4 sm:grid-cols-4">
           <SeasonFact label="Entrants" value={String(data.standings.length)} />
           <SeasonFact label="Fielded" value={user ? `${mine.length}/${data.maximumFieldedPerAccount}` : '—'} />
+          <SeasonFact label="Ranked daily" value={`${data.baselineMatchesPerEntrantPerDay} each`} />
           <SeasonFact label="State" value={seasonStatus(data.status)} />
         </div>
       </header>
@@ -44,15 +46,18 @@ export default function SeasonPage() {
         <section className="panel">
           <div className="flex items-center justify-between gap-3 border-b border-arena-edge px-3 py-2.5">
             <div>
-              <h2 className="lab">Your fielded entrants</h2>
-              <p className="t-micro mt-1">These are eligible for passive Season pairing.</p>
+              <h2 className="lab">Your fielded sheets</h2>
+              <p className="t-micro mt-1">
+                Pairing is automatic: up to {data.baselineMatchesPerEntrantPerDay} ranked games
+                per sheet in a rolling 24 hours, subject to opponents and worker capacity.
+              </p>
             </div>
-            <Link to="/entrants" className="btn min-h-11">Manage entrants</Link>
+            <Link to="/entrants" className="btn btn-primary min-h-11">Manage sheets</Link>
           </div>
           {mine.length === 0 ? (
             <div className="pad">
               <p className="t-body">Nothing is fielded yet.</p>
-              <p className="t-meta mt-1">Create a sheet or prepare a custom mind to enter Season 1.</p>
+              <p className="t-meta mt-1">Create a sheet and field it to enter automatic ranked pairing.</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-3">
@@ -135,7 +140,7 @@ function EntrantStandingCard({ standing }: { standing: ArcRelaySeasonStanding })
         <EntrantCrest crest={standing.entrant.crest} size={42} />
         <div className="min-w-0 flex-1">
           <p className="type-display truncate text-[17px]">{standing.entrant.name}</p>
-          <p className="t-micro">rank {standing.rank} · {kindLabel(standing.entrant.kind)}</p>
+          <p className="t-micro">rank {standing.rank} · revision {standing.entrant.revision}</p>
         </div>
         <strong className="val text-[17px]">{standing.entrant.rating}</strong>
       </div>
@@ -155,7 +160,6 @@ function SeasonRow({ standing }: { standing: ArcRelaySeasonStanding }) {
       <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="truncate font-medium">{standing.entrant.name}</span>
-          <span className="pill hidden sm:inline-flex">{kindLabel(standing.entrant.kind)}</span>
         </div>
         <p className="t-micro truncate">{standing.entrant.ownerDisplayName}</p>
         <Composition standing={standing} className="mt-1 sm:hidden" />
@@ -203,10 +207,6 @@ function Movement({ value }: { value?: number | null }) {
   if (value == null) return <span className="t-micro">new</span>;
   if (value === 0) return <span className="t-micro">—</span>;
   return <span className={value > 0 ? 't-micro text-arena-ok' : 't-micro text-arena-hot'}>{value > 0 ? `▲${value}` : `▼${Math.abs(value)}`}</span>;
-}
-
-function kindLabel(kind: string) {
-  return kind === 'sheet' ? 'Sheet' : kind === 'mind' ? 'Custom mind' : kind;
 }
 
 function seasonStatus(status: string) {

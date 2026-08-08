@@ -216,7 +216,7 @@ function NotFoundPage() {
       <p className="t-meta mt-2">
         The page may have moved, or the address may be incomplete.
       </p>
-      <Link to="/" className="btn btn-on mt-4 inline-flex">
+      <Link to="/" className="btn btn-primary mt-4">
         Return to Season
       </Link>
     </section>

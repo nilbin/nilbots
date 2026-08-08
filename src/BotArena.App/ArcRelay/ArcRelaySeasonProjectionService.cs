@@ -142,6 +142,7 @@ public sealed class ArcRelaySeasonProjectionService(
             ladder.Id,
             ArcRelayLadderPolicy.LadderName,
             ArcRelayLadderPolicy.MaximumOptedInPerAccount,
+            ArcRelayLadderPolicy.MaximumMatchesPerEntrantPerDay,
             standings,
             recent);
     }

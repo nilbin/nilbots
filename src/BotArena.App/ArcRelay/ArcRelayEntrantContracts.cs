@@ -81,6 +81,7 @@ public sealed record ArcRelaySeasonResponse(
     Guid LadderId,
     string LadderName,
     int MaximumFieldedPerAccount,
+    int BaselineMatchesPerEntrantPerDay,
     IReadOnlyList<ArcRelaySeasonStandingResponse> Standings,
     IReadOnlyList<ArcRelaySeasonMatchResponse> RecentMatches);
 

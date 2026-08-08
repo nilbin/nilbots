@@ -2453,6 +2453,8 @@ export interface components {
             ladderName: string;
             /** Format: int32 */
             maximumFieldedPerAccount: number;
+            /** Format: int32 */
+            baselineMatchesPerEntrantPerDay: number;
             standings: components["schemas"]["ArcRelaySeasonStandingResponse"][];
             recentMatches: components["schemas"]["ArcRelaySeasonMatchResponse"][];
         };

@@ -88,13 +88,15 @@ public static class StoreEndpoints
                     category,
                     CategoryLabel(category),
                     catalog.Packs
-                        .Where(pack => pack.Category == category)
+                        .Where(pack => pack.Active && pack.Category == category)
                         .Select(Describe)
                         .ToArray()))
                 .Where(category => category.Packs.Count > 0)
                 .ToArray();
 
-            return Results.Ok(new StoreResponse(payments.IsConfigured, categories));
+            return Results.Ok(new StoreResponse(
+                payments.IsConfigured && categories.Length > 0,
+                categories));
         }).Produces<StoreResponse>().AllowAnonymous();
     }
 

@@ -400,7 +400,8 @@
         "bot-look:helio-kite",
         "projectile-look:helix-dart"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "scrap-jackal",
@@ -410,7 +411,8 @@
         "bot-look:scrap-jackal",
         "projectile-look:gravity-knot"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "glass-manta",
@@ -420,7 +422,8 @@
         "bot-look:glass-manta",
         "projectile-look:prism-fan"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "striker-vector-kestrel",
@@ -430,7 +433,8 @@
         "bot-look:striker-vector-kestrel",
         "projectile-look:striker-vector-fork"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "striker-arc-viper",
@@ -440,7 +444,8 @@
         "bot-look:striker-arc-viper",
         "projectile-look:striker-arc-cutter"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "bulwark-gatehouse",
@@ -450,7 +455,8 @@
         "bot-look:bulwark-gatehouse",
         "projectile-look:bulwark-gate-slug"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "bulwark-mirror-bastion",
@@ -460,7 +466,8 @@
         "bot-look:bulwark-mirror-bastion",
         "projectile-look:bulwark-mirror-wedge"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "fabricator-copyforge",
@@ -470,7 +477,8 @@
         "bot-look:fabricator-copyforge",
         "projectile-look:fabricator-copy-bit"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "fabricator-rivet-mantis",
@@ -480,7 +488,8 @@
         "bot-look:fabricator-rivet-mantis",
         "projectile-look:fabricator-rivet-punch"
       ],
-      "category": "appearance"
+      "category": "appearance",
+      "active": false
     },
     {
       "id": "extra-daily-builds",
@@ -489,7 +498,8 @@
       "items": [
         "capacity:extra-daily-builds"
       ],
-      "category": "capacity"
+      "category": "capacity",
+      "active": false
     },
     {
       "id": "extra-daily-ranked-sets",
@@ -498,7 +508,8 @@
       "items": [
         "capacity:extra-daily-ranked-sets"
       ],
-      "category": "capacity"
+      "category": "capacity",
+      "active": false
     }
   ]
 }

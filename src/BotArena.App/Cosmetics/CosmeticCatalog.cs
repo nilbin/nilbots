@@ -36,7 +36,13 @@ public sealed record CosmeticPack(
     /// what an account may do — reads as a jumble in one list, and the two are not
     /// comparable purchases: one is taste, the other is capacity.
     /// </summary>
-    string Category = CosmeticCatalog.AppearanceCategory);
+    string Category = CosmeticCatalog.AppearanceCategory,
+    /// <summary>
+    /// Whether a new checkout may start for this pack. Historical packs remain in the
+    /// catalog so old grants, purchases and replay appearances keep resolving, but they
+    /// must not leak back onto a future storefront merely because their data still exists.
+    /// </summary>
+    bool Active = true);
 
 public sealed record CosmeticCatalogDocument(
     int Version,
@@ -115,6 +121,9 @@ public sealed class CosmeticCatalog
 
     public CosmeticPack? FindPack(string id) =>
         Packs.FirstOrDefault(pack => pack.Id == id);
+
+    public CosmeticPack? FindActivePack(string id) =>
+        Packs.FirstOrDefault(pack => pack.Id == id && pack.Active);
 
     public static CosmeticCatalog LoadDefault()
     {

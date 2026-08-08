@@ -6549,3 +6549,31 @@ rating identity; save-as-copy remains a new entrant. At most three entrants per
 account may be fielded, and account-owned scrimmages remain unrated. Earlier
 development data is not fabricated into a Preseason, and no season-history UI
 ships until a real closed public season exists.
+
+## 252. Ranked enrollment is passive, practice is immediate, and the launch UI is sheet-only
+
+Owner product ruling (2026-08-08). A player does not press a ranked-queue button.
+Fielding a tactical sheet enrolls it in Season pairing until withdrawn. The hosted
+worker finds a similarly rated cross-account opponent, avoids recent rematches and
+may schedule at most six ranked games per fielded sheet in a rolling 24 hours under
+the existing queue/worker bounds. This six-game value is the immutable v8 baseline,
+not a UI constant.
+
+An author who wants a game now uses **Practice & watch** from the sheet workshop.
+That is the existing immediate, unranked draft-versus-stock lane: it accepts a chosen
+opponent and seed, opens the replay and returns to the same draft. Practice never
+changes Season rating. Ranked and practice therefore have deliberately different
+verbs and timing.
+
+Custom-mind admission remains supported by the App and sandbox runtime but is dormant
+on the launch web surface. The web exposes sheets only: no source submission,
+preflight controls or custom-mind player documentation. This is presentation
+sequencing, not a backend deletion or contract break.
+
+The old appearance and capacity packs are retained as historical entitlement and
+archive authorities but are inactive for new checkout. In particular,
+`capacity:extra-daily-ranked-sets` belongs to retired six-game Duel sets and must not
+be reinterpreted as Arc Relay capacity. If extra Season games are sold later, they get
+a new entitlement key and a new immutable matchmaking-policy/playlist version. They
+may raise only rolling daily match volume; they do not buy extra fielded slots,
+concurrency, rating, combat power or pairing priority.

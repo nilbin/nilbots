@@ -1939,7 +1939,9 @@ export const cosmeticCatalogFixture = {
   ],
 } satisfies CosmeticCatalog;
 
-export const storeFixture = {
+// Retained as review data for the archived entitlement audit. These packs still resolve
+// historical grants, but the current storefront deliberately publishes none of them.
+const dormantStoreFixture = {
   open: false,
   categories: [
     {
@@ -2182,6 +2184,11 @@ export const storeFixture = {
       ],
     },
   ],
+} satisfies Store;
+
+export const storeFixture = {
+  ...dormantStoreFixture,
+  categories: [],
 } satisfies Store;
 
 export const notificationsFixture = [] satisfies UserNotification[];

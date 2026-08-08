@@ -59,7 +59,7 @@ export default function Shell() {
             ) : (
               <Link
                 to="/login"
-                className="btn shrink-0"
+                className="btn btn-primary shrink-0"
               >
                 Sign in
               </Link>
@@ -69,15 +69,6 @@ export default function Shell() {
         <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 py-6">
           <Outlet />
         </main>
-        <footer className="t-micro flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-arena-edge py-3">
-          <span>deterministic Arc Relay · every match is reproducible</span>
-          <nav
-            className="ml-auto flex items-center gap-3"
-            aria-label="Secondary navigation"
-          >
-            <Link to="/archive/bots" className="text-link">Legacy archive</Link>
-          </nav>
-        </footer>
         <nav
           className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-arena-edge bg-arena-panel pb-[env(safe-area-inset-bottom)] min-[640px]:hidden"
           aria-label="Primary navigation"

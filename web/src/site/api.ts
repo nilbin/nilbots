@@ -167,7 +167,6 @@ export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
 export type ArcRelaySeason = Schemas['ArcRelaySeasonResponse'];
 export type ArcRelaySeasonStanding = Schemas['ArcRelaySeasonStandingResponse'];
 export type ArcRelaySeasonMatch = Schemas['ArcRelaySeasonMatchResponse'];
-export type ArcRelayMind = Schemas['ArcRelayMindResponse'];
 export type ArcRelayCrest = Schemas['ArcRelayCrestDescriptor'];
 export type ArcRelayCrestOptions = Schemas['ArcRelayCrestOptionsResponse'];
 
@@ -179,8 +178,6 @@ export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
 export type SaveTacticalSheetRequest = Schemas['SaveTacticalSheetRequest'];
 export type TrialTacticalSheetRequest = Schemas['TrialTacticalSheetRequest'];
 export type CreateArcRelayScrimmageRequest = Schemas['CreateArcRelayScrimmageRequest'];
-export type CreateArcRelayMindRequest = Schemas['CreateArcRelayMindRequest'];
-export type ReviseArcRelayMindRequest = Schemas['ReviseArcRelayMindRequest'];
 export type SetArcRelayLadderOptInRequest = Schemas['SetArcRelayLadderOptInRequest'];
 export type SetArcRelayCrestRequest = Schemas['SetArcRelayCrestRequest'];
 export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
@@ -232,8 +229,6 @@ export const endpoints = {
   arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
   arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
   arcRelaySeason: () => api.get<ArcRelaySeason>('/api/arc-relay/seasons/current'),
-  arcRelayMind: (entrantId: string) =>
-    api.get<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`),
   leaderboard: (rules?: string | null) =>
     api.get<Leaderboard>(
       `/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`,
@@ -275,16 +270,10 @@ export const endpoints = {
     api.post<CreatedMatch>(`/api/sheets/${sheetId}/trial`, body),
   createArcRelayScrimmage: (body: CreateArcRelayScrimmageRequest) =>
     api.post<CreatedMatch>('/api/arc-relay/scrimmages', body),
-  createArcRelayMind: (body: CreateArcRelayMindRequest) =>
-    api.post<ArcRelayMind>('/api/arc-relay/minds', body),
-  reviseArcRelayMind: (entrantId: string, body: ReviseArcRelayMindRequest) =>
-    api.put<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`, body),
   arcRelayCrestOptions: (entrantId: string) =>
     api.get<ArcRelayCrestOptions>(`/api/arc-relay/entrants/${entrantId}/crest-options`),
   setArcRelayCrest: (entrantId: string, body: SetArcRelayCrestRequest) =>
     api.put<ArcRelayCrest>(`/api/arc-relay/entrants/${entrantId}/crest`, body),
-  preflightArcRelayMind: (entrantId: string) =>
-    api.post<Schemas['ArcRelayPreflightResponse']>(`/api/arc-relay/entrants/${entrantId}/preflight`, {}),
   setArcRelayLadder: (entrantId: string, body: SetArcRelayLadderOptInRequest) =>
     api.put<ArcRelayEntrant>(`/api/arc-relay/entrants/${entrantId}/ladder`, body),
   updateAppearance: (botId: string, body: UpdateBotAppearanceRequest) =>

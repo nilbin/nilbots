@@ -36,7 +36,7 @@ public sealed class StorePurchaseService(
         string providerReference,
         CancellationToken cancellationToken)
     {
-        if (catalog.FindPack(packId) is null)
+        if (catalog.FindActivePack(packId) is null)
             throw new ArgumentException($"Unknown pack '{packId}'.", nameof(packId));
 
         var purchase = new Purchase

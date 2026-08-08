@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import EntrantCrest from '../../components/EntrantCrest';
@@ -6,7 +5,6 @@ import ClassIcon from '../../components/ClassIcon';
 import { useAuth } from '../auth';
 import type {
   ArcRelayEntrant,
-  TacticalSheetClass,
   TacticalSheetCatalog,
 } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
@@ -14,10 +12,7 @@ import {
   useArcRelayCrestOptions,
   useArcRelayEntrants,
   useArcRelayLadderOptIn,
-  useArcRelayPreflight,
-  useCreateArcRelayMind,
-  useLoadArcRelayMind,
-  useReviseArcRelayMind,
+  useArcRelaySeason,
   useSetArcRelayCrest,
   useTacticalSheetCatalog,
 } from '../queries';
@@ -33,6 +28,7 @@ export default function ArcRelayPage({
   const { user, loading } = useAuth();
   const catalogQuery = useTacticalSheetCatalog(user !== null);
   const entrantsQuery = useArcRelayEntrants(user !== null);
+  const seasonQuery = useArcRelaySeason();
 
   if (loading) return <LoadingState label="Opening tactical sheets…" />;
   if (!user) {
@@ -41,12 +37,12 @@ export default function ArcRelayPage({
         <p className="lab mb-2">Season 1</p>
         <h1 className="type-display text-[28px]">Build an entrant. Watch it compete.</h1>
         <p className="t-meta mx-auto mt-3 max-w-md">
-          Tactical sheets and custom minds compete as entrants. Sign in to author a sheet,
-          run a trial, inspect the replay and return to the same draft.
+          Sign in to author a tactical sheet, run an immediate practice match,
+          inspect the replay and return to the same draft.
         </p>
         <Link
           to={`/login?returnUrl=${encodeURIComponent(view === 'sheets' ? '/entrants/sheets/new' : '/entrants')}`}
-          className="btn btn-on mt-5 inline-flex min-h-11"
+          className="btn btn-primary mt-5 min-h-11"
         >
           Sign in to author
         </Link>
@@ -67,7 +63,6 @@ export default function ArcRelayPage({
   }
 
   const catalog = catalogQuery.data;
-  const templateClasses = templateComposition(catalog);
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -79,7 +74,7 @@ export default function ArcRelayPage({
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
               ? 'Choose the composition, give each role an ordered doctrine, plot the map and compare what actually happened.'
-              : 'Sheets and custom minds share one competitive identity: crest, composition, match history and rating.'}
+              : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
           </p>
         </div>
         <span className="pill">Deep Warren</span>
@@ -88,8 +83,7 @@ export default function ArcRelayPage({
       {view === 'overview' ? (
         <EntrantRoster
           entrants={entrantsQuery.data ?? []}
-          templateClasses={templateClasses}
-          classes={catalog.classes}
+          baselineMatchesPerDay={seasonQuery.data?.baselineMatchesPerEntrantPerDay}
         />
       ) : (
         <>
@@ -104,68 +98,49 @@ export default function ArcRelayPage({
   );
 }
 
-function EntrantRoster({ entrants, templateClasses, classes }: {
+function EntrantRoster({ entrants, baselineMatchesPerDay }: {
   entrants: ArcRelayEntrant[];
-  templateClasses: string[];
-  classes: TacticalSheetClass[];
+  baselineMatchesPerDay?: number;
 }) {
-  const [name, setName] = useState('My custom mind');
-  const [entryType, setEntryType] = useState('MyRelayMind');
-  const [source, setSource] = useState(DEFAULT_MIND_SOURCE);
-  const [composition, setComposition] = useState(templateClasses);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [expectedRevision, setExpectedRevision] = useState(0);
-  const create = useCreateArcRelayMind();
-  const revise = useReviseArcRelayMind();
-  const loadMind = useLoadArcRelayMind();
-  const preflight = useArcRelayPreflight();
   const ladderOptIn = useArcRelayLadderOptIn();
   const crestOptions = useArcRelayCrestOptions();
   const setCrest = useSetArcRelayCrest();
-  const submit = () => {
-    const common = {
-      name,
-      entryType,
-      files: [{ name: 'MyRelayMind.cs', content: source }],
-      composition: { classIds: composition, adaptivePolicyId: null, adaptiveClassIds: [] },
-    };
-    if (editId) revise.mutate({ entrantId: editId, body: { ...common, expectedRevision } });
-    else create.mutate({ ...common, crestVariant: 0 });
-  };
-  const beginRevision = (entrantId: string) => loadMind.mutate(entrantId, {
-    onSuccess: (mind) => {
-      setEditId(entrantId);
-      setExpectedRevision(mind.entrant.revision);
-      setName(mind.entrant.name);
-      setEntryType(mind.entryType);
-      setSource(mind.files[0]?.content ?? DEFAULT_MIND_SOURCE);
-      setComposition([...mind.composition.classIds]);
-      const editor = document.getElementById('mind-editor') as HTMLDetailsElement | null;
-      if (editor) {
-        editor.open = true;
-        editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    },
-  });
+  const sheets = entrants.filter((entrant) => entrant.kind === 'sheet');
   return <>
+    <section className="panel panel-feature pad">
+      <p className="lab text-arena-material">Ranked runs automatically</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <p className="t-meta max-w-3xl">
+          Field up to three sheets once. The Season then finds similarly rated opponents
+          in the background and schedules {baselineMatchesPerDay == null
+            ? 'a bounded number of ranked games per sheet'
+            : `up to ${baselineMatchesPerDay} ranked games per sheet`} in a rolling 24 hours.
+          There is no ranked queue button.
+        </p>
+        <Link to="/entrants/sheets/new" className="btn btn-primary min-h-11">Create a sheet</Link>
+      </div>
+      <p className="t-micro mt-3 border-t border-arena-edge pt-3">
+        Want an immediate game? Open a sheet and use <b>Practice &amp; watch</b>.
+        Practice is unranked and never changes Season standing.
+      </p>
+    </section>
+
     <section className="panel overflow-hidden">
       <div className="pad flex flex-wrap items-end gap-3 border-b border-arena-edge">
         <div className="mr-auto">
-          <p className="lab">Your entrants</p>
-          <p className="t-micro mt-1">Tactical sheets and custom minds share identity, crest and rating.</p>
+          <p className="lab">Your sheets</p>
+          <p className="t-micro mt-1">Edit strategy, choose a crest, and decide which sheets represent you in Season 1.</p>
         </div>
-        <Link to="/entrants/sheets/new" className="btn btn-on inline-flex min-h-11">New sheet</Link>
-        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 fielded</span>
+        <span className="pill">{sheets.filter((entry) => entry.ladderOptedIn).length}/3 fielded</span>
       </div>
       <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
-        {entrants.map((entrant) => <article key={entrant.id}
+        {sheets.map((entrant) => <article key={entrant.id}
           className="rounded-sm border border-arena-edge bg-arena-deep/40 p-3">
           <div className="flex items-center gap-3">
             <EntrantCrest crest={entrant.crest} size={52} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="type-display truncate text-[18px]">{entrant.name}</h3>
-                <span className="pill ml-auto">{entrantKindLabel(entrant.kind)}</span>
               </div>
               <p className="t-micro">{entrant.rating} rating · {entrant.rankedMatches} ranked · r{entrant.revision}</p>
               <p className={clsx(
@@ -182,17 +157,12 @@ function EntrantRoster({ entrants, templateClasses, classes }: {
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className="btn min-h-11" disabled={crestOptions.isPending}
               onClick={() => crestOptions.mutate(entrant.id)}>Choose crest</button>
-            {entrant.kind === 'sheet' && <Link to={`/entrants/sheets/${entrant.id}/edit`} className="btn inline-flex min-h-11 items-center">Edit sheet</Link>}
-            {entrant.kind === 'mind' && <button type="button" className="btn min-h-11"
-              disabled={loadMind.isPending} onClick={() => beginRevision(entrant.id)}>Revise</button>}
-            {entrant.kind === 'mind' && (entrant.status === 'required' || entrant.status === 'built') &&
-              <button type="button" className="btn min-h-11" disabled={preflight.isPending}
-                onClick={() => preflight.mutate(entrant.id)}>Run preflight</button>}
-            {((entrant.kind === 'sheet' && entrant.status === 'ready') || entrant.status === 'passed') &&
-              <button type="button" className={clsx('btn min-h-11', entrant.ladderOptedIn && 'btn-on')}
+            <Link to={`/entrants/sheets/${entrant.id}/edit`} className="btn min-h-11">Edit sheet</Link>
+            {entrant.status === 'ready' &&
+              <button type="button" className={clsx('btn min-h-11', entrant.ladderOptedIn ? 'btn-on' : 'btn-primary')}
                 disabled={ladderOptIn.isPending}
                 onClick={() => ladderOptIn.mutate({ entrantId: entrant.id, optedIn: !entrant.ladderOptedIn })}>
-                {entrant.ladderOptedIn ? 'Withdraw from Season' : 'Field in Season'}
+                {entrant.ladderOptedIn ? 'Withdraw from ranked' : 'Field for ranked'}
               </button>}
           </div>
           {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-arena-material">
@@ -211,59 +181,9 @@ function EntrantRoster({ entrants, templateClasses, classes }: {
             </div>
           )}
         </article>)}
-        {entrants.length === 0 && <p className="t-meta p-2">Save a tactical sheet or submit a mind to establish an entrant.</p>}
+        {sheets.length === 0 && <p className="t-meta p-2">Create and save your first tactical sheet.</p>}
       </div>
     </section>
-
-    <section className="panel pad">
-      <details id="mind-editor">
-        <summary className="min-h-11 cursor-pointer lab">{editId ? 'Revise custom mind' : 'Submit a custom mind'}</summary>
-        <p className="t-meta mt-2 max-w-3xl">
-          Sources follow the controlled server build path. The artifact runs only in the WASM sandbox;
-          its eight-class declaration is validated and snapshotted beside every match.
-        </p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <label><span className="t-micro block">Entrant name</span><input className="field min-h-11" value={name}
-            maxLength={60} onChange={(event) => setName(event.target.value)} /></label>
-          <label><span className="t-micro block">Entry type</span><input className="field min-h-11" value={entryType}
-            onChange={(event) => setEntryType(event.target.value)} /></label>
-        </div>
-        <fieldset className="mt-3">
-          <legend className="t-micro">Declared eight-body composition · two copies maximum</legend>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-            {composition.map((classId, slot) => <label key={slot}>
-              <span className="t-micro block">slot {slot + 1}</span>
-              <select className="field min-h-11 py-1.5" value={classId} onChange={(event) => {
-                const next = [...composition]; next[slot] = event.target.value; setComposition(next);
-              }}>
-                {classes.filter((entry) => entry.unlocked).map((entry) => {
-                  const copies = composition.filter((value) => value === entry.id).length;
-                  return <option key={entry.id} value={entry.id}
-                    disabled={entry.id !== classId && copies >= 2}>{entry.name}</option>;
-                })}
-              </select>
-            </label>)}
-          </div>
-        </fieldset>
-        <label className="mt-3 block"><span className="t-micro block">C# source</span>
-          <textarea className="field min-h-[260px] font-mono text-xs" spellCheck={false} value={source}
-            onChange={(event) => setSource(event.target.value)} /></label>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button type="button" className="btn btn-on min-h-11"
-            disabled={create.isPending || revise.isPending || composition.length !== 8}
-            onClick={submit}>{create.isPending || revise.isPending ? 'Submitting…' : editId ? 'Build revised mind' : 'Build mind entrant'}</button>
-          {editId && <button type="button" className="btn min-h-11" onClick={() => {
-            setEditId(null); setExpectedRevision(0); setName('My custom mind'); setEntryType('MyRelayMind');
-            setSource(DEFAULT_MIND_SOURCE); setComposition(templateClasses);
-          }}>New submission</button>}
-          {(create.isError || revise.isError) && <span className="t-micro text-arena-hot">
-            {(create.error ?? revise.error)?.message}</span>}
-          {(create.isSuccess || revise.isSuccess) && <span className="t-micro text-arena-ok">
-            Revision queued through the controlled toolchain; rating identity preserved.</span>}
-        </div>
-      </details>
-    </section>
-
   </>;
 }
 
@@ -289,47 +209,11 @@ function ClassCatalog({ catalog }: { catalog: TacticalSheetCatalog }) {
   </section>;
 }
 
-function templateComposition(catalog: TacticalSheetCatalog): string[] {
-  try {
-    const value = JSON.parse(catalog.templatePlaybookJson) as { composition?: unknown };
-    if (Array.isArray(value.composition))
-      return value.composition.filter((entry): entry is string => typeof entry === 'string');
-  } catch {
-    // The server compiler guards this source. Fall through only for a partial deployment.
-  }
-  return catalog.classes.filter((entry) => entry.unlocked).slice(0, 8).map((entry) => entry.id);
-}
-
-function entrantKindLabel(kind: string): string {
-  return kind === 'sheet' ? 'Sheet' : kind === 'mind' ? 'Custom mind' : kind;
-}
-
 function entrantStatusLabel(status: string): string {
   switch (status) {
     case 'ready': return 'Ready';
-    case 'required': return 'Preflight required';
-    case 'pending': return 'Preflight running';
-    case 'passed': return 'Preflight passed';
-    case 'failed': return 'Preflight failed';
-    case 'building': return 'Building';
-    case 'built': return 'Built';
     case 'suspended': return 'Pairing suspended';
     case 'legacy': return 'Legacy layout';
     default: return status;
   }
 }
-
-const DEFAULT_MIND_SOURCE = `using BotArena.Sdk;
-
-public sealed class MyRelayMind : IGenericMindBot
-{
-    public void StartMatch(MindStart start) { }
-
-    public void Think(MindContext mind)
-    {
-        foreach (MindBody body in mind.Bodies)
-            body.Hold("author your Arc Relay plan here");
-    }
-
-    public void EndMatch(MindEnd end) { }
-}`;

@@ -119,6 +119,19 @@ public class CosmeticPackTests
     }
 
     [Fact]
+    public void LegacyDuelAndThreeClassPacksAreRetainedButNotForSale()
+    {
+        var catalog = CosmeticCatalog.LoadDefault();
+
+        Assert.NotEmpty(catalog.Packs);
+        Assert.All(catalog.Packs, pack => Assert.False(pack.Active));
+        Assert.NotNull(catalog.FindPack("helio-kite"));
+        Assert.Null(catalog.FindActivePack("helio-kite"));
+        Assert.NotNull(catalog.FindPack("extra-daily-ranked-sets"));
+        Assert.Null(catalog.FindActivePack("extra-daily-ranked-sets"));
+    }
+
+    [Fact]
     public void EveryAppearancePackSellsACompletePair()
     {
         var catalog = CosmeticCatalog.LoadDefault();

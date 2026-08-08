@@ -593,6 +593,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("maximumFieldedPerAccount")]
         public int MaximumFieldedPerAccount { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("baselineMatchesPerEntrantPerDay")]
+        public int BaselineMatchesPerEntrantPerDay { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("standings")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<ArcRelaySeasonStandingResponse> Standings { get; set; } = new System.Collections.Generic.List<ArcRelaySeasonStandingResponse>();

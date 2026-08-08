@@ -146,6 +146,7 @@ test('keeps review cosmetics aligned with the production catalogue', () => {
       description: string;
       items: string[];
       category: string;
+      active?: boolean;
     }>;
   };
 
@@ -171,20 +172,17 @@ test('keeps review cosmetics aligned with the production catalogue', () => {
         category: category.id,
       })),
     ),
-    production.packs,
+    production.packs.filter((pack) => pack.active !== false),
   );
 
   const rankedCapacityItem = cosmeticCatalogFixture.items.find(
     (item) => item.key === 'capacity:extra-daily-ranked-sets',
   );
-  const rankedCapacityPack = storeFixture.categories
-    .flatMap((category) => category.packs)
-    .find((pack) => pack.id === 'extra-daily-ranked-sets');
-  assert.equal(rankedCapacityItem?.owned, rankedCapacityPack?.owned);
-  assert.equal(
-    arenaCapabilitiesFixture.rankedAllowance.limit,
-    rankedCapacityPack?.owned ? 15 : 10,
-  );
+  assert.equal(rankedCapacityItem?.owned, true);
+  assert.deepEqual(storeFixture.categories, []);
+  assert.equal(storeFixture.open, false);
+  // A historical grant keeps its legacy policy effect even though it is no longer sold.
+  assert.equal(arenaCapabilitiesFixture.rankedAllowance.limit, 15);
 });
 
 test('keeps the default account and first-run account internally coherent', () => {

@@ -26,10 +26,9 @@
    frame #684229, zone #38d9c5 — lifted into chrome, so the interface is made of the
    material the arena is made of.
 
-   Burnt orange is a *material*, not a signal: it belongs to the ground, inert
-   structure and the mark, and never marks state or ownership. The only chroma that
-   means anything is a player's accent, which is server data (`bot.accent`) and is
-   never one of these tokens. */
+   Burnt orange is the product material: it belongs to the ground, inert structure,
+   the mark and primary actions. It never marks team ownership or match state. The
+   only chroma that identifies a player is their server-owned accent. */
 @theme {
   --color-arena-bg: #0b0705;
   --color-arena-panel: #191210;
@@ -44,6 +43,7 @@
      family here and stops registering as an alarm. */
   --color-arena-ok: #38d9c5;
   --color-arena-hot: #f4526b;
+  --color-arena-on-material: #160b06;
   --font-sans:
     'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono:
@@ -95,6 +95,7 @@ html[data-arena-mode='site'] {
     --color-arena-material: #98491f;
     --color-arena-ok: #087c74;
     --color-arena-hot: #b92543;
+    --color-arena-on-material: #fffaf4;
   }
 }
 
@@ -228,7 +229,18 @@ html[data-arena-mode='viewer'] #root {
   .panel {
     background: var(--color-arena-panel);
     border: 1px solid var(--color-arena-edge);
-    border-radius: 3px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--color-arena-text) 3%, transparent);
+  }
+  .panel-feature {
+    border-color: color-mix(in oklab, var(--color-arena-material) 42%, var(--color-arena-edge));
+    background:
+      linear-gradient(115deg,
+        color-mix(in oklab, var(--color-arena-material) 8%, var(--color-arena-panel)),
+        var(--color-arena-panel) 58%);
+    box-shadow:
+      inset 3px 0 0 var(--color-arena-material),
+      0 8px 28px color-mix(in oklab, var(--color-arena-bg) 72%, transparent);
   }
   .panel-quiet {
     background: color-mix(in oklab, var(--color-arena-panel) 60%, transparent);
@@ -266,13 +278,18 @@ html[data-arena-mode='viewer'] #root {
   }
 
   .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     font-size: 12.5px;
     font-weight: 500;
+    line-height: 1.15;
     border: 1px solid var(--color-arena-edge);
     background: transparent;
     color: var(--color-arena-text);
     border-radius: 3px;
-    padding: 5px 11px;
+    padding: 7px 12px;
     transition:
       border-color 150ms,
       color 150ms,
@@ -296,6 +313,31 @@ html[data-arena-mode='viewer'] #root {
   .btn-on {
     border-color: var(--color-arena-edge2);
     background: var(--color-arena-raise);
+  }
+
+  .btn-primary {
+    border-color: color-mix(in oklab, var(--color-arena-material) 78%, var(--color-arena-text));
+    background: var(--color-arena-material);
+    color: var(--color-arena-on-material);
+    font-weight: 650;
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+      0 3px 12px color-mix(in oklab, var(--color-arena-material) 18%, transparent);
+  }
+  .btn-primary:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-arena-material) 62%, var(--color-arena-text));
+    background: color-mix(in oklab, var(--color-arena-material) 88%, var(--color-arena-text));
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 2px color-mix(in oklab, var(--color-arena-bg) 34%, transparent);
+  }
+  .btn-primary:disabled {
+    border-color: var(--color-arena-edge);
+    background: var(--color-arena-raise);
+    color: var(--color-arena-dim);
+    box-shadow: none;
   }
 
   /* Actions should not read like document controls. These surfaces are reserved for

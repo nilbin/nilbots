@@ -111,7 +111,7 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={active.isPending}
-            className="btn btn-strong mt-1 min-h-11 w-full disabled:opacity-50"
+            className="btn btn-primary mt-1 min-h-11 w-full disabled:opacity-50"
           >
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </button>

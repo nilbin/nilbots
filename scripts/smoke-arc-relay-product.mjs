@@ -72,7 +72,7 @@ try {
   await page.getByRole('heading', { name: 'Change. Run. Watch. Adjust.' }).waitFor();
   const nameField = page.getByLabel('Sheet name');
   await nameField.fill(sheetName);
-  const runButton = page.locator('#trial-run').getByRole('button', { name: 'Run & watch' });
+  const runButton = page.locator('#trial-run').getByRole('button', { name: 'Practice & watch' });
   if (await runButton.isDisabled()) {
     const issues = await page.locator('[data-sheet-issue]').allTextContents();
     throw new Error(`Initial template is not runnable: ${issues.join(' | ')}`);

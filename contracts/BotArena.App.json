@@ -2290,6 +2290,7 @@
           "ladderId",
           "ladderName",
           "maximumFieldedPerAccount",
+          "baselineMatchesPerEntrantPerDay",
           "standings",
           "recentMatches"
         ],
@@ -2342,6 +2343,10 @@
             "type": "string"
           },
           "maximumFieldedPerAccount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "baselineMatchesPerEntrantPerDay": {
             "type": "integer",
             "format": "int32"
           },
