@@ -39,6 +39,25 @@ authoritative and unchanged. See the refreshed [phone workshop](assets/season-ux
 the [single-action practice viewport](assets/season-ux-polish/practice-phone.png), and the
 [conditions sub-editor](assets/season-ux-polish/doctrine-conditions-phone.png).
 
+The first tactical-command-board prototype replaces the remaining admin-form posture:
+
+- a role rail shows one plan at a time with its class icon, chassis, ordered-command
+  meter and signature-skill name;
+- the selected role explains the class signature fantasy, then presents modes as an
+  ordered stack of readable command cards with action glyphs and `WHEN`/`UNTIL` chips;
+- verb selection, exact parameters and fight tuning remain available under each card's
+  `Configure command` disclosure, while plan identifiers and timing knobs stay advanced;
+- the trigger library edits one reusable battlefield sentence at a time rather than
+  stacking every predicate form; and
+- custody starts with a Well → carrier → screen → recovery flow, with contingency orders
+  and exact timings beneath it.
+
+This is presentation over the existing draft object: no playbook vocabulary, compiler
+rule, layout, persistence contract or emitted JSON shape changed. See the
+[phone command board](assets/season-ux-polish/command-board-phone.png),
+[trigger editor](assets/season-ux-polish/doctrine-conditions-phone.png), and
+[custody flow](assets/season-ux-polish/doctrine-custody-phone.png).
+
 ## Ranked and practice
 
 Current ranked admission was already passive. A player fields a sheet once; the
@@ -110,7 +129,7 @@ the API should allocate that pool explicitly rather than hiding it in pairing or
 ## Verification
 
 - generated API clients regenerated cleanly after adding the projected daily baseline;
-- web tests: 430 passed;
+- web tests: 431 passed;
 - production web build: passed;
 - solution build: passed with zero warnings;
 - App tests with the PostgreSQL suite required: 283 passed, 3 unrelated

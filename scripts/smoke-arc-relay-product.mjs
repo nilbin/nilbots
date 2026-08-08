@@ -84,9 +84,16 @@ try {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
   await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
-  await page.getByRole('button', { name: /^Conditions/ }).click();
-  await page.getByRole('heading', { name: 'Doctrine conditions' }).waitFor();
+  await page.getByRole('heading', { name: 'Give every role its orders' }).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: join(output, 'command-board-phone.png') });
+  await page.getByRole('button', { name: /^Triggers/ }).click();
+  await page.getByRole('heading', { name: 'Doctrine triggers' }).waitFor();
   await page.screenshot({ path: join(output, 'doctrine-conditions-phone.png') });
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: /^Core custody/ }).click();
+  await page.getByRole('heading', { name: 'Core custody' }).waitFor();
+  await page.screenshot({ path: join(output, 'doctrine-custody-phone.png') });
   await page.getByRole('button', { name: 'Done' }).click();
   await runButton.scrollIntoViewIfNeeded();
   await page.waitForTimeout(150);

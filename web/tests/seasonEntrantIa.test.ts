@@ -82,9 +82,20 @@ test('the phone shortcut navigates to one configured practice action', () => {
 test('conditions and custody are focused doctrine tools rather than top-level steps', () => {
   assert.doesNotMatch(workshop, /id: 'conditions'|id: 'custody'/);
   assert.match(workshop, /id: 'doctrines'.*path\.startsWith\('authoring'\).*path\.startsWith\('custodyPolicies'\)/s);
-  assert.match(workshop, /title="Doctrine conditions"/);
+  assert.match(workshop, /title="Doctrine triggers"/);
   assert.match(workshop, /title="Core custody"/);
   assert.match(workshop, /label: '3 Map'/);
+});
+
+test('doctrine authoring presents a tactical command board over the compiler schema', () => {
+  assert.match(workshop, /Tactical command board/);
+  assert.match(workshop, /data-doctrine-select/);
+  assert.match(workshop, /Signature system · \{classInfo\.signatureName\}/);
+  assert.match(workshop, /Choose action/);
+  assert.match(workshop, /Trigger library/);
+  assert.match(workshop, /WHEN \{predicateSentence\(predicate\)\}/);
+  assert.match(workshop, /Core relay plans/);
+  assert.match(workshop, /Advanced role tuning/);
 });
 
 test('custom-mind authoring is dormant on the launch web surface', () => {
