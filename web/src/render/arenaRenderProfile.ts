@@ -53,10 +53,11 @@ export const DESKTOP_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
  * Sustained phone-watch budget.
  *
  * A replay is watched for minutes, not inspected for one frame. Thirty presentation
- * frames preserve causal interpolation while halving scene submission; DPR 1.5 keeps a
- * 48 px bot comfortably above one physical pixel per authored detail without paying the
- * 4x/9x fill-rate tax of DPR 2/3. A 1024 shadow map is still larger than the landscape
- * phone's arena height and costs one quarter of the former 2048 map per update.
+ * frames preserve causal interpolation while halving scene submission; DPR 1.5 keeps the
+ * camera's 63 px selected-bot floor comfortably above one physical pixel per authored
+ * detail without paying the 4x/9x fill-rate tax of DPR 2/3. A 1024 shadow map is still
+ * larger than the landscape phone's arena height and costs one quarter of the former 2048
+ * map per update.
  */
 export const MOBILE_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
   id: 'mobile',

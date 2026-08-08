@@ -63,18 +63,22 @@ const FOCUS_MARGIN_TILES = 1.5;
  */
 const MIN_SPAN_TILES = 6;
 
+/** Smallest authored body footprint the gameplay camera is allowed to present. */
+export const MINIMUM_BOT_RENDER_PIXELS = 63;
+
 /**
  * Mode-owned closest shot for the automatic director.
  *
- * Arc Relay is a team sport, not a portrait camera. Its closest shot holds the interaction,
- * the route around it, and enough of the neighbouring theater to understand a rotation.
+ * Arc Relay is a team sport, not a portrait camera. Its closest shot holds the interaction
+ * and enough of the neighbouring theater to understand a rotation, while keeping an
+ * ordinary body above the 63 px readability floor on the reference landscape phone.
  * This belongs beside the shared fit arithmetic: putting the value in a renderer made
  * Canvas2D and WebGL silently disagree about the same match.
  */
 export function directorMinSpan(replay: ReplayModel): number | undefined {
   return replay.contract.kind === 'v3-generic' &&
     replay.contract.modeKind === 'arc-relay'
-    ? 15
+    ? 7.5
     : undefined;
 }
 
@@ -100,6 +104,9 @@ export interface ArenaFraming {
   mapHeight: number;
   /** Viewport width ÷ height. */
   aspect: number;
+  /** CSS-pixel viewport dimensions, when a screen-readable shot depends on them. */
+  viewportWidth?: number;
+  viewportHeight?: number;
   /** Padding around the fitted lives, in tiles. */
   margin?: number;
   /** Never closer than this many tiles across. */
@@ -329,40 +336,57 @@ export function frameEscapes(
 }
 
 /**
- * How much clear ground a deliberately followed body keeps around it, in tiles.
+ * How much clear ground a deliberately followed body may keep around it, in tiles.
  *
- * **The mid shot**, and the whole of what "follow this one" means as a number. A
- * selection is a question about one machine — where it is going, what it is about to run
- * into — and neither end of the existing range answers it. The strategic overview shows a
- * 31-tile warren, where a body is four percent of the width; the closest shot the fit will
- * ever take (`MIN_SPAN_TILES`) frames a duel and no arena at all. Four and a half tiles of
- * floor past the body on its tight axis leaves roughly a squad's worth of ground around
- * it: far enough to see what it is walking toward, close enough that the machine is the
- * subject rather than a dot the camera happens to contain.
- *
- * It reads as a margin rather than a span because that is what `focusFrame` takes, and
- * because the frame is then grown to the viewport's shape — a 16:10 window gets about
- * fourteen tiles across and nine down, which is the picture this number is chosen for.
+ * Five tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
+ * smaller screen closes further so the body does not become smaller merely because the
+ * canvas did. The resulting shot still shows the next wall or two beyond the selected
+ * machine, but the machine is now the subject rather than a dot inside a squad-wide view.
  */
-export const SELECTION_FOLLOW_MARGIN_TILES = 4.5;
+export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 5;
 
 /**
- * The mid frame that follows one deliberately selected body.
+ * CSS pixels per ground tile reserved by the WebGL selection shot.
+ *
+ * A chassis' minimum plan span is 0.82 tile. Its raised, tilted projection and Woodland
+ * Grove's side-biased camera consume part of that nominal size, so 63 / 0.82 is not a safe
+ * camera density. 120 px/tile includes that perspective loss: the smallest fallback body
+ * projects above 63×63 px at both 852×393 and 393×852, while a desktop view keeps the
+ * useful five-tile context ceiling instead of turning selection into a portrait.
+ */
+const SELECTION_FOLLOW_PIXELS_PER_TILE = 120;
+
+/**
+ * The screen-readable frame that follows one deliberately selected body.
  *
  * Deliberately **not** the automatic director's shot. `directorMinSpan` is a mode's floor
- * for an *unattended* camera — Arc Relay keeps fifteen tiles so a rotation stays legible
- * to someone who asked for nothing in particular — and honouring it here would answer
- * "show me this one" with a frame barely tighter than the overview the viewer just left.
- * A selection is a request, and the request is for a closer look.
+ * for an *unattended* camera — Arc Relay keeps seven and a half tiles so a rotation stays
+ * legible to someone who asked for nothing in particular — and honouring it here would
+ * answer "show me this one" with a frame barely tighter than the overview the viewer just
+ * left. A selection is a request, and the request is for a closer look.
  */
 export function selectionFollowFrame(
   point: { x: number; y: number },
   framing: ArenaFraming,
 ): ArenaFrame {
+  const viewportMinor =
+    framing.viewportWidth !== undefined && framing.viewportHeight !== undefined
+      ? Math.min(framing.viewportWidth, framing.viewportHeight)
+      : null;
+  const minorSpan = Math.min(
+    SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES,
+    viewportMinor === null
+      ? SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES
+      : Math.max(viewportMinor / SELECTION_FOLLOW_PIXELS_PER_TILE, 1),
+  );
+  // `focusFrame.minSpan` names the horizontal span. On a landscape hole the five-tile
+  // readability budget belongs to height, so grow it by the aspect here; in portrait the
+  // horizontal axis is already the tight one.
+  const width = minorSpan * Math.max(1, framing.aspect);
   return focusFrame([point], {
     ...framing,
-    margin: SELECTION_FOLLOW_MARGIN_TILES,
-    minSpan: undefined,
+    margin: 0,
+    minSpan: width,
   });
 }
 
@@ -981,7 +1005,7 @@ export class ArenaCamera {
     this.release();
     const full = fullArenaFrame(framing);
     // **The hand's floor is the arena's, not the mode's.** `directorMinSpan` is a floor
-    // for the *automatic* camera — Arc Relay holds fifteen tiles so an unattended shot
+    // for the *automatic* camera — Arc Relay holds its own wider span so an unattended shot
     // stays legible — and it used to bound a wheel as well, which said two wrong things at
     // once. A person turning a wheel is asking for a closer look than the director would
     // ever choose, and inside a selection follow, which is legitimately tighter than that

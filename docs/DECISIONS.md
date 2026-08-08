@@ -6515,3 +6515,28 @@ its package move 0.9.35→0.9.36; SDK and Guest move to 0.10.13; build pipeline
 moves to 5. No release or deploy workflow ran. `publish-cli` therefore owes
 the untagged `cli-v0.9.34`,
 `cli-v0.9.35`, and `cli-v0.9.36` tags before a deploy carrying this line.
+
+## 251. A selected bot owns at least 63×63 CSS pixels
+
+Owner correction (2026-08-08): 63×63 names the minimum rendered bot footprint,
+not an arena dimension. The fixed selection "mid shot" violated it: four and a
+half tiles of margin became a 14.4×9-tile frame at 16:10, leaving the smallest
+WebGL body roughly 41 px tall on the desktop review canvas.
+
+Selection framing now reads the arena's CSS-pixel dimensions. It retains at
+most five tiles on the viewport's tight axis and closes further below that,
+using 120 CSS px per ground tile to pay for the smallest 0.82-tile body, the
+camera's 22° side yaw and 52° pitch, and the rectangle-fit distance they add.
+The projection test runs the actual perspective arithmetic at 852×393 and
+393×852 and requires both dimensions of that conservative body box to clear
+63 px. Device pixel ratio is deliberately absent: this is apparent size, not a
+texture-resolution claim. Canvas2D receives the same frame for fallback
+continuity, but WebGL remains the product viewer.
+
+The unattended Arc Relay director's closest shot moves from fifteen tiles to
+seven and a half. Fifteen made even its tightest cut an establishing shot; the
+new floor retains nearby tactical context and also keeps the conservative body
+above 63 px on the reference landscape phone. The strategic overview remains
+an explicit exception because its purpose is to show all three theaters; it is
+never entered by selecting a bot and does not pretend to satisfy a per-body
+readability contract while showing the whole 31×27 board.

@@ -15,6 +15,7 @@ export {
 export { frontlineCaptureVisual } from '../../src/render/frontlineCaptureVisual';
 export {
   ARENA_MARGIN_TILES,
+  MINIMUM_BOT_RENDER_PIXELS,
   ArenaCamera,
   arenaViewport,
   directorMinSpan,

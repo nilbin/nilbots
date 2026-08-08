@@ -703,12 +703,16 @@ but it cannot start a future action early. Movement wakes and thrust remain on
 through an active segment rather than pulsing at integer tick boundaries. Tread
 and wheel scroll accumulates distance along this rendered path, including a
 carrier's relocation-locked glide, rather than the underlying one-tile action.
-Arc Relay's automatic director has a shared fifteen-tile closest shot in
-Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a camera
-subject only while threatened, and holds an ordinary shot for seven replay
-ticks before another theater may win. The manual overview fits the published
-Wells, retaining all three theaters while allowing deep home aprons to leave the
-frame. A compact causal HUD call beside the standing score identifies Core
+Arc Relay's automatic director has a shared seven-and-a-half-tile closest shot
+in Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a
+camera subject only while threatened, and holds an ordinary shot for seven
+replay ticks before another theater may win. Deliberately selecting a bot is a
+closer, viewport-aware shot: its tight axis never exceeds five tiles and closes
+further on small screens so the minimum 0.82-tile WebGL body projects at least
+63×63 CSS pixels through the shipped MOBA camera in both phone orientations.
+The manual overview fits the published Wells, retaining all three theaters
+while allowing deep home aprons to leave the frame. A compact causal HUD call
+beside the standing score identifies Core
 birth, pickup/steal, drop, bank, and Pulse events; it does not replace their
 diegetic world effects or reveal facts after the playhead.
 

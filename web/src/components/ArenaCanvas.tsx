@@ -96,6 +96,8 @@ export default function ArenaCanvas({
     mapWidth: replay.map.width,
     mapHeight: replay.map.height,
     aspect: 1,
+    viewportWidth: 1,
+    viewportHeight: 1,
     minSpan: directorMinSpan(replay),
   });
 
@@ -174,10 +176,13 @@ export default function ArenaCanvas({
       } =
         stateRef.current;
       if (width > 0 && height > 0) {
+        const arenaHeight = logicalArenaHeight(height);
         framingRef.current = {
           mapWidth: replay.map.width,
           mapHeight: replay.map.height,
-          aspect: width / logicalArenaHeight(height),
+          aspect: width / arenaHeight,
+          viewportWidth: width,
+          viewportHeight: arenaHeight,
           minSpan: directorMinSpan(replay),
         };
         let camera = cameraRef.current;

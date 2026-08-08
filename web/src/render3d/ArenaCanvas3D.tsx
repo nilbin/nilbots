@@ -175,6 +175,8 @@ export default function ArenaCanvas3D({
       mapWidth,
       mapHeight,
       aspect: 1,
+      viewportWidth: 1,
+      viewportHeight: 1,
       minSpan: directorMinSpan(replay),
     };
     let camera: ArenaCamera | null = null;
@@ -229,6 +231,8 @@ export default function ArenaCanvas3D({
         mapWidth,
         mapHeight,
         aspect: width / height,
+        viewportWidth: width,
+        viewportHeight: height,
         minSpan: directorMinSpan(replay),
       };
       if (camera === null) {
@@ -358,8 +362,8 @@ export default function ArenaCanvas3D({
           else if (camera.auto || camera.followingSelection)
             camera.showFrame(strategicOverviewFrame(replay, framing));
         }
-        // Selecting a body is a camera command: it takes the mid shot and holds it on that
-        // machine. Deselecting hands the camera back to whichever mode it was taken from,
+        // Selecting a body is a camera command: it takes the readable shot and holds it on
+        // that machine. Deselecting hands the camera back to whichever mode it was taken from,
         // and a gesture ends the follow like it ends the director's — through `release`,
         // which is why staying in the follow is conditioned on the camera's own allegiance
         // rather than on the selection still being set.
