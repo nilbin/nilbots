@@ -37,6 +37,11 @@ try
         ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
+        // Arc Relay is a first-class command, not an experiment (DECISIONS
+        // #247). `experiment arc-relay` below stays as a permanent alias so
+        // every script, brief and report that already spells it that way keeps
+        // running — both spellings reach the same command with the same args.
+        ["arc-relay", .. var rest] => ArcRelayExperimentCommand.Run(rest),
         ["experiment", "frontline", .. var rest] =>
             FrontlineExperimentCommand.Run(rest),
         ["experiment", "frontline-labs", "qualify", .. var rest] =>
@@ -105,6 +110,21 @@ static int Help(int exitCode = 1)
                                  cone-occupancy-bolt2-arcs|0.5-control|cone|
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy
                         [--max-ticks <n>] [--out <dir>]
+          nilbots arc-relay
+                        --bot <generic-mind-project-or-wasm>
+                        --opponent <generic-mind-project-or-wasm>
+                        [--sheet0 <json> --sheet1 <json>]
+                        [--classes0 a,b,... --classes1 a,b,...]
+                        [--loop-profile <id>] [--seed <n>]
+                        [--runtime wasm|in-process] [--out <dir>]
+                        [--screen] [--mind-stepper greedy|coordinated]
+                                                  the Arc Relay match: eight bodies a
+                                                  side, one mind per team, Wells and
+                                                  Cores and reactors. Writes a gzip
+                                                  canonical replay and a run receipt.
+                                                  Also spelled `experiment arc-relay`.
+                                                  --screen omits canonical evidence and
+                                                  is not audit-admissible
           nilbots experiment frontline
                         [--bot <actor-spec>] [--opponent <actor-spec>]
                         [--map frontline-01] [--rules frontline-alpha-1]
@@ -133,19 +153,6 @@ static int Help(int exitCode = 1)
                                                   ENGINEERING SMOKE: writes
                                                   two mind-profile Arc Relay
                                                   replay files; no stock doctrine
-          nilbots experiment arc-relay
-                        --bot <generic-mind-project-or-wasm>
-                        --opponent <generic-mind-project-or-wasm>
-                        [--sheet0 <json> --sheet1 <json>]
-                        [--classes0 a,b,... --classes1 a,b,...]
-                        [--seed <n>] [--runtime wasm|in-process] [--out <dir>]
-                        [--screen] [--mind-stepper greedy|coordinated]
-                                                  LOCAL H0 EVALUATION: native
-                                                  mind match, gzip canonical
-                                                  replay, and run receipt;
-                                                  --screen omits canonical
-                                                  evidence and is not audit-
-                                                  admissible
           nilbots experiment arc-relay-screen-batch
                         (--plan <screen-plan.json> |
                          --sweep-plan <sweep-plan.json> --bot <project>)
@@ -238,6 +245,50 @@ static int CommandHelp(string command)
                    [--max-ticks <n>] [--out <dir>]
             Example: nilbots play --bot . --opponent hunter --runtime in-process \
                      --seeds 7,42,1337
+            """,
+        "arc-relay" => """
+            Usage: nilbots arc-relay
+                   --bot <generic-mind-project-or-wasm>
+                   --opponent <generic-mind-project-or-wasm>
+                   [--sheet0 <playbook.json> --sheet1 <playbook.json>]
+                   [--classes0 a,b,... --classes1 a,b,...]
+                   [--loop-profile <id>] [--seed <n>]
+                   [--runtime wasm|in-process] [--mind-stepper greedy|coordinated]
+                   [--screen] [--print-contract] [--out <dir>]
+
+            Runs one Arc Relay match. Each team is ONE mind driving eight bodies
+            (the participant-scoped MIND profile), and the match is decided by
+            Wells, Cores and reactor Pulses rather than by kills. It writes a
+            gzip canonical replay plus a run receipt.
+
+            `nilbots experiment arc-relay` is a permanent alias for this command
+            and takes the same options.
+
+            Sheets. --sheet0/--sheet1 take a tactical playbook
+            (`arc-relay-tactical-playbook-v1`), which this command compiles
+            in place — its `layout` names a layout file and pins that file's
+            sha256, so editing a layout without repinning is a hard error.
+            Frozen `arc-relay-evaluation-sheet-v0..v3` documents still load.
+            Compilation is the only authority on whether a sheet is valid;
+            `nilbots experiment arc-relay-playbook --playbook <json>` runs the
+            same compiler on its own and writes the normalized IR, the ATP1
+            package and an explain view when you want to see why. Without a
+            sheet a team uses --classes0/--classes1 (or the default eight).
+
+            Loop profile. --loop-profile selects the ruleset/map pair; every
+            registered id is listed in the error text when one is misspelled.
+            The default is `h0`, the frozen original — it is NOT the current
+            design line. Pass `--loop-profile ambush-warren-11` for the current
+            one (rules `arc-relay-ambush-11`, declared strikes, veterancy, the
+            deep warren map). The hosted ladder runs neither: it is pinned to
+            its own playlist version.
+
+            --screen omits canonical evidence for bulk iteration and is not
+            audit-admissible; confirm anything that matters without it.
+            --print-contract prints the resolved match contract and exits.
+
+            Example: nilbots arc-relay --bot ./MyMind --opponent ./TheirMind \
+                     --loop-profile ambush-warren-11 --seed 7
             """,
         "experiment" => """
             Usage: nilbots experiment frontline

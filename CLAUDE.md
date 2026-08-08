@@ -74,6 +74,8 @@ bash scripts/build-wasm-guest.sh           # cross-platform, input-stamped guest
 bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI clients
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
+dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
+  --loop-profile ambush-warren-11                      # the current Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -193,6 +195,20 @@ Project boundaries that must not be violated:
   FFA, or team-play product.
   The compatibility generations and dependency order are frozen in
   `docs/GAME-MODE-ARCHITECTURE.md`.
+- **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
+  `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
+  permanent alias, so existing scripts and briefs keep their spelling. Two
+  things the promotion did NOT do, and both are load-bearing: `--loop-profile`
+  still defaults to the frozen `h0` rather than the current
+  `ambush-warren-11` line, and the **hosted ladder still runs entrant playlist
+  v6 on forward-combat rules over the Counterflow map — not ambush-11**. The
+  hosted lane accepting `arc-relay-tactical-playbook-v1` sheets is the sheet
+  format advancing, not the game line. Sheets compile through
+  `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
+  `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call
+  it, and **the App must never reach into BotArena.Cli** for it. The remaining
+  `experiment arc-relay-h0-smoke`, `-screen-batch` and `-playbook` commands
+  stay under `experiment` as engineering and authoring tools.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,

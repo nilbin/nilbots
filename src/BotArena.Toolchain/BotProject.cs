@@ -392,9 +392,14 @@ public static class ToolchainInfo
     /// 0.9.33 publishes Arc Relay's versioned forward-combat contract: the
     /// facing aim cone, projected Swift facing, Standard combat strafe, and
     /// explicit Swift strafe action are all readable from the SDK contract.
+    /// 0.9.34 makes Arc Relay a first-class command (DECISIONS #247):
+    /// `nilbots arc-relay` is the command, `experiment arc-relay` is a
+    /// permanent alias, and the tactical playbook compiler now lives in the
+    /// shared BotArena.TacticalPlaybooks library that the hosted App validates
+    /// saves through. No rules, map, contract, or sheet format moves.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.33";
+    public const string CliVersion = "0.9.34";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

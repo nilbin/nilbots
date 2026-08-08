@@ -6339,3 +6339,54 @@ The body's own mode is `recover`; the RALLY is `stage-loop` because
 `ghost-patrol-1` is the highest active patrol — it walks toward the mirrored
 home-side loop rather than toward the mirrored `shadow-north-long`. 229
 withdraw commands were issued while the safe road was active.
+
+## 247. This is now the real arc relay
+
+Owner's words, and the whole decision: **"this is now the real arc relay."**
+Arc Relay stops being an experiment and becomes the thing the CLI offers
+alongside `play`. `nilbots arc-relay` is a top-level command with its own
+`nilbots help arc-relay`.
+
+**`experiment arc-relay` stays forever.** It is a permanent alias, not a
+deprecation with a clock on it. Both spellings dispatch to the same command
+with the same arguments. Every balance script, exhibition run, evaluation
+report and DECISIONS entry in this repository that already says
+`nilbots experiment arc-relay` keeps working, and nobody has to sweep them.
+
+### What was NOT promoted, said plainly
+
+Promotion moved a status, not a boundary. Three things a reader will assume and
+should not:
+
+- **The hosted ladder did not move to the current line.** Entrant playlist v6
+  runs `ArcRelayLoopProfile.Current` — forward-combat rules on the Counterflow
+  map. The current design line is `ambush-warren-11`. The hosted ladder does
+  not run it, and this pass did not change that. Moving it needs a new playlist
+  version pinning `AmbushWarren11`, a stock artifact frozen against that
+  profile, a rating-continuity ruling across the version step, and layouts
+  authored on the warren map instead of projected onto the product map
+  (`TacticalSheetTemplateCatalog.ProjectStarterLayoutToCurrentMap`).
+- **The command's default did not move either.** `--loop-profile` still
+  defaults to `h0`, the frozen original. Changing a default changes what every
+  unflagged run means and what the goldens pin; it is a gameplay decision and
+  it was not part of promoting a command name. The help now says so instead of
+  letting the default read as an endorsement.
+- **No new claim of shipped or ranked availability.** The site DocsPage and the
+  templates describe the hosted product, which is unchanged, so neither gained
+  a word here. `docs/EXPERIMENTAL-ARC-RELAY.md` keeps its filename: the arc
+  relay design-line briefs beside it (`-TACTICAL-PLAYBOOK`, `-POSITIONAL-COMBAT`,
+  `-DYNAMIC-STRATEGY`, `-STRATEGY-LADDER`) are still live experiment arms, and
+  renaming one file of a family teaches a wrong boundary more than the stale
+  prefix does. Its opening now states the local/hosted split as the first thing
+  a reader sees.
+
+### The compatibility surface
+
+The CLI changed, so `CliVersion` and the CLI csproj `<Version>` move 0.9.33 ->
+0.9.34 under the rule in CLAUDE.md. Two changes are in that bump: this command
+promotion, and the sheet-editor pass that moved the tactical playbook compiler
+out of `BotArena.Cli` into the shared `BotArena.TacticalPlaybooks` library the
+hosted App now validates saves through. No rules, map, contract, replay or
+sheet format moved with either. The release workflow was NOT run — nothing
+deploys from this pass — so `publish-cli` still owes a `cli-v0.9.34` tag
+BEFORE any `publish-and-deploy` that carries this revision.

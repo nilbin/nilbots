@@ -1,13 +1,34 @@
-# Arc Relay — experimental player rules
+# Arc Relay — player rules
 
-Arc Relay is the current experimental game. It is not the shipped Duel
-ruleset. Hosted entrant playlist v5 uses rules identity
-`arc-relay-forward-combat-01` on map
-`arc-relay-threefold-depth-counterflow-01` and the repaired first-party stock
-mind. Playlist v4 retains the original forward-combat stock artifact; playlist
-v3 retains the accepted Counterflow geometry with the prior omnidirectional
-basic-fire rules. Historical H0 and playlist-v2 remain immutable and executable
-under their original identities.
+Arc Relay is the real game now, not a side experiment (DECISIONS #247). It is
+still not the shipped Duel ruleset — the two coexist, each with its own
+ladder — and the promotion was of status, not of reach. Read the next two
+paragraphs as one fact each, because they are the two things that get confused.
+
+**Locally it is first-class.** `nilbots arc-relay` is a top-level command with
+its own help. `nilbots experiment arc-relay` remains a permanent alias, so
+every script, brief and report that already spells it that way keeps working.
+The current design line is `--loop-profile ambush-warren-11` (rules
+`arc-relay-ambush-11` on map `arc-relay-ambush-warren-06`): declared strikes,
+veterancy, rear-arc damage, the deep warren. The command's own default is
+still the frozen original `h0`, so a run that does not pass `--loop-profile`
+is not on the current line.
+
+**Hosted, the ladder is pinned where it was.** Entrant playlist v6 runs rules
+identity `arc-relay-forward-combat-01` on map
+`arc-relay-threefold-depth-counterflow-01` with the first-party tactical
+playbook mind, and accepts sheets as `arc-relay-tactical-playbook-v1`. That is
+the sheet format advancing, not the game line: **the hosted ladder does not run
+ambush-11.** Playlist v5 retains the same profile with the previous stock
+artifact and the legacy sheet snapshot format; v4 retains the original
+forward-combat stock artifact; v3 retains the accepted Counterflow geometry
+with the prior omnidirectional basic-fire rules. Historical H0 and playlist-v2
+remain immutable and executable under their original identities.
+
+Moving the hosted ladder onto ambush-11 is a separate, deliberate piece of
+work — a new playlist version pinning `AmbushWarren11`, a stock artifact frozen
+against it, a rating-continuity ruling, and layouts authored on the warren map
+rather than projected onto the product map. None of that is done here.
 
 ## Match shape
 
