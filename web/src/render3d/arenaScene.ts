@@ -5,6 +5,7 @@ import { WallLayout } from '../render/wallTopology';
 import { wallShapes } from './wallSolids';
 import { buildWallDetails } from './wallDetails';
 import { themeMaterialImage } from './themeMaterialAssets';
+import { buildWoodlandScenery } from './woodlandScenery';
 
 /**
  * The arena as actual geometry.
@@ -88,6 +89,7 @@ export function buildArena(
   const layout = wallLayout(replay, theme);
   for (const mesh of walls(replay, theme, layout, disposables))
     scene.add(mesh);
+  scene.add(buildWoodlandScenery(layout, theme, disposables));
   scene.add(
     buildWallDetails(
       layout,

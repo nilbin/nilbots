@@ -58,6 +58,23 @@ export interface ProjectileLook {
   scale: number;
 }
 
+/**
+ * One deliberately narrow procedural companion for organic blocked tiles.
+ *
+ * This is not a generic prop catalog. Tree placement remains topology-derived and
+ * deterministic, while the theme owns only the reviewed proportions and palette.
+ */
+export interface TreeCover3d {
+  trunkHeight: number;
+  trunkRadius: number;
+  canopyRadius: number;
+  canopyHeight: number;
+  canopyLobes: number;
+  trunkColor: string;
+  canopyColor: string;
+  canopyAccentColor: string;
+}
+
 export interface WallFamily {
   id: string;
   label: string;
@@ -80,6 +97,7 @@ export interface WallFamily {
       clampColor: string;
       ventColor: string;
     } | null;
+    treeCover: TreeCover3d | null;
   };
   material3d: {
     normalMap: string | null;
@@ -173,6 +191,7 @@ interface ThemeManifest {
             clampColor: string;
             ventColor: string;
           };
+          treeCover?: TreeCover3d;
         };
         material3d?: {
           normalMap?: string;
@@ -521,6 +540,7 @@ function wallGeometry3d(
           clampColor: string;
           ventColor: string;
         };
+        treeCover?: TreeCover3d;
       }
     | undefined,
   themeId: string,
@@ -563,7 +583,26 @@ function wallGeometry3d(
     throw new Error(
       `Theme '${themeId}' wall family '${familyId}' has invalid 3D details.`,
     );
-  return { height, cornerRadius, upperProfile, details };
+  const treeCover = candidate?.treeCover ?? null;
+  if (
+    treeCover !== null &&
+    (!finiteRange(treeCover.trunkHeight, 0.18, 0.65) ||
+      !finiteRange(treeCover.trunkRadius, 0.04, 0.14) ||
+      !finiteRange(treeCover.canopyRadius, 0.12, 0.3) ||
+      !finiteRange(treeCover.canopyHeight, 0.08, 0.22) ||
+      !Number.isInteger(treeCover.canopyLobes) ||
+      treeCover.canopyLobes < 2 ||
+      treeCover.canopyLobes > 4 ||
+      treeCover.trunkRadius >= treeCover.canopyRadius ||
+      height + treeCover.trunkHeight + treeCover.canopyHeight > 1.05 ||
+      !validHex(treeCover.trunkColor) ||
+      !validHex(treeCover.canopyColor) ||
+      !validHex(treeCover.canopyAccentColor))
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid tree cover.`,
+    );
+  return { height, cornerRadius, upperProfile, details, treeCover };
 }
 
 function wallMaterial3d(

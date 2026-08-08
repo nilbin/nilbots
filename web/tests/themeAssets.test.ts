@@ -53,6 +53,16 @@ type ThemeManifest = {
             clampColor: string;
             ventColor: string;
           };
+          treeCover?: {
+            trunkHeight: number;
+            trunkRadius: number;
+            canopyRadius: number;
+            canopyHeight: number;
+            canopyLobes: number;
+            trunkColor: string;
+            canopyColor: string;
+            canopyAccentColor: string;
+          };
         };
         material3d?: {
           normalMap?: string;
@@ -105,6 +115,20 @@ function assertCompletePackage(root: string, expectedId: string) {
         ])
           assert.ok(Number.isInteger(frequency) && frequency > 0);
       }
+      if (family.geometry3d.treeCover) {
+        const tree = family.geometry3d.treeCover;
+        assert.ok(tree.trunkHeight >= 0.18 && tree.trunkHeight <= 0.65);
+        assert.ok(tree.trunkRadius >= 0.04 && tree.trunkRadius <= 0.14);
+        assert.ok(tree.canopyRadius >= 0.12 && tree.canopyRadius <= 0.3);
+        assert.ok(tree.canopyHeight >= 0.08 && tree.canopyHeight <= 0.22);
+        assert.ok(Number.isInteger(tree.canopyLobes));
+        for (const color of [
+          tree.trunkColor,
+          tree.canopyColor,
+          tree.canopyAccentColor,
+        ])
+          assert.match(color, /^#[0-9a-f]{6}$/i);
+      }
     }
     if (family.material3d) {
       for (const asset of [
@@ -127,6 +151,7 @@ test('only active map themes enter the web bundle', () => {
     'ember-forge',
     'frost-relay',
     'overgrown-lab',
+    'woodland-grove',
   ]);
   for (const id of activeIds) assertCompletePackage(join(activeRoot, id), id);
 });
@@ -187,6 +212,34 @@ test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
   assert.equal(
     manifest.walls.families.cover.material3d?.roughnessMap,
     'pbr/wall-cover-roughness.webp',
+  );
+});
+
+test('Woodland Grove carries distinct, footprint-limited tree families', () => {
+  const manifest = JSON.parse(
+    readFileSync(join(activeRoot, 'woodland-grove', 'theme.json'), 'utf8'),
+  ) as ThemeManifest;
+  const perimeter = manifest.walls.families.perimeter.geometry3d!;
+  const cover = manifest.walls.families.cover.geometry3d!;
+  assert.equal(perimeter.height, 0.3);
+  assert.equal(cover.height, 0.25);
+  assert.ok(perimeter.treeCover);
+  assert.ok(cover.treeCover);
+  assert.ok(
+    perimeter.treeCover.trunkHeight > cover.treeCover.trunkHeight,
+  );
+  assert.ok(
+    perimeter.treeCover.canopyRadius > cover.treeCover.canopyRadius,
+  );
+  assert.ok(
+    perimeter.height +
+      perimeter.treeCover.trunkHeight +
+      perimeter.treeCover.canopyHeight <=
+      1.05,
+  );
+  assert.ok(
+    cover.height + cover.treeCover.trunkHeight + cover.treeCover.canopyHeight <=
+      1.05,
   );
 });
 

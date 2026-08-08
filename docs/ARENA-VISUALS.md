@@ -776,6 +776,17 @@ package or whole-map mesh ships. It is the first pilot because its camera,
 cover, objective strip, class silhouettes, and projectile grammar exercise
 the contract before it is generalized to other arenas.
 
+Woodland Grove adds one deliberately narrow organic companion rather than a
+generic prop catalog. A wall family's optional `geometry3d.treeCover` block
+declares reviewed trunk/crown proportions and colours. The WebGL scene roots
+instanced low-poly trunks, root flares, branches, and broken-up crown lobes in
+the exact blocked tiles supplied by `WallLayout`; their stable placement hash
+uses only family, coordinate, and topology. Crowns remain inside the blocked
+tile's live-body clearance envelope and the whole tree has a capped height.
+The canonical topology solid becomes a low rounded root bed beneath that real
+geometry, not a bark texture asked to impersonate a tree. Canvas2D continues
+to use the baked perimeter/cover atlases and never pays for WebGL geometry.
+
 - Start from `WallLayout`: trace continuous family solids, then layer
   manifest-owned upper-profile and material settings. Place optional panels,
   vents, and clamps from a stable family/coordinate/mask/side hash and keep

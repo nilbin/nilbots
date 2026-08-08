@@ -1,0 +1,97 @@
+{
+  "id": "woodland-grove",
+  "label": "Woodland Grove",
+  "environment3d": {
+    "lighting": {
+      "keyColor": "#eee4c9",
+      "keyIntensity": 3.2,
+      "ambientColor": "#71836b",
+      "ambientIntensity": 2.3,
+      "fillColor": "#526d5b",
+      "fillIntensity": 1.1
+    },
+    "floor": {
+      "bumpScale": 0.025,
+      "roughness": 0.98,
+      "metalness": 0.0
+    }
+  },
+  "textures": {
+    "floor": "floor-undergrowth.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Ancient tree line",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp",
+        "geometry3d": {
+          "height": 0.3,
+          "cornerRadius": 0.36,
+          "treeCover": {
+            "trunkHeight": 0.52,
+            "trunkRadius": 0.105,
+            "canopyRadius": 0.29,
+            "canopyHeight": 0.18,
+            "canopyLobes": 3,
+            "trunkColor": "#493426",
+            "canopyColor": "#36552f",
+            "canopyAccentColor": "#6f7f48"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-perimeter-normal.webp",
+          "roughnessMap": "pbr/wall-perimeter-roughness.webp",
+          "normalScale": 0.6,
+          "roughness": 0.96,
+          "metalness": 0.0
+        }
+      },
+      "cover": {
+        "label": "Young tree cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp",
+        "geometry3d": {
+          "height": 0.25,
+          "cornerRadius": 0.4,
+          "treeCover": {
+            "trunkHeight": 0.3,
+            "trunkRadius": 0.075,
+            "canopyRadius": 0.22,
+            "canopyHeight": 0.13,
+            "canopyLobes": 3,
+            "trunkColor": "#765438",
+            "canopyColor": "#59713c",
+            "canopyAccentColor": "#89935a"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-cover-normal.webp",
+          "roughnessMap": "pbr/wall-cover-roughness.webp",
+          "normalScale": 0.45,
+          "roughness": 0.98,
+          "metalness": 0.0
+        }
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#07100a",
+    "arena": "#405735",
+    "floorTint": "rgba(12, 24, 8, 0.08)",
+    "wallTint": "rgba(16, 20, 9, 0.12)",
+    "zone": "#e2bd69",
+    "frame": "#4c6544"
+  }
+}

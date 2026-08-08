@@ -5,6 +5,14 @@ images are art-direction inputs; `scripts/build-theme-art.py` is the
 deterministic production step. Floor sources are also retained for the five
 wave-two themes so their optimized runtime WebP can be reproduced.
 
+## Woodland Grove
+
+The exact accepted floor, ancient-perimeter, and young-cover prompts are
+recorded with their retained sources in
+[`woodland-grove/SOURCE-PROMPTS.md`](woodland-grove/SOURCE-PROMPTS.md). Their
+source hashes and the procedural-tree decision are pinned in
+[`woodland-grove/PROVENANCE.json`](woodland-grove/PROVENANCE.json).
+
 ## Control Room / perimeter
 
 ```text

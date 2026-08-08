@@ -1,0 +1,6 @@
+# Provider masters remain local or in the project artifact store. Commit only
+# sanitized manifests, hashes, compact previews, and reviewed runtime derivatives.
+**/raw-model.glb
+**/texture-*.png
+**/task.raw.json
+**/*.json.gz

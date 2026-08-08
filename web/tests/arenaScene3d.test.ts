@@ -32,6 +32,21 @@ function withEmberPresentation(source: ReplayModel): ReplayModel {
   };
 }
 
+function withWoodlandPresentation(source: ReplayModel): ReplayModel {
+  return {
+    ...source,
+    map: {
+      ...source.map,
+      presentation: {
+        themeId: 'woodland-grove',
+        boundaryWall: 'perimeter',
+        interiorWall: 'cover',
+        wallGroups: [],
+      },
+    },
+  };
+}
+
 function wallsByKind(
   scene: THREE.Scene,
   kind:
@@ -221,6 +236,78 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
       ),
     );
 
+    arena.dispose();
+  } finally {
+    globalThis.Image = image;
+  }
+});
+
+test('Woodland trees stay on blocked tiles and inside the live-body clearance', () => {
+  const image = globalThis.Image;
+  class GeometryImage {
+    complete = true;
+    naturalWidth = 1;
+    decoding = 'async';
+    src = '';
+    addEventListener(): void {}
+  }
+  globalThis.Image = GeometryImage as unknown as typeof Image;
+  try {
+    const source = withWoodlandPresentation(replay);
+    const arena = buildArena(source, { shadowMapSize: 1024 });
+    const woodland = objectByKind(
+      arena.scene,
+      'arena-woodland-scenery',
+    );
+    assert.ok(woodland);
+    assert.ok(woodland.userData.treeCount > 0);
+
+    const familyGroups = new Map<string, THREE.Object3D>();
+    const canopies: THREE.InstancedMesh[] = [];
+    arena.scene.traverse((node) => {
+      if (
+        node.userData.kind === 'arena-woodland-family' &&
+        typeof node.userData.family === 'string'
+      )
+        familyGroups.set(node.userData.family, node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-canopy-lobes'
+      )
+        canopies.push(node);
+    });
+    assert.deepEqual([...familyGroups.keys()].sort(), ['cover', 'perimeter']);
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.maximumHeight >
+        familyGroups.get('cover')!.userData.maximumHeight,
+    );
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.maximumTileRadius <=
+        0.5 - WALL_OPEN_EDGE_INSET,
+    );
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    for (const canopy of canopies) {
+      for (let index = 0; index < canopy.count; index++) {
+        canopy.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        const tileX = Math.floor(position.x);
+        const tileY = Math.floor(position.z);
+        assert.equal(source.map.tileRows[tileY]?.[tileX], '#');
+        const centreDistance = Math.hypot(
+          position.x - (tileX + 0.5),
+          position.z - (tileY + 0.5),
+        );
+        assert.ok(
+          centreDistance + Math.max(scale.x, scale.z) <=
+            0.5 - WALL_OPEN_EDGE_INSET,
+          'tree canopy must remain inside the blocked tile clearance envelope',
+        );
+      }
+    }
     arena.dispose();
   } finally {
     globalThis.Image = image;

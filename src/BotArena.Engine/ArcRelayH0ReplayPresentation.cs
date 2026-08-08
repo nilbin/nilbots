@@ -10,6 +10,8 @@ namespace BotArena.Engine;
 public static class ArcRelayH0ReplayPresentation
 {
     public const string ThemeId = "ember-forge";
+    public const string WoodlandThemeId = "woodland-grove";
+    public const string WoodlandMapId = "arc-relay-ambush-warren-06";
     public const string BoundaryWallFamily = "perimeter";
     public const string InteriorWallFamily = "cover";
     public const string LookPrefix = "arc-";
@@ -38,7 +40,12 @@ public static class ArcRelayH0ReplayPresentation
                 .ToImmutableArray();
 
         return new GenericActorReplayPresentation(
-            ThemeId,
+            string.Equals(
+                definition.Map.Id,
+                WoodlandMapId,
+                StringComparison.Ordinal)
+                ? WoodlandThemeId
+                : ThemeId,
             new GenericActorReplayPresentation.MapPresentation(
                 BoundaryWallFamily,
                 InteriorWallFamily,
