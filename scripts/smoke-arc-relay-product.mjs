@@ -84,6 +84,15 @@ try {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
   await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
+  await page.getByRole('button', { name: /^Conditions/ }).click();
+  await page.getByRole('heading', { name: 'Doctrine conditions' }).waitFor();
+  await page.screenshot({ path: join(output, 'doctrine-conditions-phone.png') });
+  await page.getByRole('button', { name: 'Done' }).click();
+  await runButton.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  if (await page.getByRole('button', { name: 'Practice setup' }).isVisible())
+    throw new Error('The mobile practice shortcut remained beside the configured action.');
+  await page.screenshot({ path: join(output, 'practice-phone.png') });
   await page.setViewportSize({ width: 1440, height: 1050 });
 
   const matchResponse = page.waitForResponse((response) =>

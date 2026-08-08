@@ -6577,3 +6577,18 @@ be reinterpreted as Arc Relay capacity. If extra Season games are sold later, th
 a new entitlement key and a new immutable matchmaking-policy/playlist version. They
 may raise only rolling daily match volume; they do not buy extra fielded slots,
 concurrency, rating, combat power or pairing priority.
+
+## 253. The sheet workshop has three player-level steps and hides source plumbing
+
+Owner product ruling (2026-08-08). The sheet workshop's player-level hierarchy is
+**Composition → Doctrines → Map**. Conditions are reusable triggers belonging to
+doctrine execution, and Core custody is a specialized doctrine policy. They are focused
+sub-editors reached from Doctrines, not peer steps. Their validation errors roll up to
+Doctrines and still open the exact failing field.
+
+The configured `Practice & watch` action appears once. A phone shortcut may navigate to
+its setup while it is off-screen, but it is secondary and disappears when the configured
+action is visible. Raw JSON import/export and displayed content hashes are compiler and
+operator plumbing, not player controls, and are absent from the hosted editor. Local
+draft autosave, exact server source storage, shared-compiler validation, layout pinning,
+match snapshots and CLI file workflows remain unchanged.

@@ -73,6 +73,20 @@ test('ranked enrollment and immediate practice have different visible verbs', ()
   assert.match(workshop, /Practice is immediate and unranked/);
 });
 
+test('the phone shortcut navigates to one configured practice action', () => {
+  assert.equal(workshop.match(/'Practice & watch'/g)?.length, 1);
+  assert.match(workshop, /Practice setup/);
+  assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
+});
+
+test('conditions and custody are focused doctrine tools rather than top-level steps', () => {
+  assert.doesNotMatch(workshop, /id: 'conditions'|id: 'custody'/);
+  assert.match(workshop, /id: 'doctrines'.*path\.startsWith\('authoring'\).*path\.startsWith\('custodyPolicies'\)/s);
+  assert.match(workshop, /title="Doctrine conditions"/);
+  assert.match(workshop, /title="Core custody"/);
+  assert.match(workshop, /label: '3 Map'/);
+});
+
 test('custom-mind authoring is dormant on the launch web surface', () => {
   assert.doesNotMatch(entrants, /custom mind|custom-mind|preflight|C# source/i);
   assert.doesNotMatch(docs, /custom mind|custom-mind|preflight|C# source/i);

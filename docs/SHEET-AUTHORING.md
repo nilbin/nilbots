@@ -345,28 +345,21 @@ exactly two places — `:127` (sheet) and `:228` (custom mind). So the commander
 sheet is one of the two ways a body reaches the arc-relay ladder, and removing
 its editing surface is not purely a frontend deletion.
 
-### 5.2 v1: local-first, always
+### 5.2 Draft safety and canonical source
 
-Regardless of whether a backend is ever built, the editor must work with no
-server:
+**Owner revision (2026-08-08).** The hosted sheet is the product surface. Raw
+playbook/layout JSON, file import/export controls and `layout.sha256` are not
+shown in the player editor; they are compiler and operator details. The server
+still stores the exact source documents, recomputes the layout pin, compiles on
+save and snapshots the resulting hashes into matches. CLI/file workflows remain
+available outside the player UI.
 
-- **Import** — accept the two files exactly as the compiler consumes them: a
-  playbook JSON and a layout JSON. Preserve unknown keys on round-trip so an
-  editor version never silently drops a field it did not know about.
-- **Export** — emit the same two files, and **recompute `layout.sha256`** over
-  the layout bytes on every export. A stale pin is a hard compile error and is
-  the single most likely thing a naive editor gets wrong.
-- **Draft persistence** — keep the working document in browser storage
-  (IndexedDB for the documents, localStorage for cursor/UI state) keyed by a
-  local draft id, autosaving on change. Phone browsers discard tabs; an
-  unsaved hour is unacceptable.
-- **Validation** — the editor mirrors §3, and the authoritative check is the
-  compiler. If the editor is ever run beside a checkout, shelling out to
-  `nilbots experiment arc-relay-playbook --playbook <file>` and surfacing the
-  error verbatim is the cheapest correctness guarantee available.
-
-This is enough to author, edit and ship sheets, because the consumer of a
-sheet is the CLI reading files.
+The working draft autosaves in browser storage before any navigation or hosted
+practice admission. Phone browsers discard tabs; an unsaved hour is
+unacceptable. The editor mirrors §3 for immediate field feedback, but the
+shared server compiler remains validation truth on every save and practice run.
+Unknown source fields remain a canonical-codec concern rather than a promise
+made by a visual editor that does not expose raw round-tripping.
 
 ### 5.3 Hosted `Sheets` module
 

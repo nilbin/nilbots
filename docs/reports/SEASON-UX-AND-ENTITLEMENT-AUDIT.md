@@ -28,6 +28,17 @@ navigation. A fast unmount could lose the recent-practice card. Persistence now 
 synchronously before the replay route opens; the smoke returned to the draft, plotted
 all 16 recorded body tracks and completed successfully.
 
+A follow-up owner review simplified the workshop itself. It now has three product-level
+steps—Composition, Doctrines and Map. Conditions and Core custody are reusable doctrine
+tools, opened as focused modal sheets from the Doctrine editor; their validation errors
+roll up to Doctrine and still deep-link to the failing field. The duplicate mobile run
+control is now a secondary `Practice setup` shortcut which disappears while the real,
+configured orange action is visible. Raw JSON import/export controls and the displayed
+layout SHA were removed from the player UI; server compilation and content hashing remain
+authoritative and unchanged. See the refreshed [phone workshop](assets/season-ux-polish/sheet-workshop-phone.png),
+the [single-action practice viewport](assets/season-ux-polish/practice-phone.png), and the
+[conditions sub-editor](assets/season-ux-polish/doctrine-conditions-phone.png).
+
 ## Ranked and practice
 
 Current ranked admission was already passive. A player fields a sheet once; the
@@ -99,7 +110,7 @@ the API should allocate that pool explicitly rather than hiding it in pairing or
 ## Verification
 
 - generated API clients regenerated cleanly after adding the projected daily baseline;
-- web tests: 428 passed;
+- web tests: 430 passed;
 - production web build: passed;
 - solution build: passed with zero warnings;
 - App tests with the PostgreSQL suite required: 283 passed, 3 unrelated

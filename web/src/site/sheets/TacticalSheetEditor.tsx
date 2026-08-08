@@ -6,6 +6,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -67,7 +68,8 @@ interface TacticalSheetEditorProps {
 
 type PlotKind = 'route' | 'zone' | 'anchor';
 type Side = 'west' | 'east';
-type EditorSection = 'composition' | 'doctrines' | 'conditions' | 'custody' | 'map';
+type EditorSection = 'composition' | 'doctrines' | 'map';
+type DoctrineTool = 'conditions' | 'custody' | null;
 
 export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
   const navigate = useNavigate();
@@ -78,12 +80,14 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [layoutHash, setLayoutHash] = useState<string | null>(null);
   const [stockId, setStockId] = useState(catalog.stockOpponents[0]?.id ?? '');
   const [seed, setSeed] = useState('104729');
-  const [importError, setImportError] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const [section, setSection] = useState<EditorSection>('doctrines');
+  const [doctrineTool, setDoctrineTool] = useState<DoctrineTool>(null);
   const [compilerIssue, setCompilerIssue] = useState<SheetIssue | null>(null);
   const [trialHistory, setTrialHistory] = useState<SheetTrialRun[]>(() => loadTrialHistory());
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [practiceActionVisible, setPracticeActionVisible] = useState(false);
+  const practiceActionRef = useRef<HTMLButtonElement | null>(null);
   const save = useSaveTacticalSheet();
   const remove = useDeleteTacticalSheet();
   const trial = useTrialTacticalSheet();
@@ -125,6 +129,17 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   }, [sheetQuery.data]);
 
   useEffect(() => {
+    const action = practiceActionRef.current;
+    if (!action || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPracticeActionVisible(entry.isIntersecting),
+      { threshold: 0.7 },
+    );
+    observer.observe(action);
+    return () => observer.disconnect();
+  }, [draft?.sheetId]);
+
+  useEffect(() => {
     if (!draft) return;
     let live = true;
     const timer = window.setTimeout(() => {
@@ -158,6 +173,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     () => replayUnitTracks(selectedRunReplay?.replay),
     [selectedRunReplay?.replay],
   );
+  const revealIssue = (path: string) => {
+    setSection(sectionForIssue(path));
+    setDoctrineTool(doctrineToolForIssue(path));
+    window.setTimeout(() => scrollToIssue(path), 0);
+  };
 
   const startNew = () => {
     const next = parseDraft(
@@ -202,8 +222,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     } catch (cause) {
       const issue = sheetIssueFromCompilerError(cause);
       setCompilerIssue(issue);
-      setSection(sectionForIssue(issue.path));
-      window.requestAnimationFrame(() => scrollToIssue(issue.path));
+      revealIssue(issue.path);
       throw cause;
     }
   };
@@ -256,34 +275,6 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     if (!window.confirm(`Delete “${draft.name}”? Ranked-history sheets cannot be deleted.`)) return;
     await remove.mutateAsync(draft.sheetId);
     startNew();
-  };
-
-  const exportDraft = async () => {
-    if (!draft) return;
-    const prepared = await pinDraft(draft);
-    setDraft(prepared.draft);
-    download(`${safeName(draft.playbook.playbookId)}.playbook.json`, prepared.playbookJson);
-    download(`${safeName(draft.layout.layoutId)}.layout.json`, prepared.layoutJson);
-  };
-
-  const importFiles = async (files: FileList | null) => {
-    if (!files?.length || !draft) return;
-    setImportError(null);
-    try {
-      const next = structuredClone(draft);
-      for (const file of [...files]) {
-        const source = await file.text();
-        const value = JSON.parse(source) as JsonObject;
-        if (value.schema === 'arc-relay-tactical-playbook-v1')
-          next.playbook = value as unknown as SheetDraft['playbook'];
-        else if (value.schema === 'arc-relay-tactical-layout-v1')
-          next.layout = value as unknown as SheetDraft['layout'];
-        else throw new Error(`${file.name} is not a current tactical playbook or layout.`);
-      }
-      setDraft(next);
-    } catch (cause) {
-      setImportError(cause instanceof Error ? cause.message : 'Import failed.');
-    }
   };
 
   const mutate = (change: (next: SheetDraft) => void) => {
@@ -390,22 +381,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           )}
         </div>
         <div className="border-t border-arena-edge p-2">
-          <p className="t-micro px-1 pb-2">Local draft autosaves in this browser.</p>
-          <label className="btn flex min-h-11 w-full cursor-pointer items-center justify-center">
-            Import JSON pair
-            <input
-              className="sr-only"
-              type="file"
-              accept="application/json,.json"
-              multiple
-              onChange={(event) => void importFiles(event.target.files)}
-            />
-          </label>
-          <button type="button" className="btn mt-2 min-h-11 w-full" onClick={() => void exportDraft()}>
-            Export pinned pair
-          </button>
-          {layoutHash && <p className="mt-2 break-all px-1 font-mono text-[10px] text-arena-material">layout sha256 {layoutHash}</p>}
-          {importError && <p className="t-micro mt-2 text-arena-hot">{importError}</p>}
+          <p className="t-micro px-1">Draft changes autosave on this device.</p>
         </div>
       </aside>
 
@@ -456,8 +432,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         </section>
 
         <IssueSummary issues={issues} onNavigate={(issue) => {
-          setSection(sectionForIssue(issue.path));
-          window.requestAnimationFrame(() => scrollToIssue(issue.path));
+          revealIssue(issue.path);
         }} />
         <section id="trial-run" className="panel panel-feature pad scroll-mt-16">
           <div className="flex flex-wrap items-start gap-3">
@@ -486,7 +461,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               <input className="field min-h-11 font-mono" inputMode="numeric" value={seed}
                 onChange={(event) => setSeed(event.target.value)} />
             </label>
-            <button type="button" className="btn btn-primary min-h-11"
+            <button ref={practiceActionRef} type="button" className="btn btn-primary min-h-11"
               disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
               onClick={() => void runTrial()}>
               {trial.isPending ? 'Starting practice…' : runsForSheet.length ? 'Practice again & watch' : 'Practice & watch'}
@@ -507,7 +482,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             return <button key={entry.id} type="button"
               className={clsx('btn min-h-11 shrink-0 flex-1', section === entry.id && 'btn-on')}
               aria-current={section === entry.id ? 'step' : undefined}
-              onClick={() => setSection(entry.id)}>
+              onClick={() => {
+                setSection(entry.id);
+                setDoctrineTool(null);
+              }}>
               {entry.label}{count > 0 ? ` · ${count}` : ''}
             </button>;
           })}
@@ -517,13 +495,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           <CompositionEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate} />
         )}
         {section === 'doctrines' && (
-          <DoctrineEditor draft={draft} issues={issues} mutate={mutate} />
-        )}
-        {section === 'conditions' && (
-          <PredicateEditor draft={draft} issues={issues} mutate={mutate} />
-        )}
-        {section === 'custody' && (
-          <CustodyEditor draft={draft} issues={issues} mutate={mutate} />
+          <DoctrineEditor draft={draft} issues={issues} mutate={mutate}
+            openConditions={() => setDoctrineTool('conditions')}
+            openCustody={() => setDoctrineTool('custody')} />
         )}
         {section === 'map' && (
           <MapPlotter catalog={catalog} layout={draft.layout} issues={issues} tracks={selectedTracks}
@@ -533,17 +507,28 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             onChange={(layout) => mutate((next) => { next.layout = layout; })} />
         )}
       </section>
-      <div className="fixed inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] z-30 flex gap-2 rounded-sm border border-arena-edge bg-arena-panel p-2 min-[640px]:hidden">
-        <button type="button" className="btn btn-primary min-h-12 flex-1"
-          disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
-          onClick={() => void runTrial()}>
-          {trial.isPending ? 'Starting practice…' : 'Practice & watch'}
-        </button>
-        <button type="button" className="btn min-h-12" onClick={() =>
-          document.getElementById('trial-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-          Setup
-        </button>
-      </div>
+      {!practiceActionVisible && (
+        <div className="fixed inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] z-30 rounded-sm border border-arena-edge bg-arena-panel p-2 min-[640px]:hidden">
+          <button type="button" className="btn min-h-12 w-full" onClick={() =>
+            document.getElementById('trial-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Practice setup
+          </button>
+        </div>
+      )}
+      {doctrineTool === 'conditions' && (
+        <SheetSubEditorModal title="Doctrine conditions"
+          description="Reusable facts that decide when priority modes start and stop."
+          onClose={() => setDoctrineTool(null)}>
+          <PredicateEditor draft={draft} issues={issues} mutate={mutate} />
+        </SheetSubEditorModal>
+      )}
+      {doctrineTool === 'custody' && (
+        <SheetSubEditorModal title="Core custody"
+          description="Specialized doctrine policy for carrying, recovery and delivery."
+          onClose={() => setDoctrineTool(null)}>
+          <CustodyEditor draft={draft} issues={issues} mutate={mutate} />
+        </SheetSubEditorModal>
+      )}
     </div>
   );
 }
@@ -596,10 +581,77 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
   );
 }
 
-function DoctrineEditor({ draft, issues, mutate }: {
+function DoctrineToolButton({ title, detail, issueCount, onClick }: {
+  title: string;
+  detail: string;
+  issueCount: number;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button"
+      className="min-h-16 rounded-sm border border-arena-edge bg-arena-deep/25 px-3 py-2 text-left active:border-arena-material"
+      onClick={onClick}>
+      <span className="flex items-center gap-2">
+        <span className="type-display text-[17px]">{title}</span>
+        {issueCount > 0 && <span className="pill ml-auto text-arena-hot">{issueCount} issues</span>}
+      </span>
+      <span className="t-micro mt-1 block">{detail}</span>
+    </button>
+  );
+}
+
+function SheetSubEditorModal({ title, description, onClose, children }: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const titleId = useId();
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButton.current?.focus();
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = priorOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end bg-black/70 sm:items-center sm:justify-center sm:p-5"
+      role="dialog" aria-modal="true" aria-labelledby={titleId}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}>
+      <section className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-md border border-arena-edge bg-arena-panel shadow-2xl sm:max-w-5xl sm:rounded-md">
+        <header className="flex items-start gap-3 border-b border-arena-edge px-4 py-3">
+          <div className="mr-auto">
+            <h2 id={titleId} className="type-display text-[21px]">{title}</h2>
+            <p className="t-micro mt-1">{description}</p>
+          </div>
+          <button ref={closeButton} type="button" className="btn min-h-11" onClick={onClose}>
+            Done
+          </button>
+        </header>
+        <div className="min-h-0 overflow-y-auto p-3 sm:p-4">{children}</div>
+      </section>
+    </div>
+  );
+}
+
+function DoctrineEditor({ draft, issues, mutate, openConditions, openCustody }: {
   draft: SheetDraft;
   issues: SheetIssue[];
   mutate: Mutate;
+  openConditions: () => void;
+  openCustody: () => void;
 }) {
   const doctrines = Object.entries(draft.playbook.doctrines ?? {});
   const roleIds = draft.playbook.roles.map((role) => role.roleId);
@@ -636,6 +688,20 @@ function DoctrineEditor({ draft, issues, mutate }: {
             modes: [{ patrol: routeIds[0] ?? 'traffic' }],
           };
         })}>Add doctrine</button>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <DoctrineToolButton
+          title="Conditions"
+          detail={`${predicateIds.length} reusable triggers for priority modes`}
+          issueCount={issues.filter((issue) => issue.path.startsWith('authoring')).length}
+          onClick={openConditions}
+        />
+        <DoctrineToolButton
+          title="Core custody"
+          detail={`${draft.playbook.custodyPolicies.length} carrying and delivery policies`}
+          issueCount={issues.filter((issue) => issue.path.startsWith('custodyPolicies')).length}
+          onClick={openCustody}
+        />
       </div>
       <div className="mt-3 flex flex-col gap-3">
         {doctrines.map(([id, doctrine]) => (
@@ -884,8 +950,7 @@ function PredicateEditor({ draft, issues, mutate }: {
   });
   return (
     <section className="panel pad">
-      <details>
-        <summary className="min-h-11 cursor-pointer lab">Conditions · {Object.keys(predicates).length} named facts</summary>
+        <p className="lab">Conditions · {Object.keys(predicates).length} named facts</p>
         <p className="t-meta mt-2">Modes combine these names with lowercase <code>and</code>/<code>or</code>. Facts reveal only the subject they require.</p>
         <div className="mt-3 flex flex-col gap-2">
           {Object.entries(predicates).map(([id, predicate]) => {
@@ -954,7 +1019,6 @@ function PredicateEditor({ draft, issues, mutate }: {
           const id = uniqueId('condition', Object.keys(next.playbook.authoring.predicates));
           next.playbook.authoring.predicates[id] = { fact: 'always', operator: 'equals', value: 1 };
         })}>Add condition fact</button>
-      </details>
     </section>
   );
 }
@@ -973,8 +1037,7 @@ function CustodyEditor({ draft, issues, mutate }: {
     change(next.playbook.custodyPolicies[index]));
   return (
     <section className="panel pad">
-      <details>
-        <summary className="min-h-11 cursor-pointer lab">Core custody · {draft.playbook.custodyPolicies.length} policies</summary>
+        <p className="lab">Core custody · {draft.playbook.custodyPolicies.length} policies</p>
         <p className="t-meta mt-2">Who may carry, how drops recover, and which plotted routes bring a Core home.</p>
         <div className="mt-3 flex flex-col gap-3">
           {draft.playbook.custodyPolicies.map((policy, index) => (
@@ -1071,7 +1134,6 @@ function CustodyEditor({ draft, issues, mutate }: {
             </article>
           ))}
         </div>
-      </details>
     </section>
   );
 }
@@ -1667,19 +1729,6 @@ function fromServer(sheet: TacticalSheet): SheetDraft {
   );
 }
 
-function download(name: string, source: string) {
-  const url = URL.createObjectURL(new Blob([source], { type: 'application/json' }));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-function safeName(value: string) {
-  return value.trim().replace(/[^a-z0-9-]+/gi, '-').replace(/^-|-$/g, '') || 'sheet';
-}
-
 function uniqueId(prefix: string, existing: string[]) {
   let index = 1;
   while (existing.includes(`${prefix}-${index}`)) index++;
@@ -1755,14 +1804,18 @@ const EDITOR_SECTIONS: ReadonlyArray<{
   matches: (path: string) => boolean;
 }> = [
   { id: 'composition', label: '1 Composition', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') || path.startsWith('groups') },
-  { id: 'doctrines', label: '2 Doctrines', matches: (path) => path.startsWith('doctrines') },
-  { id: 'conditions', label: '3 Conditions', matches: (path) => path.startsWith('authoring') },
-  { id: 'custody', label: '4 Custody', matches: (path) => path.startsWith('custodyPolicies') },
-  { id: 'map', label: '5 Map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
+  { id: 'doctrines', label: '2 Doctrines', matches: (path) => path.startsWith('doctrines') || path.startsWith('authoring') || path.startsWith('custodyPolicies') },
+  { id: 'map', label: '3 Map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
 ];
 
 function sectionForIssue(path: string): EditorSection {
   return EDITOR_SECTIONS.find((entry) => entry.matches(path))?.id ?? 'doctrines';
+}
+
+function doctrineToolForIssue(path: string): DoctrineTool {
+  if (path.startsWith('authoring')) return 'conditions';
+  if (path.startsWith('custodyPolicies')) return 'custody';
+  return null;
 }
 
 function scrollToIssue(path: string) {
