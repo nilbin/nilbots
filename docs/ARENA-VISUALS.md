@@ -792,11 +792,14 @@ rule: crowns and flat understory may cross cell edges. That overhang never
 changes collision, sight lines, openings, or traversal. Living families omit
 the extruded wall body and square topology cap; their continuous rounded
 foliage field reaches the blocker edge with no masonry-style gutter. The
-perimeter additionally grows a scattered 1.45-tile-deep forest outward beyond
-the map. A varying outer reach, density falloff, and Euclidean corner distance
-break the rectangular silhouette without consuming playable space. Interior
-cover uses a wider vertical and radial range, mixing low scrub with occasional
-tall trees while remaining below the perimeter family's maximum profile.
+perimeter's walkable-side seam is feathered by negligible-height moss and
+understory tongues; they may cross onto open floor but cannot read as raised
+collision. The perimeter additionally grows a scattered 1.45-tile-deep forest
+outward beyond the map. A varying outer reach, density falloff, and Euclidean
+corner distance break the rectangular silhouette without consuming playable
+space. Interior cover uses a wider vertical and radial range, mixing low scrub
+with occasional tall trees while remaining below the perimeter family's
+maximum profile.
 Woodland owns a 22° yaw, 52° pitch, and 26° field of view for a low-distortion
 MOBA-style three-quarter camera; camera-space fitting keeps the requested
 action frame visible and fog distance scales with the lens. Canvas2D continues

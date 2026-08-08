@@ -51,6 +51,7 @@ export function buildWoodlandScenery(
       layout,
       familyId,
       config,
+      theme.palette.arena,
       disposables,
     );
     if (familyGroup.children.length > 0) group.add(familyGroup);
@@ -67,6 +68,7 @@ function buildTreeFamily(
   layout: WallLayout,
   familyId: string,
   config: TreeCover3d,
+  floorColor: string,
   disposables: Disposable[],
 ): THREE.Group {
   const trunks: InstancePlacement[] = [];
@@ -76,6 +78,12 @@ function buildTreeFamily(
   const coniferTiers: InstancePlacement[] = [];
   const understoryLobes: InstancePlacement[] = [];
   const roots = treeRoots(layout, familyId, config);
+  const transitionFringe = forestFloorFringe(
+    layout,
+    familyId,
+    config,
+    floorColor,
+  );
 
   for (const root of roots) {
     const seed = treeHash(
@@ -332,6 +340,7 @@ function buildTreeFamily(
   familyGroup.userData.boundaryDepth = config.boundaryDepth;
   familyGroup.userData.boundaryShape =
     config.boundaryDepth > 0 ? 'scattered-rounded-band' : 'none';
+  familyGroup.userData.transitionFringeCount = transitionFringe.length;
   familyGroup.userData.maximumHeight =
     config.trunkHeight * config.maxHeightScale + config.canopyHeight * 2.4;
 
@@ -401,8 +410,120 @@ function buildTreeFamily(
     familyId,
     disposables,
   );
+  if (transitionFringe.length > 0) {
+    const fringeMaterial = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.58,
+      depthWrite: false,
+    });
+    addInstances(
+      familyGroup,
+      new THREE.DodecahedronGeometry(1, 0),
+      fringeMaterial,
+      transitionFringe,
+      'transition-fringe',
+      familyId,
+      disposables,
+      false,
+    );
+    disposables.push(fringeMaterial);
+  }
   disposables.push(woodMaterial, canopyMaterial);
   return familyGroup;
+}
+
+/**
+ * Flat foliage tongues across the blocked/open seam.
+ *
+ * Their centres sit just inside walkable floor and their height is negligible, so they
+ * read as moss and fallen growth rather than a second collision boundary. The blocker is
+ * still the exact `#` cell behind them; these patches only stop its continuous groundcover
+ * field from ending in a ruler-straight line.
+ */
+function forestFloorFringe(
+  layout: WallLayout,
+  familyId: string,
+  config: TreeCover3d,
+  floorColor: string,
+): InstancePlacement[] {
+  if (config.boundaryDepth <= 0) return [];
+  const placements: InstancePlacement[] = [];
+  const canopy = new THREE.Color(config.canopyColor);
+  const accent = new THREE.Color(config.canopyAccentColor);
+  const floor = new THREE.Color(floorColor);
+  const directions = [
+    { dx: 0, dz: -1 },
+    { dx: 1, dz: 0 },
+    { dx: 0, dz: 1 },
+    { dx: -1, dz: 0 },
+  ] as const;
+  for (const wall of layout.walls()) {
+    if (wall.family !== familyId) continue;
+    for (let side = 0; side < directions.length; side++) {
+      const direction = directions[side];
+      const neighbourX = wall.x + direction.dx;
+      const neighbourZ = wall.y + direction.dz;
+      if (
+        neighbourX < 0 ||
+        neighbourZ < 0 ||
+        neighbourX >= layout.width ||
+        neighbourZ >= layout.height ||
+        layout.familyAt(neighbourX, neighbourZ) !== null
+      )
+        continue;
+      const edgeSeed = treeHash(familyId, wall.x, wall.y, wall.mask, 503 + side);
+      const count = 2 + (edgeSeed % 2);
+      for (let fragment = 0; fragment < count; fragment++) {
+        const seed = treeHash(
+          familyId,
+          wall.x,
+          wall.y,
+          wall.mask,
+          541 + side * 17 + fragment,
+        );
+        const along =
+          (fragment + 0.5) / count -
+          0.5 +
+          signedByte(seed, 8) * 0.1;
+        const inward = 0.08 + unitByte(seed, 16) * 0.14;
+        const parallelX = direction.dz === 0 ? 0 : 1;
+        const parallelZ = direction.dx === 0 ? 0 : 1;
+        const radialScale = 0.78 + unitByte(seed, 0) * 0.34;
+        const parallelRadius = (0.25 + unitByte(seed, 24) * 0.1) * radialScale;
+        const inwardRadius = (0.2 + unitByte(seed, 8) * 0.08) * radialScale;
+        placements.push({
+          position: new THREE.Vector3(
+            wall.x +
+              0.5 +
+              direction.dx * (0.5 + inward) +
+              parallelX * along,
+            0.018 + unitByte(seed, 24) * 0.01,
+            wall.y +
+              0.5 +
+              direction.dz * (0.5 + inward) +
+              parallelZ * along,
+          ),
+          quaternion: new THREE.Quaternion().setFromAxisAngle(
+            UP,
+            unitByte(seed, 16) * Math.PI * 2,
+          ),
+          scale: new THREE.Vector3(
+            direction.dx === 0 ? parallelRadius : inwardRadius,
+            0.026,
+            direction.dz === 0 ? parallelRadius : inwardRadius,
+          ),
+          color: floor
+            .clone()
+            .lerp(canopy, 0.16 + unitByte(seed, 0) * 0.18)
+            .lerp(accent, unitByte(seed, 24) * 0.08),
+        });
+      }
+    }
+  }
+  return placements;
 }
 
 function treeRoots(
@@ -551,6 +672,7 @@ function addInstances(
   kind: string,
   familyId: string,
   disposables: Disposable[],
+  castShadow = true,
 ): void {
   const mesh = new THREE.InstancedMesh(
     geometry,
@@ -573,7 +695,7 @@ function addInstances(
   mesh.userData.kind = `arena-woodland-${kind}`;
   mesh.userData.family = familyId;
   mesh.userData.instanceCount = placements.length;
-  mesh.castShadow = true;
+  mesh.castShadow = castShadow;
   mesh.receiveShadow = true;
   group.add(mesh);
   disposables.push(geometry);

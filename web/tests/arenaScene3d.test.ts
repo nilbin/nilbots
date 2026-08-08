@@ -267,6 +267,7 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     const canopies: THREE.InstancedMesh[] = [];
     const trunks: THREE.InstancedMesh[] = [];
     const conifers: THREE.InstancedMesh[] = [];
+    const transitionFringes: THREE.InstancedMesh[] = [];
     arena.scene.traverse((node) => {
       if (
         node.userData.kind === 'arena-woodland-family' &&
@@ -288,6 +289,11 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
         node.userData.kind === 'arena-woodland-conifer-tiers'
       )
         conifers.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-transition-fringe'
+      )
+        transitionFringes.push(node);
     });
     assert.ok(Math.abs(arena.cameraYaw - (22 * Math.PI) / 180) < 1e-9);
     assert.ok(Math.abs(arena.cameraPitch - (52 * Math.PI) / 180) < 1e-9);
@@ -339,7 +345,12 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     );
     assert.equal(familyGroups.get('cover')!.userData.borderTreeCount, 0);
     assert.equal(familyGroups.get('cover')!.userData.boundaryShape, 'none');
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.transitionFringeCount > 40,
+    );
+    assert.equal(familyGroups.get('cover')!.userData.transitionFringeCount, 0);
     assert.ok(conifers.some((mesh) => mesh.count > 0));
+    assert.equal(transitionFringes.length, 1);
 
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
@@ -403,6 +414,20 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       roundedCornerRoots > 8,
       'the outer forest must round and soften all four map corners',
     );
+    for (const fringe of transitionFringes) {
+      for (let index = 0; index < fringe.count; index++) {
+        fringe.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        assert.notEqual(
+          source.map.tileRows[Math.floor(position.z)]?.[
+            Math.floor(position.x)
+          ],
+          '#',
+          'the flat transition fringe should soften the floor side of the seam',
+        );
+        assert.ok(scale.y <= 0.03, 'transition foliage must stay visibly flat');
+      }
+    }
     let overhangingCrowns = 0;
     for (const canopy of canopies) {
       for (let index = 0; index < canopy.count; index++) {

@@ -19,6 +19,8 @@ Living cover deliberately skips the ordinary extruded wall and topology cap.
 Instead, one flush, continuous, rounded foliage field is traced per connected
 family beneath the clusters. That preserves immediate blocker legibility
 without exposing the map as raised brown planting beds or stamped cubes.
+Flat, irregular moss and understory tongues cross onto the floor side of the
+perimeter seam, hiding its straight polygon edge without changing collision.
 Perimeter growth is darker, taller, and broader, with a scattered 1.45-tile
 forest continuing outward beyond the map. Its locally varying reach, feathered
 outer density, and rounded corners prevent the boundary from resolving into a
