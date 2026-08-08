@@ -9,18 +9,23 @@ retain separate ancient-perimeter and young-cover families.
 
 The optional `geometry3d.treeCover` family block turns `WallLayout` blockers
 into deterministic instanced trunks, root flares, branches, uneven crown
-lobes, and low understory. Stable family/tile/topology hashes vary height,
-width, crown count, colour, rotation, and root position. Every cluster remains
-inside the reviewed live-body clearance envelope.
+lobes, conifer tiers, and low understory. Stable family/tile/topology hashes
+vary height, width, lean, crown count, colour, rotation, and root position.
+Blocked cells carry zero to two roots instead of one centred tree per tile, so
+gaps and overlaps break the grid without changing collision. Roots stay in
+authoritative `#` cells; decorative foliage may overhang their cells.
 
 Living cover deliberately skips the ordinary extruded wall and topology cap.
 Instead, one flush, continuous, rounded foliage field is traced per connected
 family beneath the clusters. That preserves immediate blocker legibility
 without exposing the map as raised brown planting beds or stamped cubes.
-Perimeter growth is darker, taller, and broader; interior growth is lighter,
-lower, and airier. A theme-owned 14° camera yaw adds a restrained three-quarter
-view while compensated framing keeps the arena in bounds. Canvas2D remains a
-functional fallback, but this revision's visual review target is WebGL.
+Perimeter growth is darker, taller, and broader, with a staggered 1.45-tile
+forest continuing outward beyond the map; interior growth is lighter, lower,
+and airier. A theme-owned 22° yaw, 52° pitch, and 26° field of view provide the
+low-distortion three-quarter framing common to MOBA play. Camera-space fitting
+keeps the requested action frame visible, and fog distance scales with the
+lens. Canvas2D remains a functional fallback, but this revision's visual
+review target is WebGL.
 
 ## Source and provider route
 
@@ -42,18 +47,19 @@ node scripts/build-theme-3d-materials.mjs \
 
 ## Budget and gameplay review
 
-The deterministic bake reports `2,077,574 / 5,000,000` bytes for the
-canonical runtime theme: 41.55% used, with 2,922,426 bytes of headroom. The
+The deterministic bake reports `2,078,100 / 5,000,000` bytes for the
+canonical runtime theme: 41.56% used, with 2,921,900 bytes of headroom. The
 four lazy WebGL PBR maps add 490,788 bytes; even counting them with the
-canonical files gives 2,568,362 bytes, 2,431,638 below the unchanged cap.
+canonical files gives 2,568,888 bytes, 2,431,112 below the unchanged cap.
 
 Six real `arc-relay-ambush-warren-06` matches use the standard exhibition
 cells (`w-9001`, `w-9002`, `e-9005`, `e-9009`, `w-9012`, `e-9004`). Every
 replay header records `themeId: woodland-grove`. The current desktop frame
-uses sample 01 during live play at gameplay zoom:
+uses sample 01 during live play in the strategic overview:
 
-- `review/ambush-warren-gameplay-webgl.webp` — revision-2 WebGL with the 14°
-  yaw, flush foliage fields, and varied procedural tree clusters.
+- `review/ambush-warren-gameplay-webgl.webp` — revision-3 WebGL with the MOBA
+  camera, flush foliage fields, irregular rooted clusters, mixed tree forms,
+  and the wider outward perimeter forest.
 
 The prior Canvas2D frame is retained only as fallback history; this revision
 was judged in 3D. Bodies, team accents, labels, projectiles, wells, reactors,

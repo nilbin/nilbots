@@ -778,18 +778,27 @@ the contract before it is generalized to other arenas.
 
 Woodland Grove adds one deliberately narrow organic companion rather than a
 generic prop catalog. A wall family's optional `geometry3d.treeCover` block
-declares reviewed trunk/crown proportions and colours. The WebGL scene roots
-instanced low-poly trunks, root flares, branches, and broken-up crown lobes in
-the exact blocked tiles supplied by `WallLayout`; their stable placement hash
-uses only family, coordinate, and topology while varying height, width, crown
-count, colour, rotation, and low understory. Crowns remain inside the blocked
-tile's live-body clearance envelope and the whole tree has a capped height.
-Living families omit the extruded wall body and square topology cap. A flush,
-continuous rounded foliage field makes the blocker readable without exposing
-the tile grid as a raised dirt bed. Woodland also owns a restrained 14° camera
-yaw; camera-space framing compensation keeps that three-quarter view inside
-the viewport. Canvas2D continues to use the baked perimeter/cover atlases and
-never pays for WebGL geometry or the theme-specific camera presentation.
+declares reviewed root density/spread, height and width ranges, outward border
+depth, proportions, and colours. The WebGL scene roots instanced low-poly
+trunks, root flares, branches, broken-up broadleaf crowns, conifer tiers, and
+low understory from the exact blocked tiles supplied by `WallLayout`; stable
+family/coordinate/topology hashes vary count, position, height, width, lean,
+crown form, colour, and rotation. A blocked cell can therefore carry a gap,
+one root, or two roots instead of advertising a one-tile/one-tree grid.
+
+Roots remain inside authoritative `#` cells and tree height stays capped, but
+Woodland is an owner-approved exception to the ordinary decorative-clearance
+rule: crowns and flat understory may cross cell edges. That overhang never
+changes collision, sight lines, openings, or traversal. Living families omit
+the extruded wall body and square topology cap; their continuous rounded
+foliage field reaches the blocker edge with no masonry-style gutter. The
+perimeter additionally grows a staggered 1.45-tile-deep forest outward beyond
+the map, widening the visual border without consuming playable space.
+Woodland owns a 22° yaw, 52° pitch, and 26° field of view for a low-distortion
+MOBA-style three-quarter camera; camera-space fitting keeps the requested
+action frame visible and fog distance scales with the lens. Canvas2D continues
+to use the baked perimeter/cover atlases and never pays for WebGL geometry or
+the theme-specific camera presentation.
 
 - Start from `WallLayout`: trace continuous family solids, then layer
   manifest-owned upper-profile and material settings. Place optional panels,

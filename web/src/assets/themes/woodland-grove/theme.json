@@ -3,15 +3,17 @@
   "label": "Woodland Grove",
   "environment3d": {
     "camera": {
-      "yawDegrees": 14
+      "yawDegrees": 22,
+      "pitchDegrees": 52,
+      "fovDegrees": 26
     },
     "lighting": {
       "keyColor": "#eee4c9",
-      "keyIntensity": 3.2,
+      "keyIntensity": 3.8,
       "ambientColor": "#71836b",
-      "ambientIntensity": 2.3,
+      "ambientIntensity": 2.05,
       "fillColor": "#526d5b",
-      "fillIntensity": 1.1
+      "fillIntensity": 0.95
     },
     "floor": {
       "bumpScale": 0.025,
@@ -47,6 +49,13 @@
             "canopyRadius": 0.29,
             "canopyHeight": 0.18,
             "canopyLobes": 4,
+            "density": 1.35,
+            "rootSpread": 0.32,
+            "minHeightScale": 0.58,
+            "maxHeightScale": 1.45,
+            "minWidthScale": 0.68,
+            "maxWidthScale": 1.5,
+            "boundaryDepth": 1.45,
             "trunkColor": "#493426",
             "canopyColor": "#29482f",
             "canopyAccentColor": "#647749"
@@ -74,6 +83,13 @@
             "canopyRadius": 0.22,
             "canopyHeight": 0.13,
             "canopyLobes": 3,
+            "density": 0.78,
+            "rootSpread": 0.34,
+            "minHeightScale": 0.42,
+            "maxHeightScale": 1.28,
+            "minWidthScale": 0.58,
+            "maxWidthScale": 1.38,
+            "boundaryDepth": 0.0,
             "trunkColor": "#67513a",
             "canopyColor": "#536f3f",
             "canopyAccentColor": "#83945c"

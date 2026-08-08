@@ -17,6 +17,8 @@ type ThemeManifest = {
   environment3d?: {
     camera?: {
       yawDegrees?: number;
+      pitchDegrees?: number;
+      fovDegrees?: number;
     };
     lighting?: {
       keyColor?: string;
@@ -62,6 +64,13 @@ type ThemeManifest = {
             canopyRadius: number;
             canopyHeight: number;
             canopyLobes: number;
+            density: number;
+            rootSpread: number;
+            minHeightScale: number;
+            maxHeightScale: number;
+            minWidthScale: number;
+            maxWidthScale: number;
+            boundaryDepth: number;
             trunkColor: string;
             canopyColor: string;
             canopyAccentColor: string;
@@ -126,6 +135,11 @@ function assertCompletePackage(root: string, expectedId: string) {
         assert.ok(tree.canopyRadius >= 0.12 && tree.canopyRadius <= 0.3);
         assert.ok(tree.canopyHeight >= 0.08 && tree.canopyHeight <= 0.22);
         assert.ok(Number.isInteger(tree.canopyLobes));
+        assert.ok(tree.density >= 0.3 && tree.density <= 2);
+        assert.ok(tree.rootSpread >= 0.05 && tree.rootSpread <= 0.45);
+        assert.ok(tree.minHeightScale < tree.maxHeightScale);
+        assert.ok(tree.minWidthScale < tree.maxWidthScale);
+        assert.ok(tree.boundaryDepth >= 0 && tree.boundaryDepth <= 2.5);
         for (const color of [
           tree.trunkColor,
           tree.canopyColor,
@@ -219,13 +233,15 @@ test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
   );
 });
 
-test('Woodland Grove carries distinct, footprint-limited tree families', () => {
+test('Woodland Grove carries a MOBA camera and organic tree families', () => {
   const manifest = JSON.parse(
     readFileSync(join(activeRoot, 'woodland-grove', 'theme.json'), 'utf8'),
   ) as ThemeManifest;
   const perimeter = manifest.walls.families.perimeter.geometry3d!;
   const cover = manifest.walls.families.cover.geometry3d!;
-  assert.equal(manifest.environment3d?.camera?.yawDegrees, 14);
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 22);
+  assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
+  assert.equal(manifest.environment3d?.camera?.fovDegrees, 26);
   assert.equal(perimeter.height, 0);
   assert.equal(cover.height, 0);
   assert.ok(perimeter.treeCover);
@@ -237,14 +253,27 @@ test('Woodland Grove carries distinct, footprint-limited tree families', () => {
     perimeter.treeCover.canopyRadius > cover.treeCover.canopyRadius,
   );
   assert.ok(
-    perimeter.height +
-      perimeter.treeCover.trunkHeight +
-      perimeter.treeCover.canopyHeight <=
-      1.05,
+    perimeter.treeCover.maxHeightScale >
+      perimeter.treeCover.minHeightScale,
   );
   assert.ok(
-    cover.height + cover.treeCover.trunkHeight + cover.treeCover.canopyHeight <=
-      1.05,
+    perimeter.treeCover.maxWidthScale >
+      perimeter.treeCover.minWidthScale,
+  );
+  assert.ok(perimeter.treeCover.boundaryDepth > 1);
+  assert.equal(cover.treeCover.boundaryDepth, 0);
+  assert.ok(
+    perimeter.height +
+      perimeter.treeCover.trunkHeight *
+        perimeter.treeCover.maxHeightScale +
+      perimeter.treeCover.canopyHeight * 2.4 <=
+      1.8,
+  );
+  assert.ok(
+    cover.height +
+      cover.treeCover.trunkHeight * cover.treeCover.maxHeightScale +
+      cover.treeCover.canopyHeight * 2.4 <=
+      1.8,
   );
 });
 

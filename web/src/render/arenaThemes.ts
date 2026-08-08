@@ -70,6 +70,13 @@ export interface TreeCover3d {
   canopyRadius: number;
   canopyHeight: number;
   canopyLobes: number;
+  density: number;
+  rootSpread: number;
+  minHeightScale: number;
+  maxHeightScale: number;
+  minWidthScale: number;
+  maxWidthScale: number;
+  boundaryDepth: number;
   trunkColor: string;
   canopyColor: string;
   canopyAccentColor: string;
@@ -117,6 +124,8 @@ export interface ArenaTheme {
   environment3d: {
     camera: {
       yawDegrees: number;
+      pitchDegrees: number;
+      fovDegrees: number;
     };
     lighting: {
       keyColor: string;
@@ -598,7 +607,19 @@ function wallGeometry3d(
       treeCover.canopyLobes < 2 ||
       treeCover.canopyLobes > 4 ||
       treeCover.trunkRadius >= treeCover.canopyRadius ||
-      height + treeCover.trunkHeight + treeCover.canopyHeight > 1.05 ||
+      !finiteRange(treeCover.density, 0.3, 2) ||
+      !finiteRange(treeCover.rootSpread, 0.05, 0.45) ||
+      !finiteRange(treeCover.minHeightScale, 0.3, 1) ||
+      !finiteRange(treeCover.maxHeightScale, 1, 1.8) ||
+      treeCover.minHeightScale >= treeCover.maxHeightScale ||
+      !finiteRange(treeCover.minWidthScale, 0.4, 1) ||
+      !finiteRange(treeCover.maxWidthScale, 1, 1.8) ||
+      treeCover.minWidthScale >= treeCover.maxWidthScale ||
+      !finiteRange(treeCover.boundaryDepth, 0, 2.5) ||
+      height +
+          treeCover.trunkHeight * treeCover.maxHeightScale +
+          treeCover.canopyHeight * 2.4 >
+        1.8 ||
       !validHex(treeCover.trunkColor) ||
       !validHex(treeCover.canopyColor) ||
       !validHex(treeCover.canopyAccentColor))
@@ -641,6 +662,8 @@ function environment3d(
 ): ArenaTheme['environment3d'] {
   const camera = {
     yawDegrees: candidate?.camera?.yawDegrees ?? 0,
+    pitchDegrees: candidate?.camera?.pitchDegrees ?? 58,
+    fovDegrees: candidate?.camera?.fovDegrees ?? 42,
   };
   const lighting = {
     keyColor: candidate?.lighting?.keyColor ?? '#e8f1ff',
@@ -656,7 +679,9 @@ function environment3d(
     metalness: candidate?.floor?.metalness ?? 0.12,
   };
   if (
-    !finiteRange(camera.yawDegrees, -30, 30) ||
+    !finiteRange(camera.yawDegrees, -45, 45) ||
+    !finiteRange(camera.pitchDegrees, 40, 70) ||
+    !finiteRange(camera.fovDegrees, 18, 55) ||
     !validHex(lighting.keyColor) ||
     !validHex(lighting.ambientColor) ||
     !validHex(lighting.fillColor) ||

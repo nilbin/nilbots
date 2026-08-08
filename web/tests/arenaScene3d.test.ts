@@ -243,7 +243,7 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
   }
 });
 
-test('Woodland trees stay on blocked tiles and inside the live-body clearance', () => {
+test('Woodland roots remain authoritative while organic foliage overhangs', () => {
   const image = globalThis.Image;
   class GeometryImage {
     complete = true;
@@ -266,6 +266,7 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
     const familyGroups = new Map<string, THREE.Object3D>();
     const canopies: THREE.InstancedMesh[] = [];
     const trunks: THREE.InstancedMesh[] = [];
+    const conifers: THREE.InstancedMesh[] = [];
     arena.scene.traverse((node) => {
       if (
         node.userData.kind === 'arena-woodland-family' &&
@@ -282,8 +283,20 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
         node.userData.kind === 'arena-woodland-trunks'
       )
         trunks.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-conifer-tiers'
+      )
+        conifers.push(node);
     });
-    assert.ok(Math.abs(arena.cameraYaw - (14 * Math.PI) / 180) < 1e-9);
+    assert.ok(Math.abs(arena.cameraYaw - (22 * Math.PI) / 180) < 1e-9);
+    assert.ok(Math.abs(arena.cameraPitch - (52 * Math.PI) / 180) < 1e-9);
+    assert.equal(arena.camera.fov, 26);
+    assert.ok(arena.scene.fog instanceof THREE.Fog);
+    assert.ok(
+      arena.scene.fog.far > source.map.width * 3,
+      'the narrow MOBA lens must move the fog plane with the camera',
+    );
     assert.deepEqual(
       [...wallsByKind(arena.scene, 'arena-wall-body').keys()],
       [],
@@ -299,50 +312,96 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
       ['cover', 'perimeter'],
       'living blockers need one continuous, flush understory field per family',
     );
+    for (const groundcover of wallsByKind(
+      arena.scene,
+      'arena-woodland-groundcover',
+    ).values())
+      assert.equal(
+        groundcover.userData.openEdgeInset,
+        0,
+        'organic groundcover must not expose a per-tile clearance gutter',
+      );
     assert.deepEqual([...familyGroups.keys()].sort(), ['cover', 'perimeter']);
     assert.ok(
       familyGroups.get('perimeter')!.userData.maximumHeight >
         familyGroups.get('cover')!.userData.maximumHeight,
     );
     assert.ok(
-      familyGroups.get('perimeter')!.userData.maximumTileRadius <=
+      familyGroups.get('perimeter')!.userData.maximumRootSpread +
+          familyGroups.get('perimeter')!.userData.maximumCanopyRadius >
         0.5 - WALL_OPEN_EDGE_INSET,
+      'organic crowns intentionally overhang the old per-cell padding',
     );
+    assert.ok(familyGroups.get('perimeter')!.userData.borderTreeCount > 40);
+    assert.equal(familyGroups.get('cover')!.userData.borderTreeCount, 0);
+    assert.ok(conifers.some((mesh) => mesh.count > 0));
 
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
     const rotation = new THREE.Quaternion();
     const scale = new THREE.Vector3();
     const trunkHeights = new Set<string>();
+    const trunkWidths = new Set<string>();
+    let outsideBorderRoots = 0;
     for (const trunk of trunks) {
       for (let index = 0; index < trunk.count; index++) {
         trunk.getMatrixAt(index, matrix);
         matrix.decompose(position, rotation, scale);
         trunkHeights.add(scale.y.toFixed(4));
+        trunkWidths.add(scale.x.toFixed(4));
+        if (
+          position.x < 0 ||
+          position.z < 0 ||
+          position.x >= source.map.width ||
+          position.z >= source.map.height
+        ) {
+          outsideBorderRoots++;
+        } else {
+          assert.equal(
+            source.map.tileRows[Math.floor(position.z)]?.[
+              Math.floor(position.x)
+            ],
+            '#',
+            'in-map tree roots remain authoritative blockers',
+          );
+        }
       }
     }
     assert.ok(
       trunkHeights.size > 8,
       'tree cover must alternate trunk heights instead of stamping one tree',
     );
+    assert.ok(
+      trunkWidths.size > 8,
+      'tree cover must alternate trunk widths instead of stamping one tree',
+    );
+    assert.ok(outsideBorderRoots > 40, 'the perimeter must grow outward in depth');
+    let overhangingCrowns = 0;
     for (const canopy of canopies) {
       for (let index = 0; index < canopy.count; index++) {
         canopy.getMatrixAt(index, matrix);
         matrix.decompose(position, rotation, scale);
+        if (
+          position.x < 0 ||
+          position.z < 0 ||
+          position.x >= source.map.width ||
+          position.z >= source.map.height
+        )
+          continue;
         const tileX = Math.floor(position.x);
         const tileY = Math.floor(position.z);
-        assert.equal(source.map.tileRows[tileY]?.[tileX], '#');
         const centreDistance = Math.hypot(
           position.x - (tileX + 0.5),
           position.z - (tileY + 0.5),
         );
-        assert.ok(
-          centreDistance + Math.max(scale.x, scale.z) <=
-            0.5 - WALL_OPEN_EDGE_INSET,
-          'tree canopy must remain inside the blocked tile clearance envelope',
-        );
+        if (centreDistance + Math.max(scale.x, scale.z) > 0.5)
+          overhangingCrowns++;
       }
     }
+    assert.ok(
+      overhangingCrowns > 8,
+      'crowns should cross cell edges instead of exposing tile-shaped padding',
+    );
     arena.dispose();
   } finally {
     globalThis.Image = image;

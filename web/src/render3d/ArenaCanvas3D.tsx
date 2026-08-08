@@ -154,8 +154,11 @@ export default function ArenaCanvas3D({
     // restrained side bias to the otherwise fixed camera, so turn their shared row by the
     // same amount rather than letting it become slightly edge-on.
     actors.group.traverse((node) => {
-      if (node.userData.cue === 'health-pips')
+      if (node.userData.cue === 'health-pips') {
+        node.rotation.order = 'YXZ';
         node.rotation.y = arena.cameraYaw;
+        node.rotation.x = CAMERA_PITCH - arena.cameraPitch;
+      }
     });
     const overlays = buildOverlays(replay, entrants);
     arena.scene.add(actors.group);
@@ -204,7 +207,7 @@ export default function ArenaCanvas3D({
       const distance = (span / 2) / Math.tan((arena.camera.fov * Math.PI) / 360);
       // A shallow tilt: steep enough that walls show a face and cast across the floor,
       // shallow enough that the far half of the arena is not hidden behind the near walls.
-      const pitch = CAMERA_PITCH;
+      const pitch = arena.cameraPitch;
       looking.set(frame.x, 0, frame.y);
       const horizontalDistance = Math.cos(pitch) * distance * 1.02;
       framed.set(

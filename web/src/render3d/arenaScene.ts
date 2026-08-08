@@ -56,6 +56,7 @@ export interface ArenaScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   cameraYaw: number;
+  cameraPitch: number;
   dispose: () => void;
 }
 
@@ -80,8 +81,17 @@ export function buildArena(
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(theme.palette.canvas);
   // Fog hides the floor plane's edge and gives distance a cost, which is most of what
-  // makes a flat grid read as a space.
-  scene.fog = new THREE.Fog(theme.palette.canvas, mapWidth * 0.9, mapWidth * 2.2);
+  // makes a flat grid read as a space. A narrow MOBA lens sits much farther from the same
+  // frame than the historical 42-degree camera, so scale the cutoff by that exact lens
+  // distance ratio or the whole arena disappears into fog merely because its FOV changed.
+  const fogDistanceScale =
+    Math.tan((42 * Math.PI) / 360) /
+    Math.tan((theme.environment3d.camera.fovDegrees * Math.PI) / 360);
+  scene.fog = new THREE.Fog(
+    theme.palette.canvas,
+    mapWidth * 0.9 * fogDistanceScale,
+    mapWidth * 2.2 * fogDistanceScale,
+  );
 
   const disposables: { dispose: () => void }[] = [];
 
@@ -100,12 +110,19 @@ export function buildArena(
     ),
   );
 
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(
+    theme.environment3d.camera.fovDegrees,
+    1,
+    0.1,
+    300,
+  );
 
   return {
     scene,
     camera,
     cameraYaw: (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
+    cameraPitch:
+      (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
     dispose: () => {
       for (const item of disposables) item.dispose();
     },
@@ -306,7 +323,10 @@ function walls(
     if (family.geometry3d.treeCover !== null) {
       const groundcoverShapes = wallShapes(tiles, {
         cornerRadius: family.geometry3d.cornerRadius,
-        openEdgeInset: WALL_OPEN_EDGE_INSET,
+        // Living foliage is allowed to meet and cross the authoritative boundary. Roots
+        // still originate on blocked cells, but a masonry-style visual clearance gutter
+        // would put the tile grid straight back into the forest silhouette.
+        openEdgeInset: 0,
         isWall: (x, y) => layout.familyAt(x, y) !== null,
       });
       if (groundcoverShapes.length === 0) continue;
@@ -339,7 +359,7 @@ function walls(
       );
       groundcover.userData.kind = 'arena-woodland-groundcover';
       groundcover.userData.family = familyId;
-      groundcover.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
+      groundcover.userData.openEdgeInset = 0;
       groundcover.receiveShadow = true;
       meshes.push(groundcover);
       disposables.push(groundcoverGeometry, groundcoverMaterial);
