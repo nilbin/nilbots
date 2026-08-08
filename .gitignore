@@ -63,3 +63,19 @@ balance/private/
 art/frontline-map-models/provider-runs/**/raw-model.glb
 art/frontline-map-models/provider-runs/**/texture-*.png
 art/frontline-map-models/provider-runs/**/task.raw.json
+
+# Class-model provider masters: same rule as the frontline map models above
+# (DECISIONS #83 precedent). Meshy/provider raw output and multi-megabyte
+# review renders are retained LOCALLY for technical-art handoff; the repo
+# keeps the compact provenance (RUN.md, record/manifest/timing/artifacts
+# JSON, preview.png) so a run stays reproducible and auditable.
+art/class-models/provider-runs/**/*raw.glb
+art/class-models/provider-runs/**/*review.glb
+art/class-models/provider-runs/**/*-front.png
+art/class-models/provider-runs/**/*-back.png
+art/class-models/provider-runs/**/*-left.png
+art/class-models/provider-runs/**/*-right.png
+art/class-models/provider-runs/**/*-alpha.png
+art/class-models/provider-runs/**/*.json.gz
+art/class-models/concept-targets/**/approval-sheet.png
+art/class-models/concept-targets/**/meshy-input.png
