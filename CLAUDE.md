@@ -200,10 +200,12 @@ Project boundaries that must not be violated:
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
   playlist v8 pins that same rules/map line with Warren-native tactical sheets
-  and the repaired tactical WASM artifact. v7 began the fresh Warren rating
-  era and remains immutable; v8 carries those ratings because no game fact
-  changed. v6 remains the readable/executable ForwardCombat on Counterflow
-  history; never mutate it or migrate its sheet geometry. Sheets
+  and the repaired tactical WASM artifact. v7 began the fresh Warren
+  development rating era and remains immutable; v8 carried those development
+  ratings because no game fact changed. Public Season 1 creates a separate,
+  fresh v8 ladder at 1200 with a zero-match record and never presents either
+  development population as Season history. v6 remains the readable/executable
+  ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets
   compile through
   `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
   `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call

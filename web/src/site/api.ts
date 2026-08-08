@@ -164,6 +164,9 @@ export type TacticalSheetDeleted = Schemas['TacticalSheetDeletedResponse'];
 export type TacticalStockSheet = Schemas['TacticalStockSheetResponse'];
 export type ArcRelayEntrant = Schemas['ArcRelayEntrantCardResponse'];
 export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
+export type ArcRelaySeason = Schemas['ArcRelaySeasonResponse'];
+export type ArcRelaySeasonStanding = Schemas['ArcRelaySeasonStandingResponse'];
+export type ArcRelaySeasonMatch = Schemas['ArcRelaySeasonMatchResponse'];
 export type ArcRelayMind = Schemas['ArcRelayMindResponse'];
 export type ArcRelayCrest = Schemas['ArcRelayCrestDescriptor'];
 export type ArcRelayCrestOptions = Schemas['ArcRelayCrestOptionsResponse'];
@@ -228,6 +231,7 @@ export const endpoints = {
     api.get<TacticalSheet>(`/api/sheets/${sheetId}`),
   arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
   arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
+  arcRelaySeason: () => api.get<ArcRelaySeason>('/api/arc-relay/seasons/current'),
   arcRelayMind: (entrantId: string) =>
     api.get<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`),
   leaderboard: (rules?: string | null) =>

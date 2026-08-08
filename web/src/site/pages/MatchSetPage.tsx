@@ -223,8 +223,8 @@ export default function MatchSetPage() {
         <Link to="/watch" className="btn">
           Watch more
         </Link>
-        <Link to="/relay" className="btn">
-          Arc Relay ladder
+        <Link to="/" className="btn">
+          Season 1
         </Link>
       </section>
 

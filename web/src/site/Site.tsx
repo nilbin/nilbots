@@ -19,6 +19,7 @@ import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
 import DocsPage from './pages/DocsPage';
 import ArcRelayPage from './pages/ArcRelayPage';
+import SeasonPage from './pages/SeasonPage';
 
 export default function Site() {
   // Per-mount rather than module level: a module-level client survives hot reloads and
@@ -52,8 +53,8 @@ export default function Site() {
               <Route
                 index
                 element={
-                  <TitledPage title="Arc Relay">
-                    <ArcRelayPage />
+                  <TitledPage title="Season 1">
+                    <SeasonPage />
                   </TitledPage>
                 }
               />
@@ -98,18 +99,26 @@ export default function Site() {
                 }
               />
               <Route
-                path="/relay"
+                path="/entrants"
                 element={
-                  <TitledPage title="Arc Relay">
+                  <TitledPage title="Entrants">
                     <ArcRelayPage />
                   </TitledPage>
                 }
               />
               <Route
-                path="/relay/sheets"
+                path="/entrants/sheets/new"
                 element={
                   <TitledPage title="Sheet workshop">
                     <ArcRelayPage view="sheets" />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/entrants/sheets/:sheetId/edit"
+                element={
+                  <TitledPage title="Sheet workshop">
+                    <SheetEditorRoute />
                   </TitledPage>
                 }
               />
@@ -132,14 +141,16 @@ export default function Site() {
               {/* The ladder used to live here and be called the leaderboard. Old links
                   and bookmarks still resolve rather than 404. */}
               <Route path="/archive/rankings" element={<Navigate to="/archive/bots" replace />} />
-              <Route path="/rankings" element={<Navigate to="/relay" replace />} />
-              <Route path="/leaderboard" element={<Navigate to="/relay" replace />} />
+              <Route path="/relay" element={<Navigate to="/" replace />} />
+              <Route path="/relay/sheets" element={<Navigate to="/entrants/sheets/new" replace />} />
+              <Route path="/rankings" element={<Navigate to="/" replace />} />
+              <Route path="/leaderboard" element={<Navigate to="/" replace />} />
               <Route path="/bots" element={<Navigate to="/archive/bots" replace />} />
               <Route path="/bots/:botKey/*" element={<LegacyBotPlayRedirect />} />
               <Route path="/sets/:setId" element={<LegacySetRedirect />} />
-              <Route path="/garage" element={<Navigate to="/relay" replace />} />
+              <Route path="/garage" element={<Navigate to="/entrants" replace />} />
               <Route path="/looks" element={<Navigate to="/archive/bots" replace />} />
-              <Route path="/store" element={<Navigate to="/relay" replace />} />
+              <Route path="/store" element={<Navigate to="/entrants" replace />} />
               <Route
                 path="/docs"
                 element={
@@ -175,6 +186,11 @@ function LegacySetRedirect() {
   return <Navigate to={`/archive/sets/${setId ?? ''}`} replace />;
 }
 
+function SheetEditorRoute() {
+  const { sheetId } = useParams<{ sheetId: string }>();
+  return <ArcRelayPage view="sheets" sheetId={sheetId ?? null} />;
+}
+
 function TitledPage({
   title,
   children,
@@ -200,8 +216,8 @@ function NotFoundPage() {
       <p className="t-meta mt-2">
         The page may have moved, or the address may be incomplete.
       </p>
-      <Link to="/relay" className="btn btn-on mt-4 inline-flex">
-        Return to Arc Relay
+      <Link to="/" className="btn btn-on mt-4 inline-flex">
+        Return to Season
       </Link>
     </section>
   );

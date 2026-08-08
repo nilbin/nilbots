@@ -429,7 +429,7 @@ function EmptyRoster() {
         No historical Duel records were retained.
       </h2>
       <p className="t-meta">Arc Relay entrants live in the current product, not in this archive.</p>
-      <Link to="/relay" className="btn mt-3 inline-flex">Open Arc Relay</Link>
+      <Link to="/entrants" className="btn mt-3 inline-flex">Open entrants</Link>
     </section>
   );
 }

@@ -476,6 +476,184 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArcRelaySeasonMatchResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid MatchId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("settledAt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset SettledAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrantAId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid EntrantAId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrantAName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string EntrantAName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("placementA")]
+        public int PlacementA { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrantBId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid EntrantBId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrantBName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string EntrantBName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("placementB")]
+        public int PlacementB { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArcRelaySeasonRatingPointResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchId")]
+        public System.Guid? MatchId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("occurredAt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset OccurredAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rating")]
+        public double Rating { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArcRelaySeasonResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("seasonId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid SeasonId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("number")]
+        public int Number { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("startsAt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset StartsAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("endsAt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset EndsAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("openedAt")]
+        public System.DateTimeOffset? OpenedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("closedAt")]
+        public System.DateTimeOffset? ClosedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ladderId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid LadderId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ladderName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string LadderName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("maximumFieldedPerAccount")]
+        public int MaximumFieldedPerAccount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("standings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<ArcRelaySeasonStandingResponse> Standings { get; set; } = new System.Collections.Generic.List<ArcRelaySeasonStandingResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("recentMatches")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<ArcRelaySeasonMatchResponse> RecentMatches { get; set; } = new System.Collections.Generic.List<ArcRelaySeasonMatchResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArcRelaySeasonStandingResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("rank")]
+        public int Rank { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("openingRank")]
+        public int? OpeningRank { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rankMovement")]
+        public int? RankMovement { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("wins")]
+        public int Wins { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("draws")]
+        public int Draws { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("losses")]
+        public int Losses { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ratingHistory")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<ArcRelaySeasonRatingPointResponse> RatingHistory { get; set; } = new System.Collections.Generic.List<ArcRelaySeasonRatingPointResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrant")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ArcRelayEntrantCardResponse Entrant { get; set; } = new ArcRelayEntrantCardResponse();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ArenaAllowanceResponse
     {
 

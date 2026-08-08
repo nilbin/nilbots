@@ -62,16 +62,17 @@ import {
 
 interface TacticalSheetEditorProps {
   catalog: TacticalSheetCatalog;
+  initialSheetId?: string | null;
 }
 
 type PlotKind = 'route' | 'zone' | 'anchor';
 type Side = 'west' | 'east';
 type EditorSection = 'composition' | 'doctrines' | 'conditions' | 'custody' | 'map';
 
-export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProps) {
+export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
   const navigate = useNavigate();
   const sheetsQuery = useTacticalSheets(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(initialSheetId);
   const sheetQuery = useTacticalSheet(activeId);
   const [draft, setDraft] = useState<SheetDraft | null>(null);
   const [layoutHash, setLayoutHash] = useState<string | null>(null);
@@ -88,6 +89,11 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
   const trial = useTrialTacticalSheet();
 
   useEffect(() => {
+    if (initialSheetId) {
+      setActiveId(initialSheetId);
+      setRestored(false);
+      return;
+    }
     let live = true;
     void loadLocalDraft().then((local) => {
       if (!live) return;
@@ -110,7 +116,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
       ));
     });
     return () => { live = false; };
-  }, [catalog.templateLayoutJson, catalog.templatePlaybookJson]);
+  }, [catalog.templateLayoutJson, catalog.templatePlaybookJson, initialSheetId]);
 
   useEffect(() => {
     if (!sheetQuery.data) return;
@@ -154,14 +160,18 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
   );
 
   const startNew = () => {
-    setActiveId(null);
-    setDraft(parseDraft(
+    const next = parseDraft(
       'Untitled tactical sheet', null, null,
       catalog.templatePlaybookJson, catalog.templateLayoutJson,
-    ));
+    );
+    setActiveId(null);
+    setDraft(next);
     setRestored(false);
     setCompilerIssue(null);
     resetMutations();
+    // The /new route restores the browser draft by design. Persist the fresh
+    // document before navigating so an older autosave cannot flash back in.
+    void saveLocalDraft(next).then(() => navigate('/entrants/sheets/new'));
   };
 
   const saveDraft = async (asCopy = false): Promise<TacticalSheet> => {
@@ -186,6 +196,8 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
       setDraft(persisted);
       setLayoutHash(prepared.layoutSha256);
       setRestored(false);
+      if (!targetId)
+        navigate(`/entrants/sheets/${saved.id}/edit`, { replace: true });
       return saved;
     } catch (cause) {
       const issue = sheetIssueFromCompilerError(cause);
@@ -231,7 +243,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
       ]));
       setSelectedRunId(recorded.matchId);
       navigate(`/matches/${match.id}`, {
-        state: { returnTo: '/relay/sheets', returnLabel: saved.name },
+        state: { returnTo: `/entrants/sheets/${saved.id}/edit`, returnLabel: saved.name },
       });
     } catch {
       // Both mutations own their visible error state; the local draft remains intact.
@@ -289,6 +301,13 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
     setCompilerIssue(null);
   };
 
+  if (initialSheetId && sheetQuery.isError) return (
+    <section className="panel pad" role="alert">
+      <p className="lab text-arena-hot">Sheet unavailable</p>
+      <p className="t-meta mt-2">It may have been deleted, or it belongs to another account.</p>
+      <button type="button" className="btn mt-3 min-h-11" onClick={startNew}>Open a new sheet</button>
+    </section>
+  );
   if (!draft) return <section className="panel pad"><p className="t-meta">Restoring local draft…</p></section>;
 
   return (
@@ -322,6 +341,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
               onClick={() => {
                 setActiveId(sheet.id);
                 resetMutations();
+                navigate(`/entrants/sheets/${sheet.id}/edit`);
               }}
             >
               <span className="t-body block truncate">{sheet.name}</span>
@@ -360,7 +380,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
                       Plot tracks
                     </button>
                     <Link to={`/matches/${run.matchId}`}
-                      state={{ returnTo: '/relay/sheets', returnLabel: draft.name }}
+                      state={{ returnTo: `/entrants/sheets/${draft.sheetId}/edit`, returnLabel: draft.name }}
                       className="btn inline-flex min-h-11 flex-1 items-center justify-center">Watch</Link>
                   </div>
                 </article>
@@ -407,7 +427,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
                 disabled={save.isPending || blocking.length > 0}
                 onClick={() => void saveDraft(false).catch(() => undefined)}
               >
-                {save.isPending ? 'Compiling…' : draft.sheetId ? `Save r${(draft.revision ?? 0) + 1}` : 'Save & enter ladder'}
+                {save.isPending ? 'Compiling…' : draft.sheetId ? `Save r${(draft.revision ?? 0) + 1}` : 'Save & field in Season'}
               </button>
               {draft.sheetId && (
                 <button type="button" className="btn min-h-11" disabled={save.isPending}
@@ -425,7 +445,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
               checked={draft.enterLadder}
               onChange={(event) => mutate((next) => { next.enterLadder = event.target.checked; })}
             />
-            Enter this sheet in the ranked ladder when saved
+            Field this sheet in Season 1 when saved
             <span className="t-micro ml-auto">on by default</span>
           </label>
           {(save.isError || remove.isError) && (

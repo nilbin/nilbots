@@ -3,7 +3,7 @@
 nilbots is the home of **Arc Relay**, a deterministic team-strategy game about
 authoring entrants and watching their plans play out. An entrant is either a tactical
 sheet run by the frozen stock mind, or a custom C# mind built to WebAssembly through the
-controlled toolchain. Both field eight classed bodies and share the same ladder surface:
+controlled toolchain. Both field eight classed bodies and share the same Season surface:
 name, crest, composition, revisions, match history, and rating.
 
 ```
@@ -13,7 +13,8 @@ limits) ──▶ deterministic match engine ──▶ replay + hash ──▶ v
 
 The current local and hosted line is `ambush-warren-11` on the deep Warren map.
 Hosted entrant playlist v8 pins that game and its repaired frozen stock artifact.
-Historical Duel and Frontline code remains for exact replay compatibility and the
+Season 1 is the first public eight-week competition: its v8 ratings start fresh at
+1200 with zero matches. Historical Duel and Frontline code remains for exact replay compatibility and the
 labelled read-only archive; neither describes the product front door. See
 [`docs/ARC-RELAY-GLOSSARY.md`](docs/ARC-RELAY-GLOSSARY.md) for current vocabulary,
 [`docs/SHEET-AUTHORING.md`](docs/SHEET-AUTHORING.md) for the sheet contract, and
@@ -81,8 +82,8 @@ nilbots verify <printed replay.json.gz path>
 ## Run the hosted app
 
 The web app is an ASP.NET Core modular monolith backed by PostgreSQL. Players author and
-trial tactical sheets, submit custom minds through the official toolchain, enter up to
-three entrants in the ladder, and watch shareable replay pages. Legacy Duel records remain
+trial tactical sheets, submit custom minds through the official toolchain, field up to
+three entrants in Season 1, and watch shareable replay pages. Legacy Duel records remain
 available under the archive and its admission path is retired.
 
 ```bash

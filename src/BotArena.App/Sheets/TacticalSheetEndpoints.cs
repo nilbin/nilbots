@@ -129,6 +129,7 @@ public static class TacticalSheetEndpoints
             TacticalSheetCompiler compiler,
             ArcRelayClassEntitlementService entitlements,
             ArcRelayEntrantProjector projector,
+            ArcRelaySeasonLifecycleService seasons,
             TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
@@ -157,6 +158,16 @@ public static class TacticalSheetEndpoints
             await db.Database.TakeAdmissionLockAsync(
                 AdmissionLocks.ArcRelayLadder(userId), cancellationToken);
             bool enterLadder = request.EnterLadder ?? true;
+            if (enterLadder)
+            {
+                (Season season, Ladder ladder) = await seasons.CurrentAsync(
+                    cancellationToken);
+                if (season.Status != SeasonStatus.Open ||
+                    ladder.Status != LadderStatus.Open)
+                    return Results.Problem(
+                        "Season 1 is not accepting ladder entrants.",
+                        statusCode: StatusCodes.Status409Conflict);
+            }
             if (enterLadder && await ActiveEntrantCount(
                     db, userId, null, cancellationToken)
                 >= ArcRelayLadderPolicy.MaximumOptedInPerAccount)
@@ -202,6 +213,9 @@ public static class TacticalSheetEndpoints
                     EntrantId = id,
                     LadderId = ladderId,
                 });
+                await seasons.TrackLateEntrantAsync(
+                    entrant, ladderId, cancellationToken, sheet.Revision,
+                    sheet.PlaybookJson);
             }
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -217,6 +231,7 @@ public static class TacticalSheetEndpoints
             TacticalSheetCompiler compiler,
             ArcRelayClassEntitlementService entitlements,
             ArcRelayEntrantProjector projector,
+            ArcRelaySeasonLifecycleService seasons,
             TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
@@ -257,6 +272,16 @@ public static class TacticalSheetEndpoints
                 return Invalid(exception.Message);
             }
             bool enterLadder = request.EnterLadder ?? true;
+            if (enterLadder)
+            {
+                (Season season, Ladder ladder) = await seasons.CurrentAsync(
+                    cancellationToken);
+                if (season.Status != SeasonStatus.Open ||
+                    ladder.Status != LadderStatus.Open)
+                    return Results.Problem(
+                        "Season 1 is not accepting ladder entrants.",
+                        statusCode: StatusCodes.Status409Conflict);
+            }
             if (enterLadder && !entrant.LadderOptedIn
                 && await ActiveEntrantCount(
                     db, userId, entrant.Id, cancellationToken)
@@ -289,6 +314,9 @@ public static class TacticalSheetEndpoints
                     EntrantId = entrant.Id,
                     LadderId = ladderId,
                 });
+                await seasons.TrackLateEntrantAsync(
+                    entrant, ladderId, cancellationToken, sheet.Revision,
+                    sheet.PlaybookJson);
             }
             try
             {

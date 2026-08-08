@@ -57,6 +57,7 @@ const keys = {
   tacticalSheet: (id: string) => ['sheets', id] as const,
   arcRelayEntrants: ['arc-relay', 'entrants'] as const,
   arcRelayLadder: ['arc-relay', 'ladder'] as const,
+  arcRelaySeason: ['arc-relay', 'season', 'current'] as const,
 };
 
 /**
@@ -203,6 +204,14 @@ export function useArcRelayEntrants(enabled: boolean) {
 
 export function useArcRelayLadder() {
   return useQuery({ queryKey: keys.arcRelayLadder, queryFn: endpoints.arcRelayLadder, refetchInterval: 10_000 });
+}
+
+export function useArcRelaySeason() {
+  return useQuery({
+    queryKey: keys.arcRelaySeason,
+    queryFn: endpoints.arcRelaySeason,
+    refetchInterval: 10_000,
+  });
 }
 
 /**
@@ -527,6 +536,7 @@ export function useSaveTacticalSheet() {
       void client.invalidateQueries({ queryKey: keys.tacticalSheets });
       void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
       void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }
@@ -540,6 +550,7 @@ export function useDeleteTacticalSheet() {
       void client.invalidateQueries({ queryKey: keys.tacticalSheets });
       void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
       void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }
@@ -561,7 +572,10 @@ export function useCreateArcRelayMind() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateArcRelayMindRequest) => endpoints.createArcRelayMind(body),
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
+    },
   });
 }
 
@@ -577,6 +591,7 @@ export function useReviseArcRelayMind() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
       void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }
@@ -585,7 +600,10 @@ export function useArcRelayPreflight() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (entrantId: string) => endpoints.preflightArcRelayMind(entrantId),
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
+    },
   });
 }
 
@@ -603,6 +621,7 @@ export function useSetArcRelayCrest() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
       void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }
@@ -615,6 +634,7 @@ export function useArcRelayLadderOptIn() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
       void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+      void client.invalidateQueries({ queryKey: keys.arcRelaySeason });
     },
   });
 }

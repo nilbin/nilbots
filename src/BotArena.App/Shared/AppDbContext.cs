@@ -37,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArcRelayEntrant> ArcRelayEntrants => Set<ArcRelayEntrant>();
     public DbSet<ArcRelayEntrantRating> ArcRelayEntrantRatings => Set<ArcRelayEntrantRating>();
     public DbSet<ArcRelayRankedMatch> ArcRelayRankedMatches => Set<ArcRelayRankedMatch>();
+    public DbSet<ArcRelaySeasonEntrant> ArcRelaySeasonEntrants => Set<ArcRelaySeasonEntrant>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<MatchTeamResult> MatchTeamResults => Set<MatchTeamResult>();
@@ -154,12 +155,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.Entity<Season>(entity =>
         {
-            entity.ToTable(table => table.HasCheckConstraint(
-                "CK_Seasons_TimeWindow",
-                "\"StartsAt\" IS NULL OR \"EndsAt\" IS NULL OR \"EndsAt\" > \"StartsAt\""));
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Seasons_TimeWindow",
+                    "\"StartsAt\" IS NULL OR \"EndsAt\" IS NULL OR \"EndsAt\" > \"StartsAt\"");
+                table.HasCheckConstraint(
+                    "CK_Seasons_Number_Positive",
+                    "\"Number\" IS NULL OR \"Number\" > 0");
+                table.HasCheckConstraint(
+                    "CK_Seasons_OpenedAt",
+                    "\"OpenedAt\" IS NULL OR \"StartsAt\" IS NULL OR \"OpenedAt\" >= \"StartsAt\"");
+                table.HasCheckConstraint(
+                    "CK_Seasons_ClosedAt",
+                    "\"ClosedAt\" IS NULL OR \"OpenedAt\" IS NULL OR \"ClosedAt\" >= \"OpenedAt\"");
+            });
             entity.HasIndex(season => season.Key).IsUnique();
             entity.Property(season => season.Key).HasMaxLength(100);
             entity.Property(season => season.DisplayName).HasMaxLength(120);
+            entity.Property(season => season.Status).HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(SeasonStatus.Draft);
+            entity.Property(season => season.RatingSeedPolicyId)
+                .HasMaxLength(100)
+                .HasDefaultValue("legacy-import");
         });
 
         modelBuilder.Entity<Ladder>(entity =>
@@ -285,6 +304,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne<Ladder>().WithMany().HasForeignKey(value => value.LadderId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantAId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantBId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ArcRelaySeasonEntrant>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ArcRelaySeasonEntrants_OpeningRank",
+                    "\"OpeningRank\" IS NULL OR \"OpeningRank\" > 0");
+                table.HasCheckConstraint(
+                    "CK_ArcRelaySeasonEntrants_ClosingRank",
+                    "\"ClosingRank\" IS NULL OR \"ClosingRank\" > 0");
+                table.HasCheckConstraint(
+                    "CK_ArcRelaySeasonEntrants_OpeningRevision",
+                    "\"OpeningRevision\" >= 0");
+            });
+            entity.HasIndex(value => new { value.SeasonId, value.EntrantId }).IsUnique();
+            entity.HasIndex(value => new { value.SeasonId, value.OpeningRank });
+            entity.Property(value => value.OpeningPresentationJson).HasColumnType("jsonb");
+            entity.Property(value => value.ClosingPresentationJson).HasColumnType("jsonb");
+            entity.HasOne<Season>().WithMany().HasForeignKey(value => value.SeasonId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ArcRelayEntrant>().WithMany().HasForeignKey(value => value.EntrantId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<UserNotification>(entity =>

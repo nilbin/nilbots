@@ -8,10 +8,13 @@ namespace BotArena.App.Competition;
 
 /// <summary>
 /// Seeds the current immutable entrant lane. Playlist v7 remains the fresh
-/// Warren rating era; v8 repairs its executable artifact/wire identity without
-/// changing the game, so its entrant state and ratings carry forward exactly.
+/// Season 1 is the first public competition on the repaired v8 artifact. Earlier
+/// development ladders remain readable, but never seed this season's rating book.
 /// </summary>
-public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
+public sealed class ArcRelayEntrantPlaylistSeeder(
+    AppDbContext db,
+    TimeProvider timeProvider,
+    ArcRelaySeasonLifecycleService seasons)
 {
     public async Task<ArcRelayEntrantSeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -111,13 +114,36 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
             cancellationToken);
         if (season is null)
         {
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             season = new Season
             {
                 Key = ArcRelayLadderPolicy.SeasonKey,
                 DisplayName = ArcRelayLadderPolicy.SeasonName,
+                Number = ArcRelayLadderPolicy.SeasonNumber,
+                Status = SeasonStatus.Scheduled,
+                StartsAt = now,
+                EndsAt = now.AddDays(
+                    ArcRelayLadderPolicy.SeasonDurationDays),
+                RatingSeedPolicyId =
+                    ArcRelayLadderPolicy.RatingSeedPolicyId,
+                CreatedAt = now,
             };
             db.Seasons.Add(season);
             await db.SaveChangesAsync(cancellationToken);
+        }
+        else if (season.Number != ArcRelayLadderPolicy.SeasonNumber ||
+            !string.Equals(season.DisplayName,
+                ArcRelayLadderPolicy.SeasonName,
+                StringComparison.Ordinal) ||
+            !string.Equals(season.RatingSeedPolicyId,
+                ArcRelayLadderPolicy.RatingSeedPolicyId,
+                StringComparison.Ordinal) ||
+            season.StartsAt is null || season.EndsAt is null ||
+            season.EndsAt.Value - season.StartsAt.Value !=
+                TimeSpan.FromDays(ArcRelayLadderPolicy.SeasonDurationDays))
+        {
+            throw new InvalidOperationException(
+                "Arc Relay Season 1 contradicts its registered definition.");
         }
 
         Ladder? ladder = await db.Ladders.SingleOrDefaultAsync(
@@ -130,124 +156,25 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
             {
                 PlaylistVersionId = version.Id,
                 SeasonId = season.Id,
-                Status = LadderStatus.Open,
+                Status = LadderStatus.Draft,
                 RatingPolicyId = ArcRelayEloV1.Id,
-                IsListed = true,
+                IsListed = false,
                 AwardsAchievements = false,
             };
             db.Ladders.Add(ladder);
             await db.SaveChangesAsync(cancellationToken);
         }
-        if (ladder.Status != LadderStatus.Open ||
-            !string.Equals(ladder.RatingPolicyId, ArcRelayEloV1.Id, StringComparison.Ordinal) ||
-            !ladder.IsListed || ladder.AwardsAchievements)
+        if (!string.Equals(ladder.RatingPolicyId, ArcRelayEloV1.Id,
+                StringComparison.Ordinal) || ladder.AwardsAchievements)
         {
-            throw new InvalidOperationException("Arc Relay entrant ladder contradicts its immutable launch policy.");
-        }
-
-        var previous = await (
-            from previousLadder in db.Ladders
-            join previousVersion in db.PlaylistVersions
-                on previousLadder.PlaylistVersionId equals previousVersion.Id
-            where previousVersion.PlaylistId == playlist.Id
-                && previousVersion.Version < ArcRelayEntrantPlaylistDefinition.Version
-                && previousLadder.SeasonId == season.Id
-                && previousLadder.Status == LadderStatus.Open
-            orderby previousVersion.Version descending
-            select new { Ladder = previousLadder, Version = previousVersion.Version })
-            .ToArrayAsync(cancellationToken);
-
-        if (previous.Length > 0)
-        {
-            HashSet<Guid> existing = await db.ArcRelayEntrantRatings
-                .Where(value => value.LadderId == ladder.Id)
-                .Select(value => value.EntrantId)
-                .ToHashSetAsync(cancellationToken);
-            var continuity = previous.FirstOrDefault(value =>
-                value.Version == ArcRelayEntrantPlaylistDefinition
-                    .AmbushVersion);
-            if (continuity is not null)
-            {
-                ArcRelayEntrantRating[] ratings = await db
-                    .ArcRelayEntrantRatings
-                    .Where(value =>
-                        value.LadderId == continuity.Ladder.Id)
-                    .ToArrayAsync(cancellationToken);
-                foreach (ArcRelayEntrantRating rating in ratings)
-                {
-                    if (!existing.Add(rating.EntrantId))
-                        continue;
-                    db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
-                    {
-                        EntrantId = rating.EntrantId,
-                        LadderId = ladder.Id,
-                        Rating = rating.Rating,
-                        RankedMatches = rating.RankedMatches,
-                    });
-                }
-            }
-            else
-            {
-                // A database that never seeded v7 still crosses the v6 -> v7
-                // game boundary here. Preserve that cutover's fresh-era
-                // semantics even though v8 is now the first current row it
-                // sees.
-                List<ArcRelayEntrant> entrants = await db.ArcRelayEntrants
-                    .ToListAsync(cancellationToken);
-                Dictionary<Guid, TacticalSheet> sheets = await db
-                    .TacticalSheets
-                    .ToDictionaryAsync(value => value.Id, cancellationToken);
-                DateTime now = DateTime.UtcNow;
-                foreach (ArcRelayEntrant entrant in entrants)
-                {
-                    if (entrant.Kind == ArcRelayEntrantKind.CustomMind)
-                    {
-                        entrant.PreflightStatus =
-                            ArcRelayPreflightStatus.Required;
-                        entrant.PreflightMatchId = null;
-                        entrant.PreflightRevision = null;
-                        entrant.PreflightFailure = null;
-                        entrant.LadderOptedIn = false;
-                        entrant.LadderOptedInAt = null;
-                        entrant.UpdatedAt = now;
-                        continue;
-                    }
-
-                    bool admissible = sheets.TryGetValue(
-                            entrant.Id, out TacticalSheet? sheet)
-                        && TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(
-                            sheet.LayoutJson);
-                    if (!admissible)
-                    {
-                        entrant.LadderOptedIn = false;
-                        entrant.LadderOptedInAt = null;
-                        entrant.UpdatedAt = now;
-                        continue;
-                    }
-
-                    // This is deliberately a fresh default record, never a
-                    // copy of the pre-Warren ladder's rating or match count.
-                    if (entrant.LadderOptedIn && existing.Add(entrant.Id))
-                    {
-                        db.ArcRelayEntrantRatings.Add(
-                            new ArcRelayEntrantRating
-                            {
-                                EntrantId = entrant.Id,
-                                LadderId = ladder.Id,
-                            });
-                    }
-                }
-            }
-
-            foreach (var historical in previous)
-            {
-                historical.Ladder.Status = LadderStatus.Closed;
-                historical.Ladder.IsListed = false;
-            }
-            await db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException(
+                "Arc Relay Season 1 ladder contradicts its registered policy.");
         }
 
         await transaction.CommitAsync(cancellationToken);
+        await seasons.AdvanceAsync(cancellationToken);
+        ladder = await db.Ladders.AsNoTracking().SingleAsync(
+            value => value.Id == ladder.Id, cancellationToken);
         return new ArcRelayEntrantSeedResult(version, ladder);
     }
 }

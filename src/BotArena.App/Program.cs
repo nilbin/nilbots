@@ -81,6 +81,8 @@ builder.Services.AddSingleton<TacticalSheetTemplateCatalog>();
 builder.Services.AddScoped<ArcRelayClassEntitlementService>();
 builder.Services.AddScoped<ArcRelayEntrantProjector>();
 builder.Services.AddScoped<ArcRelayMatchAdmissionService>();
+builder.Services.AddScoped<ArcRelaySeasonLifecycleService>();
+builder.Services.AddScoped<ArcRelaySeasonProjectionService>();
 builder.Services.AddScoped<ArcRelayLadderPairingService>();
 builder.Services.AddScoped<ArcRelayRatingSettlementJobHandler>();
 builder.Services.AddSingleton<BotClassPolicy>();

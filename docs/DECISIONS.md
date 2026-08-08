@@ -6515,3 +6515,37 @@ its package move 0.9.35→0.9.36; SDK and Guest move to 0.10.13; build pipeline
 moves to 5. No release or deploy workflow ran. `publish-cli` therefore owes
 the untagged `cli-v0.9.34`,
 `cli-v0.9.35`, and `cli-v0.9.36` tags before a deploy carrying this line.
+
+## 251. Season 1 is the Arc Relay front door and a fresh public rating book
+
+Owner product ruling (2026-08-08). The product information architecture is
+exactly **Season · Entrants · Watch · Docs**. Arc Relay names the game rather
+than a duplicate navigation branch. `/` is the current Season, Entrants owns
+the sheet workshop and custom-mind admission, Watch owns broadcasts, and old
+`/relay` URLs redirect into that hierarchy. The read-only Duel archive remains
+reachable but is not promoted.
+
+Season 1 is the first public competition: eight weeks on immutable hosted
+playlist v8, with every fielded entrant starting at 1200 and zero Season
+matches. v6, v7, and the pre-Season v8 populations remain technically readable
+development records; none is presented as Season history and none seeds the
+Season 1 rating book. Playlist definitions remain immutable. This is a new
+ladder identity beneath the existing v8 game, not a rules, map, artifact, or
+rating-algorithm change.
+
+Season state is authoritative and transactional: `Draft → Scheduled → Open →
+Closing → Closed`. Opening closes prior Arc Relay admission, creates one fresh
+rating and opening snapshot per currently fielded entrant, and ranks equal
+ratings equally. Entrants fielded after opening receive a late-entry snapshot
+without a fabricated opening rank. Closing stops admission first, waits until
+every result capable of moving rating has settled on the causal broadcast
+clock, then freezes final rating, rank, revision, crest/name/composition
+presentation, and closes idempotently. Failed matches cannot strand closure.
+
+The public Season projection derives W–D–L, trajectories, movement, and recent
+matches only from settled ranked rows. A simulated or completed-but-unrevealed
+match changes none of those surfaces. Revisions retain entrant and Season
+rating identity; save-as-copy remains a new entrant. At most three entrants per
+account may be fielded, and account-owned scrimmages remain unrated. Earlier
+development data is not fabricated into a Preseason, and no season-history UI
+ships until a real closed public season exists.

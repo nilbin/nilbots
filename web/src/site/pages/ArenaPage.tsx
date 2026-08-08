@@ -519,7 +519,7 @@ function NeverFought() {
     <section className="panel pad">
       <p className="lab mb-2">No Arc Relay broadcasts yet</p>
       <p className="t-body mb-3 max-w-[52ch]">
-        The arena fills when the passive ladder pairs entrants or a player starts
+        The arena fills when Season pairing matches entrants or a player starts
         an unrated scrimmage.
       </p>
       <p className="t-meta mb-4 max-w-[62ch]">
@@ -527,7 +527,7 @@ function NeverFought() {
         same replay hash every time. A broadcast appears on its causal clock, and you can
         scrub it afterwards to the tick it turned.
       </p>
-      <Link to="/relay" className="btn inline-block">
+      <Link to="/entrants" className="btn inline-block">
         Create an entrant →
       </Link>
     </section>

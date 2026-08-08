@@ -18,6 +18,14 @@ public static class ArcRelayEndpoints
     {
         RouteGroupBuilder group = routes.MapGroup("/api/arc-relay");
 
+        group.MapGet("/seasons/current", async (
+            ClaimsPrincipal principal,
+            ArcRelaySeasonProjectionService seasons,
+            CancellationToken cancellationToken) =>
+            Results.Ok(await seasons.CurrentAsync(
+                principal.UserId(), cancellationToken)))
+            .Produces<ArcRelaySeasonResponse>();
+
         group.MapGet("/catalog", async (
             ClaimsPrincipal principal,
             AppDbContext db,
@@ -64,10 +72,8 @@ public static class ArcRelayEndpoints
                         || db.TacticalSheets.Any(sheet => sheet.Id == value.Id)))
                 .OrderByDescending(value => value.UpdatedAt).ThenBy(value => value.Id)
                 .ToArrayAsync(cancellationToken);
-            var response = new List<ArcRelayEntrantCardResponse>(entrants.Length);
-            foreach (ArcRelayEntrant entrant in entrants)
-                response.Add(await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken));
-            return Results.Ok(response);
+            return Results.Ok(await projector.ProjectManyAsync(
+                entrants, userId, ladderId, cancellationToken));
         }).Produces<IReadOnlyList<ArcRelayEntrantCardResponse>>().RequireAuthorization();
 
         group.MapPost("/minds", async (
@@ -270,7 +276,8 @@ public static class ArcRelayEndpoints
 
         group.MapPut("/entrants/{entrantId:guid}/ladder", async (
             Guid entrantId, SetArcRelayLadderOptInRequest request, ClaimsPrincipal principal,
-            AppDbContext db, ArcRelayEntrantProjector projector, TimeProvider timeProvider,
+            AppDbContext db, ArcRelayEntrantProjector projector,
+            ArcRelaySeasonLifecycleService seasons, TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId) return Results.Unauthorized();
@@ -281,6 +288,13 @@ public static class ArcRelayEndpoints
             if (entrant is null) return Results.NotFound();
             if (request.OptedIn)
             {
+                (Season season, Ladder ladder) = await seasons.CurrentAsync(
+                    cancellationToken);
+                if (season.Status != SeasonStatus.Open ||
+                    ladder.Status != LadderStatus.Open)
+                    return Results.Problem(
+                        "Season 1 is not accepting ladder entrants.",
+                        statusCode: 409);
                 if (entrant.SuspensionReason is not null)
                     return Results.Problem("This entrant is suspended until it is revised and passes admission again.", statusCode: 409);
                 if (entrant.Kind == ArcRelayEntrantKind.CustomMind && entrant.PreflightStatus != ArcRelayPreflightStatus.Passed)
@@ -310,7 +324,11 @@ public static class ArcRelayEndpoints
             Guid ladderId = await projector.LadderIdAsync(cancellationToken);
             if (request.OptedIn && !await db.ArcRelayEntrantRatings.AnyAsync(
                     value => value.EntrantId == entrant.Id && value.LadderId == ladderId, cancellationToken))
+            {
                 db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating { EntrantId = entrant.Id, LadderId = ladderId });
+                await seasons.TrackLateEntrantAsync(
+                    entrant, ladderId, cancellationToken);
+            }
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Results.Ok(await projector.ProjectAsync(entrant, userId, ladderId, cancellationToken));
@@ -330,9 +348,9 @@ public static class ArcRelayEndpoints
                         || db.TacticalSheets.Any(sheet => sheet.Id == entrant.Id))
                 orderby rating.Rating descending, entrant.Id
                 select entrant).ToArrayAsync(cancellationToken);
-            var cards = new List<ArcRelayEntrantCardResponse>(entrants.Length);
-            foreach (ArcRelayEntrant entrant in entrants)
-                cards.Add(await projector.ProjectAsync(entrant, viewerId, ladderId, cancellationToken));
+            IReadOnlyList<ArcRelayEntrantCardResponse> cards = await projector
+                .ProjectManyAsync(
+                    entrants, viewerId, ladderId, cancellationToken);
             return Results.Ok(new ArcRelayLadderResponse(
                 ladderId, ArcRelayLadderPolicy.LadderName,
                 ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,

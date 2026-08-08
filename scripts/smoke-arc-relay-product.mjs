@@ -2,8 +2,8 @@
 /**
  * Production-build Arc Relay product smoke against a real BotArena.App instance.
  *
- * Exercises the current product loop: entrant overview -> edit -> run -> watch ->
- * return -> plot recorded tracks. Captures phone and desktop evidence along the way.
+ * Exercises the current product loop: Season -> entrant overview -> edit -> run ->
+ * watch -> return -> plot recorded tracks. Captures phone and desktop evidence.
  *
  * BASE=http://127.0.0.1:8093 \
  * OUT=/tmp/nilbots-arc-relay-smoke \
@@ -48,17 +48,27 @@ try {
   if (!registration.ok()) throw new Error(`Registration failed: ${registration.status()}`);
 
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto(`${base}/relay`, { waitUntil: 'networkidle' });
-  await page.getByRole('heading', { name: 'Entrants, matches and rating.' }).waitFor();
-  await page.screenshot({ path: join(output, 'relay-overview-desktop.png'), fullPage: true });
+  await page.goto(`${base}/`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Season 1' }).waitFor();
+  await page.screenshot({ path: join(output, 'season-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const seasonPhoneOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (seasonPhoneOverflow > 1) throw new Error(`Season overflows phone viewport by ${seasonPhoneOverflow}px.`);
+  await page.screenshot({ path: join(output, 'season-phone.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+
+  await page.goto(`${base}/entrants`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Build and manage entrants.' }).waitFor();
+  await page.screenshot({ path: join(output, 'entrants-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   const overviewPhoneOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  if (overviewPhoneOverflow > 1) throw new Error(`Relay overview overflows phone viewport by ${overviewPhoneOverflow}px.`);
-  await page.screenshot({ path: join(output, 'relay-overview-phone.png'), fullPage: true });
+  if (overviewPhoneOverflow > 1) throw new Error(`Entrants overflows phone viewport by ${overviewPhoneOverflow}px.`);
+  await page.screenshot({ path: join(output, 'entrants-phone.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1050 });
 
-  await page.goto(`${base}/relay/sheets`, { waitUntil: 'networkidle' });
+  await page.goto(`${base}/entrants/sheets/new`, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { name: 'Change. Run. Watch. Adjust.' }).waitFor();
   const nameField = page.getByLabel('Sheet name');
   await nameField.fill(sheetName);
@@ -130,6 +140,12 @@ try {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (returnOverflow > 1) throw new Error(`Returned editor overflows phone viewport by ${returnOverflow}px.`);
   await page.screenshot({ path: join(output, 'trial-tracks-phone.png'), fullPage: true });
+
+  await page.goto(`${base}/`, { waitUntil: 'networkidle' });
+  await page.getByText(sheetName, { exact: true }).first().waitFor();
+  await page.screenshot({ path: join(output, 'season-with-entrant-phone.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await page.screenshot({ path: join(output, 'season-with-entrant-desktop.png'), fullPage: true });
 
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto(`${base}/docs`, { waitUntil: 'networkidle' });

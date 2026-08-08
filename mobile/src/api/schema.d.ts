@@ -1433,6 +1433,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/arc-relay/seasons/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelaySeasonResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/arc-relay/catalog": {
         parameters: {
             query?: never;
@@ -2372,6 +2407,70 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             status: string;
+        };
+        ArcRelaySeasonMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** Format: date-time */
+            settledAt: string;
+            /** Format: uuid */
+            entrantAId: string;
+            entrantAName: string;
+            /** Format: int32 */
+            placementA: number;
+            /** Format: uuid */
+            entrantBId: string;
+            entrantBName: string;
+            /** Format: int32 */
+            placementB: number;
+        };
+        ArcRelaySeasonRatingPointResponse: {
+            /** Format: uuid */
+            matchId: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: double */
+            rating: number;
+        };
+        ArcRelaySeasonResponse: {
+            /** Format: uuid */
+            seasonId: string;
+            key: string;
+            /** Format: int32 */
+            number: number;
+            name: string;
+            status: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: date-time */
+            openedAt: null | string;
+            /** Format: date-time */
+            closedAt: null | string;
+            /** Format: uuid */
+            ladderId: string;
+            ladderName: string;
+            /** Format: int32 */
+            maximumFieldedPerAccount: number;
+            standings: components["schemas"]["ArcRelaySeasonStandingResponse"][];
+            recentMatches: components["schemas"]["ArcRelaySeasonMatchResponse"][];
+        };
+        ArcRelaySeasonStandingResponse: {
+            /** Format: int32 */
+            rank: number;
+            /** Format: int32 */
+            openingRank: null | number;
+            /** Format: int32 */
+            rankMovement: null | number;
+            /** Format: int32 */
+            wins: number;
+            /** Format: int32 */
+            draws: number;
+            /** Format: int32 */
+            losses: number;
+            ratingHistory: components["schemas"]["ArcRelaySeasonRatingPointResponse"][];
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
         };
         ArenaAllowanceResponse: {
             /** Format: int32 */

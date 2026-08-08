@@ -1054,6 +1054,25 @@
         }
       }
     },
+    "/api/arc-relay/seasons/current": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArcRelaySeasonResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/arc-relay/catalog": {
       "get": {
         "tags": [
@@ -2184,6 +2203,213 @@
           },
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "ArcRelaySeasonMatchResponse": {
+        "required": [
+          "matchId",
+          "settledAt",
+          "entrantAId",
+          "entrantAName",
+          "placementA",
+          "entrantBId",
+          "entrantBName",
+          "placementB"
+        ],
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entrantAId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantAName": {
+            "type": "string"
+          },
+          "placementA": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entrantBId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantBName": {
+            "type": "string"
+          },
+          "placementB": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ArcRelaySeasonRatingPointResponse": {
+        "required": [
+          "matchId",
+          "occurredAt",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ArcRelaySeasonResponse": {
+        "required": [
+          "seasonId",
+          "key",
+          "number",
+          "name",
+          "status",
+          "startsAt",
+          "endsAt",
+          "openedAt",
+          "closedAt",
+          "ladderId",
+          "ladderName",
+          "maximumFieldedPerAccount",
+          "standings",
+          "recentMatches"
+        ],
+        "type": "object",
+        "properties": {
+          "seasonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ladderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ladderName": {
+            "type": "string"
+          },
+          "maximumFieldedPerAccount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "standings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySeasonStandingResponse"
+            }
+          },
+          "recentMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySeasonMatchResponse"
+            }
+          }
+        }
+      },
+      "ArcRelaySeasonStandingResponse": {
+        "required": [
+          "rank",
+          "openingRank",
+          "rankMovement",
+          "wins",
+          "draws",
+          "losses",
+          "ratingHistory",
+          "entrant"
+        ],
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openingRank": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "rankMovement": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draws": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "losses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ratingHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArcRelaySeasonRatingPointResponse"
+            }
+          },
+          "entrant": {
+            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
           }
         }
       },

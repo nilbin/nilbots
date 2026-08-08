@@ -212,7 +212,7 @@ export default function MatchPage() {
             ? 'Watch more'
             : `Return to ${watchReturn.label}`}
         </Link>
-        <Link to="/relay" className="btn">Entrants</Link>
+        <Link to="/entrants" className="btn">Entrants</Link>
       </section>
     </div>
   );
@@ -661,7 +661,7 @@ function ParticipantLink({
   const location = useLocation();
   if (participant.entrant?.crest) {
     return (
-      <Link to="/relay" className="inline-flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80">
+      <Link to="/entrants" className="inline-flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80">
         <EntrantCrest crest={participant.entrant.crest} size={28} />
         <span className={clsx('truncate', winner && 'font-semibold')}>
           {participant.nameSnapshot}

@@ -284,6 +284,68 @@ namespace BotArena.App.Migrations
                     b.ToTable("ArcRelayRankedMatches");
                 });
 
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelaySeasonEntrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClosingPresentationJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("ClosingRank")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("ClosingRating")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("ClosingRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EntrantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OpeningPresentationJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("OpeningRank")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("OpeningRating")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("OpeningRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("PresentAtOpening")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SeasonId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntrantId");
+
+                    b.HasIndex("SeasonId", "EntrantId")
+                        .IsUnique();
+
+                    b.HasIndex("SeasonId", "OpeningRank");
+
+                    b.ToTable("ArcRelaySeasonEntrants", t =>
+                        {
+                            t.HasCheckConstraint("CK_ArcRelaySeasonEntrants_ClosingRank", "\"ClosingRank\" IS NULL OR \"ClosingRank\" > 0");
+
+                            t.HasCheckConstraint("CK_ArcRelaySeasonEntrants_OpeningRank", "\"OpeningRank\" IS NULL OR \"OpeningRank\" > 0");
+
+                            t.HasCheckConstraint("CK_ArcRelaySeasonEntrants_OpeningRevision", "\"OpeningRevision\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("BotArena.App.Bots.Bot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -652,6 +714,9 @@ namespace BotArena.App.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -668,8 +733,28 @@ namespace BotArena.App.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RatingSeedPolicyId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("legacy-import");
+
                     b.Property<DateTime?>("StartsAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Draft");
 
                     b.HasKey("Id");
 
@@ -678,6 +763,12 @@ namespace BotArena.App.Migrations
 
                     b.ToTable("Seasons", t =>
                         {
+                            t.HasCheckConstraint("CK_Seasons_ClosedAt", "\"ClosedAt\" IS NULL OR \"OpenedAt\" IS NULL OR \"ClosedAt\" >= \"OpenedAt\"");
+
+                            t.HasCheckConstraint("CK_Seasons_Number_Positive", "\"Number\" IS NULL OR \"Number\" > 0");
+
+                            t.HasCheckConstraint("CK_Seasons_OpenedAt", "\"OpenedAt\" IS NULL OR \"StartsAt\" IS NULL OR \"OpenedAt\" >= \"StartsAt\"");
+
                             t.HasCheckConstraint("CK_Seasons_TimeWindow", "\"StartsAt\" IS NULL OR \"EndsAt\" IS NULL OR \"EndsAt\" > \"StartsAt\"");
                         });
                 });
@@ -1655,6 +1746,21 @@ namespace BotArena.App.Migrations
                         .WithMany()
                         .HasForeignKey("MatchId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.ArcRelay.ArcRelaySeasonEntrant", b =>
+                {
+                    b.HasOne("BotArena.App.ArcRelay.ArcRelayEntrant", null)
+                        .WithMany()
+                        .HasForeignKey("EntrantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.Competition.Season", null)
+                        .WithMany()
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

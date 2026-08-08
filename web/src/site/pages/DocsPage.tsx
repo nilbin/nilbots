@@ -21,9 +21,9 @@ export default function DocsPage() {
       <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
           <li><Link to="/login?mode=register" className="text-link">Create an account</Link>.</li>
-          <li>Open the <Link to="/relay/sheets" className="text-link">sheet workshop</Link> and save an eight-slot sheet, or submit a C# custom mind from <Link to="/relay" className="text-link">Entrants</Link>.</li>
+          <li>Open the <Link to="/entrants/sheets/new" className="text-link">sheet workshop</Link> and save an eight-slot sheet, or submit a C# custom mind from <Link to="/entrants" className="text-link">Entrants</Link>.</li>
           <li>Pick a crest. A custom mind must finish its controlled build and complete one hosted preflight before entering ranked play.</li>
-          <li>Opt in up to three entrants. Passive pairing finds similarly rated entrants from other accounts; your own scrimmages are always unrated.</li>
+          <li>Field up to three entrants in Season 1. Passive pairing finds similarly rated entrants from other accounts; your own scrimmages are always unrated.</li>
           <li>Watch the causal broadcast. The score strip shows only integrity, charge and time already reached by the playhead.</li>
         </ol>
       </Doc>
@@ -33,7 +33,7 @@ export default function DocsPage() {
           A sheet is two hash-pinned JSON documents: eight unlocked classes under the
           two-copy cap, ordered role doctrines, named conditions, custody policy and
           map-plotted routes, zones and anchors. Saving compiles through the same shared
-          compiler as the CLI and enters the sheet in the ladder by default. A revision
+          compiler as the CLI and fields the sheet in the current Season by default. A revision
           preserves entrant identity and rating; <b>save as copy</b> starts a new entrant
           and rating.
         </p>
@@ -41,9 +41,9 @@ export default function DocsPage() {
           Hosted playlist v8 and the local <code>nilbots arc-relay</code> default
           both run ambush-warren-11 on the deep Warren. Counterflow-era sheets
           remain readable history but must be replotted natively before admission to the
-          current ladder; coordinates are never projected between maps. v7 began the
-          Warren rating era, and v8 preserved it while repairing only the frozen stock
-          artifact and execution wire.
+          current Season; coordinates are never projected between maps. Season 1 is the
+          first public eight-week competition on v8: every entrant starts at 1200 with a
+          zero-match record. Earlier development ladders are not presented as Season history.
         </p>
         <p className="mt-2">
           A custom mind submits source files through the controlled toolchain and runs only
@@ -103,7 +103,7 @@ public sealed class MyRelayMind : IGenericMindBot
           volume and never pairs two entrants owned by the same account.
         </p>
         <p className="mt-2">
-          Match and ladder surfaces follow the broadcast clock: results and rating changes
+          Match and Season surfaces follow the broadcast clock: results and rating changes
           do not leak ahead of the watchable causal prefix. Gameplay remains a deterministic
           function of pinned artifacts/data, map, rules version and seed, so canonical
           verification remains byte-exact.

@@ -36,14 +36,18 @@ navigation, help, errors, and authoring UI use the terms below.
 - **Route** — ordered map waypoints plus a corridor width.
 - **Anchor** — one named map tile, commonly used as an interception origin.
 - **Trial run** — an unranked run of the current draft against a chosen stock sheet and
-  seed. It exists to edit, watch, compare, and edit again; it is not ladder evidence.
+  seed. It exists to edit, watch, compare, and edit again; it is not Season evidence.
 - **Replay** — the authoritative match record viewed at a playhead. Actual tracks come
   from recorded body positions and never invent movement between ticks.
-- **Ladder** — the current ranked Arc Relay population. At most three entrants per
-  account may be entered at once.
+- **Season** — the public eight-week Arc Relay competition: standings, settled record,
+  rating trajectory, and recent ranked matches. Season 1 starts every entrant at 1200.
+- **Fielded entrant** — one of at most three entrants an account makes eligible for
+  passive Season pairing. Withdrawing it stops new pairings without changing identity.
+- **Ladder** — the internal isolated rating population beneath a Season. Product UI says
+  Season and fielded entrant; compatibility code and historical records retain ladder.
 - **Legacy Duel** — the retired earlier game. Its records remain readable in the archive;
   its bot vocabulary does not describe Arc Relay entrants or bodies.
 
 The exact sheet schema, ranges, facts, and validation rules live in
 [`SHEET-AUTHORING.md`](SHEET-AUTHORING.md). Product and compatibility rulings live in
-[`DECISIONS.md`](DECISIONS.md), especially decisions 247–250.
+[`DECISIONS.md`](DECISIONS.md), especially decisions 247–251.

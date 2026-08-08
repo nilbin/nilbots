@@ -349,6 +349,16 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         Assert.Equal("ready", concealedSuspension.Status);
         Assert.Null(concealedSuspension.SuspensionReason);
         Assert.Null(concealedSuspension.SuspensionMatchId);
+        ArcRelaySeasonResponse concealedSeason = (await firstClient
+            .GetFromJsonAsync<ArcRelaySeasonResponse>(
+                "/api/arc-relay/seasons/current"))!;
+        Assert.Empty(concealedSeason.RecentMatches);
+        Assert.All(concealedSeason.Standings, standing =>
+        {
+            Assert.Equal((0, 0, 0),
+                (standing.Wins, standing.Draws, standing.Losses));
+            Assert.Single(standing.RatingHistory);
+        });
         await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() => scope.ServiceProvider
@@ -376,10 +386,50 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         Assert.Equal("suspended", revealedSuspension.Status);
         Assert.Equal("handoff ping-pong", revealedSuspension.SuspensionReason);
         Assert.Equal(matchId, revealedSuspension.SuspensionMatchId);
+        ArcRelaySeasonResponse revealedSeason = (await firstClient
+            .GetFromJsonAsync<ArcRelaySeasonResponse>(
+                "/api/arc-relay/seasons/current"))!;
+        Assert.Equal(matchId, Assert.Single(revealedSeason.RecentMatches).MatchId);
+        Assert.All(revealedSeason.Standings, standing =>
+        {
+            Assert.Equal(1,
+                standing.Wins + standing.Draws + standing.Losses);
+            Assert.Equal(2, standing.RatingHistory.Count);
+        });
+
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Season season = await db.Seasons.SingleAsync(value =>
+                value.Key == ArcRelayLadderPolicy.SeasonKey);
+            season.EndsAt = DateTime.UtcNow.AddSeconds(-1);
+            await db.SaveChangesAsync();
+        }
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<
+                ArcRelaySeasonLifecycleService>().AdvanceAsync();
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Season season = await db.Seasons.SingleAsync(value =>
+                value.Key == ArcRelayLadderPolicy.SeasonKey);
+            Assert.Equal(SeasonStatus.Closed, season.Status);
+            Assert.NotNull(season.ClosedAt);
+            ArcRelaySeasonEntrant[] snapshots = await db
+                .ArcRelaySeasonEntrants.Where(value =>
+                    value.SeasonId == season.Id).ToArrayAsync();
+            Assert.Equal(2, snapshots.Length);
+            Assert.All(snapshots, snapshot =>
+            {
+                Assert.NotNull(snapshot.ClosingRating);
+                Assert.NotNull(snapshot.ClosingRank);
+                Assert.NotNull(snapshot.ClosingRevision);
+                Assert.Contains("OwnerDisplayName", snapshot.ClosingPresentationJson,
+                    StringComparison.Ordinal);
+            });
+        }
     }
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Ambush_cutover_without_v7_keeps_v6_history_but_starts_minds_and_ratings_fresh()
+    public async Task Season_one_keeps_development_history_but_opens_a_fresh_rating_book()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -422,8 +472,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             };
             var season = new Season
             {
-                Key = ArcRelayLadderPolicy.SeasonKey,
-                DisplayName = ArcRelayLadderPolicy.SeasonName,
+                Key = ArcRelayLadderPolicy.LegacyLaunchSeasonKey,
+                DisplayName = "Development ladder",
             };
             var ladder = new Ladder
             {
@@ -490,9 +540,12 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.False(await db.ArcRelayEntrantRatings.AnyAsync(value =>
-                value.EntrantId == entrantId &&
-                value.LadderId == currentLadder.Id));
+            ArcRelayEntrantRating seasonRating = await db
+                .ArcRelayEntrantRatings.SingleAsync(value =>
+                    value.EntrantId == entrantId &&
+                    value.LadderId == currentLadder.Id);
+            Assert.Equal(BotRating.DefaultRating, seasonRating.Rating);
+            Assert.Equal(0, seasonRating.RankedMatches);
             ArcRelayEntrantRating historicalRating = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
                     value.LadderId == oldLadderId);
@@ -500,15 +553,30 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Assert.Equal(17, historicalRating.RankedMatches);
             ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(
                 value => value.Id == entrantId);
-            Assert.Equal(ArcRelayPreflightStatus.Required, entrant.PreflightStatus);
-            Assert.Null(entrant.PreflightRevision);
-            Assert.False(entrant.LadderOptedIn);
+            Assert.Equal(ArcRelayPreflightStatus.Passed, entrant.PreflightStatus);
+            Assert.Equal(3, entrant.PreflightRevision);
+            Assert.True(entrant.LadderOptedIn);
+            Season currentSeason = await db.Seasons.SingleAsync(value =>
+                value.Key == ArcRelayLadderPolicy.SeasonKey);
+            Assert.Equal(SeasonStatus.Open, currentSeason.Status);
+            Assert.Equal(ArcRelayLadderPolicy.SeasonNumber, currentSeason.Number);
+            Assert.Equal(TimeSpan.FromDays(ArcRelayLadderPolicy.SeasonDurationDays),
+                currentSeason.EndsAt - currentSeason.StartsAt);
+            ArcRelaySeasonEntrant snapshot = await db.ArcRelaySeasonEntrants
+                .SingleAsync(value => value.SeasonId == currentSeason.Id &&
+                    value.EntrantId == entrantId);
+            Assert.True(snapshot.PresentAtOpening);
+            Assert.Equal(BotRating.DefaultRating, snapshot.OpeningRating);
+            Assert.Equal(1, snapshot.OpeningRank);
+            Assert.Equal(1, snapshot.OpeningRevision);
+            Assert.Contains("Prepared mind", snapshot.OpeningPresentationJson,
+                StringComparison.Ordinal);
         }
     }
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Artifact_repair_v8_preserves_v7_rating_and_entrant_state()
+    public async Task Season_one_preserves_v8_eligibility_but_not_development_rating()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -522,6 +590,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 .SeedAsync();
         UserResponse owner = await RegisterAsync(client, "V7 Continuity");
         Guid entrantId = Guid.NewGuid();
+        Guid tiedEntrantId = Guid.NewGuid();
         Guid oldLadderId;
 
         await using (AppDbContext db = database.CreateContext())
@@ -551,8 +620,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             };
             var season = new Season
             {
-                Key = ArcRelayLadderPolicy.SeasonKey,
-                DisplayName = ArcRelayLadderPolicy.SeasonName,
+                Key = ArcRelayLadderPolicy.LegacyLaunchSeasonKey,
+                DisplayName = "Development ladder",
             };
             var ladder = new Ladder
             {
@@ -566,6 +635,11 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Guid mindBotId = await db.Bots
                 .Where(value => value.Slug ==
                     ArcRelayPlaylistSeeder.TacticalPlaybookBotSlug)
+                .Select(value => value.Id)
+                .SingleAsync();
+            Guid tiedMindBotId = await db.Bots
+                .Where(value => value.Slug ==
+                    ArcRelayPlaylistSeeder.ForwardStockBotSlug)
                 .Select(value => value.Id)
                 .SingleAsync();
             ArcRelayCompositionCompilation composition =
@@ -592,12 +666,33 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 LadderOptedIn = true,
                 LadderOptedInAt = DateTime.UtcNow,
             });
+            db.ArcRelayEntrants.Add(new ArcRelayEntrant
+            {
+                Id = tiedEntrantId,
+                OwnerUserId = owner.Id,
+                Kind = ArcRelayEntrantKind.CustomMind,
+                Name = "Second development mind",
+                MindBotId = tiedMindBotId,
+                CompositionJson = composition.CanonicalJson,
+                CompositionHash = composition.ContentHash,
+                PreflightStatus = ArcRelayPreflightStatus.Passed,
+                PreflightRevision = 1,
+                LadderOptedIn = true,
+                LadderOptedInAt = DateTime.UtcNow,
+            });
             db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
             {
                 EntrantId = entrantId,
                 LadderId = ladder.Id,
                 Rating = 1517,
                 RankedMatches = 23,
+            });
+            db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
+            {
+                EntrantId = tiedEntrantId,
+                LadderId = ladder.Id,
+                Rating = 905,
+                RankedMatches = 2,
             });
             await db.SaveChangesAsync();
         }
@@ -624,8 +719,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 .ArcRelayEntrantRatings.SingleAsync(value =>
                     value.EntrantId == entrantId &&
                     value.LadderId == currentLadder.Id);
-            Assert.Equal(1517, currentRating.Rating);
-            Assert.Equal(23, currentRating.RankedMatches);
+            Assert.Equal(BotRating.DefaultRating, currentRating.Rating);
+            Assert.Equal(0, currentRating.RankedMatches);
             ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(
                 value => value.Id == entrantId);
             Assert.Equal(
@@ -633,7 +728,44 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 entrant.PreflightStatus);
             Assert.Equal(4, entrant.PreflightRevision);
             Assert.True(entrant.LadderOptedIn);
+            ArcRelayEntrantRating tiedRating = await db
+                .ArcRelayEntrantRatings.SingleAsync(value =>
+                    value.EntrantId == tiedEntrantId &&
+                    value.LadderId == currentLadder.Id);
+            Assert.Equal(BotRating.DefaultRating, tiedRating.Rating);
+            Assert.Equal(0, tiedRating.RankedMatches);
         }
+
+        // Opening is idempotent: process restarts cannot duplicate either the
+        // rating identity or its opening snapshot.
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider
+                .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync();
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Assert.Equal(1, await db.ArcRelayEntrantRatings.CountAsync(value =>
+                value.EntrantId == entrantId && value.LadderId != oldLadderId));
+            Assert.Equal(2, await db.ArcRelaySeasonEntrants.CountAsync());
+        }
+
+        ArcRelaySeasonResponse currentSeasonResponse = (await client
+            .GetFromJsonAsync<ArcRelaySeasonResponse>(
+                "/api/arc-relay/seasons/current"))!;
+        ArcRelaySeasonStandingResponse[] standings =
+            currentSeasonResponse.Standings.ToArray();
+        Assert.Equal(2, standings.Length);
+        Assert.Equal("open", currentSeasonResponse.Status);
+        Assert.Equal(1, currentSeasonResponse.Number);
+        Assert.All(standings, standing =>
+        {
+            Assert.Equal(1, standing.Rank);
+            Assert.Equal(1, standing.OpeningRank);
+            Assert.Equal(0, standing.RankMovement);
+            Assert.Equal((0, 0, 0),
+                (standing.Wins, standing.Draws, standing.Losses));
+            Assert.Single(standing.RatingHistory);
+        });
     }
 
     [SkippableFact]

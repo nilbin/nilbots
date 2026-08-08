@@ -13,7 +13,6 @@ import { ErrorState, LoadingState } from '../components/StateView';
 import {
   useArcRelayCrestOptions,
   useArcRelayEntrants,
-  useArcRelayLadder,
   useArcRelayLadderOptIn,
   useArcRelayPreflight,
   useCreateArcRelayMind,
@@ -24,24 +23,29 @@ import {
 } from '../queries';
 import TacticalSheetEditor from '../sheets/TacticalSheetEditor';
 
-export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' | 'sheets' }) {
+export default function ArcRelayPage({
+  view = 'overview',
+  sheetId = null,
+}: {
+  view?: 'overview' | 'sheets';
+  sheetId?: string | null;
+}) {
   const { user, loading } = useAuth();
   const catalogQuery = useTacticalSheetCatalog(user !== null);
   const entrantsQuery = useArcRelayEntrants(user !== null);
-  const ladderQuery = useArcRelayLadder();
 
   if (loading) return <LoadingState label="Opening tactical sheets…" />;
   if (!user) {
     return (
       <section className="panel pad mx-auto max-w-xl text-center">
-        <p className="lab mb-2">Arc Relay</p>
+        <p className="lab mb-2">Season 1</p>
         <h1 className="type-display text-[28px]">Build an entrant. Watch it compete.</h1>
         <p className="t-meta mx-auto mt-3 max-w-md">
           Tactical sheets and custom minds compete as entrants. Sign in to author a sheet,
           run a trial, inspect the replay and return to the same draft.
         </p>
         <Link
-          to={`/login?returnUrl=${encodeURIComponent(view === 'sheets' ? '/relay/sheets' : '/relay')}`}
+          to={`/login?returnUrl=${encodeURIComponent(view === 'sheets' ? '/entrants/sheets/new' : '/entrants')}`}
           className="btn btn-on mt-5 inline-flex min-h-11"
         >
           Sign in to author
@@ -55,12 +59,11 @@ export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' 
   if (catalogQuery.isPending || !catalogQuery.data) {
     return <LoadingState label="Loading tactical vocabulary and map…" />;
   }
-  if (view === 'overview' && (entrantsQuery.isError || ladderQuery.isError)) {
-    const query = entrantsQuery.isError ? entrantsQuery : ladderQuery;
-    return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
+  if (view === 'overview' && entrantsQuery.isError) {
+    return <ErrorState error={entrantsQuery.error} onRetry={() => void entrantsQuery.refetch()} />;
   }
-  if (view === 'overview' && (entrantsQuery.isPending || ladderQuery.isPending)) {
-    return <LoadingState label="Loading entrants and ladder…" />;
+  if (view === 'overview' && entrantsQuery.isPending) {
+    return <LoadingState label="Loading entrants…" />;
   }
 
   const catalog = catalogQuery.data;
@@ -69,9 +72,9 @@ export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' 
     <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="lab mb-2">Arc Relay · sheet workshop</p>
+          <p className="lab mb-2">{view === 'sheets' ? 'Sheet workshop' : 'Season roster'}</p>
           <h1 className="type-display text-[30px]">
-            {view === 'sheets' ? 'Change. Run. Watch. Adjust.' : 'Entrants, matches and rating.'}
+            {view === 'sheets' ? 'Change. Run. Watch. Adjust.' : 'Build and manage entrants.'}
           </h1>
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
@@ -79,29 +82,18 @@ export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' 
               : 'Sheets and custom minds share one competitive identity: crest, composition, match history and rating.'}
           </p>
         </div>
-        <span className="pill">{catalog.map.id}</span>
+        <span className="pill">Deep Warren</span>
       </header>
-
-      <nav className="panel flex gap-1 overflow-x-auto p-1.5" aria-label="Arc Relay workspace">
-        <Link to="/relay" className={clsx('btn inline-flex min-h-11 flex-1 items-center justify-center', view === 'overview' && 'btn-on')}>
-          Entrants & ladder
-        </Link>
-        <Link to="/relay/sheets" className={clsx('btn inline-flex min-h-11 flex-1 items-center justify-center', view === 'sheets' && 'btn-on')}>
-          Sheet workshop
-        </Link>
-        <Link to="/watch" className="btn inline-flex min-h-11 flex-1 items-center justify-center">Watch matches</Link>
-      </nav>
 
       {view === 'overview' ? (
         <EntrantRoster
           entrants={entrantsQuery.data ?? []}
-          ladder={ladderQuery.data?.entrants ?? []}
           templateClasses={templateClasses}
           classes={catalog.classes}
         />
       ) : (
         <>
-          <TacticalSheetEditor catalog={catalog} />
+          <TacticalSheetEditor catalog={catalog} initialSheetId={sheetId} />
           <details className="panel pad">
             <summary className="lab min-h-11 cursor-pointer">Class reference · {catalog.classes.length} launch classes</summary>
             <div className="mt-3"><ClassCatalog catalog={catalog} /></div>
@@ -112,13 +104,12 @@ export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' 
   );
 }
 
-function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
+function EntrantRoster({ entrants, templateClasses, classes }: {
   entrants: ArcRelayEntrant[];
-  ladder: ArcRelayEntrant[];
   templateClasses: string[];
   classes: TacticalSheetClass[];
 }) {
-  const [name, setName] = useState('My relay mind');
+  const [name, setName] = useState('My custom mind');
   const [entryType, setEntryType] = useState('MyRelayMind');
   const [source, setSource] = useState(DEFAULT_MIND_SOURCE);
   const [composition, setComposition] = useState(templateClasses);
@@ -163,7 +154,8 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
           <p className="lab">Your entrants</p>
           <p className="t-micro mt-1">Tactical sheets and custom minds share identity, crest and rating.</p>
         </div>
-        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 in ladder</span>
+        <Link to="/entrants/sheets/new" className="btn btn-on inline-flex min-h-11">New sheet</Link>
+        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 fielded</span>
       </div>
       <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
         {entrants.map((entrant) => <article key={entrant.id}
@@ -190,7 +182,7 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className="btn min-h-11" disabled={crestOptions.isPending}
               onClick={() => crestOptions.mutate(entrant.id)}>Choose crest</button>
-            {entrant.kind === 'sheet' && <Link to="/relay/sheets" className="btn inline-flex min-h-11 items-center">Edit sheet</Link>}
+            {entrant.kind === 'sheet' && <Link to={`/entrants/sheets/${entrant.id}/edit`} className="btn inline-flex min-h-11 items-center">Edit sheet</Link>}
             {entrant.kind === 'mind' && <button type="button" className="btn min-h-11"
               disabled={loadMind.isPending} onClick={() => beginRevision(entrant.id)}>Revise</button>}
             {entrant.kind === 'mind' && (entrant.status === 'required' || entrant.status === 'built') &&
@@ -200,11 +192,11 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
               <button type="button" className={clsx('btn min-h-11', entrant.ladderOptedIn && 'btn-on')}
                 disabled={ladderOptIn.isPending}
                 onClick={() => ladderOptIn.mutate({ entrantId: entrant.id, optedIn: !entrant.ladderOptedIn })}>
-                {entrant.ladderOptedIn ? 'Leave ladder' : 'Enter ladder'}
+                {entrant.ladderOptedIn ? 'Withdraw from Season' : 'Field in Season'}
               </button>}
           </div>
           {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-arena-material">
-            Counterflow layout — readable history, but not admissible to the current ladder.
+            Counterflow layout — readable history, but not admissible to Season 1.
             Open it in the workshop and replot routes, zones and anchors on the Warren;
             coordinates are never converted between maps.
           </p>}
@@ -261,7 +253,7 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
             disabled={create.isPending || revise.isPending || composition.length !== 8}
             onClick={submit}>{create.isPending || revise.isPending ? 'Submitting…' : editId ? 'Build revised mind' : 'Build mind entrant'}</button>
           {editId && <button type="button" className="btn min-h-11" onClick={() => {
-            setEditId(null); setExpectedRevision(0); setName('My relay mind'); setEntryType('MyRelayMind');
+            setEditId(null); setExpectedRevision(0); setName('My custom mind'); setEntryType('MyRelayMind');
             setSource(DEFAULT_MIND_SOURCE); setComposition(templateClasses);
           }}>New submission</button>}
           {(create.isError || revise.isError) && <span className="t-micro text-arena-hot">
@@ -272,22 +264,6 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
       </details>
     </section>
 
-    <section className="panel overflow-hidden">
-      <div className="pad border-b border-arena-edge">
-        <p className="lab">Ranked Arc Relay</p>
-        <p className="t-micro mt-1">Passive cross-account pairing · one rating surface for sheets and minds.</p>
-      </div>
-      <div className="divide-y divide-arena-edge">
-        {ladder.map((entrant, index) => <div key={entrant.id} className="flex min-w-0 items-center gap-3 px-3 py-2.5">
-          <span className="lab w-7 text-right">{index + 1}</span><EntrantCrest crest={entrant.crest} size={34} />
-          <div className="min-w-0 flex-1"><p className="t-body truncate">{entrant.name}</p>
-            <p className="t-micro">{entrantKindLabel(entrant.kind)} · {entrant.ownerDisplayName}</p></div>
-          <CompositionStrip entrant={entrant} compact />
-          <strong className="type-display text-[18px]">{entrant.rating}</strong>
-        </div>)}
-        {ladder.length === 0 && <p className="t-meta pad">The launch ladder is waiting for its first entrants.</p>}
-      </div>
-    </section>
   </>;
 }
 

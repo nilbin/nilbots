@@ -52,8 +52,13 @@ public sealed class Season
     public Guid Id { get; set; } = Guid.NewGuid();
     public required string Key { get; set; }
     public required string DisplayName { get; set; }
+    public int? Number { get; set; }
+    public SeasonStatus Status { get; set; } = SeasonStatus.Draft;
     public DateTime? StartsAt { get; set; }
     public DateTime? EndsAt { get; set; }
+    public DateTime? OpenedAt { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public string RatingSeedPolicyId { get; set; } = "fresh-v1";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

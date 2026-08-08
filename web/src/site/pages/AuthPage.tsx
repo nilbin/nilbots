@@ -30,7 +30,7 @@ export default function AuthPage() {
     else await login.mutateAsync({ email, password });
     await refresh();
     if (returnUrl) navigate(returnUrl);
-    else navigate('/relay');
+    else navigate('/entrants');
   };
 
   return (

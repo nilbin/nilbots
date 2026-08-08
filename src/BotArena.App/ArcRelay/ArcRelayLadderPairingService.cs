@@ -8,11 +8,17 @@ namespace BotArena.App.ArcRelay;
 public sealed class ArcRelayLadderPairingService(
     AppDbContext db,
     ArcRelayMatchAdmissionService admission,
-    ArcRelayEntrantProjector projector,
+    ArcRelaySeasonLifecycleService seasons,
     TimeProvider timeProvider)
 {
     public async Task<int> PairAsync(CancellationToken cancellationToken)
     {
+        await seasons.AdvanceAsync(cancellationToken);
+        (Season season, Ladder currentLadder) = await seasons.CurrentAsync(
+            cancellationToken);
+        if (season.Status != SeasonStatus.Open ||
+            currentLadder.Status != LadderStatus.Open)
+            return 0;
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock({AdmissionLocks.LabsMatchPool})", cancellationToken);
@@ -22,7 +28,7 @@ public sealed class ArcRelayLadderPairingService(
         int room = Math.Min(ArcRelayLadderPolicy.MaximumPairingsPerPass,
             Math.Max(0, ArcRelayLadderPolicy.MaximumQueuedOrRunningMatches - active));
         if (room == 0) return 0;
-        Guid ladderId = await projector.LadderIdAsync(cancellationToken);
+        Guid ladderId = currentLadder.Id;
         DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         DateTime dayAgo = now.AddDays(-1);
         DateTime recentCutoff = now.AddHours(-ArcRelayLadderPolicy.RecentOpponentAvoidanceHours);

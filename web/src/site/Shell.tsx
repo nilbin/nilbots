@@ -33,8 +33,8 @@ export default function Shell() {
             className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
             aria-label="Primary navigation"
           >
-            <TopLink to="/relay">Relay</TopLink>
-            <TopLink to="/relay/sheets">Sheets</TopLink>
+            <TopLink to="/">Season</TopLink>
+            <TopLink to="/entrants">Entrants</TopLink>
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
           </nav>
@@ -42,12 +42,11 @@ export default function Shell() {
             {user ? (
               <>
                 <Link
-                  to="/relay"
+                  to="/entrants"
                   aria-label={`${user.displayName}'s entrants`}
-                  className="t-meta inline-flex min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text max-[359px]:shrink-0"
+                  className="t-meta hidden min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text sm:inline-flex"
                 >
-                  <span className="sm:hidden">Entrants</span>
-                  <span className="hidden sm:inline">{user.displayName}</span>
+                  {user.displayName}
                 </Link>
                 <button
                   type="button"
@@ -83,8 +82,8 @@ export default function Shell() {
           className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-arena-edge bg-arena-panel pb-[env(safe-area-inset-bottom)] min-[640px]:hidden"
           aria-label="Primary navigation"
         >
-          <MobileLink to="/relay">Relay</MobileLink>
-          <MobileLink to="/relay/sheets">Sheets</MobileLink>
+          <MobileLink to="/">Season</MobileLink>
+          <MobileLink to="/entrants">Entrants</MobileLink>
           <MobileLink to="/watch">Watch</MobileLink>
           <MobileLink to="/docs">Docs</MobileLink>
         </nav>
@@ -141,7 +140,7 @@ function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <NavLink
       to={to}
-      end={to === '/' || to === '/relay'}
+      end={to === '/' || to === '/entrants'}
       className={({ isActive }) =>
         clsx(
           'btn whitespace-nowrap',
@@ -166,7 +165,7 @@ function MobileLink({
   return (
     <NavLink
       to={to}
-      end={to === '/' || to === '/relay'}
+      end={to === '/' || to === '/entrants'}
       className={({ isActive }) =>
         clsx(
           'lab flex min-h-12 items-center justify-center px-2 py-2.5 text-center',

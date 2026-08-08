@@ -43,6 +43,47 @@ public sealed record ArcRelayLadderResponse(
     int MaximumMatchesPerEntrantPerDay,
     IReadOnlyList<ArcRelayEntrantCardResponse> Entrants);
 
+public sealed record ArcRelaySeasonRatingPointResponse(
+    Guid? MatchId,
+    DateTime OccurredAt,
+    double Rating);
+
+public sealed record ArcRelaySeasonStandingResponse(
+    int Rank,
+    int? OpeningRank,
+    int? RankMovement,
+    int Wins,
+    int Draws,
+    int Losses,
+    IReadOnlyList<ArcRelaySeasonRatingPointResponse> RatingHistory,
+    ArcRelayEntrantCardResponse Entrant);
+
+public sealed record ArcRelaySeasonMatchResponse(
+    Guid MatchId,
+    DateTime SettledAt,
+    Guid EntrantAId,
+    string EntrantAName,
+    int PlacementA,
+    Guid EntrantBId,
+    string EntrantBName,
+    int PlacementB);
+
+public sealed record ArcRelaySeasonResponse(
+    Guid SeasonId,
+    string Key,
+    int Number,
+    string Name,
+    string Status,
+    DateTime StartsAt,
+    DateTime EndsAt,
+    DateTime? OpenedAt,
+    DateTime? ClosedAt,
+    Guid LadderId,
+    string LadderName,
+    int MaximumFieldedPerAccount,
+    IReadOnlyList<ArcRelaySeasonStandingResponse> Standings,
+    IReadOnlyList<ArcRelaySeasonMatchResponse> RecentMatches);
+
 public sealed record ArcRelayCrestOptionsResponse(
     Guid EntrantId,
     IReadOnlyList<ArcRelayCrestDescriptor> Options);

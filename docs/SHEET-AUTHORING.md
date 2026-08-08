@@ -470,14 +470,14 @@ hand-edit them. CI's `contract-drift` job regenerates and fails on any diff.
 ### 6.3 Entrant coupling ruling
 
 **Owner ruling (2026-08-08):** saving a tactical sheet creates or revises the
-same-id `Sheet` entrant and enters it into the ladder by default. The editor
+same-id `Sheet` entrant and fields it in the current Season by default. The editor
 offers an explicit opt-out. Save-as-copy creates a new entrant identity; an
 ordinary revision preserves rating. This ruling supersedes the provisional
 separation advice in the original backend sketch.
 
 The new `POST /api/sheets` stores the exact playbook and layout, creates the
 same-id `ArcRelayEntrant` with `Kind = Sheet`, and establishes its
-current-ladder rating when opted in. `PUT /api/sheets/{id}` revises both views
+current-Season rating when fielded. `PUT /api/sheets/{id}` revises both views
 atomically under optimistic concurrency. The destructive migration cannot
 translate commander documents into tactical playbooks, so it retires their
 entrants from future pairing before dropping the old table; historical match
