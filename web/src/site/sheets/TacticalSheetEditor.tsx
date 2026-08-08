@@ -26,6 +26,7 @@ import {
   CONDITION_OPERATORS,
   TACTICAL_VERBS,
   UI_STATE_KEY,
+  assignmentIdFromName,
   doctrineOrderIds,
   freshMode,
   loadLocalDraft,
@@ -33,7 +34,9 @@ import {
   parseDraft,
   pinDraft,
   predicateSubjectKind,
+  renameAssignment,
   saveLocalDraft,
+  setAssignmentTarget,
   sheetIssueFromCompilerError,
   validateDraft,
   verbOf,
@@ -46,6 +49,7 @@ import {
   type LayoutRoute,
   type LayoutZone,
   type Point,
+  type RoleDefinition,
   type SheetDraft,
   type SheetIssue,
   type TacticalMode,
@@ -543,43 +547,357 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
 }) {
   const counts = new Map<string, number>();
   draft.playbook.composition.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1));
+  const assignments = draft.playbook.roles ?? [];
+  const [activeAssignmentId, setActiveAssignmentId] = useState(assignments[0]?.roleId ?? '');
+  const activeIndex = assignments.findIndex((entry) => entry.roleId === activeAssignmentId);
+  const activeAssignment = assignments[activeIndex] ?? assignments[0];
+  const totalTargets = assignments.reduce((sum, entry) => sum + (entry.preferred ?? 0), 0);
+  const classById = new Map(catalog.classes.map((entry) => [entry.id, entry]));
+
+  useEffect(() => {
+    if (activeAssignment && activeAssignment.roleId !== activeAssignmentId)
+      setActiveAssignmentId(activeAssignment.roleId);
+  }, [activeAssignment, activeAssignmentId]);
+
+  const updateAssignment = (roleId: string, change: (role: RoleDefinition) => void) =>
+    mutate((next) => {
+      const target = next.playbook.roles.find((entry) => entry.roleId === roleId);
+      if (target) change(target);
+    });
+
   return (
-    <section className="panel pad">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="mr-auto">
-          <p className="lab">Composition</p>
-          <p className="t-micro mt-1">Eight unlocked classes · two copies maximum</p>
+    <div className="flex flex-col gap-4">
+      <section className="panel pad">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="mr-auto">
+            <p className="lab">Composition</p>
+            <h2 className="type-display mt-1 text-[21px]">Choose the eight bodies</h2>
+            <p className="t-micro mt-1">Unlocked classes · two copies maximum</p>
+          </div>
+          <div className="flex gap-1">
+            {draft.playbook.composition.map((classId, index) => (
+              <ClassIcon key={index} classId={classId} label={`${index + 1}. ${classId}`} size={28} />
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1">
-          {draft.playbook.composition.map((classId, index) => (
-            <ClassIcon key={index} classId={classId} label={`${index + 1}. ${classId}`} size={28} />
-          ))}
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+          {Array.from({ length: catalog.slotCount }, (_, index) => {
+            const current = draft.playbook.composition[index] ?? '';
+            return (
+              <label key={index} data-sheet-path={`composition.${index}`}>
+                <span className="t-micro mb-1 block">body {index + 1}</span>
+                <select className="field min-h-11 px-2" value={current}
+                  onChange={(event) => mutate((next) => {
+                    next.playbook.composition[index] = event.target.value;
+                  })}>
+                  {catalog.classes.map((entry) => (
+                    <option key={entry.id} value={entry.id}
+                      disabled={!entry.unlocked || (entry.id !== current
+                        && (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass)}>
+                      {entry.name}{entry.unlocked ? '' : ' · locked'}
+                    </option>
+                  ))}
+                </select>
+                <FieldIssues issues={issues} path={`composition.${index}`} />
+              </label>
+            );
+          })}
         </div>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-        {Array.from({ length: catalog.slotCount }, (_, index) => {
-          const current = draft.playbook.composition[index] ?? '';
-          return (
-            <label key={index} data-sheet-path={`composition.${index}`}>
-              <span className="t-micro mb-1 block">slot {index + 1}</span>
-              <select className="field min-h-11 px-2" value={current}
-                onChange={(event) => mutate((next) => {
-                  next.playbook.composition[index] = event.target.value;
-                })}>
-                {catalog.classes.map((entry) => (
-                  <option key={entry.id} value={entry.id}
-                    disabled={!entry.unlocked || (entry.id !== current
-                      && (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass)}>
-                    {entry.name}{entry.unlocked ? '' : ' · locked'}
-                  </option>
-                ))}
-              </select>
-              <FieldIssues issues={issues} path={`composition.${index}`} />
-            </label>
-          );
-        })}
-      </div>
-    </section>
+      </section>
+
+      <section className="panel overflow-hidden">
+        <header className="border-b border-arena-edge bg-[linear-gradient(115deg,rgba(210,110,45,.10),transparent_45%)] p-4">
+          <p className="lab text-arena-material">Squad assignments</p>
+          <div className="mt-1 flex flex-wrap items-end gap-3">
+            <div className="mr-auto max-w-2xl">
+              <h2 className="type-display text-[23px]">Turn chassis into jobs</h2>
+              <p className="t-meta mt-1">
+                A class says what a body can do. An assignment says what it should do in this sheet.
+                Several classes—or several copies of one class—can answer the same assignment.
+              </p>
+            </div>
+            <span className={clsx('pill', totalTargets > catalog.slotCount && 'text-arena-hot')}>
+              {totalTargets}/{catalog.slotCount} target bodies
+            </span>
+          </div>
+        </header>
+
+        <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)]">
+          <aside className="border-b border-arena-edge bg-arena-deep/30 p-2 lg:border-b-0 lg:border-r">
+            <p className="lab px-2 py-1">Assignments</p>
+            <div className="mt-1 flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+              {assignments.map((assignment, index) => {
+                const selected = activeAssignment?.roleId === assignment.roleId;
+                const assignmentIssues = issues.filter((issue) => issue.path.startsWith(`roles.${index}`)).length;
+                const classNames = assignment.candidateClasses
+                  .map((id) => classById.get(id)?.name ?? humanizeToken(id));
+                return (
+                  <button key={assignment.roleId} type="button"
+                    data-assignment-select={index}
+                    aria-selected={selected}
+                    className={clsx(
+                      'min-w-[205px] rounded-sm border px-2.5 py-2 text-left transition lg:min-w-0',
+                      selected
+                        ? 'border-arena-material bg-arena-material/10 shadow-[inset_3px_0_0_var(--color-arena-material)]'
+                        : 'border-transparent bg-arena-panel/40 active:border-arena-edge',
+                    )}
+                    onClick={() => setActiveAssignmentId(assignment.roleId)}>
+                    <span className="flex items-center gap-2">
+                      <AssignmentClassStack classIds={assignment.candidateClasses} size={30} />
+                      <span className="min-w-0">
+                        <span className="type-display block truncate text-[16px]">{humanizeToken(assignment.roleId)}</span>
+                        <span className="t-micro block truncate">{classNames.join(' · ')}</span>
+                      </span>
+                      {assignmentIssues > 0 && <span className="pill ml-auto text-arena-hot">{assignmentIssues}</span>}
+                    </span>
+                    <span className="mt-2 flex items-center gap-2">
+                      <AssignmentMeter count={assignment.preferred ?? 0} total={catalog.slotCount} />
+                      <span className="t-micro ml-auto">{assignment.preferred ?? 0} target</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {activeAssignment ? (() => {
+            const roleIndex = assignments.indexOf(activeAssignment);
+            const candidateSet = new Set(activeAssignment.candidateClasses);
+            const classOptions = catalog.classes
+              .filter((entry) => counts.has(entry.id) || candidateSet.has(entry.id))
+              .sort((a, b) => {
+                const aRank = activeAssignment.candidateClasses.indexOf(a.id);
+                const bRank = activeAssignment.candidateClasses.indexOf(b.id);
+                if (aRank >= 0 || bRank >= 0)
+                  return (aRank < 0 ? 999 : aRank) - (bRank < 0 ? 999 : bRank);
+                return a.name.localeCompare(b.name);
+              });
+            const signatureClasses = activeAssignment.candidateClasses
+              .map((id) => classById.get(id)).filter((entry) => entry !== undefined);
+            const target = activeAssignment.preferred ?? 0;
+            return (
+              <article className="min-w-0 p-3 sm:p-4" data-sheet-path={`roles.${roleIndex}`}>
+                <div className="flex items-center gap-3 border-b border-arena-edge pb-3">
+                  <AssignmentClassStack classIds={activeAssignment.candidateClasses} size={42} />
+                  <div className="min-w-0 flex-1">
+                    <p className="lab">Selected assignment</p>
+                    <h3 className="type-display truncate text-[22px]">{humanizeToken(activeAssignment.roleId)}</h3>
+                    <p className="t-micro">Commands, triggers and custody follow this assignment.</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px]">
+                  <AssignmentNameEditor key={activeAssignment.roleId}
+                    roleId={activeAssignment.roleId}
+                    roleIds={assignments.map((entry) => entry.roleId)}
+                    onRename={(nextId) => {
+                      const previousId = activeAssignment.roleId;
+                      mutate((next) => renameAssignment(next.playbook, previousId, nextId));
+                      setActiveAssignmentId(nextId);
+                    }} />
+                  <div className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+                    <p className="lab">Normal staffing target</p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button type="button" className="btn min-h-11 min-w-11 text-[20px]"
+                        aria-label={`Decrease ${humanizeToken(activeAssignment.roleId)} target`}
+                        disabled={target <= 0}
+                        onClick={() => mutate((next) => setAssignmentTarget(
+                          next.playbook, activeAssignment.roleId, target - 1,
+                        ))}>−</button>
+                      <span className="text-center">
+                        <span className="type-display block text-[28px] tabular">{target}</span>
+                        <span className="t-micro">of {catalog.slotCount} bodies</span>
+                      </span>
+                      <button type="button" className="btn min-h-11 min-w-11 text-[20px]"
+                        aria-label={`Increase ${humanizeToken(activeAssignment.roleId)} target`}
+                        disabled={target >= 8 || totalTargets >= catalog.slotCount}
+                        onClick={() => mutate((next) => setAssignmentTarget(
+                          next.playbook, activeAssignment.roleId, target + 1,
+                        ))}>+</button>
+                    </div>
+                    {totalTargets >= catalog.slotCount && target < catalog.slotCount && (
+                      <p className="t-micro mt-2 text-center">Lower another assignment before moving its body here.</p>
+                    )}
+                  </div>
+                </div>
+
+                <section className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20 p-3">
+                  <div>
+                    <p className="lab">Eligible chassis · priority order</p>
+                    <p className="t-micro mt-1">
+                      Selected chassis are tried from left to right. The roster count shows how many can answer now.
+                    </p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-3">
+                    {classOptions.map((entry) => {
+                      const selected = candidateSet.has(entry.id);
+                      const priority = activeAssignment.candidateClasses.indexOf(entry.id);
+                      const onlyCandidate = selected && activeAssignment.candidateClasses.length === 1;
+                      return (
+                        <div key={entry.id} className={clsx(
+                          'rounded-sm border p-2',
+                          selected ? 'border-arena-material bg-arena-material/10' : 'border-arena-edge bg-arena-panel/35',
+                        )}>
+                          <button type="button" className="flex min-h-11 w-full items-center gap-2 text-left"
+                            aria-pressed={selected}
+                            disabled={onlyCandidate}
+                            onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                              next.candidateClasses = selected
+                                ? next.candidateClasses.filter((id) => id !== entry.id)
+                                : [...next.candidateClasses, entry.id];
+                            })}>
+                            <ClassIcon classId={entry.id} label={entry.name} size={36} />
+                            <span className="min-w-0">
+                              <span className="type-display block truncate text-[15px]">{entry.name}</span>
+                              <span className="t-micro block">
+                                {counts.get(entry.id) ?? 0} fielded{selected ? ` · choice ${priority + 1}` : ''}
+                              </span>
+                            </span>
+                          </button>
+                          {selected && activeAssignment.candidateClasses.length > 1 && (
+                            <div className="mt-1 flex gap-1 border-t border-arena-edge pt-1">
+                              <button type="button" className="btn min-h-9 flex-1" aria-label={`Prefer ${entry.name} earlier`}
+                                disabled={priority === 0}
+                                onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                                  const at = next.candidateClasses.indexOf(entry.id);
+                                  [next.candidateClasses[at - 1], next.candidateClasses[at]] =
+                                    [next.candidateClasses[at], next.candidateClasses[at - 1]];
+                                })}>↑ earlier</button>
+                              <button type="button" className="btn min-h-9 flex-1" aria-label={`Prefer ${entry.name} later`}
+                                disabled={priority === activeAssignment.candidateClasses.length - 1}
+                                onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                                  const at = next.candidateClasses.indexOf(entry.id);
+                                  [next.candidateClasses[at + 1], next.candidateClasses[at]] =
+                                    [next.candidateClasses[at], next.candidateClasses[at + 1]];
+                                })}>↓ later</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <FieldIssues issues={issues} path={`roles.${roleIndex}.candidateClasses`} />
+                </section>
+
+                {signatureClasses.length > 0 && (
+                  <section className="mt-3">
+                    <p className="lab text-arena-material">What these chassis bring</p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {signatureClasses.map((entry) => (
+                        <div key={entry.id} className="rounded-sm border border-arena-material/30 bg-arena-material/10 p-3">
+                          <p className="type-display text-[15px]">{entry.name} · {entry.signatureName}</p>
+                          <p className="t-micro mt-1">{entry.fantasy}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
+                  <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced allocation rules</summary>
+                  <div className="border-t border-arena-edge p-3">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <NumberField label="minimum bodies" value={activeAssignment.minimum ?? 0} min={0} max={target}
+                        issues={issues} path={`roles.${roleIndex}.minimum`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.minimum = value; })} />
+                      <div>
+                        <span className="t-micro mb-1 block">target bodies</span>
+                        <div className="field flex min-h-11 items-center tabular">{target}</div>
+                      </div>
+                      <NumberField label="maximum bodies" value={activeAssignment.maximum ?? target} min={target} max={8}
+                        issues={issues} path={`roles.${roleIndex}.maximum`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.maximum = value; })} />
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      <SelectField label="Core carrier" value={activeAssignment.carrierPreference ?? 'allow'}
+                        values={['forbid', 'allow', 'prefer', 'require']} issues={issues}
+                        path={`roles.${roleIndex}.carrierPreference`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.carrierPreference = value; })} />
+                      <SelectField label="On casualty" value={activeAssignment.deathPolicy ?? 'hold-vacancy'}
+                        values={['hold-vacancy', 'promote-best', 'rebalance']} issues={issues}
+                        path={`roles.${roleIndex}.deathPolicy`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.deathPolicy = value; })} />
+                      <SelectField label="On respawn" value={activeAssignment.respawnPolicy ?? 'rejoin'}
+                        values={['resume', 'rejoin', 'rally', 'replace']} issues={issues}
+                        path={`roles.${roleIndex}.respawnPolicy`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.respawnPolicy = value; })} />
+                      <SelectField label="Overflow assignment" value={activeAssignment.overflowRoleId ?? ''}
+                        values={assignments.map((entry) => entry.roleId)} issues={issues}
+                        path={`roles.${roleIndex}.overflowRoleId`}
+                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.overflowRoleId = value; })} />
+                    </div>
+                  </div>
+                </details>
+                <InlineIssues issues={issues} prefix={`roles.${roleIndex}`} />
+              </article>
+            );
+          })() : (
+            <div className="pad"><p className="t-meta">This sheet has no assignments.</p></div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AssignmentClassStack({ classIds, size }: { classIds: string[]; size: number }) {
+  const visible = [...new Set(classIds)].slice(0, 3);
+  return (
+    <span className="flex shrink-0 items-center" aria-label={`${classIds.length} eligible chassis`}>
+      {visible.map((classId, index) => (
+        <span key={classId} className={index === 0 ? '' : '-ml-2'} style={{ zIndex: visible.length - index }}>
+          <ClassIcon classId={classId} label={classId} size={size} />
+        </span>
+      ))}
+      {classIds.length > visible.length && <span className="pill -ml-1">+{classIds.length - visible.length}</span>}
+    </span>
+  );
+}
+
+function AssignmentMeter({ count, total }: { count: number; total: number }) {
+  return (
+    <span className="flex min-w-0 flex-1 gap-1" aria-label={`${count} target bodies out of ${total}`}>
+      {Array.from({ length: total }, (_, index) => (
+        <span key={index} className={clsx(
+          'h-1.5 min-w-1 flex-1 rounded-full',
+          index < count ? 'bg-arena-material/70' : 'bg-arena-edge',
+        )} />
+      ))}
+    </span>
+  );
+}
+
+function AssignmentNameEditor({ roleId, roleIds, onRename }: {
+  roleId: string;
+  roleIds: string[];
+  onRename: (nextId: string) => void;
+}) {
+  const [value, setValue] = useState(humanizeToken(roleId));
+  const nextId = assignmentIdFromName(value);
+  const duplicate = nextId !== roleId && roleIds.includes(nextId);
+  const invalid = nextId.length === 0 || duplicate;
+  const commit = () => {
+    if (invalid) return;
+    if (nextId !== roleId) onRename(nextId);
+  };
+  return (
+    <label className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+      <span className="lab block">Assignment name</span>
+      <input className="field mt-2 min-h-11 text-[16px]" value={value}
+        aria-invalid={invalid}
+        onChange={(event) => setValue(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }} />
+      <span className={clsx('t-micro mt-1 block', invalid && 'text-arena-hot')}>
+        {duplicate
+          ? 'Another assignment already uses that name.'
+          : nextId.length === 0
+            ? 'Give this assignment a name.'
+            : 'Every command, trigger and custody reference follows a rename automatically.'}
+      </span>
+    </label>
   );
 }
 
@@ -703,38 +1021,43 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
         <p className="lab text-arena-material">Tactical command board</p>
         <div className="mt-1 flex flex-wrap items-end gap-3">
           <div className="mr-auto">
-            <h2 className="type-display text-[24px]">Give every role its orders</h2>
+            <h2 className="type-display text-[24px]">Give every assignment its orders</h2>
             <p className="t-meta mt-1">The first valid command wins. The final card is always the fallback.</p>
           </div>
-          <button type="button" className="btn min-h-11" onClick={addDoctrine}>Add role plan</button>
+          <button type="button" className="btn min-h-11" onClick={addDoctrine}>Add command plan</button>
         </div>
       </header>
 
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="border-b border-arena-edge bg-arena-deep/30 p-2 lg:border-b-0 lg:border-r">
-          <p className="lab px-2 py-1">Squad roles</p>
+          <p className="lab px-2 py-1">Squad assignments</p>
           <div className="mt-1 flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
             {doctrines.map(([id, doctrine]) => {
               const role = roleById.get(doctrine.role);
-              const classId = role?.candidateClasses?.[0] ?? draft.playbook.composition[0] ?? 'kestrel';
-              const classInfo = catalog.classes.find((entry) => entry.id === classId);
+              const classIds = role?.candidateClasses?.length
+                ? role.candidateClasses : [draft.playbook.composition[0] ?? 'kestrel'];
+              const classInfos = classIds
+                .map((classId) => catalog.classes.find((entry) => entry.id === classId))
+                .filter((entry) => entry !== undefined);
               const doctrineIssues = issues.filter((issue) => issue.path.startsWith(`doctrines.${id}`)).length;
               const selected = activeEntry?.[0] === id;
               return (
                 <button key={id} type="button" data-doctrine-select={id}
                   aria-selected={selected}
                   className={clsx(
-                    'min-w-[190px] rounded-sm border px-2.5 py-2 text-left transition lg:min-w-0',
+                    'min-w-[215px] rounded-sm border px-2.5 py-2 text-left transition lg:min-w-0',
                     selected
                       ? 'border-arena-material bg-arena-material/10 shadow-[inset_3px_0_0_var(--color-arena-material)]'
                       : 'border-transparent bg-arena-panel/40 active:border-arena-edge',
                   )}
                   onClick={() => setActiveDoctrineId(id)}>
                   <span className="flex items-center gap-2">
-                    <ClassIcon classId={classId} label={classId} size={34} />
+                    <AssignmentClassStack classIds={classIds} size={30} />
                     <span className="min-w-0">
                       <span className="type-display block truncate text-[16px]">{humanizeToken(doctrine.role)}</span>
-                      <span className="t-micro block truncate">{classInfo?.name ?? humanizeToken(classId)}</span>
+                      <span className="t-micro block truncate">
+                        {classInfos.map((entry) => entry.name).join(' · ') || classIds.map(humanizeToken).join(' · ')}
+                      </span>
                     </span>
                     {doctrineIssues > 0 && <span className="pill ml-auto text-arena-hot">{doctrineIssues}</span>}
                   </span>
@@ -745,8 +1068,10 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                     ))}
                     <span className="t-micro ml-1">{doctrine.modes.length}</span>
                   </span>
-                  {classInfo?.signatureName && (
-                    <span className="t-micro mt-1 block truncate text-arena-material">✦ {classInfo.signatureName}</span>
+                  {classInfos.length > 0 && (
+                    <span className="t-micro mt-1 block truncate text-arena-material">
+                      ✦ {classInfos.map((entry) => entry.signatureName).join(' · ')}
+                    </span>
                   )}
                 </button>
               );
@@ -771,24 +1096,34 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
         {activeEntry ? (() => {
           const [id, doctrine] = activeEntry;
           const role = roleById.get(doctrine.role);
-          const classId = role?.candidateClasses?.[0] ?? draft.playbook.composition[0] ?? 'kestrel';
-          const classInfo = catalog.classes.find((entry) => entry.id === classId);
+          const classIds = role?.candidateClasses?.length
+            ? role.candidateClasses : [draft.playbook.composition[0] ?? 'kestrel'];
+          const classInfos = classIds
+            .map((classId) => catalog.classes.find((entry) => entry.id === classId))
+            .filter((entry) => entry !== undefined);
           return (
             <div className="min-w-0 p-3 sm:p-4" data-sheet-path={`doctrines.${id}`}>
               <div className="flex items-center gap-3 border-b border-arena-edge pb-3">
-                <ClassIcon classId={classId} label={classId} size={48} />
+                <AssignmentClassStack classIds={classIds} size={42} />
                 <div className="min-w-0">
-                  <p className="lab">{humanizeToken(doctrine.role)} orders</p>
+                  <p className="lab">{humanizeToken(doctrine.role)} assignment</p>
                   <h3 className="type-display truncate text-[22px]">{humanizeToken(id)}</h3>
-                  <p className="t-micro">{typeof role?.preferred === 'number' ? role.preferred : 0} preferred · {classInfo?.name ?? humanizeToken(classId)} chassis</p>
+                  <p className="t-micro">
+                    {typeof role?.preferred === 'number' ? role.preferred : 0} target ·{' '}
+                    {classInfos.map((entry) => entry.name).join(' · ') || classIds.map(humanizeToken).join(' · ')}
+                  </p>
                 </div>
                 <span className="pill ml-auto">{doctrine.modes.length} commands</span>
               </div>
 
-              {classInfo && (
-                <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/10 p-3">
-                  <p className="lab text-arena-material">Signature system · {classInfo.signatureName}</p>
-                  <p className="t-meta mt-1">{classInfo.fantasy}</p>
+              {classInfos.length > 0 && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {classInfos.map((classInfo) => (
+                    <div key={classInfo.id} className="rounded-sm border border-arena-material/35 bg-arena-material/10 p-3">
+                      <p className="lab text-arena-material">{classInfo.name} · {classInfo.signatureName}</p>
+                      <p className="t-meta mt-1">{classInfo.fantasy}</p>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -828,12 +1163,12 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
               </div>
 
               <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced role tuning</summary>
+                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced command-plan settings</summary>
                 <div className="border-t border-arena-edge p-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <TextField label="plan id" value={id} issues={issues} path={`doctrines.${id}`}
                       onChange={(value) => renameDoctrine(id, value)} />
-                    <SelectField label="role" value={doctrine.role} values={roleIds}
+                    <SelectField label="assignment" value={doctrine.role} values={roleIds}
                       issues={issues} path={`doctrines.${id}.role`}
                       onChange={(value) => updateDoctrine(id, (next) => { next.role = value; })} />
                     <SelectField label="Core custody plan" value={doctrine.custody} values={custodyIds}
@@ -848,7 +1183,7 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                         const nextActive = doctrines.find(([candidate]) => candidate !== id)?.[0] ?? '';
                         mutate((next) => { delete next.playbook.doctrines[id]; });
                         setActiveDoctrineId(nextActive);
-                      }}>Remove role plan</button>
+                      }}>Remove command plan</button>
                   </div>
                   <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
                     <legend className="t-micro px-1">Collect loose Cores when crossing</legend>
@@ -872,7 +1207,7 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
             </div>
           );
         })() : (
-          <div className="pad"><p className="t-meta">Add a role plan to start issuing commands.</p></div>
+          <div className="pad"><p className="t-meta">Add a command plan to start issuing orders.</p></div>
         )}
       </div>
     </section>
@@ -1028,7 +1363,7 @@ function ModeEditor({
           <div className="flex flex-col gap-2">
             {escorts.map((escort, escortIndex) => (
               <div key={escortIndex} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                <SelectField label="recruit role" value={escort.role}
+                <SelectField label="escort assignment" value={escort.role}
                   values={roleIds.filter((role) => role !== doctrine.role)}
                   onChange={(role) => {
                     const next = [...escorts]; next[escortIndex] = { ...escort, role }; set({ escort: next });
@@ -1052,7 +1387,7 @@ function ModeEditor({
           })).filter(({ role }) => issues.some((issue) => issue.path.startsWith(issuePrefix)
             && issue.message.includes(`'${role}' is not recruitable`))).map(({ role }) => (
               <button key={role} type="button" className="btn ml-2 mt-2 min-h-11 border-arena-material/50"
-                onClick={() => makeRecruitable(role)}>Add muster to {role}</button>
+                onClick={() => makeRecruitable(role)}>Make {humanizeToken(role)} recruitable</button>
             ))}
         </fieldset>
       )}
@@ -1166,7 +1501,7 @@ function PredicateEditor({ draft, issues, mutate }: {
                     delete target.zone;
                     delete target.freshnessTicks;
                   })} />
-                {kind && kind !== 'group-zone' && <SelectField label={humanizeToken(kind)} value={kind === 'zone' ? predicate.zone ?? '' : predicate.subject ?? ''}
+                {kind && kind !== 'group-zone' && <SelectField label={kind === 'role' ? 'assignment' : humanizeToken(kind)} value={kind === 'zone' ? predicate.zone ?? '' : predicate.subject ?? ''}
                   issues={issues} path={`authoring.predicates.${id}.${kind === 'zone' ? 'zone' : 'subject'}`}
                   values={options} onChange={(value) => mutate((next) => {
                     const target = next.playbook.authoring.predicates[id];
@@ -1270,7 +1605,7 @@ function CustodyEditor({ draft, issues, mutate }: {
               <div className="mt-3 grid grid-cols-1 items-stretch gap-1 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
                 <CustodyFlowStep label="Lift from" value={policy.sourceWells.map(humanizeToken).join(' · ') || 'Any Well'} />
                 <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
-                <CustodyFlowStep label="Carrier" value={policy.authorizedCarrierRoles.map(humanizeToken).join(' · ') || 'Unassigned'} />
+                <CustodyFlowStep label="Carrier assignment" value={policy.authorizedCarrierRoles.map(humanizeToken).join(' · ') || 'Unassigned'} />
                 <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
                 <CustodyFlowStep label="Screen" value={policy.escortGroups.map(humanizeToken).join(' · ') || 'No escort'} />
                 <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
@@ -1296,7 +1631,7 @@ function CustodyEditor({ draft, issues, mutate }: {
                   values={['none', 'relay-catcher']}
                   onChange={(value) => update(index, (next) => { next.forwardPass = value; })} />
               </div>
-              <ChoiceGrid label="authorized carrier roles" values={roles} selected={policy.authorizedCarrierRoles}
+              <ChoiceGrid label="authorized carrier assignments" values={roles} selected={policy.authorizedCarrierRoles}
                 issues={issues} path={`custodyPolicies.${index}.authorizedCarrierRoles`}
                 onChange={(selected) => update(index, (next) => { next.authorizedCarrierRoles = selected; })} />
               <ChoiceGrid label="escort groups" values={groups} selected={policy.escortGroups}
@@ -2152,13 +2487,17 @@ function doctrineToolForIssue(path: string): DoctrineTool {
 function scrollToIssue(path: string) {
   const doctrineId = path.startsWith('doctrines.') ? path.split('.')[1] : null;
   const predicateId = path.startsWith('authoring.predicates.') ? path.split('.')[2] : null;
-  const selector = doctrineId
-    ? [...document.querySelectorAll<HTMLButtonElement>('[data-doctrine-select]')]
-      .find((button) => button.dataset.doctrineSelect === doctrineId)
-    : predicateId
-      ? [...document.querySelectorAll<HTMLButtonElement>('[data-predicate-select]')]
-        .find((button) => button.dataset.predicateSelect === predicateId)
-      : null;
+  const assignmentIndex = path.startsWith('roles.') ? path.split('.')[1] : null;
+  const selector = assignmentIndex
+    ? [...document.querySelectorAll<HTMLButtonElement>('[data-assignment-select]')]
+      .find((button) => button.dataset.assignmentSelect === assignmentIndex)
+    : doctrineId
+      ? [...document.querySelectorAll<HTMLButtonElement>('[data-doctrine-select]')]
+        .find((button) => button.dataset.doctrineSelect === doctrineId)
+      : predicateId
+        ? [...document.querySelectorAll<HTMLButtonElement>('[data-predicate-select]')]
+          .find((button) => button.dataset.predicateSelect === predicateId)
+        : null;
   if (selector && selector.getAttribute('aria-selected') !== 'true') {
     selector.click();
     window.setTimeout(() => scrollToIssue(path), 0);

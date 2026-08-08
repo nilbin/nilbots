@@ -6594,8 +6594,17 @@ draft autosave, exact server source storage, shared-compiler validation, layout 
 match snapshots and CLI file workflows remain unchanged.
 
 The visual authoring metaphor is a tactical command board, not an administrative form:
-one role plan is selected from a squad rail, its ordered modes read as command cards,
+one assignment is selected from a squad rail, its ordered modes read as command cards,
 and reusable triggers read as battlefield sentences. Candidate-class art, signature
 skill name and descriptive fantasy provide tactical context without making the skill an
 editable rule or changing its mechanics. Exact identifiers, timing values, condition
 expressions and fight parameters remain reachable through progressive disclosure.
+
+The player-facing name for the compiler's role allocation is **assignment**. Classes say
+what bodies can do; assignments say what eligible bodies should do in this sheet. The
+Composition step therefore owns assignment names, ordered eligible-chassis pools, normal
+staffing targets, and advanced casualty/respawn/overflow bounds. Renames rewrite all
+schema role references atomically, while the stored `roles`, `roleId`, doctrine grammar,
+compiler and runtime remain unchanged. The command board consumes these assignments and
+may describe every eligible chassis and signature rather than implying a fixed one-class
+role taxonomy.

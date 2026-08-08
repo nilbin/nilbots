@@ -57,11 +57,21 @@ export interface Predicate extends JsonObject {
 export interface RoleDefinition extends JsonObject {
   roleId: string;
   candidateClasses: string[];
+  minimum?: number;
+  preferred?: number;
+  maximum?: number;
+  carrierPreference?: string;
+  deathPolicy?: string;
+  respawnPolicy?: string;
+  overflowRoleId?: string;
 }
 
 export interface GroupDefinition extends JsonObject {
   groupId: string;
   roleIds: string[];
+  minimum?: number;
+  preferred?: number;
+  maximum?: number;
 }
 
 export interface CustodyPolicy extends JsonObject {
@@ -220,6 +230,95 @@ export function parseDraft(
   if (!layout || typeof layout !== 'object' || Array.isArray(layout))
     throw new Error('layout.json must contain one JSON object.');
   return { name, sheetId, revision, enterLadder, playbook, layout };
+}
+
+/** Player-facing assignments compile to role ids. Keep every role reference
+ * coherent when an author renames one; the shared compiler remains the final
+ * authority over the resulting document. */
+export function renameAssignment(
+  playbook: PlaybookDocument,
+  previousId: string,
+  nextId: string,
+): void {
+  if (previousId === nextId) return;
+  rewriteRoleReferences(playbook, previousId, nextId);
+}
+
+/** Change the normal staffing target and keep the containing stable group's
+ * preferred band able to express the edited role allocation. */
+export function setAssignmentTarget(
+  playbook: PlaybookDocument,
+  roleId: string,
+  preferred: number,
+): void {
+  const role = playbook.roles.find((entry) => entry.roleId === roleId);
+  if (!role) return;
+  const nextPreferred = Math.max(0, Math.min(8, Math.trunc(preferred)));
+  role.preferred = nextPreferred;
+  role.minimum = Math.min(role.minimum ?? 0, nextPreferred);
+  role.maximum = Math.max(role.maximum ?? nextPreferred, nextPreferred);
+
+  for (const group of playbook.groups.filter((entry) => entry.roleIds.includes(roleId))) {
+    const members = playbook.roles.filter((entry) => group.roleIds.includes(entry.roleId));
+    const memberPreferred = members.reduce((sum, entry) => sum + (entry.preferred ?? 0), 0);
+    const memberMinimum = members.reduce((sum, entry) => sum + (entry.minimum ?? 0), 0);
+    group.preferred = Math.min(8, memberPreferred);
+    group.minimum = Math.min(group.minimum ?? memberMinimum, group.preferred);
+    group.maximum = Math.max(group.maximum ?? group.preferred, group.preferred, group.minimum);
+  }
+}
+
+export function assignmentIdFromName(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const ROLE_SCALAR_KEYS = new Set([
+  'role', 'roleId', 'leaderRole', 'overflowRoleId',
+]);
+const ROLE_ARRAY_KEYS = new Set([
+  'roleIds', 'roles', 'participants', 'providers',
+  'authorizedCarrierRoles', 'emergencyRecoveryRoles',
+]);
+
+function rewriteRoleReferences(
+  value: unknown,
+  previousId: string,
+  nextId: string,
+  parentKey = '',
+): void {
+  if (Array.isArray(value)) {
+    if (ROLE_ARRAY_KEYS.has(parentKey) || parentKey === 'escort') {
+      value.forEach((entry, index) => {
+        if (entry === previousId) value[index] = nextId;
+        else rewriteRoleReferences(entry, previousId, nextId, parentKey);
+      });
+      return;
+    }
+    value.forEach((entry) => rewriteRoleReferences(entry, previousId, nextId));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  for (const [key, entry] of Object.entries(record)) {
+    const roleSubject = key === 'subject'
+      && typeof record.fact === 'string'
+      && (ROLE_FACTS as readonly string[]).includes(record.fact);
+    if ((ROLE_SCALAR_KEYS.has(key) || roleSubject) && entry === previousId) {
+      record[key] = nextId;
+      continue;
+    }
+    if (key === 'escort' && entry === previousId) {
+      record[key] = nextId;
+      continue;
+    }
+    rewriteRoleReferences(entry, previousId, nextId, key);
+  }
 }
 
 export function stringifyDocument(value: JsonObject): string {
@@ -391,18 +490,33 @@ export function validateDraft(
 
   for (const [index, role] of (playbook.roles ?? []).entries()) {
     if (!Array.isArray(role.candidateClasses) || role.candidateClasses.length < 1)
-      error(`roles.${index}.candidateClasses`, 'A role needs at least one candidate class.');
+      error(`roles.${index}.candidateClasses`, 'An assignment needs at least one eligible class.');
+    duplicates(role.candidateClasses ?? [], `roles.${index}.candidateClasses`, error);
     role.candidateClasses?.forEach((classId) => {
       if (!classIds.has(classId))
         error(`roles.${index}.candidateClasses`, `Unknown class '${classId}'.`);
     });
+    const minimum = role.minimum;
+    const preferred = role.preferred;
+    const maximum = role.maximum;
+    if ([minimum, preferred, maximum].every((value) => typeof value === 'number')) {
+      if (minimum! < 0 || minimum! > preferred! || preferred! > maximum! || maximum! > 8)
+        error(`roles.${index}.preferred`, 'Assignment staffing must satisfy 0 ≤ minimum ≤ target ≤ maximum ≤ 8.');
+      if (preferred! > 0 && !role.candidateClasses.some((classId) => copies.has(classId)))
+        error(`roles.${index}.candidateClasses`, 'No body in the current composition can fill this assignment.');
+    }
   }
+
+  const preferredBodies = (playbook.roles ?? [])
+    .reduce((sum, role) => sum + (role.preferred ?? 0), 0);
+  if (preferredBodies > catalog.slotCount)
+    error('roles', `Assignment targets claim ${preferredBodies} bodies; only ${catalog.slotCount} are fielded.`);
 
   const groupCountByRole = new Map<string, number>();
   for (const group of playbook.groups ?? []) {
     duplicates(group.roleIds ?? [], `groups.${group.groupId}.roleIds`, error);
     for (const role of group.roleIds ?? []) {
-      if (!roles.has(role)) error(`groups.${group.groupId}`, `Unknown role '${role}'.`);
+      if (!roles.has(role)) error(`groups.${group.groupId}`, `Unknown assignment '${role}'.`);
       groupCountByRole.set(role, (groupCountByRole.get(role) ?? 0) + 1);
     }
   }
@@ -413,11 +527,11 @@ export function validateDraft(
   for (const [doctrineId, doctrine] of Object.entries(playbook.doctrines ?? {})) {
     const path = `doctrines.${doctrineId}`;
     if (!IDENTIFIER.test(doctrineId)) error(path, 'Doctrine ids use lowercase letters, digits and hyphens.');
-    if (!roles.has(doctrine.role)) error(`${path}.role`, `Unknown role '${doctrine.role}'.`);
-    if (doctrineRoles.has(doctrine.role)) error(`${path}.role`, `Role '${doctrine.role}' already has a doctrine.`);
+    if (!roles.has(doctrine.role)) error(`${path}.role`, `Unknown assignment '${doctrine.role}'.`);
+    if (doctrineRoles.has(doctrine.role)) error(`${path}.role`, `Assignment '${doctrine.role}' already has a doctrine.`);
     doctrineRoles.add(doctrine.role);
     if ((groupCountByRole.get(doctrine.role) ?? 0) !== 1)
-      error(`${path}.role`, `Role '${doctrine.role}' must belong to exactly one group.`);
+      error(`${path}.role`, `Assignment '${doctrine.role}' must belong to exactly one group.`);
     if (!custody.has(doctrine.custody)) error(`${path}.custody`, `Unknown custody policy '${doctrine.custody}'.`);
     const collection = typeof doctrine.collect === 'string'
       ? [doctrine.collect] : doctrine.collect ?? [];
@@ -473,12 +587,12 @@ export function validateDraft(
       if (verb === 'assault' && mode.escort !== undefined) {
         const escorts = normalizeEscorts(mode.escort);
         if (escorts.length < 1 || escorts.length > 8)
-          error(`${modePath}.escort`, 'Escort calls need 1–8 roles.');
+          error(`${modePath}.escort`, 'Escort calls need 1–8 assignments.');
         const seen = new Set<string>();
         escorts.forEach(({ role, posture }) => {
-          if (!roles.has(role)) error(`${modePath}.escort`, `Unknown role '${role}'.`);
-          if (role === doctrine.role) error(`${modePath}.escort`, 'A role cannot escort itself.');
-          if (seen.has(role)) error(`${modePath}.escort`, `Duplicate escort role '${role}'.`);
+          if (!roles.has(role)) error(`${modePath}.escort`, `Unknown assignment '${role}'.`);
+          if (role === doctrine.role) error(`${modePath}.escort`, 'An assignment cannot escort itself.');
+          if (seen.has(role)) error(`${modePath}.escort`, `Duplicate escort assignment '${role}'.`);
           seen.add(role);
           if (posture && !['trail', 'screen'].includes(posture))
             error(`${modePath}.escort`, `Unknown posture '${posture}'.`);
@@ -496,17 +610,17 @@ export function validateDraft(
 
   for (const role of roles) {
     if ((groupCountByRole.get(role) ?? 0) !== 1)
-      error('groups', `Role '${role}' must belong to exactly one group.`);
+      error('groups', `Assignment '${role}' must belong to exactly one group.`);
     if (!doctrineRoles.has(role))
-      error('doctrines', `Role '${role}' needs exactly one doctrine.`);
+      error('doctrines', `Assignment '${role}' needs exactly one doctrine.`);
   }
 
   for (const [role, paths] of escortCalls) {
     if (!musterRoles.has(role))
-      paths.forEach((path) => error(`${path}.escort`, `Role '${role}' is not recruitable; add a muster mode to its doctrine.`));
+      paths.forEach((path) => error(`${path}.escort`, `Assignment '${role}' is not recruitable; add a muster mode to its doctrine.`));
   }
   for (const role of musterRoles)
-    if (!escortCalls.has(role)) error(`doctrines`, `Role '${role}' has a muster mode that answers no call.`);
+    if (!escortCalls.has(role)) error(`doctrines`, `Assignment '${role}' has a muster mode that answers no call.`);
 
   for (const [id, predicate] of Object.entries(predicates))
     validatePredicate(id, predicate, { roles, groups, zones, orders }, error);
@@ -592,7 +706,7 @@ function validatePredicate(
       error(`${path}.subject`, 'Choose a declared group.');
   } else if ((ROLE_FACTS as readonly string[]).includes(predicate.fact)) {
     if (!predicate.subject || !refs.roles.has(predicate.subject))
-      error(`${path}.subject`, 'Choose a declared role.');
+      error(`${path}.subject`, 'Choose a declared assignment.');
   } else if ((WELL_FACTS as readonly string[]).includes(predicate.fact)) {
     if (!predicate.subject || !['north', 'centre', 'south'].includes(predicate.subject))
       error(`${path}.subject`, 'Choose north, centre or south.');
@@ -620,7 +734,7 @@ function validateCustody(
   const path = `custodyPolicies.${index}`;
   list(policy.authorizedCarrierRoles, 1, 8, `${path}.authorizedCarrierRoles`, error);
   policy.authorizedCarrierRoles?.forEach((role) => {
-    if (!refs.roles.has(role)) error(`${path}.authorizedCarrierRoles`, `Unknown role '${role}'.`);
+    if (!refs.roles.has(role)) error(`${path}.authorizedCarrierRoles`, `Unknown assignment '${role}'.`);
   });
   list(policy.escortGroups, 0, 8, `${path}.escortGroups`, error);
   policy.escortGroups?.forEach((group) => {

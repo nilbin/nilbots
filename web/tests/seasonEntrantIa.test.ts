@@ -90,12 +90,21 @@ test('conditions and custody are focused doctrine tools rather than top-level st
 test('doctrine authoring presents a tactical command board over the compiler schema', () => {
   assert.match(workshop, /Tactical command board/);
   assert.match(workshop, /data-doctrine-select/);
-  assert.match(workshop, /Signature system · \{classInfo\.signatureName\}/);
+  assert.match(workshop, /classInfo\.signatureName/);
   assert.match(workshop, /Choose action/);
   assert.match(workshop, /Trigger library/);
   assert.match(workshop, /WHEN \{predicateSentence\(predicate\)\}/);
   assert.match(workshop, /Core relay plans/);
-  assert.match(workshop, /Advanced role tuning/);
+  assert.match(workshop, /Advanced command-plan settings/);
+});
+
+test('composition turns compiler roles into editable player assignments', () => {
+  assert.match(workshop, /Squad assignments/);
+  assert.match(workshop, /Turn chassis into jobs/);
+  assert.match(workshop, /AssignmentNameEditor/);
+  assert.match(workshop, /Eligible chassis · priority order/);
+  assert.match(workshop, /Normal staffing target/);
+  assert.match(workshop, /Advanced allocation rules/);
 });
 
 test('custom-mind authoring is dormant on the launch web surface', () => {

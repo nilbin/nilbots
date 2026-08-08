@@ -6,8 +6,11 @@ import { gunzipSync } from 'node:zlib';
 import { loadReplayObject } from '../src/replayIngress';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
+  assignmentIdFromName,
   parseDraft,
   pinDraft,
+  renameAssignment,
+  setAssignmentTarget,
   sheetIssueFromCompilerError,
   stringifyDocument,
   validateDraft,
@@ -94,6 +97,63 @@ const catalog: TacticalSheetCatalog = {
   templateLayoutJson: '{}',
   stockOpponents: [],
 };
+
+test('assignment names stay compiler ids and renames follow every role reference', () => {
+  const source = structuredClone(playbook);
+  source.roles[0] = {
+    ...source.roles[0],
+    roleId: 'line',
+    minimum: 0,
+    preferred: 1,
+    maximum: 2,
+    overflowRoleId: 'line',
+  };
+  source.groups[0] = { ...source.groups[0], roleIds: ['line'] };
+  source.formations = [{ placements: [{ roleId: 'line' }] }];
+  source.engagements = [{ participants: ['line'], commit: { roles: ['line'] } }];
+  source.supportPolicies = [{ providers: ['line'] }];
+  source.custodyPolicies[0].authorizedCarrierRoles = ['line'];
+  source.custodyPolicies[0].emergencyRecoveryRoles = ['line'];
+  source.doctrines.line.role = 'line';
+  source.doctrines.line.modes = [{
+    assault: 'floor-route',
+    escort: [{ role: 'line' }],
+  }];
+  source.authoring.predicates!['line-hurt'] = {
+    fact: 'role-health', operator: 'at-most', value: 2, subject: 'line',
+  };
+
+  assert.equal(assignmentIdFromName('  Base Screen  '), 'base-screen');
+  renameAssignment(source, 'line', 'base-screen');
+
+  assert.equal(source.roles[0].roleId, 'base-screen');
+  assert.equal(source.roles[0].overflowRoleId, 'base-screen');
+  assert.deepEqual(source.groups[0].roleIds, ['base-screen']);
+  assert.equal((source.formations[0] as { placements: { roleId: string }[] }).placements[0].roleId, 'base-screen');
+  assert.deepEqual((source.engagements[0] as { participants: string[] }).participants, ['base-screen']);
+  assert.deepEqual((source.supportPolicies[0] as { providers: string[] }).providers, ['base-screen']);
+  assert.deepEqual(source.custodyPolicies[0].authorizedCarrierRoles, ['base-screen']);
+  assert.equal(source.doctrines.line.role, 'base-screen');
+  assert.equal((source.doctrines.line.modes[0].escort as { role: string }[])[0].role, 'base-screen');
+  assert.equal(source.authoring.predicates!['line-hurt'].subject, 'base-screen');
+});
+
+test('assignment staffing targets keep their stable group expressible', () => {
+  const source = structuredClone(playbook);
+  source.roles[0] = {
+    ...source.roles[0], minimum: 0, preferred: 1, maximum: 1,
+  };
+  source.groups[0] = {
+    ...source.groups[0], minimum: 0, preferred: 1, maximum: 1,
+  };
+
+  setAssignmentTarget(source, 'line', 3);
+
+  assert.equal(source.roles[0].preferred, 3);
+  assert.equal(source.roles[0].maximum, 3);
+  assert.equal(source.groups[0].preferred, 3);
+  assert.equal(source.groups[0].maximum, 3);
+});
 
 test('export hashes the exact emitted layout bytes and updates only the layout pin', async () => {
   const draft = parseDraft(

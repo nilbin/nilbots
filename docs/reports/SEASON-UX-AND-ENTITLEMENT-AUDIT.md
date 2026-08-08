@@ -41,9 +41,9 @@ the [single-action practice viewport](assets/season-ux-polish/practice-phone.png
 
 The first tactical-command-board prototype replaces the remaining admin-form posture:
 
-- a role rail shows one plan at a time with its class icon, chassis, ordered-command
+- an assignment rail shows one plan at a time with its eligible chassis, ordered-command
   meter and signature-skill name;
-- the selected role explains the class signature fantasy, then presents modes as an
+- the selected assignment explains each eligible class signature fantasy, then presents modes as an
   ordered stack of readable command cards with action glyphs and `WHEN`/`UNTIL` chips;
 - verb selection, exact parameters and fight tuning remain available under each card's
   `Configure command` disclosure, while plan identifiers and timing knobs stay advanced;
@@ -57,6 +57,18 @@ rule, layout, persistence contract or emitted JSON shape changed. See the
 [phone command board](assets/season-ux-polish/command-board-phone.png),
 [trigger editor](assets/season-ux-polish/doctrine-conditions-phone.png), and
 [custody flow](assets/season-ux-polish/doctrine-custody-phone.png).
+
+Composition now makes the distinction the original starter obscured: a class is a body
+capability, while an assignment is a sheet-authored job. An author can rename an
+assignment, choose and priority-order its eligible chassis, and move the normal staffing
+target across the eight bodies. Minimum/maximum staffing and carrier, casualty, respawn
+and overflow behavior remain under one advanced disclosure. The browser smoke renamed
+`hunter` to `forward-screen`, selected and removed a second eligible chassis, saved it
+through the shared compiler and completed a hosted practice match. The rename follows
+doctrines, groups, formation placements, engagement/support participants, escort calls,
+role-fact predicates and custody references atomically. This changes no JSON key,
+compiler rule or runtime behavior. See the [desktop assignment board](assets/season-ux-polish/assignments-desktop.png)
+and [phone assignment editor](assets/season-ux-polish/assignments-phone.png).
 
 ## Ranked and practice
 
@@ -129,7 +141,7 @@ the API should allocate that pool explicitly rather than hiding it in pairing or
 ## Verification
 
 - generated API clients regenerated cleanly after adding the projected daily baseline;
-- web tests: 431 passed;
+- web tests: 434 passed;
 - production web build: passed;
 - solution build: passed with zero warnings;
 - App tests with the PostgreSQL suite required: 283 passed, 3 unrelated

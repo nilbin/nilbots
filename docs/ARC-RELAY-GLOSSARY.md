@@ -15,9 +15,11 @@ navigation, help, errors, and authoring UI use the terms below.
 - **Class** — a body's capabilities, signature skill, movement profile, and look.
 - **Composition** — the entrant's ordered eight class slots, with no more than two
   copies of one class.
-- **Role** — a sheet-authored job assigned to one or more composition slots.
-- **Group** — a named set of roles used by conditions and custody policy.
-- **Doctrine** — one role's ordered tactical behavior: custody, combat preferences,
+- **Assignment** — a sheet-authored job filled by eligible classes up to its staffing
+  target. The compiler stores assignments in its `roles` collection; `role` remains an
+  internal schema term, not a second player concept.
+- **Group** — a named set of assignments used by conditions and custody policy.
+- **Doctrine** — one assignment's ordered tactical behavior: custody, combat preferences,
   collection geography, and modes.
 - **Mode** — one conditional behavior inside a doctrine. Modes are evaluated in order;
   the first active mode wins and the last mode is the safe floor.
@@ -27,8 +29,8 @@ navigation, help, errors, and authoring UI use the terms below.
   `and` and `or` to open or close modes; they do not reveal hidden information.
 - **Fight block** — the doctrine or mode settings for target preference, engagement,
   chase, break-off, defense, healing, and loose-Core priority.
-- **Escort call** — an assault mode's request for one or more roles. A called role joins
-  only when its own doctrine has a matching `muster` mode.
+- **Escort call** — an assault mode's request for one or more assignments. A called
+  assignment joins only when its own doctrine has a matching `muster` mode.
 - **Custody policy** — who may carry a Core and how pickup, delivery, recovery, passing,
   accidental pickup, and unreachable routes are handled.
 - **Layout** — the map-native zones, routes, anchors, and side bindings used by a sheet.

@@ -38,6 +38,14 @@ and emits `normalized-playbook.json`, `normalized-layout.json`, `explain.json`
 and a binary `playbook.atp`; **compilation is the only source of truth for
 validity**, and the editor's job is to never produce something it rejects.
 
+**Player vocabulary:** the editor presents each `roles[]` entry as an
+**assignment**. A class describes a body's capabilities; an assignment describes its
+job in this sheet. Its `roleId` is the assignment's stable compiler id,
+`candidateClasses` is its ordered eligible-chassis pool, and
+minimum/preferred/maximum are presented as staffing bounds and the normal target.
+Renaming an assignment must rewrite every role reference atomically. This is a UI
+projection only: the JSON keys and compiler grammar remain unchanged.
+
 ---
 
 ## 2. The current vocabulary

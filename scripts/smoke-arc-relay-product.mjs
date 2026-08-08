@@ -78,13 +78,38 @@ try {
     throw new Error(`Initial template is not runnable: ${issues.join(' | ')}`);
   }
   await page.screenshot({ path: join(output, 'sheet-workshop-desktop.png'), fullPage: true });
+  await page.getByRole('button', { name: /^1 Composition/ }).click();
+  const assignmentName = page.getByLabel('Assignment name');
+  await assignmentName.fill('Forward Screen');
+  await assignmentName.press('Enter');
+  await page.getByRole('heading', { name: 'Forward Screen' }).waitFor();
+  const hushCandidate = page.locator('[data-sheet-path="roles.0"]')
+    .getByRole('button', { name: /^Hush/ });
+  await hushCandidate.click();
+  if (await hushCandidate.getAttribute('aria-pressed') !== 'true')
+    throw new Error('Assignment chassis selection did not update.');
+  await hushCandidate.click();
+  await page.getByRole('button', { name: 'Decrease Forward Screen target' }).click();
+  await page.getByRole('button', { name: 'Increase Forward Screen target' }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: join(output, 'assignments-desktop.png'), fullPage: true });
+  await page.getByRole('button', { name: /^2 Doctrines/ }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const phoneOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
   await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
-  await page.getByRole('heading', { name: 'Give every role its orders' }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: /^1 Composition/ }).click();
+  await page.getByText('Selected assignment', { exact: true }).evaluate((element) =>
+    element.scrollIntoView({ block: 'start' }));
+  await page.evaluate(() => window.scrollBy(0, -64));
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: join(output, 'assignments-phone.png') });
+  await page.getByRole('button', { name: /^2 Doctrines/ }).click();
+  await page.getByRole('heading', { name: 'Give every assignment its orders' }).evaluate((element) =>
+    element.scrollIntoView({ block: 'start' }));
+  await page.evaluate(() => window.scrollBy(0, -64));
   await page.waitForTimeout(150);
   await page.screenshot({ path: join(output, 'command-board-phone.png') });
   await page.getByRole('button', { name: /^Triggers/ }).click();

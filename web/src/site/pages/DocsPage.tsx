@@ -30,8 +30,9 @@ export default function DocsPage() {
       <Doc title="Tactical sheets">
         <p>
           A sheet is two hash-pinned JSON documents: eight unlocked classes under the
-          two-copy cap, ordered role doctrines, named conditions, custody policy and
-          map-plotted routes, zones and anchors. Saving compiles through the same shared
+          two-copy cap, editable squad assignments, ordered command doctrines, named
+          conditions, custody policy and map-plotted routes, zones and anchors. Saving
+          compiles through the same shared
           compiler as the CLI and fields the sheet in the current Season by default. A revision
           preserves entrant identity and rating; <b>save as copy</b> starts a new entrant
           and rating.

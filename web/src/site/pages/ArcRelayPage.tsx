@@ -73,7 +73,7 @@ export default function ArcRelayPage({
           </h1>
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
-              ? 'Choose the composition, give each role an ordered doctrine, plot the map and compare what actually happened.'
+              ? 'Choose the composition, group bodies into assignments, issue ordered commands, plot the map and compare what actually happened.'
               : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
           </p>
         </div>
