@@ -370,7 +370,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     }
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Ambush_v7_cutover_keeps_v6_history_but_starts_minds_and_ratings_fresh()
+    public async Task Ambush_cutover_without_v7_keeps_v6_history_but_starts_minds_and_ratings_fresh()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -494,6 +494,136 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Assert.Equal(ArcRelayPreflightStatus.Required, entrant.PreflightStatus);
             Assert.Null(entrant.PreflightRevision);
             Assert.False(entrant.LadderOptedIn);
+        }
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task Artifact_repair_v8_preserves_v7_rating_and_entrant_state()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using (AppDbContext migration =
+            await database.CreateMigratedContextAsync()) { }
+        using var factory = new BotArenaApplicationFactory(
+            database.ConnectionString,
+            legacyDuelEnabled: false);
+        using HttpClient client = factory.CreateClient();
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<ArcRelayPlaylistSeeder>()
+                .SeedAsync();
+        UserResponse owner = await RegisterAsync(client, "V7 Continuity");
+        Guid entrantId = Guid.NewGuid();
+        Guid oldLadderId;
+
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Playlist playlist = await db.Playlists.SingleAsync(value =>
+                value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
+            ArcRelayEntrantPlaylistDefinition historical =
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV7();
+            var version = new PlaylistVersion
+            {
+                PlaylistId = playlist.Id,
+                Version = ArcRelayEntrantPlaylistDefinition.AmbushVersion,
+                GameModeId = historical.Match.Rules.GameMode.ModeId,
+                RulesetId = historical.Match.Rules.RulesetId,
+                MatchFormatId = historical.Match.Format.FormatId,
+                MapPoolId = historical.Match.Map.Id,
+                SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
+                MatchmakingPolicyId =
+                    ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
+                AdmissionPolicyId = historical.AdmissionPolicyId,
+                ExecutionPolicyId = historical.ExecutionPolicyId,
+                ExecutionEngineVersion = historical.ExecutionEngineVersion,
+                CanonicalDefinition = historical.CanonicalDefinition,
+                DefinitionFingerprint = historical.DefinitionFingerprint,
+                Provenance = historical.Provenance,
+                Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
+            };
+            var season = new Season
+            {
+                Key = ArcRelayLadderPolicy.SeasonKey,
+                DisplayName = ArcRelayLadderPolicy.SeasonName,
+            };
+            var ladder = new Ladder
+            {
+                PlaylistVersionId = version.Id,
+                SeasonId = season.Id,
+                Status = LadderStatus.Open,
+                RatingPolicyId = ArcRelayEloV1.Id,
+                IsListed = true,
+                AwardsAchievements = false,
+            };
+            Guid mindBotId = await db.Bots
+                .Where(value => value.Slug ==
+                    ArcRelayPlaylistSeeder.TacticalPlaybookBotSlug)
+                .Select(value => value.Id)
+                .SingleAsync();
+            ArcRelayCompositionCompilation composition =
+                ArcRelayComposition.Compile(
+                    new ArcRelayCompositionDeclaration(
+                        ArcRelayClassCatalog.Default.StarterIds.ToArray()),
+                    ArcRelayClassCatalog.Default,
+                    ArcRelayClassCatalog.Default.StarterIds);
+            oldLadderId = ladder.Id;
+            db.PlaylistVersions.Add(version);
+            db.Seasons.Add(season);
+            db.Ladders.Add(ladder);
+            db.ArcRelayEntrants.Add(new ArcRelayEntrant
+            {
+                Id = entrantId,
+                OwnerUserId = owner.Id,
+                Kind = ArcRelayEntrantKind.CustomMind,
+                Name = "V7 mind",
+                MindBotId = mindBotId,
+                CompositionJson = composition.CanonicalJson,
+                CompositionHash = composition.ContentHash,
+                PreflightStatus = ArcRelayPreflightStatus.Passed,
+                PreflightRevision = 4,
+                LadderOptedIn = true,
+                LadderOptedInAt = DateTime.UtcNow,
+            });
+            db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
+            {
+                EntrantId = entrantId,
+                LadderId = ladder.Id,
+                Rating = 1517,
+                RankedMatches = 23,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider
+                .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync();
+
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Ladder oldLadder = await db.Ladders.SingleAsync(value =>
+                value.Id == oldLadderId);
+            Assert.Equal(LadderStatus.Closed, oldLadder.Status);
+            Assert.False(oldLadder.IsListed);
+            Ladder currentLadder = await (
+                from ladder in db.Ladders
+                join version in db.PlaylistVersions
+                    on ladder.PlaylistVersionId equals version.Id
+                where version.Version ==
+                    ArcRelayEntrantPlaylistDefinition.Version
+                select ladder).SingleAsync();
+            ArcRelayEntrantRating currentRating = await db
+                .ArcRelayEntrantRatings.SingleAsync(value =>
+                    value.EntrantId == entrantId &&
+                    value.LadderId == currentLadder.Id);
+            Assert.Equal(1517, currentRating.Rating);
+            Assert.Equal(23, currentRating.RankedMatches);
+            ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(
+                value => value.Id == entrantId);
+            Assert.Equal(
+                ArcRelayPreflightStatus.Passed,
+                entrant.PreflightStatus);
+            Assert.Equal(4, entrant.PreflightRevision);
+            Assert.True(entrant.LadderOptedIn);
         }
     }
 

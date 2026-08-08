@@ -1,5 +1,7 @@
 using BotArena.Engine;
 using BotArena.Toolchain;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace BotArena.Cli.Tests;
 
@@ -83,8 +85,74 @@ public sealed class MindToolchainSurfaceTests
             BotArenaVersions.GenericMindRuntimeConfigurationVersion);
     }
 
+    [Fact]
+    public void TrackedTacticalMindArtifactMatchesItsCurrentBuildInputs()
+    {
+        string root = FindRepoRoot();
+        string projectDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1");
+        TrackedBuildReceipt receipt = ReadReceipt(Path.Combine(
+            projectDirectory,
+            "bot.build-receipt.json"));
+
+        Assert.Equal(
+            BotProject.Load(projectDirectory).ComputeCacheKey(),
+            receipt.BuildInputSha256);
+        Assert.Equal(
+            Sha256(Path.Combine(projectDirectory, "bot.wasm")),
+            receipt.ArtifactSha256);
+        Assert.Equal(ToolchainInfo.SdkVersion, receipt.SdkVersion);
+        Assert.Equal(
+            ToolchainInfo.GuestAdapterVersion,
+            receipt.GuestAdapterVersion);
+        Assert.Equal(
+            ToolchainInfo.BuildPipelineVersion,
+            receipt.BuildPipelineVersion);
+    }
+
+    [Fact]
+    public void FrozenAmbushV8ArtifactCarriesTheSameControlledBuildReceipt()
+    {
+        string root = FindRepoRoot();
+        string currentDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1");
+        string frozenDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "ambush-warren-11-stock-v2");
+        TrackedBuildReceipt current = ReadReceipt(Path.Combine(
+            currentDirectory,
+            "bot.build-receipt.json"));
+        TrackedBuildReceipt frozen = ReadReceipt(Path.Combine(
+            frozenDirectory,
+            "bot.build-receipt.json"));
+
+        Assert.Equal(current, frozen);
+        Assert.Equal(
+            current.ArtifactSha256,
+            Sha256(Path.Combine(frozenDirectory, "bot.wasm")));
+    }
+
     /// <summary>The version notes live beside the constants they explain.</summary>
     private static string ReadToolchainSource()
+    {
+        string directory = FindRepoRoot();
+        return File.ReadAllText(
+            Path.Combine(
+                directory,
+                "src",
+                "BotArena.Toolchain",
+                "BotProject.cs"));
+    }
+
+    private static string FindRepoRoot()
     {
         string directory = AppContext.BaseDirectory;
         while (!Directory.Exists(Path.Combine(directory, ".git"))
@@ -95,11 +163,26 @@ public sealed class MindToolchainSurfaceTests
             Assert.NotNull(parent);
             directory = parent!;
         }
-        return File.ReadAllText(
-            Path.Combine(
-                directory,
-                "src",
-                "BotArena.Toolchain",
-                "BotProject.cs"));
+        return directory;
     }
+
+    private static TrackedBuildReceipt ReadReceipt(string path) =>
+        JsonSerializer.Deserialize<TrackedBuildReceipt>(
+            File.ReadAllText(path),
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            }) ?? throw new InvalidDataException($"Empty build receipt: {path}");
+
+    private static string Sha256(string path) =>
+        Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+
+    private sealed record TrackedBuildReceipt(
+        int SchemaVersion,
+        string BuildInputSha256,
+        string ArtifactSha256,
+        string SdkVersion,
+        string GuestAdapterVersion,
+        string CompilerVersion,
+        string BuildPipelineVersion);
 }

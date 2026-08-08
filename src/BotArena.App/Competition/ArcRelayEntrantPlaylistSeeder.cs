@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v7 is a new rating era:
-/// entrant identities survive, while ratings and map admission start again on
-/// the Warren rather than being projected or carried from Counterflow.
+/// Seeds the current immutable entrant lane. Playlist v7 remains the fresh
+/// Warren rating era; v8 repairs its executable artifact/wire identity without
+/// changing the game, so its entrant state and ratings carry forward exactly.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
 {
@@ -49,6 +49,15 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV6()
                 .Validate(playlist, tacticalVersion);
+        }
+        PlaylistVersion? ambushVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition.AmbushVersion,
+                cancellationToken);
+        if (ambushVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV7()
+                .Validate(playlist, ambushVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -154,46 +163,79 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
                 .Where(value => value.LadderId == ladder.Id)
                 .Select(value => value.EntrantId)
                 .ToHashSetAsync(cancellationToken);
-            List<ArcRelayEntrant> entrants = await db.ArcRelayEntrants
-                .ToListAsync(cancellationToken);
-            Dictionary<Guid, TacticalSheet> sheets = await db.TacticalSheets
-                .ToDictionaryAsync(value => value.Id, cancellationToken);
-            DateTime now = DateTime.UtcNow;
-            foreach (ArcRelayEntrant entrant in entrants)
+            var continuity = previous.FirstOrDefault(value =>
+                value.Version == ArcRelayEntrantPlaylistDefinition
+                    .AmbushVersion);
+            if (continuity is not null)
             {
-                if (entrant.Kind == ArcRelayEntrantKind.CustomMind)
+                ArcRelayEntrantRating[] ratings = await db
+                    .ArcRelayEntrantRatings
+                    .Where(value =>
+                        value.LadderId == continuity.Ladder.Id)
+                    .ToArrayAsync(cancellationToken);
+                foreach (ArcRelayEntrantRating rating in ratings)
                 {
-                    entrant.PreflightStatus = ArcRelayPreflightStatus.Required;
-                    entrant.PreflightMatchId = null;
-                    entrant.PreflightRevision = null;
-                    entrant.PreflightFailure = null;
-                    entrant.LadderOptedIn = false;
-                    entrant.LadderOptedInAt = null;
-                    entrant.UpdatedAt = now;
-                    continue;
-                }
-
-                bool admissible = sheets.TryGetValue(
-                        entrant.Id, out TacticalSheet? sheet)
-                    && TacticalSheetCompiler.IsAdmissibleToV7(
-                        sheet.LayoutJson);
-                if (!admissible)
-                {
-                    entrant.LadderOptedIn = false;
-                    entrant.LadderOptedInAt = null;
-                    entrant.UpdatedAt = now;
-                    continue;
-                }
-
-                // This is deliberately a fresh default record, never a copy of
-                // the prior ladder's rating or match count.
-                if (entrant.LadderOptedIn && existing.Add(entrant.Id))
-                {
+                    if (!existing.Add(rating.EntrantId))
+                        continue;
                     db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
                     {
-                        EntrantId = entrant.Id,
+                        EntrantId = rating.EntrantId,
                         LadderId = ladder.Id,
+                        Rating = rating.Rating,
+                        RankedMatches = rating.RankedMatches,
                     });
+                }
+            }
+            else
+            {
+                // A database that never seeded v7 still crosses the v6 -> v7
+                // game boundary here. Preserve that cutover's fresh-era
+                // semantics even though v8 is now the first current row it
+                // sees.
+                List<ArcRelayEntrant> entrants = await db.ArcRelayEntrants
+                    .ToListAsync(cancellationToken);
+                Dictionary<Guid, TacticalSheet> sheets = await db
+                    .TacticalSheets
+                    .ToDictionaryAsync(value => value.Id, cancellationToken);
+                DateTime now = DateTime.UtcNow;
+                foreach (ArcRelayEntrant entrant in entrants)
+                {
+                    if (entrant.Kind == ArcRelayEntrantKind.CustomMind)
+                    {
+                        entrant.PreflightStatus =
+                            ArcRelayPreflightStatus.Required;
+                        entrant.PreflightMatchId = null;
+                        entrant.PreflightRevision = null;
+                        entrant.PreflightFailure = null;
+                        entrant.LadderOptedIn = false;
+                        entrant.LadderOptedInAt = null;
+                        entrant.UpdatedAt = now;
+                        continue;
+                    }
+
+                    bool admissible = sheets.TryGetValue(
+                            entrant.Id, out TacticalSheet? sheet)
+                        && TacticalSheetCompiler.IsAdmissibleToV7(
+                            sheet.LayoutJson);
+                    if (!admissible)
+                    {
+                        entrant.LadderOptedIn = false;
+                        entrant.LadderOptedInAt = null;
+                        entrant.UpdatedAt = now;
+                        continue;
+                    }
+
+                    // This is deliberately a fresh default record, never a
+                    // copy of the pre-Warren ladder's rating or match count.
+                    if (entrant.LadderOptedIn && existing.Add(entrant.Id))
+                    {
+                        db.ArcRelayEntrantRatings.Add(
+                            new ArcRelayEntrantRating
+                            {
+                                EntrantId = entrant.Id,
+                                LadderId = ladder.Id,
+                            });
+                    }
                 }
             }
 

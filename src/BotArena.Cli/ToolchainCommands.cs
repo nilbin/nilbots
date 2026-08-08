@@ -1,5 +1,6 @@
 using BotArena.Engine;
 using BotArena.Toolchain;
+using System.Text.Json;
 
 namespace BotArena.Cli;
 
@@ -17,8 +18,29 @@ public static class BuildCommand
         string artifactCopy = Path.Combine(project.Directory, "out", "bot.wasm");
         Directory.CreateDirectory(Path.GetDirectoryName(artifactCopy)!);
         File.Copy(built.WasmPath, artifactCopy, overwrite: true);
+        string receiptPath = Path.Combine(
+            project.Directory,
+            "out",
+            "bot.build-receipt.json");
+        File.WriteAllText(
+            receiptPath,
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    buildInputSha256 = built.CacheKey,
+                    artifactSha256 = built.ArtifactHash,
+                    sdkVersion = ToolchainInfo.SdkVersion,
+                    guestAdapterVersion =
+                        ToolchainInfo.GuestAdapterVersion,
+                    compilerVersion = ToolchainInfo.IlcLlvmVersion,
+                    buildPipelineVersion =
+                        ToolchainInfo.BuildPipelineVersion,
+                },
+                new JsonSerializerOptions { WriteIndented = true }) + "\n");
         PrintSummary(project, built);
         Console.WriteLine($"Artifact:         {artifactCopy}");
+        Console.WriteLine($"Build receipt:    {receiptPath}");
         return 0;
     }
 

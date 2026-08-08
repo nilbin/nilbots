@@ -401,7 +401,9 @@ public static class ToolchainInfo
     /// Version — PackagedCliVersionTests pins them together.</summary>
     /// 0.9.35 makes ambush-warren-11 the Arc Relay command default and ships
     /// the contract used by hosted entrant playlist v7.
-    public const string CliVersion = "0.9.35";
+    /// 0.9.36 carries the additive Arc Relay pending-strike observation wire
+    /// field, tracked-artifact build receipts, and hosted entrant playlist v8.
+    public const string CliVersion = "0.9.36";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -537,7 +539,9 @@ public static class ToolchainInfo
     // the per-life seed is mixed from a match seed the mind is never handed.
     // 0.10.12: additive Arc Relay forward-combat contract fields and closed
     // movement/facing values. Historical contracts omit them byte-identically.
-    public const string SdkVersion = "0.10.12";
+    // 0.10.13: Arc Relay pending strikes already present in the SDK object
+    // graph now cross the shared actor/mind tagged observation codec.
+    public const string SdkVersion = "0.10.13";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.
@@ -545,7 +549,9 @@ public static class ToolchainInfo
     // re-derived per-tick team stream — sharing the mind's one instance
     // advanced a single position across bodies and diverged 33 of 63
     // null-pin cells for any TeamRandom-consuming bot.
-    public const string GuestAdapterVersion = "0.10.12";
+    // 0.10.13: the guest decodes the additive Arc Relay pending-strike mode
+    // payload field instead of silently defaulting it to empty.
+    public const string GuestAdapterVersion = "0.10.13";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

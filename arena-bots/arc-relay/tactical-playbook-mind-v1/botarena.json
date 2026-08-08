@@ -1,7 +1,7 @@
 {
   "name": "ArcRelayTacticalPlaybookMindV1",
   "entryType": "ArcRelayTacticalPlaybookMind",
-  "sdkVersion": "0.10.12",
+  "sdkVersion": "0.10.13",
   "appearance": {
     "accent": "#f97316",
     "look": "vanguard",

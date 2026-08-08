@@ -325,6 +325,8 @@ public sealed class ArcRelayPlaylistSeeder(
                     schemaVersion = 1,
                     kind = "versioned-first-party-tactical-playbook-mind",
                     playbookSchema = "arc-relay-tactical-playbook-v1",
+                    buildInputSha256 = ArcRelayEntrantPlaylistDefinition
+                        .TacticalBuildInputHash,
                     artifactSha256 = artifactHash,
                 }),
                 SupportedContractProfiles =
@@ -345,13 +347,31 @@ public sealed class ArcRelayPlaylistSeeder(
         return version;
     }
 
-    private async Task<BotVersion> SeedAmbushTacticalPlaybookMindAsync(
+    private async Task SeedAmbushTacticalPlaybookMindAsync(
+        CancellationToken cancellationToken)
+    {
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v1",
+            ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v2",
+            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            active: true,
+            cancellationToken);
+    }
+
+    private async Task<BotVersion> SeedAmbushTacticalPlaybookMindVersionAsync(
+        string artifactDirectory,
+        string expectedArtifactHash,
+        bool active,
         CancellationToken cancellationToken)
     {
         string? wasmPath = RepoPaths.FindUpward(Path.Combine(
             "arena-bots",
             "arc-relay",
-            "ambush-warren-11-stock-v1",
+            artifactDirectory,
             "bot.wasm"));
         if (wasmPath is null)
         {
@@ -361,7 +381,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string artifactHash = BotBuilder.Sha256File(wasmPath);
         if (!string.Equals(
                 artifactHash,
-                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                expectedArtifactHash,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -399,6 +419,11 @@ public sealed class ArcRelayPlaylistSeeder(
                 value.ArtifactHash, artifactHash, StringComparison.Ordinal));
         if (version is null)
         {
+            if (active)
+            {
+                foreach (BotVersion old in bot.Versions)
+                    old.IsActive = false;
+            }
             version = new BotVersion
             {
                 BotId = bot.Id,
@@ -421,6 +446,10 @@ public sealed class ArcRelayPlaylistSeeder(
                         ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
                     stockLayoutSourceHash =
                         ArcRelayEntrantPlaylistDefinition.StockLayoutSourceHash,
+                    buildInputSha256 = active
+                        ? ArcRelayEntrantPlaylistDefinition
+                            .TacticalBuildInputHash
+                        : null,
                     artifactSha256 = artifactHash,
                 }),
                 SupportedContractProfiles =
@@ -432,10 +461,16 @@ public sealed class ArcRelayPlaylistSeeder(
                 RuntimeConfigurationVersion =
                     BotArenaVersions.GenericMindRuntimeConfigurationVersion,
                 BuiltAt = DateTime.UtcNow,
-                IsActive = true,
+                IsActive = active,
             };
             bot.Versions.Add(version);
             db.BotVersions.Add(version);
+        }
+        if (active)
+        {
+            foreach (BotVersion old in bot.Versions)
+                old.IsActive = old.Id == version.Id;
+            version.IsActive = true;
         }
         await db.SaveChangesAsync(cancellationToken);
         return version;

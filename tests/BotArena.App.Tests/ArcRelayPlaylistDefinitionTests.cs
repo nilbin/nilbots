@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v7_hosts_ambush_tactical_sheets_while_v2_through_v6_remain_executable()
+    public void Entrant_v8_repairs_ambush_stock_while_v2_through_v7_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -25,8 +25,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5();
         ArcRelayEntrantPlaylistDefinition tacticalCounterflow =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV6();
+        ArcRelayEntrantPlaylistDefinition ambushV7 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV7();
 
-        Assert.Equal(7, current.PlaylistVersion);
+        Assert.Equal(8, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -38,6 +40,16 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.StockSheetId,
             current.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
+            current.CanonicalDefinition);
+        Assert.Equal(7, ambushV7.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
+            ambushV7.CanonicalDefinition);
+        Assert.DoesNotContain(
+            ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
+            ambushV7.CanonicalDefinition);
         Assert.Equal(6, tacticalCounterflow.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.ForwardCombat.RulesetId,
@@ -64,7 +76,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
             counterflow.CanonicalDefinition);
         var registry = new HostedGenericMatchDefinitionRegistry(
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
-                forward, recoveredStock, tacticalCounterflow, current]);
+                forward, recoveredStock, tacticalCounterflow, ambushV7,
+                current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -80,6 +93,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(tacticalCounterflow, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.TacticalVersion));
+        Assert.Same(ambushV7, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.AmbushVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -259,13 +275,16 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stock_pins_wellwright_sources_and_mind_bytes()
+    public void Frozen_ambush_stocks_pin_v7_history_and_v8_repair_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
             : throw new InvalidOperationException("Repository root is missing.");
-        string artifact = Path.Combine(
+        string historicalArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v1",
+            "bot.wasm");
+        string artifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v2",
             "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
@@ -279,6 +298,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             BotBuilder.Sha256File(artifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
+            BotBuilder.Sha256File(historicalArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
             BotBuilder.Sha256File(playbook));

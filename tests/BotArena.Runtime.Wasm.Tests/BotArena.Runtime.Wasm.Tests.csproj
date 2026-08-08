@@ -17,6 +17,8 @@
     <ProjectReference Include="../../src/BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../../src/BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../../src/BotArena.Runtime.Wasm/BotArena.Runtime.Wasm.csproj" />
+    <ProjectReference Include="../../src/BotArena.TacticalPlaybooks/BotArena.TacticalPlaybooks.csproj" />
+    <ProjectReference Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/ArcRelayTacticalPlaybookMind.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../maps/*.json" Link="maps/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
