@@ -255,7 +255,7 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.boundaryDepth,
-    1.2,
+    1.8,
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.bastionCover

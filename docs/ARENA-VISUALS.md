@@ -706,14 +706,17 @@ carrier's relocation-locked glide, rather than the underlying one-tile action.
 Arc Relay's automatic director has a shared seven-tile closest shot
 in Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a
 camera subject only while threatened, and holds an ordinary shot for seven
-replay ticks before another theater may win. Deliberately selecting a bot is a
-viewport-aware shot: its tight axis never exceeds eight tiles and closes
-further on small screens. The complete selected render, including its dashed
-ground marker, retains the 63×63 CSS-pixel interaction floor in both reference
-phone orientations without turning selection into a portrait shot. The manual
-overview fits the three published Wells with half a tile of breathing room;
-distant home Reactors and deep aprons may leave the frame rather than shrinking
-the central theaters. Perspective
+replay ticks before another theater may win. Its first and quiet fallback shots
+settle immediately on one ranked local theater rather than easing inward from,
+or returning to, a full-board view; combat shots center their active local
+cluster rather than every historical event endpoint. Deliberately selecting a
+bot is a viewport-aware shot: its tight axis never exceeds 9.5 tiles and uses a
+60-CSS-pixel-per-tile density on larger screens. The complete selected render,
+including its expanded dashed ground marker, retains the 63×63 CSS-pixel
+interaction floor in both reference phone orientations without turning
+selection into a portrait shot. The manual overview fits the three published
+Wells with half a tile of breathing room; distant home Reactors and deep aprons
+may leave the frame rather than shrinking the central theaters. Perspective
 fog darkens unseen terrain by 58% rather than blacking it out. With no selected
 perspective, the floor and raised wall/tree materials use the cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
@@ -790,14 +793,17 @@ Ember Forge generalizes that pilot to Arc Relay through an optional
 `geometry3d.bastionCover` family block. The manifest owns a rise range, sparse
 shoulder/tower cadence, material palette, and an optional outside-map
 foundation depth. Stable family/coordinate/topology hashes place instanced
-rounded shoulders, end and junction towers, sloped exposed-face ribs, thin
-heat seams, and perimeter supports over the exact traced wall substrate. Base
-profiles stay continuous and collision-readable; raised modules vary the
-skyline without moving an open edge. The perimeter's low 1.2-tile apron,
-rounded corner plates, and irregular external pylons broaden only the
-non-playable side of the map. Ember's Arc Relay camera uses 12° yaw, 52° pitch,
-and a 28° lens; its matte graphite/copper balance and quieter floor response
-are theme-owned rather than renderer-wide exceptions.
+rounded shoulders, rectangular and decagonal towers, paired unequal-height
+towers, sloped exposed-face ribs, thin heat seams, and perimeter supports over
+the exact traced wall substrate. Base profiles stay continuous and
+collision-readable; raised modules vary the skyline without moving an open
+edge. The perimeter's visible low 1.8-tile apron, raised outer rail, rounded
+corner plates, and irregular external pylons broaden only the non-playable side
+of the map. Emissive vents and heat seams use sparse cadences and distinct
+depths instead of coplanar surfaces, preventing mobile depth flicker while
+reducing box repetition. Ember's Arc Relay camera uses 12° yaw, 52° pitch, and
+a 28° lens; its matte graphite/copper balance and quieter floor response are
+theme-owned rather than renderer-wide exceptions.
 
 Woodland Grove adds one deliberately narrow organic companion rather than a
 generic prop catalog. A wall family's optional `geometry3d.treeCover` block

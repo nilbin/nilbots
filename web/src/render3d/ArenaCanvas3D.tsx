@@ -7,10 +7,9 @@ import { buildOverlays } from './arenaOverlays';
 import { configureModelTextureSupport } from './lookModel';
 import {
   ArenaCamera,
+  directorFrameAt,
   directorMinSpan,
   directorShotHoldTicks,
-  focusFrame,
-  focusPointsAt,
   selectedUnitPointAt,
   selectionFollowFrame,
   strategicOverviewFrame,
@@ -237,10 +236,33 @@ export default function ArenaCanvas3D({
       };
       if (camera === null) {
         camera = new ArenaCamera(framing);
-        // Born in the state the chrome already claims. A viewer that opens on the
-        // overview holds it — no intro zoom across the establishing shot.
-        if (!frameState.current.autoFit)
+        const state = frameState.current;
+        const followedPoint = selectedUnitPointAt(
+          replay,
+          state.time,
+          state.selectedUnitKey,
+        );
+        // Born in the state the chrome already claims. Overview holds its authored frame;
+        // director starts on its first actual theater rather than spending the opening
+        // seconds easing inward from the maximum map view; a retained selection starts on
+        // the same follow shot it will continue tracking.
+        if (followedPoint) {
+          const frame = selectionFollowFrame(followedPoint, framing);
+          camera.settle(frame);
+          camera.track(frame);
+        } else if (!state.autoFit) {
           camera.hold(strategicOverviewFrame(replay, framing));
+        } else {
+          camera.settle(
+            directorFrameAt(
+              replay,
+              state.time,
+              null,
+              state.highlightedUnitKeys,
+              framing,
+            ),
+          );
+        }
       } else camera.reframe(framing);
       look(camera.frame);
     };
@@ -381,13 +403,11 @@ export default function ArenaCanvas3D({
         }
         if (camera.auto)
           camera.aim(
-            focusFrame(
-              focusPointsAt(
-                replay,
-                now,
-                followed,
-                frameState.current.highlightedUnitKeys,
-              ),
+            directorFrameAt(
+              replay,
+              now,
+              followed,
+              frameState.current.highlightedUnitKeys,
               framing,
             ),
             now,

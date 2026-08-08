@@ -70,6 +70,8 @@ function buildFamily(
 ): THREE.Group {
   const shoulders: Placement[] = [];
   const towers: Placement[] = [];
+  const roundTowers: Placement[] = [];
+  const splitTowers: Placement[] = [];
   const trims: Placement[] = [];
   const heatSeams: Placement[] = [];
   const faceRibs: Placement[] = [];
@@ -126,36 +128,83 @@ function buildFamily(
         0.5,
       );
       const towerRise = rise * (turnsOrBranches ? 1.08 : 0.88);
-      const placement = {
-        position: centre,
-        rotationY,
-        scale: new THREE.Vector3(span, towerRise, span),
-      };
-      towers.push(placement);
-      trims.push(topTrim(placement, moduleBase, towerRise, 1.06));
-      if (seed % 3 !== 0)
-        heatSeams.push(
-          heatSeam(placement, moduleBase, towerRise, span * 0.5),
-        );
-      maximumHeight = Math.max(maximumHeight, moduleBase + towerRise);
+      const variant = (seed >>> 5) % 3;
+      if (variant === 0) {
+        const placement = {
+          position: centre,
+          rotationY,
+          scale: new THREE.Vector3(
+            span * (0.82 + unitByte(seed, 0) * 0.28),
+            towerRise,
+            span * (0.8 + unitByte(seed, 24) * 0.25),
+          ),
+        };
+        towers.push(placement);
+        trims.push(topTrim(placement, moduleBase, towerRise, 1.06));
+        if (seed % 4 === 0)
+          heatSeams.push(
+            heatSeam(placement, moduleBase, towerRise, span * 0.42),
+          );
+        maximumHeight = Math.max(maximumHeight, moduleBase + towerRise);
+      } else if (variant === 1) {
+        const roundRise = towerRise * (0.86 + unitByte(seed, 24) * 0.32);
+        const roundSpan = span * (0.82 + unitByte(seed, 0) * 0.18);
+        const placement = {
+          position: new THREE.Vector3(
+            centre.x,
+            moduleBase + roundRise / 2,
+            centre.z,
+          ),
+          rotationY,
+          scale: new THREE.Vector3(roundSpan, roundRise, roundSpan),
+        };
+        roundTowers.push(placement);
+        maximumHeight = Math.max(maximumHeight, moduleBase + roundRise);
+      } else {
+        const gap = span * (0.3 + unitByte(seed, 0) * 0.14);
+        for (const direction of [-1, 1] as const) {
+          const splitRise = towerRise *
+            (direction < 0
+              ? 0.68 + unitByte(seed, 16) * 0.18
+              : 0.92 + unitByte(seed, 24) * 0.2);
+          const alongX = Math.abs(Math.cos(rotationY)) > 0.5;
+          const placement = {
+            position: new THREE.Vector3(
+              centre.x + (alongX ? direction * gap : 0),
+              moduleBase,
+              centre.z + (alongX ? 0 : direction * gap),
+            ),
+            rotationY,
+            scale: new THREE.Vector3(span * 0.45, splitRise, span * 0.74),
+          };
+          splitTowers.push(placement);
+          trims.push(topTrim(placement, moduleBase, splitRise, 1.05));
+          maximumHeight = Math.max(maximumHeight, moduleBase + splitRise);
+        }
+      }
     } else if (seed % config.shoulderEvery === 0) {
       const neighbours = rotationY === 0 ? horizontal : vertical;
       const length = Math.min(
         neighbours === 2 ? 0.9 : neighbours === 1 ? 0.72 : narrowSpan,
         0.74 + unitByte(seed, 24) * 0.18,
       );
-      const cross = Math.min(narrowSpan * 0.72, 0.44);
+      const cross = Math.min(
+        narrowSpan * (0.5 + unitByte(seed, 16) * 0.38),
+        0.52,
+      );
+      const shoulderRise = rise * (0.72 + unitByte(seed, 0) * 0.36);
       const placement = {
         position: centre,
         rotationY,
-        scale: new THREE.Vector3(length, rise, cross),
+        scale: new THREE.Vector3(length, shoulderRise, cross),
       };
       shoulders.push(placement);
-      trims.push(topTrim(placement, moduleBase, rise, 1.04));
-      heatSeams.push(
-        heatSeam(placement, moduleBase, rise, length * 0.54),
-      );
-      maximumHeight = Math.max(maximumHeight, moduleBase + rise);
+      trims.push(topTrim(placement, moduleBase, shoulderRise, 1.04));
+      if (seed % 5 === 0)
+        heatSeams.push(
+          heatSeam(placement, moduleBase, shoulderRise, length * 0.46),
+        );
+      maximumHeight = Math.max(maximumHeight, moduleBase + shoulderRise);
     }
 
     for (let sideIndex = 0; sideIndex < sides.length; sideIndex++) {
@@ -204,16 +253,16 @@ function buildFamily(
         wall.mask,
         sideIndex + 71,
       );
-      if (sideSeed % 3 !== 0) continue;
+      if (sideSeed % 2 !== 0) continue;
       const outsideDistance =
         0.5 +
         config.boundaryDepth *
-          (0.34 + unitByte(sideSeed, 8) * 0.34);
-      const radial = 0.3 + unitByte(sideSeed, 16) * 0.22;
-      const tangent = 0.24 + unitByte(sideSeed, 24) * 0.2;
+          (0.42 + unitByte(sideSeed, 8) * 0.4);
+      const radial = 0.38 + unitByte(sideSeed, 16) * 0.3;
+      const tangent = 0.3 + unitByte(sideSeed, 24) * 0.26;
       const height =
         family.geometry3d.height *
-        (0.62 + unitByte(sideSeed, 0) * 0.55);
+        (0.68 + unitByte(sideSeed, 0) * 0.72);
       const x = wall.x + 0.5 + side.dx * outsideDistance;
       const z = wall.y + 0.5 + side.dy * outsideDistance;
       boundaryPylons.push({
@@ -230,7 +279,7 @@ function buildFamily(
         rotationY: side.inwardRotationY,
         scale: new THREE.Vector3(
           tangent * 0.52,
-          0.09 + unitByte(sideSeed, 16) * 0.05,
+          0.12 + unitByte(sideSeed, 16) * 0.08,
           outsideDistance * 0.9,
         ),
       });
@@ -238,7 +287,7 @@ function buildFamily(
   }
 
   if (config.boundaryDepth > 0) {
-    const offset = config.boundaryDepth * 0.44;
+    const offset = config.boundaryDepth * 0.68;
     for (const [x, z] of [
       [-offset, -offset],
       [layout.width + offset, -offset],
@@ -251,9 +300,9 @@ function buildFamily(
         position: new THREE.Vector3(x, cornerHeight / 2, z),
         rotationY: Math.PI / 4,
         scale: new THREE.Vector3(
-          0.52 + config.boundaryDepth * 0.08,
+          0.62 + config.boundaryDepth * 0.1,
           cornerHeight,
-          0.52 + config.boundaryDepth * 0.08,
+          0.62 + config.boundaryDepth * 0.1,
         ),
       });
     }
@@ -271,6 +320,22 @@ function buildFamily(
     matteMaterial(config.bodyColor, 0.28),
     shoulders,
     'shoulders',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.5, 0.6, 1, 10, 1),
+    matteMaterial(config.bodyColor, 0.3),
+    roundTowers,
+    'round-towers',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    roundedPrismGeometry(0.08, 0.035),
+    matteMaterial(config.bodyColor, 0.34),
+    splitTowers,
+    'split-towers',
     disposables,
   );
   addInstances(
@@ -378,11 +443,11 @@ function heatSeam(
   return {
     position: new THREE.Vector3(
       placement.position.x,
-      base + rise + 0.006,
+      base + rise + 0.026,
       placement.position.z,
     ),
     rotationY: placement.rotationY,
-    scale: new THREE.Vector3(length, 0.015, 0.034),
+    scale: new THREE.Vector3(length, 0.012, 0.038),
   };
 }
 
@@ -397,38 +462,38 @@ function buildBoundaryApron(
     {
       position: new THREE.Vector3(
         layout.width / 2,
-        -0.065,
+        -0.03,
         -config.boundaryDepth / 2,
       ),
       rotationY: 0,
-      scale: new THREE.Vector3(layout.width, 0.12, config.boundaryDepth),
+      scale: new THREE.Vector3(layout.width, 0.16, config.boundaryDepth),
     },
     {
       position: new THREE.Vector3(
         layout.width / 2,
-        -0.065,
+        -0.03,
         layout.height + config.boundaryDepth / 2,
       ),
       rotationY: 0,
-      scale: new THREE.Vector3(layout.width, 0.12, config.boundaryDepth),
+      scale: new THREE.Vector3(layout.width, 0.16, config.boundaryDepth),
     },
     {
       position: new THREE.Vector3(
         -config.boundaryDepth / 2,
-        -0.065,
+        -0.03,
         layout.height / 2,
       ),
       rotationY: 0,
-      scale: new THREE.Vector3(config.boundaryDepth, 0.12, layout.height),
+      scale: new THREE.Vector3(config.boundaryDepth, 0.16, layout.height),
     },
     {
       position: new THREE.Vector3(
         layout.width + config.boundaryDepth / 2,
-        -0.065,
+        -0.03,
         layout.height / 2,
       ),
       rotationY: 0,
-      scale: new THREE.Vector3(config.boundaryDepth, 0.12, layout.height),
+      scale: new THREE.Vector3(config.boundaryDepth, 0.16, layout.height),
     },
   ];
   addInstances(
@@ -440,17 +505,81 @@ function buildBoundaryApron(
     disposables,
   );
 
+  const railInset = Math.min(0.18, config.boundaryDepth * 0.12);
+  const rails: Placement[] = [
+    {
+      position: new THREE.Vector3(
+        layout.width / 2,
+        0.075,
+        -config.boundaryDepth + railInset,
+      ),
+      rotationY: 0,
+      scale: new THREE.Vector3(
+        layout.width + config.boundaryDepth * 1.7,
+        0.22,
+        railInset * 1.4,
+      ),
+    },
+    {
+      position: new THREE.Vector3(
+        layout.width / 2,
+        0.075,
+        layout.height + config.boundaryDepth - railInset,
+      ),
+      rotationY: 0,
+      scale: new THREE.Vector3(
+        layout.width + config.boundaryDepth * 1.7,
+        0.22,
+        railInset * 1.4,
+      ),
+    },
+    {
+      position: new THREE.Vector3(
+        -config.boundaryDepth + railInset,
+        0.075,
+        layout.height / 2,
+      ),
+      rotationY: 0,
+      scale: new THREE.Vector3(
+        railInset * 1.4,
+        0.22,
+        layout.height + config.boundaryDepth * 1.7,
+      ),
+    },
+    {
+      position: new THREE.Vector3(
+        layout.width + config.boundaryDepth - railInset,
+        0.075,
+        layout.height / 2,
+      ),
+      rotationY: 0,
+      scale: new THREE.Vector3(
+        railInset * 1.4,
+        0.22,
+        layout.height + config.boundaryDepth * 1.7,
+      ),
+    },
+  ];
+  addInstances(
+    apron,
+    roundedPrismGeometry(0.12, 0.035),
+    matteMaterial(config.trimColor, 0.34),
+    rails,
+    'apron-outer-rails',
+    disposables,
+  );
+
   const corners: Placement[] = [
     [0, 0],
     [layout.width, 0],
     [layout.width, layout.height],
     [0, layout.height],
   ].map(([x, z]) => ({
-    position: new THREE.Vector3(x, -0.065, z),
+    position: new THREE.Vector3(x, -0.03, z),
     rotationY: 0,
     scale: new THREE.Vector3(
       config.boundaryDepth * 2,
-      0.12,
+      0.16,
       config.boundaryDepth * 2,
     ),
   }));
@@ -499,8 +628,9 @@ function addInstances(
   mesh.instanceMatrix.needsUpdate = true;
   mesh.userData.kind = `arena-wall-bastion-${kind}`;
   mesh.userData.instanceCount = placements.length;
-  mesh.castShadow = !kind.startsWith('apron');
-  mesh.receiveShadow = true;
+  mesh.castShadow = !kind.startsWith('apron') && kind !== 'heat-seams';
+  mesh.receiveShadow = kind !== 'heat-seams';
+  if (kind === 'heat-seams') mesh.renderOrder = 4;
   group.add(mesh);
   disposables.push(geometry, material);
 }

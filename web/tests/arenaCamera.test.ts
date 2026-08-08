@@ -114,15 +114,15 @@ function projectedWebglBotFootprint(
     }
   }
   if (includeSelectionMarker) {
-    // The selected render includes the dashed marker at 1.09 chassis widths. It is part of
+    // The selected render includes the dashed marker at 1.2 chassis widths. It is part of
     // the interaction footprint on narrow screens, where preserving more terrain makes an
     // intentionally slender authored hull smaller than its nominal square normalization.
     for (let sample = 0; sample < 64; sample += 1) {
       const angle = (sample / 64) * Math.PI * 2;
       const corner = new THREE.Vector3(
-        frame.x + Math.cos(angle) * 0.82 * 1.09,
+        frame.x + Math.cos(angle) * 0.82 * 1.2,
         0.034,
-        frame.y + Math.sin(angle) * 0.82 * 1.09,
+        frame.y + Math.sin(angle) * 0.82 * 1.2,
       ).project(camera);
       left = Math.min(left, corner.x);
       right = Math.max(right, corner.x);
@@ -390,7 +390,7 @@ test('a camera opened in overview holds it, with no intro zoom', () => {
   }
 });
 
-test('an unthreatened bank run does not outrank cross-team play', () => {
+test('a quiet Arc Relay director stays with one active theater', () => {
   const arc = loadReplayJson(
     readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
   ).replay;
@@ -437,10 +437,20 @@ test('an unthreatened bank run does not outrank cross-team play', () => {
   tick.after.mode = mode;
   tick.before.mode = mode;
   const quiet = focusPointsAt(arc, 0, null);
-  assert.deepEqual(
-    quiet.map((point) => point.y),
-    [4.5, 11.5, 18.5],
-    'the director establishes all theaters instead of following the free carrier',
+  assert.ok(quiet.length > 0);
+  assert.ok(
+    new Set(quiet.map((point) => point.y)).size <= 2,
+    'quiet play is a local theater, not all three Wells presented as director',
+  );
+  const quietFrame = focusFrame(quiet, {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    minSpan: 7,
+  });
+  assert.ok(
+    quietFrame.width < 16,
+    `quiet director is a tactical shot (${quietFrame.width}), not overview`,
   );
 
   opponent.position = { x: 8, y: 11 };
@@ -954,8 +964,8 @@ test('a selection follow keeps context while its complete render clears 63×63 C
     `clearly closer than the board (${follow.width.toFixed(1)} of ${full.width.toFixed(1)})`,
   );
   assert.ok(
-    follow.height <= 8,
-    `at most eight tiles on the tight axis (${follow.height.toFixed(1)})`,
+    follow.height <= 9.5,
+    `at most nine and a half tiles on the tight axis (${follow.height.toFixed(1)})`,
   );
   assert.ok(
     Math.abs(follow.x - body.x) < 1e-9 && Math.abs(follow.y - body.y) < 1e-9,

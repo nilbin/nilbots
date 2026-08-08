@@ -18,6 +18,7 @@ export {
   MINIMUM_BOT_RENDER_PIXELS,
   ArenaCamera,
   arenaViewport,
+  directorFrameAt,
   directorMinSpan,
   directorShotHoldTicks,
   focusFrame,

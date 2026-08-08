@@ -241,6 +241,29 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
         'arena-wall-vent-emission',
       ),
     );
+    const ventEmission = objectByKind(
+      arena.scene,
+      'arena-wall-vent-emission',
+    ) as THREE.InstancedMesh;
+    const ventRecess = objectByKind(
+      arena.scene,
+      'arena-wall-vent-recesses',
+    ) as THREE.InstancedMesh;
+    assert.ok(ventEmission && ventRecess);
+    const ventMatrix = new THREE.Matrix4();
+    const recessMatrix = new THREE.Matrix4();
+    const ventPosition = new THREE.Vector3();
+    const recessPosition = new THREE.Vector3();
+    ventEmission.getMatrixAt(0, ventMatrix);
+    ventRecess.getMatrixAt(0, recessMatrix);
+    ventPosition.setFromMatrixPosition(ventMatrix);
+    recessPosition.setFromMatrixPosition(recessMatrix);
+    assert.ok(
+      ventPosition.distanceTo(recessPosition) >= 0.005,
+      'orange vent bars are physically separated from their recess instead of z-fighting',
+    );
+    assert.equal(ventEmission.castShadow, false);
+    assert.equal(ventEmission.receiveShadow, false);
 
     const bastion = objectByKind(
       arena.scene,
@@ -266,6 +289,26 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-corner-pylons'),
     );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-round-towers'),
+      'round foundry stacks break the rectangular-box repetition',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-split-towers'),
+      'paired unequal towers break the one-module-per-tile silhouette',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
+      'the widened perimeter finishes in a raised outer rail',
+    );
+    const heatSeams = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-heat-seams',
+    ) as THREE.InstancedMesh;
+    if (heatSeams) {
+      assert.equal(heatSeams.castShadow, false);
+      assert.equal(heatSeams.receiveShadow, false);
+    }
 
     const bastionFamilies = new Map<string, THREE.Object3D>();
     const raisedModules: THREE.InstancedMesh[] = [];
@@ -292,7 +335,7 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       'cover',
       'perimeter',
     ]);
-    assert.equal(bastionFamilies.get('perimeter')!.userData.boundaryDepth, 1.2);
+    assert.equal(bastionFamilies.get('perimeter')!.userData.boundaryDepth, 1.8);
     assert.equal(bastionFamilies.get('cover')!.userData.boundaryDepth, 0);
     assert.ok(
       bastionFamilies.get('perimeter')!.userData.maximumHeight > 0.84,

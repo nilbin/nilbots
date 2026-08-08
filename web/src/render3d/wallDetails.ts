@@ -110,7 +110,11 @@ function buildFamilyDetails(
         wall.mask,
         side,
       );
-      const placement = sidePlacement(
+      // These are physical layers, not coincident decals. Polygon offset alone becomes
+      // unstable at overview distance on some mobile GPUs, which made the orange vent
+      // bars flicker as the camera eased. Keep each layer a few millimetres apart while
+      // remaining well inside the wall's open-edge clearance.
+      const placement = (offset: number) => sidePlacement(
         wall.x,
         wall.y,
         family.geometry3d.height,
@@ -118,12 +122,13 @@ function buildFamilyDetails(
         edge.dx,
         edge.dy,
         edge.rotationY,
+        offset,
       );
       if (sideSeed % details.panelEvery === 0)
-        sidePanels.push(placement);
+        sidePanels.push(placement(0.004));
       if (sideSeed % details.ventEvery === 0) {
-        ventBacks.push(placement);
-        vents.push(placement);
+        ventBacks.push(placement(0.008));
+        vents.push(placement(0.014));
       }
     }
   }
@@ -221,12 +226,13 @@ function sidePlacement(
   dx: number,
   dy: number,
   rotationY: number,
+  outwardOffset: number,
 ): Placement {
   return {
     position: new THREE.Vector3(
-      x + 0.5 + dx * (0.5 - inset),
+      x + 0.5 + dx * (0.5 - inset + outwardOffset),
       height * 0.42,
-      y + 0.5 + dy * (0.5 - inset),
+      y + 0.5 + dy * (0.5 - inset + outwardOffset),
     ),
     rotationY,
   };
@@ -294,7 +300,14 @@ function addInstances(
   mesh.userData.kind = `arena-wall-${kind}`;
   mesh.userData.instanceCount = placements.length;
   mesh.castShadow = kind === 'copper-clamps';
-  mesh.receiveShadow = true;
+  mesh.receiveShadow = kind !== 'vent-emission';
+  mesh.renderOrder = kind === 'vent-emission'
+    ? 3
+    : kind === 'vent-recesses'
+      ? 2
+      : kind === 'side-service-panels'
+        ? 1
+        : 0;
   group.add(mesh);
   disposables.push(geometry, material);
 }

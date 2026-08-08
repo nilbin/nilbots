@@ -253,7 +253,7 @@ const CARRY_HEIGHT = 0.52;
 const SELECTED_TRIM_GAIN = 2.6;
 const SELECTED_TINT = 0.12;
 const SELECTED_POOL = 1;
-const UNSELECTED_POOL = 0.72;
+const UNSELECTED_POOL = 0.9;
 
 /**
  * The ring of ground that belongs to the selected body.
@@ -283,8 +283,8 @@ const UNSELECTED_POOL = 0.72;
  * vision keeps a ring at full strength instead of being dimmed along with the ground it
  * is standing on.
  */
-const SELECTION_RING_INNER = 1;
-const SELECTION_RING_OUTER = 1.09;
+const SELECTION_RING_INNER = 1.1;
+const SELECTION_RING_OUTER = 1.2;
 const SELECTION_RING_BACKING_SPREAD = 0.045;
 const SELECTION_RING_HEIGHT = 0.034;
 const SELECTION_RING_DASHES = 10;
@@ -628,7 +628,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // decoration. The flat renderer casts the same pool, so this is a match rather than an
     // invention; it just has more work to do here, because a lit chassis wears its own
     // paint and two players fielding the same look are otherwise the same object.
-    const glowGeometry = new THREE.PlaneGeometry(size * 2.4, size * 2.4);
+    const glowGeometry = new THREE.PlaneGeometry(size * 2.65, size * 2.65);
     glowGeometry.rotateX(-Math.PI / 2);
     const glowMaterial = new THREE.MeshBasicMaterial({
       map: radialGlow(accent),

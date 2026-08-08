@@ -51,18 +51,18 @@
           },
           "details": {
             "panelEvery": 3,
-            "ventEvery": 4,
+            "ventEvery": 7,
             "clampEvery": 5,
             "panelColor": "#4f4b48",
             "clampColor": "#805239",
             "ventColor": "#dc682c"
           },
           "bastionCover": {
-            "shoulderEvery": 2,
-            "towerEvery": 5,
+            "shoulderEvery": 3,
+            "towerEvery": 7,
             "minRise": 0.1,
             "maxRise": 0.34,
-            "boundaryDepth": 1.2,
+            "boundaryDepth": 1.8,
             "bodyColor": "#242526",
             "trimColor": "#73503c",
             "heatColor": "#e56d2d"
@@ -92,15 +92,15 @@
           },
           "details": {
             "panelEvery": 3,
-            "ventEvery": 5,
+            "ventEvery": 9,
             "clampEvery": 7,
             "panelColor": "#57524e",
             "clampColor": "#744b37",
             "ventColor": "#ce5e28"
           },
           "bastionCover": {
-            "shoulderEvery": 2,
-            "towerEvery": 4,
+            "shoulderEvery": 3,
+            "towerEvery": 7,
             "minRise": 0.08,
             "maxRise": 0.28,
             "boundaryDepth": 0,

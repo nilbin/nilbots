@@ -6631,3 +6631,32 @@ base walls, varied profiles, and the outside foundation. Fresh native seed
 9001 review evidence records `themeId: ember-forge` and canonical replay hash
 `9a40d1de8ee085ce41cb7ba14bd593d268841481dfb178b4f3ec5bc94de47938`;
 WebGL reports error 0 with no console/page errors.
+
+## 256. Ember camera modes separate tactical, directed, and strategic intent
+
+Owner correction (2026-08-09): selected follow needs more tactical context,
+director must stop behaving like an overview, and overview must retain the
+closer three-Well framing already approved on Woodland. A stale interrupted
+review bundle briefly showed the full arena, but that was not the shared source
+contract; overview remains the 24-tile Warren frame from #253 rather than
+expanding to the map rectangle.
+
+Follow's tight-axis ceiling moves from 8 to 9.5 tiles and its responsive density
+from 70 to 60 CSS pixels per tile. The selection pool and dashed ring grow with
+it, and the actual perspective projection test still requires the complete
+selected render to clear 63×63 CSS pixels in both reference phone orientations.
+Director now initializes directly on its first computed shot. Sustained combat
+uses a weighted active cluster instead of every endpoint in the recent event
+window, while quiet play ranks one local formation or Well theater rather than
+falling back to all three Wells. Canvas2D and WebGL consume the same director
+frame function.
+
+Ember's unselected team pool opacity rises from 0.72 to 0.9 and its footprint
+widens so allegiance stays readable at the wider cameras. Orange vent faces
+move outward from their recesses and heat seams rise above their hosts instead
+of relying on coplanar mobile-GPU depth resolution. Straight-run accents and
+raised modules become sparser; rectangular, decagonal, and paired unequal-height
+towers increase silhouette variety. The outside perimeter depth grows from 1.2
+to 1.8 tiles, with a visible low apron, broader pylons, and a raised outer rail.
+These are renderer and theme changes only: replay rules, map topology,
+collision, vision, objectives, and fingerprints do not change.
