@@ -891,6 +891,13 @@
             }
           },
           {
+            "name": "arcRelay",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "skip",
             "in": "query",
             "schema": {

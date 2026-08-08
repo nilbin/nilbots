@@ -1,18 +1,23 @@
 # nilbots
 
-A programming game: write an autonomous bot in C#, compile it to WebAssembly,
-and watch it fight in a deterministic top-down arena — locally first, on a
-competitive platform later.
+nilbots is the home of **Arc Relay**, a deterministic team-strategy game about
+authoring entrants and watching their plans play out. An entrant is either a tactical
+sheet run by the frozen stock mind, or a custom C# mind built to WebAssembly through the
+controlled toolchain. Both field eight classed bodies and share the same ladder surface:
+name, crest, composition, revisions, match history, and rating.
 
 ```
 C# source ──▶ NativeAOT-LLVM ──▶ WASI core module ──▶ Wasmtime (fuel + memory
 limits) ──▶ deterministic match engine ──▶ replay + hash ──▶ visual viewer
 ```
 
-This repository currently implements the engine proof (Phase 0A), the WASM
-runtime proof (Phase 0C), a React replay viewer (Phase 0B-lite), and a CLI that
-ties them together. See `docs/PLAN-SUMMARY.md` for the roadmap and
-`docs/DECISIONS.md` for the decisions log.
+The current local and hosted line is `ambush-warren-11` on the deep Warren map.
+Hosted entrant playlist v8 pins that game and its repaired frozen stock artifact.
+Historical Duel and Frontline code remains for exact replay compatibility and the
+labelled read-only archive; neither describes the product front door. See
+[`docs/ARC-RELAY-GLOSSARY.md`](docs/ARC-RELAY-GLOSSARY.md) for current vocabulary,
+[`docs/SHEET-AUTHORING.md`](docs/SHEET-AUTHORING.md) for the sheet contract, and
+[`docs/DECISIONS.md`](docs/DECISIONS.md) for product and compatibility rulings.
 
 ## Quickstart
 
@@ -22,40 +27,39 @@ when needed. Docker is additionally required for WASM compilation on macOS
 
 ```bash
 bash scripts/setup.sh        # platform-aware, idempotent bootstrap
-bash scripts/play.sh --bot hunter --opponent coward --seed 7
-# → prints the result + replay hash, writes replay.json + viewer.html under
-#   out/<bot>-vs-<opponent>-<map>-s<seed>/ (the paths are printed; --out overrides)
+nilbots arc-relay \
+  --bot arena-bots/arc-relay/tactical-playbook-mind-v1 \
+  --opponent arena-bots/arc-relay/tactical-playbook-mind-v1 \
+  --sheet0 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json \
+  --sheet1 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-v1.json \
+  --seed 42
 ```
 
-Write your own bot:
+The command writes a canonical gzip replay and run receipt. Compile or inspect a sheet
+through the same shared compiler used by the hosted editor:
 
 ```bash
-dotnet tool install --global Nilbots
-nilbots register
-nilbots new MyBot && cd MyBot     # scaffolded project: MyBot.cs + botarena.json
-nilbots play --bot . --opponent hunter --seed 42   # compiles YOUR bot to WASM
-nilbots watch . --opponent hunter --seed 42        # rebuild + replay on save
-nilbots submit .                                    # creates + publishes your bot
+nilbots experiment arc-relay-playbook \
+  --playbook arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json
 ```
 
-Builds are cached deterministically (`nilbots cache status|clear`); only your
-source changes trigger recompilation. The CLI and local server safely share
-that cache: simultaneous identical requests perform one compile and reuse its
-artifact.
+For a custom mind, start from `templates/botarena-generic-mind` and use it as the
+`--bot` argument. The hosted site accepts custom mind sources through the controlled
+build path and runs them only in the sandboxed WASM runtime. Builds are cached
+deterministically (`nilbots cache status|clear`).
 
 The WASM compiler backend is selected automatically: native on Linux x64 with
 wasi-sdk, otherwise a focused cached `linux/amd64` Docker builder. See
 [WASM development](docs/WASM-DEVELOPMENT.md) for the architecture, Apple
 Silicon setup, fast inner loop, cache locations, and troubleshooting.
 
-Open the printed `viewer.html` in a browser: play/pause, step ticks, scrub the
-timeline, click a bot to see its field of view, decisions, and debug output.
+Open the produced viewer to play/pause, step ticks, scrub the timeline, and select a body
+to inspect its field of view, order, action, destination, and debug reason.
 
-Same seed, same bots, same map ⇒ same match, always:
+Same versions, artifacts, sheets, map and seed ⇒ the same match, always:
 
 ```bash
-bash scripts/play.sh --seed 42   # run it twice — identical replay hash
-dotnet run --project src/BotArena.Cli -- verify <printed replay.json path>
+nilbots verify <printed replay.json.gz path>
 ```
 
 ## Layout
@@ -63,23 +67,23 @@ dotnet run --project src/BotArena.Cli -- verify <printed replay.json path>
 | Path | What |
 | --- | --- |
 | `src/BotArena.Engine` | Pure deterministic simulation (no web/DB/WASM deps) |
-| `src/BotArena.Sdk` | Developer-facing bot API |
+| `src/BotArena.Sdk` | Developer-facing body and mind API |
 | `src/BotArena.Bots.BuiltIn` | Built-in opponents (SDK-only, run anywhere) |
 | `src/BotArena.Runtime` | In-process runtime (diagnostics/tests only) |
 | `src/BotArena.Runtime.Wasm` | Canonical WASM runtime (Wasmtime, fuel, limits) |
 | `src/BotArena.WasmGuest` | Guest program compiled to `artifacts/wasm/builtin-bots.wasm` |
-| `src/BotArena.Cli` | `nilbots play / replay / verify / bots / maps` |
-| `web/` | React + Tailwind replay viewer (single-file build) |
+| `src/BotArena.Cli` | `nilbots arc-relay`, compiler, replay, and verification commands |
+| `web/` | React site, sheet workshop, and shared replay viewer |
 | `maps/` | Versioned arena maps (JSON) |
 | `tests/` | Engine, determinism, and WASM contract tests |
 | `scripts/` | Setup and dev-loop tooling |
 
-## Run the platform (pilot)
+## Run the hosted app
 
-The web app is an ASP.NET Core modular monolith (accounts, bots, submissions,
-matches) backed by PostgreSQL. Players register in the browser, paste their
-bot's C# source, the server compiles it to WASM with the official toolchain,
-and challenges play out server-side with shareable replay pages.
+The web app is an ASP.NET Core modular monolith backed by PostgreSQL. Players author and
+trial tactical sheets, submit custom minds through the official toolchain, enter up to
+three entrants in the ladder, and watch shareable replay pages. Legacy Duel records remain
+available under the archive and its admission path is retired.
 
 ```bash
 docker compose up -d --build     # app on :8080 + postgres, volumes for data
@@ -108,7 +112,7 @@ see the [deployment and scaling plan](docs/DEPLOYMENT-SCALING-PLAN.md).
 ```bash
 bash scripts/test.sh               # current guest + all test suites
 bash scripts/build-wasm-guest.sh   # input-stamped; instant when unchanged
-bash scripts/dev-viewer.sh    # hot-reload viewer against a fresh replay
+bash scripts/dev-viewer.sh         # hot-reload viewer against a fresh replay
 bash scripts/e2e.sh           # full pipeline check
 ```
 

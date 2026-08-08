@@ -6,13 +6,21 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Product
+## Current product (2026-08-08)
 
-A programming game: developers write autonomous bots in C#, compile them to
-WASM, battle them locally with `botarena play`, watch matches in a polished
-top-down viewer, inspect exactly what their bot saw and decided, submit
-immutable versions, and compete. The validation question: **is the
-edit → build → watch → understand → improve loop enjoyable?**
+Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
+**sheets** executed by the frozen stock mind, and submitted C# **custom minds** built to
+WASM through the controlled toolchain. Each entrant owns a crest, ordered eight-class
+composition, revisions, match history, and rating. The current CLI default and hosted
+playlist v8 run `ambush-warren-11` on `arc-relay-ambush-warren-06`. The primary loop is
+**change → run → watch → understand → change again**.
+
+Legacy Duel records and code remain readable and byte-verifiable, but Duel admission and
+creation are retired from the product surface. Frontline is historical design and engine
+evidence, not a shipped game. Current vocabulary and authoring contracts live in
+[`ARC-RELAY-GLOSSARY.md`](ARC-RELAY-GLOSSARY.md) and
+[`SHEET-AUTHORING.md`](SHEET-AUTHORING.md); decisions 247–250 close the current product,
+playlist, iteration, and runtime-determinism lines.
 
 ## Non-negotiable architecture
 
@@ -30,7 +38,7 @@ edit → build → watch → understand → improve loop enjoyable?**
   rules. Bot versions and appearances are immutable; history never changes.
 - Ranked play uses mirrored deterministic match sets, not single matches.
 
-## Game rules (0.5 current; 0.1 text below is the initial baseline)
+## Historical Duel rules (0.5; retained for replay compatibility)
 
 Shipped evolution — every step data-driven via the balance harness
 (GAME-DESIGN, DECISIONS #47/#49/#53/#75): 0.2 seed-spawn variation; 0.3 shot
@@ -57,7 +65,7 @@ champion share, set 45% as the future ceiling, promoted the unchanged rules,
 and crowned Pincer gen-10 (decision #75). Detailed player rules:
 `docs/PLAYER-GUIDE.md`.
 
-## Game rules 0.1 (initial)
+## Historical Duel rules 0.1 (initial)
 
 24×18 (prod) or 12×8 (slice) tile arena, 2 bots, 4 facings, 5 actions
 (Wait/MoveForward/TurnLeft/TurnRight/Shoot), 3 HP, shot = instant ray, 1 dmg,
@@ -68,7 +76,7 @@ Collisions: same-target both fail, swaps fail, invalid → Wait. Win: survival,
 then health, then damage dealt, else draw. Faults: failed tick = Wait,
 3 faults = disqualified.
 
-## Phase status
+## Historical platform phase status
 
 | Phase | Deliverable | Status |
 | --- | --- | --- |
@@ -83,7 +91,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
-## What exists in this repo (2026-07-28)
+## Historical repository snapshot (2026-07-28)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
   replay + SHA-256 hash, plus the experimental multi-life
@@ -143,10 +151,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
   balance/dynamics/control/arc/replay-review evaluation tools.
 
-## Active experimental program (2026-07-28)
+## Historical Frontline experimental program (2026-07-28)
 
-Frontline is now the active successor experiment; official rules 0.5 remains
-the current game and ladder. The deliberately small game hypothesis is a
+At this 2026-07-28 snapshot, Frontline was the active successor experiment and
+Duel rules 0.5 remained the game and ladder. The deliberately small game hypothesis is a
 moving five-position frontline, Prime respawns, two fixed-time fabrication
 unlocks, and one child-to-turret transformation. The target architecture runs
 each submitted policy as independent same-artifact instances, with exact

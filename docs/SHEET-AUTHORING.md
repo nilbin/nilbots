@@ -5,6 +5,9 @@ of the commit that introduced it. It is written for a developer who has never
 opened this repository, and it is the specification a sheet-editor frontend
 should be built against.
 
+Player-facing labels use the canonical [Arc Relay vocabulary](ARC-RELAY-GLOSSARY.md).
+This document is the deeper schema and validation contract behind those labels.
+
 **Scope rule, read this first.** Only the vocabulary described here is to be
 supported. This repository contains older surfaces — hand-authored
 `engagements` / `formations` / `maneuvers` / `orders` (collectively "the squad

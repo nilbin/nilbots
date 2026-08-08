@@ -785,6 +785,33 @@ export async function loadLocalDraft(): Promise<SheetDraft | null> {
   return result?.value ?? null;
 }
 
+/** Convert the shared compiler's path-bearing diagnostic into the editor path model. */
+export function sheetIssueFromCompilerError(cause: unknown): SheetIssue {
+  const source = cause instanceof Error
+    ? cause.message
+    : 'The server compiler rejected this draft.';
+  const match = source.match(
+    /(?:^|\/)(playbook|layout)\.json(?:\.([^:]+))?:\s*(.+)$/s,
+  ) ?? source.match(
+    /^(playbook|layout)(?:\.([^:]+))?:\s*(.+)$/s,
+  );
+  if (!match) {
+    return {
+      path: 'server',
+      message: `Compiler: ${source}`,
+      severity: 'error',
+    };
+  }
+  const [, document, suffix, message] = match;
+  return {
+    path: document === 'layout'
+      ? `layout${suffix ? `.${suffix}` : ''}`
+      : (suffix || 'playbook'),
+    message: `Compiler: ${message.trim()}`,
+    severity: 'error',
+  };
+}
+
 function openDraftDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DRAFT_DB, 1);

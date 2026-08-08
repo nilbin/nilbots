@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { gunzipSync } from 'node:zlib';
+import { loadReplayObject } from '../src/replayIngress';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
   parseDraft,
   pinDraft,
+  sheetIssueFromCompilerError,
   stringifyDocument,
   validateDraft,
   type LayoutDocument,
   type PlaybookDocument,
 } from '../src/site/sheets/sheetAuthoring';
+import {
+  describeTrialChanges,
+  replayUnitTracks,
+  snapshotForTrial,
+} from '../src/site/sheets/sheetTrials';
 
 const classes = ['kestrel', 'patchbay', 'relay', 'hush'];
 const layout: LayoutDocument = {
@@ -145,4 +154,67 @@ test('required root and custody keys fail live validation before save', async ()
     .map((issue) => issue.message);
   assert.ok(messages.some((message) => message.includes("Required playbook key 'memory'")));
   assert.ok(messages.some((message) => message.includes('Safe conversion')));
+});
+
+test('trial summaries name only the authoring areas that changed', () => {
+  const draft = parseDraft(
+    'Test', null, null,
+    stringifyDocument(playbook), stringifyDocument(layout),
+  );
+  const before = snapshotForTrial(draft);
+  const changed = structuredClone(draft);
+  changed.playbook.doctrines.line.conceal = false;
+  changed.layout.routes[0].waypoints.push([4, 3]);
+  const after = snapshotForTrial(changed);
+
+  assert.deepEqual(describeTrialChanges(before, after), ['Doctrines', 'Map geometry']);
+  assert.deepEqual(describeTrialChanges(after, after), ['No tactical changes']);
+  assert.deepEqual(describeTrialChanges(undefined, after), ['First recorded trial']);
+});
+
+test('trial map tracks use recorded occupied tiles without inventing interpolation', () => {
+  const source = JSON.parse(gunzipSync(readFileSync(new URL(
+    '../../arena-bots/arc-relay/stock-mind-v0/preflight/broadcast.json.gz',
+    import.meta.url,
+  ))).toString('utf8')) as object;
+  const replay = loadReplayObject(source).replay;
+  const tracks = replayUnitTracks(replay);
+
+  assert.equal(tracks.length, replay.initialWorld?.actors.length);
+  for (const track of tracks) {
+    assert.ok(track.points.length > 0);
+    assert.ok(track.points.every((point, index) => index === 0
+      || point.x !== track.points[index - 1].x
+      || point.y !== track.points[index - 1].y));
+    assert.ok(track.points.every((point) => replay.ticks.some((tick) =>
+      tick.after.actors.some((actor) => actor.unitKey === track.key
+        && actor.position.x === point.x && actor.position.y === point.y))
+      || replay.initialWorld?.actors.some((actor) => actor.unitKey === track.key
+        && actor.position.x === point.x && actor.position.y === point.y)));
+  }
+});
+
+test('shared compiler diagnostics map back onto their authoring field', () => {
+  assert.deepEqual(
+    sheetIssueFromCompilerError(new Error(
+      '/tmp/new-sheet/playbook.json.doctrines.ghost.modes.0.while: unknown predicate.',
+    )),
+    {
+      path: 'doctrines.ghost.modes.0.while',
+      message: 'Compiler: unknown predicate.',
+      severity: 'error',
+    },
+  );
+  assert.equal(
+    sheetIssueFromCompilerError(new Error(
+      '/tmp/new-sheet/layout.json.routes.waypoints: point is outside the map.',
+    )).path,
+    'layout.routes.waypoints',
+  );
+  assert.equal(
+    sheetIssueFromCompilerError(new Error(
+      "playbook.layout: required property 'sha256' is missing.",
+    )).path,
+    'layout',
+  );
 });

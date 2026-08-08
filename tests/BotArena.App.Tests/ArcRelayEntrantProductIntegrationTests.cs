@@ -146,6 +146,15 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Assert.Equal(0, rating.RankedMatches);
         }
 
+        JsonElement[] relayFeed = (await client.GetFromJsonAsync<JsonElement[]>(
+            "/api/matches?take=25&arcRelay=true"))!;
+        Assert.Contains(relayFeed, value =>
+            value.GetProperty("id").GetGuid() == created.Id);
+        JsonElement[] legacyFeed = (await client.GetFromJsonAsync<JsonElement[]>(
+            "/api/matches?take=25&arcRelay=false"))!;
+        Assert.DoesNotContain(legacyFeed, value =>
+            value.GetProperty("id").GetGuid() == created.Id);
+
         string ladder = await client.GetStringAsync("/api/arc-relay/ladder");
         Assert.DoesNotContain("winnerSlot", ladder, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("outcome", ladder, StringComparison.OrdinalIgnoreCase);

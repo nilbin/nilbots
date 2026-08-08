@@ -269,12 +269,12 @@ function UnlockToast({
   const title =
     items.length === 1
       ? `${items[0].label} unlocked`
-      : 'New loadout unlocked';
+      : 'Legacy loadout unlocked';
 
   return (
     <ToastFrame
       tone="neutral"
-      eyebrow="Achievement unlocked"
+      eyebrow="Legacy Duel achievement"
       title={title}
       artwork={
         <UnlockArtwork
@@ -284,11 +284,11 @@ function UnlockToast({
       }
       action={
         <Link
-          to="/garage"
+          to="/archive/bots"
           onClick={onDismiss}
           className="btn mt-3 inline-flex items-center gap-1"
         >
-          Choose a bot to equip <span aria-hidden>→</span>
+          View legacy archive <span aria-hidden>→</span>
         </Link>
       }
       queuedLabel={

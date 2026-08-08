@@ -149,12 +149,14 @@ hook, wire it; an unused one reads as done.
 
 ## Styling
 
-Tailwind v4, dark only. The palette lives in `index.css` as `--color-arena-*`; use
-`text-arena-dim`, `bg-arena-panel` and friends rather than raw slate values, so the site
-and `mobile/src/theme/arena.ts` stay in step.
+Tailwind v4. The standalone match viewer is deliberately dark; the routed site follows
+the device's dark/light preference. Both use the semantic `--color-arena-*` roles in
+`index.css`; use `text-arena-dim`, `bg-arena-panel` and friends rather than raw slate
+values, so one component remains coherent in both appearances and the dark arena roles
+stay aligned with `mobile/src/theme/arena.ts`.
 
-The house style: near-black field, panels separated by a hairline rather than a shadow,
-one cyan accent used sparingly, monospace for anything a machine produced (ratings,
+The house style: restrained field, panels separated by a hairline rather than a shadow,
+semantic colour used sparingly, monospace for anything a machine produced (ratings,
 hashes, seeds, tick counts) and sans for prose.
 
 Shadows are for things that float above the page — toasts — and nothing else.

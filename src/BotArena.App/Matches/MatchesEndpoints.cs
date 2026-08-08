@@ -163,6 +163,7 @@ public static class MatchesEndpoints
         //   bot    slug or id — matches where that bot played, either slot
         //   map    map id
         //   ranked true = part of a ranked set, false = unranked only
+        //   arcRelay true = current entrant matches, false = legacy Duel records
         //   skip   offset, for the feed's Load more
         group.MapGet("/", async (
             AppDbContext db,
@@ -171,6 +172,7 @@ public static class MatchesEndpoints
             string? bot,
             string? map,
             bool? ranked,
+            bool? arcRelay,
             int? skip) =>
         {
             take = take is > 0 and <= 100 ? take : 25;
@@ -198,6 +200,10 @@ public static class MatchesEndpoints
                 query = query.Where(m => m.MapId == mapId);
             if (ranked is bool wantRanked)
                 query = query.Where(m => wantRanked ? m.MatchSetId != null : m.MatchSetId == null);
+            if (arcRelay is bool wantArcRelay)
+                query = query.Where(m => wantArcRelay
+                    ? m.ArcRelayLane != null
+                    : m.ArcRelayLane == null);
 
             var matches = await query
                 .OrderByDescending(m => m.CreatedAt)

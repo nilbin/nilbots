@@ -13,7 +13,6 @@ import { AuthProvider } from './auth';
 import Shell from './Shell';
 import ArenaPage from './pages/ArenaPage';
 import AuthPage from './pages/AuthPage';
-import ShopPage from './pages/ShopPage';
 import BotsPage from './pages/BotsPage';
 import BotDetailPage from './pages/BotDetailPage';
 import MatchPage from './pages/MatchPage';
@@ -93,7 +92,7 @@ export default function Site() {
               <Route
                 path="/archive/bots/:botKey"
                 element={
-                  <TitledPage title="Bot">
+                  <TitledPage title="Legacy record">
                     <BotDetailPage />
                   </TitledPage>
                 }
@@ -103,6 +102,14 @@ export default function Site() {
                 element={
                   <TitledPage title="Arc Relay">
                     <ArcRelayPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/relay/sheets"
+                element={
+                  <TitledPage title="Sheet workshop">
+                    <ArcRelayPage view="sheets" />
                   </TitledPage>
                 }
               />
@@ -117,7 +124,7 @@ export default function Site() {
               <Route
                 path="/archive/sets/:setId"
                 element={
-                  <TitledPage title="Ranked set">
+                  <TitledPage title="Legacy set">
                     <MatchSetPage />
                   </TitledPage>
                 }
@@ -127,17 +134,12 @@ export default function Site() {
               <Route path="/archive/rankings" element={<Navigate to="/archive/bots" replace />} />
               <Route path="/rankings" element={<Navigate to="/relay" replace />} />
               <Route path="/leaderboard" element={<Navigate to="/relay" replace />} />
-              <Route path="/bots/*" element={<Navigate to="/archive/bots" replace />} />
+              <Route path="/bots" element={<Navigate to="/archive/bots" replace />} />
+              <Route path="/bots/:botKey/*" element={<LegacyBotPlayRedirect />} />
+              <Route path="/sets/:setId" element={<LegacySetRedirect />} />
               <Route path="/garage" element={<Navigate to="/relay" replace />} />
-              <Route path="/looks" element={<Navigate to="/store" replace />} />
-              <Route
-                path="/store"
-                element={
-                  <TitledPage title="Shop">
-                    <ShopPage />
-                  </TitledPage>
-                }
-              />
+              <Route path="/looks" element={<Navigate to="/archive/bots" replace />} />
+              <Route path="/store" element={<Navigate to="/relay" replace />} />
               <Route
                 path="/docs"
                 element={
@@ -166,6 +168,11 @@ export default function Site() {
 function LegacyBotPlayRedirect() {
   const { botKey } = useParams<{ botKey: string }>();
   return <Navigate to={`/archive/bots/${botKey ?? ''}`} replace />;
+}
+
+function LegacySetRedirect() {
+  const { setId } = useParams<{ setId: string }>();
+  return <Navigate to={`/archive/sets/${setId ?? ''}`} replace />;
 }
 
 function TitledPage({

@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from '../components/StateView';
 import Th from '../components/TableHeader';
 import LiveStatus, { LiveDot } from '../../components/LiveStatus';
 import { type Me, type MatchLive, type MatchSummary } from '../api';
-import { useMatchLive, useMatches, useMe, useMeta } from '../queries';
+import { useMatchLive, useMatches, useMe } from '../queries';
 import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
 
@@ -35,7 +35,6 @@ import { styleVariables } from '../../presentation/styleVariables';
  *   reader is about to watch undercuts the broadcast for nothing.
  */
 export default function ArenaPage() {
-  const { data: meta = null } = useMeta();
   const { data: me = null } = useMe();
 
   // Filters live in the URL so a filtered feed can be linked and reloaded.
@@ -54,9 +53,15 @@ export default function ArenaPage() {
 
   // The filters are part of the key, so changing one is a different query rather than a
   // refetch — no manual reset of pages, and switching back finds the old feed cached.
-  const feed = useMatches({ bot: '', map, ranked });
+  // The product feed is Arc Relay. Historical Duel matches stay reachable through
+  // entrant-independent archive links, but are never promoted into this front door.
+  const feed = useMatches({ bot: '', map, ranked, arcRelay: 'true' });
   const matches =
     feed.data === undefined ? undefined : dedupeById(feed.data.pages.flat());
+  const mapOptions = [...new Set([
+    ...(map === '' ? [] : [map]),
+    ...(matches ?? []).map((match) => match.mapId),
+  ])].sort();
 
   // `broadcasting` is the server's own flag for the window where a match has run and its
   // result is still sealed — which is exactly the set worth putting first, and the set
@@ -125,11 +130,9 @@ export default function ArenaPage() {
                 className={selectClass}
               >
                 <option value="">any map</option>
-                {/* `/api/meta` is read for this and nothing else. It would also give a
-                    map's theme and size, and neither is a fact about the fight. */}
-                {(meta?.maps ?? []).map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.id}
+                {mapOptions.map((mapId) => (
+                  <option key={mapId} value={mapId}>
+                    {mapId}
                   </option>
                 ))}
               </select>
@@ -409,7 +412,7 @@ function FeatureCard({
  * `Matchup`.
  *
  * No win/loss glyph and no colour on the verdict. The design colours win and loss on the
- * *bot page*, where every row is one bot's rise or fall; here a match between two
+ * historical entrant page, where every row is one entrant's rise or fall; here a match between two
  * strangers has a winner, not a rise, and the winner is already marked by weight in the
  * chip beside it.
  */
@@ -509,7 +512,7 @@ function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
  *
  * Written out rather than passed to `EmptyState`, which is a title and a line: this one
  * has an argument, a way in and an honest alternative to signing up. It must not compete
- * with `FirstRun`, which owns "you have no bots"; this owns "the arena has no matches".
+ * with the sheet workshop's empty state; this owns "the arena has no matches".
  */
 function NeverFought() {
   return (

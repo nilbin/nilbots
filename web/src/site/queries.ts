@@ -42,7 +42,7 @@ const keys = {
   botStats: (botId: string) => ['bot', botId, 'stats'] as const,
   leaderboard: (rules: string | null) => ['leaderboard', rules ?? 'current'] as const,
   matches: (filters: MatchFilters) =>
-    ['matches', filters.bot, filters.map, filters.ranked] as const,
+    ['matches', filters.bot, filters.map, filters.ranked, filters.arcRelay] as const,
   match: (id: string) => ['match', id] as const,
   matchLive: (id: string) => ['match', id, 'live'] as const,
   matchSet: (id: string) => ['set', id] as const,
@@ -254,6 +254,7 @@ export interface MatchFilters {
   bot: string;
   map: string;
   ranked: string;
+  arcRelay: string;
 }
 
 /** How many matches a page of the feed asks for. Also the "there is more" test. */
@@ -298,6 +299,7 @@ function matchQuery(filters: MatchFilters, skip: number) {
   if (filters.bot !== '') q.set('bot', filters.bot);
   if (filters.map !== '') q.set('map', filters.map);
   if (filters.ranked !== '') q.set('ranked', filters.ranked);
+  if (filters.arcRelay !== '') q.set('arcRelay', filters.arcRelay);
   return `/api/matches?${q}`;
 }
 

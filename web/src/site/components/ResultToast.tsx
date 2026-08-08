@@ -32,7 +32,11 @@ export default function ResultToast({
   return (
     <ToastFrame
       tone={resultTone(payload)}
-      eyebrow={challenged ? 'Challenge' : ranked ? 'Ranked set' : 'Match complete'}
+      eyebrow={challenged
+        ? 'Legacy Duel · challenge'
+        : ranked
+          ? 'Legacy Duel · ranked set'
+          : 'Legacy Duel · match complete'}
       title={
         challenged
           ? `${payload.botName} was challenged`
@@ -51,17 +55,15 @@ export default function ResultToast({
         <Link
           to={
             payload.kind === 'set-settled'
-              ? `/sets/${payload.matchSetId}`
+              ? `/archive/sets/${payload.matchSetId}`
               : `/matches/${payload.matchId}`
           }
           onClick={onDismiss}
           className="btn mt-3 inline-flex items-center gap-1"
         >
           {payload.kind === 'set-settled'
-            ? 'See the set'
-            : challenged
-              ? 'Watch it live'
-              : 'Watch it back'}{' '}
+            ? 'Open archived set'
+            : 'Watch archived replay'}{' '}
           <span aria-hidden>→</span>
         </Link>
       }
@@ -71,7 +73,7 @@ export default function ResultToast({
           ? `${payload.ratingChange >= 0 ? '+' : ''}${Math.round(payload.ratingChange)}`
           : undefined
       }
-      dismissLabel="Dismiss result notification"
+      dismissLabel="Dismiss Legacy Duel notification"
       onDismiss={onDismiss}
     >
       {payload.kind === 'match-challenged' ? (

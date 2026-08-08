@@ -9,9 +9,6 @@ import {
 import clsx from 'clsx';
 import { useAuth } from './auth';
 import Logo from '../components/Logo';
-import {
-  ArenaActionProvider,
-} from './components/ArenaAction';
 import NotificationCenter from './components/NotificationCenter';
 
 export default function Shell() {
@@ -19,8 +16,7 @@ export default function Shell() {
   const navigate = useNavigate();
 
   return (
-    <ArenaActionProvider>
-      <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-6xl flex-col px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0 md:px-6">
+    <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-6xl flex-col px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0 md:px-6">
         <ScrollToHash />
         <a
           href="#main-content"
@@ -38,6 +34,7 @@ export default function Shell() {
             aria-label="Primary navigation"
           >
             <TopLink to="/relay">Relay</TopLink>
+            <TopLink to="/relay/sheets">Sheets</TopLink>
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
           </nav>
@@ -79,9 +76,6 @@ export default function Shell() {
             className="ml-auto flex items-center gap-3"
             aria-label="Secondary navigation"
           >
-            <Link to="/store" className="text-link">
-              Shop
-            </Link>
             <Link to="/archive/bots" className="text-link">Legacy archive</Link>
           </nav>
         </footer>
@@ -90,18 +84,17 @@ export default function Shell() {
           aria-label="Primary navigation"
         >
           <MobileLink to="/relay">Relay</MobileLink>
-          <MobileLink to="/store">Shop</MobileLink>
+          <MobileLink to="/relay/sheets">Sheets</MobileLink>
           <MobileLink to="/watch">Watch</MobileLink>
           <MobileLink to="/docs">Docs</MobileLink>
         </nav>
-      </div>
-    </ArenaActionProvider>
+    </div>
   );
 }
 
 /**
  * Native fragment scrolling runs before asynchronously queried content exists. This
- * observer gives links such as `/store#pack-x` and `/bots/x#submit` one reliable behavior
+ * observer gives delayed document anchors one reliable behavior
  * across client navigation and hard refresh without coupling Shell to either screen.
  */
 function ScrollToHash() {
@@ -148,7 +141,7 @@ function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <NavLink
       to={to}
-      end={to === '/'}
+      end={to === '/' || to === '/relay'}
       className={({ isActive }) =>
         clsx(
           'btn whitespace-nowrap',
@@ -173,7 +166,7 @@ function MobileLink({
   return (
     <NavLink
       to={to}
-      end={to === '/'}
+      end={to === '/' || to === '/relay'}
       className={({ isActive }) =>
         clsx(
           'lab flex min-h-12 items-center justify-center px-2 py-2.5 text-center',

@@ -24,7 +24,7 @@ import {
 } from '../queries';
 import TacticalSheetEditor from '../sheets/TacticalSheetEditor';
 
-export default function ArcRelayPage() {
+export default function ArcRelayPage({ view = 'overview' }: { view?: 'overview' | 'sheets' }) {
   const { user, loading } = useAuth();
   const catalogQuery = useTacticalSheetCatalog(user !== null);
   const entrantsQuery = useArcRelayEntrants(user !== null);
@@ -35,12 +35,15 @@ export default function ArcRelayPage() {
     return (
       <section className="panel pad mx-auto max-w-xl text-center">
         <p className="lab mb-2">Arc Relay</p>
-        <h1 className="type-display text-[28px]">Draw the plan. Run the match.</h1>
+        <h1 className="type-display text-[28px]">Build an entrant. Watch it compete.</h1>
         <p className="t-meta mx-auto mt-3 max-w-md">
-          Tactical sheets are server-saved entrants. Sign in to compose eight classes,
-          author role doctrines, plot routes on the live map and trial a draft in seconds.
+          Tactical sheets and custom minds compete as entrants. Sign in to author a sheet,
+          run a trial, inspect the replay and return to the same draft.
         </p>
-        <Link to="/login?return=/relay" className="btn btn-on mt-5 inline-flex min-h-11">
+        <Link
+          to={`/login?returnUrl=${encodeURIComponent(view === 'sheets' ? '/relay/sheets' : '/relay')}`}
+          className="btn btn-on mt-5 inline-flex min-h-11"
+        >
           Sign in to author
         </Link>
       </section>
@@ -52,6 +55,13 @@ export default function ArcRelayPage() {
   if (catalogQuery.isPending || !catalogQuery.data) {
     return <LoadingState label="Loading tactical vocabulary and map…" />;
   }
+  if (view === 'overview' && (entrantsQuery.isError || ladderQuery.isError)) {
+    const query = entrantsQuery.isError ? entrantsQuery : ladderQuery;
+    return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
+  }
+  if (view === 'overview' && (entrantsQuery.isPending || ladderQuery.isPending)) {
+    return <LoadingState label="Loading entrants and ladder…" />;
+  }
 
   const catalog = catalogQuery.data;
   const templateClasses = templateComposition(catalog);
@@ -59,24 +69,45 @@ export default function ArcRelayPage() {
     <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="lab mb-2">Arc Relay · tactical workshop</p>
-          <h1 className="type-display text-[30px]">Eight bodies. Conditional team strategy.</h1>
+          <p className="lab mb-2">Arc Relay · sheet workshop</p>
+          <h1 className="type-display text-[30px]">
+            {view === 'sheets' ? 'Change. Run. Watch. Adjust.' : 'Entrants, matches and rating.'}
+          </h1>
           <p className="t-meta mt-2 max-w-3xl">
-            Choose the lineup, give each role an ordered doctrine, draw every route and zone,
-            then compile and watch a trial. This editor emits only the current doctrine grammar.
+            {view === 'sheets'
+              ? 'Choose the composition, give each role an ordered doctrine, plot the map and compare what actually happened.'
+              : 'Sheets and custom minds share one competitive identity: crest, composition, match history and rating.'}
           </p>
         </div>
         <span className="pill">{catalog.map.id}</span>
       </header>
 
-      <EntrantRoster
-        entrants={entrantsQuery.data ?? []}
-        ladder={ladderQuery.data?.entrants ?? []}
-        templateClasses={templateClasses}
-        classes={catalog.classes}
-      />
-      <TacticalSheetEditor catalog={catalog} />
-      <ClassCatalog catalog={catalog} />
+      <nav className="panel flex gap-1 overflow-x-auto p-1.5" aria-label="Arc Relay workspace">
+        <Link to="/relay" className={clsx('btn inline-flex min-h-11 flex-1 items-center justify-center', view === 'overview' && 'btn-on')}>
+          Entrants & ladder
+        </Link>
+        <Link to="/relay/sheets" className={clsx('btn inline-flex min-h-11 flex-1 items-center justify-center', view === 'sheets' && 'btn-on')}>
+          Sheet workshop
+        </Link>
+        <Link to="/watch" className="btn inline-flex min-h-11 flex-1 items-center justify-center">Watch matches</Link>
+      </nav>
+
+      {view === 'overview' ? (
+        <EntrantRoster
+          entrants={entrantsQuery.data ?? []}
+          ladder={ladderQuery.data?.entrants ?? []}
+          templateClasses={templateClasses}
+          classes={catalog.classes}
+        />
+      ) : (
+        <>
+          <TacticalSheetEditor catalog={catalog} />
+          <details className="panel pad">
+            <summary className="lab min-h-11 cursor-pointer">Class reference · {catalog.classes.length} launch classes</summary>
+            <div className="mt-3"><ClassCatalog catalog={catalog} /></div>
+          </details>
+        </>
+      )}
     </div>
   );
 }
@@ -132,7 +163,7 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
           <p className="lab">Your entrants</p>
           <p className="t-micro mt-1">Tactical sheets and custom minds share identity, crest and rating.</p>
         </div>
-        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 fielded</span>
+        <span className="pill">{entrants.filter((entry) => entry.ladderOptedIn).length}/3 in ladder</span>
       </div>
       <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
         {entrants.map((entrant) => <article key={entrant.id}
@@ -142,16 +173,16 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="type-display truncate text-[18px]">{entrant.name}</h3>
-                <span className="pill ml-auto">{entrant.kind}</span>
+                <span className="pill ml-auto">{entrantKindLabel(entrant.kind)}</span>
               </div>
               <p className="t-micro">{entrant.rating} rating · {entrant.rankedMatches} ranked · r{entrant.revision}</p>
               <p className={clsx(
                 't-micro mt-1',
-                entrant.status === 'suspended' && 'text-red-300',
-                entrant.status === 'legacy' && 'text-amber-300',
+                entrant.status === 'suspended' && 'text-arena-hot',
+                entrant.status === 'legacy' && 'text-arena-material',
                 entrant.status !== 'suspended' && entrant.status !== 'legacy' && 'text-arena-material',
               )}>
-                {entrant.status}{entrant.suspensionReason ? ` · ${entrant.suspensionReason}` : ''}
+                {entrantStatusLabel(entrant.status)}{entrant.suspensionReason ? ` · ${entrant.suspensionReason}` : ''}
               </p>
             </div>
           </div>
@@ -159,6 +190,7 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className="btn min-h-11" disabled={crestOptions.isPending}
               onClick={() => crestOptions.mutate(entrant.id)}>Choose crest</button>
+            {entrant.kind === 'sheet' && <Link to="/relay/sheets" className="btn inline-flex min-h-11 items-center">Edit sheet</Link>}
             {entrant.kind === 'mind' && <button type="button" className="btn min-h-11"
               disabled={loadMind.isPending} onClick={() => beginRevision(entrant.id)}>Revise</button>}
             {entrant.kind === 'mind' && (entrant.status === 'required' || entrant.status === 'built') &&
@@ -171,9 +203,10 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
                 {entrant.ladderOptedIn ? 'Leave ladder' : 'Enter ladder'}
               </button>}
           </div>
-          {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-amber-200">
-            Counterflow layout — readable history, but not v7-admissible. Open it in the workshop
-            below and replot the routes, zones and anchors on the Warren; coordinates are not migrated.
+          {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-arena-material">
+            Counterflow layout — readable history, but not admissible to the current ladder.
+            Open it in the workshop and replot routes, zones and anchors on the Warren;
+            coordinates are never converted between maps.
           </p>}
           {crestOptions.data?.entrantId === entrant.id && (
             <div className="mt-3 flex flex-wrap gap-2 border-t border-arena-edge pt-3" aria-label="Crest choices">
@@ -231,9 +264,9 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
             setEditId(null); setExpectedRevision(0); setName('My relay mind'); setEntryType('MyRelayMind');
             setSource(DEFAULT_MIND_SOURCE); setComposition(templateClasses);
           }}>New submission</button>}
-          {(create.isError || revise.isError) && <span className="t-micro text-red-300">
+          {(create.isError || revise.isError) && <span className="t-micro text-arena-hot">
             {(create.error ?? revise.error)?.message}</span>}
-          {(create.isSuccess || revise.isSuccess) && <span className="t-micro text-emerald-300">
+          {(create.isSuccess || revise.isSuccess) && <span className="t-micro text-arena-ok">
             Revision queued through the controlled toolchain; rating identity preserved.</span>}
         </div>
       </details>
@@ -248,7 +281,7 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
         {ladder.map((entrant, index) => <div key={entrant.id} className="flex min-w-0 items-center gap-3 px-3 py-2.5">
           <span className="lab w-7 text-right">{index + 1}</span><EntrantCrest crest={entrant.crest} size={34} />
           <div className="min-w-0 flex-1"><p className="t-body truncate">{entrant.name}</p>
-            <p className="t-micro">{entrant.kind} · {entrant.ownerDisplayName}</p></div>
+            <p className="t-micro">{entrantKindLabel(entrant.kind)} · {entrant.ownerDisplayName}</p></div>
           <CompositionStrip entrant={entrant} compact />
           <strong className="type-display text-[18px]">{entrant.rating}</strong>
         </div>)}
@@ -289,6 +322,25 @@ function templateComposition(catalog: TacticalSheetCatalog): string[] {
     // The server compiler guards this source. Fall through only for a partial deployment.
   }
   return catalog.classes.filter((entry) => entry.unlocked).slice(0, 8).map((entry) => entry.id);
+}
+
+function entrantKindLabel(kind: string): string {
+  return kind === 'sheet' ? 'Sheet' : kind === 'mind' ? 'Custom mind' : kind;
+}
+
+function entrantStatusLabel(status: string): string {
+  switch (status) {
+    case 'ready': return 'Ready';
+    case 'required': return 'Preflight required';
+    case 'pending': return 'Preflight running';
+    case 'passed': return 'Preflight passed';
+    case 'failed': return 'Preflight failed';
+    case 'building': return 'Building';
+    case 'built': return 'Built';
+    case 'suspended': return 'Pairing suspended';
+    case 'legacy': return 'Legacy layout';
+    default: return status;
+  }
 }
 
 const DEFAULT_MIND_SOURCE = `using BotArena.Sdk;

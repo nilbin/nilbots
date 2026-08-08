@@ -103,10 +103,3 @@ export {
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
 } from '../../src/render3d/arcRelayEffects';
-export { default as LabsPanel } from '../../src/site/components/LabsPanel';
-export {
-  arenaModeParticipantsReady,
-  ArenaActionProvider,
-  defaultChallengeContextRole,
-  resolveChallengeParticipants,
-} from '../../src/site/components/ArenaAction';

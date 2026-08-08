@@ -1222,6 +1222,7 @@ export interface paths {
                     bot?: string;
                     map?: string;
                     ranked?: boolean;
+                    arcRelay?: boolean;
                     skip?: number;
                 };
                 header?: never;

@@ -8,44 +8,15 @@ import Th from '../components/TableHeader';
 import Control from '../../components/ToggleButton';
 import { useAuth } from '../auth';
 import {
-  useArenaCapabilities,
   useBots,
   useMyBots,
 } from '../queries';
-import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
-import {
-  ownedArenaBotIds,
-  playableArenaBotIds,
-} from '../arenaCapabilities';
 import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
 
 /**
- * The census of the game: every bot anyone has submitted, and the screen you pick one
- * worth fighting from.
- *
- * It is a **table**, and that is a reversal of the card grid this page used to be. The
- * reading task is the ladder's — is that rating near mine, has that thing actually been
- * played, who owns it — and cards put every value in a different place on every row, so
- * the eye has to re-find each one. A column of 24px chassis in their owners' accents is
- * recognisable before a single name is read; the grid made identity large and standing
- * invisible, which is backwards for a directory.
- *
- * Two things separate it from the ladder and are the reason it exists:
- *
- * - **It contains the unranked.** `/api/leaderboard` is the top 100 and only ever holds
- *   bots with a completed ranked set. `/api/bots` returns everything and attaches a
- *   whole-ladder `currentStanding` per bot, so rank #137 is correct here and unreachable
- *   on the ladder.
- * - **It knows what can be fought.** The active artifact must support legacy Duel; a
- *   generic-actor-only Frontline bot can be active without belonging in this arena.
- *   Fightability is a first-class filter here and appears nowhere else in the product.
- *
- * Colour: the only saturated colour on this screen is `bot.accent`, in exactly two places
- * — the chip ring and the 2px rule on your rows. Ratings used to print in the old accent
- * token; burnt orange is material, never a signal, so a rating is now a
- * `.val` in `text-arena-text`. `--color-arena-ok`/`--color-arena-hot` appear nowhere:
- * there is no rise or fall in a directory, so the outcome exception is not spent.
+ * Read-only index for the retired Duel roster. Historical names and standings remain
+ * intact here; current Arc Relay concepts and actions deliberately do not leak into it.
  */
 
 /*
@@ -73,18 +44,12 @@ export default function BotsPage() {
   const { data: bots = null, error, refetch } = useBots();
   const { user, loading: authLoading } = useAuth();
   const { data: myBots = null } = useMyBots(Boolean(user));
-  const {
-    data: arena = null,
-    error: arenaError,
-    refetch: refetchArena,
-  } = useArenaCapabilities(Boolean(user));
   const location = useLocation();
   const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
   const sortValue = params.get('sort');
   const sort: SortKey =
     sortValue === 'new' || sortValue === 'name' ? sortValue : 'rank';
-  const fightableOnly = params.get('playable') === '1';
   const mineOnly = params.get('mine') === '1';
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -95,30 +60,18 @@ export default function BotsPage() {
   const setQuery = (value: string) => setParam('q', value);
   const setSort = (value: SortKey) =>
     setParam('sort', value === 'rank' ? null : value);
-  const setFightableOnly = (value: boolean) =>
-    setParam('playable', value ? '1' : null);
   const setMineOnly = (value: boolean) =>
     setParam('mine', value ? '1' : null);
   const returnTo = `${location.pathname}${location.search}`;
 
-  // Ownership joins on ids, never display names. Once Arena authority arrives it wins;
-  // `/api/bots/mine` remains only a pre-capability fallback for page presentation.
-  const fallbackMyIds = useMemo(
+  // Ownership joins on ids, never display names.
+  const myIds = useMemo(
     () => new Set((myBots ?? []).map((bot) => bot.id)),
     [myBots],
   );
-  const serverOwnedIds = useMemo(
-    () => ownedArenaBotIds(arena),
-    [arena],
-  );
-  const myIds = arena === null ? fallbackMyIds : serverOwnedIds;
   const ownedOnRoster = useMemo(
     () => (bots ?? []).filter((bot) => myIds.has(bot.id)).length,
     [bots, myIds],
-  );
-  const serverPlayableIds = useMemo(
-    () => playableArenaBotIds(arena),
-    [arena],
   );
   // A filter left pressed over an empty selection is a table nobody can get back out of.
   // It stops applying with the control that sets it (the ladder's guard).
@@ -127,11 +80,6 @@ export default function BotsPage() {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return (bots ?? []).filter((bot) => {
-      const fightable =
-        arena !== null
-          ? serverPlayableIds.has(bot.id)
-          : rosterBotSupportsLegacyDuel(bot);
-      if (fightableOnly && !fightable) return false;
       if (mineActive && !myIds.has(bot.id)) return false;
       if (needle === '') return true;
       return (
@@ -140,13 +88,10 @@ export default function BotsPage() {
       );
     });
   }, [
-    arena,
     bots,
-    fightableOnly,
     mineActive,
     myIds,
     query,
-    serverPlayableIds,
   ]);
 
   // `rank` is standings ascending, then the unranked by newest-created. Ties break by
@@ -186,12 +131,11 @@ export default function BotsPage() {
           not — a count of nothing is noise and a pressed filter over no data is a dead
           control. */}
       <p className="lab mb-2">Bot directory</p>
-      <p className="lab mb-2 text-amber-200">Legacy archive · read only</p>
+      <p className="lab mb-2 text-arena-material">Legacy archive · read only</p>
       <h1 className="type-display mb-2 text-[30px]">Historical Duel records</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
-        Compare the roster, inspect a bot, or challenge one directly. Rank, rating and
-        sets reflect the current ladder; Play appears only where the Arena can accept
-        the bot.
+        Inspect the retired Duel roster, generations, standings and match records exactly
+        as history recorded them. Creation, submission and admission are no longer offered.
       </p>
 
       {bots !== null && bots.length > 0 && (
@@ -200,18 +144,7 @@ export default function BotsPage() {
           <span className="val text-arena-text">
             {bots.filter((bot) => bot.currentStanding).length}
           </span>{' '}
-          ranked ·{' '}
-          <span className="val text-arena-text">
-            {
-              bots.filter((bot) =>
-                arena !== null
-                  ? serverPlayableIds.has(bot.id)
-                  : rosterBotSupportsLegacyDuel(bot),
-              ).length
-            }
-          </span>
-          <span className="hidden sm:inline"> ready for Duel</span>
-          <span className="sm:hidden"> Duel-ready</span>
+          ranked
           <span className="hidden sm:inline">
             {' · '}
             <span className="val text-arena-text">
@@ -224,29 +157,11 @@ export default function BotsPage() {
 
       {error !== null && <ErrorState error={error} onRetry={() => void refetch()} />}
       {error === null && bots === null && <LoadingState label="Loading the roster…" />}
-      {user && arenaError && (
-        <div
-          className="panel-quiet pad mb-3 flex flex-wrap items-center gap-2"
-          role="alert"
-        >
-          <p className="t-meta min-w-0 grow text-arena-hot">
-            Personal Arena availability could not be loaded. Public roster hints
-            remain visible; Play will verify access before submitting.
-          </p>
-          <button
-            type="button"
-            onClick={() => void refetchArena()}
-            className="btn"
-          >
-            Try again
-          </button>
-        </div>
-      )}
       {/* Which of the two empty sentences is true depends on the session, so it waits for
           it: showing the visitor's copy for a beat and then swapping it is a page that
           appears to change its mind about who you are. */}
       {bots !== null && bots.length === 0 && !authLoading && (
-        <EmptyRoster signedIn={user !== null} />
+        <EmptyRoster />
       )}
 
       {bots !== null && bots.length > 0 && (
@@ -266,13 +181,6 @@ export default function BotsPage() {
                 </Control>
               </div>
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter the roster">
-                <Control
-                  pressed={fightableOnly}
-                  onClick={() => setFightableOnly(!fightableOnly)}
-                  description="Only bots currently accepted for ranked sets and one-off challenges."
-                >
-                  Duel-ready
-                </Control>
                 {/* Only when you are signed in and own something on this roster: a
                     filter that can only ever empty the table is not a control. */}
                 {ownedOnRoster > 0 && (
@@ -332,7 +240,7 @@ export default function BotsPage() {
                 {ordered.length === 0 && (
                   <tr>
                     <td colSpan={7} className="py-4 text-arena-dim">
-                      {noMatchLine(query, fightableOnly, mineActive)}
+                      {noMatchLine(query, mineActive)}
                     </td>
                   </tr>
                 )}
@@ -493,10 +401,9 @@ function byNewest(a: BotSummary, b: BotSummary) {
  *
  * "No results" leaves the reader to work out which of three things they pressed did it.
  */
-function noMatchLine(query: string, fightable: boolean, mine: boolean) {
+function noMatchLine(query: string, mine: boolean) {
   const needle = query.trim();
   const active: string[] = [];
-  if (fightable) active.push('Duel-ready');
   if (mine) active.push('mine');
   const filters = active.join(' and ');
   if (active.length === 0)
@@ -514,39 +421,15 @@ function noMatchLine(query: string, fightable: boolean, mine: boolean) {
  * one the CLI actually answers to — `nilbots new` makes the name a C# type, so `my-bot`
  * fails before a file is written.
  */
-function EmptyRoster({ signedIn }: { signedIn: boolean }) {
-  if (!signedIn) {
-    return (
-      <section className="panel pad">
-        <p className="lab mb-2">Empty roster</p>
-        <h2 className="type-display mb-2 max-w-[34ch] text-[21px] text-arena-text">
-          Nobody has submitted a bot here yet.
-        </h2>
-        <p className="t-meta">
-          The roster fills as players ship their first generation.{' '}
-          <Link to="/login" className="text-link">
-            Sign in
-          </Link>
-        </p>
-      </section>
-    );
-  }
+function EmptyRoster() {
   return (
     <section className="panel pad">
       <p className="lab mb-2">Empty roster</p>
-      <h2 className="type-display mb-3 max-w-[34ch] text-[21px] text-arena-text">
-        No bots yet — the roster starts with yours.
+      <h2 className="type-display mb-2 max-w-[34ch] text-[21px] text-arena-text">
+        No historical Duel records were retained.
       </h2>
-      <pre className="term max-w-[46ch] text-arena-text">
-        <span className="text-arena-dim">$</span> nilbots new MyBot
-      </pre>
-      <p className="t-meta mt-[11px]">
-        Your{' '}
-        <Link to="/garage" className="text-link">
-          garage
-        </Link>{' '}
-        walks the whole sequence.
-      </p>
+      <p className="t-meta">Arc Relay entrants live in the current product, not in this archive.</p>
+      <Link to="/relay" className="btn mt-3 inline-flex">Open Arc Relay</Link>
     </section>
   );
 }

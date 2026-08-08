@@ -217,7 +217,7 @@ test('uses the real anonymous HTTP state for the login scenario', () => {
 test('supports the Watch controls without relaxing unknown queries', () => {
   const filtered = siteReviewApiResponse(
     'GET',
-    '/api/matches?take=30&bot=pincer-gen-10&map=arena-01&ranked=true',
+    '/api/matches?take=30&bot=pincer-gen-10&map=arena-01&ranked=true&arcRelay=true',
   );
   assert.ok(filtered);
   assert.ok(Array.isArray(filtered.body));

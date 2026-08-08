@@ -294,7 +294,7 @@ export function siteReviewRequestKey(
 }
 
 function filteredMatches(url: URL): SiteReviewApiResponse<MatchSummary[]> | undefined {
-  const allowed = new Set(['take', 'skip', 'bot', 'map', 'ranked']);
+  const allowed = new Set(['take', 'skip', 'bot', 'map', 'ranked', 'arcRelay']);
   if ([...url.searchParams.keys()].some((key) => !allowed.has(key))) {
     return undefined;
   }
@@ -312,7 +312,11 @@ function filteredMatches(url: URL): SiteReviewApiResponse<MatchSummary[]> | unde
   const botSlug = url.searchParams.get('bot');
   const map = url.searchParams.get('map');
   const ranked = url.searchParams.get('ranked');
+  const arcRelay = url.searchParams.get('arcRelay');
   if (ranked !== null && ranked !== 'true' && ranked !== 'false') {
+    return undefined;
+  }
+  if (arcRelay !== null && arcRelay !== 'true' && arcRelay !== 'false') {
     return undefined;
   }
 

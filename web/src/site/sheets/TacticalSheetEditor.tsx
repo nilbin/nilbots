@@ -4,14 +4,17 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import ClassIcon from '../../components/ClassIcon';
 import type { TacticalSheet, TacticalSheetCatalog } from '../api';
 import {
   useDeleteTacticalSheet,
+  useMatchLive,
+  useMatchReplay,
   useSaveTacticalSheet,
   useTacticalSheet,
   useTacticalSheets,
@@ -30,6 +33,7 @@ import {
   pinDraft,
   predicateSubjectKind,
   saveLocalDraft,
+  sheetIssueFromCompilerError,
   validateDraft,
   verbOf,
   type CustodyPolicy,
@@ -46,6 +50,15 @@ import {
   type TacticalMode,
   type TacticalVerb,
 } from './sheetAuthoring';
+import {
+  describeTrialChanges,
+  loadTrialHistory,
+  replayUnitTracks,
+  saveTrialHistory,
+  snapshotForTrial,
+  type SheetTrialRun,
+  type UnitTrack,
+} from './sheetTrials';
 
 interface TacticalSheetEditorProps {
   catalog: TacticalSheetCatalog;
@@ -53,6 +66,7 @@ interface TacticalSheetEditorProps {
 
 type PlotKind = 'route' | 'zone' | 'anchor';
 type Side = 'west' | 'east';
+type EditorSection = 'composition' | 'doctrines' | 'conditions' | 'custody' | 'map';
 
 export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProps) {
   const navigate = useNavigate();
@@ -65,6 +79,10 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
   const [seed, setSeed] = useState('104729');
   const [importError, setImportError] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  const [section, setSection] = useState<EditorSection>('doctrines');
+  const [compilerIssue, setCompilerIssue] = useState<SheetIssue | null>(null);
+  const [trialHistory, setTrialHistory] = useState<SheetTrialRun[]>(() => loadTrialHistory());
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const save = useSaveTacticalSheet();
   const remove = useDeleteTacticalSheet();
   const trial = useTrialTacticalSheet();
@@ -115,12 +133,25 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
     };
   }, [draft]);
 
-  const issues = useMemo(
+  const clientIssues = useMemo(
     () => draft ? validateDraft(draft, catalog, layoutHash) : [],
     [catalog, draft, layoutHash],
   );
+  const issues = compilerIssue ? [...clientIssues, compilerIssue] : clientIssues;
   const blocking = issues.filter((issue) =>
     issue.severity === 'error' && issue.path !== 'playbook.layout.sha256');
+  const runsForSheet = draft?.sheetId
+    ? trialHistory.filter((run) => run.sheetId === draft.sheetId)
+    : [];
+  const selectedRun = runsForSheet.find((run) => run.matchId === selectedRunId)
+    ?? runsForSheet[0];
+  const selectedRunMatchId = selectedRun?.matchId;
+  const { data: selectedRunLive } = useMatchLive(selectedRunMatchId);
+  const { data: selectedRunReplay } = useMatchReplay(selectedRunMatchId, selectedRunLive);
+  const selectedTracks = useMemo(
+    () => replayUnitTracks(selectedRunReplay?.replay),
+    [selectedRunReplay?.replay],
+  );
 
   const startNew = () => {
     setActiveId(null);
@@ -129,41 +160,82 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
       catalog.templatePlaybookJson, catalog.templateLayoutJson,
     ));
     setRestored(false);
+    setCompilerIssue(null);
     resetMutations();
   };
 
   const saveDraft = async (asCopy = false): Promise<TacticalSheet> => {
     if (!draft) throw new Error('No draft is open.');
+    setCompilerIssue(null);
     const prepared = await pinDraft(draft);
     const targetId = asCopy ? null : prepared.draft.sheetId;
-    const saved = await save.mutateAsync({
-      sheetId: targetId ?? undefined,
-      body: {
-        name: asCopy ? `${prepared.draft.name} copy` : prepared.draft.name,
-        expectedRevision: targetId ? prepared.draft.revision : null,
-        playbookJson: prepared.playbookJson,
-        layoutJson: prepared.layoutJson,
-        enterLadder: prepared.draft.enterLadder,
-      },
-    });
-    setActiveId(saved.id);
-    setDraft(fromServer(saved));
-    setLayoutHash(prepared.layoutSha256);
-    setRestored(false);
-    return saved;
+    try {
+      const saved = await save.mutateAsync({
+        sheetId: targetId ?? undefined,
+        body: {
+          name: asCopy ? `${prepared.draft.name} copy` : prepared.draft.name,
+          expectedRevision: targetId ? prepared.draft.revision : null,
+          playbookJson: prepared.playbookJson,
+          layoutJson: prepared.layoutJson,
+          enterLadder: prepared.draft.enterLadder,
+        },
+      });
+      const persisted = fromServer(saved);
+      await saveLocalDraft(persisted);
+      setActiveId(saved.id);
+      setDraft(persisted);
+      setLayoutHash(prepared.layoutSha256);
+      setRestored(false);
+      return saved;
+    } catch (cause) {
+      const issue = sheetIssueFromCompilerError(cause);
+      setCompilerIssue(issue);
+      setSection(sectionForIssue(issue.path));
+      window.requestAnimationFrame(() => scrollToIssue(issue.path));
+      throw cause;
+    }
   };
 
   const runTrial = async () => {
-    const saved = await saveDraft(false);
-    const parsedSeed = seed.trim() === '' ? null : Number(seed);
-    const match = await trial.mutateAsync({
-      sheetId: saved.id,
-      body: {
+    if (!draft) return;
+    try {
+      const snapshot = snapshotForTrial(draft);
+      const saved = await saveDraft(false);
+      const parsedSeed = seed.trim() === '' ? null : Number(seed);
+      const resolvedSeed = Number.isSafeInteger(parsedSeed) ? parsedSeed : null;
+      const match = await trial.mutateAsync({
+        sheetId: saved.id,
+        body: {
+          stockSheetId: stockId,
+          seed: resolvedSeed,
+        },
+      });
+      const previous = trialHistory.find((run) => run.sheetId === saved.id);
+      const stock = catalog.stockOpponents.find((entry) => entry.id === stockId);
+      const recorded: SheetTrialRun = {
+        matchId: match.id,
+        sheetId: saved.id,
+        sheetName: saved.name,
+        revision: saved.revision,
+        contentHash: saved.contentHash,
         stockSheetId: stockId,
-        seed: Number.isSafeInteger(parsedSeed) ? parsedSeed : null,
-      },
-    });
-    navigate(`/matches/${match.id}`);
+        stockName: stock?.name ?? stockId,
+        seed: resolvedSeed,
+        createdAt: new Date().toISOString(),
+        changes: describeTrialChanges(previous?.snapshot, snapshot),
+        snapshot,
+      };
+      setTrialHistory((current) => saveTrialHistory([
+        recorded,
+        ...current.filter((run) => run.matchId !== recorded.matchId),
+      ]));
+      setSelectedRunId(recorded.matchId);
+      navigate(`/matches/${match.id}`, {
+        state: { returnTo: '/relay/sheets', returnLabel: saved.name },
+      });
+    } catch {
+      // Both mutations own their visible error state; the local draft remains intact.
+    }
   };
 
   const deleteDraft = async () => {
@@ -214,12 +286,13 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
     save.reset();
     trial.reset();
     remove.reset();
+    setCompilerIssue(null);
   };
 
   if (!draft) return <section className="panel pad"><p className="t-meta">Restoring local draft…</p></section>;
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">
       <aside className="panel h-fit xl:sticky xl:top-4">
         <div className="pad flex items-center gap-2 border-b border-arena-edge">
           <div className="mr-auto">
@@ -229,21 +302,21 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
           <button type="button" className="btn min-h-11" onClick={startNew}>New</button>
         </div>
         {restored && (
-          <p className="mx-2 mt-2 rounded-sm border border-amber-400/35 bg-amber-300/10 p-2 t-micro text-amber-100">
+          <p className="mx-2 mt-2 rounded-sm border border-arena-material/35 bg-arena-material/10 p-2 t-micro text-arena-material">
             Restored the last local draft from this device.
           </p>
         )}
-        <div className="max-h-[360px] overflow-y-auto p-2">
+        <div className="flex gap-2 overflow-x-auto p-2 xl:block xl:max-h-[300px] xl:overflow-y-auto">
           {sheetsQuery.isPending && <p className="t-micro p-2">Loading…</p>}
-          {sheetsQuery.isError && <p className="t-micro p-2 text-red-300">Could not load saved sheets.</p>}
+          {sheetsQuery.isError && <p className="t-micro p-2 text-arena-hot">Could not load saved sheets.</p>}
           {sheetsQuery.data?.map((sheet) => (
             <button
               key={sheet.id}
               type="button"
               className={clsx(
-                'mb-1 min-h-12 w-full rounded-sm border px-2.5 py-2 text-left',
+                'min-h-12 min-w-[190px] rounded-sm border px-2.5 py-2 text-left xl:mb-1 xl:w-full xl:min-w-0',
                 draft.sheetId === sheet.id
-                  ? 'border-cyan-300/60 bg-cyan-300/10'
+                  ? 'border-arena-ok/60 bg-arena-ok/10'
                   : 'border-transparent active:border-arena-edge',
               )}
               onClick={() => {
@@ -260,8 +333,44 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
           )}
         </div>
         <div className="border-t border-arena-edge p-2">
+          <p className="lab px-1 pb-2">Recent trials</p>
+          {runsForSheet.length === 0 ? (
+            <p className="t-micro px-1 pb-1">Run this draft once to compare revisions and plot its actual tracks.</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto xl:block xl:max-h-[260px] xl:overflow-y-auto">
+              {runsForSheet.slice(0, 8).map((run) => (
+                <article key={run.matchId} className={clsx(
+                  'min-w-[220px] rounded-sm border p-2 xl:mb-2 xl:min-w-0',
+                  selectedRun?.matchId === run.matchId
+                    ? 'border-arena-ok/60 bg-arena-ok/10'
+                    : 'border-arena-edge',
+                )}>
+                  <div className="flex items-center gap-2">
+                    <span className="t-body truncate">r{run.revision} · {run.stockName}</span>
+                    <span className="val ml-auto">{run.seed ?? 'auto'}</span>
+                  </div>
+                  <p className="t-micro mt-1 line-clamp-2">Changed: {run.changes.join(', ')}</p>
+                  <div className="mt-2 flex gap-1">
+                    <button type="button" className="btn min-h-11 flex-1"
+                      aria-pressed={selectedRun?.matchId === run.matchId}
+                      onClick={() => {
+                        setSelectedRunId(run.matchId);
+                        setSection('map');
+                      }}>
+                      Plot tracks
+                    </button>
+                    <Link to={`/matches/${run.matchId}`}
+                      state={{ returnTo: '/relay/sheets', returnLabel: draft.name }}
+                      className="btn inline-flex min-h-11 flex-1 items-center justify-center">Watch</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="border-t border-arena-edge p-2">
           <p className="t-micro px-1 pb-2">Local draft autosaves in this browser.</p>
-          <label className="btn min-h-11 w-full cursor-pointer justify-center">
+          <label className="btn flex min-h-11 w-full cursor-pointer items-center justify-center">
             Import JSON pair
             <input
               className="sr-only"
@@ -275,11 +384,11 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
             Export pinned pair
           </button>
           {layoutHash && <p className="mt-2 break-all px-1 font-mono text-[10px] text-arena-material">layout sha256 {layoutHash}</p>}
-          {importError && <p className="t-micro mt-2 text-red-300">{importError}</p>}
+          {importError && <p className="t-micro mt-2 text-arena-hot">{importError}</p>}
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-col gap-4">
+      <section className="flex min-w-0 flex-col gap-4" aria-label="Open sheet draft">
         <section className="panel pad">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <label>
@@ -296,16 +405,16 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
                 type="button"
                 className="btn btn-on min-h-11 flex-1"
                 disabled={save.isPending || blocking.length > 0}
-                onClick={() => void saveDraft(false)}
+                onClick={() => void saveDraft(false).catch(() => undefined)}
               >
                 {save.isPending ? 'Compiling…' : draft.sheetId ? `Save r${(draft.revision ?? 0) + 1}` : 'Save & enter ladder'}
               </button>
               {draft.sheetId && (
                 <button type="button" className="btn min-h-11" disabled={save.isPending}
-                  onClick={() => void saveDraft(true)}>Save copy</button>
+                  onClick={() => void saveDraft(true).catch(() => undefined)}>Save copy</button>
               )}
               {draft.sheetId && (
-                <button type="button" className="btn min-h-11 text-red-200" disabled={remove.isPending}
+                <button type="button" className="btn min-h-11 text-arena-hot" disabled={remove.isPending}
                   onClick={() => void deleteDraft()}>Delete</button>
               )}
             </div>
@@ -320,34 +429,30 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
             <span className="t-micro ml-auto">on by default</span>
           </label>
           {(save.isError || remove.isError) && (
-            <p className="t-micro mt-2 text-red-300">{(save.error ?? remove.error)?.message}</p>
+            <p className="t-micro mt-2 text-arena-hot">{(save.error ?? remove.error)?.message}</p>
           )}
-          {save.isSuccess && <p className="t-micro mt-2 text-emerald-300">Compiled, hash-pinned and saved on the server.</p>}
+          {save.isSuccess && <p className="t-micro mt-2 text-arena-ok">Compiled, hash-pinned and saved on the server.</p>}
         </section>
 
-        <IssueSummary issues={issues} />
-        <CompositionEditor draft={draft} catalog={catalog} mutate={mutate} />
-        <DoctrineEditor draft={draft} issues={issues} mutate={mutate} />
-        <PredicateEditor draft={draft} issues={issues} mutate={mutate} />
-        <CustodyEditor draft={draft} issues={issues} mutate={mutate} />
-        <MapPlotter catalog={catalog} layout={draft.layout}
-          onChange={(layout) => mutate((next) => { next.layout = layout; })} />
-
-        <section className="panel pad border-cyan-300/30">
+        <IssueSummary issues={issues} onNavigate={(issue) => {
+          setSection(sectionForIssue(issue.path));
+          window.requestAnimationFrame(() => scrollToIssue(issue.path));
+        }} />
+        <section id="trial-run" className="panel pad border-arena-ok/35 scroll-mt-16">
           <div className="flex flex-wrap items-start gap-3">
             <div className="mr-auto max-w-2xl">
-              <p className="lab text-cyan-200">Edit → run → watch</p>
-              <h2 className="type-display mt-1 text-[22px]">Trial the current draft</h2>
+              <p className="lab text-arena-ok">Change → run → watch → change</p>
+              <h2 className="type-display mt-1 text-[22px]">Trial this draft</h2>
               <p className="t-meta mt-1">
-                One tap saves through the shared compiler, runs against the chosen tracked stock sheet,
-                and opens the completed match in the replay viewer.
+                The draft is saved locally first, compiled on the server, then opened in the replay viewer.
+                Return here to compare the run and overlay its actual movement on your map.
               </p>
             </div>
-            <span className="pill">{catalog.map.id}</span>
+            <span className="pill">local draft safe</span>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end">
             <label>
-              <span className="t-micro mb-1 block">Stock opponent</span>
+              <span className="t-micro mb-1 block">Stock sheet opponent</span>
               <select className="field min-h-11" value={stockId} onChange={(event) => setStockId(event.target.value)}>
                 {catalog.stockOpponents.map((stock) => (
                   <option key={stock.id} value={stock.id}>{stock.name}</option>
@@ -362,7 +467,7 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
             <button type="button" className="btn btn-on min-h-11"
               disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
               onClick={() => void runTrial()}>
-              {trial.isPending ? 'Running…' : 'Save & watch trial'}
+              {trial.isPending ? 'Starting trial…' : runsForSheet.length ? 'Run again & watch' : 'Run & watch'}
             </button>
           </div>
           {catalog.stockOpponents.find((stock) => stock.id === stockId) && (
@@ -370,16 +475,61 @@ export default function TacticalSheetEditor({ catalog }: TacticalSheetEditorProp
               {catalog.stockOpponents.find((stock) => stock.id === stockId)!.description}
             </p>
           )}
-          {trial.isError && <p className="t-micro mt-2 text-red-300">{trial.error.message}</p>}
+          {trial.isError && <p className="t-micro mt-2 text-arena-hot">{trial.error.message}</p>}
         </section>
-      </main>
+
+        <nav className="panel sticky top-0 z-20 flex gap-1 overflow-x-auto p-1.5"
+          aria-label="Sheet editor sections">
+          {EDITOR_SECTIONS.map((entry) => {
+            const count = issues.filter((issue) => entry.matches(issue.path)).length;
+            return <button key={entry.id} type="button"
+              className={clsx('btn min-h-11 shrink-0 flex-1', section === entry.id && 'btn-on')}
+              aria-current={section === entry.id ? 'step' : undefined}
+              onClick={() => setSection(entry.id)}>
+              {entry.label}{count > 0 ? ` · ${count}` : ''}
+            </button>;
+          })}
+        </nav>
+
+        {section === 'composition' && (
+          <CompositionEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate} />
+        )}
+        {section === 'doctrines' && (
+          <DoctrineEditor draft={draft} issues={issues} mutate={mutate} />
+        )}
+        {section === 'conditions' && (
+          <PredicateEditor draft={draft} issues={issues} mutate={mutate} />
+        )}
+        {section === 'custody' && (
+          <CustodyEditor draft={draft} issues={issues} mutate={mutate} />
+        )}
+        {section === 'map' && (
+          <MapPlotter catalog={catalog} layout={draft.layout} issues={issues} tracks={selectedTracks}
+            trackLabel={selectedRun
+              ? `r${selectedRun.revision} vs ${selectedRun.stockName}, seed ${selectedRun.seed ?? 'auto'}`
+              : null}
+            onChange={(layout) => mutate((next) => { next.layout = layout; })} />
+        )}
+      </section>
+      <div className="fixed inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] z-30 flex gap-2 rounded-sm border border-arena-edge bg-arena-panel p-2 min-[640px]:hidden">
+        <button type="button" className="btn btn-on min-h-12 flex-1"
+          disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
+          onClick={() => void runTrial()}>
+          {trial.isPending ? 'Starting trial…' : 'Run & watch'}
+        </button>
+        <button type="button" className="btn min-h-12" onClick={() =>
+          document.getElementById('trial-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          Setup
+        </button>
+      </div>
     </div>
   );
 }
 
-function CompositionEditor({ draft, catalog, mutate }: {
+function CompositionEditor({ draft, catalog, issues, mutate }: {
   draft: SheetDraft;
   catalog: TacticalSheetCatalog;
+  issues: SheetIssue[];
   mutate: Mutate;
 }) {
   const counts = new Map<string, number>();
@@ -401,7 +551,7 @@ function CompositionEditor({ draft, catalog, mutate }: {
         {Array.from({ length: catalog.slotCount }, (_, index) => {
           const current = draft.playbook.composition[index] ?? '';
           return (
-            <label key={index}>
+            <label key={index} data-sheet-path={`composition.${index}`}>
               <span className="t-micro mb-1 block">slot {index + 1}</span>
               <select className="field min-h-11 px-2" value={current}
                 onChange={(event) => mutate((next) => {
@@ -415,6 +565,7 @@ function CompositionEditor({ draft, catalog, mutate }: {
                   </option>
                 ))}
               </select>
+              <FieldIssues issues={issues} path={`composition.${index}`} />
             </label>
           );
         })}
@@ -466,7 +617,8 @@ function DoctrineEditor({ draft, issues, mutate }: {
       </div>
       <div className="mt-3 flex flex-col gap-3">
         {doctrines.map(([id, doctrine]) => (
-          <details key={id} className="rounded-sm border border-arena-edge bg-arena-deep/25" open>
+          <details key={id} data-sheet-path={`doctrines.${id}`}
+            className="rounded-sm border border-arena-edge bg-arena-deep/25">
             <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 py-2">
               <span className="type-display text-[18px]">{id}</span>
               <span className="pill">{doctrine.role}</span>
@@ -474,16 +626,19 @@ function DoctrineEditor({ draft, issues, mutate }: {
             </summary>
             <div className="border-t border-arena-edge p-3">
               <div className="grid gap-2 sm:grid-cols-3">
-                <TextField label="doctrine id" value={id} onChange={(value) => renameDoctrine(id, value)} />
+                <TextField label="doctrine id" value={id} issues={issues} path={`doctrines.${id}`}
+                  onChange={(value) => renameDoctrine(id, value)} />
                 <SelectField label="role" value={doctrine.role} values={roleIds}
+                  issues={issues} path={`doctrines.${id}.role`}
                   onChange={(value) => updateDoctrine(id, (next) => { next.role = value; })} />
                 <SelectField label="custody" value={doctrine.custody} values={custodyIds}
+                  issues={issues} path={`doctrines.${id}.custody`}
                   onChange={(value) => updateDoctrine(id, (next) => { next.custody = value; })} />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <Check label="concealment micro" checked={doctrine.conceal ?? true}
                   onChange={(value) => updateDoctrine(id, (next) => { next.conceal = value; })} />
-                <button type="button" className="btn ml-auto min-h-11 text-red-200"
+                <button type="button" className="btn ml-auto min-h-11 text-arena-hot"
                   onClick={() => mutate((next) => { delete next.playbook.doctrines[id]; })}>
                   Remove doctrine
                 </button>
@@ -594,10 +749,12 @@ function ModeEditor({
   const issuePrefix = `doctrines.${doctrineId}.modes.${index}`;
 
   return (
-    <article className={clsx('rounded-sm border p-3', floor ? 'border-emerald-400/40 bg-emerald-400/5' : 'border-arena-edge')}>
+    <article data-sheet-path={issuePrefix}
+      className={clsx('rounded-sm border p-3', floor ? 'border-arena-ok/40 bg-arena-ok/5' : 'border-arena-edge')}>
       <div className="flex flex-wrap items-end gap-2">
         <span className="type-display self-center text-[18px]">{index + 1}</span>
         <SelectField label={floor ? 'floor verb' : 'verb'} value={verb} values={[...TACTICAL_VERBS]}
+          issues={issues} path={issuePrefix}
           onChange={(value) => changeVerb(value as TacticalVerb)} />
         <div className="ml-auto flex gap-1">
           <button type="button" aria-label="Move mode up" className="btn min-h-11 min-w-11"
@@ -612,30 +769,38 @@ function ModeEditor({
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {verb === 'patrol' && (
           <SelectField label="patrol route" value={mode.patrol ?? ''} values={[...routeIds, 'traffic']}
+            issues={issues} path={`${issuePrefix}.patrol`}
             onChange={(value) => set({ patrol: value })} />
         )}
         {verb === 'intercept' && <>
           <SelectField label="intercept" value={mode.intercept ?? 'enemy-carriers'}
+            issues={issues} path={`${issuePrefix}.intercept`}
             values={['enemy-carriers', 'inbound']} onChange={(value) => set({ intercept: value })} />
           <SelectField label="stage from anchor" value={mode.from ?? ''} values={['', ...anchorIds]}
+            issues={issues} path={`${issuePrefix}.from`}
             onChange={(value) => set({ from: value || undefined })} />
           <OptionalNumber label="patience ticks · inert compatibility" value={mode.patienceTicks} min={2} max={120}
+            issues={issues} path={`${issuePrefix}.patienceTicks`}
             onChange={(value) => set({ patienceTicks: value })} />
         </>}
         {verb === 'assault' && (
           <SelectField label="assault route" value={mode.assault ?? ''} values={routeIds}
+            issues={issues} path={`${issuePrefix}.assault`}
             onChange={(value) => set({ assault: value })} />
         )}
         {verb === 'recover' && <ReadOnlyField label="recovery" value="automatic health/beacon window" />}
         {verb === 'muster' && (
           <SelectField label="answer call" value={mode.muster ?? 'escort'} values={['escort', ...orderIds]}
+            issues={issues} path={`${issuePrefix}.muster`}
             onChange={(value) => set({ muster: value })} />
         )}
         {verb === 'squad' && <ReadOnlyField label="fallback" value="ordinary squad-plane job" />}
         {!floor && verb !== 'recover' && verb !== 'muster' && <>
           <ConditionField label="while" value={mode.while ?? ''} predicates={predicateIds}
+            issues={issues} path={`${issuePrefix}.while`}
             onChange={(value) => set({ while: value })} />
           <ConditionField label="until" value={mode.until ?? ''} predicates={predicateIds}
+            issues={issues} path={`${issuePrefix}.until`}
             onChange={(value) => set({ until: value || undefined })} />
         </>}
       </div>
@@ -669,7 +834,7 @@ function ModeEditor({
             recruitable: false,
           })).filter(({ role }) => issues.some((issue) => issue.path.startsWith(issuePrefix)
             && issue.message.includes(`'${role}' is not recruitable`))).map(({ role }) => (
-              <button key={role} type="button" className="btn ml-2 mt-2 min-h-11 border-amber-300/50"
+              <button key={role} type="button" className="btn ml-2 mt-2 min-h-11 border-arena-material/50"
                 onClick={() => makeRecruitable(role)}>Add muster to {role}</button>
             ))}
         </fieldset>
@@ -709,10 +874,13 @@ function PredicateEditor({ draft, issues, mutate }: {
                   : kind === 'well' ? ['north', 'centre', 'south']
                     : kind === 'order' ? orders : [];
             return (
-              <article key={id} className="rounded-sm border border-arena-edge p-3">
+              <article key={id} data-sheet-path={`authoring.predicates.${id}`}
+                className="rounded-sm border border-arena-edge p-3">
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                  <TextField label="predicate id" value={id} onChange={(value) => rename(id, value)} />
+                  <TextField label="predicate id" value={id} issues={issues}
+                    path={`authoring.predicates.${id}`} onChange={(value) => rename(id, value)} />
                   <SelectField label="fact" value={predicate.fact} values={[...CONDITION_FACTS]}
+                    issues={issues} path={`authoring.predicates.${id}.fact`}
                     onChange={(fact) => mutate((next) => {
                       const target = next.playbook.authoring.predicates[id];
                       target.fact = fact;
@@ -721,10 +889,13 @@ function PredicateEditor({ draft, issues, mutate }: {
                       delete target.freshnessTicks;
                     })} />
                   <SelectField label="operator" value={predicate.operator} values={[...CONDITION_OPERATORS]}
+                    issues={issues} path={`authoring.predicates.${id}.operator`}
                     onChange={(operator) => mutate((next) => { next.playbook.authoring.predicates[id].operator = operator; })} />
                   <NumberField label="value" value={predicate.value} min={0} max={100000}
+                    issues={issues} path={`authoring.predicates.${id}.value`}
                     onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].value = value; })} />
                   {kind && kind !== 'group-zone' && <SelectField label={kind} value={kind === 'zone' ? predicate.zone ?? '' : predicate.subject ?? ''}
+                    issues={issues} path={`authoring.predicates.${id}.${kind === 'zone' ? 'zone' : 'subject'}`}
                     values={options} onChange={(value) => mutate((next) => {
                       const target = next.playbook.authoring.predicates[id];
                       if (kind === 'zone') target.zone = value;
@@ -732,21 +903,24 @@ function PredicateEditor({ draft, issues, mutate }: {
                     })} />}
                   {kind === 'group-zone' && <>
                     <SelectField label="group" value={predicate.subject ?? ''} values={groups}
+                      issues={issues} path={`authoring.predicates.${id}.subject`}
                       onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].subject = value; })} />
                     <SelectField label="zone" value={predicate.zone ?? ''} values={zones}
+                      issues={issues} path={`authoring.predicates.${id}.zone`}
                       onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].zone = value; })} />
                   </>}
                 </div>
                 <div className="mt-2 flex flex-wrap items-end gap-2">
                   {(predicate.fact === 'remembered-enemies-in-zone' || predicate.fact === 'secured-cores') && (
                     <OptionalNumber label="freshness ticks" value={predicate.freshnessTicks} min={1} max={600}
+                      issues={issues} path={`authoring.predicates.${id}.freshnessTicks`}
                       onChange={(value) => mutate((next) => {
                         const target = next.playbook.authoring.predicates[id];
                         if (value === undefined) delete target.freshnessTicks;
                         else target.freshnessTicks = value;
                       })} />
                   )}
-                  <button type="button" className="btn ml-auto min-h-11 text-red-200"
+                  <button type="button" className="btn ml-auto min-h-11 text-arena-hot"
                     onClick={() => mutate((next) => { delete next.playbook.authoring.predicates[id]; })}>Remove</button>
                 </div>
                 <InlineIssues issues={issues} prefix={`authoring.predicates.${id}`} />
@@ -782,34 +956,46 @@ function CustodyEditor({ draft, issues, mutate }: {
         <p className="t-meta mt-2">Who may carry, how drops recover, and which plotted routes bring a Core home.</p>
         <div className="mt-3 flex flex-col gap-3">
           {draft.playbook.custodyPolicies.map((policy, index) => (
-            <article key={`${policy.custodyId}:${index}`} className="rounded-sm border border-arena-edge p-3">
+            <article key={`${policy.custodyId}:${index}`} data-sheet-path={`custodyPolicies.${index}`}
+              className="rounded-sm border border-arena-edge p-3">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <TextField label="custody id" value={policy.custodyId}
+                  issues={issues} path={`custodyPolicies.${index}.custodyId`}
                   onChange={(value) => update(index, (next) => { next.custodyId = value; })} />
                 <NumberField label="pickup reservation" value={policy.pickupReservationTicks} min={1} max={120}
+                  issues={issues} path={`custodyPolicies.${index}.pickupReservationTicks`}
                   onChange={(value) => update(index, (next) => { next.pickupReservationTicks = value; })} />
                 <NumberField label="transfer timeout" value={policy.transferTimeoutTicks} min={1} max={120}
+                  issues={issues} path={`custodyPolicies.${index}.transferTimeoutTicks`}
                   onChange={(value) => update(index, (next) => { next.transferTimeoutTicks = value; })} />
                 <NumberField label="delivery timeout" value={policy.deliveryTimeoutTicks} min={1} max={1200}
+                  issues={issues} path={`custodyPolicies.${index}.deliveryTimeoutTicks`}
                   onChange={(value) => update(index, (next) => { next.deliveryTimeoutTicks = value; })} />
                 <SelectField label="accidental pickup" value={policy.accidentalPickup}
+                  issues={issues} path={`custodyPolicies.${index}.accidentalPickup`}
                   values={['transfer', 'deliver', 'drop-safe']}
                   onChange={(value) => update(index, (next) => { next.accidentalPickup = value; })} />
                 <SelectField label="drop recovery" value={policy.dropRecovery}
+                  issues={issues} path={`custodyPolicies.${index}.dropRecovery`}
                   values={['same-carrier', 'nearest-authorized', 'guard-until-safe']}
                   onChange={(value) => update(index, (next) => { next.dropRecovery = value; })} />
                 <SelectField label="unreachable" value={policy.unreachableFallback}
+                  issues={issues} path={`custodyPolicies.${index}.unreachableFallback`}
                   values={['hold', 'guard', 'alternate-core', 'regroup']}
                   onChange={(value) => update(index, (next) => { next.unreachableFallback = value; })} />
                 <SelectField label="forward pass" value={policy.forwardPass ?? 'none'}
+                  issues={issues} path={`custodyPolicies.${index}.forwardPass`}
                   values={['none', 'relay-catcher']}
                   onChange={(value) => update(index, (next) => { next.forwardPass = value; })} />
               </div>
               <ChoiceGrid label="authorized carrier roles" values={roles} selected={policy.authorizedCarrierRoles}
+                issues={issues} path={`custodyPolicies.${index}.authorizedCarrierRoles`}
                 onChange={(selected) => update(index, (next) => { next.authorizedCarrierRoles = selected; })} />
               <ChoiceGrid label="escort groups" values={groups} selected={policy.escortGroups}
+                issues={issues} path={`custodyPolicies.${index}.escortGroups`}
                 onChange={(selected) => update(index, (next) => { next.escortGroups = selected; })} />
               <ChoiceGrid label="source Wells" values={['north', 'centre', 'south']} selected={policy.sourceWells}
+                issues={issues} path={`custodyPolicies.${index}.sourceWells`}
                 onChange={(selected) => update(index, (next) => { next.sourceWells = selected; })} />
               <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
                 <legend className="t-micro px-1">Delivery geography</legend>
@@ -868,9 +1054,12 @@ function CustodyEditor({ draft, issues, mutate }: {
   );
 }
 
-function MapPlotter({ catalog, layout, onChange }: {
+function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   catalog: TacticalSheetCatalog;
   layout: LayoutDocument;
+  issues: SheetIssue[];
+  tracks: UnitTrack[];
+  trackLabel: string | null;
   onChange: (layout: LayoutDocument) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
@@ -949,6 +1138,39 @@ function MapPlotter({ catalog, layout, onChange }: {
     setDrag(null);
     setZonePreview(null);
   };
+  const nudgeSelected = (event: ReactKeyboardEvent<SVGSVGElement>) => {
+    const delta: Partial<Record<string, Point>> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const movement = delta[event.key];
+    if (!movement || side === 'east') return;
+    event.preventDefault();
+    const move = ([x, y]: Point): Point => [
+      clamp(x + movement[0], 0, catalog.map.width - 1),
+      clamp(y + movement[1], 0, catalog.map.height - 1),
+    ];
+    commit((next) => {
+      if (kind === 'route' && selectedRoute) {
+        const route = next.routes.find((entry) => entry.routeId === selectedRoute.routeId);
+        if (route?.waypoints.length) route.waypoints[route.waypoints.length - 1] = move(route.waypoints.at(-1)!);
+      } else if (kind === 'anchor' && selectedAnchor) {
+        const anchor = next.anchors.find((entry) => entry.anchorId === selectedAnchor.anchorId);
+        if (anchor) anchor.position = move(anchor.position);
+      } else if (kind === 'zone' && selectedZone) {
+        const zone = next.zones.find((entry) => entry.zoneId === selectedZone.zoneId);
+        if (!zone) return;
+        const [x0, y0, x1, y1] = zone.rect;
+        const dx = movement[0] < 0 ? Math.max(movement[0], -x0)
+          : Math.min(movement[0], catalog.map.width - 1 - x1);
+        const dy = movement[1] < 0 ? Math.max(movement[1], -y0)
+          : Math.min(movement[1], catalog.map.height - 1 - y1);
+        zone.rect = [x0 + dx, y0 + dy, x1 + dx, y1 + dy];
+      }
+    });
+  };
   const startHandleDrag = (
     event: ReactPointerEvent<SVGCircleElement>,
     value: DragState,
@@ -966,12 +1188,12 @@ function MapPlotter({ catalog, layout, onChange }: {
     : selectedRoute?.routeId;
 
   return (
-    <section className="panel pad">
+    <section className="panel pad" data-sheet-path="layout">
       <div className="flex flex-wrap items-start gap-2">
         <div className="mr-auto">
           <p className="lab">Map plotting</p>
           <h2 className="type-display mt-1 text-[21px]">Draw tactics on the hosted map</h2>
-          <p className="t-meta mt-1">Drag waypoints, zone rectangles and anchor pins. Coordinates never need typing.</p>
+          <p className="t-meta mt-1">Drag waypoints, zone rectangles and anchor pins. Actual tracks from a selected trial sit behind the authored geometry.</p>
         </div>
         <div className="flex rounded-sm border border-arena-edge p-1" aria-label="Binding preview">
           {(['west', 'east'] as const).map((value) => (
@@ -997,7 +1219,7 @@ function MapPlotter({ catalog, layout, onChange }: {
               const id = kind === 'route' ? (entry as LayoutRoute).routeId
                 : kind === 'zone' ? (entry as LayoutZone).zoneId : (entry as LayoutAnchor).anchorId;
               return <button key={id} type="button"
-                className={clsx('mb-1 min-h-11 w-full rounded-sm px-2 text-left t-micro', selected === id && 'bg-cyan-300/15 text-cyan-100')}
+                className={clsx('mb-1 min-h-11 w-full rounded-sm px-2 text-left t-micro', selected === id && 'bg-arena-ok/15 text-arena-text')}
                 onClick={() => setSelectedId(id)}>{id}</button>;
             })}
           </div>
@@ -1013,7 +1235,7 @@ function MapPlotter({ catalog, layout, onChange }: {
               });
               setSelectedId(id);
             }}>Add {kind}</button>
-            {selected && <button type="button" className="btn min-h-11 text-red-200" onClick={() => commit((next) => {
+            {selected && <button type="button" className="btn min-h-11 text-arena-hot" onClick={() => commit((next) => {
               if (kind === 'route') next.routes = next.routes.filter((entry) => entry.routeId !== selected);
               else if (kind === 'zone') next.zones = next.zones.filter((entry) => entry.zoneId !== selected);
               else next.anchors = next.anchors.filter((entry) => entry.anchorId !== selected);
@@ -1038,11 +1260,13 @@ function MapPlotter({ catalog, layout, onChange }: {
               className="block w-full touch-none select-none"
               style={{ aspectRatio: `${catalog.map.width} / ${catalog.map.height}` }}
               role="img"
-              aria-label={`${side} binding tactical map editor`}
+              tabIndex={0}
+              aria-label={`${side} binding tactical map editor. Arrow keys move the selected ${kind}.`}
               onPointerDown={pointerDown}
               onPointerMove={pointerMove}
               onPointerUp={pointerUp}
               onPointerCancel={pointerUp}
+              onKeyDown={nudgeSelected}
             >
               {catalog.map.tileRows.flatMap((row, y) => [...row].map((tile, x) => (
                 <rect key={`${x}:${y}`} x={x} y={y} width={1} height={1}
@@ -1068,6 +1292,15 @@ function MapPlotter({ catalog, layout, onChange }: {
                   fill={zone.zoneId === selectedZone?.zoneId && kind === 'zone' ? '#f0b94f32' : '#64748b12'}
                   stroke={zone.zoneId === selectedZone?.zoneId && kind === 'zone' ? '#f0c965' : '#64748b55'}
                   strokeWidth={zone.zoneId === selectedZone?.zoneId && kind === 'zone' ? 0.16 : 0.07} />;
+              })}
+              {tracks.map((track) => {
+                const points = track.points.map((point) => transform([point.x, point.y]));
+                if (points.length < 2) return null;
+                const color = track.teamId === 0 ? '#4de7ff' : '#ff806f';
+                return <polyline key={`track:${track.key}`} data-unit-track={track.key}
+                  points={points.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(' ')}
+                  fill="none" stroke={color} strokeWidth={0.13} strokeOpacity={0.42}
+                  strokeLinecap="round" strokeLinejoin="round" />;
               })}
               {routes.map((route) => {
                 const points = route.waypoints.map(transform);
@@ -1108,12 +1341,16 @@ function MapPlotter({ catalog, layout, onChange }: {
             </svg>
           </div>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 t-micro">
-            <span className="text-cyan-200">tap empty map · add point</span>
-            <span className="text-pink-200">pink · anchor</span>
-            <span className="text-amber-200">drag · zone rectangle</span>
+            <span>Tap empty map · add point</span>
+            <span>Pink · anchor</span>
+            <span>Drag · zone rectangle</span>
+            <span>Arrow keys · nudge selected geometry</span>
+            {trackLabel && <span>Cyan/coral · actual tracks · {trackLabel}</span>}
+            {!trackLabel && <span>select a recent trial to compare actual tracks</span>}
             {side === 'east' && <span>rotated preview{previewRoute ? ` · ${previewRoute}` : ''}</span>}
             {side === 'east' && <span>switch west to edit geometry</span>}
           </div>
+          <InlineIssues issues={issues} prefix="layout" />
         </div>
       </div>
     </section>
@@ -1197,16 +1434,18 @@ function FightEditor({ fight, label, onChange }: {
   );
 }
 
-function ConditionField({ label, value, predicates, onChange }: {
+function ConditionField({ label, value, predicates, issues, path, onChange }: {
   label: string;
   value: string;
   predicates: string[];
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (value: string) => void;
 }) {
   const [connector, setConnector] = useState<'and' | 'or'>('and');
   const listId = useId();
   return (
-    <label className="block">
+    <label className="block" data-sheet-path={path}>
       <span className="t-micro mb-1 block">{label}</span>
       <input className="field min-h-11 font-mono text-xs" value={value}
         list={listId} onChange={(event) => onChange(event.target.value)} />
@@ -1224,15 +1463,19 @@ function ConditionField({ label, value, predicates, onChange }: {
           {predicates.map((id) => <option key={id} value={id}>{id}</option>)}
         </select>
       </div>
+      {issues && path && <FieldIssues issues={issues} path={path} />}
     </label>
   );
 }
 
-function IssueSummary({ issues }: { issues: SheetIssue[] }) {
+function IssueSummary({ issues, onNavigate }: {
+  issues: SheetIssue[];
+  onNavigate: (issue: SheetIssue) => void;
+}) {
   const errors = issues.filter((issue) => issue.severity === 'error');
   const warnings = issues.filter((issue) => issue.severity === 'warning');
   if (!issues.length) return (
-    <section className="rounded-sm border border-emerald-400/35 bg-emerald-400/5 px-3 py-2 t-body text-emerald-200">
+    <section className="rounded-sm border border-arena-ok/35 bg-arena-ok/5 px-3 py-2 t-body text-arena-ok">
       Client checks pass. Save still runs the authoritative shared compiler.
     </section>
   );
@@ -1244,9 +1487,12 @@ function IssueSummary({ issues }: { issues: SheetIssue[] }) {
           <li
             key={`${issue.path}:${index}`}
             data-sheet-issue={issue.severity}
-            className={issue.severity === 'error' ? 'text-red-300' : 'text-amber-200'}
+            className={issue.severity === 'error' ? 'text-arena-hot' : 'text-arena-material'}
           >
-            <code>{issue.path}</code> — {issue.message}
+            <button type="button" className="min-h-11 text-left underline decoration-current/40 underline-offset-2"
+              onClick={() => onNavigate(issue)}>
+              <code>{issue.path}</code> — {issue.message}
+            </button>
           </li>
         ))}
       </ul>
@@ -1257,27 +1503,41 @@ function IssueSummary({ issues }: { issues: SheetIssue[] }) {
 function InlineIssues({ issues, prefix }: { issues: SheetIssue[]; prefix: string }) {
   const selected = issues.filter((issue) => issue.path.startsWith(prefix));
   if (!selected.length) return null;
-  return <ul className="mt-2 rounded-sm border border-red-400/25 bg-red-400/5 p-2 text-xs">
-    {selected.map((issue, index) => <li key={index} className={issue.severity === 'error' ? 'text-red-300' : 'text-amber-200'}>
+  return <ul data-sheet-path={prefix} role="alert"
+    className="mt-2 rounded-sm border border-arena-hot/25 bg-arena-hot/5 p-2 text-xs">
+    {selected.map((issue, index) => <li key={index} className={issue.severity === 'error' ? 'text-arena-hot' : 'text-arena-material'}>
       {issue.message}
     </li>)}
   </ul>;
 }
 
-function ChoiceGrid({ label, values, selected, onChange }: {
+function FieldIssues({ issues, path }: { issues: SheetIssue[]; path: string }) {
+  const selected = issues.filter((issue) => issue.path === path);
+  if (selected.length === 0) return null;
+  return <span role="alert" className="mt-1 block text-[11px] leading-snug">
+    {selected.map((issue, index) => <span key={`${issue.message}:${index}`} className={clsx(
+      'block', issue.severity === 'error' ? 'text-arena-hot' : 'text-arena-material',
+    )}>{issue.message}</span>)}
+  </span>;
+}
+
+function ChoiceGrid({ label, values, selected, issues, path, onChange }: {
   label: string;
   values: string[];
   selected: string[];
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (selected: string[]) => void;
 }) {
   return (
-    <fieldset className="mt-3">
+    <fieldset className="mt-3" data-sheet-path={path}>
       <legend className="t-micro">{label}</legend>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
         {values.map((value) => <Check key={value} label={value} checked={selected.includes(value)}
           onChange={(checked) => onChange(checked
             ? [...selected, value] : selected.filter((entry) => entry !== value))} />)}
       </div>
+      {issues && path && <FieldIssues issues={issues} path={path} />}
     </fieldset>
   );
 }
@@ -1293,26 +1553,32 @@ function Check({ label, checked, onChange }: {
   </label>;
 }
 
-function TextField({ label, value, onChange }: {
+function TextField({ label, value, issues, path, onChange }: {
   label: string;
   value: string;
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (value: string) => void;
 }) {
-  return <label><span className="t-micro mb-1 block">{label}</span>
+  return <label data-sheet-path={path}><span className="t-micro mb-1 block">{label}</span>
     <input className="field min-h-11" value={value} onChange={(event) => onChange(event.target.value)} />
+    {issues && path && <FieldIssues issues={issues} path={path} />}
   </label>;
 }
 
-function SelectField({ label, value, values, onChange }: {
+function SelectField({ label, value, values, issues, path, onChange }: {
   label: string;
   value: string;
   values: string[];
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (value: string) => void;
 }) {
-  return <label><span className="t-micro mb-1 block">{label}</span>
+  return <label data-sheet-path={path}><span className="t-micro mb-1 block">{label}</span>
     <select className="field min-h-11" value={value} onChange={(event) => onChange(event.target.value)}>
       {values.map((entry) => <option key={entry} value={entry}>{entry || 'none'}</option>)}
     </select>
+    {issues && path && <FieldIssues issues={issues} path={path} />}
   </label>;
 }
 
@@ -1330,29 +1596,35 @@ function OptionalSelect({ label, value, values, onChange }: {
   </label>;
 }
 
-function NumberField({ label, value, min, max, onChange }: {
+function NumberField({ label, value, min, max, issues, path, onChange }: {
   label: string;
   value: number;
   min: number;
   max: number;
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (value: number) => void;
 }) {
-  return <label><span className="t-micro mb-1 block">{label}</span>
+  return <label data-sheet-path={path}><span className="t-micro mb-1 block">{label}</span>
     <input type="number" inputMode="numeric" className="field min-h-11" value={value} min={min} max={max}
       onChange={(event) => onChange(Number(event.target.value))} />
+    {issues && path && <FieldIssues issues={issues} path={path} />}
   </label>;
 }
 
-function OptionalNumber({ label, value, min, max, onChange }: {
+function OptionalNumber({ label, value, min, max, issues, path, onChange }: {
   label: string;
   value: number | undefined;
   min: number;
   max: number;
+  issues?: SheetIssue[];
+  path?: string;
   onChange: (value: number | undefined) => void;
 }) {
-  return <label><span className="t-micro mb-1 block">{label}</span>
+  return <label data-sheet-path={path}><span className="t-micro mb-1 block">{label}</span>
     <input type="number" inputMode="numeric" className="field min-h-11" value={value ?? ''} min={min} max={max}
       placeholder="unset" onChange={(event) => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />
+    {issues && path && <FieldIssues issues={issues} path={path} />}
   </label>;
 }
 
@@ -1453,6 +1725,32 @@ function readUiState(): { kind: PlotKind; side: Side; selectedId: string } {
   } catch {
     return { kind: 'route', side: 'west', selectedId: '' };
   }
+}
+
+const EDITOR_SECTIONS: ReadonlyArray<{
+  id: EditorSection;
+  label: string;
+  matches: (path: string) => boolean;
+}> = [
+  { id: 'composition', label: '1 Composition', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') || path.startsWith('groups') },
+  { id: 'doctrines', label: '2 Doctrines', matches: (path) => path.startsWith('doctrines') },
+  { id: 'conditions', label: '3 Conditions', matches: (path) => path.startsWith('authoring') },
+  { id: 'custody', label: '4 Custody', matches: (path) => path.startsWith('custodyPolicies') },
+  { id: 'map', label: '5 Map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
+];
+
+function sectionForIssue(path: string): EditorSection {
+  return EDITOR_SECTIONS.find((entry) => entry.matches(path))?.id ?? 'doctrines';
+}
+
+function scrollToIssue(path: string) {
+  const fields = [...document.querySelectorAll<HTMLElement>('[data-sheet-path]')];
+  const target = fields.find((field) => field.dataset.sheetPath === path)
+    ?? fields
+      .filter((field) => path.startsWith(field.dataset.sheetPath ?? ''))
+      .sort((a, b) => (b.dataset.sheetPath?.length ?? 0) - (a.dataset.sheetPath?.length ?? 0))[0];
+  target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target?.querySelector<HTMLElement>('input, select, textarea, button')?.focus({ preventScroll: true });
 }
 
 type Mutate = (change: (next: SheetDraft) => void) => void;

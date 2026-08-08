@@ -8,8 +8,8 @@ export type IdentityChipSize = AccentRingSize;
  * Who a bot is, in one chip: the chassis its owner chose, ringed in the accent its
  * owner chose.
  *
- * Those are two independent picks — `AppearanceEditor` offers a free colour input and a
- * separate look — and the interface used to show only the second, as an inset shadow
+ * Those are two independent picks — the retired Duel wardrobe offered a free colour input
+ * and a separate look — and the interface used to show only the second, as an inset shadow
  * under a square frame. The chassis is the more distinctive of the two and it was going
  * half-used.
  *

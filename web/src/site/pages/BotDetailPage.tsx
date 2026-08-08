@@ -40,15 +40,9 @@ export default function BotDetailPage() {
   if (!bot) return <LoadingState label="Loading the bot…" />;
   const look = botLook(bot.lookId);
   const projectile = projectileLook(bot.projectileLookId);
-  // A built generic-only bot gets its prominent, catalog-aware Play action in the Labs
-  // panel immediately below. Keeping a second Labs-only hero trigger would duplicate the
-  // same action without adding context. Before a build exists, the Duel action remains
-  // useful because its unavailable state points to submission.
   const returnTarget = internalReturnTarget(
     location.state,
-    bot.isOwner
-      ? { to: '/garage', label: 'Garage' }
-      : { to: '/archive/bots', label: 'Legacy archive' },
+    { to: '/archive/bots', label: 'Legacy archive' },
   );
 
   return (
@@ -58,8 +52,8 @@ export default function BotDetailPage() {
           ← {returnTarget.label}
         </Link>
       </nav>
-      <section className="rounded-sm border border-amber-700/50 bg-amber-950/20 px-3 py-2">
-        <p className="lab text-amber-200">Legacy archive · read only</p>
+      <section className="rounded-sm border border-arena-material/50 bg-arena-material/5 px-3 py-2">
+        <p className="lab text-arena-material">Legacy archive · read only</p>
         <p className="t-micro mt-1">Duel admission and submissions are retired. This record remains for historical matches and replay verification.</p>
       </section>
       {/* The hero states who this bot is and what you can do to it. Everything below
@@ -100,7 +94,7 @@ export default function BotDetailPage() {
 
       {/* The document's `.two-up`: one column and a 340px rail, and it becomes one
           column below 900px rather than at Tailwind's 1024. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
         <div className="flex min-w-0 flex-col gap-3.5">
           <BotStatisticsPanel botId={bot.id} />
 
@@ -115,8 +109,7 @@ export default function BotDetailPage() {
             <div className="pad pt-1.5">
               {bot.versions.length === 0 && (
                 <p className="t-meta">
-                  Nothing submitted yet. <code className="val">nilbots submit</code>{' '}
-                  from the bot's directory puts one here.
+                  No generation was submitted before Duel admission retired.
                 </p>
               )}
               {bot.versions.length > 0 && (
@@ -217,66 +210,7 @@ export default function BotDetailPage() {
           />
         </div>
 
-        {/* The rail is what you *do*, and it leads with the terminal — because that is
-            where building happens, so the page's job is to hand you the right command
-            for the bot you are looking at rather than to reproduce the CLI in HTML. */}
-        <aside className="order-first flex flex-col gap-3.5 min-[900px]:order-none">
-          <WorkOnThisBot isOwner={bot.isOwner} />
-        </aside>
       </div>
-
-      {bot.isOwner && (
-        <div className="grid gap-3 min-[900px]:grid-cols-2 min-[900px]:items-start">
-        </div>
-      )}
     </div>
   );
-}
-
-/** The three commands that move a bot forward, in the order you use them. */
-function WorkOnThisBot({ isOwner }: { isOwner: boolean }) {
-  if (!isOwner) {
-    return (
-      <section className="panel pad">
-        <h2 className="lab mb-2">Build a challenger</h2>
-        <p className="t-meta">
-          Learn the bot contract, develop your own contender, then bring it to
-          the Arena.
-        </p>
-        <span className="mt-3 flex flex-wrap gap-2">
-          <Link to="/docs" className="btn">
-            Read the bot guide
-          </Link>
-          <Link to="/garage" className="btn">
-            Open Garage
-          </Link>
-        </span>
-      </section>
-    );
-  }
-  return (
-    <section className="panel pad">
-      <h2 className="lab mb-2">Work on this bot</h2>
-      {/* `--bot` defaults to the built-in `hunter`, not the working directory, so the
-          command has to name the project the way the document prints it — otherwise
-          the page hands you hunter against hunter. */}
-      <pre className="term">
-        <Prompt />
-        {'nilbots play --bot . --opponent hunter\n'}
-        <Prompt />
-        {'nilbots set --opponent champions\n'}
-        <Prompt />
-        {'nilbots submit'}
-      </pre>
-      <p className="t-meta mt-[11px]">
-        Run them from the bot's directory. Everything above appears here when it
-        builds.
-      </p>
-    </section>
-  );
-}
-
-/** The shell prompt, dimmed so the command beside it is what reads. */
-function Prompt() {
-  return <span className="text-arena-dim">{'$ '}</span>;
 }

@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * Production-build Arc Relay smoke against a real BotArena.App instance.
+ * Production-build Arc Relay product smoke against a real BotArena.App instance.
+ *
+ * Exercises the current product loop: entrant overview -> edit -> run -> watch ->
+ * return -> plot recorded tracks. Captures phone and desktop evidence along the way.
  *
  * BASE=http://127.0.0.1:8093 \
  * OUT=/tmp/nilbots-arc-relay-smoke \
@@ -34,6 +37,7 @@ page.on('response', (response) => {
 
 try {
   const suffix = Date.now().toString(36);
+  const sheetName = `Coherence smoke ${suffix}`;
   const registration = await context.request.post(`${base}/api/accounts/register`, {
     data: {
       displayName: `Relay Smoke ${suffix}`,
@@ -43,41 +47,39 @@ try {
   });
   if (!registration.ok()) throw new Error(`Registration failed: ${registration.status()}`);
 
+  await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto(`${base}/relay`, { waitUntil: 'networkidle' });
-  await page.getByRole('heading', {
-    name: 'Eight bodies. Conditional team strategy.',
-  }).waitFor();
-  await page.getByText('Map plotting', { exact: true }).waitFor();
-  const initialSaveButton = page.getByRole('button', { name: 'Save & enter ladder', exact: true });
-  if (await initialSaveButton.isDisabled()) {
-    const issues = await page.locator('[data-sheet-issue]').allTextContents();
-    throw new Error(`Initial template is not saveable: ${issues.join(' | ')}`);
-  }
-  const saveResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/sheets`
-      && response.request().method() === 'POST');
-  await initialSaveButton.click();
-  if (!(await saveResponse).ok()) throw new Error('First sheet save failed.');
+  await page.getByRole('heading', { name: 'Entrants, matches and rating.' }).waitFor();
+  await page.screenshot({ path: join(output, 'relay-overview-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const overviewPhoneOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overviewPhoneOverflow > 1) throw new Error(`Relay overview overflows phone viewport by ${overviewPhoneOverflow}px.`);
+  await page.screenshot({ path: join(output, 'relay-overview-phone.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
 
-  const copyResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/sheets`
-      && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Save copy', exact: true }).click();
-  if (!(await copyResponse).ok()) throw new Error('Second sheet save failed.');
-  await page.screenshot({ path: join(output, 'sheet-workshop.png'), fullPage: true });
+  await page.goto(`${base}/relay/sheets`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Change. Run. Watch. Adjust.' }).waitFor();
+  const nameField = page.getByLabel('Sheet name');
+  await nameField.fill(sheetName);
+  const runButton = page.locator('#trial-run').getByRole('button', { name: 'Run & watch' });
+  if (await runButton.isDisabled()) {
+    const issues = await page.locator('[data-sheet-issue]').allTextContents();
+    throw new Error(`Initial template is not runnable: ${issues.join(' | ')}`);
+  }
+  await page.screenshot({ path: join(output, 'sheet-workshop-desktop.png'), fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
   const phoneOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
-  await page.getByRole('button', { name: 'Save & watch trial', exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1050 });
 
   const matchResponse = page.waitForResponse((response) =>
     /\/api\/sheets\/[0-9a-f-]+\/trial$/i.test(response.url())
       && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Save & watch trial', exact: true }).click();
+  await runButton.click();
   const createdResponse = await matchResponse;
   if (!createdResponse.ok()) throw new Error(`Match admission failed: ${createdResponse.status()}`);
   const created = await createdResponse.json();
@@ -85,13 +87,12 @@ try {
   await page.waitForURL(`${base}/matches/${created.id}`);
 
   let status = '';
-  let matchDetail;
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     const detailResponse = await context.request.get(`${base}/api/matches/${created.id}`);
-    matchDetail = await detailResponse.json();
-    status = matchDetail.status;
+    const detail = await detailResponse.json();
+    status = detail.status;
     if (status === 'Completed') break;
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(500);
   }
   if (status !== 'Completed') throw new Error(`Match did not complete; last status ${status}.`);
 
@@ -112,7 +113,34 @@ try {
 
   await page.reload({ waitUntil: 'networkidle' });
   await page.locator('[aria-label="Arena"]').waitFor({ timeout: 15_000 });
-  await page.screenshot({ path: join(output, 'hosted-match.png'), fullPage: true });
+  await page.screenshot({ path: join(output, 'trial-replay-desktop.png'), fullPage: true });
+
+  await page.getByRole('link', { name: `← ${sheetName}`, exact: true }).click();
+  await page.getByRole('heading', { name: 'Change. Run. Watch. Adjust.' }).waitFor();
+  if (await page.getByLabel('Sheet name').inputValue() !== sheetName) {
+    throw new Error('Returning from the replay lost the active draft.');
+  }
+  await page.getByRole('button', { name: 'Plot tracks' }).first().click();
+  await page.locator('[data-unit-track]').first().waitFor({ timeout: 15_000 });
+  const trackCount = await page.locator('[data-unit-track]').count();
+  await page.screenshot({ path: join(output, 'trial-tracks-desktop.png'), fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const returnOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (returnOverflow > 1) throw new Error(`Returned editor overflows phone viewport by ${returnOverflow}px.`);
+  await page.screenshot({ path: join(output, 'trial-tracks-phone.png'), fullPage: true });
+
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto(`${base}/docs`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Arc Relay field guide' }).waitFor();
+  const docsPhoneOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (docsPhoneOverflow > 1) throw new Error(`Docs overflow phone viewport by ${docsPhoneOverflow}px.`);
+  await page.screenshot({ path: join(output, 'docs-phone-light.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await page.screenshot({ path: join(output, 'docs-desktop-light.png'), fullPage: true });
+
   if (browserErrors.length > 0) {
     throw new Error(`Browser errors:\n${[...new Set(browserErrors)].join('\n')}`);
   }
@@ -120,14 +148,11 @@ try {
   console.log(JSON.stringify({
     matchId: created.id,
     status,
+    recordedTrackCount: trackCount,
     replayFormatVersion: 'database-verified-4; withheld by the live public projection',
     broadcastVersion: replay.broadcastVersion,
     visibleTicks: replay.worlds.length,
-    screenshots: {
-      workshop: join(output, 'sheet-workshop.png'),
-      workshopPhone: join(output, 'sheet-workshop-phone.png'),
-      match: join(output, 'hosted-match.png'),
-    },
+    output,
   }, null, 2));
 } finally {
   await browser.close();

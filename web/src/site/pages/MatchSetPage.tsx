@@ -2,13 +2,11 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
 import Matchup from '../components/Matchup';
 import LiveStatus from '../../components/LiveStatus';
-import ArenaAction from '../components/ArenaAction';
 import { ErrorState, LoadingState } from '../components/StateView';
 import Movement from '../components/Movement';
 import Th from '../components/TableHeader';
 import { ApiError, type MatchSetDetail, type SetGame } from '../api';
-import { useAuth } from '../auth';
-import { useMatchSet, useMyBots } from '../queries';
+import { useMatchSet } from '../queries';
 import { internalReturnTarget } from '../returnTarget';
 
 /**
@@ -26,8 +24,6 @@ export default function MatchSetPage() {
     label: 'Watch',
   });
   const { data: set, error, refetch } = useMatchSet(setId);
-  const { user } = useAuth();
-  const { data: myBots = [] } = useMyBots(Boolean(user));
 
   // A mistyped id is an answer, not an alarm.
   if (error instanceof ApiError && error.status === 404)
@@ -51,8 +47,6 @@ export default function MatchSetPage() {
   const standings = [...sides].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
   const drawn =
     set.revealed && set.status === 'Completed' && set.winnerBotId === null;
-  const myIds = new Set(myBots.map((bot) => bot.id));
-  const ownedSide = sides.find((side) => myIds.has(side.id));
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
@@ -61,13 +55,14 @@ export default function MatchSetPage() {
           ← {returnTarget.label}
         </Link>
       </nav>
+      <p className="lab text-arena-material">Legacy Duel archive · read only</p>
       <h1 className="sr-only">
-        Ranked set: {set.botA.name ?? 'removed bot'} vs{' '}
+        Historical ranked set: {set.botA.name ?? 'removed bot'} vs{' '}
         {set.botB.name ?? 'removed bot'}
       </h1>
       <header className="flex flex-col gap-2.5">
         <p className="lab">
-          Ranked set · {shortDate(set.createdAt)}
+          Historical ranked set · {shortDate(set.createdAt)}
         </p>
         {/* The matchup is the page title, walked rather than destructured — the same
             component the feed uses, so a set of three sides would render three chips. */}
@@ -103,7 +98,7 @@ export default function MatchSetPage() {
                 <Link
                   to={`/archive/bots/${side.id}`}
                   state={{
-                    returnTo: `/sets/${set.id}`,
+                    returnTo: `/archive/sets/${set.id}`,
                     returnLabel: 'Ranked set',
                   }}
                   className="inline-flex min-w-0 transition-opacity hover:opacity-80"
@@ -223,30 +218,14 @@ export default function MatchSetPage() {
 
       <section className="panel-quiet pad flex flex-wrap items-center gap-2">
         <span className="t-meta mr-auto">
-          {ownedSide
-            ? 'The next ranked set is matchmade again from the current ladder.'
-            : 'Follow another fight from the public feed.'}
+          This is a read-only legacy Duel set. Follow current Arc Relay matches from Watch.
         </span>
         <Link to="/watch" className="btn">
           Watch more
         </Link>
-        <Link to="/" className="btn">
-          View rankings
+        <Link to="/relay" className="btn">
+          Arc Relay ladder
         </Link>
-        {ownedSide && (
-          <ArenaAction
-            bot={{
-              id: ownedSide.id,
-              name: ownedSide.name ?? 'Your bot',
-              accent: ownedSide.accent,
-              lookId: ownedSide.lookId,
-              isOwner: true,
-            }}
-            modes={['ranked']}
-            initialMode="ranked"
-            triggerLabel="Start another matchmade set"
-          />
-        )}
       </section>
 
       <details className="panel-quiet px-3 py-2">
@@ -317,7 +296,7 @@ function GameCell({
     <Link
       to={`/matches/${game.id}`}
       state={{
-        returnTo: `/sets/${setId}`,
+        returnTo: `/archive/sets/${setId}`,
         returnLabel: 'Ranked set',
       }}
       aria-label={`Game ${number ?? ''} on ${game.mapId}`}

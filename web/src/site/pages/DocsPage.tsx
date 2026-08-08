@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Markdown from '../components/Markdown';
+import arcRelayGlossary from '../../../../docs/ARC-RELAY-GLOSSARY.md?raw';
 import playerGuide from '../../../../docs/PLAYER-GUIDE.md?raw';
 
 // Retained for the read-only Duel archive and pinned by DocDriftTests.
@@ -20,7 +21,7 @@ export default function DocsPage() {
       <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
           <li><Link to="/login?mode=register" className="text-link">Create an account</Link>.</li>
-          <li>Open <Link to="/relay" className="text-link">Relay</Link> and save an eight-slot sheet, or submit a C# mind with its declared composition.</li>
+          <li>Open the <Link to="/relay/sheets" className="text-link">sheet workshop</Link> and save an eight-slot sheet, or submit a C# custom mind from <Link to="/relay" className="text-link">Entrants</Link>.</li>
           <li>Pick a crest. A custom mind must finish its controlled build and complete one hosted preflight before entering ranked play.</li>
           <li>Opt in up to three entrants. Passive pairing finds similarly rated entrants from other accounts; your own scrimmages are always unrated.</li>
           <li>Watch the causal broadcast. The score strip shows only integrity, charge and time already reached by the playhead.</li>
@@ -39,8 +40,10 @@ export default function DocsPage() {
         <p className="mt-2 text-arena-dim">
           Hosted playlist v8 and the local <code>nilbots arc-relay</code> default
           both run ambush-warren-11 on the deep Warren. Counterflow-era sheets
-          remain readable history but must be replotted natively before v7 admission;
-          coordinates are never projected between maps. v7 ratings start fresh.
+          remain readable history but must be replotted natively before admission to the
+          current ladder; coordinates are never projected between maps. v7 began the
+          Warren rating era, and v8 preserved it while repairing only the frozen stock
+          artifact and execution wire.
         </p>
         <p className="mt-2">
           A custom mind submits source files through the controlled toolchain and runs only
@@ -48,6 +51,10 @@ export default function DocsPage() {
           snapshots its eight classes. A runtime fault or a post-match felt-degeneracy bar
           suspends pairing until a corrected revision passes preflight.
         </p>
+      </Doc>
+
+      <Doc title="One vocabulary">
+        <Markdown source={arcRelayGlossary} headingOffset={2} />
       </Doc>
 
       <Doc title="Facing and basic fire">
