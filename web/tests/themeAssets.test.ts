@@ -239,7 +239,7 @@ test('Woodland Grove carries a MOBA camera and organic tree families', () => {
   ) as ThemeManifest;
   const perimeter = manifest.walls.families.perimeter.geometry3d!;
   const cover = manifest.walls.families.cover.geometry3d!;
-  assert.equal(manifest.environment3d?.camera?.yawDegrees, 22);
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
   assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
   assert.equal(manifest.environment3d?.camera?.fovDegrees, 26);
   assert.equal(perimeter.height, 0);

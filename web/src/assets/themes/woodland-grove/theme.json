@@ -3,7 +3,7 @@
   "label": "Woodland Grove",
   "environment3d": {
     "camera": {
-      "yawDegrees": 22,
+      "yawDegrees": 12,
       "pitchDegrees": 52,
       "fovDegrees": 26
     },

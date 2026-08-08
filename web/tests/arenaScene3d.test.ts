@@ -296,7 +296,7 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       )
         transitionFringes.push(node);
     });
-    assert.ok(Math.abs(arena.cameraYaw - (22 * Math.PI) / 180) < 1e-9);
+    assert.ok(Math.abs(arena.cameraYaw - (12 * Math.PI) / 180) < 1e-9);
     assert.ok(Math.abs(arena.cameraPitch - (52 * Math.PI) / 180) < 1e-9);
     assert.equal(arena.camera.fov, 26);
     assert.ok(arena.scene.fog instanceof THREE.Fog);

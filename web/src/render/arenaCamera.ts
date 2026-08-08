@@ -78,7 +78,7 @@ export const MINIMUM_BOT_RENDER_PIXELS = 63;
 export function directorMinSpan(replay: ReplayModel): number | undefined {
   return replay.contract.kind === 'v3-generic' &&
     replay.contract.modeKind === 'arc-relay'
-    ? 7.5
+    ? 7
     : undefined;
 }
 
@@ -154,8 +154,9 @@ const OVERVIEW_ANCHOR_MARGIN_TILES = 0.5;
  *
  * The map bounds are deliberately not an anchor. Treating them as one made "overview" a
  * synonym for maximum zoom-out even when every objective occupied a much smaller box. The
- * frame now holds all three Wells and both Reactors with half a tile of breathing room;
- * the unplayed apron may leave the shot. It never exceeds `fullArenaFrame`.
+ * frame now holds all three Wells with half a tile of breathing room. The distant home
+ * Reactors and unplayed apron may leave the shot; making them mandatory turns the useful
+ * central overview back into a near-whole-map view. It never exceeds `fullArenaFrame`.
  *
  * The anchors are read from the first causal mode state the replay carries rather than
  * reconstructed from a map id, so a later Arc Relay map gets the same behavior without a
@@ -169,10 +170,10 @@ export function strategicOverviewFrame(
   const mode = arcRelayModeState(replay, 0);
   const wells = mode?.wells ?? [];
   if (wells.length < 2) return fullArenaFrame(framing);
-  const anchors = [
-    ...wells.map((well) => well.position),
-    ...(mode?.reactors ?? []).map((reactor) => reactor.position),
-  ].map((position) => ({ x: position.x + 0.5, y: position.y + 0.5 }));
+  const anchors = wells.map((well) => ({
+    x: well.position.x + 0.5,
+    y: well.position.y + 0.5,
+  }));
 
   const full = fullArenaFrame(framing);
   let width = framing.minSpan ?? MIN_SPAN_TILES;
@@ -323,29 +324,29 @@ export function frameEscapes(
 /**
  * How much clear ground a deliberately followed body may keep around it, in tiles.
  *
- * 5.8 tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
+ * Eight tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
  * smaller screen closes further so the body does not become smaller merely because the
  * canvas did. The resulting shot still shows the next wall or two beyond the selected
  * machine, but the machine is now the subject rather than a dot inside a squad-wide view.
  */
-export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 5.8;
+export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 8;
 
 /**
  * CSS pixels per ground tile reserved by the WebGL selection shot.
  *
  * A chassis' minimum plan span is 0.82 tile. Its raised, tilted projection and Woodland
  * Grove's side-biased camera consume part of that nominal size, so 63 / 0.82 is not a safe
- * camera density. 98 px/tile holds the body itself above 63×63 px at the desktop review
- * camera. On narrower screens the selected body's dashed ground marker keeps the complete
- * render above that interaction floor without forcing the terrain back into a close-up.
+ * camera density. 70 px/tile keeps the complete selected render — chassis plus its dashed
+ * ground marker — above 63×63 px in both reference phone orientations while restoring a
+ * useful lane-and-cover view around the followed machine.
  */
-const SELECTION_FOLLOW_PIXELS_PER_TILE = 98;
+const SELECTION_FOLLOW_PIXELS_PER_TILE = 70;
 
 /**
  * The screen-readable frame that follows one deliberately selected body.
  *
  * Deliberately **not** the automatic director's shot. `directorMinSpan` is a mode's floor
- * for an *unattended* camera — Arc Relay keeps seven and a half tiles so a rotation stays
+ * for an *unattended* camera — Arc Relay keeps seven tiles so a rotation stays
  * legible to someone who asked for nothing in particular — and honouring it here would
  * answer "show me this one" with a frame barely tighter than the overview the viewer just
  * left. A selection is a request, and the request is for a closer look.

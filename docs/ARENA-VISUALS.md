@@ -703,17 +703,17 @@ but it cannot start a future action early. Movement wakes and thrust remain on
 through an active segment rather than pulsing at integer tick boundaries. Tread
 and wheel scroll accumulates distance along this rendered path, including a
 carrier's relocation-locked glide, rather than the underlying one-tile action.
-Arc Relay's automatic director has a shared seven-and-a-half-tile closest shot
+Arc Relay's automatic director has a shared seven-tile closest shot
 in Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a
 camera subject only while threatened, and holds an ordinary shot for seven
 replay ticks before another theater may win. Deliberately selecting a bot is a
-closer, viewport-aware shot: its tight axis never exceeds 5.8 tiles and closes
-further on small screens. The minimum 0.82-tile WebGL body clears 63×63 CSS
-pixels on the desktop review camera; on narrow screens the complete selected
-render, including its dashed ground marker, retains that interaction floor
-without turning the terrain into a close-up. The manual overview fits the
-published Wells and Reactors with half a tile of breathing room, retaining all
-three theaters while allowing deep home aprons to leave the frame. Perspective
+viewport-aware shot: its tight axis never exceeds eight tiles and closes
+further on small screens. The complete selected render, including its dashed
+ground marker, retains the 63×63 CSS-pixel interaction floor in both reference
+phone orientations without turning selection into a portrait shot. The manual
+overview fits the three published Wells with half a tile of breathing room;
+distant home Reactors and deep aprons may leave the frame rather than shrinking
+the central theaters. Perspective
 fog darkens unseen terrain by 58% rather than blacking it out; one shared mask
 affects the floor and raised wall/tree materials. A compact causal HUD call
 beside the standing score identifies Core
@@ -808,8 +808,10 @@ corner distance break the rectangular silhouette without consuming playable
 space. Interior cover uses a wider vertical and radial range, mixing low scrub
 with occasional tall trees while remaining below the perimeter family's
 maximum profile.
-Woodland owns a 22° yaw, 52° pitch, and 26° field of view for a low-distortion
-MOBA-style three-quarter camera; camera-space fitting keeps the requested
+Woodland owns a restrained 12° yaw, 52° pitch, and 26° field of view for a
+low-distortion MOBA-style three-quarter camera. The smaller side rotation keeps
+the organic depth cue while spending less of the rectangular viewport on the
+rotated frame's empty corners; camera-space fitting keeps the requested
 action frame visible and fog distance scales with the lens. Canvas2D continues
 to use the baked perimeter/cover atlases and never pays for WebGL geometry or
 the theme-specific camera presentation.

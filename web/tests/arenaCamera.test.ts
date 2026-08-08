@@ -68,7 +68,7 @@ function projectedWebglBotFootprint(
   viewport: { width: number; height: number },
   includeSelectionMarker = false,
 ): { width: number; height: number } {
-  const yaw = (22 * Math.PI) / 180;
+  const yaw = (12 * Math.PI) / 180;
   const pitch = (52 * Math.PI) / 180;
   const camera = new THREE.PerspectiveCamera(
     26,
@@ -247,7 +247,7 @@ test('it never gets closer than about six tiles, and never wider than the arena'
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
 });
 
-test('Arc Relay gives both renderers the same readable seven-and-a-half-tile closest shot', () => {
+test('Arc Relay gives both renderers the same readable seven-tile closest shot', () => {
   const arc = loadReplayJson(
     readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
   ).replay;
@@ -256,7 +256,7 @@ test('Arc Relay gives both renderers the same readable seven-and-a-half-tile clo
   arc.contract.modeKind = 'arc-relay';
 
   const minSpan = directorMinSpan(arc);
-  assert.equal(minSpan, 7.5);
+  assert.equal(minSpan, 7);
   assert.equal(directorShotHoldTicks(arc), 7);
   assert.equal(directorMinSpan(frontline), undefined);
   assert.equal(directorShotHoldTicks(frontline), 0);
@@ -265,7 +265,7 @@ test('Arc Relay gives both renderers the same readable seven-and-a-half-tile clo
     aspect: PHONE_LANDSCAPE.width / PHONE_LANDSCAPE.height,
     minSpan,
   });
-  assert.ok(close.width >= 7.5, `Arc Relay close-up held at ${close.width} tiles`);
+  assert.ok(close.width >= 7, `Arc Relay close-up held at ${close.width} tiles`);
   const footprint = projectedWebglBotFootprint(close, PHONE_LANDSCAPE);
   assert.ok(
     footprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
@@ -289,7 +289,10 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
       { wellId: 'well-centre', position: { x: 15, y: 11 }, nextScheduledBirthTick: 20, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
       { wellId: 'well-south', position: { x: 15, y: 18 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
     ],
-    reactors: [],
+    reactors: [
+      { teamId: 0, position: { x: 1, y: 11 }, pulseProgress: 0 },
+      { teamId: 1, position: { x: 29, y: 11 }, pulseProgress: 0 },
+    ],
     visibleCores: [],
     visibleSignatures: [],
     latestPulseTeamId: null,
@@ -308,6 +311,10 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
   assert.ok(
     overview.width < framing.mapWidth,
     `the ${overview.width}-tile overview crops a ${framing.mapWidth}-wide map`,
+  );
+  assert.ok(
+    overview.width <= 24 + 1e-9,
+    'distant home Reactors do not turn the central overview back into a whole-map shot',
   );
   assert.ok(
     Math.abs(overview.x - framing.mapWidth / 2) < 1e-9 &&
@@ -937,7 +944,7 @@ test('a selection follow keeps context while its complete render clears 63×63 C
     // Arc Relay's director floor. A follow deliberately ignores it: that number exists so
     // an UNATTENDED camera keeps a rotation legible, and honouring it here would answer
     // "show me this one" with a frame barely tighter than the board.
-    minSpan: 7.5,
+    minSpan: 7,
   };
   const body = { x: 10.5, y: 8.5 };
   const follow = selectionFollowFrame(body, framing);
@@ -947,21 +954,25 @@ test('a selection follow keeps context while its complete render clears 63×63 C
     `clearly closer than the board (${follow.width.toFixed(1)} of ${full.width.toFixed(1)})`,
   );
   assert.ok(
-    follow.height <= 5.8,
-    `at most 5.8 tiles on the tight axis (${follow.height.toFixed(1)})`,
+    follow.height <= 8,
+    `at most eight tiles on the tight axis (${follow.height.toFixed(1)})`,
   );
   assert.ok(
     Math.abs(follow.x - body.x) < 1e-9 && Math.abs(follow.y - body.y) < 1e-9,
     'centred on the body, not on the map',
   );
-  const desktopFootprint = projectedWebglBotFootprint(follow, {
-    width: framing.viewportWidth,
-    height: framing.viewportHeight,
-  });
+  const desktopFootprint = projectedWebglBotFootprint(
+    follow,
+    {
+      width: framing.viewportWidth,
+      height: framing.viewportHeight,
+    },
+    true,
+  );
   assert.ok(
     desktopFootprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
       desktopFootprint.height >= MINIMUM_BOT_RENDER_PIXELS,
-    `desktop body is ${desktopFootprint.width.toFixed(1)}×${desktopFootprint.height.toFixed(1)} px`,
+    `desktop selection is ${desktopFootprint.width.toFixed(1)}×${desktopFootprint.height.toFixed(1)} px`,
   );
 
   for (const viewport of [PHONE_LANDSCAPE, PHONE_PORTRAIT]) {
@@ -986,7 +997,7 @@ test('a followed body keeps the camera until a hand takes it', () => {
     mapWidth: 31,
     mapHeight: 23,
     aspect: 16 / 10,
-    minSpan: 7.5,
+    minSpan: 7,
   };
   const camera = new ArenaCamera(framing);
   const opening = selectionFollowFrame({ x: 5.5, y: 5.5 }, framing);

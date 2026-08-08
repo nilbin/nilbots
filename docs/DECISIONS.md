@@ -6566,3 +6566,21 @@ with the floor mask at the MOBA camera pitch. Disabling perspective fog sets a
 shared uniform rather than rebuilding materials. Actors and projectiles remain
 hidden by their separate authoritative visibility path. This supersedes #127's
 floor-only exception and refines #251's initial camera constants.
+
+## 253. Reduce the side rotation and converge the camera presets again
+
+Owner correction (2026-08-08): the 22° Woodland yaw spent too much of the
+rectangular viewport fitting the empty corners of a strongly rotated ground
+frame. It moves back to a restrained 12°. Pitch and lens stay at 52° and 26°,
+so walls retain their readable faces and the arena remains three-dimensional;
+the smaller yaw simply lets the same strategic ground occupy more screen.
+
+That fit-efficiency gain brings both automatic views closer. Arc Relay's
+overview now holds the three Wells rather than expanding for both distant home
+Reactors, moving the Warren desktop frame from 27 to 24 tiles; the director's
+closest horizontal span moves from 7.5 to 7 tiles. Selection
+moves in the other direction: its tight-axis ceiling grows from 5.8 to 8 tiles
+and its responsive density moves from 98 to 70 CSS pixels per tile. The full
+selected interaction render, including its dashed marker, still clears 63×63
+CSS pixels in both reference phone orientations. This refines #252; it does not
+change its shared terrain-fog decision.

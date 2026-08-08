@@ -26,7 +26,7 @@ forest continuing outward beyond the map. Its locally varying reach, feathered
 outer density, and rounded corners prevent the boundary from resolving into a
 sharp rectangle. Interior growth is lighter and airier; its much broader
 height and width ranges mix low scrub with occasional tall, wide inner trees
-instead of producing a uniform hedge. A theme-owned 22° yaw, 52° pitch, and
+instead of producing a uniform hedge. A theme-owned 12° yaw, 52° pitch, and
 26° field of view provide the low-distortion three-quarter framing common to
 MOBA play. Camera-space fitting keeps the requested action frame visible, and
 fog distance scales with the lens. Canvas2D remains a functional fallback,
@@ -62,12 +62,13 @@ cells (`w-9001`, `w-9002`, `e-9005`, `e-9009`, `w-9012`, `e-9004`). Every
 replay header records `themeId: woodland-grove`. The current desktop frames
 use sample 01 during live play with Kestrel selected for team vision:
 
-- `review/ambush-warren-gameplay-webgl.webp` — revision-5 WebGL strategic
-  overview with the closer objective frame and softened replay-authored fog
-  continuing from the floor onto raised walls and trees.
-- `review/ambush-warren-follow-webgl.webp` — revision-5 WebGL selection shot
-  with a wider 5.8-tile follow frame, viewport-aware 63×63 interaction floor,
-  and enough neighboring terrain to read the immediate fight.
+- `review/ambush-warren-gameplay-webgl.webp` — revision-6 WebGL 24-tile Well
+  overview through the restrained 12° side rotation.
+- `review/ambush-warren-director-webgl.webp` — revision-6 unattended director
+  at its closer seven-tile floor.
+- `review/ambush-warren-follow-webgl.webp` — revision-6 selection shot with an
+  eight-tile tight axis, viewport-aware 63×63 interaction floor, and enough
+  neighboring terrain to read the immediate fight.
 
 The prior Canvas2D frame is retained only as fallback history; this revision
 was judged in 3D. Bodies, team accents, labels, projectiles, wells, reactors,
