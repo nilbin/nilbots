@@ -6585,19 +6585,19 @@ selected interaction render, including its dashed marker, still clears 63×63
 CSS pixels in both reference phone orientations. This refines #252; it does not
 change its shared terrain-fog decision.
 
-## 254. Unselected raised terrain uses the all-unit vision union
+## 254. Unselected terrain uses the all-unit vision union
 
-Owner direction (2026-08-08): walls should not return to uniformly bright
-omniscient terrain merely because no bot is selected. At every replay tick,
-WebGL now unions the published visible tiles of every active unit across both
-teams. Raised wall, detail, and Woodland tree materials sample that mask, so a
-blocker remains softly fogged until any unit lights it. The floor plane stays
-hidden and actors/projectiles remain omniscient in this default spectator mode.
+Owner direction (2026-08-08), clarified after the first implementation: the
+unselected view is the union of every active unit's vision across both teams,
+and that union applies to the complete terrain—not only raised blockers. Floor,
+wall, detail, and Woodland tree materials therefore remain softly fogged until
+any unit lights their tiles. Actors/projectiles remain omniscient in this
+default spectator mode.
 
 Selection is unchanged semantically. Selecting a unit replaces the cross-team
 terrain union with that unit's team union, enables the matching floor mask,
 and retains the existing actor/projectile visibility filtering. Turning the
-perspective checkbox off returns to the all-unit wall-only mask rather than
-making all walls bright. Replays that predate published vision still disable
+perspective checkbox off returns to the all-unit terrain mask rather than
+making the arena bright. Replays that predate published vision still disable
 fog instead of presenting missing data as darkness. This refines #252's
 terrain shader without changing its 58% darkness or #253's camera.

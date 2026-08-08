@@ -142,9 +142,9 @@ export function buildOverlays(
       showVisibility,
     );
 
-    // With no selected perspective, raised terrain still follows the union of every
-    // unit's published sight. That gives static walls a useful lit/unlit depth rhythm
-    // without hiding actors or putting the omniscient spectator floor under team fog.
+    // With no selected perspective, the whole terrain follows the union of every unit's
+    // published sight. Selecting a body narrows that same mask to its team; neither path
+    // invents visibility geometry in the renderer.
     const terrainVision = teamVision?.visibleTiles ??
       allUnitVisibleTilesAt(replay.ticks[tick]);
 
@@ -162,7 +162,7 @@ export function buildOverlays(
               return { x: x!, y: y! };
             })
           : undefined,
-        teamVision !== null,
+        terrainVision !== null,
       );
     }
 
@@ -415,11 +415,10 @@ function buildPlayAwareness(
  * and the linear filter gives the soft boundary the flat renderer gets from a blur.
  *
  * With a unit selected, the plane darkens the floor and raised terrain samples the same
- * team mask from fragment world position. Without a selection, the plane stays hidden but
- * raised terrain samples the cross-team union: any active unit can light a wall while
- * actors and open ground remain omniscient. This cannot be done with a second horizontal
- * plane: lifting one above the trees shifts its mask by most of a tile through the MOBA
- * camera and slices the wrong terrain.
+ * team mask from fragment world position. Without a selection, both sample the cross-team
+ * union: any active unit can light terrain, while unseen ground remains substantially
+ * fogged. This cannot be done with a second horizontal plane: lifting one above the trees
+ * shifts its mask by most of a tile through the MOBA camera and slices the wrong terrain.
  */
 function buildFog(
   mapWidth: number,

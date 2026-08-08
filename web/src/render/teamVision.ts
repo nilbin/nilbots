@@ -23,9 +23,9 @@ const actorSlot = (teamId: number, unitId: number): string =>
 /**
  * Every tile currently lit by at least one active unit, regardless of team.
  *
- * This is spectator terrain knowledge, not a player perspective: it is suitable for
- * shading static raised blockers while leaving actors and the floor omniscient. Selecting
- * a unit still uses `teamVisionAt` and therefore never receives this cross-team union.
+ * This is spectator terrain knowledge, not a player perspective: it shades the floor and
+ * static raised blockers without choosing either team's private view. Selecting a unit
+ * still uses `teamVisionAt` and therefore never receives this cross-team union.
  * `null` means the replay predates published vision and must not be presented as darkness;
  * an empty set is authoritative and means no surviving unit lights any tile.
  */

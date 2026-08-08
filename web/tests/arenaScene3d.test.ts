@@ -490,7 +490,7 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.ok('arenaVisionFogEnabled' in shader.uniforms);
     overlays.update(0, null, false);
     assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
-    assert.equal(fog.mesh.visible, false, 'the omniscient floor remains fully lit');
+    assert.equal(fog.mesh.visible, true, 'the floor uses the same all-unit union');
     const allUnitVisible = mask.filter(
       (value, index) => index % 4 === 3 && value === 0,
     ).length;

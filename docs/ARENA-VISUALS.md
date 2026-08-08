@@ -673,7 +673,7 @@ Animations describe recorded events; they do not create events.
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
-| Fog/vision | Recorded visible tiles/enemies/projectiles from active units | With no selection, WebGL dims only raised wall/tree terrain outside the cross-team union—any active unit can light a blocker while the floor and actors stay omniscient. Selecting a bot keeps the existing team perspective: both renderers union that team's observations, WebGL applies it to floor and raised terrain, and unseen actors/projectiles are hidden separately |
+| Fog/vision | Recorded visible tiles/enemies/projectiles from active units | With no selection, WebGL applies the cross-team union to floor and raised terrain—any active unit can light a tile, while the rest remains fogged. Selecting a bot keeps the existing team perspective: both renderers union that team's observations, WebGL applies it to floor and raised terrain, and unseen actors/projectiles are hidden separately |
 | Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: neutral white/lilac (never a team hue) over its well, dropped tile, or flight arc; only possession adds the carrier team's colour, fixed above the carrier with subtle hover and a faint tether |
 
 Arc Relay's compact spectator transport carries that visible-tile union once per
@@ -715,9 +715,9 @@ overview fits the three published Wells with half a tile of breathing room;
 distant home Reactors and deep aprons may leave the frame rather than shrinking
 the central theaters. Perspective
 fog darkens unseen terrain by 58% rather than blacking it out. With no selected
-perspective, only raised wall/tree materials use the cross-team union of every
-active unit's sight; selection replaces that with the chosen team's mask and
-also applies it to the floor. A compact causal HUD call
+perspective, the floor and raised wall/tree materials use the cross-team union
+of every active unit's sight; selection replaces that with the chosen team's
+mask. A compact causal HUD call
 beside the standing score identifies Core
 birth, pickup/steal, drop, bank, and Pulse events; it does not replace their
 diegetic world effects or reveal facts after the playhead.
