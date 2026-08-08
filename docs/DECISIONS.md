@@ -6450,3 +6450,57 @@ the copy-paste invocation and environment contract beside the executable in
 `scripts/arc-relay-exhibit.sh`. This is a development-method ruling only: no
 rules, map, sheet grammar, runtime, replay, contract, frozen artifact, or
 canonical hash changes.
+
+## 250. Arc Relay MIND parity is enforced; stale v7 bytes stay immutable
+
+Core determinism repair (2026-08-08). The tracked tactical-playbook artifact
+and the v7 frozen Wellwright artifact were byte-identical at
+`42288a911821f7893f34fb096cd8c17464f24da7a170761898f10e8b0497763b`.
+Those bytes faulted before tick 0 with zero measured fuel although a controlled
+build of the same source completed. The tactical source is rebuilt through the
+platform-matched Docker path beneath `scripts/run-wasm-publish.sh`; current
+source and frozen stock v2 now pin build input
+`d31d16d267a70f76e50a0446e477e5117d4feec740e84506a0e01fce90f76d45`
+and artifact
+`072e9799933dad3c6ffc40a425c44fe0dbf7a173851761b597506b1d5136b4aa`.
+Every tracked current player artifact carries `bot.build-receipt.json`, and a
+test recomputes both identities from HEAD. A source, SDK, guest, compiler, or
+pipeline edit can no longer leave the committed output silently stale.
+
+**v7 is not amended.** This repository cannot prove that a shipped playlist
+admitted or rated nothing in production, and immutability does not become
+conditional on local database evidence. Historical v7 keeps stock-v1 and the
+old hash. Playlist v8 pins stock-v2 and the build-input hash; workers that do
+not know v8 leave its jobs pending. It carries v7 Elo and ranked-match counts
+because rules, map, sheet, composition, and gameplay fingerprints are
+unchanged. The v6→Warren fresh-era ruling in #248 remains exact for a database
+that never seeded v7.
+
+The in-process/WASM tactical divergence was a real wire defect, not floating
+point or iteration order. The first different decision was team 0 at tick 15:
+the authoritative/in-process observation contained four pending declared
+strikes while the WASM guest saw zero. `ModeObservationState.ArcRelay` already
+owned `PendingStrikes`, but field 7 was absent from the shared tagged codec.
+The additive field now carries shooter, resolve tick, origin, heading, optional
+target, and tiles. SDK and Guest move 0.10.12→0.10.13; the schema/profile IDs
+stay because older readers safely skip the unknown tag and empty strikes stay
+inert. A real Ambush Warren Hunter-versus-Wellwright MIND test now runs the
+tracked WASM and the source mind to completion with identical participant
+provenance and requires the complete canonical replay hash to match.
+
+Raw local `--runtime in-process` and `--runtime wasm` replay hashes still name
+different execution provenance (`runtimeKind` and source/executable artifact
+identity). That outer-hash difference is intentional; after this repair their
+commands and gameplay-state digest are identical. Cross-host comparisons must
+either hold provenance equal, as the regression does, or use
+`scripts/arc-relay-state-digest.py`. Exhibits remain in-process and ranked play
+remains WASM; every claim must name which runtime produced it.
+
+The optional NativeAOT size flags are not folded into this repair. Disabling
+stack traces changes bot-visible exception text, size optimization measurably
+raises fuel use, and either flag would invalidate every pipeline-4 cache entry.
+That trade belongs in a separately measured compiler-input change, not in the
+artifact/parity correction. `CliVersion` and its package move 0.9.35→0.9.36;
+SDK and Guest move to 0.10.13; build pipeline remains 4. No release or deploy
+workflow ran. `publish-cli` therefore owes the untagged `cli-v0.9.34`,
+`cli-v0.9.35`, and `cli-v0.9.36` tags before a deploy carrying this line.

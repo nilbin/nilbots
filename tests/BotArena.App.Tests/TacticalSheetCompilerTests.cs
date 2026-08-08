@@ -145,6 +145,6 @@ public sealed class TacticalSheetCompilerTests
                 "legacy-counterflow"));
         Assert.Contains("not migrated", legacyError.Message,
             StringComparison.OrdinalIgnoreCase);
-        Assert.False(TacticalSheetCompiler.IsAdmissibleToV7(legacyJson));
+        Assert.False(TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(legacyJson));
     }
 }

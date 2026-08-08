@@ -7,6 +7,9 @@ manifest hashes are opened to evaluation.
   evaluation sheet.
 - `ambush-warren-11-stock-v1/` — immutable hosted playlist-v7 tactical mind
   bytes; its manifest pins the Warren-native Wellwright v1 sources.
+- `ambush-warren-11-stock-v2/` — immutable hosted playlist-v8 repair built
+  from the current tactical source through the controlled path, with a tracked
+  build-input/artifact receipt. v1 remains untouched for historical v7 work.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

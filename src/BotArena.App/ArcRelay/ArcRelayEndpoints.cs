@@ -292,10 +292,10 @@ public static class ArcRelayEndpoints
                         .Select(value => value.LayoutJson)
                         .SingleOrDefaultAsync(cancellationToken);
                     if (layout is null ||
-                        !TacticalSheetCompiler.IsAdmissibleToV7(layout))
+                        !TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(layout))
                     {
                         return Results.Problem(
-                            "This legacy Counterflow sheet is not admissible to Arc Relay v7. Replot it natively on the Warren map.",
+                            "This legacy Counterflow sheet is not admissible to Arc Relay v8. Replot it natively on the Warren map.",
                             statusCode: 409);
                     }
                 }

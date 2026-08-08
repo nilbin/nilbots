@@ -92,6 +92,21 @@ botarena build .
 botarena play --bot . --opponent hunter --runtime wasm
 ```
 
+`nilbots build` writes both `out/bot.wasm` and
+`out/bot.build-receipt.json`. The receipt records the controlled build-input
+SHA-256 (the same identity used by the build cache), artifact SHA-256, and the
+pinned SDK, guest, compiler, and pipeline versions. When a first-party player
+artifact is tracked outside `out/`, copy the receipt beside it and add a test
+that recomputes the source/build-input hash and artifact hash from HEAD. This
+is a release guard, not provenance decoration: changing source or framework
+bytes without rebuilding must fail before a stale module can be frozen into a
+playlist.
+
+Frozen playlist directories are append-only. A later controlled rebuild mints
+a new directory and playlist version; it never replaces the historical
+`bot.wasm` or receipt. On macOS, the build still flows through
+`scripts/run-wasm-publish.sh` and its platform-matched Docker builder.
+
 Player builds use two caches:
 
 - `~/.botarena/cache`: content-addressed final bot artifacts;

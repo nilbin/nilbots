@@ -215,7 +215,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
 
                     bool admissible = sheets.TryGetValue(
                             entrant.Id, out TacticalSheet? sheet)
-                        && TacticalSheetCompiler.IsAdmissibleToV7(
+                        && TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(
                             sheet.LayoutJson);
                     if (!admissible)
                     {

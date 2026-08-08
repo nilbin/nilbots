@@ -37,7 +37,7 @@ export default function DocsPage() {
           and rating.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v7 and the local <code>nilbots arc-relay</code> default
+          Hosted playlist v8 and the local <code>nilbots arc-relay</code> default
           both run ambush-warren-11 on the deep Warren. Counterflow-era sheets
           remain readable history but must be replotted natively before v7 admission;
           coordinates are never projected between maps. v7 ratings start fresh.

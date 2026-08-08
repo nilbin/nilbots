@@ -52,7 +52,7 @@ public sealed class ArcRelayEntrantProjector(
                 System.Text.Json.JsonDocument.Parse(sheet.PlaybookJson);
             classes = playbook.RootElement.GetProperty("composition")
                 .EnumerateArray().Select(value => value.GetString()!).ToArray();
-            status = !TacticalSheetCompiler.IsAdmissibleToV7(sheet.LayoutJson)
+            status = !TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(sheet.LayoutJson)
                 ? "legacy"
                 : suspensionDisclosed ? "suspended" : "ready";
         }

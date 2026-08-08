@@ -3,7 +3,7 @@
 Status: **hosted source and runtime format**. The exhaustive normalized IR
 remains internal evaluation/compiler infrastructure; the player-facing surface
 is the guided editor specified in `docs/SHEET-AUTHORING.md`. Hosted entrant
-playlist v7 admits the same `arc-relay-tactical-playbook-v1` source format on
+playlist v8 admits the same `arc-relay-tactical-playbook-v1` source format on
 the Warren map only.
 
 The tactical playbook is a deterministic data layer for testing whether Arc

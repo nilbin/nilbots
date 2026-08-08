@@ -296,7 +296,7 @@ the **replay header**: every replay carries
 `spawnAnchors` and `tileTags`, which is enough to draw the board exactly.
 Running any match (`nilbots arc-relay …`) produces one; the hosted editor gets
 the same engine export directly from `/api/sheets/catalog`. Hosted entrant
-playlist v7 accepts this map id only. Counterflow-era saved sheets remain
+playlist v8 accepts this map id only. Counterflow-era saved sheets remain
 readable as legacy source, but their coordinates are never projected or
 migrated onto the Warren.
 

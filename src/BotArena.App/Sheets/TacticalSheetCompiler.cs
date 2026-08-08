@@ -48,7 +48,7 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"Layout targets '{mapId}'. Hosted Arc Relay v7 requires "
+                $"Layout targets '{mapId}'. Hosted Arc Relay v8 requires "
                 + $"the native '{ArcRelayLoopProfile.AmbushWarren11.MapId}' "
                 + "Warren layout; legacy Counterflow geometry is not migrated.");
         }
@@ -62,7 +62,7 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             composition);
     }
 
-    public static bool IsAdmissibleToV7(string layoutJson)
+    public static bool IsAdmissibleToCurrentPlaylist(string layoutJson)
     {
         try
         {

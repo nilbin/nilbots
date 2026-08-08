@@ -199,9 +199,11 @@ Project boundaries that must not be violated:
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
-  playlist v7 pins that same rules/map line with Warren-native tactical sheets
-  and a fresh rating era. v6 remains the readable/executable ForwardCombat on
-  Counterflow history; never mutate it or migrate its sheet geometry. Sheets
+  playlist v8 pins that same rules/map line with Warren-native tactical sheets
+  and the repaired tactical WASM artifact. v7 began the fresh Warren rating
+  era and remains immutable; v8 carries those ratings because no game fact
+  changed. v6 remains the readable/executable ForwardCombat on Counterflow
+  history; never mutate it or migrate its sheet geometry. Sheets
   compile through
   `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
   `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call
@@ -276,7 +278,14 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   identical replay hash. The WASM host shims `clock_time_get`/`random_get`, so
   even bots calling `DateTime.UtcNow`/`Random.Shared` replay identically.
   Guarded by `BotArena.Determinism.Tests` and the WASM contract tests
-  (in-process vs WASM hash equality).
+  (in-process vs WASM hash equality), including a full Arc Relay tactical-mind
+  match on the MIND profile. A local `--runtime in-process` run and a
+  `--runtime wasm` run intentionally record different participant provenance
+  (`runtimeKind` and executable/artifact identity), so their outer replay
+  hashes differ even when every gameplay byte agrees. For cross-host gameplay
+  comparison, hold participant provenance equal in the parity harness or use
+  `scripts/arc-relay-state-digest.py`; never present raw diagnostic CLI hashes
+  as the cross-host comparison.
 - Gameplay-affecting values live only in `GameRules` and are pinned by the
   rules version; the PRNG (SplitMix64) and seed derivation are pinned by
   golden-value tests — if `RandomTests.GoldenValues_PinTheAlgorithm` fails you
@@ -436,6 +445,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   it (`scripts/build-wasm-guest.sh`) after touching Sdk/Guest/Bots.BuiltIn/
   WasmGuest. `scripts/test.sh` calls the input-stamped build unconditionally,
   preventing a stale tracked artifact.
+- A tracked player artifact must carry `bot.build-receipt.json` beside
+  `bot.wasm`. The receipt binds the exact controlled build-input cache key and
+  artifact SHA-256; a test must recompute both from HEAD. Never update a
+  tracked artifact without its receipt, and never amend an already pinned
+  frozen playlist artifact — mint the next artifact directory and playlist
+  version.
 - The NativeAOT compiler executable is Linux-only (x64 and arm64 hosts). On
   macOS, let `run-wasm-publish.sh` pick the platform-matched Docker builder;
   forcing a non-native platform via `BOTARENA_WASM_DOCKER_PLATFORM` runs the

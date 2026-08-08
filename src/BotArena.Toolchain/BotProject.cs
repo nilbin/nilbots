@@ -397,12 +397,12 @@ public static class ToolchainInfo
     /// permanent alias, and the tactical playbook compiler now lives in the
     /// shared BotArena.TacticalPlaybooks library that the hosted App validates
     /// saves through. No rules, map, contract, or sheet format moves.
+    /// 0.9.35 makes ambush-warren-11 the Arc Relay command default and ships
+    /// the contract used by hosted entrant playlist v7. 0.9.36 carries the
+    /// pending-strike wire repair, tracked build receipts, and immutable
+    /// entrant playlist v8 without changing the Arc Relay game line.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    /// 0.9.35 makes ambush-warren-11 the Arc Relay command default and ships
-    /// the contract used by hosted entrant playlist v7.
-    /// 0.9.36 carries the additive Arc Relay pending-strike observation wire
-    /// field, tracked-artifact build receipts, and hosted entrant playlist v8.
     public const string CliVersion = "0.9.36";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).

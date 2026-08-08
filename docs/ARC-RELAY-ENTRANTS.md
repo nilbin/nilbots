@@ -14,12 +14,13 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v7: rules
+The current hosted identity is immutable entrant playlist v8: rules
 `arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
 the default local `nilbots arc-relay` command. v7 began a fresh rating era;
-ForwardCombat/Counterflow v6 ratings and matches remain readable history but
-were not copied. Rating continuity across revisions applies within an era, not
-across a different game line.
+v8 repairs its frozen WASM artifact and carries v7 ratings because the game
+line did not change. ForwardCombat/Counterflow v6 ratings and matches remain
+readable history but were not copied. Rating continuity across revisions and
+the v7→v8 artifact repair applies within an era, not across a different game.
 
 ## Admission and composition
 
@@ -34,9 +35,9 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v7's stock sheet is frozen
+sheet and opens it in the ordinary replay viewer. v8's stock sheet is frozen
 Wellwright v1. New layouts are authored directly on the Warren export;
-Counterflow-era sheets are shown as legacy and cannot enter v7 until replotted.
+Counterflow-era sheets are shown as legacy and cannot enter v8 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault
