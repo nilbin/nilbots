@@ -23,7 +23,11 @@ import {
 } from '../replayPresentation';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
-import { teamVisionAt, teamVisionSeesActor } from '../render/teamVision';
+import {
+  allUnitVisibleTilesAt,
+  teamVisionAt,
+  teamVisionSeesActor,
+} from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 
@@ -138,18 +142,27 @@ export function buildOverlays(
       showVisibility,
     );
 
+    // With no selected perspective, raised terrain still follows the union of every
+    // unit's published sight. That gives static walls a useful lit/unlit depth rhythm
+    // without hiding actors or putting the omniscient spectator floor under team fog.
+    const terrainVision = teamVision?.visibleTiles ??
+      allUnitVisibleTilesAt(replay.ticks[tick]);
+
     // Repainting the mask is a loop over every tile on the map, and the playhead crosses
     // dozens of frames per tick — so it only happens when the answer can have changed.
-    const signature = `${teamVision ? tick : -1}:${teamVision?.teamId ?? -1}`;
+    const signature = terrainVision === null
+      ? 'unpublished'
+      : `${tick}:${teamVision ? `team-${teamVision.teamId}` : 'all-units'}`;
     if (signature !== painted) {
       painted = signature;
       fog.paint(
-        teamVision
-          ? [...teamVision.visibleTiles].map((key) => {
+        terrainVision
+          ? [...terrainVision].map((key) => {
               const [x, y] = key.split(',').map(Number);
               return { x: x!, y: y! };
             })
           : undefined,
+        teamVision !== null,
       );
     }
 
@@ -395,16 +408,18 @@ function buildPlayAwareness(
 }
 
 /**
- * Fog as one shared mask over the floor and raised terrain.
+ * Fog as one shared texture with two spectator scopes.
  *
  * One texture with a texel per tile, laid over the arena and resampled smoothly, rather
  * than a quad per hidden tile — the whole mask is one draw call and one upload per tick,
  * and the linear filter gives the soft boundary the flat renderer gets from a blur.
  *
- * The plane darkens the floor. Wall, detail, and woodland materials sample the same mask
- * from fragment world position, so raised blockers do not stay brightly lit over unseen
- * ground. This cannot be done with a second horizontal plane: lifting one above the trees
- * shifts its mask by most of a tile through the MOBA camera and slices the wrong terrain.
+ * With a unit selected, the plane darkens the floor and raised terrain samples the same
+ * team mask from fragment world position. Without a selection, the plane stays hidden but
+ * raised terrain samples the cross-team union: any active unit can light a wall while
+ * actors and open ground remain omniscient. This cannot be done with a second horizontal
+ * plane: lifting one above the trees shifts its mask by most of a tile through the MOBA
+ * camera and slices the wrong terrain.
  */
 function buildFog(
   mapWidth: number,
@@ -412,7 +427,10 @@ function buildFog(
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
-  paint: (visible: readonly ReplayPosition[] | undefined) => void;
+  paint: (
+    visible: readonly ReplayPosition[] | undefined,
+    floorFogged: boolean,
+  ) => void;
   texture: THREE.DataTexture;
   enabled: { value: number };
   mapSize: THREE.Vector2;
@@ -438,8 +456,11 @@ function buildFog(
   const enabled = { value: 0 };
   const mapSize = new THREE.Vector2(mapWidth, mapHeight);
 
-  const paint = (visible: readonly ReplayPosition[] | undefined) => {
-    mesh.visible = visible !== undefined;
+  const paint = (
+    visible: readonly ReplayPosition[] | undefined,
+    floorFogged: boolean,
+  ) => {
+    mesh.visible = floorFogged && visible !== undefined;
     enabled.value = visible === undefined ? 0 : 1;
     if (!visible) return;
 

@@ -62,14 +62,16 @@ cells (`w-9001`, `w-9002`, `e-9005`, `e-9009`, `w-9012`, `e-9004`). Every
 replay header records `themeId: woodland-grove`. The current desktop frames
 use sample 01 during live play with Kestrel selected for team vision:
 
-- `review/ambush-warren-gameplay-webgl.webp` — revision-6 WebGL 24-tile Well
-  overview through the restrained 12° side rotation.
-- `review/ambush-warren-director-webgl.webp` — revision-6 unattended director
-  at its closer seven-tile floor.
-- `review/ambush-warren-follow-webgl.webp` — revision-6 selection shot with an
+- `review/ambush-warren-gameplay-webgl.webp` — revision-7 WebGL 24-tile Well
+  overview with the all-unit raised-terrain mask and fully lit spectator floor.
+- `review/ambush-warren-director-webgl.webp` — revision-7 unattended director
+  at its closer seven-tile floor with the same terrain-only default vision.
+- `review/ambush-warren-follow-webgl.webp` — revision-7 selection shot with an
   eight-tile tight axis, viewport-aware 63×63 interaction floor, and enough
   neighboring terrain to read the immediate fight.
 
 The prior Canvas2D frame is retained only as fallback history; this revision
 was judged in 3D. Bodies, team accents, labels, projectiles, wells, reactors,
-and combat overlays remain readable over the subdued floor.
+and combat overlays remain readable over the subdued floor. Without a selected
+perspective, raised trees stay dim until any active unit's published vision
+lights their tiles; selecting a unit retains the stricter team-only fog mode.

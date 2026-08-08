@@ -461,13 +461,18 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.ok(!Array.isArray(canopyMaterial));
     const fog = canopyMaterial.userData.arenaVisionFog as {
       enabled: { value: number };
+      mesh: THREE.Mesh;
       texture: THREE.DataTexture;
     };
     assert.ok(fog, 'living wall materials receive the team-vision mask');
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
     assert.equal(fog.enabled.value, 1);
+    assert.equal(fog.mesh.visible, true, 'selection fog also covers the floor');
     const mask = fog.texture.image.data as Uint8Array;
+    const selectedVisible = mask.filter(
+      (value, index) => index % 4 === 3 && value === 0,
+    ).length;
     assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
     assert.ok(
       mask.some((value, index) => index % 4 === 3 && value > 0 && value < 200),
@@ -484,7 +489,15 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.match(shader.fragmentShader, /arenaVisionFogMap/);
     assert.ok('arenaVisionFogEnabled' in shader.uniforms);
     overlays.update(0, null, false);
-    assert.equal(fog.enabled.value, 0, 'turning vision off restores all terrain');
+    assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
+    assert.equal(fog.mesh.visible, false, 'the omniscient floor remains fully lit');
+    const allUnitVisible = mask.filter(
+      (value, index) => index % 4 === 3 && value === 0,
+    ).length;
+    assert.ok(
+      allUnitVisible > selectedVisible,
+      'either team can light raised terrain when no perspective is selected',
+    );
     overlays.dispose();
     arena.dispose();
   } finally {

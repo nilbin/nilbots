@@ -4,7 +4,10 @@ import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
 import { loadReplayObject } from '../src/replayIngress.ts';
 import type { ArcRelayBroadcastV1 } from '../src/replayBroadcastV1.ts';
-import { teamVisionAt } from '../src/render/teamVision.ts';
+import {
+  allUnitVisibleTilesAt,
+  teamVisionAt,
+} from '../src/render/teamVision.ts';
 
 test('the compact Arc Relay vision column stays one shared snapshot per team', () => {
   const fixture = new URL(
@@ -45,4 +48,9 @@ test('the compact Arc Relay vision column stays one shared snapshot per team', (
     assert.deepEqual([...vision.visibleTiles], [`${index + 2},${index + 3}`]);
   }
   assert.equal(replay.ticks[0]!.publishedTeamVision?.length, teams.length);
+  assert.deepEqual(
+    [...(allUnitVisibleTilesAt(replay.ticks[0]) ?? [])].sort(),
+    teams.map((_, index) => `${index + 2},${index + 3}`).sort(),
+    'the default terrain mask unions every compact team snapshot once',
+  );
 });

@@ -21,6 +21,44 @@ const actorSlot = (teamId: number, unitId: number): string =>
   `${teamId}:${unitId}`;
 
 /**
+ * Every tile currently lit by at least one active unit, regardless of team.
+ *
+ * This is spectator terrain knowledge, not a player perspective: it is suitable for
+ * shading static raised blockers while leaving actors and the floor omniscient. Selecting
+ * a unit still uses `teamVisionAt` and therefore never receives this cross-team union.
+ * `null` means the replay predates published vision and must not be presented as darkness;
+ * an empty set is authoritative and means no surviving unit lights any tile.
+ */
+export function allUnitVisibleTilesAt(
+  tick: ReplayTick | undefined,
+): ReadonlySet<string> | null {
+  if (!tick) return null;
+
+  if (tick.publishedTeamVision !== undefined) {
+    const visibleTiles = new Set<string>();
+    for (const team of tick.publishedTeamVision)
+      for (const tile of team.visibleTiles)
+        visibleTiles.add(tileKey(tile.x, tile.y));
+    return visibleTiles;
+  }
+
+  if (tick.actorTurns.length === 0)
+    return tick.before.actors.length === 0 ? new Set<string>() : null;
+  if (
+    tick.actorTurns.every(
+      (turn) => turn.observation.visibleTiles.length === 0,
+    )
+  )
+    return null;
+
+  const visibleTiles = new Set<string>();
+  for (const turn of tick.actorTurns)
+    for (const { position } of turn.observation.visibleTiles)
+      visibleTiles.add(tileKey(position.x, position.y));
+  return visibleTiles;
+}
+
+/**
  * Union every active teammate's recorded observation.
  *
  * This remains replay-honest: it reveals nothing outside the team's published turns and
